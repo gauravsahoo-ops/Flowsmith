@@ -16,12 +16,14 @@ from app.nodes.registry import register
 @register
 class LoopOverItemsNode(BaseNode[LoopParams]):
     node_type = "loop_over_items"
-    display_name = "Loop Over Items (Split in Batches)"
+    display_name = "Loop Over Items"
     version = 1
     description = "Split data into batches and iterate over each batch"
     category = "Flow"
     icon = "loop_over_items"
     parameters_schema = LoopParams
+    input_handles = ["main"]
+    output_handles = ["done", "loop"]
     _delegate = LoopNode()
 
     async def run(

@@ -35,6 +35,8 @@ class LoopNode(BaseNode[LoopParams]):
     category = "Flow"
     icon = "loop_over_items"
     parameters_schema = LoopParams
+    input_handles = ["main"]
+    output_handles = ["done", "loop"]
 
     async def run(
         self,
@@ -57,7 +59,6 @@ class LoopNode(BaseNode[LoopParams]):
                     else:
                         output_items.append({"value": element})
             elif isinstance(target, dict):
-                # If the target is a dict (not a list), pass it through
                 output_items.append(target)
             elif target is not None:
                 output_items.append({"value": target})
@@ -66,7 +67,14 @@ class LoopNode(BaseNode[LoopParams]):
                 output_items = output_items[: params.batch_size]
                 break
 
-        return NodeResult(output_items=output_items)
+        return NodeResult(
+            output_items=output_items,
+            output_by_handle={
+                "main": output_items,
+                "done": output_items,
+                "loop": output_items,
+            },
+        )
 
 
 def _resolve_field(item: dict[str, Any], field: str) -> Any:
