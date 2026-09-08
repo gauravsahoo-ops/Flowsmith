@@ -412,7 +412,7 @@ export default function NodeEditorModal() {
             <div className="nem-panel-body">
               {!settingsTab ? (
                 <>
-                  {node.type !== 'filter' && meta?.idempotency && (
+                  {meta?.idempotency && (
                     <p className={`hint idempotency idem-${meta.idempotency}`} title={IDEMPOTENCY_HINT[meta.idempotency]}>
                       {IDEMPOTENCY_LABEL[meta.idempotency] || meta.idempotency}
                     </p>
@@ -607,15 +607,6 @@ export default function NodeEditorModal() {
                     )}
                   </div>
                 </>
-              ) : node.type === 'filter' ? (
-                <FilterNodeEditor
-                  node={node}
-                  onParamsChange={handleParamsChange}
-                  onSettingsChange={setSetting}
-                  mapping={mapping}
-                  onPreview={previewExpression}
-                  tab="settings"
-                />
               ) : (
                 <>
                   <CollapsibleSection title="General" defaultOpen={true}>

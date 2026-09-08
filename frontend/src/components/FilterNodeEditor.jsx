@@ -248,6 +248,9 @@ export default function FilterNodeEditor({
   if (tab === 'parameters') {
     return (
       <div className="filter-editor">
+        <div className="filter-info-banner">
+          Filter items in the workflow data stream. Only items satisfying the conditions below continue to subsequent nodes.
+        </div>
         {/* Conditions Section Card */}
         <div className="filter-section">
           <div className="filter-section-header">
@@ -282,7 +285,7 @@ export default function FilterNodeEditor({
                       {cond.combinator || 'AND'}
                     </button>
                   ) : (
-                    <span style={{ fontSize: 11, color: '#71717a', fontWeight: 600 }}>
+                    <span className="filter-condition-index">
                       Condition #{idx + 1}
                     </span>
                   )}
@@ -523,11 +526,7 @@ export default function FilterNodeEditor({
           )}
         </div>
 
-        {/* Footer Wish Link */}
-        <div className="filter-footer-wish">
-          <span>💡</span>
-          <span>I wish this node would...</span>
-        </div>
+
       </div>
     )
   }
