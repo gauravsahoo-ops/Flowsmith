@@ -117,8 +117,11 @@ function CustomNode({ id, data, selected }) {
     CATEGORY_COLORS[meta?.category] ||
     '#5b6472'
 
+  const isLoop = data.node.type === 'loop' || data.node.type === 'loop_over_items'
   const inputHandles = meta?.input_handles?.length ? meta.input_handles : ['main']
-  const outputHandles = meta?.output_handles?.length ? meta.output_handles : ['main']
+  const outputHandles = isLoop
+    ? ['done', 'loop']
+    : (meta?.output_handles?.length ? meta.output_handles : ['main'])
   const nInputs = inputHandles.length
   const nOutputs = outputHandles.length
 
