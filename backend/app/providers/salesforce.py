@@ -144,7 +144,7 @@ class SalesforceProviderClient:
         # Reuse unexpired access token from stored credentials if present
         access_token = (creds.get("access_token") or "").strip()
         expires_at = creds.get("expires_at") or 0
-        if access_token and (not expires_at or time.time() < (float(expires_at) - 60)):
+        if access_token and (expires_at and float(expires_at) > 0 and time.time() < (float(expires_at) - 60)):
             self._token = access_token
             self._token_key = self._token_cache_key(creds)
             self._token_expires_at = time.monotonic() + self._token_ttl_s

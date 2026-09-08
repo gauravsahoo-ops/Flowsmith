@@ -879,6 +879,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                     sf_client._token = None
                     sf_client._token_expires_at = 0.0
                     sf_creds_copy = dict(sf_creds)
+                    sf_creds_copy["access_token"] = ""
                     sf_creds_copy["expires_at"] = 0
                     fresh_token = await sf_client.authenticate(sf_creds_copy)
                     if fresh_token:
@@ -894,8 +895,32 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                             "Auto-refreshed expired Salesforce session on 401 and retried HTTP request (new status: %s)",
                             response.status_code,
                         )
+                        # Persist renewed token to credential in DB
+                        if sf_creds.get("_credential_id"):
+                            try:
+                                import json as _json
+                                from app.db import get_session
+                                from app.models.credential import Credential
+                                from app.security.crypto import encrypt_text, decrypt_text
+                                with get_session() as db_sess:
+                                    c_rec = db_sess.get(Credential, sf_creds["_credential_id"])
+                                    if c_rec:
+                                        c_dict = _json.loads(decrypt_text(c_rec.data))
+                                        c_dict["access_token"] = fresh_token
+                                        c_rec.data = encrypt_text(_json.dumps(c_dict))
+                                        db_sess.commit()
+                            except Exception:
+                                pass
                 except Exception as ex:
                     logger.warning("Auto-refresh for Salesforce in HTTPRequestNode failed: %s", ex)
+                    if "invalid_grant" in str(ex).lower() or "expired access/refresh token" in str(ex).lower():
+                        raise NodeExecutionError(
+                            "Salesforce session expired and auto-refresh failed: The refresh token itself has expired on Salesforce (invalid_grant: expired access/refresh token). Please click 'Reconnect' on your Salesforce credential in Credentials page.",
+                            code="AUTH_FAILED",
+                            node_id=self.node_type,
+                            retryable=False,
+                            details={"original_error": str(ex)},
+                        ) from ex
             elif "oauth2" in ctx.credentials and isinstance(ctx.credentials["oauth2"], dict):
                 oauth_creds = ctx.credentials["oauth2"]
                 if oauth_creds.get("refresh_token"):
