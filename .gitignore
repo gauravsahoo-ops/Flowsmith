@@ -1,0 +1,51 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# Environments & secrets
+.env
+.env.*
+!.env.example
+!*.example
+
+# Node / frontend
+node_modules/
+dist/
+html/
+frontend/html/
+frontend/dist/
+playwright-report/
+test-results/
+
+# Logs & local runtime
+*.log
+opencode-serve*.log
+.runtime/
+chroma_db/
+data/
+backend/data/
+backend/logs/
+backend/tmp/
+
+# Databases & backups
+*.db
+*.sqlite
+*.sqlite3
+backups/
+
+# Editors & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Scratch & temporary
+scratch/
+test_report.html
+TODO.md
+Smithflow/
+Flowsmith/

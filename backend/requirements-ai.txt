@@ -1,0 +1,11 @@
+# Optional AI extras for the AI nodes (backend/app/nodes/): local
+# sentence-transformers embedding generation.
+# Install with:
+#
+#   pip install -r requirements-ai.txt
+#
+# The base requirements.txt intentionally keeps the core + Docker image
+# small; without these, the rag_pipeline node reports OPTIONAL_DEPS_MISSING
+# when run (the pgvector store itself needs no extras).
+
+sentence-transformers>=3.0
