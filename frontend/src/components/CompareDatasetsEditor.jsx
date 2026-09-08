@@ -6,7 +6,7 @@ const DIFFERENCE_MODES = [
   {
     id: 'includeBoth',
     title: 'Include Both Versions',
-    desc: 'Output contains all data (but structure more complex)',
+    desc: 'Output contains all data from both Input A and Input B',
   },
   {
     id: 'useA',
@@ -125,20 +125,25 @@ export default function CompareDatasetsEditor({
   }
 
   const selectedDiffOption = DIFFERENCE_MODES.find(m => m.id === whenThereAreDifferences) || DIFFERENCE_MODES[0]
-
   const unusedOptions = AVAILABLE_OPTIONS.filter(opt => options[opt.id] === undefined)
 
   return (
     <div className="compare-editor">
-      {/* Top Banner */}
+      {/* Top Banner - Flowsmith Design System */}
       <div className="compare-info-banner">
-        Items from different branches are paired together when the fields below match. If paired, the rest of the fields are compared to determine whether the items are the same or different.
+        <span className="compare-info-icon">ℹ</span>
+        <span>
+          Items from different input branches are paired together when the match fields are equal. The remaining fields are then compared to determine whether records match or differ.
+        </span>
       </div>
 
       {/* Fields to Match Section */}
       <div className="compare-section-card">
         <div className="compare-section-header">
-          <h4 className="compare-section-title">Fields to Match</h4>
+          <div className="compare-section-title-wrap">
+            <span className="compare-section-title">Fields to Match</span>
+            <span className="compare-section-badge">{fieldsToMatch.length}</span>
+          </div>
           <button
             type="button"
             className="compare-icon-btn"
@@ -149,83 +154,88 @@ export default function CompareDatasetsEditor({
           </button>
         </div>
 
-        {fieldsToMatch.map((match, idx) => {
-          const isCollapsed = Boolean(collapsedCards[match.id])
-          return (
-            <div key={match.id} className="compare-match-card">
-              <div
-                className="compare-match-card-header"
-                onClick={() => toggleCollapse(match.id)}
-              >
-                <div className="compare-match-card-title">
-                  <span className={`compare-match-card-arrow ${!isCollapsed ? 'open' : ''}`}>
-                    ›
-                  </span>
-                  <span>Values {idx + 1}</span>
-                  {(match.fieldA || match.fieldB) && (
-                    <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>
-                      ({match.fieldA || '—'} = {match.fieldB || '—'})
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="filter-remove-btn"
-                  title="Remove this field match"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    removeFieldMatch(match.id)
-                  }}
+        <div className="compare-match-list">
+          {fieldsToMatch.map((match, idx) => {
+            const isCollapsed = Boolean(collapsedCards[match.id])
+            return (
+              <div key={match.id} className="compare-match-card">
+                <div
+                  className="compare-match-card-header"
+                  onClick={() => toggleCollapse(match.id)}
                 >
-                  ✕
-                </button>
+                  <div className="compare-match-card-title">
+                    <span className="compare-collapse-icon">
+                      {isCollapsed ? '▸' : '▾'}
+                    </span>
+                    <span className="compare-match-card-label">Values {idx + 1}</span>
+                    {(match.fieldA || match.fieldB) && (
+                      <span className="compare-match-card-preview">
+                        ({match.fieldA || '—'} = {match.fieldB || '—'})
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="compare-remove-btn"
+                    title="Remove this field match"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      removeFieldMatch(match.id)
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {!isCollapsed && (
+                  <div className="compare-match-card-body">
+                    <div className="compare-field-group">
+                      <MappingField
+                        schema={{
+                          title: 'Input A Field',
+                          description: 'Field name or expression from Input A',
+                        }}
+                        value={match.fieldA || ''}
+                        onChange={(v) => updateFieldMatch(match.id, { fieldA: v })}
+                        path={`fieldA_${match.id}`}
+                        mapping={mapping}
+                        onPreview={onPreview}
+                      />
+                    </div>
+
+                    <div className="compare-field-group">
+                      <MappingField
+                        schema={{
+                          title: 'Input B Field',
+                          description: 'Field name or expression from Input B',
+                        }}
+                        value={match.fieldB || ''}
+                        onChange={(v) => updateFieldMatch(match.id, { fieldB: v })}
+                        path={`fieldB_${match.id}`}
+                        mapping={mapping}
+                        onPreview={onPreview}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {!isCollapsed && (
-                <>
-                  <div className="compare-field-group">
-                    <label className="compare-field-label">Input A Field</label>
-                    <input
-                      type="text"
-                      className="compare-field-input"
-                      placeholder="e.g. id"
-                      value={match.fieldA || ''}
-                      onChange={(e) => updateFieldMatch(match.id, { fieldA: e.target.value })}
-                    />
-                    <span className="compare-field-hint">Enter the field name as text</span>
-                  </div>
-
-                  <div className="compare-field-group">
-                    <label className="compare-field-label">Input B Field</label>
-                    <input
-                      type="text"
-                      className="compare-field-input"
-                      placeholder="e.g. id"
-                      value={match.fieldB || ''}
-                      onChange={(e) => updateFieldMatch(match.id, { fieldB: e.target.value })}
-                    />
-                    <span className="compare-field-hint">Enter the field name as text</span>
-                  </div>
-                </>
-              )}
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
 
         <button
           type="button"
           className="compare-add-btn"
           onClick={addFieldMatch}
         >
-          + Add Fields to Match
+          <span>+</span> Add Fields to Match
         </button>
       </div>
 
       {/* When There Are Differences */}
-      <div className="compare-field-group" ref={diffMenuRef}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="compare-section-card" ref={diffMenuRef}>
+        <div className="compare-field-header">
           <label className="compare-field-label">When There Are Differences</label>
-          <span style={{ fontSize: 10, color: '#64748b' }}>Fixed</span>
         </div>
 
         <div className="compare-select-wrap">
@@ -234,8 +244,11 @@ export default function CompareDatasetsEditor({
             className={`compare-select-btn ${diffMenuOpen ? 'open' : ''}`}
             onClick={() => setDiffMenuOpen(!diffMenuOpen)}
           >
-            <span>{selectedDiffOption.title}</span>
-            <span style={{ fontSize: 9, color: '#94a3b8' }}>{diffMenuOpen ? '▲' : '▼'}</span>
+            <div className="compare-select-value">
+              <span className="compare-select-title">{selectedDiffOption.title}</span>
+              <span className="compare-select-desc">{selectedDiffOption.desc}</span>
+            </div>
+            <span className="compare-select-arrow">{diffMenuOpen ? '▴' : '▾'}</span>
           </button>
 
           {diffMenuOpen && (
@@ -249,10 +262,13 @@ export default function CompareDatasetsEditor({
                     className={`compare-select-item ${isSelected ? 'active' : ''}`}
                     onClick={() => setDiffMode(mode.id)}
                   >
-                    <span className="compare-select-item-title">{mode.title}</span>
-                    {mode.desc && (
-                      <span className="compare-select-item-desc">{mode.desc}</span>
-                    )}
+                    <div className="compare-select-item-content">
+                      <span className="compare-select-item-title">{mode.title}</span>
+                      {mode.desc && (
+                        <span className="compare-select-item-desc">{mode.desc}</span>
+                      )}
+                    </div>
+                    {isSelected && <span className="compare-select-check">✓</span>}
                   </button>
                 )
               })}
@@ -262,36 +278,41 @@ export default function CompareDatasetsEditor({
       </div>
 
       {/* Fuzzy Compare Toggle */}
-      <div className="compare-toggle-row" style={{ position: 'relative' }}>
-        <div className="compare-toggle-label">
-          <span>Fuzzy Compare</span>
-          <span
-            className="compare-help-icon"
-            onMouseEnter={() => setShowFuzzyTooltip(true)}
-            onMouseLeave={() => setShowFuzzyTooltip(false)}
-          >
-            ⓘ
-          </span>
-          {showFuzzyTooltip && (
-            <div className="compare-tooltip-bubble">
-              Whether to tolerate small type differences when comparing fields. E.g. the number 3 and the string &apos;3&apos; are treated as the same.
-            </div>
-          )}
+      <div className="compare-section-card">
+        <div className="compare-toggle-row">
+          <div className="compare-toggle-label-wrap">
+            <span className="compare-toggle-label">Fuzzy Compare</span>
+            <span
+              className="compare-help-icon"
+              onMouseEnter={() => setShowFuzzyTooltip(true)}
+              onMouseLeave={() => setShowFuzzyTooltip(false)}
+            >
+              ?
+            </span>
+            {showFuzzyTooltip && (
+              <div className="compare-tooltip-bubble">
+                Tolerate minor type differences when comparing fields (e.g. number 3 and string &apos;3&apos; are treated as equal).
+              </div>
+            )}
+          </div>
+          <label className="compare-switch">
+            <input
+              type="checkbox"
+              checked={fuzzyCompare}
+              onChange={(e) => toggleFuzzyCompare(e.target.checked)}
+            />
+            <span className="compare-switch-slider" />
+          </label>
         </div>
-        <label className="filter-switch">
-          <input
-            type="checkbox"
-            checked={fuzzyCompare}
-            onChange={(e) => toggleFuzzyCompare(e.target.checked)}
-          />
-          <span className="filter-switch-slider" />
-        </label>
       </div>
 
       {/* Options Section */}
-      <div className="compare-section-card" ref={optionsMenuRef} style={{ position: 'relative' }}>
+      <div className="compare-section-card" ref={optionsMenuRef}>
         <div className="compare-section-header">
-          <h4 className="compare-section-title">Options</h4>
+          <div className="compare-section-title-wrap">
+            <span className="compare-section-title">Options</span>
+            <span className="compare-section-badge">{Object.keys(options).length}</span>
+          </div>
           {unusedOptions.length > 0 && (
             <button
               type="button"
@@ -306,62 +327,67 @@ export default function CompareDatasetsEditor({
 
         {/* Render Active Options */}
         {options.fieldsToSkip !== undefined && (
-          <div className="compare-field-group">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label className="compare-field-label">Fields to Skip Comparing</label>
+          <div className="compare-option-item">
+            <div className="compare-option-item-header">
+              <span className="compare-option-label">Fields to Skip Comparing</span>
               <button
                 type="button"
-                className="filter-remove-btn"
+                className="compare-remove-btn"
                 title="Remove option"
                 onClick={() => handleOptionChange('fieldsToSkip', undefined)}
               >
                 ✕
               </button>
             </div>
-            <input
-              type="text"
-              className="compare-field-input"
-              placeholder="e.g. updatedAt, timestamp"
+            <MappingField
+              schema={{
+                title: 'Fields to Skip',
+                description: 'Comma-separated list of fields to ignore (e.g. updatedAt, id)',
+              }}
               value={options.fieldsToSkip || ''}
-              onChange={(e) => handleOptionChange('fieldsToSkip', e.target.value)}
+              onChange={(v) => handleOptionChange('fieldsToSkip', v)}
+              path="options_fieldsToSkip"
+              mapping={mapping}
+              onPreview={onPreview}
             />
-            <span className="compare-field-hint">Comma-separated list of fields to ignore during comparison</span>
           </div>
         )}
 
         {options.disableDotNotation !== undefined && (
-          <div className="compare-toggle-row">
-            <div className="compare-toggle-label">
-              <span>Disable Dot Notation</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <label className="filter-switch">
-                <input
-                  type="checkbox"
-                  checked={Boolean(options.disableDotNotation)}
-                  onChange={(e) => handleOptionChange('disableDotNotation', e.target.checked)}
-                />
-                <span className="filter-switch-slider" />
-              </label>
-              <button
-                type="button"
-                className="filter-remove-btn"
-                title="Remove option"
-                onClick={() => handleOptionChange('disableDotNotation', undefined)}
-              >
-                ✕
-              </button>
+          <div className="compare-option-item">
+            <div className="compare-toggle-row">
+              <div className="compare-toggle-label-wrap">
+                <span className="compare-toggle-label">Disable Dot Notation</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <label className="compare-switch">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(options.disableDotNotation)}
+                    onChange={(e) => handleOptionChange('disableDotNotation', e.target.checked)}
+                  />
+                  <span className="compare-switch-slider" />
+                </label>
+                <button
+                  type="button"
+                  className="compare-remove-btn"
+                  title="Remove option"
+                  onClick={() => handleOptionChange('disableDotNotation', undefined)}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {options.multipleMatches !== undefined && (
-          <div className="compare-field-group">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label className="compare-field-label">Multiple Matches</label>
+          <div className="compare-option-item">
+            <div className="compare-option-item-header">
+              <span className="compare-option-label">Multiple Matches</span>
               <button
                 type="button"
-                className="filter-remove-btn"
+                className="compare-remove-btn"
                 title="Remove option"
                 onClick={() => handleOptionChange('multipleMatches', undefined)}
               >
@@ -369,7 +395,7 @@ export default function CompareDatasetsEditor({
               </button>
             </div>
             <select
-              className="compare-field-input"
+              className="compare-native-select"
               value={options.multipleMatches || 'first'}
               onChange={(e) => handleOptionChange('multipleMatches', e.target.value)}
             >
@@ -381,13 +407,13 @@ export default function CompareDatasetsEditor({
 
         {/* Add Option button */}
         {unusedOptions.length > 0 && (
-          <div>
+          <div className="compare-add-option-wrap">
             <button
               type="button"
               className="compare-add-btn"
               onClick={() => setOptionsMenuOpen(!optionsMenuOpen)}
             >
-              + Add option
+              <span>+</span> Add Option
             </button>
 
             {optionsMenuOpen && (
@@ -398,7 +424,14 @@ export default function CompareDatasetsEditor({
                     type="button"
                     className="compare-popover-item"
                     onClick={() => {
-                      handleOptionChange(opt.id, opt.id === 'disableDotNotation' ? false : (opt.id === 'multipleMatches' ? 'first' : ''))
+                      handleOptionChange(
+                        opt.id,
+                        opt.id === 'disableDotNotation'
+                          ? false
+                          : opt.id === 'multipleMatches'
+                          ? 'first'
+                          : ''
+                      )
                       setOptionsMenuOpen(false)
                     }}
                   >
