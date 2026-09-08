@@ -132,8 +132,10 @@ class CompareDatasetsNode(BaseNode[CompareDatasetsParams]):
             for m in params.fieldsToMatch:
                 f_a = getattr(m, "fieldA", None) or (m.get("fieldA") if isinstance(m, dict) else "")
                 f_b = getattr(m, "fieldB", None) or (m.get("fieldB") if isinstance(m, dict) else "")
-                if f_a or f_b:
-                    match_pairs.append((f_a or f_b, f_b or f_a))
+                val_a = str(f_a or "")
+                val_b = str(f_b or "")
+                if val_a or val_b:
+                    match_pairs.append((val_a or val_b, val_b or val_a))
         elif params.merge_by == "key_fields" and params.key_fields:
             for k in params.key_fields:
                 match_pairs.append((k, k))

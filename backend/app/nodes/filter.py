@@ -80,12 +80,16 @@ class FilterParams(BaseModel):
         if isinstance(d.get("conditions"), list):
             new_conds = []
             for idx, c in enumerate(d["conditions"]):
-                if hasattr(c, "model_dump"):
-                    c = c.model_dump()
+                c_dict: dict[str, Any]
+                if isinstance(c, dict):
+                    c_dict = c
+                elif hasattr(c, "model_dump"):
+                    c_dict = getattr(c, "model_dump")()
                 elif hasattr(c, "__dict__"):
-                    c = c.__dict__
-                if not isinstance(c, dict):
+                    c_dict = getattr(c, "__dict__")
+                else:
                     continue
+                c = c_dict
                 op_raw = c.get("operator")
                 op_str = str(op_raw) if op_raw is not None else "is equal to"
                 op = LEGACY_OPERATOR_MAP.get(op_str, op_str)

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import SalesforceDiscovery from './SalesforceDiscovery'
 import SalesforceAdditionalFields from './SalesforceAdditionalFields'
 import SearchableSelect from './SearchableSelect'
 
@@ -36,8 +35,6 @@ const ALL_OPS = {
   list: { label: 'List Objects', hint: 'List all objects', backend: 'list' },
   bulk: { label: 'Bulk', hint: 'Bulk load', backend: 'bulk' },
 }
-
-const CURATED_9 = ['add_note','create','upsert','delete','get','get_many','describe','update','custom_api_call']
 
 export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [], onPreview }) {
   const params = node.parameters || {}
@@ -80,7 +77,7 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
       let curatedVal = backendOp
       if (backendOp === 'query') curatedVal = 'get_many'
       else if (backendOp === 'describe') curatedVal = 'describe'
-      else if (backendOp === 'create' && backendOp === 'create') curatedVal = 'create'
+      else if (backendOp === 'create') curatedVal = 'create'
       // For add_note alias, keep distinct
       if (backendOp === 'add_note') curatedVal = 'add_note'
       const meta = ALL_OPS[curatedVal] || ALL_OPS[backendOp] || { label: backendOp, hint: '' }
@@ -187,8 +184,6 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
       if (resource === 'CustomObject' || !next.soql || next.soql.includes('FROM Account') || next.soql.includes('LIMIT')) {
         next.soql = `SELECT ${fields} FROM ${targetObj}`
         next.max_pages = 100
-      } else if (!next.soql) {
-        next.soql = `SELECT ${fields} FROM ${targetObj}`
       }
     } else if (val === 'custom_api_call') {
       next.resource = resource
@@ -246,8 +241,6 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
     }
   }, [resource, objectName, operation])
 
-  // For display, map operation to backend for primary field checks
-  const backendOp = ALL_OPS[operation]?.backend || operation
 
   return (
     <div className="sf-editor">
@@ -352,8 +345,6 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
             <label><span>Records</span><textarea value={typeof params.records === 'string' ? params.records : JSON.stringify(params.records || [], null, 2)} onChange={e => { try { handleChange('records', JSON.parse(e.target.value)) } catch { handleChange('records', e.target.value) } }} placeholder='[{"Name": "Acme"}]' rows={4} /></label>
           </>
         )}
-        {/* Legacy */}
-        {operation === 'query' && false && (<label>legacy</label>)}
       </div>
 
       {['create', 'add_note', 'update', 'upsert'].includes(operation) && (

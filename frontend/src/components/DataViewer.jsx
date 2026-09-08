@@ -1,7 +1,7 @@
 // DataViewer: reusable data display with JSON / Table / Schema tabs.
 // Features: search, copy, pagination, row count, expand/collapse all.
 
-import { memo, useMemo, useState, useCallback, useRef } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import JsonTree from './JsonTree'
 
 const VIEW_MODES = [

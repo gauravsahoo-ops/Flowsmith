@@ -16,6 +16,31 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('monaco-editor') || id.includes('@monaco-editor')) {
+              return 'vendor-monaco'
+            }
+            if (id.includes('@xyflow')) {
+              return 'vendor-flow'
+            }
+            if (
+              id.includes('react') ||
+              id.includes('react-dom') ||
+              id.includes('react-router-dom') ||
+              id.includes('zustand')
+            ) {
+              return 'vendor-react'
+            }
+          }
+        },
+      },
+    },
+  },
   test: {
     include: ['src/**/*.test.js'],
     environment: 'node',
