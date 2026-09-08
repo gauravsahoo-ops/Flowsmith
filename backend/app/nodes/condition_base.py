@@ -236,10 +236,12 @@ def _compare_number(left: Any, operator: str, right: Any, convert_types: bool) -
         if not isinstance(left, (int, float)) or isinstance(left, bool):
             raise NodeExecutionError(f"Left value '{left}' is not a number (convert types is OFF)", code="INVALID_CONDITION", retryable=False)
         if not isinstance(right, (int, float)) or isinstance(right, bool):
-            # Try to parse right as number if it's a string that looks like number? No, strict
-            raise NodeExecutionError(f"Right value '{right}' is not a number (convert types is OFF)", code="INVALID_CONDITION", retryable=False)
+            rn = _to_number(right)
+            if rn is None:
+                raise NodeExecutionError(f"Right value '{right}' is not a number (convert types is OFF)", code="INVALID_CONDITION", retryable=False)
+        else:
+            rn = float(right)
         ln = float(left)
-        rn = float(right)
     # Now compare
     if operator == "is equal to":
         return ln == rn

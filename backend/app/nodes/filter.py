@@ -80,6 +80,10 @@ class FilterParams(BaseModel):
         if isinstance(d.get("conditions"), list):
             new_conds = []
             for idx, c in enumerate(d["conditions"]):
+                if hasattr(c, "model_dump"):
+                    c = c.model_dump()
+                elif hasattr(c, "__dict__"):
+                    c = c.__dict__
                 if not isinstance(c, dict):
                     continue
                 op_raw = c.get("operator")
