@@ -1,0 +1,322 @@
+/* CompareDatasetsEditor.css - Exact n8n styling matching screenshots */
+
+.compare-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--text, #f8fafc);
+  font-size: 13px;
+}
+
+/* Gold/Amber info banner */
+.compare-info-banner {
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #fde68a;
+}
+
+/* Card Sections */
+.compare-section-card {
+  background: #181c24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compare-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.compare-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.compare-icon-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 14px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.compare-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* Values Match Card */
+.compare-match-card {
+  background: #12151c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.compare-match-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.compare-match-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.compare-match-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.compare-match-card-arrow {
+  font-size: 10px;
+  color: #94a3b8;
+  transition: transform 0.15s ease;
+}
+
+.compare-match-card-arrow.open {
+  transform: rotate(90deg);
+}
+
+/* Field input container */
+.compare-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compare-field-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.compare-field-input {
+  width: 100%;
+  background: #0f1217;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: #f8fafc;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.compare-field-input:focus {
+  border-color: #6366f1;
+}
+
+.compare-field-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Custom Select Trigger */
+.compare-select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.compare-select-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0f1217;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  padding: 7px 10px;
+  color: #f8fafc;
+  font-size: 12px;
+  cursor: pointer;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.compare-select-btn:hover,
+.compare-select-btn.open {
+  border-color: rgba(99, 102, 241, 0.6);
+}
+
+.compare-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #181c24;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compare-select-item {
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.compare-select-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.compare-select-item.active {
+  background: rgba(99, 102, 241, 0.18);
+}
+
+.compare-select-item-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.compare-select-item.active .compare-select-item-title {
+  color: #f97316;
+}
+
+.compare-select-item-desc {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Toggle Switch Row */
+.compare-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.compare-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.compare-help-icon {
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: help;
+}
+
+/* Tooltip */
+.compare-tooltip-bubble {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: #0f1217;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #e2e8f0;
+  width: 260px;
+  line-height: 1.4;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Add Buttons */
+.compare-add-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.compare-add-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #e0e7ff;
+}
+
+/* Popover Menu for Add Option */
+.compare-popover-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #181c24;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  z-index: 1000;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compare-popover-item {
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #e2e8f0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.compare-popover-item:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: #ffffff;
+}

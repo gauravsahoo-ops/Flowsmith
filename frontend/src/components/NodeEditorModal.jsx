@@ -26,6 +26,7 @@ import { NodeIcon } from './NodeIcons'
 import IfConditionEditor from './IfConditionEditor'
 import FilterNodeEditor from './FilterNodeEditor'
 import SplitNodeEditor from './SplitNodeEditor'
+import CompareDatasetsEditor from './CompareDatasetsEditor'
 import DataTableDiscovery from './DataTableDiscovery'
 import ExpressionHelper from './ExpressionHelper'
 import {
@@ -467,6 +468,13 @@ export default function NodeEditorModal() {
                     />
                   ) : (node.type === 'split' || node.type === 'item_lists') ? (
                     <SplitNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
+                    />
+                  ) : node.type === 'compare_datasets' ? (
+                    <CompareDatasetsEditor
                       node={node}
                       onParamsChange={handleParamsChange}
                       mapping={mapping}
