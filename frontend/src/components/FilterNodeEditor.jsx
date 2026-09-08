@@ -453,6 +453,11 @@ export default function FilterNodeEditor({
           </div>
         </div>
 
+        {/* Hint */}
+        <div className="hint" style={{ fontSize: 11, background: 'var(--panel-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', marginTop: 10, marginBottom: 10 }}>
+          <strong>Tip:</strong> Use <code>{'{{$json.field}}'}</code> for expressions. Items pass through if all conditions match (AND) or any matches (OR).
+        </div>
+
         {/* Options Section */}
         <div className="filter-options-card" ref={optionsDropdownRef}>
           <div className="filter-options-header">

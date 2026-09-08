@@ -514,8 +514,7 @@ export default function NodeEditorModal() {
                     </CollapsibleSection>
                   )}
 
-                  {node.type !== 'filter' && (
-                    <>
+                  <> 
                       <CollapsibleSection title="Appearance" defaultOpen={false}>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                           <label style={{ width: 80 }}>
@@ -592,7 +591,6 @@ export default function NodeEditorModal() {
                         <AiConfigAssist node={node} updateNode={updateNode} />
                       </CollapsibleSection>
                     </>
-                  )}
 
                   <div className="panel-actions">
                     <button className="ghost" onClick={() => duplicateNodes([node.id])} title="Duplicate this node (Ctrl+D)">

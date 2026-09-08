@@ -405,6 +405,11 @@ export default function CompareDatasetsEditor({
           </div>
         )}
 
+        {/* Hint */}
+        <div className="hint" style={{ fontSize: 11, background: 'var(--panel-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', marginTop: 10, marginBottom: 10 }}>
+          <strong>Tip:</strong> Use <code>{'{{$json.field}}'}</code> for expressions. Items from different branches are paired when match fields are equal.
+        </div>
+
         {/* Add Option button */}
         {unusedOptions.length > 0 && (
           <div className="compare-add-option-wrap">
