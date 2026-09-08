@@ -125,11 +125,15 @@ def validate_graph(workflow: Workflow, graph: Graph | None = None, validate_para
             issues.append({"code": "INVALID_CONNECTION", "node_id": conn.source,
                            "field": "source", "message": f"Connection references unknown source node '{conn.source}'."})
         elif conn.sourceHandle != "main":
-            node_cls = NODE_REGISTRY.get(_node_type(workflow, conn.source))
-            if node_cls is not None and conn.sourceHandle not in node_cls().output_handles:
-                issues.append({"code": "INVALID_OUTPUT_HANDLE", "node_id": conn.source,
-                               "field": "sourceHandle",
-                               "message": f"Node '{conn.source}' has no output handle '{conn.sourceHandle}'."})
+            src_type = _node_type(workflow, conn.source)
+            if src_type in ("loop", "loop_over_items") and conn.sourceHandle in ("done", "loop", "main"):
+                pass
+            else:
+                node_cls = NODE_REGISTRY.get(src_type)
+                if node_cls is not None and conn.sourceHandle not in node_cls().output_handles:
+                    issues.append({"code": "INVALID_OUTPUT_HANDLE", "node_id": conn.source,
+                                   "field": "sourceHandle",
+                                   "message": f"Node '{conn.source}' has no output handle '{conn.sourceHandle}'."})
         if conn.target not in node_ids:
             issues.append({"code": "INVALID_CONNECTION", "node_id": conn.target,
                            "field": "target", "message": f"Connection references unknown target node '{conn.target}'."})
