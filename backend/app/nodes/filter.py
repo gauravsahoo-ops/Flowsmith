@@ -115,6 +115,7 @@ class FilterNode(BaseNode[FilterParams]):
     input_handles = ["main"]
     output_handles = ["main"]
     idempotency_note = "pure transformation"
+    resolves_own_expressions = True
 
     async def run(
         self,
