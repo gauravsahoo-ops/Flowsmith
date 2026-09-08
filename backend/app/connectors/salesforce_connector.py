@@ -468,8 +468,10 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
                 retryable=False,
             )
         self._validate_record_fields(params.record, op="update")
+        # Salesforce rejects update if 'Id' is in the sobject data
+        safe_record = {k: v for k, v in params.record.items() if k.lower() != "id"}
         await self._provider.update_record(
-            creds, params.object_name, record_id, params.record, timeout=params.timeout_seconds
+            creds, params.object_name, record_id, safe_record, timeout=params.timeout_seconds
         )
         return {"output": {"id": record_id, "success": True}, "success": True, "operation": "update"}
 
