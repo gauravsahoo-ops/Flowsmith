@@ -27,6 +27,7 @@ import IfConditionEditor from './IfConditionEditor'
 import FilterNodeEditor from './FilterNodeEditor'
 import SplitNodeEditor from './SplitNodeEditor'
 import CompareDatasetsEditor from './CompareDatasetsEditor'
+import StopAndErrorNodeEditor from './StopAndErrorNodeEditor'
 import DataTableDiscovery from './DataTableDiscovery'
 import ExpressionHelper from './ExpressionHelper'
 import {
@@ -475,6 +476,13 @@ export default function NodeEditorModal() {
                     />
                   ) : node.type === 'compare_datasets' ? (
                     <CompareDatasetsEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
+                    />
+                  ) : node.type === 'stop_and_error' ? (
+                    <StopAndErrorNodeEditor
                       node={node}
                       onParamsChange={handleParamsChange}
                       mapping={mapping}

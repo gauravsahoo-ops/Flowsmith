@@ -16,13 +16,17 @@ from app.nodes.registry import register
 
 
 class StopAndErrorParams(BaseModel):
+    error_type: str = Field(
+        default="errorMessage",
+        description="Type of error to throw: 'errorMessage' or 'errorObject'.",
+    )
     error_message: str = Field(
-        default="An error occurred in the workflow.",
+        default="An error occurred!",
         description="The error message to throw.",
     )
-    error_type: str = Field(
-        default="WorkflowError",
-        description="Type or category of the error.",
+    error_object: Any = Field(
+        default="",
+        description="The custom error object to throw.",
     )
 
 
@@ -33,7 +37,7 @@ class StopAndErrorNode(BaseNode[StopAndErrorParams]):
     version = 1
     description = "Throw an error in the workflow"
     category = "Flow"
-    icon = "🚫"
+    icon = "🛑"
     parameters_schema = StopAndErrorParams
     input_handles = ["main"]
     output_handles = ["main"]
@@ -44,11 +48,19 @@ class StopAndErrorNode(BaseNode[StopAndErrorParams]):
         params: StopAndErrorParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
-        msg = params.error_message or "An error occurred in the workflow."
+        error_type = params.error_type or "errorMessage"
+        if error_type == "errorObject" and params.error_object:
+            err_obj = params.error_object
+            msg = str(err_obj) if not isinstance(err_obj, str) else err_obj
+            details = {"error_object": err_obj, "input_items_count": len(input_items)}
+        else:
+            msg = params.error_message or "An error occurred!"
+            details = {"input_items_count": len(input_items)}
+
         raise NodeExecutionError(
             message=msg,
-            code=params.error_type or "STOP_AND_ERROR",
+            code="STOP_AND_ERROR",
             node_id=ctx.node_id,
             retryable=False,
-            details={"input_items_count": len(input_items)},
+            details=details,
         )
