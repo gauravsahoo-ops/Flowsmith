@@ -196,13 +196,6 @@ export default function Sidebar({ onOpenCredentials }) {
   const discardGenerated = useWorkflowStore((s) => s.discardGenerated)
   const [approving, setApproving] = useState(false)
 
-  if (salesforceOpen) {
-    return (
-      <aside className="sidebar" ref={sidebarRef}>
-        <SalesforceBrowser onClose={() => setSalesforceOpen(false)} />
-      </aside>
-    )
-  }
 
   const flowPopularTypes = new Set(['filter', 'if_condition', 'if', 'loop_over_items', 'loop', 'split_out', 'split', 'merge'])
   const flowOrder = [
@@ -334,6 +327,14 @@ export default function Sidebar({ onOpenCredentials }) {
       },
     ]
   }, [catalog])
+
+  if (salesforceOpen) {
+    return (
+      <aside className="sidebar" ref={sidebarRef}>
+        <SalesforceBrowser onClose={() => setSalesforceOpen(false)} />
+      </aside>
+    )
+  }
 
   return (
     <aside className="sidebar" ref={sidebarRef}>

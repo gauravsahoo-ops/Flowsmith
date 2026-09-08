@@ -104,7 +104,7 @@ def main() -> int:
 
         problems = []
         for table in sorted(set(mig) | set(cur)):
-            if table == "alembic_version":
+            if table in ("alembic_version", "vector_collections"):
                 continue
             if table not in mig:
                 problems.append(f"table '{table}': missing from migrations")

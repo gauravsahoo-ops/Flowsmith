@@ -900,7 +900,7 @@ def get_activation_history(
         if matched_ver is None and versions:
             matched_ver = versions[-1].version
 
-        author_email = users_map.get(ev.user_id, f"User #{ev.user_id}")
+        author_email = users_map.get(ev.user_id, f"User #{ev.user_id}") if ev.user_id is not None else "System"
         timeline.append({
             "id": str(ev.id),
             "action": "activated" if is_activate else "deactivated",
