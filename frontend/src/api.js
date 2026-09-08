@@ -56,8 +56,13 @@ async function requestEnvelope(method, path, body, opts = {}) {
   }
 
   if (resp.status === 401) {
-    setToken(null)
-    window.dispatchEvent(new Event('auth:expired'))
+    // Only clear token and redirect if this 401 came from Flowsmith user auth,
+    // NOT from third-party connectors or external integration errors (e.g. Salesforce, HTTP requests).
+    const isExternalConnector = path.startsWith('/connectors') || path.startsWith('/executions')
+    if (!isExternalConnector) {
+      setToken(null)
+      window.dispatchEvent(new Event('auth:expired'))
+    }
   }
   const text = await resp.text()
   let parsed = null

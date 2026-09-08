@@ -89,7 +89,7 @@ async def _run_salesforce_op(
         http_status = (
             status.HTTP_404_NOT_FOUND
             if exc.code in ("CONNECTOR_NOT_FOUND",)
-            else status.HTTP_401_UNAUTHORIZED
+            else status.HTTP_502_BAD_GATEWAY
             if exc.code in ("CONNECTOR_AUTH_FAILED", "CONNECTOR_FORBIDDEN", "CONNECTOR_NOT_CONFIGURED")
             else status.HTTP_502_BAD_GATEWAY
         )
@@ -131,7 +131,7 @@ async def _resolve_creds(user: User, db: Session, credential_id: str | None = No
         resolved = resolve_credentials(db, user.id, {"salesforce": rec.id})
     except CredentialError as exc:
         raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": exc.code, "message": exc.message},
         ) from exc
     return resolved["salesforce"]
