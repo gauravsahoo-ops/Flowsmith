@@ -128,6 +128,7 @@ export default function Sidebar({ onOpenCredentials }) {
   const groups = useMemo(() => {
     const q = query.trim()
     const matches = catalog.filter((node) => {
+      if (node.type === 'loop') return false
       if (selectedCategory && (node.category || 'Other') !== selectedCategory) {
         return false
       }
@@ -139,7 +140,7 @@ export default function Sidebar({ onOpenCredentials }) {
     const out = {}
     const seen = new Set()
     for (const node of matches) {
-      if (node.icon === '🔌') continue
+      if (node.icon === '🔌' || node.type === 'loop') continue
       const key = `${node.category || 'Other'}::${node.display_name}`
       if (seen.has(key)) continue
       seen.add(key)
@@ -197,13 +198,12 @@ export default function Sidebar({ onOpenCredentials }) {
   const [approving, setApproving] = useState(false)
 
 
-  const flowPopularTypes = new Set(['filter', 'if_condition', 'if', 'loop_over_items', 'loop', 'split_out', 'split', 'merge'])
+  const flowPopularTypes = new Set(['filter', 'if_condition', 'if', 'loop_over_items', 'split_out', 'split', 'merge'])
   const flowOrder = [
     'filter',
     'if_condition',
     'if',
     'loop_over_items',
-    'loop',
     'split_out',
     'split',
     'merge',
