@@ -12,7 +12,7 @@ import asyncio
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.engine.errors import NodeCancelledError
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
@@ -53,6 +53,19 @@ class WaitParams(BaseModel):
 
     # Webhook or form configuration
     webhook_suffix: str = Field(default="", description="Optional webhook suffix.")
+
+    @model_validator(mode="after")
+    def validate_timestamp(self) -> WaitParams:
+        from datetime import datetime
+        target_mode = self.mode or self.resume
+        target_val = self.until or self.date_time
+        if target_mode in ("until", "specificTime") and target_val:
+            if not target_val.startswith("{{"):
+                try:
+                    datetime.fromisoformat(target_val.replace("Z", "+00:00"))
+                except Exception:
+                    raise ValueError(f"Invalid ISO-8601 timestamp: '{target_val}'")
+        return self
 
 
 @register

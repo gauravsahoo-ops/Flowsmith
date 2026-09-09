@@ -44,6 +44,8 @@ class LoopNode(BaseNode[LoopParams]):
         params: LoopParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
+        if not input_items:
+            return NodeResult(output_items=[{}])
         output_items: list[dict[str, Any]] = []
 
         for item in input_items:

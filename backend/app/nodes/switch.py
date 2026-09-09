@@ -127,7 +127,7 @@ class SwitchNode(BaseNode[SwitchParams]):
             return NodeResult(output_by_handle=buckets)
 
         # 2. Rules Mode
-        rules = params.rules or [
+        rules = params.rules if params.rules is not None else [
             SwitchRule(value1="", operator="is equal to", value2="", output="route_0")
         ]
 

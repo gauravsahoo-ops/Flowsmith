@@ -740,10 +740,10 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 for k in list((params.query or {}).keys()):
                     if not str(k).strip():
                         raise NodeExecutionError("Query parameter name must not be empty.", code="BAD_REQUEST", node_id=self.node_type, retryable=False)
-                query = {str(k).strip(): str(v) if v is not None else "" for k, v in (params.query or {}).items() if str(k).strip()}
+                query = {str(k).strip(): v if v is not None else "" for k, v in (params.query or {}).items() if str(k).strip()}
         else:
             if params.query and "sendQuery" not in params.model_fields_set:
-                query = {str(k).strip(): str(v) if v is not None else "" for k, v in params.query.items() if str(k).strip()}
+                query = {str(k).strip(): v if v is not None else "" for k, v in params.query.items() if str(k).strip()}
             else:
                 query = {}
 
