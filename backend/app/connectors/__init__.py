@@ -516,11 +516,13 @@ def ensure_builtin_connectors() -> None:
         register_builtin_connectors()
 
 
-def register_builtin_connectors() -> None:
+def register_builtin_connectors(generated_dir: str | None = None) -> None:
     """Register the built-in connector set on the global registry.
 
     Called at app startup (main.py lifespan) and by standalone workers
     so connector-only node types resolve everywhere executions run.
+    OpenAPI-imported triples are picked up from ``generated_dir``
+    (default: app/connectors/generated); a missing dir is fine.
     """
     from app.connectors.airtable_connector import AirtableConnector
     from app.connectors.airtable_definition import build_airtable_definition
@@ -639,6 +641,23 @@ def register_builtin_connectors() -> None:
                 credential_types=_builtin_credential_types(instance.connector_id),
             )
         registry.register(instance, defn)
+
+    # OpenAPI-imported connectors (Phase 1): optional on-disk triples in
+    # app/connectors/generated/. Missing dir or broken files are skipped
+    # silently — builtins above are never affected.
+    try:
+        import logging as _logging
+        from pathlib import Path as _Path
+
+        from app.connectors.openapi_emit import register_generated as _register_generated
+
+        _generated_dir = _Path(generated_dir) if generated_dir else _Path(__file__).resolve().parent / "generated"
+        if _generated_dir.is_dir():
+            _count = _register_generated(registry, str(_generated_dir))
+            if _count:
+                _logging.getLogger("connectors").info("registered %d generated connectors", _count)
+    except Exception:
+        _logging.getLogger("connectors").exception("generated connector scan failed")
 
 
 def _builtin_operations(connector_key: str, connector_version: str) -> Dict[str, ConnectorOperationV1]:
