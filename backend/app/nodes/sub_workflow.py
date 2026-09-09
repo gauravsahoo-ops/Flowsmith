@@ -197,10 +197,18 @@ class SubWorkflowNode(BaseNode[SubWorkflowParams]):
                     node_id=ctx.node_id,
                     retryable=False,
                 )
+            sources = {c.source for c in workflow.connections}
+            terminal_ids = {n.id for n in workflow.nodes if n.id not in sources}
             out: list[dict[str, Any]] = []
-            for nr in (res.results or {}).values():
+            for nid in terminal_ids:
+                nr = (res.results or {}).get(nid)
                 if isinstance(nr, dict) and "main" in nr:
                     out.extend(nr["main"])
+            if not out:
+                # Fallback to last node output if no terminal node matched
+                for nid, nr in (res.results or {}).items():
+                    if isinstance(nr, dict) and "main" in nr:
+                        out.extend(nr["main"])
             return out
 
         # 2. Fire and forget mode
