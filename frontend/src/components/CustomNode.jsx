@@ -111,6 +111,7 @@ function CustomNode({ id, data, selected }) {
   const nodeRef = useRef(null)
 
   const settings = data.node.settings || {}
+  const params = data.node.parameters || {}
   const label = settings.label || meta?.display_name || data.node.type
   const accent =
     settings.color ||
@@ -142,7 +143,6 @@ function CustomNode({ id, data, selected }) {
     (preview.outputCount != null || preview.error || preview.durationMs != null || status === 'skipped')
 
   // Derive dynamic subtitle (matching n8n style)
-  const params = data.node.parameters || {}
   let subtitle = ''
   let fullSubtitle = ''
   const nodeType = data.node.type
