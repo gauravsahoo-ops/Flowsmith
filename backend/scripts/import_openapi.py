@@ -31,7 +31,10 @@ def _load_source(spec: str) -> str:
     if spec.startswith(("http://", "https://")):
         import urllib.request
 
-        with urllib.request.urlopen(spec, timeout=30) as resp:
+        request = urllib.request.Request(
+            spec, headers={"User-Agent": "Flowsmith-Connector-Importer/1.0"},
+        )
+        with urllib.request.urlopen(request, timeout=30) as resp:
             return resp.read().decode("utf-8", errors="replace")
     return Path(spec).read_text(encoding="utf-8")
 
