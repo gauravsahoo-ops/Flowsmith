@@ -5,12 +5,17 @@ const INPUT_MODES = [
   {
     id: 'fields',
     title: 'Define using fields below',
-    desc: 'Define expected input schema fields and types',
+    desc: 'Provide input fields via UI',
+  },
+  {
+    id: 'json',
+    title: 'Define using JSON example',
+    desc: 'Generate a schema from an example JSON object',
   },
   {
     id: 'any',
-    title: 'Accept any data',
-    desc: 'Pass all incoming data from the calling workflow without validation',
+    title: 'Accept all data',
+    desc: 'Use all incoming data from the parent workflow',
   },
 ]
 
@@ -30,11 +35,15 @@ export default function ExecuteWorkflowTriggerEditor({
   const params = node.parameters || {}
   const inputDataMode = params.input_data_mode || 'fields'
   const schemaFields = Array.isArray(params.schema_fields) ? params.schema_fields : []
+  const jsonExample = typeof params.json_example === 'object'
+    ? JSON.stringify(params.json_example, null, 2)
+    : (params.json_example || '')
 
   // UI state
   const [modeMenuOpen, setModeMenuOpen] = useState(false)
   const [openTypeIndex, setOpenTypeIndex] = useState(null)
   const [collapsedCards, setCollapsedCards] = useState({})
+  const [jsonError, setJsonError] = useState(null)
 
   const modeRef = useRef(null)
 
@@ -76,6 +85,20 @@ export default function ExecuteWorkflowTriggerEditor({
     setCollapsedCards((prev) => ({ ...prev, [index]: !prev[index] }))
   }
 
+  function handleJsonExampleChange(text) {
+    onParamsChange({ ...params, json_example: text })
+    if (!text.trim()) {
+      setJsonError(null)
+      return
+    }
+    try {
+      JSON.parse(text)
+      setJsonError(null)
+    } catch (e) {
+      setJsonError(e.message)
+    }
+  }
+
   const selectedMode = INPUT_MODES.find((m) => m.id === inputDataMode) || INPUT_MODES[0]
 
   return (
@@ -92,7 +115,10 @@ export default function ExecuteWorkflowTriggerEditor({
             className={`subwf-trig-select-btn ${modeMenuOpen ? 'open' : ''}`}
             onClick={() => setModeMenuOpen(!modeMenuOpen)}
           >
-            <span className="subwf-trig-select-title">{selectedMode.title}</span>
+            <div className="subwf-trig-select-value">
+              <span className="subwf-trig-select-title">{selectedMode.title}</span>
+              <span className="subwf-trig-select-desc">{selectedMode.desc}</span>
+            </div>
             <span className="subwf-trig-select-arrow">{modeMenuOpen ? '▴' : '▾'}</span>
           </button>
 
@@ -120,7 +146,7 @@ export default function ExecuteWorkflowTriggerEditor({
         </div>
       </div>
 
-      {/* 2. Workflow Input Schema */}
+      {/* 2a. Define using fields below */}
       {inputDataMode === 'fields' && (
         <div className="subwf-trig-schema-section">
           <div className="subwf-trig-schema-header">
@@ -257,9 +283,48 @@ export default function ExecuteWorkflowTriggerEditor({
         </div>
       )}
 
+      {/* 2b. Define using JSON example */}
+      {inputDataMode === 'json' && (
+        <div className="subwf-trig-field-group">
+          <div className="subwf-trig-field-header">
+            <label className="subwf-trig-field-label">JSON Example</label>
+            <span
+              className="subwf-trig-help-icon"
+              title="Enter an example JSON object to generate and validate schema."
+            >
+              ?
+            </span>
+          </div>
+          <textarea
+            className="subwf-trig-json-textarea"
+            rows={8}
+            placeholder='{
+  "propertyName": "value",
+  "amount": 100
+}'
+            value={jsonExample}
+            onChange={(e) => handleJsonExampleChange(e.target.value)}
+          />
+          {jsonError ? (
+            <span className="subwf-trig-json-error">Invalid JSON: {jsonError}</span>
+          ) : (
+            <span className="subwf-trig-field-hint">
+              Input items received from the parent workflow will match the structure of this JSON example.
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* 2c. Accept all data */}
+      {inputDataMode === 'any' && (
+        <div className="subwf-trig-banner">
+          All data passed from the parent workflow will be accepted directly without any schema restrictions.
+        </div>
+      )}
+
       {/* Tip Banner */}
       <div className="subwf-trig-tip-banner">
-        <strong>Tip:</strong> This node runs whenever an <strong>Execute Sub-workflow</strong> node calls this workflow. Values passed will match the schema above.
+        <strong>Tip:</strong> This node runs whenever an <strong>Execute Sub-workflow</strong> node calls this workflow.
       </div>
     </div>
   )
