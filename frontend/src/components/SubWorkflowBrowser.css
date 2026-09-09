@@ -1,0 +1,176 @@
+/* SubWorkflowBrowser.css - Flowsmith Design System */
+
+.subwf-browser {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--panel, #151820);
+  color: var(--text, #f8fafc);
+  font-size: 13px;
+}
+
+.subwf-browser-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--panel-2, #181c24);
+}
+
+.subwf-browser-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text, #f8fafc);
+}
+
+.subwf-browser-icon {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+}
+
+.subwf-browser-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--panel, #151820);
+}
+
+.subwf-browser-search input {
+  flex: 1;
+  background: var(--bg, #12151c);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: var(--text, #f8fafc);
+  outline: none;
+}
+
+.subwf-browser-search input:focus {
+  border-color: var(--primary, #6366f1);
+}
+
+.subwf-search-icon {
+  color: var(--muted, #94a3b8);
+  font-size: 12px;
+}
+
+.subwf-browser-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subwf-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subwf-section-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  color: var(--muted, #94a3b8);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 4px 6px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.subwf-section-head:hover {
+  color: var(--text, #f8fafc);
+}
+
+.subwf-caret {
+  font-size: 10px;
+  color: var(--muted, #94a3b8);
+}
+
+.subwf-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Card matching user screenshot */
+.subwf-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--panel-2, #181c24);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.subwf-card:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.subwf-card-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--bg, #12151c);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  color: var(--text, #f8fafc);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.subwf-input-arrow {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.subwf-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.subwf-card-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text, #f8fafc);
+  line-height: 1.3;
+}
+
+.subwf-card-badge {
+  color: #f59e0b;
+  font-size: 12px;
+  margin: 1px 0;
+}
+
+.subwf-card-desc {
+  font-size: 11px;
+  color: var(--muted, #94a3b8);
+  line-height: 1.35;
+}

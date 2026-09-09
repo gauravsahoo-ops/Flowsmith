@@ -5,6 +5,7 @@ import { useUiStore } from '../stores/uiStore'
 import { startNodeDrag } from '../utils/drag'
 import { fuzzyScore } from '../utils/fuzzy'
 import SalesforceBrowser from './SalesforceBrowser'
+import SubWorkflowBrowser from './SubWorkflowBrowser'
 import Input from './shared/Input'
 import { NodeIcon } from './NodeIcons'
 
@@ -82,6 +83,7 @@ export default function Sidebar({ onOpenCredentials }) {
   const [error, setError] = useState(null)
   const [query, setQuery] = useState('')
   const [salesforceOpen, setSalesforceOpen] = useState(false)
+  const [subWorkflowOpen, setSubWorkflowOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [collapsedSubgroups, setCollapsedSubgroups] = useState({
     popular: false,
@@ -336,6 +338,14 @@ export default function Sidebar({ onOpenCredentials }) {
     )
   }
 
+  if (subWorkflowOpen) {
+    return (
+      <aside className="sidebar" ref={sidebarRef}>
+        <SubWorkflowBrowser onClose={() => setSubWorkflowOpen(false)} />
+      </aside>
+    )
+  }
+
   return (
     <aside className="sidebar" ref={sidebarRef}>
       {selectedCategory ? (
@@ -425,7 +435,9 @@ export default function Sidebar({ onOpenCredentials }) {
         Object.entries(groups).map(([category, list]) => {
           if (category === 'Flow') {
             const triggerTypes = new Set(['execute_workflow_trigger', 'sub_workflow_trigger', 'when_executed_by_another_workflow'])
-            const triggerList = list.filter((n) => triggerTypes.has(n.type))
+            // Keep execute_workflow_trigger inside Execute Sub-workflow drawer
+            const subwfTriggerTypes = triggerTypes
+            const triggerList = list.filter((n) => triggerTypes.has(n.type) && !subwfTriggerTypes.has(n.type))
             const popularList = list.filter((n) => flowPopularTypes.has(n.type) && !triggerTypes.has(n.type)).sort(sortFlow)
             const otherList = list.filter((n) => !flowPopularTypes.has(n.type) && !triggerTypes.has(n.type)).sort(sortFlow)
 
@@ -467,6 +479,7 @@ export default function Sidebar({ onOpenCredentials }) {
                         node={node}
                         onCanvasCount={countsByType.get(node.type) || 0}
                         onJump={jumpToType}
+                        onClick={node.type === 'salesforce' ? () => setSalesforceOpen(true) : (node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') ? () => setSubWorkflowOpen(true) : undefined}
                       />
                     ))}
                   </div>
@@ -489,6 +502,7 @@ export default function Sidebar({ onOpenCredentials }) {
                         node={node}
                         onCanvasCount={countsByType.get(node.type) || 0}
                         onJump={jumpToType}
+                        onClick={node.type === 'salesforce' ? () => setSalesforceOpen(true) : (node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') ? () => setSubWorkflowOpen(true) : undefined}
                       />
                     ))}
                   </div>
@@ -511,6 +525,7 @@ export default function Sidebar({ onOpenCredentials }) {
                         node={node}
                         onCanvasCount={countsByType.get(node.type) || 0}
                         onJump={jumpToType}
+                        onClick={node.type === 'salesforce' ? () => setSalesforceOpen(true) : (node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') ? () => setSubWorkflowOpen(true) : undefined}
                       />
                     ))}
                   </div>
@@ -534,6 +549,7 @@ export default function Sidebar({ onOpenCredentials }) {
                   node={node}
                   onCanvasCount={countsByType.get(node.type) || 0}
                   onJump={jumpToType}
+                  onClick={node.type === 'salesforce' ? () => setSalesforceOpen(true) : (node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') ? () => setSubWorkflowOpen(true) : undefined}
                 />
               ))}
             </div>
@@ -554,7 +570,7 @@ export default function Sidebar({ onOpenCredentials }) {
               node={node}
               onCanvasCount={countsByType.get(node.type) || 0}
               onJump={jumpToType}
-              onClick={node.type === 'salesforce' ? () => setSalesforceOpen(true) : undefined}
+              onClick={node.type === 'salesforce' ? () => setSalesforceOpen(true) : (node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') ? () => setSubWorkflowOpen(true) : undefined}
             />
           ))}
         </div>
