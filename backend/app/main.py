@@ -23,7 +23,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.api import admin, ai, audit, auth, billing, code, connectors, credentials, data_tables, environments, executions, files, mcp, monitoring, nodes, oauth, organizations, rag, salesforce_events, users, webhooks, workflow_tests, workflows, workspaces, ws
+from app.api import admin, ai, audit, auth, billing, code, connectors, credentials, data_tables, environments, executions, files, mcp, monitoring, nodes, oauth, organizations, rag, salesforce_events, sso, users, webhooks, workflow_tests, workflows, workspaces, ws
 from app.api.auth import get_current_user
 from app.api.common import ok
 from app.config import get_settings
@@ -265,6 +265,7 @@ from app.security.redis_client import get_shared_redis
 setup_rate_limiting(app, redis_client=get_shared_redis())
 
 app.include_router(auth.router)
+app.include_router(sso.router)
 app.include_router(oauth.router)
 app.include_router(users.router)
 app.include_router(admin.router)

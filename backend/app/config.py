@@ -212,6 +212,16 @@ class Settings(BaseSettings):
     object_store_secret_key: str = ""
     object_store_force_path_style: bool = True
 
+    # Single Sign-On (SSO): Google, GitHub, and generic OIDC (Okta, Keycloak, Auth0, Azure AD)
+    sso_google_client_id: str = ""
+    sso_google_client_secret: str = ""
+    sso_github_client_id: str = ""
+    sso_github_client_secret: str = ""
+    sso_oidc_issuer: str = ""
+    sso_oidc_client_id: str = ""
+    sso_oidc_client_secret: str = ""
+    sso_oidc_display_name: str = "Enterprise SSO"
+
 
 @lru_cache
 def get_settings() -> Settings:

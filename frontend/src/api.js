@@ -80,6 +80,7 @@ async function requestEnvelope(method, path, body, opts = {}) {
 export const api = {
   register: (email, password) => request('POST', '/auth/register', { email, password }),
   login: (email, password) => request('POST', '/auth/login', { email, password }),
+  getSsoProviders: () => request('GET', '/auth/sso/providers'),
   forgotPassword: (email) => request('POST', '/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) =>
     request('POST', '/auth/reset-password', { token, new_password: newPassword }),
