@@ -1,6 +1,6 @@
 # n8n Parity Gap Plan (clean-room, standalone)
 
-> Method: inventoried `C:\n8n-master` (308 node dirs, 442 base impls + 136 langchain nodes, ~446 credentials) vs Flowsmith (35 nodes, 20 connectors). No n8n code, docs, icons, or templates were copied. Additions below are original implementations in Flowsmith patterns so the project stays MIT and standalone.
+> Method: inventoried `C:\n8n-master` (308 node dirs, 442 base impls + 136 langchain nodes, ~446 credentials) vs Flowsmith (was 35 nodes, 20 connectors; now 50 node types, 31 connectors). No n8n code, docs, icons, or templates were copied. Additions below are original implementations in Flowsmith patterns so the project stays MIT and standalone.
 
 ## 0. Legal guardrails
 
@@ -21,18 +21,18 @@
 
 ## 2. Gap batches (original code, Flowsmith UI)
 
-### Batch A — Utility nodes (no OAuth, smallest risk)
-`datetime`, `item_lists` (sort/limit/dedupe), `markdown`, `html_extract`, `crypto` (hash/HMAC/JWT-sign).
+### Batch A — Utility nodes ✅ SHIPPED
+`date_time`, `item_lists`, `markdown_text`, `html_extract`, `crypto_tools`. Tests: `tests/test_nodes/test_batch_nodes.py`.
 Pattern: `backend/app/nodes/<name>.py` + `@register` + Pydantic `Params` + `BaseNode.run()`; catalog via `registry.list_nodes()` → `GET /api/nodes` → `workflowStore.catalogIndex`; generic `JsonForm` editor, no new frontend package.
 
-### Batch B — Popular SaaS connectors (original providers)
-Trello, Asana, Linear, Calendly, GitLab, Zoom-style. Pattern: `providers/<name>.py` (OAuth2 + `get_safe_http_client()`, refresh-on-401, error taxonomy) + `connectors/<name>_definition.py` + `connectors/<name>_connector.py` + credential type + `register_builtin_connectors()`; per-op `idempotency/retryable`; editor follows `SalesforceNodeEditor` pattern with Flowsmith styling.
+### Batch B — Popular SaaS connectors ✅ SHIPPED (8)
+Trello, Asana, Linear, Calendly, GitLab, Zoom, Twilio, Bitbucket. Pattern: `providers/<name>.py` (OAuth2 + `get_safe_http_client()`, refresh-on-401, error taxonomy) + `connectors/<name>_definition.py` + `connectors/<name>_connector.py` + credential type + `register_builtin_connectors()`; per-op `idempotency/retryable`; editor follows `SalesforceNodeEditor` pattern with Flowsmith styling.
 
-### Batch C — AI/RAG depth (extend, don't port langchain)
-Embeddings, text-splitter, pgvector store (exists), memory (postgres/redis), output-parser, document-loader. Extend `ai.py`, `ai_agent.py` tools, `rag_pipeline.py`; keep tenant-scoped `rag_collections` and citations.
+### Batch C — AI/RAG depth ✅ MOSTLY SHIPPED
+Shipped: `text_splitter`, `output_parser`, `embeddings` (shared `rag.embed_texts`), `memory` (Redis sessions). Remaining: document-loader (covered by file_io + http_request + html_extract chain — skipping unless needed). Extend `ai.py`, `ai_agent.py` tools, `rag_pipeline.py`; keep tenant-scoped `rag_collections` and citations.
 
-### Batch D — Triggers
-Interval, Form, Chat-trigger, Error-trigger, IMAP/RSS polling. Extend `TRIGGER_NODE_TYPES`, `sync_webhooks()`, `schedule_triggers` tables; arm on Active toggle.
+### Batch D — Triggers (Form ✅ SHIPPED, rest open)
+Shipped: `form_trigger` node + `form/` namespace sync (no migration) + public definition/submit routes + `FormFillPage` (`/forms/:slug`) + `test_form_trigger.py`. Open: Interval (redundant — `schedule` already covers seconds→months), Chat-trigger, Error-trigger (global error workflow), IMAP polling. RSS polling covered by `schedule` + `rss_feed` node. Extend `TRIGGER_NODE_TYPES`, `sync_webhooks()`, `schedule_triggers` tables; arm on Active toggle.
 
 ## 3. UI match checklist
 
@@ -43,8 +43,8 @@ Interval, Form, Chat-trigger, Error-trigger, IMAP/RSS polling. Extend `TRIGGER_N
 
 ## 4. Standalone checklist
 
-- [ ] No n8n file copied (verify via `git diff --stat` + license scan)
-- [ ] Original names/descriptions/icons
-- [ ] `GET /api/nodes` shows new types alongside existing 35+20
-- [ ] `vitest` + `pytest` green, `vite build` chunk report reviewed
-- [ ] Docs updated here, not from n8n docs
+- [x] No n8n file copied (verify via `git diff --stat` + license scan)
+- [x] Original names/descriptions/icons
+- [x] `GET /api/nodes` shows new types alongside existing (50 node types, 31 connectors)
+- [x] `vitest` + `pytest` green, `vite build` chunk report reviewed
+- [x] Docs updated here, not from n8n docs

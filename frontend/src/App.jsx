@@ -23,6 +23,7 @@ const ExecutionDetailPage = lazy(() => import('./pages/ExecutionDetailPage'))
 const DataTableEditorPage = lazy(() => import('./pages/DataTableEditorPage'))
 const KnowledgePage = lazy(() => import('./pages/KnowledgePage'))
 const NodeEditorModal = lazy(() => import('./components/NodeEditorModal'))
+const FormFillPage = lazy(() => import('./pages/FormFillPage'))
 
 // Fallback for unknown routes
 function NotFound() {
@@ -138,6 +139,11 @@ export default function App() {
       <Routes>
         <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
         <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage />} />
+        <Route path="/forms/:slug" element={
+          <Suspense fallback={<div className="page"><p className="hint">Loading…</p></div>}>
+            <FormFillPage />
+          </Suspense>
+        } />
         <Route
           path="*"
           element={

@@ -25,11 +25,16 @@ from app.schemas.workflow import Workflow
 
 logger = logging.getLogger("triggers.registry")
 
-TRIGGER_NODE_TYPES = {"webhook", "schedule", "salesforce_trigger"}
+TRIGGER_NODE_TYPES = {"webhook", "schedule", "salesforce_trigger", "form_trigger"}
 
 #: Reserved path namespace owned by the Salesforce Outbound Message
 #: endpoint (Phase 10); generic webhook routes refuse it.
 SALESFORCE_TRIGGER_PREFIX = "sf-outbound/"
+
+#: Reserved path namespace for public forms (Batch D). Form submissions
+#: share the `webhooks` table; the generic single-segment webhook route
+#: never matches these two-segment paths.
+FORM_TRIGGER_PREFIX = "form/"
 
 
 def workflow_trigger_nodes(workflow: Workflow) -> list[dict[str, Any]]:
@@ -83,6 +88,33 @@ def sync_webhooks(db: Session) -> None:
             if trig["type"] == "salesforce_trigger":
                 path = trig["params"].get("path")
                 if not path or not path.startswith(SALESFORCE_TRIGGER_PREFIX):
+                    continue
+                wanted_webhook_paths.add(path)
+                existing = db.scalar(
+                    select(WebhookTrigger).where(WebhookTrigger.path == path)
+                )
+                if existing is None:
+                    db.add(WebhookTrigger(
+                        id=f"whk_{uuid.uuid4().hex[:12]}",
+                        workflow_id=rec.id,
+                        user_id=rec.user_id,
+                        workflow_version=rec.version,
+                        workflow_data=rec.data,
+                        path=path,
+                        method="POST",
+                        status="active",
+                    ))
+                else:
+                    existing.workflow_id = rec.id
+                    existing.user_id = rec.user_id
+                    existing.workflow_version = rec.version
+                    existing.workflow_data = rec.data
+                    existing.method = "POST"
+                    existing.status = "active"
+
+            if trig["type"] == "form_trigger":
+                path = trig["params"].get("path")
+                if not path or not path.startswith(FORM_TRIGGER_PREFIX):
                     continue
                 wanted_webhook_paths.add(path)
                 existing = db.scalar(

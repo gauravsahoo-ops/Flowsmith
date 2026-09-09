@@ -80,6 +80,7 @@ def _load_builtin_nodes() -> None:
         execute_workflow_trigger,
         file_io,
         filter,
+        form_trigger,
         graphql,
         html_extract,
         http_request,
