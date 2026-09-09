@@ -333,6 +333,31 @@ def test_email_read_fetch_via_fake_imap(monkeypatch):
 
 
 # ----------------------------------------------------------------------
+# xml_ops
+# ----------------------------------------------------------------------
+
+def test_xml_parse_and_build_roundtrip():
+    from app.nodes.xml_ops import XmlOpsNode, XmlOpsParams
+
+    node = XmlOpsNode()
+    src = "<order><id>7</id><lines><line>a</line><line>b</line></lines></order>"
+    out = _run(node.run(_ctx(), XmlOpsParams(operation="parse", xml=src), []))
+    assert out.output_items == [{"order": {"id": "7", "lines": {"line": ["a", "b"]}}}]
+    back = _run(node.run(_ctx(), XmlOpsParams(operation="build", root="order", data={"id": "7"}), []))
+    assert "<id>7</id>" in back.output_items[0]["xml"]
+
+
+def test_xml_parse_error_and_empty():
+    from app.engine.errors import NodeExecutionError
+    from app.nodes.xml_ops import XmlOpsNode, XmlOpsParams
+
+    with pytest.raises(NodeExecutionError):
+        _run(XmlOpsNode().run(_ctx(), XmlOpsParams(operation="parse", xml="<broken"), []))
+    with pytest.raises(NodeExecutionError):
+        _run(XmlOpsNode().run(_ctx(), XmlOpsParams(operation="parse", xml=""), []))
+
+
+# ----------------------------------------------------------------------
 # memory (isolated fakeredis)
 # ----------------------------------------------------------------------
 

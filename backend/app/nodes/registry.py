@@ -113,6 +113,7 @@ def _load_builtin_nodes() -> None:
         wait,
         webhook,
         websocket,
+        xml_ops,
     )
 
 
