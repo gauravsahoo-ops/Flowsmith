@@ -32,6 +32,7 @@ export default function TopBar({
   const savedAt = useWorkflowStore((s) => s.savedAt)
   const save = useWorkflowStore((s) => s.save)
   const setName = useWorkflowStore((s) => s.setName)
+  const setWorkflowSettings = useWorkflowStore((s) => s.setWorkflowSettings)
   const toggleActive = useWorkflowStore((s) => s.toggleActive)
   const togglePinned = useWorkflowStore((s) => s.togglePinned)
   const isPinned = Boolean(workflow?.pinned || workflow?.settings?.pinned)
@@ -162,6 +163,7 @@ export default function TopBar({
   const menuRef = useRef(null)
   useEffect(() => {
     if (!menuOpen) return
+    listWorkflows().catch(() => {})
     const onDoc = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setMenuOpen(false)
@@ -364,6 +366,41 @@ export default function TopBar({
               </button>
               <button role="menuitem" onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}>Import Workflow</button>
               <button role="menuitem" onClick={() => { setMenuOpen(false); handleSaveAsTemplate(); }} disabled={!workflow?.id}>Save as Template</button>
+              <div className="ctx-sep" />
+              <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                <span className="hint" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Workflow settings</span>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                  <span>Timeout (seconds, 0 = none)</span>
+                  <input
+                    type="number" min={0} max={86400}
+                    value={workflow?.settings?.timeout_seconds ?? 0}
+                    onChange={(e) => setWorkflowSettings({ timeout_seconds: Math.max(0, Number(e.target.value) || 0) })}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                  <span>Max parallelism (1–32)</span>
+                  <input
+                    type="number" min={1} max={32}
+                    value={workflow?.settings?.max_parallelism ?? 8}
+                    onChange={(e) => setWorkflowSettings({ max_parallelism: Math.min(32, Math.max(1, Number(e.target.value) || 8)) })}
+                    style={{ width: '100%' }}
+                  />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                  <span>Error workflow</span>
+                  <select
+                    value={workflow?.settings?.on_error_workflow_id || ''}
+                    onChange={(e) => setWorkflowSettings({ on_error_workflow_id: e.target.value || null })}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">None</option>
+                    {(workflows || []).filter((w) => w.id !== workflow?.id).map((w) => (
+                      <option key={w.id} value={w.id}>{w.name || w.id}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className="ctx-sep" />
               <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenTests(); }}>Tests</button>
               <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenRag(); }}>Knowledge & RAG</button>

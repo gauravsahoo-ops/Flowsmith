@@ -766,6 +766,17 @@ export const useWorkflowStore = create((set, get) => ({
     set({ workflow: { ...workflow, pinned: nextPinned, settings } })
   },
 
+  setWorkflowSettings(patch) {
+    const { workflow } = get()
+    if (!workflow) return
+    dirty = true
+    set({
+      workflow: { ...workflow, settings: { ...(workflow.settings || {}), ...patch } },
+      savedAt: null,
+    })
+    scheduleSave()
+  },
+
   async save() {
     const { workflow, nodes, edges, comments, groups, edgeLabels } = get()
     if (!workflow) return
