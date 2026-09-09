@@ -129,8 +129,16 @@ def _base_url(spec: dict[str, Any]) -> str:
     return ""
 
 
-def extract_operations(spec: dict[str, Any], *, max_ops: int = _MAX_OPS) -> list[ApiOperation]:
-    """Flatten paths+methods into stable operation keys (capped)."""
+def extract_operations(
+    spec: dict[str, Any], *, max_ops: int = _MAX_OPS, include: str | None = None,
+) -> list[ApiOperation]:
+    """Flatten paths+methods into stable operation keys.
+
+    Without `include`, the first `max_ops` document-order operations win
+    (big specs get truncated — use `include` to target them). With an
+    `include` regex, every matching operation is kept (up to 4x cap).
+    """
+    matcher = re.compile(include, re.IGNORECASE) if include else None
     ops: list[ApiOperation] = []
     paths = spec.get("paths") or {}
     for path, methods in paths.items():
@@ -165,20 +173,25 @@ def extract_operations(spec: dict[str, Any], *, max_ops: int = _MAX_OPS) -> list
                 operation_key=key, method=method.upper(), path=path, summary=summary,
                 path_params=path_params, query_params=query_params, has_body=has_body,
             ))
-            if len(ops) >= max_ops:
-                return ops
+            if not matcher and len(ops) >= max_ops:
+                break
+        if not matcher and len(ops) >= max_ops:
+            break
+    if matcher:
+        ops = [o for o in ops
+               if matcher.search(o.operation_key) or matcher.search(f"{o.method} {o.path}")][: _MAX_OPS * 4]
     # Stable output regardless of document ordering quirks.
     ops.sort(key=lambda o: o.operation_key)
     return ops
 
 
-def parse_spec(source: str | dict[str, Any]) -> ApiSpec:
+def parse_spec(source: str | dict[str, Any], *, include: str | None = None) -> ApiSpec:
     """Full pipeline: load → auth → base URL → operations."""
     spec = load_spec(source)
     info = spec.get("info") or {}
     return ApiSpec(
         title=str(info.get("title") or "Imported API"),
         base_url=_base_url(spec),
-        operations=extract_operations(spec),
+        operations=extract_operations(spec, include=include),
         auth=detect_auth(spec),
     )

@@ -79,6 +79,13 @@ def test_parse_caps_operations():
     assert len(api.operations) == 50
 
 
+def test_include_searches_past_the_cap():
+    doc_paths = {f"/a{i:03d}": {"get": {"summary": "early"}} for i in range(60)}
+    doc_paths["/special-thing"] = {"get": {"summary": "Target op"}}
+    api = parse_spec({"info": {"title": "Big"}, "paths": doc_paths}, include="special")
+    assert [o.operation_key for o in api.operations] == ["get_special_thing"]
+
+
 SWAGGER2 = {
     "swagger": "2.0",
     "info": {"title": "Legacy API"},

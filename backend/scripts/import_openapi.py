@@ -57,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default=str(GENERATED_DIR), help="Output directory.")
     parser.add_argument("--dry-run", action="store_true", help="Validate only, write nothing.")
     parser.add_argument("--force", action="store_true", help="Overwrite an existing triple.")
+    parser.add_argument("--only", default="", help="Regex: keep only matching operation keys/paths.")
     args = parser.parse_args(argv)
 
     try:
@@ -64,15 +65,33 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:
         print(f"LOAD FAILED: {exc}")
         return 1
+    if args.only:
+        import re
+
+        try:
+            re.compile(args.only, re.IGNORECASE)
+        except re.error as exc:
+            print(f"BAD FILTER: {exc}")
+            return 1
+    if args.only:
+        import re
+
+        try:
+            re.compile(args.only, re.IGNORECASE)
+        except re.error as exc:
+            print(f"BAD FILTER: {exc}")
+            return 1
     try:
-        api = parse_spec(raw)
+        api = parse_spec(raw, include=args.only or None)
     except Exception as exc:
         print(f"PARSE FAILED: {exc}")
         return 1
-    if not api.base_url:
-        override = (args.base_url or "").strip().rstrip("/")
-        if override.startswith("http"):
-            api.base_url = override
+    override = (args.base_url or "").strip().rstrip("/")
+    if override:
+        if not override.startswith("http"):
+            print("BAD FLAG: --base-url must start with http(s).")
+            return 1
+        api.base_url = override
     if not api.base_url:
         print("PARSE FAILED: no server URL (servers[] or host/basePath); pass --base-url.")
         return 1
@@ -81,6 +100,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     key = connector_key_for(args.name)
+    if args.only and not api.operations:
+        print("FILTER FAILED: --only matched no operations.")
+        return 1
     display = args.title.strip() or api.title
     files = emit_connector_files(key, display, api, args.category)
     for source in files.values():
