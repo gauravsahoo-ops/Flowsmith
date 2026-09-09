@@ -1,0 +1,50 @@
+# n8n Parity Gap Plan (clean-room, standalone)
+
+> Method: inventoried `C:\n8n-master` (308 node dirs, 442 base impls + 136 langchain nodes, ~446 credentials) vs Flowsmith (35 nodes, 20 connectors). No n8n code, docs, icons, or templates were copied. Additions below are original implementations in Flowsmith patterns so the project stays MIT and standalone.
+
+## 0. Legal guardrails
+
+- n8n is fair-code (`LICENSE.md` Sustainable Use + `LICENSE_EE.md`), not MIT. Never paste its TS/Vue, node JSON, docs, or assets.
+- Learn only facts (public API shapes, params). Write original `backend/app/nodes/*.py` + `providers/*.py` + `connectors/*_definition.py` + React editors.
+- No `n8n` name/logo/trademark, no `nodemation` copy. Keep Flowsmith icons, names, and wording.
+- Keep existing Flowsmith behavior stable; only additive nodes/connectors plus small corrections.
+
+## 1. Keep same (already at parity, corrections only)
+
+- Core: `code`, `http_request`, `graphql`, `webhook`, `schedule`, `manual_trigger`, `execute_workflow_trigger`, `sub_workflow`.
+- Logic: `if_condition`, `switch`, `filter`, `merge`, `set_data`, `split`, `loop`, `loop_over_items`, `loop_while`, `pagination`, `aggregate`, `compare_datasets`, `csv_json_transform`.
+- Data: `database_query`, `data_table`, `file_io`, `send_email`, `slack`, `telegram`, `websocket`.
+- Control: `human_approval`, `wait`, `stop_and_error`.
+- AI: `ai`, `ai_agent`, `rag_pipeline`.
+- Triggers: `webhook`, `schedule`, `salesforce_trigger` via `app/triggers/registry.py`.
+- Connectors (20): salesforce, hubspot, postgres, mysql, mongodb, redis, slack, msteams, outlook, gmail, google_drive, google_sheets, google_calendar, github, notion, jira, discord, stripe, airtable, shopify.
+
+## 2. Gap batches (original code, Flowsmith UI)
+
+### Batch A — Utility nodes (no OAuth, smallest risk)
+`datetime`, `item_lists` (sort/limit/dedupe), `markdown`, `html_extract`, `crypto` (hash/HMAC/JWT-sign).
+Pattern: `backend/app/nodes/<name>.py` + `@register` + Pydantic `Params` + `BaseNode.run()`; catalog via `registry.list_nodes()` → `GET /api/nodes` → `workflowStore.catalogIndex`; generic `JsonForm` editor, no new frontend package.
+
+### Batch B — Popular SaaS connectors (original providers)
+Trello, Asana, Linear, Calendly, GitLab, Zoom-style. Pattern: `providers/<name>.py` (OAuth2 + `get_safe_http_client()`, refresh-on-401, error taxonomy) + `connectors/<name>_definition.py` + `connectors/<name>_connector.py` + credential type + `register_builtin_connectors()`; per-op `idempotency/retryable`; editor follows `SalesforceNodeEditor` pattern with Flowsmith styling.
+
+### Batch C — AI/RAG depth (extend, don't port langchain)
+Embeddings, text-splitter, pgvector store (exists), memory (postgres/redis), output-parser, document-loader. Extend `ai.py`, `ai_agent.py` tools, `rag_pipeline.py`; keep tenant-scoped `rag_collections` and citations.
+
+### Batch D — Triggers
+Interval, Form, Chat-trigger, Error-trigger, IMAP/RSS polling. Extend `TRIGGER_NODE_TYPES`, `sync_webhooks()`, `schedule_triggers` tables; arm on Active toggle.
+
+## 3. UI match checklist
+
+- `toReactFlow()` / `toWorkflowJson()` contract unchanged (`src/mappers.js`).
+- Sidebar/palette from `GET /api/nodes` catalog; `defaultsFromSchema()` for new types.
+- `NodeEditorModal` + per-type editor, `CollapsibleSection`, `DataViewer`, `NodeIcons` (no n8n SVGs).
+- Debugger `retrySafety()` uses new `idempotency` flags; docs stay in `docs/`.
+
+## 4. Standalone checklist
+
+- [ ] No n8n file copied (verify via `git diff --stat` + license scan)
+- [ ] Original names/descriptions/icons
+- [ ] `GET /api/nodes` shows new types alongside existing 35+20
+- [ ] `vitest` + `pytest` green, `vite build` chunk report reviewed
+- [ ] Docs updated here, not from n8n docs
