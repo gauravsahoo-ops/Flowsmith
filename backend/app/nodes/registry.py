@@ -77,6 +77,7 @@ def _load_builtin_nodes() -> None:
         database_query,
         date_time,
         embeddings,
+        email_read,
         execute_workflow_trigger,
         file_io,
         filter,

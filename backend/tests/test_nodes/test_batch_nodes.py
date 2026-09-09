@@ -270,6 +270,69 @@ def test_rss_feed_rejects_bad_url_and_http_error():
     loop.run_until_complete(go_http_error())
 
 # ----------------------------------------------------------------------
+# email_read (pure parsing + faked IMAP, no network)
+# ----------------------------------------------------------------------
+
+_RAW_MAIL = b"""From: ada@x.com\r\nTo: bob@x.com\r\nSubject: Hi\r\nDate: Mon, 01 Jan 2024 00:00:00 +0000\r\nMessage-ID: <m1@x.com>\r\nContent-Type: multipart/alternative; boundary="b"\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\nhello plain\r\n--b\r\nContent-Type: text/html\r\n\r\n<p>hello html</p>\r\n--b--\r\n"""
+
+
+def test_email_parse_prefers_plain_text():
+    from app.nodes.email_read import _parse_message
+
+    parsed = _parse_message(_RAW_MAIL)
+    assert parsed["subject"] == "Hi"
+    assert parsed["from"] == "ada@x.com"
+    assert parsed["body_text"].strip() == "hello plain"
+    assert parsed["message_id"] == "<m1@x.com>"
+
+
+def test_email_read_missing_creds_raises():
+    from app.engine.errors import NodeExecutionError
+    from app.nodes.email_read import EmailReadNode, EmailReadParams
+
+    with pytest.raises(NodeExecutionError):
+        _run(EmailReadNode().run(_ctx(), EmailReadParams(), []))
+
+
+def test_email_read_fetch_via_fake_imap(monkeypatch):
+    import app.nodes.email_read as mod
+    from app.nodes.email_read import EmailReadNode, EmailReadParams
+
+    seen = {}
+
+    class FakeIMAP:
+        def __init__(self, host, port, timeout=None):
+            seen["host"] = host
+
+        def login(self, user, password):
+            assert user == "u" and password == "p"
+
+        def select(self, folder, readonly=True):
+            return ("OK", [b"1"])
+
+        def search(self, charset, criteria):
+            assert criteria == "UNSEEN"
+            return ("OK", [b"1 2"])
+
+        def fetch(self, num, spec):
+            return ("OK", [(b"hdr", _RAW_MAIL)])
+
+        def close(self):
+            pass
+
+        def logout(self):
+            pass
+
+    monkeypatch.setattr(mod.imaplib, "IMAP4_SSL", FakeIMAP)
+    node = EmailReadNode()
+    ctx = _ctx(credentials={"imap": {"host": "imap.x.com", "username": "u", "password": "p"}})
+    out = _run(node.run(ctx, EmailReadParams(limit=5), []))
+    assert len(out.output_items) == 2
+    assert out.output_items[0]["subject"] == "Hi"
+    assert seen["host"] == "imap.x.com"
+
+
+# ----------------------------------------------------------------------
 # memory (isolated fakeredis)
 # ----------------------------------------------------------------------
 

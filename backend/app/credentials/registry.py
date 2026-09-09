@@ -32,6 +32,14 @@ class SMTPCredential(BaseModel):
     starttls: bool = Field(default=False, description="Upgrade with STARTTLS.")
 
 
+class IMAPCredential(BaseModel):
+    host: str = Field(min_length=1, description="IMAP server host.")
+    port: int = Field(default=993, ge=1, le=65535, description="IMAP port.")
+    username: str = Field(min_length=1, description="IMAP username.")
+    password: str = Field(min_length=1, description="IMAP password.")
+    use_tls: bool = Field(default=True, description="Use implicit TLS (IMAPS).")
+
+
 class DatabaseCredential(BaseModel):
     dsn: str = Field(min_length=1, description="SQLAlchemy connection string, e.g. sqlite:///app.db")
 
@@ -389,6 +397,7 @@ class AwsAssumeRoleCredential(BaseModel):
 
 CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "smtp": SMTPCredential,
+    "imap": IMAPCredential,
     "database": DatabaseCredential,
     "http": HTTPCredential,
     "llm": LLMCredential,
@@ -432,6 +441,7 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
 
 SECRET_FIELDS: dict[str, frozenset[str]] = {
     "smtp": frozenset({"password"}),
+    "imap": frozenset({"password"}),
     "database": frozenset({"dsn"}),  # DSNs embed passwords
     "http": frozenset({"api_key", "password"}),
     "llm": frozenset({"api_key"}),
@@ -474,6 +484,7 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
 
 TYPE_META: dict[str, dict[str, str]] = {
     "smtp": {"name": "SMTP", "description": "Mail server connection for the Send Email node."},
+    "imap": {"name": "IMAP", "description": "Mailbox connection for the Read Email node."},
     "database": {"name": "Database", "description": "Connection string for the Database Query node."},
     "http": {"name": "HTTP", "description": "API credentials injectable into HTTP Request headers."},
     "llm": {"name": "LLM", "description": "OpenAI-compatible model endpoint for the AI nodes."},
@@ -560,6 +571,7 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "aws_assume_role": True,
     # Legacy / business — implemented if they have a working provider/connector
     "smtp": True,
+    "imap": True,
     "database": True,
     "http": True,
     "llm": True,
