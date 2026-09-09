@@ -30,6 +30,7 @@ import CompareDatasetsEditor from './CompareDatasetsEditor'
 import StopAndErrorNodeEditor from './StopAndErrorNodeEditor'
 import SwitchNodeEditor from './SwitchNodeEditor'
 import WaitNodeEditor from './WaitNodeEditor'
+import ExecuteWorkflowNodeEditor from './ExecuteWorkflowNodeEditor'
 import DataTableDiscovery from './DataTableDiscovery'
 import ExpressionHelper from './ExpressionHelper'
 import {
@@ -499,6 +500,13 @@ export default function NodeEditorModal() {
                     />
                   ) : node.type === 'wait' ? (
                     <WaitNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
+                    />
+                  ) : (node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') ? (
+                    <ExecuteWorkflowNodeEditor
                       node={node}
                       onParamsChange={handleParamsChange}
                       mapping={mapping}
