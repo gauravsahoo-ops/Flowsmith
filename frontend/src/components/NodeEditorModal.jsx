@@ -29,6 +29,7 @@ import SplitNodeEditor from './SplitNodeEditor'
 import CompareDatasetsEditor from './CompareDatasetsEditor'
 import StopAndErrorNodeEditor from './StopAndErrorNodeEditor'
 import SwitchNodeEditor from './SwitchNodeEditor'
+import WaitNodeEditor from './WaitNodeEditor'
 import DataTableDiscovery from './DataTableDiscovery'
 import ExpressionHelper from './ExpressionHelper'
 import {
@@ -491,6 +492,13 @@ export default function NodeEditorModal() {
                     />
                   ) : node.type === 'switch' ? (
                     <SwitchNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
+                    />
+                  ) : node.type === 'wait' ? (
+                    <WaitNodeEditor
                       node={node}
                       onParamsChange={handleParamsChange}
                       mapping={mapping}
