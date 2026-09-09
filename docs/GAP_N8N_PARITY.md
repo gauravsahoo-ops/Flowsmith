@@ -32,7 +32,7 @@ Trello, Asana, Linear, Calendly, GitLab, Zoom, Twilio, Bitbucket. Pattern: `prov
 Shipped: `text_splitter`, `output_parser`, `embeddings` (shared `rag.embed_texts`), `memory` (Redis sessions). Remaining: document-loader (covered by file_io + http_request + html_extract chain — skipping unless needed). Extend `ai.py`, `ai_agent.py` tools, `rag_pipeline.py`; keep tenant-scoped `rag_collections` and citations.
 
 ### Batch D — Triggers (Form ✅ SHIPPED, rest open)
-Shipped: `form_trigger` node + `form/` namespace sync (no migration) + public definition/submit routes + `FormFillPage` (`/forms/:slug`) + `test_form_trigger.py`. Open: Interval (redundant — `schedule` already covers seconds→months), Chat-trigger, Error-trigger (global error workflow), IMAP polling. RSS polling covered by `schedule` + `rss_feed` node. Extend `TRIGGER_NODE_TYPES`, `sync_webhooks()`, `schedule_triggers` tables; arm on Active toggle.
+Shipped: `form_trigger` node + `form/` namespace sync (no migration) + public definition/submit routes + `FormFillPage` (`/forms/:slug`) + `test_form_trigger.py`. Shipped: global error workflow — `settings.on_error_workflow_id` + runtime hook (`_maybe_run_error_workflow`, single-level, test-runs excluded) + `test_error_workflow.py`. Open: Interval (redundant — `schedule` already covers seconds→months), Chat-trigger, IMAP polling. RSS polling covered by `schedule` + `rss_feed` node. Extend `TRIGGER_NODE_TYPES`, `sync_webhooks()`, `schedule_triggers` tables; arm on Active toggle.
 
 ## 3. UI match checklist
 

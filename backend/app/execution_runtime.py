@@ -417,6 +417,8 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 db.commit()
             _mark_deliveries(db, execution_id, result.status)
             execution_finished(execution_id, result.status, job.trigger)
+            if result.status == "failed" and result.error is not None:
+                _maybe_run_error_workflow(db, job, execution_id, result.error.to_dict())
             return result.status
         finally:
             monitor.cancel()
@@ -440,15 +442,62 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
         logger.exception("execution %s crashed", execution_id)
         execution_finished(execution_id, "failed", job.trigger)
         rec = db.get(ExecutionModel, execution_id)
+        crash_error = {"code": "EXECUTION_CRASHED", "message": str(exc)}
         if rec is not None:
             rec.status = "failed"
             rec.finished_at = datetime.now(UTC)
-            rec.error = {"code": "EXECUTION_CRASHED", "message": str(exc)}
+            rec.error = crash_error
             db.commit()
         _mark_deliveries(db, execution_id, "failed")
+        _maybe_run_error_workflow(db, job, execution_id, crash_error)
         return "failed"
     finally:
         db.close()
+
+
+def _maybe_run_error_workflow(
+    db: Session, job: QueueJob, execution_id: str, error: dict[str, Any] | None,
+) -> None:
+    """Global error workflow (Batch D): on a failed run, start the handler
+    workflow named by ``settings.on_error_workflow_id`` with the failure
+    context. Strictly best-effort and single-level: handler runs use
+    trigger ``error_handler`` and never cascade; test-mode runs never
+    fire handlers; everything is swallowed so the original failed record
+    is always preserved.
+    """
+    try:
+        if job.trigger == "error_handler":
+            return
+        if (job.payload or {}).get("_test_run") is not None:
+            return
+        settings = ((job.workflow_data or {}).get("settings") or {})
+        handler_id = str(settings.get("on_error_workflow_id") or "").strip()
+        if not handler_id or handler_id == job.workflow_id:
+            return
+        from app.models import WorkflowRecord
+
+        handler = db.get(WorkflowRecord, handler_id)
+        if handler is None or not handler.active:
+            return
+        from app.api.executions import start_execution, workflow_workspace
+
+        start_execution(
+            db,
+            workflow_id=handler.id,
+            user_id=handler.user_id,
+            version=handler.version,
+            workflow_data=handler.data,
+            trigger="error_handler",
+            trigger_items=[{
+                "error": error or {},
+                "failed_execution_id": execution_id,
+                "failed_workflow_id": job.workflow_id,
+            }],
+            workspace_id=workflow_workspace(db, handler.id),
+        )
+        logger.info("error workflow %s started for failed execution %s", handler_id, execution_id)
+    except Exception:
+        logger.exception("error workflow hook failed for %s", execution_id)
 
 
 def _http_client(*, mocked: bool = False) -> Any:
