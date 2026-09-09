@@ -31,6 +31,7 @@ import StopAndErrorNodeEditor from './StopAndErrorNodeEditor'
 import SwitchNodeEditor from './SwitchNodeEditor'
 import WaitNodeEditor from './WaitNodeEditor'
 import ExecuteWorkflowNodeEditor from './ExecuteWorkflowNodeEditor'
+import ExecuteWorkflowTriggerEditor from './ExecuteWorkflowTriggerEditor'
 import DataTableDiscovery from './DataTableDiscovery'
 import ExpressionHelper from './ExpressionHelper'
 import {
@@ -511,6 +512,11 @@ export default function NodeEditorModal() {
                       onParamsChange={handleParamsChange}
                       mapping={mapping}
                       onPreview={previewExpression}
+                    />
+                  ) : (node.type === 'execute_workflow_trigger' || node.type === 'sub_workflow_trigger') ? (
+                    <ExecuteWorkflowTriggerEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
                     />
                   ) : (
                     <>
