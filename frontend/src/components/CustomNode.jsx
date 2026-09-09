@@ -118,9 +118,17 @@ function CustomNode({ id, data, selected }) {
     '#5b6472'
 
   const isLoop = data.node.type === 'loop' || data.node.type === 'loop_over_items'
+  const isSwitch = data.node.type === 'switch'
   const inputHandles = meta?.input_handles?.length ? meta.input_handles : ['main']
   const outputHandles = isLoop
     ? ['done', 'loop']
+    : isSwitch
+    ? (Array.isArray(params.rules) && params.rules.length > 0
+        ? [
+            ...params.rules.map((r, i) => (r.rename_output && r.output_name ? r.output_name : (r.output || `route_${i}`))),
+            ...(params.options?.fallbackOutput ? ['fallback'] : []),
+          ]
+        : (meta?.output_handles?.length ? meta.output_handles : ['route_0', 'route_1', 'route_2', 'default']))
     : (meta?.output_handles?.length ? meta.output_handles : ['main'])
   const nInputs = inputHandles.length
   const nOutputs = outputHandles.length
