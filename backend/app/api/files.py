@@ -87,6 +87,7 @@ async def upload_file(
 @router.get("", status_code=status.HTTP_200_OK)
 def list_files(
     workspace_id: str | None = None,
+    limit: int = Query(default=200, ge=1, le=500),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -102,7 +103,7 @@ def list_files(
             (FileRecord.owner_user_id == user.id) | (FileRecord.workspace_id.in_(allowed))  # type: ignore[arg-type]
             if allowed else (FileRecord.owner_user_id == user.id)
         )
-    rows = db.scalars(q.order_by(FileRecord.created_at.desc())).all()
+    rows = db.scalars(q.order_by(FileRecord.created_at.desc()).limit(limit)).all()
     return {"data": [_to_dict(r) for r in rows]}
 
 

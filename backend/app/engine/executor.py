@@ -206,7 +206,7 @@ async def execute_workflow(
         execution_id=execution_id,
         workflow_id=workflow.id,
         logger=logger,
-        http_client=http_client or httpx.AsyncClient(),
+        http_client=http_client or httpx.AsyncClient(timeout=httpx.Timeout(30.0)),
         emit_event=_forward,
         env_vars=env_vars,
         execution_depth=execution_depth,
@@ -214,6 +214,7 @@ async def execute_workflow(
         workspace_id=workspace_id,
         user_id=user_id,
     )
+    owns_client = http_client is None
     if storage_seed:
         for key, value in storage_seed.items():
             ctx.storage.seed(key, value)
@@ -246,6 +247,11 @@ async def execute_workflow(
         emit_all("execution.cancelled", status="cancelled")
     finally:
         monitor.cancel()
+        if owns_client:
+            try:
+                await ctx.http_client.aclose()
+            except Exception:
+                pass
 
     result.finished_at = time.monotonic()
     result.events = event_queue

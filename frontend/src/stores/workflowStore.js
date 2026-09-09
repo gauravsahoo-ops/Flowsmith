@@ -567,6 +567,7 @@ export const useWorkflowStore = create((set, get) => ({
     const trimmed = (name || '').slice(0, 255)
     dirty = true
     set({ workflow: { ...get().workflow, name: trimmed }, savedAt: null })
+    scheduleSave()
   },
 
   // ------------------------------------------------------------------

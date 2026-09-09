@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -36,6 +36,9 @@ export default defineConfig({
             ) {
               return 'vendor-react'
             }
+            // Split remaining third-party deps out of the main chunk
+            // to keep the initial bundle lean.
+            return 'vendor-misc'
           }
         },
       },

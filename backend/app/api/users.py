@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -40,8 +40,12 @@ def _to_dict(user: User) -> dict[str, Any]:
 
 
 @router.get("")
-def list_users(_: User = Depends(get_current_admin), db: Session = Depends(get_db)) -> dict:
-    users = db.scalars(select(User).order_by(User.created_at)).all()
+def list_users(
+    _: User = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+    limit: int = Query(default=200, ge=1, le=500),
+) -> dict:
+    users = db.scalars(select(User).order_by(User.created_at).limit(limit)).all()
     return ok([_to_dict(u) for u in users])
 
 

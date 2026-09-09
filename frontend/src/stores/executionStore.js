@@ -343,4 +343,4 @@ export const useExecutionStore = create((set, get) => ({
   },
 }))
 
-if (typeof window !== 'undefined') window.__executionStore = useExecutionStore
+if (typeof window !== 'undefined' && import.meta.env?.DEV) window.__executionStore = useExecutionStore

@@ -46,5 +46,5 @@ export const useUiStore = create((set) => ({
     }),
 }))
 
-// E2E/test hook (mirrors __wfStore)
-if (typeof window !== 'undefined') window.__uiStore = useUiStore
+// E2E/test hook (mirrors __wfStore) — dev only
+if (typeof window !== 'undefined' && import.meta.env?.DEV) window.__uiStore = useUiStore

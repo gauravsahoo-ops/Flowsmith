@@ -4,7 +4,7 @@
 // Right: OUTPUT — execution results (JSON/Table/Schema)
 // Header: node icon + name, connector, operation, Execute/Save/Close buttons.
 
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
@@ -21,7 +21,7 @@ import ErrorState from './shared/ErrorState'
 import SalesforceNodeEditor from './SalesforceNodeEditor'
 import ScheduleTriggerEditor from './ScheduleTriggerEditor'
 import HttpRequestNodeEditor from './HttpRequestNodeEditor'
-import CodeNodeEditor from './CodeNodeEditor'
+const CodeNodeEditor = lazy(() => import('./CodeNodeEditor'))
 import { NodeIcon } from './NodeIcons'
 import IfConditionEditor from './IfConditionEditor'
 import FilterNodeEditor from './FilterNodeEditor'
@@ -437,12 +437,14 @@ export default function NodeEditorModal() {
                       onPreview={previewExpression}
                     />
                   ) : node.type === 'code' ? (
+                    <Suspense fallback={<p className="hint">Loading code editor…</p>}>
                     <CodeNodeEditor
                       node={node}
                       onParamsChange={handleParamsChange}
                       mapping={mapping}
                       onPreview={previewExpression}
                     />
+                    </Suspense>
                   ) : node.type === 'if_condition' ? (
                     <IfConditionEditor
                       node={node}

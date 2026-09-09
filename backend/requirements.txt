@@ -27,7 +27,6 @@ psycopg2-binary>=2.9
 
 # MySQL connector (Phase 11 business connectors) - SQLAlchemy driver
 pymysql>=1.1
-cryptography>=42.0
 
 # MongoDB connector (Phase 11 business connectors)
 pymongo>=4.6

@@ -1,19 +1,14 @@
-import { useEffect, useState } from 'react'
+import { Component, Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/Login'
-import NodeEditorModal from './components/NodeEditorModal'
 import AppShell from './layout/AppShell'
 import OverviewPage from './pages/OverviewPage'
 import WorkflowsPage from './pages/WorkflowsPage'
-import WorkflowEditorPage from './pages/WorkflowEditorPage'
 import CredentialsPage from './pages/CredentialsPage'
 import ExecutionsPage from './pages/ExecutionsPage'
-import ExecutionDetailPage from './pages/ExecutionDetailPage'
 import TemplatesPage from './pages/TemplatesPage'
 import VariablesPage from './pages/VariablesPage'
 import DataTablesPage from './pages/DataTablesPage'
-import DataTableEditorPage from './pages/DataTableEditorPage'
-import KnowledgePage from './pages/KnowledgePage'
 import ApprovalsPage from './pages/ApprovalsPage'
 import SharedPage from './pages/SharedPage'
 import SettingsPage from './pages/SettingsPage'
@@ -21,6 +16,13 @@ import HelpPage from './pages/HelpPage'
 import MonitoringPage from './pages/MonitoringPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
 import { getToken, setToken } from './api'
+
+// Heavy routes split out so /login doesn't pay for ReactFlow + Monaco.
+const WorkflowEditorPage = lazy(() => import('./pages/WorkflowEditorPage'))
+const ExecutionDetailPage = lazy(() => import('./pages/ExecutionDetailPage'))
+const DataTableEditorPage = lazy(() => import('./pages/DataTableEditorPage'))
+const KnowledgePage = lazy(() => import('./pages/KnowledgePage'))
+const NodeEditorModal = lazy(() => import('./components/NodeEditorModal'))
 
 // Fallback for unknown routes
 function NotFound() {
@@ -33,9 +35,36 @@ function NotFound() {
   )
 }
 
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+  componentDidCatch(error, info) {
+    // Keep prod crashes visible but contained; details in console for diagnostics.
+    console.error('UI crash contained:', error, info)
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="page">
+          <h1>Something went wrong</h1>
+          <p className="hint">The view crashed. Reload or go back to Overview.</p>
+          <a href="/overview" className="ghost">Go to Overview</a>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 function AuthenticatedRoutes({ onLogout }) {
   return (
     <>
+      <Suspense fallback={<div className="page"><p className="hint">Loading…</p></div>}>
       <Routes>
         <Route element={<AppShell onLogout={onLogout} />}>
           <Route index element={<Navigate to="/overview" replace />} />
@@ -58,7 +87,10 @@ function AuthenticatedRoutes({ onLogout }) {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-      <NodeEditorModal />
+      </Suspense>
+      <Suspense fallback={null}>
+        <NodeEditorModal />
+      </Suspense>
     </>
   )
 }
@@ -102,6 +134,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ErrorBoundary>
       <Routes>
         <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
         <Route path="/oauth/callback/:provider" element={<OAuthCallbackPage />} />
@@ -121,6 +154,7 @@ export default function App() {
           }
         />
       </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }

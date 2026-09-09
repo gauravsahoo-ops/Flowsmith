@@ -33,8 +33,11 @@ logger = logging.getLogger("code")
 
 
 def _safe_print(*args: Any, **kwargs: Any) -> None:
+    # Route through logger at debug to avoid stdout PII/code flooding
+    # in worker logs; kwargs like flush=True are ignored.
     try:
-        print(*args, **kwargs)
+        msg = " ".join(str(a) for a in args)
+        logger.debug(msg)
     except Exception:
         pass
 
