@@ -92,15 +92,32 @@ def detect_auth(spec: dict[str, Any]) -> ApiAuth:
 
 
 def _base_url(spec: dict[str, Any]) -> str:
-    servers = spec.get("servers") or []
-    if servers and isinstance(servers[0], dict):
-        url = str(servers[0].get("url") or "").rstrip("/")
-        variables = servers[0].get("variables") or {}
-        for var, meta in variables.items():
-            default = (meta or {}).get("default", "") if isinstance(meta, dict) else ""
-            url = url.replace("{" + var + "}", str(default))
-        if url.startswith("http"):
+    def _from_servers(servers: Any) -> str:
+        if servers and isinstance(servers, list) and isinstance(servers[0], dict):
+            url = str(servers[0].get("url") or "").rstrip("/")
+            variables = servers[0].get("variables") or {}
+            for var, meta in variables.items():
+                default = (meta or {}).get("default", "") if isinstance(meta, dict) else ""
+                url = url.replace("{" + var + "}", str(default))
+            if url.startswith("http"):
+                return url
+        return ""
+
+    url = _from_servers(spec.get("servers"))
+    if url:
+        return url
+    # OpenAPI allows servers per path item / operation too.
+    for path, methods in (spec.get("paths") or {}).items():
+        if not isinstance(methods, dict):
+            continue
+        url = _from_servers(methods.get("servers"))
+        if url:
             return url
+        for operation in methods.values():
+            if isinstance(operation, dict):
+                url = _from_servers(operation.get("servers"))
+                if url:
+                    return url
     # Swagger 2.0: schemes + host + basePath.
     if spec.get("swagger"):
         schemes = spec.get("schemes") or ["https"]

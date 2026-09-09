@@ -105,3 +105,15 @@ def test_swagger2_base_url_and_body_detection():
     assert not ops["get_items"].has_body
     assert ops["post_items"].has_body
     assert ops["post_upload"].has_body
+
+
+def test_path_level_servers_fallback():
+    api = parse_spec({
+        "openapi": "3.1.0",
+        "info": {"title": "Pathed"},
+        "paths": {"/v1/forecast": {
+            "servers": [{"url": "https://api.example.com"}],
+            "get": {"summary": "F"},
+        }},
+    })
+    assert api.base_url == "https://api.example.com"
