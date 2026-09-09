@@ -69,6 +69,7 @@ def _load_builtin_nodes() -> None:
         aggregate,
         ai,
         ai_agent,
+        chat_trigger,
         code,
         compare_datasets,
         crypto_tools,

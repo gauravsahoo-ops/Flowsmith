@@ -24,6 +24,7 @@ const DataTableEditorPage = lazy(() => import('./pages/DataTableEditorPage'))
 const KnowledgePage = lazy(() => import('./pages/KnowledgePage'))
 const NodeEditorModal = lazy(() => import('./components/NodeEditorModal'))
 const FormFillPage = lazy(() => import('./pages/FormFillPage'))
+const ChatPage = lazy(() => import('./pages/ChatPage'))
 
 // Fallback for unknown routes
 function NotFound() {
@@ -142,6 +143,11 @@ export default function App() {
         <Route path="/forms/:slug" element={
           <Suspense fallback={<div className="page"><p className="hint">Loading…</p></div>}>
             <FormFillPage />
+          </Suspense>
+        } />
+        <Route path="/chat/:slug" element={
+          <Suspense fallback={<div className="page"><p className="hint">Loading…</p></div>}>
+            <ChatPage />
           </Suspense>
         } />
         <Route

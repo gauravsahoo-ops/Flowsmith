@@ -25,7 +25,7 @@ from app.schemas.workflow import Workflow
 
 logger = logging.getLogger("triggers.registry")
 
-TRIGGER_NODE_TYPES = {"webhook", "schedule", "salesforce_trigger", "form_trigger"}
+TRIGGER_NODE_TYPES = {"webhook", "schedule", "salesforce_trigger", "form_trigger", "chat_trigger"}
 
 #: Reserved path namespace owned by the Salesforce Outbound Message
 #: endpoint (Phase 10); generic webhook routes refuse it.
@@ -35,6 +35,10 @@ SALESFORCE_TRIGGER_PREFIX = "sf-outbound/"
 #: share the `webhooks` table; the generic single-segment webhook route
 #: never matches these two-segment paths.
 FORM_TRIGGER_PREFIX = "form/"
+
+#: Reserved path namespace for public chat (Batch D). Same table,
+#: same two-segment routing as forms.
+CHAT_TRIGGER_PREFIX = "chat/"
 
 
 def workflow_trigger_nodes(workflow: Workflow) -> list[dict[str, Any]]:
@@ -112,9 +116,10 @@ def sync_webhooks(db: Session) -> None:
                     existing.method = "POST"
                     existing.status = "active"
 
-            if trig["type"] == "form_trigger":
+            if trig["type"] in ("form_trigger", "chat_trigger"):
+                prefix = FORM_TRIGGER_PREFIX if trig["type"] == "form_trigger" else CHAT_TRIGGER_PREFIX
                 path = trig["params"].get("path")
-                if not path or not path.startswith(FORM_TRIGGER_PREFIX):
+                if not path or not path.startswith(prefix):
                     continue
                 wanted_webhook_paths.add(path)
                 existing = db.scalar(

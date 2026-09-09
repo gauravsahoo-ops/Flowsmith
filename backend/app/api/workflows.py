@@ -91,6 +91,8 @@ def _validate_webhook_paths(workflow: Workflow, db: Session, exclude_id: str | N
             _check_trigger_path(node.type, node.parameters.get("path"))
         elif node.type == "form_trigger":
             _check_trigger_path(node.type, node.parameters.get("path"))
+        elif node.type == "chat_trigger":
+            _check_trigger_path(node.type, node.parameters.get("path"))
         else:
             continue
         node_id_path = node.parameters.get("path")

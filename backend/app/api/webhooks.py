@@ -24,7 +24,7 @@ from app.db import get_db, get_session
 from app.metrics import ratelimit_rejected, webhook_deliveries
 from app.models import WebhookDelivery
 from app.security.ratelimit import get_webhook_limiter
-from app.triggers.registry import FORM_TRIGGER_PREFIX, get_webhook
+from app.triggers.registry import CHAT_TRIGGER_PREFIX, FORM_TRIGGER_PREFIX, get_webhook
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
@@ -361,5 +361,173 @@ async def form_submit(slug: str, request: Request) -> dict:
         ))
         db.commit()
         return ok({"delivery_id": delivery_id, "execution_id": execution_id, "skipped": False})
+    finally:
+        db.close()
+
+
+# ----------------------------------------------------------------------
+# Public chat (Batch D): definition + synchronous message round-trip on
+# the `chat/` namespace. The server is stateless: the client owns the
+# history; each message runs its own execution and the route waits for
+# it (bounded) to answer with the workflow's reply.
+# ----------------------------------------------------------------------
+
+MAX_CHAT_MESSAGE = 10_000
+CHAT_WAIT_SECONDS = 90.0
+_REPLY_KEYS = ("reply", "response", "text", "output")
+
+
+def _chat_node_params(workflow_data: dict) -> dict | None:
+    for node in (workflow_data or {}).get("nodes", []):
+        if isinstance(node, dict) and node.get("type") == "chat_trigger":
+            params = node.get("parameters") or {}
+            if isinstance(params, dict):
+                return params
+    return None
+
+
+def _extract_reply(workflow_data: dict, results: dict | None) -> str:
+    """First reply-ish string scanning outputs in reverse node order."""
+    outputs = ((results or {}).get("outputs") or {})
+    if not isinstance(outputs, dict):
+        return ""
+    node_ids = [n.get("id") for n in (workflow_data or {}).get("nodes", []) if isinstance(n, dict)]
+    for nid in reversed(node_ids):
+        by_handle = outputs.get(nid)
+        if not isinstance(by_handle, dict):
+            continue
+        for handle_items in by_handle.values():
+            if not isinstance(handle_items, list):
+                continue
+            for item in reversed(handle_items):
+                if not isinstance(item, dict):
+                    continue
+                for key in _REPLY_KEYS:
+                    value = item.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return value
+    return ""
+
+
+@router.get("/chat/{slug}", status_code=status.HTTP_200_OK)
+def chat_definition(slug: str) -> dict:
+    """Public chat info (title + greeting) for rendering."""
+    db = get_session()
+    try:
+        wh = get_webhook(db, f"{CHAT_TRIGGER_PREFIX}{slug}")
+        if wh is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown chat.")
+        params = _chat_node_params(wh.workflow_data) or {}
+        return ok({
+            "path": wh.path,
+            "title": params.get("title", "Chat"),
+            "greeting": params.get("greeting", "How can I help?"),
+        })
+    finally:
+        db.close()
+
+
+@router.post("/chat/{slug}", status_code=status.HTTP_200_OK)
+async def chat_message(slug: str, request: Request) -> dict:
+    """Public chat round-trip: run the workflow, wait, answer the reply."""
+    import asyncio
+    import time
+    import uuid as _uuid
+
+    db = get_session()
+    try:
+        path = f"{CHAT_TRIGGER_PREFIX}{slug}"
+        wh = get_webhook(db, path)
+        if wh is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown chat.")
+
+        allowed, retry_after = _limiter.allow(f"webhook:{path}")
+        if not allowed:
+            ratelimit_rejected.inc(("webhook",))
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Chat rate limit exceeded.",
+                headers={"Retry-After": str(retry_after)},
+            )
+
+        raw = await request.body()
+        if len(raw) > MAX_WEBHOOK_BODY:
+            raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Body exceeds 5 MB limit.")
+        try:
+            body = _payload(raw)
+        except Exception:
+            body = {}
+        if not isinstance(body, dict):
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Chat message must be a JSON object.")
+        message = str(body.get("message") or "").strip()
+        if not message:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Field 'message' is required.")
+        if len(message) > MAX_CHAT_MESSAGE:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Message exceeds 10000 characters.")
+        session_id = str(body.get("session_id") or f"ses_{_uuid.uuid4().hex[:12]}")
+        history = body.get("history") or []
+        if not isinstance(history, list):
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Field 'history' must be a list.")
+        history = history[-50:]
+
+        from app.api.executions import start_execution, workflow_workspace
+        from app.execution_runtime import _mark_deliveries
+        from app.models import Execution as _Execution
+        trigger_items = [{"message": message, "session_id": session_id, "history": history}]
+        try:
+            execution_id = start_execution(
+                db,
+                workflow_id=wh.workflow_id,
+                user_id=wh.user_id,
+                version=wh.workflow_version,
+                workflow_data=wh.workflow_data,
+                trigger="chat",
+                trigger_items=trigger_items,
+                workspace_id=workflow_workspace(db, wh.workflow_id),
+            )
+        except Exception as exc:
+            from app.engine.errors import WorkflowValidationError
+            if isinstance(exc, WorkflowValidationError):
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=exc.to_dict())
+            raise
+        delivery_id = f"dlv_{_uuid.uuid4().hex[:12]}"
+        webhook_deliveries.inc(("queued",))
+        db.add(WebhookDelivery(
+            id=delivery_id,
+            workflow_id=wh.workflow_id,
+            user_id=wh.user_id,
+            path=path,
+            status="queued",
+            response_code=status.HTTP_200_OK,
+            execution_id=execution_id,
+        ))
+        db.commit()
+
+        deadline = time.monotonic() + CHAT_WAIT_SECONDS
+        final = None
+        while time.monotonic() < deadline:
+            db.expire_all()
+            exec_rec = db.get(_Execution, execution_id)
+            if exec_rec is not None and exec_rec.status not in ("queued", "running", "cancelling"):
+                final = exec_rec
+                break
+            await asyncio.sleep(0.25)
+        if final is None:
+            return ok({
+                "reply": "", "session_id": session_id, "execution_id": execution_id,
+                "status": "timeout", "timeout": True,
+            })
+        _mark_deliveries(db, execution_id, final.status)
+        if final.status != "success":
+            err = final.error or {}
+            return ok({
+                "reply": "", "session_id": session_id, "execution_id": execution_id,
+                "status": final.status, "error": err,
+            })
+        reply = _extract_reply(wh.workflow_data, final.results)
+        return ok({
+            "reply": reply, "session_id": session_id,
+            "execution_id": execution_id, "status": "success",
+        })
     finally:
         db.close()
