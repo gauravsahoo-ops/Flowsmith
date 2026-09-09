@@ -48,3 +48,6 @@ Shipped: `form_trigger` node + `form/` namespace sync (no migration) + public de
 - [x] `GET /api/nodes` shows new types alongside existing (50 node types, 31 connectors)
 - [x] `vitest` + `pytest` green, `vite build` chunk report reviewed
 - [x] Docs updated here, not from n8n docs
+
+## 5. Phase 1 importer status ✅ SHIPPED
+Parser (`openapi_import.py`: OpenAPI 3 + Swagger 2, auth detect, 50-op cap) + emitter (`openapi_emit.py`: provider/definition/connector, `validate_definition`-clean) + discovery/registration + startup scan of `app/connectors/generated/` (missing dir fine) + CLI (`scripts/import_openapi.py`: dry-run/write/force, validated before write). 19 tests. Trial: httpbin spec → 50 ops → generated → registered → live `GET /get` round-trip OK. Next: curated spec waves + optional import CLI.
