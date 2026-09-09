@@ -524,6 +524,20 @@ def register_builtin_connectors() -> None:
     """
     from app.connectors.airtable_connector import AirtableConnector
     from app.connectors.airtable_definition import build_airtable_definition
+    from app.connectors.asana_connector import AsanaConnector
+    from app.connectors.asana_definition import build_asana_definition
+    from app.connectors.calendly_connector import CalendlyConnector
+    from app.connectors.calendly_definition import build_calendly_definition
+    from app.connectors.gitlab_connector import GitLabConnector
+    from app.connectors.gitlab_definition import build_gitlab_definition
+    from app.connectors.bitbucket_connector import BitbucketConnector
+    from app.connectors.bitbucket_definition import build_bitbucket_definition
+    from app.connectors.twilio_connector import TwilioConnector
+    from app.connectors.twilio_definition import build_twilio_definition
+    from app.connectors.zoom_connector import ZoomConnector
+    from app.connectors.zoom_definition import build_zoom_definition
+    from app.connectors.linear_connector import LinearConnector
+    from app.connectors.linear_definition import build_linear_definition
     from app.connectors.discord_connector import DiscordConnector
     from app.connectors.discord_definition import build_discord_definition
     from app.connectors.gmail_connector import GmailConnector
@@ -564,6 +578,8 @@ def register_builtin_connectors() -> None:
     from app.connectors.slack_definition import build_slack_definition
     from app.connectors.stripe_connector import StripeConnector
     from app.connectors.stripe_definition import build_stripe_definition
+    from app.connectors.trello_connector import TrelloConnector
+    from app.connectors.trello_definition import build_trello_definition
     from app.connectors.webhook_connector import WebhookConnector
 
     # connector_id -> (instance factory, definition builder). Definition
@@ -594,6 +610,14 @@ def register_builtin_connectors() -> None:
         (RedisConnector(), build_redis_definition),
         (AirtableConnector(), build_airtable_definition),
         (ShopifyConnector(), build_shopify_definition),
+        (TrelloConnector(), build_trello_definition),
+        (AsanaConnector(), build_asana_definition),
+        (LinearConnector(), build_linear_definition),
+        (CalendlyConnector(), build_calendly_definition),
+        (GitLabConnector(), build_gitlab_definition),
+        (ZoomConnector(), build_zoom_definition),
+        (TwilioConnector(), build_twilio_definition),
+        (BitbucketConnector(), build_bitbucket_definition),
     ]
 
     registry = get_registry()
