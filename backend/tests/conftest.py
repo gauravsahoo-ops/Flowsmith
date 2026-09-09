@@ -18,9 +18,15 @@ from sqlalchemy import text
 
 from app.config import get_settings
 from app.db import Base, init_db
-from app.engine.node_base import BaseNode, NodeContext, NodeResult
-from app.nodes.registry import register
+from app.engine.errors import NodeCancelledError
+from app.engine.node_base import BaseNode, EmptyParams, NodeContext, NodeResult
+from app.nodes.registry import NODE_REGISTRY, register
 from app.schemas.workflow import Connection, Workflow, WorkflowNode
+
+# Node type used by the shared slow-node fixture below. Defined here
+# (not in tests/test_api/conftest.py) so every suite shares one name;
+# test_api/conftest.py re-exports it for back-compat imports.
+SLOW_TYPE = "slow_test_node"
 
 def _test_db_url() -> str:
     """Dedicated test database by default (Phase 31 hardening).
@@ -228,3 +234,64 @@ def conn(source: str, target: str, source_handle: str = "main", target_handle: s
 @pytest.fixture
 def http_client() -> httpx.AsyncClient:
     return httpx.AsyncClient()
+
+
+# --- API test fixtures (moved up from tests/test_api/conftest.py) ---------
+# WHY HERE: pytest can build duplicate collector nodes for the same
+# package directory when explicit file args mix tests/ root files with
+# tests/test_api/ files (verified: two `Package test_api` objects).
+# FixtureDefs bind to ONE collector object, so tests under the duplicate
+# subtree lose every fixture defined in tests/test_api/conftest.py
+# ("fixture 'client' not found"). Package(tests) never duplicates, so
+# fixtures bound here resolve for the whole suite in every invocation.
+# test_api/conftest.py keeps back-compat re-exports; its own fixture
+# definitions were removed so they cannot shadow these.
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiters():
+    """Reset auth rate limiters between tests to prevent cross-test exhaustion."""
+    from app.api.auth import _register_limiter, _forgot_password_limiter, login_throttle
+    _register_limiter.reset()
+    _forgot_password_limiter.reset()
+    login_throttle.reset()
+    yield
+    _register_limiter.reset()
+    _forgot_password_limiter.reset()
+    login_throttle.reset()
+
+
+@pytest.fixture
+def client():
+    """Empty Postgres DB per test (this harness truncates before each test).
+
+    The app import is deferred so pure-unit runs pay nothing at collection.
+    """
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    return TestClient(app)
+
+
+@pytest.fixture
+def slow_node():
+    """Register a node that sleeps until cancelled (stream/cancel tests)."""
+
+    class SlowNode(BaseNode[EmptyParams]):
+        node_type = SLOW_TYPE
+        display_name = "Slow (test)"
+        version = 1
+        description = "Hangs until cancelled."
+        category = "Test"
+        icon = "🐌"
+        parameters_schema = EmptyParams
+
+        async def run(self, ctx: NodeContext, params: EmptyParams, input_items: list[dict[str, Any]]) -> NodeResult:
+            for _ in range(200):
+                if ctx.is_cancelled():
+                    raise NodeCancelledError()
+                await asyncio.sleep(0.05)
+            return NodeResult(output_items=[{"done": True}])
+
+    NODE_REGISTRY[SLOW_TYPE] = SlowNode
+    yield SLOW_TYPE
+    NODE_REGISTRY.pop(SLOW_TYPE, None)
