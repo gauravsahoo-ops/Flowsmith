@@ -3,6 +3,8 @@ import JsonTree from './JsonTree'
 import Status from './shared/Status'
 import ErrorState from './shared/ErrorState'
 import { TableView } from './DataViewer'
+import BinaryDataViewModal from './BinaryDataViewModal'
+import './OutputPanel.css'
 
 function unwrapItem(item) {
   if (item == null) return item
@@ -118,6 +120,29 @@ export default function OutputPanel({
       return null
     }
   })
+  const [selectedBinaryModal, setSelectedBinaryModal] = useState(null)
+
+  const binaryEntries = useMemo(() => {
+    const rawList = Array.isArray(data)
+      ? (Array.isArray(data[0]) ? data[0] : data)
+      : (data?.records || (data ? [data] : []))
+
+    const entries = []
+    rawList.forEach((item, itemIdx) => {
+      if (item && item.binary && typeof item.binary === 'object') {
+        Object.entries(item.binary).forEach(([propName, binData]) => {
+          if (binData && typeof binData === 'object') {
+            entries.push({
+              itemIndex: itemIdx,
+              propertyName: propName,
+              ...binData,
+            })
+          }
+        })
+      }
+    })
+    return entries
+  }, [data])
 
   const prevNodeId = useRef(nodeId)
 
@@ -276,6 +301,15 @@ export default function OutputPanel({
             >
               JSON
             </button>
+            {binaryEntries.length > 0 && (
+              <button
+                type="button"
+                className={`nem-input-tab ${view === 'binary' ? 'active' : ''}`}
+                onClick={() => setView('binary')}
+              >
+                Binary ({binaryEntries.length})
+              </button>
+            )}
           </div>
 
           {/* Quick Actions (Copy, Edit, Pin) */}
@@ -542,9 +576,73 @@ export default function OutputPanel({
                 </div>
               </div>
             )}
+            {view === 'binary' && (
+              <div className="op-binary-wrap">
+                <div className="op-binary-grid">
+                  {binaryEntries.map((bin, idx) => (
+                    <div key={idx} className="op-binary-card">
+                      <div className="op-binary-card-icon">
+                        {bin.mimeType?.startsWith('image/')
+                          ? '🖼️'
+                          : bin.mimeType === 'application/pdf'
+                            ? '📄'
+                            : bin.mimeType?.startsWith('text/')
+                              ? '📝'
+                              : '📁'}
+                      </div>
+                      <div className="op-binary-card-info">
+                        <div className="op-binary-card-name" title={bin.fileName}>
+                          {bin.fileName || 'file.bin'}
+                        </div>
+                        <div className="op-binary-card-meta">
+                          <span className="op-binary-tag">{bin.fileSize || `${bin.bytes || 0} B`}</span>
+                          <span className="op-binary-tag subtle">{bin.mimeType || 'binary'}</span>
+                        </div>
+                      </div>
+                      <div className="op-binary-card-actions">
+                        <button
+                          type="button"
+                          className="op-btn small primary"
+                          onClick={() => setSelectedBinaryModal(bin)}
+                          title="Preview file"
+                        >
+                          👁️ View
+                        </button>
+                        <button
+                          type="button"
+                          className="op-btn small ghost"
+                          onClick={() => {
+                            const token = localStorage.getItem('token') || ''
+                            const url = bin.id
+                              ? `/api/files/${bin.id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`
+                              : `data:${bin.mimeType || 'application/octet-stream'};base64,${bin.data}`
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = bin.fileName || 'download.bin'
+                            document.body.appendChild(a)
+                            a.click()
+                            document.body.removeChild(a)
+                          }}
+                          title="Download file"
+                        >
+                          ⬇️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {selectedBinaryModal && (
+        <BinaryDataViewModal
+          binaryEntry={selectedBinaryModal}
+          onClose={() => setSelectedBinaryModal(null)}
+        />
+      )}
 
       {/* Footer */}
       <div className="op-footer">

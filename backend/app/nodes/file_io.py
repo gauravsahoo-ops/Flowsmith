@@ -43,7 +43,11 @@ class FileIOParams(BaseModel):
     )
     binary: bool = Field(
         default=False,
-        description="Binary mode: read/write raw bytes. Content is base64-encoded on read and expected as base64 on write.",
+        description="Binary mode: read/write raw bytes and store in binary property.",
+    )
+    binary_property: str = Field(
+        default="data",
+        description="Binary property key name on item (e.g. 'data').",
     )
 
 
@@ -52,7 +56,7 @@ class FileIONode(BaseNode[FileIOParams]):
     node_type = "file_io"
     display_name = "File I/O"
     version = 2
-    description = "Read from or write to a file on disk with async I/O."
+    description = "Read from or write to a file on disk with async I/O and binary storage."
     category = "Storage"
     icon = "📄"
     parameters_schema = FileIOParams
@@ -82,6 +86,8 @@ class FileIONode(BaseNode[FileIOParams]):
         params: FileIOParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
+        from app.engine.binary_data import get_binary_data_buffer, prepare_binary_data
+
         resolved_path = params.path
         # S11: Path traversal protection — always validate the resolved path
         self._validate_path(resolved_path)
@@ -112,21 +118,51 @@ class FileIONode(BaseNode[FileIOParams]):
             if params.binary:
                 async with aiofiles.open(resolved_path, "rb") as f:
                     raw = await f.read()
-                content = base64.b64encode(raw).decode("ascii")
+                filename = os.path.basename(resolved_path)
+                binary_meta = prepare_binary_data(raw, file_name=filename)
+                return NodeResult(output_items=[{
+                    "json": {
+                        "success": True,
+                        "path": resolved_path,
+                        "fileName": filename,
+                        "size_bytes": file_size,
+                    },
+                    "binary": {
+                        params.binary_property: binary_meta,
+                    },
+                }])
             else:
                 async with aiofiles.open(resolved_path, "r", encoding=params.encoding) as f:
                     content = await f.read()
-            return NodeResult(output_items=[{
-                "success": True,
-                "content": content,
-                "path": resolved_path,
-                "size_bytes": file_size,
-            }])
+                return NodeResult(output_items=[{
+                    "success": True,
+                    "content": content,
+                    "path": resolved_path,
+                    "size_bytes": file_size,
+                }])
 
         # Write or append mode
         if params.binary:
             mode = "wb" if params.mode == "write" else "ab"
-            raw = base64.b64decode(params.content)
+            raw = b""
+            # Check if input item contains binary data
+            if input_items:
+                first_item = input_items[0]
+                bin_dict = first_item.get("binary") or {}
+                bin_entry = bin_dict.get(params.binary_property)
+                if bin_entry and isinstance(bin_entry, dict):
+                    try:
+                        raw = get_binary_data_buffer(bin_entry)
+                    except Exception as e:
+                        raise NodeExecutionError(
+                            f"Failed to read binary input buffer: {e}",
+                            code="BINARY_READ_ERROR",
+                            node_id=self.node_type,
+                            retryable=False,
+                        ) from e
+            if not raw and params.content:
+                raw = base64.b64decode(params.content)
+
             async with aiofiles.open(resolved_path, mode) as f:
                 await f.write(raw)
             bytes_written = len(raw)

@@ -339,7 +339,8 @@ class HTTPRequestParams(BaseModel):
     follow_redirects: bool = True
     max_redirects: int = Field(default=5, ge=0, le=50)
     ignore_ssl_issues: bool = Field(default=False, description="Skip TLS verification (insecure).")
-    response_format: Literal["json", "text", "auto"] = Field(default="auto")
+    response_format: Literal["json", "text", "file", "binary", "auto"] = Field(default="auto")
+    binary_property: str = Field(default="data", description="Binary property name on output item.")
     # Pagination (GET only): follow RFC 5988 Link rel="next"
     pagination_mode: Literal["none", "link_header"] = "none"
     max_pages: int = Field(default=1, ge=1, le=100)
@@ -1273,7 +1274,34 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
         # Determine response format handling
         content_type = response.headers.get("content-type", "") or response.headers.get("Content-Type", "")
         fmt = params.response_format
+        if fmt in ("file", "binary"):
+            from urllib.parse import urlparse
+            from app.engine.binary_data import prepare_binary_data
+            filename = None
+            cd = response.headers.get("content-disposition", "")
+            if "filename=" in cd:
+                filename = cd.split("filename=")[-1].strip('"\' ;')
+            if not filename:
+                p_name = os.path.basename(urlparse(url).path)
+                if p_name:
+                    filename = p_name
+            clean_mime = content_type.split(";")[0].strip() if content_type else "application/octet-stream"
+            binary_meta = prepare_binary_data(response.content, file_name=filename, mime_type=clean_mime)
+            return {
+                "json": {
+                    "status": response.status_code,
+                    "statusCode": response.status_code,
+                    "statusMessage": response.reason_phrase or ("OK" if 200 <= response.status_code < 300 else "Error"),
+                    "headers": dict(response.headers),
+                    "responseTime": round(elapsed_ms, 1),
+                },
+                "binary": {
+                    params.binary_property: binary_meta,
+                },
+            }
+
         body: Any
+        binary_meta_auto: dict[str, Any] | None = None
         if fmt == "json":
             try:
                 body = response.json()
@@ -1293,6 +1321,12 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 # For binary content, base64-encode so downstream nodes can use the data
                 if "image/" in content_type or "octet-stream" in content_type or "pdf" in content_type or "audio/" in content_type or "video/" in content_type:
                     body = base64.b64encode(response.content).decode("ascii")
+                    try:
+                        from app.engine.binary_data import prepare_binary_data
+                        clean_mime = content_type.split(";")[0].strip() if content_type else "application/octet-stream"
+                        binary_meta_auto = prepare_binary_data(response.content, mime_type=clean_mime)
+                    except Exception:
+                        pass
                 else:
                     body = response.text if response.text else ""
 
@@ -1338,6 +1372,14 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
         # Idempotency cache
         if params.idempotency_key and params.method in ("GET", "HEAD", "PUT", "DELETE"):
             await ctx.storage.set(f"idem:{params.idempotency_key}", item, ttl=86400)
+
+        if binary_meta_auto:
+            return {
+                "json": item,
+                "binary": {
+                    params.binary_property: binary_meta_auto,
+                },
+            }
         return item
 
 

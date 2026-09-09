@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, UploadFile, File, Form, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -121,10 +121,37 @@ def get_file_meta(
     return {"data": _to_dict(rec)}
 
 
+def _get_user_from_header_or_query(
+    authorization: str | None = Header(default=None),
+    token: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> User:
+    raw_token = None
+    if authorization and authorization.startswith("Bearer "):
+        raw_token = authorization.removeprefix("Bearer ").strip()
+    elif token:
+        raw_token = token.strip()
+
+    if not raw_token:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing authentication token.")
+
+    try:
+        from app.security.jwt import decode_token
+        payload = decode_token(raw_token)
+        user_id = int(payload["sub"])
+    except Exception:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token.")
+
+    user = db.get(User, user_id)
+    if user is None or not user.active:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User inactive or not found.")
+    return user
+
+
 @router.get("/{file_id}/download")
 def download_file(
     file_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(_get_user_from_header_or_query),
     db: Session = Depends(get_db),
 ):
     rec = db.get(FileRecord, file_id)
@@ -138,11 +165,36 @@ def download_file(
         data = store.get(rec.object_key)
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "File bytes missing from object store.")
-    # Stream bytes with correct content type.
+    # Stream bytes with attachment disposition.
     return StreamingResponse(
         iter([data]),
-        media_type=rec.mime_type,
+        media_type=rec.mime_type or "application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{rec.filename}"'},
+    )
+
+
+@router.get("/{file_id}/view")
+def view_file(
+    file_id: str,
+    user: User = Depends(_get_user_from_header_or_query),
+    db: Session = Depends(get_db),
+):
+    """Stream file with inline disposition for in-browser image/PDF/text preview."""
+    rec = db.get(FileRecord, file_id)
+    if rec is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found.")
+    if rec.owner_user_id != user.id:
+        if rec.workspace_id is None or not _can_access_workspace(db, user.id, rec.workspace_id):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "No access to this file.")
+    store = get_object_store()
+    try:
+        data = store.get(rec.object_key)
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "File bytes missing from object store.")
+    return StreamingResponse(
+        iter([data]),
+        media_type=rec.mime_type or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{rec.filename}"'},
     )
 
 

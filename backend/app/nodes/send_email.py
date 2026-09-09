@@ -68,6 +68,21 @@ class SendEmailNode(BaseNode[SendEmailParams]):
             else:
                 message.set_content(params.body)
 
+            # Attach any binary files present in item['binary']
+            bin_dict = item.get("binary")
+            if bin_dict and isinstance(bin_dict, dict):
+                from app.engine.binary_data import get_binary_data_buffer
+                for prop_name, bin_entry in bin_dict.items():
+                    if isinstance(bin_entry, dict):
+                        try:
+                            raw_bytes = get_binary_data_buffer(bin_entry)
+                            fname = bin_entry.get("fileName") or f"{prop_name}.bin"
+                            mtype = bin_entry.get("mimeType", "application/octet-stream")
+                            maintype, subtype = mtype.split("/", 1) if "/" in mtype else ("application", "octet-stream")
+                            message.add_attachment(raw_bytes, maintype=maintype, subtype=subtype, filename=fname)
+                        except Exception as e:
+                            ctx.logger.warning(f"Could not attach binary property {prop_name}: {e}")
+
             try:
                 await asyncio.to_thread(
                     _send_via_smtp,
