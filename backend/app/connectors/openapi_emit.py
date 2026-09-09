@@ -90,39 +90,30 @@ def emit_provider(key: str, api: ApiSpec) -> str:
         "",
         "",
         "def _auth_parts(creds: dict) -> tuple[dict[str, str], dict[str, str]]:",
-        '    """Return (headers, query) auth material; raises when misconfigured."""',
+        '    """Return (headers, query) auth material.',
+        "",
+        "    Empty credentials pass through unauthenticated — public endpoints",
+        '    work, protected ones answer 401 (mapped to AUTH_FAILED)."""',
     ]
     if auth.kind == "api_key_header":
         lines += [
             f"    token = str((creds or {{}}).get('api_key') or '').strip()",
             "    if not token:",
-            "        raise make_connector_error(",
-            "            ConnectorErrorCode.NOT_CONFIGURED,",
-            f"            {_py_str(f'{key} connector needs an api key credential.')},",
-            "            retryable=False,",
-            "        )",
+            "        return {}, {}",
             f"    return {{{_py_str(auth.name)}: token}}, {{}}",
         ]
     elif auth.kind == "api_key_query":
         lines += [
             "    token = str((creds or {}).get('api_key') or '').strip()",
             "    if not token:",
-            "        raise make_connector_error(",
-            "            ConnectorErrorCode.NOT_CONFIGURED,",
-            f"            {_py_str(f'{key} connector needs an api key credential.')},",
-            "            retryable=False,",
-            "        )",
+            "        return {}, {}",
             f"    return {{}}, {{{_py_str(auth.name)}: token}}",
         ]
     elif auth.kind == "bearer":
         lines += [
             "    token = str((creds or {}).get('access_token') or '').strip()",
             "    if not token:",
-            "        raise make_connector_error(",
-            "            ConnectorErrorCode.NOT_CONFIGURED,",
-            f"            {_py_str(f'{key} connector needs an access token credential.')},",
-            "            retryable=False,",
-            "        )",
+            "        return {}, {}",
             '    return {"Authorization": f"Bearer {token}"}, {}',
         ]
     elif auth.kind == "basic":
@@ -130,11 +121,7 @@ def emit_provider(key: str, api: ApiSpec) -> str:
             "    username = str((creds or {}).get('username') or '')",
             "    password = str((creds or {}).get('password') or '')",
             "    if not username:",
-            "        raise make_connector_error(",
-            "            ConnectorErrorCode.NOT_CONFIGURED,",
-            f"            {_py_str(f'{key} connector needs a username/password credential.')},",
-            "            retryable=False,",
-            "        )",
+            "        return {}, {}",
             "    raw = f'{username}:{password}'.encode()",
             "    import base64 as _b64",
             "    return {'Authorization': 'Basic ' + _b64.b64encode(raw).decode()}, {}",
@@ -143,11 +130,7 @@ def emit_provider(key: str, api: ApiSpec) -> str:
         lines += [
             "    token = str((creds or {}).get('access_token') or '').strip()",
             "    if not token:",
-            "        raise make_connector_error(",
-            "            ConnectorErrorCode.NOT_CONFIGURED,",
-            f"            {_py_str(f'{key} connector needs an access token credential.')},",
-            "            retryable=False,",
-            "        )",
+            "        return {}, {}",
             '    return {"Authorization": f"Bearer {token}"}, {}',
         ]
     else:

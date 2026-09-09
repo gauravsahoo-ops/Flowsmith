@@ -98,11 +98,7 @@ def test_provider_auth_parts_without_network(tmp_path):
     spec.loader.exec_module(module)
     headers, query = module._auth_parts({"api_key": "sekret"})
     assert headers == {"X-Token": "sekret"} and query == {}
-    try:
-        module._auth_parts({})
-        raise AssertionError("expected ConnectorError")
-    except Exception as exc:
-        assert getattr(exc, "code", "") == ConnectorErrorCode.NOT_CONFIGURED.value
+    assert module._auth_parts({}) == ({}, {})  # public endpoints pass through
 
 
 def test_discovery_skips_incomplete_triple(tmp_path):

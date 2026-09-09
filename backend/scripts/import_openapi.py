@@ -50,6 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--name", required=True, help="Connector key seed (slugified).")
     parser.add_argument("--title", default="", help="Display name (default: spec title).")
     parser.add_argument("--category", default="api")
+    parser.add_argument("--base-url", default="", help="Override when the spec declares no server URL.")
     parser.add_argument("--out", default=str(GENERATED_DIR), help="Output directory.")
     parser.add_argument("--dry-run", action="store_true", help="Validate only, write nothing.")
     parser.add_argument("--force", action="store_true", help="Overwrite an existing triple.")
@@ -66,7 +67,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"PARSE FAILED: {exc}")
         return 1
     if not api.base_url:
-        print("PARSE FAILED: no server URL (servers[] or host/basePath).")
+        override = (args.base_url or "").strip().rstrip("/")
+        if override.startswith("http"):
+            api.base_url = override
+    if not api.base_url:
+        print("PARSE FAILED: no server URL (servers[] or host/basePath); pass --base-url.")
         return 1
     if not api.operations:
         print("PARSE FAILED: no operations found.")
