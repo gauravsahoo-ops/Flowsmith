@@ -1,1 +1,0 @@
-{"name":"test-schedule","nodes":[{"id":"n1","type":"schedule","position":{"x":0,"y":0},"parameters":{"rules":[{"id":"r1","interval":"minutes","value":5,"active":true,"ruleDescription":"Every 5 minutes","collapsed":false}]}}],"connections":[]}

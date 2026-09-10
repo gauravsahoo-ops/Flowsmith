@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback } fr
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
-import { useWorkflowStore } from '../stores/workflowStore'
 import PageHeader from '../components/shared/PageHeader'
 import EmptyState from '../components/shared/EmptyState'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'

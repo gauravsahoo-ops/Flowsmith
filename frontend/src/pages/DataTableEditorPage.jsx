@@ -1,10 +1,9 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import EmptyState from '../components/shared/EmptyState'
-import ConfirmDialog from '../components/shared/ConfirmDialog'
 
 const TYPE_OPTIONS = ['string', 'number', 'boolean', 'date', 'datetime', 'json']
 

@@ -191,6 +191,15 @@ export default function OutputPanel({
     })
   }, [branchItems, search])
 
+  // Virtualization guard: cap rendered items to avoid frame drops on large outputs
+  const DISPLAY_LIMIT = 200
+  const [showAllItems, setShowAllItems] = useState(false)
+  const displayedItems = useMemo(
+    () => showAllItems ? filteredItems : filteredItems.slice(0, DISPLAY_LIMIT),
+    [filteredItems, showAllItems]
+  )
+  const hasMoreItems = filteredItems.length > DISPLAY_LIMIT && !showAllItems
+
   const totalItemsCount = branchItems.length
   const isEmpty = !extracted.hasData && !executing && !error && !pinned
   const isError = !!error || status === 'error'
@@ -559,7 +568,7 @@ export default function OutputPanel({
                 />
               </div>
             )}
-            {view === 'table' && <TableView data={filteredItems} />}
+            {view === 'table' && <TableView data={displayedItems} />}
             {view === 'json' && (
               <div className="op-json-wrap">
                 <div className="op-json-scroll">
@@ -574,6 +583,12 @@ export default function OutputPanel({
                     search={search}
                   />
                 </div>
+              </div>
+            )}
+            {hasMoreItems && view !== 'binary' && (
+              <div className="op-show-more" onClick={() => setShowAllItems(true)}>
+                Showing {DISPLAY_LIMIT} of {filteredItems.length} items —{" "}
+                <span className="op-show-more-link">Show all {filteredItems.length}</span>
               </div>
             )}
             {view === 'binary' && (

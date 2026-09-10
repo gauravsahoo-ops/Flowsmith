@@ -64,23 +64,35 @@ def _mark_deliveries(db: Session, execution_id: str, status_value: str) -> None:
 
 
 async def _watch_cancel(execution_id: str, cancel_event: asyncio.Event) -> None:
-    """Poll the DB for the durable cancel flag; flip the local event."""
+    """Poll the DB for the durable cancel flag; flip the local event.
+
+    Uses a single long-lived session with expire_on_access=False and
+    explicit refresh() to avoid opening a new connection every 250ms
+    per running execution under concurrent load.
+    """
     from app.models import Execution
 
-    while not cancel_event.is_set():
-        db = get_session()
-        try:
-            rec = db.get(Execution, execution_id)
-            if rec is not None and rec.status in ("cancelling", "cancelled"):
-                cancel_event.set()
-        except Exception:
-            logger.exception("cancel watch failed for %s", execution_id)
-        finally:
-            db.close()
-        try:
-            await asyncio.wait_for(cancel_event.wait(), timeout=CANCEL_POLL_S)
-        except asyncio.TimeoutError:
-            pass
+    db = get_session()
+    try:
+        rec = db.get(Execution, execution_id)
+        while not cancel_event.is_set():
+            try:
+                if rec is not None:
+                    db.refresh(rec)
+                else:
+                    rec = db.get(Execution, execution_id)
+                if rec is not None and rec.status in ("cancelling", "cancelled"):
+                    cancel_event.set()
+                    break
+            except Exception:
+                logger.exception("cancel watch failed for %s", execution_id)
+                break
+            try:
+                await asyncio.wait_for(cancel_event.wait(), timeout=CANCEL_POLL_S)
+            except asyncio.TimeoutError:
+                pass
+    finally:
+        db.close()
 
 
 def _node_error_codes(trace: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:

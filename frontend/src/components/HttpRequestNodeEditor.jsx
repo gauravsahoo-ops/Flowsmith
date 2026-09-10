@@ -18,9 +18,7 @@ const GENERIC_AUTH_OPTIONS = [
   { value: 'oauth2', label: 'OAuth2 API' },
   { value: 'query', label: 'Query Auth' },
 ]
-// Legacy fallback for old workflows that stored auth directly
-const LEGACY_AUTH_OPTIONS = [
-  { value: 'none', label: 'None' },
+// Legacy auth options removed - auth is now handled via the authType field
   { value: 'bearer', label: 'Bearer Auth' },
   { value: 'basic', label: 'Basic Auth' },
   { value: 'header', label: 'Header Auth' },
@@ -405,7 +403,6 @@ function ToggleSection({ label, checked, onChange, children, hint }) {
 export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, onPreview, credentials, credentialTypes, onCredentialChange }) {
   const params = node.parameters || {}
   const [curlOpen, setCurlOpen] = useState(false)
-  const [showOptions, setShowOptions] = useState(false)
   const [optionsList, setOptionsList] = useState(() => {
     const o = []
     if (params.timeout_seconds !== undefined && params.timeout_seconds !== 30) o.push('timeout')

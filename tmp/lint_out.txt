@@ -1,0 +1,885 @@
+
+  ! eslint(no-unused-vars): Identifier 'useState' is imported but never used.
+   ,-[src/components/JsonTree.jsx:3:16]
+ 2 | 
+ 3 | import { memo, useState, useCallback } from 'react'
+   :                ^^^^|^^^
+   :                    `-- 'useState' is imported here
+ 4 | 
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'useCallback' is imported but never used.
+   ,-[src/components/JsonTree.jsx:3:26]
+ 2 | 
+ 3 | import { memo, useState, useCallback } from 'react'
+   :                          ^^^^^|^^^^^
+   :                               `-- 'useCallback' is imported here
+ 4 | 
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Variable 'found' is assigned a value but never used. Unused variables should start with a '_'.
+    ,-[src/components/JsonTree.jsx:12:7]
+ 11 |   let idx = 0
+ 12 |   let found = false
+    :       ^^|^^
+    :         `-- 'found' is declared here
+ 13 |   while (idx < str.length) {
+ 14 |     const pos = lower.indexOf(searchLower, idx)
+ 15 |     if (pos === -1) {
+ 16 |       parts.push(<span key={idx}>{str.slice(idx)}</span>)
+ 17 |       break
+ 18 |     }
+ 19 |     if (pos > idx) parts.push(<span key={`p${idx}`}>{str.slice(idx, pos)}</span>)
+ 20 |     parts.push(<mark key={`m${pos}`} className="jt-highlight">{str.slice(pos, pos + search.length)}</mark>)
+ 21 |     idx = pos + search.length
+ 22 |     found = true
+    :     ^^|^^
+    :       `-- it was last assigned here
+ 23 |   }
+    `----
+  help: Did you mean to use this variable?
+
+  ! eslint(no-unused-vars): Variable 'display' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/JsonTree.jsx:31:11]
+ 30 |   if (typeof value === 'string') {
+ 31 |     const display = search ? value : `"${value}"`
+    :           ^^^|^^^
+    :              `-- 'display' is declared here
+ 32 |     return <span className="jt-str">{search ? <Highlight text={value} search={search} /> : `"${value}"`}</span>
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Identifier 'useMemo' is imported but never used.
+   ,-[src/components/shared/GlobalSearch.jsx:1:31]
+ 1 | import { useEffect, useState, useMemo, useRef } from 'react'
+   :                               ^^^|^^^
+   :                                  `-- 'useMemo' is imported here
+ 2 | import { useNavigate } from 'react-router-dom'
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'useEffect' is imported but never used.
+   ,-[src/layout/AppSidebar.jsx:1:10]
+ 1 | import { useEffect, useState } from 'react'
+   :          ^^^^|^^^^
+   :              `-- 'useEffect' is imported here
+ 2 | import { NavLink, useLocation } from 'react-router-dom'
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'useState' is imported but never used.
+   ,-[src/layout/AppSidebar.jsx:1:21]
+ 1 | import { useEffect, useState } from 'react'
+   :                     ^^^^|^^^
+   :                         `-- 'useState' is imported here
+ 2 | import { NavLink, useLocation } from 'react-router-dom'
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'useMemo' is imported but never used.
+   ,-[src/components/ScheduleTriggerEditor.jsx:1:20]
+ 1 | import { useState, useMemo } from 'react'
+   :                    ^^^|^^^
+   :                       `-- 'useMemo' is imported here
+ 2 | 
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Parameter 'i' is declared but never used. Unused parameters should start with a '_'.
+    ,-[src/components/ScheduleTriggerEditor.jsx:32:22]
+ 31 |     const m = {}
+ 32 |     rules.forEach((r,i)=> m[r.id] = !!r.collapsed)
+    :                      |
+    :                      `-- 'i' is declared here
+ 33 |     return m
+    `----
+  help: Consider removing this parameter.
+
+  ! eslint(no-unused-vars): Variable 'toggleSidebar' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/Sidebar.jsx:78:9]
+ 77 |   const selectNode = useUiStore((s) => s.selectNode)
+ 78 |   const toggleSidebar = useUiStore((s) => s.toggleSidebar)
+    :         ^^^^^^|^^^^^^
+    :               `-- 'toggleSidebar' is declared here
+ 79 |   const closeSidebar = useUiStore((s) => s.closeSidebar)
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Variable 'discardGenerated' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/components/Sidebar.jsx:199:9]
+ 198 |   const approveGenerated = useWorkflowStore((s) => s.approveGenerated)
+ 199 |   const discardGenerated = useWorkflowStore((s) => s.discardGenerated)
+     :         ^^^^^^^^|^^^^^^^
+     :                 `-- 'discardGenerated' is declared here
+ 200 |   const [approving, setApproving] = useState(false)
+     `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Parameter 'rootSchema' is declared but never used. Unused parameters should start with a '_'.
+     ,-[src/components/JsonForm.jsx:171:52]
+ 170 | 
+ 171 | function MapField({ schema, value, onChange, path, rootSchema }) {
+     :                                                    ^^^^^|^^^^
+     :                                                         `-- 'rootSchema' is declared here
+ 172 |   const valueType = schema.additionalProperties?.type || 'string'
+     `----
+  help: Consider removing this parameter.
+
+  ! react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+   ,-[src/components/JsonForm.jsx:4:14]
+ 3 | 
+ 4 | export const formatToInput = (format) => {
+   :              ^^^^^^^^^^^^^
+ 5 |   if (!format) return 'text'
+   `----
+
+  ! react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+     ,-[src/components/JsonForm.jsx:305:17]
+ 304 | 
+ 305 | export function getDefaultForSchema(schema) {
+     :                 ^^^^^^^^^^^^^^^^^^^
+ 306 |   if (!schema) return null
+     `----
+
+  ! react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+     ,-[src/components/JsonForm.jsx:318:17]
+ 317 | 
+ 318 | export function resolveRef(schema, rootSchema) {
+     :                 ^^^^^^^^^^
+ 319 |   if (!schema || !schema.$ref) return schema
+     `----
+
+  ! eslint(no-unused-vars): Identifier 'useRef' is imported but never used.
+   ,-[src/components/SalesforceAdditionalFields.jsx:1:40]
+ 1 | import { useEffect, useMemo, useState, useRef } from 'react'
+   :                                        ^^^|^^
+   :                                           `-- 'useRef' is imported here
+ 2 | import { api } from '../api'
+   `----
+  help: Consider removing this import.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has a missing dependency: 'selectedWs'
+    ,-[src/components/DataTableDiscovery.jsx:16:6]
+ 13 |       setWorkspaces(data || [])
+ 14 |       if (data?.length && !selectedWs) setSelectedWs(data[0].id)
+    :                            ^^^^^|^^^^
+    :                                 `-- useEffect uses `selectedWs` here
+ 15 |     }).catch(() => {})
+ 16 |   }, [])
+    :      ^^
+ 17 | 
+    `----
+  help: Either include it or remove the dependency array.
+
+  ! eslint(no-unused-vars): Identifier 'useState' is imported but never used.
+   ,-[src/components/SalesforceOperationForm.jsx:1:10]
+ 1 | import { useState, useEffect } from 'react'
+   :          ^^^^|^^^
+   :              `-- 'useState' is imported here
+ 2 | 
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'useEffect' is imported but never used.
+   ,-[src/components/SalesforceOperationForm.jsx:1:20]
+ 1 | import { useState, useEffect } from 'react'
+   :                    ^^^^|^^^^
+   :                        `-- 'useEffect' is imported here
+ 2 | 
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Variable 'FIELD_LABELS' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/SalesforceOperationForm.jsx:16:7]
+ 15 | 
+ 16 | const FIELD_LABELS = {
+    :       ^^^^^^|^^^^^
+    :             `-- 'FIELD_LABELS' is declared here
+ 17 |   object_name: 'Object',
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Parameter 'mapping' is declared but never used. Unused parameters should start with a '_'.
+    ,-[src/components/SalesforceOperationForm.jsx:39:73]
+ 38 | 
+ 39 | export default function SalesforceOperationForm({ node, onParamsChange, mapping, onPreview }) {
+    :                                                                         ^^^|^^^
+    :                                                                            `-- 'mapping' is declared here
+ 40 |   const params = node.parameters || {}
+    `----
+  help: Consider removing this parameter.
+
+  ! eslint(no-unused-vars): Parameter 'onPreview' is declared but never used. Unused parameters should start with a '_'.
+    ,-[src/components/SalesforceOperationForm.jsx:39:82]
+ 38 | 
+ 39 | export default function SalesforceOperationForm({ node, onParamsChange, mapping, onPreview }) {
+    :                                                                                  ^^^^|^^^^
+    :                                                                                      `-- 'onPreview' is declared here
+ 40 |   const params = node.parameters || {}
+    `----
+  help: Consider removing this parameter.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has missing dependencies: 'load', 'workflow', 'navigate', and 'workflow.id'
+    ,-[src/pages/WorkflowEditorPage.jsx:61:6]
+ 52 |     // If switching workflows with unsaved changes, guard
+ 53 |     if (workflow && workflow.id !== id && isDirty()) {
+    :         ^^^^^^^^    ^^^^^^^^
+ 54 |       if (!confirmDiscard()) {
+ 55 |         navigate(`/workflows/${workflow.id}`, { replace: true })
+    :         ^^^^^^^^
+ 56 |         return
+ 57 |       }
+ 58 |     }
+ 59 |     setLocalError(null)
+ 60 |     load(id).catch(e => setLocalError(e.message))
+    :     ^^^^
+ 61 |   }, [id])
+    :      ^^^^
+ 62 | 
+    `----
+  help: Either include it or remove the dependency array.
+
+  ! eslint(no-unused-vars): Variable 'canvasNodes' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/StepDetail.jsx:35:9]
+ 34 | export default function StepDetail({ execution, step, onRetryNode }) {
+ 35 |   const canvasNodes = useWorkflowStore((s) => s.nodes)
+    :         ^^^^^|^^^^^
+    :              `-- 'canvasNodes' is declared here
+ 36 |   const catalogIndex = useWorkflowStore((s) => s.catalogIndex)
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Identifier 'DataViewer' is imported but never used.
+    ,-[src/components/NodeEditorModal.jsx:14:8]
+ 13 | import JsonForm from './JsonForm'
+ 14 | import DataViewer from './DataViewer'
+    :        ^^^^^|^^^^
+    :             `-- 'DataViewer' is imported here
+ 15 | import OutputPanel from './OutputPanel'
+    `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Variable 'upstreamData' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/NodeEditorModal.jsx:69:10]
+ 68 |   const [mapping, setMapping] = useState([])
+ 69 |   const [upstreamData, setUpstreamData] = useState(null)
+    :          ^^^^^^|^^^^^
+    :                `-- 'upstreamData' is declared here
+ 70 |   const [outputData, setOutputData] = useState(null)
+    `----
+  help: Consider removing this declaration.
+
+  ! react-hooks(exhaustive-deps): React hook useMemo depends on `branchItems`, which changes every render
+     ,-[src/components/OutputPanel.jsx:192:7]
+ 174 | 
+ 175 |   const branchItems = extracted.branches[activeBranch] || []
+     :         ^^^^^|^^^^^
+     :              `-- `branchItems` is declared here
+ 176 | 
+ 177 |   // Ensure pager index is within bounds
+ 178 |   const safeItemIdx = Math.min(currentItemIdx, Math.max(0, branchItems.length - 1))
+ 179 |   const currentItem = branchItems[safeItemIdx] || branchItems[0] || {}
+ 180 | 
+ 181 |   // Filter items if search is active
+ 182 |   const filteredItems = useMemo(() => {
+ 183 |     if (!search.trim()) return branchItems
+ 184 |     const q = search.toLowerCase()
+ 185 |     return branchItems.filter((item) => {
+ 186 |       try {
+ 187 |         return JSON.stringify(item).toLowerCase().includes(q)
+ 188 |       } catch {
+ 189 |         return false
+ 190 |       }
+ 191 |     })
+ 192 |   }, [branchItems, search])
+     :       ^^^^^|^^^^^
+     :            `-- it will always cause this hook to re-evaluate
+ 193 | 
+     `----
+  help: Try memoizing this variable with `useRef` or `useCallback`.
+
+  ! react-hooks(exhaustive-deps): React hook useCallback depends on `branchItems`, which changes every render
+     ,-[src/components/OutputPanel.jsx:214:30]
+ 174 | 
+ 175 |   const branchItems = extracted.branches[activeBranch] || []
+     :         ^^^^^|^^^^^
+     :              `-- `branchItems` is declared here
+ 176 | 
+ 177 |   // Ensure pager index is within bounds
+ 178 |   const safeItemIdx = Math.min(currentItemIdx, Math.max(0, branchItems.length - 1))
+ 179 |   const currentItem = branchItems[safeItemIdx] || branchItems[0] || {}
+ 180 | 
+ 181 |   // Filter items if search is active
+ 182 |   const filteredItems = useMemo(() => {
+ 183 |     if (!search.trim()) return branchItems
+ 184 |     const q = search.toLowerCase()
+ 185 |     return branchItems.filter((item) => {
+ 186 |       try {
+ 187 |         return JSON.stringify(item).toLowerCase().includes(q)
+ 188 |       } catch {
+ 189 |         return false
+ 190 |       }
+ 191 |     })
+ 192 |   }, [branchItems, search])
+ 193 | 
+ 194 |   const totalItemsCount = branchItems.length
+ 195 |   const isEmpty = !extracted.hasData && !executing && !error && !pinned
+ 196 |   const isError = !!error || status === 'error'
+ 197 |   const isSuccess = status === 'success' && !executing && !isError
+ 198 |   const execStatus = executing ? 'running' : isError ? 'failed' : isSuccess ? 'success' : 'idle'
+ 199 | 
+ 200 | 
+ 201 | 
+ 202 |   const handleCopyExpression = useCallback((expr) => {
+ 203 |     navigator.clipboard?.writeText(expr)
+ 204 |     setCopiedSnippet(expr)
+ 205 |     setTimeout(() => setCopiedSnippet(null), 2200)
+ 206 |   }, [])
+ 207 | 
+ 208 |   const handleCopyJson = useCallback(() => {
+ 209 |     const toCopy = search ? filteredItems : (branchItems.length === 1 ? branchItems[0] : branchItems)
+ 210 |     const text = JSON.stringify(toCopy, null, 2)
+ 211 |     navigator.clipboard.writeText(text)
+ 212 |     setCopiedSnippet('JSON copied')
+ 213 |     setTimeout(() => setCopiedSnippet(null), 2200)
+ 214 |   }, [search, filteredItems, branchItems])
+     :                              ^^^^^|^^^^^
+     :                                   `-- it will always cause this hook to re-evaluate
+ 215 | 
+     `----
+  help: Try memoizing this variable with `useRef` or `useCallback`.
+
+  ! react-hooks(exhaustive-deps): React hook useCallback depends on `branchItems`, which changes every render
+     ,-[src/components/OutputPanel.jsx:225:15]
+ 174 | 
+ 175 |   const branchItems = extracted.branches[activeBranch] || []
+     :         ^^^^^|^^^^^
+     :              `-- `branchItems` is declared here
+ 176 | 
+ 177 |   // Ensure pager index is within bounds
+ 178 |   const safeItemIdx = Math.min(currentItemIdx, Math.max(0, branchItems.length - 1))
+ 179 |   const currentItem = branchItems[safeItemIdx] || branchItems[0] || {}
+ 180 | 
+ 181 |   // Filter items if search is active
+ 182 |   const filteredItems = useMemo(() => {
+ 183 |     if (!search.trim()) return branchItems
+ 184 |     const q = search.toLowerCase()
+ 185 |     return branchItems.filter((item) => {
+ 186 |       try {
+ 187 |         return JSON.stringify(item).toLowerCase().includes(q)
+ 188 |       } catch {
+ 189 |         return false
+ 190 |       }
+ 191 |     })
+ 192 |   }, [branchItems, search])
+ 193 | 
+ 194 |   const totalItemsCount = branchItems.length
+ 195 |   const isEmpty = !extracted.hasData && !executing && !error && !pinned
+ 196 |   const isError = !!error || status === 'error'
+ 197 |   const isSuccess = status === 'success' && !executing && !isError
+ 198 |   const execStatus = executing ? 'running' : isError ? 'failed' : isSuccess ? 'success' : 'idle'
+ 199 | 
+ 200 | 
+ 201 | 
+ 202 |   const handleCopyExpression = useCallback((expr) => {
+ 203 |     navigator.clipboard?.writeText(expr)
+ 204 |     setCopiedSnippet(expr)
+ 205 |     setTimeout(() => setCopiedSnippet(null), 2200)
+ 206 |   }, [])
+ 207 | 
+ 208 |   const handleCopyJson = useCallback(() => {
+ 209 |     const toCopy = search ? filteredItems : (branchItems.length === 1 ? branchItems[0] : branchItems)
+ 210 |     const text = JSON.stringify(toCopy, null, 2)
+ 211 |     navigator.clipboard.writeText(text)
+ 212 |     setCopiedSnippet('JSON copied')
+ 213 |     setTimeout(() => setCopiedSnippet(null), 2200)
+ 214 |   }, [search, filteredItems, branchItems])
+ 215 | 
+ 216 |   const handlePin = useCallback(() => {
+ 217 |     if (pinned) {
+ 218 |       localStorage.removeItem(`op_pinned_${nodeId}`)
+ 219 |       setPinned(null)
+ 220 |     } else {
+ 221 |       const toPin = branchItems.length === 1 ? branchItems[0] : branchItems
+ 222 |       localStorage.setItem(`op_pinned_${nodeId}`, JSON.stringify(toPin))
+ 223 |       setPinned(toPin)
+ 224 |     }
+ 225 |   }, [pinned, branchItems, nodeId])
+     :               ^^^^^|^^^^^
+     :                    `-- it will always cause this hook to re-evaluate
+ 226 | 
+     `----
+  help: Try memoizing this variable with `useRef` or `useCallback`.
+
+  ! eslint(no-unused-vars): Identifier 'useState' is imported but never used.
+   ,-[src/components/IfConditionEditor.jsx:1:10]
+ 1 | import { useState, useMemo } from 'react'
+   :          ^^^^|^^^
+   :              `-- 'useState' is imported here
+ 2 | import MappingField from './MappingField'
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'useMemo' is imported but never used.
+   ,-[src/components/IfConditionEditor.jsx:1:20]
+ 1 | import { useState, useMemo } from 'react'
+   :                    ^^^|^^^
+   :                       `-- 'useMemo' is imported here
+ 2 | import MappingField from './MappingField'
+   `----
+  help: Consider removing this import.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has missing dependencies: 'rawOperation', and 'operationOptions'
+     ,-[src/components/SalesforceNodeEditor.jsx:135:6]
+ 124 |   useEffect(() => {
+ 125 |     if (rawOperation && !operationOptions.some(o => o.value === rawOperation) && !operationOptions.some(o => o.backend === (ALL_OPS[rawOperation]?.backend || rawOperation))) {
+     :         ^^^^^^^^^^^^     ^^^^^^^^^^^^^^^^
+ 126 |       // Only auto-correct if raw was execute/empty or now invalid
+ 127 |       if (rawOperation === 'execute' || rawOperation === '' || !validBackendOps.includes(ALL_OPS[rawOperation]?.backend || rawOperation)) {
+ 128 |         const first = operationOptions[0]?.value
+ 129 |         if (first && rawOperation !== first) {
+ 130 |           // Do not auto-save on mount if node is being edited ΓÇö only if operation is clearly invalid
+ 131 |           // We will not auto-mutate; validation will show error instead. So no auto onParamsChange here.
+ 132 |         }
+ 133 |       }
+ 134 |     }
+ 135 |   }, [resource, validBackendOps])
+     :      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 136 | 
+     `----
+  help: Either include it or remove the dependency array.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has missing dependencies: 'params.soql', 'params', and 'onParamsChange'
+     ,-[src/components/SalesforceNodeEditor.jsx:242:6]
+ 230 |   useEffect(() => {
+ 231 |     if ((operation === 'get_many' || operation === 'query') && resource === 'CustomObject' && objectName && params.soql) {
+     :                                                                                                             ^^^^^^
+ 232 |       const expectedFrom = `FROM ${objectName}`
+ 233 |       if (!params.soql.includes(expectedFrom)) {
+ 234 |         const fields = objectName === 'Account' ? 'Id, Name, Type, LastModifiedDate' : 'Id, Name'
+ 235 |         const newSoql = `SELECT ${fields} FROM ${objectName}`
+ 236 |         // Only update if SOQL is generic Account fallback
+ 237 |         if (params.soql.includes('FROM Account') || params.soql.includes('FROM My_Object__c')) {
+ 238 |           onParamsChange({ ...params, soql: newSoql })
+     :           ^^^^^^^^^^^^^^      ^^^^^^
+ 239 |         }
+ 240 |       }
+ 241 |     }
+ 242 |   }, [resource, objectName, operation])
+     :      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 243 | 
+     `----
+  help: Either include it or remove the dependency array.
+
+  ! eslint(no-unused-vars): Variable 'schemaLabel' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/SalesforceDiscovery.jsx:18:10]
+ 17 |   const [fields, setFields] = useState([])
+ 18 |   const [schemaLabel, setSchemaLabel] = useState('')
+    :          ^^^^^|^^^^^
+    :               `-- 'schemaLabel' is declared here
+ 19 |   const [schemaError, setSchemaError] = useState('')
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Variable 'setFilter' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/SalesforceDiscovery.jsx:21:18]
+ 20 |   const [loadingSchema, setLoadingSchema] = useState(false)
+ 21 |   const [filter, setFilter] = useState('')
+    :                  ^^^^|^^^^
+    :                      `-- 'setFilter' is declared here
+ 22 | 
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Variable 'visibleFields' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/SalesforceDiscovery.jsx:53:9]
+ 52 | 
+ 53 |   const visibleFields = useMemo(() => {
+    :         ^^^^^^|^^^^^^
+    :               `-- 'visibleFields' is declared here
+ 54 |     const needle = filter.trim().toLowerCase()
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Parameter 'onLogout' is declared but never used. Unused parameters should start with a '_'.
+    ,-[src/components/TopBar.jsx:22:3]
+ 21 |   hasExecution,
+ 22 |   onLogout,
+    :   ^^^^|^^^
+    :       `-- 'onLogout' is declared here
+ 23 |   onOpenHistory,
+    `----
+  help: Consider removing this parameter.
+
+  ! eslint(no-unused-vars): Identifier 'wouldCreateCycle' is imported but never used.
+    ,-[src/stores/workflowStore.js:18:19]
+ 17 | import { useUiStore } from './uiStore'
+ 18 | import { edgeKey, wouldCreateCycle } from '../utils/graphUtils'
+    :                   ^^^^^^^^|^^^^^^^
+    :                           `-- 'wouldCreateCycle' is imported here
+ 19 | import { createHistory } from '../utils/history'
+    `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'api' is imported but never used.
+   ,-[src/components/SalesforceBrowser.jsx:2:10]
+ 1 | import { useEffect, useMemo, useState } from 'react'
+ 2 | import { api } from '../api'
+   :          ^|^
+   :           `-- 'api' is imported here
+ 3 | import { useWorkflowStore } from '../stores/workflowStore'
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Variable 'labels' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/SalesforceBrowser.jsx:30:10]
+ 29 |   const [matrix, setMatrix] = useState(null)
+ 30 |   const [labels, setLabels] = useState(null)
+    :          ^^^|^^
+    :             `-- 'labels' is declared here
+ 31 |   const [loading, setLoading] = useState(true)
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Variable 'actionCount' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/components/SalesforceBrowser.jsx:152:9]
+ 151 |   const triggerCount = triggersData ? Object.keys(triggersData).length : 0
+ 152 |   const actionCount = useMemo(() => Object.values(filteredOpsGroups).reduce((s, arr) => s + arr.length, 0), [filteredOpsGroups])
+     :         ^^^^^|^^^^^
+     :              `-- 'actionCount' is declared here
+ 153 |   // For header when not searching, show total unique backend ops or matrix total
+     `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Parameter 'key' is declared but never used. Unused parameters should start with a '_'.
+     ,-[src/components/SalesforceBrowser.jsx:162:32]
+ 161 | 
+ 162 |   const handleSelectTrigger = (key) => {
+     :                                ^|^
+     :                                 `-- 'key' is declared here
+ 163 |     const addNode = useWorkflowStore.getState().addNode
+     `----
+  help: Consider removing this parameter.
+
+  ! eslint(no-unused-vars): Variable 'cat' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/components/SalesforceBrowser.jsx:186:19]
+ 185 |     if (!matrix) {
+ 186 |       for (const [cat, list] of Object.entries(filteredOpsGroups)) {
+     :                   ^|^
+     :                    `-- 'cat' is declared here
+ 187 |         if (list.some(o => o.key === op.key)) {
+     `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Variable 'title' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/components/Login.jsx:102:9]
+ 101 | 
+ 102 |   const title = { login: 'Log in', register: 'Create account', forgot: 'Reset password', reset: 'Set new password' }[mode]
+     :         ^^|^^
+     :           `-- 'title' is declared here
+ 103 | 
+     `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Identifier 'useExecutionStore' is imported but never used.
+   ,-[src/pages/ExecutionDetailPage.jsx:8:10]
+ 7 | import StepDetail from '../components/StepDetail'
+ 8 | import { useExecutionStore } from '../stores/executionStore'
+   :          ^^^^^^^^|^^^^^^^^
+   :                  `-- 'useExecutionStore' is imported here
+ 9 | 
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'api' is imported but never used.
+   ,-[src/components/CodeNodeEditor.jsx:3:10]
+ 2 | import Editor from '@monaco-editor/react'
+ 3 | import { api } from '../api'
+   :          ^|^
+   :           `-- 'api' is imported here
+ 4 | import ErrorState from './shared/ErrorState'
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Parameter 'mapping' is declared but never used. Unused parameters should start with a '_'.
+    ,-[src/components/CodeNodeEditor.jsx:16:64]
+ 15 | 
+ 16 | export default function CodeNodeEditor({ node, onParamsChange, mapping, onPreview }) {
+    :                                                                ^^^|^^^
+    :                                                                   `-- 'mapping' is declared here
+ 17 |   const params = node.parameters || {}
+    `----
+  help: Consider removing this parameter.
+
+  ! eslint(no-unused-vars): Parameter 'onPreview' is declared but never used. Unused parameters should start with a '_'.
+    ,-[src/components/CodeNodeEditor.jsx:16:73]
+ 15 | 
+ 16 | export default function CodeNodeEditor({ node, onParamsChange, mapping, onPreview }) {
+    :                                                                         ^^^^|^^^^
+    :                                                                             `-- 'onPreview' is declared here
+ 17 |   const params = node.parameters || {}
+    `----
+  help: Consider removing this parameter.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has missing dependencies: 'code', 'onParamsChange', and 'params'
+    ,-[src/components/CodeNodeEditor.jsx:38:6]
+ 32 |   useEffect(() => {
+ 33 |     if (localCode === code) return
+    :                       ^^^^
+ 34 |     const t = setTimeout(() => {
+ 35 |       onParamsChange({ ...params, code: localCode })
+    :       ^^^^^^^^^^^^^^      ^^^^^^
+ 36 |     }, 500)
+ 37 |     return () => clearTimeout(t)
+ 38 |   }, [localCode])
+    :      ^^^^^^^^^^^
+ 39 | 
+    `----
+  help: Either include it or remove the dependency array.
+
+  ! eslint(no-unused-vars): Variable 'meta' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/pages/DataTablesPage.jsx:41:21]
+ 40 |     try {
+ 41 |       const { data, meta } = await api.listDataTables({ workspace_id: wsId || undefined, search: search.trim() || undefined, page: 1, pageSize: 100 })
+    :                     ^^|^
+    :                       `-- 'meta' is declared here
+ 42 |       setTables(data || [])
+    `----
+  help: Consider removing this declaration.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has a missing dependency: 'loadTables'
+    ,-[src/pages/DataTablesPage.jsx:51:47]
+ 50 |   useEffect(() => { loadWorkspaces() }, [])
+ 51 |   useEffect(() => { if (wsId) loadTables() }, [wsId])
+    :                               ^^^^^|^^^^      ^^^^^^
+    :                                    `-- useEffect uses `loadTables` here
+ 52 |   // debounced search
+    `----
+  help: Either include it or remove the dependency array.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has missing dependencies: 'wsId', and 'loadTables'
+    ,-[src/pages/DataTablesPage.jsx:56:6]
+ 53 |   useEffect(() => {
+ 54 |     const t = setTimeout(() => { if (wsId) loadTables() }, 300)
+    :                                      ^^^^  ^^^^^^^^^^
+ 55 |     return () => clearTimeout(t)
+ 56 |   }, [search])
+    :      ^^^^^^^^
+ 57 | 
+    `----
+  help: Either include it or remove the dependency array.
+
+  ! eslint(no-unused-vars): Variable 'startedAt' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/stores/executionStore.js:242:15]
+ 241 |         // canvas shows status badges and timing during execution.
+ 242 |         const startedAt = status === 'running' ? now : (prev.startedAt || now)
+     :               ^^^^|^^^^
+     :                   `-- 'startedAt' is declared here
+ 243 |         const durationMs = (status === 'success' || status === 'error' || status === 'failed')
+     `----
+  help: Consider removing this declaration.
+
+  ! react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+   ,-[src/components/FilterNodeEditor.jsx:5:14]
+ 4 | 
+ 5 | export const OPERATOR_CATEGORIES = [
+   :              ^^^^^^^^^^^^^^^^^^^
+ 6 |   { id: 'string', label: 'String', icon: 'T' },
+   `----
+
+  ! react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+    ,-[src/components/FilterNodeEditor.jsx:14:14]
+ 13 | 
+ 14 | export const CATEGORY_OPERATORS = {
+    :              ^^^^^^^^^^^^^^^^^^
+ 15 |   string: [
+    `----
+
+  ! react-hooks(exhaustive-deps): React Hook useMemo has a missing dependency: 'results.outputs'
+     ,-[src/components/InputPanel.jsx:172:6]
+ 137 |       const step = trace?.find((s) => s.node_id === flowNode.id)
+ 138 |       const fallbackOutputs = results?.outputs?.[flowNode.id]
+     :                               ^^^|^^^
+     :                                  `-- useMemo uses `results.outputs` here
+ 139 |       const directEdge = edges.find((e) => e.source === flowNode.id && e.target === currentNodeId)
+ 140 |       const anyEdge = directEdge || edges.find((e) => e.source === flowNode.id)
+ 141 |       const extracted = extractOutputs(step, anyEdge, fallbackOutputs)
+ 142 | 
+ 143 |       const meta = catalog?.find((c) => c.type === node.type)
+ 144 |       const label =
+ 145 |         node.settings?.label ||
+ 146 |         node.name ||
+ 147 |         flowNode.data?.label ||
+ 148 |         meta?.display_name ||
+ 149 |         node.type
+ 150 | 
+ 151 |       const isTrigger =
+ 152 |         node.type?.includes('trigger') ||
+ 153 |         node.type === 'webhook' ||
+ 154 |         node.type === 'schedule'
+ 155 | 
+ 156 |       return {
+ 157 |         id: flowNode.id,
+ 158 |         node,
+ 159 |         meta,
+ 160 |         label,
+ 161 |         isTrigger,
+ 162 |         isDirectParent: idx === 0,
+ 163 |         hasData: extracted.hasData,
+ 164 |         isSkipped: extracted.isSkipped,
+ 165 |         stepExecuted: extracted.stepExecuted,
+ 166 |         totalItems: extracted.totalItems,
+ 167 |         skipNote: step?.note,
+ 168 |         branches: extracted.branches,
+ 169 |         defaultBranch: extracted.defaultBranch,
+ 170 |       }
+ 171 |     })
+ 172 |   }, [upstreamNodes, trace, edges, currentNodeId, catalog])
+     :      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 173 | 
+     `----
+  help: Either include it or remove the dependency array.
+
+  ! oxc(only-used-in-recursion): Parameter `isDirectParent` is only used in recursive calls
+     ,-[src/components/InputPanel.jsx:609:3]
+ 608 |   nodeLabel,
+ 609 |   isDirectParent,
+     :   ^^^^^^^^^^^^^^
+ 610 |   onCopy,
+     `----
+  help: Remove the argument and its usage. Alternatively, use the argument in the function body.
+
+  ! eslint(no-unused-vars): Identifier 'useWorkflowStore' is imported but never used.
+   ,-[src/pages/WorkflowsPage.jsx:5:10]
+ 4 | import { api } from '../api'
+ 5 | import { useWorkflowStore } from '../stores/workflowStore'
+   :          ^^^^^^^^|^^^^^^^
+   :                  `-- 'useWorkflowStore' is imported here
+ 6 | import PageHeader from '../components/shared/PageHeader'
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Variable 'doc' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/pages/WorkflowsPage.jsx:353:13]
+ 352 |       const full = await api.getWorkflow(wf.id)
+ 353 |       const doc = { ...full, id: undefined, name: `${full.name} (copy)` }
+     :             ^|^
+     :              `-- 'doc' is declared here
+ 354 |       // Use export/import roundtrip to duplicate
+     `----
+  help: Consider removing this declaration.
+
+  ! react-hooks(exhaustive-deps): React Hook useLayoutEffect has a missing dependency: 'updatePosition'
+    ,-[src/pages/WorkflowsPage.jsx:37:6]
+ 35 |   useLayoutEffect(() => {
+ 36 |     if (open) updatePosition()
+    :               ^^^^^^^|^^^^^^
+    :                      `-- useLayoutEffect uses `updatePosition` here
+ 37 |   }, [open])
+    :      ^^^^^^
+ 38 | 
+    `----
+  help: Either include it or remove the dependency array.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has a missing dependency: 'anchorRef'
+    ,-[src/pages/WorkflowsPage.jsx:58:6]
+ 41 |     const onDoc = (e) => {
+ 42 |       if (menuRef.current && !menuRef.current.contains(e.target) && anchorRef.current && !anchorRef.current.contains(e.target)) onClose()
+    :                                                                     ^^^^|^^^^
+    :                                                                         `-- useEffect uses `anchorRef` here
+ 43 |     }
+ 44 |     const onKey = (e) => { if (e.key === 'Escape') onClose() }
+ 45 |     window.addEventListener('pointerdown', onDoc, true)
+ 46 |     window.addEventListener('touchstart', onDoc, true)
+ 47 |     document.addEventListener('keydown', onKey)
+ 48 |     // focus first item for keyboard nav
+ 49 |     requestAnimationFrame(() => {
+ 50 |       const first = menuRef.current?.querySelector('[role="menuitem"]')
+ 51 |       first?.focus()
+ 52 |     })
+ 53 |     return () => {
+ 54 |       window.removeEventListener('pointerdown', onDoc, true)
+ 55 |       window.removeEventListener('touchstart', onDoc, true)
+ 56 |       document.removeEventListener('keydown', onKey)
+ 57 |     }
+ 58 |   }, [open, onClose])
+    :      ^^^^^^^^^^^^^^^
+ 59 | 
+    `----
+  help: Either include it or remove the dependency array.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has a missing dependency: 'load'
+     ,-[src/pages/WorkflowsPage.jsx:272:31]
+ 271 | 
+ 272 |   useEffect(() => { load() }, [])
+     :                     ^^|^      ^^
+     :                       `-- useEffect uses `load` here
+ 273 |   useEffect(() => {
+     `----
+  help: Either include it or remove the dependency array.
+
+  ! react-hooks(exhaustive-deps): React Hook useEffect has a missing dependency: 'load'
+    ,-[src/pages/CredentialsPage.jsx:50:6]
+ 48 |     setLoading(true)
+ 49 |     load().finally(() => setLoading(false))
+    :     ^^|^
+    :       `-- useEffect uses `load` here
+ 50 |   }, [])
+    :      ^^
+ 51 |   useEffect(() => {
+    `----
+  help: Either include it or remove the dependency array.
+
+  ! eslint(no-unused-vars): Variable 'LEGACY_AUTH_OPTIONS' is declared but never used. Unused variables should start with a '_'.
+    ,-[src/components/HttpRequestNodeEditor.jsx:22:7]
+ 21 | // Legacy fallback for old workflows that stored auth directly
+ 22 | const LEGACY_AUTH_OPTIONS = [
+    :       ^^^^^^^^^|^^^^^^^^^
+    :                `-- 'LEGACY_AUTH_OPTIONS' is declared here
+ 23 |   { value: 'none', label: 'None' },
+    `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Variable 'showOptions' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/components/HttpRequestNodeEditor.jsx:408:10]
+ 407 |   const [curlOpen, setCurlOpen] = useState(false)
+ 408 |   const [showOptions, setShowOptions] = useState(false)
+     :          ^^^^^|^^^^^
+     :               `-- 'showOptions' is declared here
+ 409 |   const [optionsList, setOptionsList] = useState(() => {
+     `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Variable 'setShowOptions' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/components/HttpRequestNodeEditor.jsx:408:23]
+ 407 |   const [curlOpen, setCurlOpen] = useState(false)
+ 408 |   const [showOptions, setShowOptions] = useState(false)
+     :                       ^^^^^^^|^^^^^^
+     :                              `-- 'setShowOptions' is declared here
+ 409 |   const [optionsList, setOptionsList] = useState(() => {
+     `----
+  help: Consider removing this declaration.
+
+  ! eslint(no-unused-vars): Identifier 'useMemo' is imported but never used.
+   ,-[src/pages/DataTableEditorPage.jsx:1:44]
+ 1 | import { useEffect, useState, useCallback, useMemo } from 'react'
+   :                                            ^^^|^^^
+   :                                               `-- 'useMemo' is imported here
+ 2 | import { useParams, useNavigate } from 'react-router-dom'
+   `----
+  help: Consider removing this import.
+
+  ! eslint(no-unused-vars): Identifier 'ConfirmDialog' is imported but never used.
+   ,-[src/pages/DataTableEditorPage.jsx:7:8]
+ 6 | import EmptyState from '../components/shared/EmptyState'
+ 7 | import ConfirmDialog from '../components/shared/ConfirmDialog'
+   :        ^^^^^^|^^^^^^
+   :              `-- 'ConfirmDialog' is imported here
+ 8 | 
+   `----
+  help: Consider removing this import.
+
+Found 68 warnings and 0 errors.
+Finished in 21ms on 118 files with 92 rules using 12 threads.

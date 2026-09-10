@@ -38,6 +38,7 @@ class Scheduler:
     def __init__(self) -> None:
         self._task: asyncio.Task | None = None
         self._next_fire: dict[tuple[str, str], datetime] = {}
+        self._cached_tick_s: float = float(TICK_INTERVAL_S)  # avoids DB call every sleep cycle
 
     async def ensure_started(self) -> None:
         """Start the daemon (runs on the worker loop)."""
@@ -48,13 +49,15 @@ class Scheduler:
         while True:
             try:
                 fired = await self.tick()
+                # Refresh tick interval once per tick (not every sleep) to avoid
+                # opening a DB session on every 250ms cancel-poll cycle.
+                self._cached_tick_s = self._compute_tick_interval()
             except Exception:
                 logger.exception("scheduler tick failed")
                 fired = 0
-            # Adaptive tick: if any seconds-based rules exist, poll faster
-            await asyncio.sleep(self._tick_interval())
+            await asyncio.sleep(self._cached_tick_s)
 
-    def _tick_interval(self) -> float:
+    def _compute_tick_interval(self) -> float:
         """Return the optimal sleep duration before the next tick.
 
         When active rules include seconds-level schedules, poll every

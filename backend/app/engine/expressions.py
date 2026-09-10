@@ -153,7 +153,16 @@ def _resolve_path(path: str, context: dict[str, Any]) -> Any:
 
 
 def _coerce(rendered: str) -> Any:
-    """Try to convert a fully-rendered scalar back to its native type."""
+    """Try to convert a fully-rendered scalar back to its native type.
+
+    Fast-path order (most common first):
+    1. Non-numeric strings (vast majority) -> skip int/float attempts entirely
+    2. Boolean / null literals
+    3. Integer (only if string is all digits / starts with - and digits)
+    4. Float (only if string contains a decimal point or exponent marker)
+    """
+    if not rendered:
+        return rendered
     lowered = rendered.lower()
     if lowered == "true":
         return True
@@ -161,14 +170,24 @@ def _coerce(rendered: str) -> Any:
         return False
     if lowered == "null":
         return None
-    try:
-        return int(rendered)
-    except ValueError:
-        pass
-    try:
-        return float(rendered)
-    except ValueError:
+    # Fast-path: skip numeric conversion for strings that obviously cannot be numbers
+    first_ch = rendered[0]
+    might_be_numeric = first_ch.isdigit() or (first_ch in "-+" and len(rendered) > 1)
+    if not might_be_numeric:
         return rendered
+    # Integer fast-path: only try int() when no decimal point or exponent present
+    if "." not in rendered and "e" not in lowered:
+        try:
+            return int(rendered)
+        except ValueError:
+            pass
+    # Float: only try when a decimal point or exponent is present
+    if "." in rendered or "e" in lowered:
+        try:
+            return float(rendered)
+        except ValueError:
+            pass
+    return rendered
 
 
 def _to_number(val: Any) -> float | None:

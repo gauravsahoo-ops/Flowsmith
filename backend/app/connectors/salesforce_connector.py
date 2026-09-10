@@ -29,7 +29,7 @@ import logging
 import re
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.connectors import (
     ConnectorSDK,
@@ -44,6 +44,35 @@ from app.connectors.operations import ConnectorOperations
 from app.providers.salesforce import SalesforceProviderClient
 
 logger = logging.getLogger(__name__)
+
+def _coerce_record_id(value) -> str:
+    """Normalise a record_id that may arrive as a string, dict, or list.
+
+    n8n-style expressions like {{ $(Node).item.json.records }} resolve to
+    the raw SOQL records array (list of dicts with an Id key). We auto-extract
+    the first element and log a warning so existing workflows keep working.
+    """
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        if not value:
+            return ""
+        first = value[0]
+        if isinstance(first, dict):
+            extracted = first.get("Id") or first.get("id") or ""
+            logger.warning(
+                "record_id received a list - auto-extracted Id %r. "
+                "Use records[0].Id in your expression to silence this warning.",
+                extracted,
+            )
+            return str(extracted).strip()
+        logger.warning("record_id received a list of scalars - using first element %r.", first)
+        return str(first).strip()
+    if isinstance(value, dict):
+        extracted = value.get("Id") or value.get("id") or ""
+        logger.warning("record_id received a dict - auto-extracted Id %r.", extracted)
+        return str(extracted).strip()
+    return str(value).strip() if value is not None else ""
 
 
 class SalesforceConnectorParams(BaseModel):
@@ -62,7 +91,13 @@ class SalesforceConnectorParams(BaseModel):
         default="Account",
         description="Salesforce object API name, e.g. Account, Contact, Lead, or a custom object like My_Object__c.",
     )
-    record_id: str = Field(default="", description="Record Id (operation=get/update/delete).")
+    record_id: str = Field(default="", description="Record Id (operation=get/update/delete). Accepts a string, dict with Id key, or list of such dicts.")
+
+    @field_validator("record_id", mode="before")
+    @classmethod
+    def _normalise_record_id(cls, v) -> str:
+        """Coerce list/dict record_id to plain string before model validation."""
+        return _coerce_record_id(v)
     record: dict[str, Any] = Field(
         default_factory=dict,
         description="Field map for the record (operation=create/update/upsert).",
@@ -460,7 +495,7 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
         provider errors keep their retryable classification and the
         engine may retry (unlike create, Phase 9).
         """
-        record_id = params.record_id or ""
+        record_id = _coerce_record_id(params.record_id)
         if not re.fullmatch(r"[A-Za-z0-9]{15}([A-Za-z0-9]{3})?", record_id):
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
