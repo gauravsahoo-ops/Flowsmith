@@ -42,6 +42,13 @@ def _raise(status: int, body: str, what: str) -> None:
 
 
 class AsanaProviderClient:
+    async def test_connection(self, creds: dict) -> dict:
+        """Cheap live probe for the credential Test button (users/me)."""
+        data = await self._request("GET", "/users/me", creds, what="test connection")
+        user = data.get("data", data) if isinstance(data, dict) else {}
+        name = user.get("name", "") if isinstance(user, dict) else ""
+        return {"ok": True, "message": f"Connected as {name}." if name else "Connected."}
+
     async def _request(
         self, method: str, path: str, creds: dict, *,
         params: dict[str, Any] | None = None,

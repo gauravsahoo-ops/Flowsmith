@@ -42,6 +42,13 @@ def _raise(status: int, body: str, what: str) -> None:
 
 
 class CalendlyProviderClient:
+    async def test_connection(self, creds: dict) -> dict:
+        """Cheap live probe for the credential Test button (users/me)."""
+        data = await self._get(creds, "/users/me", None, "test connection")
+        resource = data.get("resource", {}) if isinstance(data, dict) else {}
+        email = resource.get("email", "") if isinstance(resource, dict) else ""
+        return {"ok": True, "message": f"Connected as {email}." if email else "Connected."}
+
     async def _get(self, creds: dict, path: str, params: dict[str, Any] | None, what: str, timeout: float = 30.0) -> dict:
         try:
             async with get_safe_http_client() as client:

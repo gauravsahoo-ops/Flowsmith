@@ -42,6 +42,12 @@ def _raise_for_status(status: int, body: str, what: str) -> None:
 
 
 class TrelloProviderClient:
+    async def test_connection(self, creds: dict) -> dict:
+        """Cheap live probe for the credential Test button (members/me)."""
+        data = await self._request("GET", "/members/me", creds, what="test connection")
+        name = data.get("username") or data.get("fullName", "")
+        return {"ok": True, "message": f"Connected as {name}." if name else "Connected."}
+
     async def _request(
         self,
         method: str,

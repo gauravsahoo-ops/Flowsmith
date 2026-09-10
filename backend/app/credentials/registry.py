@@ -298,6 +298,50 @@ class ShopifyCredential(BaseModel):
         return self
 
 
+# Batch B connectors (keys match provider credential reads)
+
+
+class TrelloCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Trello API key (trello.com/app-key).")
+    api_token: str = Field(min_length=1, description="Trello API token (authorize link).")
+
+
+class AsanaCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Asana personal access token.")
+
+
+class LinearCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Linear API key (Settings > API).")
+
+
+class CalendlyCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Calendly personal access token.")
+
+
+class GitLabCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="GitLab personal access token.")
+    host: str = Field(default="https://gitlab.com", description="Self-hosted host or https://gitlab.com.")
+
+    @model_validator(mode="after")
+    def _require_https_host(self) -> "GitLabCredential":
+        if not self.host.strip().lower().startswith("https://"):
+            raise ValueError("host must be an https URL.")
+        return self
+
+
+class ZoomCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Zoom Server-to-Server OAuth access token.")
+
+
+class TwilioCredential(BaseModel):
+    account_sid: str = Field(min_length=1, description="Twilio Account SID (AC…).")
+    auth_token: str = Field(min_length=1, description="Twilio Auth Token.")
+
+
+class BitbucketCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Bitbucket access token.")
+
+
 # ----------------------------------------------------------------------
 # Generic HTTP Auth credential types (spec: 8 providers)
 # ----------------------------------------------------------------------
@@ -422,6 +466,15 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "redis": RedisCredential,
     "airtable": AirtableCredential,
     "shopify": ShopifyCredential,
+    # Batch B connectors
+    "trello": TrelloCredential,
+    "asana": AsanaCredential,
+    "linear": LinearCredential,
+    "calendly": CalendlyCredential,
+    "gitlab": GitLabCredential,
+    "zoom": ZoomCredential,
+    "twilio": TwilioCredential,
+    "bitbucket": BitbucketCredential,
     # Generic HTTP Auth providers (spec)
     "basic_auth": BasicAuthCredential,
     "bearer_auth": BearerAuthCredential,
@@ -466,6 +519,14 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "redis": frozenset({"uri"}),
     "airtable": frozenset({"personal_access_token"}),
     "shopify": frozenset({"access_token"}),
+    "trello": frozenset({"api_key", "api_token"}),
+    "asana": frozenset({"access_token"}),
+    "linear": frozenset({"api_key"}),
+    "calendly": frozenset({"access_token"}),
+    "gitlab": frozenset({"access_token"}),
+    "zoom": frozenset({"access_token"}),
+    "twilio": frozenset({"account_sid", "auth_token"}),
+    "bitbucket": frozenset({"access_token"}),
     "basic_auth": frozenset({"password"}),
     "bearer_auth": frozenset({"token"}),
     "header_auth": frozenset({"header_value"}),
@@ -509,6 +570,15 @@ TYPE_META: dict[str, dict[str, str]] = {
     "redis": {"name": "Redis", "description": "Redis connection URI for the Redis connector (optional)."},
     "airtable": {"name": "Airtable", "description": "Airtable personal access token for the Airtable connector."},
     "shopify": {"name": "Shopify", "description": "Shopify Admin API connection for the Shopify connector."},
+    # Batch B connectors
+    "trello": {"name": "Trello", "description": "Trello API key + token for the Trello connector."},
+    "asana": {"name": "Asana", "description": "Asana personal access token for the Asana connector."},
+    "linear": {"name": "Linear", "description": "Linear API key for the Linear connector."},
+    "calendly": {"name": "Calendly", "description": "Calendly personal access token for the Calendly connector."},
+    "gitlab": {"name": "GitLab", "description": "GitLab personal access token for the GitLab connector."},
+    "zoom": {"name": "Zoom", "description": "Zoom access token for the Zoom connector."},
+    "twilio": {"name": "Twilio", "description": "Twilio Account SID + Auth Token for the Twilio connector."},
+    "bitbucket": {"name": "Bitbucket", "description": "Bitbucket access token for the Bitbucket connector."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
     "bearer_auth": {"name": "Bearer Auth", "description": "Bearer token for Authorization header."},
     "header_auth": {"name": "Header Auth", "description": "Custom header (e.g. X-API-Key) authentication."},
@@ -595,6 +665,15 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "redis": True,
     "airtable": True,
     "shopify": True,
+    # Batch B connectors
+    "trello": True,
+    "asana": True,
+    "linear": True,
+    "calendly": True,
+    "gitlab": True,
+    "zoom": True,
+    "twilio": True,
+    "bitbucket": True,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work

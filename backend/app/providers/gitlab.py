@@ -47,6 +47,12 @@ def _raise(status: int, body: str, what: str) -> None:
 
 
 class GitLabProviderClient:
+    async def test_connection(self, creds: dict) -> dict:
+        """Cheap live probe for the credential Test button (/user)."""
+        data = await self._request("GET", "/user", creds, what="test connection")
+        name = data.get("username", "") if isinstance(data, dict) else ""
+        return {"ok": True, "message": f"Connected as {name}." if name else "Connected."}
+
     async def _request(
         self, method: str, path: str, creds: dict, *,
         params: dict[str, Any] | None = None,

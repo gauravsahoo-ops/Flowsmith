@@ -24,6 +24,37 @@ from app.models import User
 router = APIRouter(prefix="/api/credentials", tags=["credentials"])
 
 
+def _connector_live_test(cred_type: str, data: dict[str, Any]) -> dict[str, Any] | None:
+    """Live-test via the connector declaring this credential type.
+
+    Returns the probe result, or None when no connector implements
+    test_connection (caller falls back to schema validation). Secrets
+    never appear: probes return fixed-shape results only.
+    """
+    import asyncio
+
+    from app.connectors import get_registry
+
+    registry = get_registry()
+    for info in registry.list_all():
+        definition = registry.get_definition(info.connector_id)
+        if definition is None or cred_type not in (definition.credential_types or {}):
+            continue
+        instance = registry.get(info.connector_id)
+        probe: Any = getattr(instance, "test_connection", None)
+        if not callable(probe):
+            continue
+        try:
+            coro: Any = probe(dict(data))
+            result = asyncio.new_event_loop().run_until_complete(coro)
+        except Exception:
+            return {"ok": False, "message": "Connection failed."}
+        if not isinstance(result, dict):
+            return {"ok": False, "message": "Connection failed."}
+        return {"ok": bool(result.get("ok")), "message": str(result.get("message") or "")}
+    return None
+
+
 class CredentialCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     type: str = Field(min_length=1)
@@ -90,6 +121,11 @@ def test_credential(
     reg = get_provider_registry()
     provider = reg.get(provider_id) or reg.get_by_auth_type(provider_id)
     if provider is None:
+        # Product connectors (Batch B+): live probe through the connector
+        # owning this credential type, when it implements test_connection.
+        live = _connector_live_test(rec.type, data)
+        if live is not None:
+            return ok({**live, "provider": rec.type})
         # Fallback: try authType from credential type registry
         from app.credentials.registry import CREDENTIAL_TYPES
         # Generic test: just validate via schema

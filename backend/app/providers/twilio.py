@@ -44,6 +44,13 @@ def _raise(status: int, body: str, what: str) -> None:
 
 
 class TwilioProviderClient:
+    async def test_connection(self, creds: dict) -> dict:
+        """Cheap live probe for the credential Test button (account read)."""
+        sid = str((creds or {}).get("account_sid") or "").strip()
+        data = await self._request("GET", f"/Accounts/{sid}.json", creds, what="test connection")
+        name = data.get("friendly_name", "") if isinstance(data, dict) else ""
+        return {"ok": True, "message": f"Connected ({name})." if name else "Connected."}
+
     async def _request(
         self, method: str, path: str, creds: dict, *,
         form: dict[str, Any] | None = None,

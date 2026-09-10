@@ -47,6 +47,15 @@ def _raise(status: int, body: str, what: str, errors: list | None = None) -> Non
 
 
 class LinearProviderClient:
+    async def test_connection(self, creds: dict) -> dict:
+        """Cheap live probe for the credential Test button (viewer)."""
+        data = await self._gql(
+            creds, "query { viewer { id name } }", {}, "test connection",
+        )
+        viewer = data.get("viewer", {}) or {}
+        name = viewer.get("name", "")
+        return {"ok": True, "message": f"Connected as {name}." if name else "Connected."}
+
     async def _gql(self, creds: dict, query: str, variables: dict[str, Any], what: str, timeout: float = 30.0) -> dict:
         try:
             async with get_safe_http_client() as client:

@@ -80,5 +80,16 @@ class CalendlyConnector(ConnectorSDK):
             raise
         raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, f"Unsupported Calendly operation '{operation}'.", retryable=False)
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Live credential probe (users/me); secret-safe failure messages."""
+        from app.connectors import ConnectorError
+
+        try:
+            return await self._provider.test_connection(creds)
+        except ConnectorError as exc:
+            return {"ok": False, "message": f"Connection failed ({exc.code})."}
+        except Exception:
+            return {"ok": False, "message": "Connection failed."}
+
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         return {"output": {"connector_id": self.connector_id, "operations": ["list_event_types", "list_events", "get_event", "cancel_event"]}}
