@@ -18,17 +18,6 @@ const GENERIC_AUTH_OPTIONS = [
   { value: 'oauth2', label: 'OAuth2 API' },
   { value: 'query', label: 'Query Auth' },
 ]
-// Legacy auth options removed - auth is now handled via the authType field
-  { value: 'bearer', label: 'Bearer Auth' },
-  { value: 'basic', label: 'Basic Auth' },
-  { value: 'header', label: 'Header Auth' },
-  { value: 'query', label: 'Query Auth' },
-  { value: 'digest', label: 'Digest Auth' },
-  { value: 'custom', label: 'Custom Auth' },
-  { value: 'oauth2', label: 'OAuth2 API' },
-  { value: 'oauth1', label: 'OAuth1 API' },
-  { value: 'api_key', label: 'Header Auth (legacy)' },
-]
 const BODY_CONTENT_TYPES = [
   { value: 'json', label: 'JSON' },
   { value: 'form-urlencoded', label: 'Form URL-encoded' },
