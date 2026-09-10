@@ -32,7 +32,6 @@ class AuthStoreParams(BaseModel):
     token_url: str = Field(default="", description="OAuth token endpoint (needed for future refreshes).")
 
 
-@register
 class AuthStoreNode(BaseNode[AuthStoreParams]):
     node_type = "auth_store"
     display_name = "Auth Store"

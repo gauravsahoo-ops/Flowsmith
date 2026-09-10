@@ -32,6 +32,9 @@ import SwitchNodeEditor from './SwitchNodeEditor'
 import WaitNodeEditor from './WaitNodeEditor'
 import ExecuteWorkflowNodeEditor from './ExecuteWorkflowNodeEditor'
 import ExecuteWorkflowTriggerEditor from './ExecuteWorkflowTriggerEditor'
+import TokenManagerNodeEditor from './TokenManagerNodeEditor'
+import TokenFetchNodeEditor from './TokenFetchNodeEditor'
+import TokenStoreNodeEditor from './TokenStoreNodeEditor'
 import DataTableDiscovery from './DataTableDiscovery'
 import ExpressionHelper from './ExpressionHelper'
 import {
@@ -519,6 +522,27 @@ export default function NodeEditorModal() {
                     <ExecuteWorkflowTriggerEditor
                       node={node}
                       onParamsChange={handleParamsChange}
+                    />
+                  ) : (node.type === 'token_manager') ? (
+                    <TokenManagerNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
+                    />
+                  ) : (node.type === 'token_fetch' || node.type === 'auth_fetch') ? (
+                    <TokenFetchNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
+                    />
+                  ) : (node.type === 'token_store' || node.type === 'auth_store') ? (
+                    <TokenStoreNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
                     />
                   ) : (
                     <>

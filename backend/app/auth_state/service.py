@@ -90,7 +90,12 @@ def upsert_state(
         db.add(row)
     else:
         assert row is not None
-        row.data = _encode(bundle)
+        existing_bundle = _decode(row)
+        merged_bundle = dict(bundle)
+        for preserve_key in ("refresh_token", "client_id", "client_secret", "token_url", "token_type", "scope"):
+            if not merged_bundle.get(preserve_key) and existing_bundle.get(preserve_key):
+                merged_bundle[preserve_key] = existing_bundle[preserve_key]
+        row.data = _encode(merged_bundle)
     row.expires_at = expires_at
     row.last_error = (last_error or "")[:500]
     db.commit()
@@ -119,6 +124,8 @@ async def locked_refresh(
     workflow_id: str,
     provider: str,
     refresh,
+    *,
+    force: bool = False,
 ) -> dict[str, Any] | None:
     """Single-flight refresh under a row lock.
 
@@ -133,7 +140,7 @@ async def locked_refresh(
     if row is None:
         return None
     bundle = _decode(row)
-    if not is_expired(normalize_expires_at(bundle.get("expires_at"))):
+    if not force and not is_expired(normalize_expires_at(bundle.get("expires_at"))):
         return bundle
     new_bundle = await refresh(bundle)
     row.data = _encode(new_bundle)

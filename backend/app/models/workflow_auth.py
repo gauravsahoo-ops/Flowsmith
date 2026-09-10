@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, LargeBinary, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, LargeBinary, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -18,6 +18,9 @@ from app.db import Base
 
 class WorkflowAuthState(Base):
     __tablename__ = "workflow_auth_state"
+    __table_args__ = (
+        UniqueConstraint("workflow_id", "provider", name="uq_workflow_auth_state_wf_provider"),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     workflow_id: Mapped[str] = mapped_column(

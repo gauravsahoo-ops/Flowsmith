@@ -80,6 +80,27 @@ export function NodeIcon({ type, icon, size = 34, color }) {
     )
   }
 
+  // 5b. Token Fetch (Key with lock loop - auth retrieval)
+  if (normalized === 'token_fetch' || normalized === 'auth_fetch') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#f59e0b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 2l-2 2m-1.5 1.5L14 9a5.5 5.5 0 1 0 3 3l6.5-6.5-2-2-1.5 1.5z" />
+        <circle cx="7.5" cy="16.5" r="2.5" />
+      </svg>
+    )
+  }
+
+  // 5c. Token Store (Shield / Database vault storage)
+  if (normalized === 'token_store' || normalized === 'auth_store') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#10b981'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <rect x="9" y="11" width="6" height="4" rx="1" />
+        <path d="M10 11V9a2 2 0 1 1 4 0v2" />
+      </svg>
+    )
+  }
+
   // 6. Schedule (Clock / Timer dial)
   if (normalized === 'schedule') {
     return (
@@ -356,7 +377,16 @@ export function NodeIcon({ type, icon, size = 34, color }) {
     )
   }
 
-  // 27. File / Storage / File I/O
+  // 29. Token Manager / Auth Tokens (Key symbol)
+  if (normalized.includes('token') || normalized.includes('auth')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#06b6d4'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 2l-2 2m-1.5 1.5L16 7m-1.5 1.5L13 10m-2 2a5 5 0 1 1-7-7 5 5 0 0 1 7 7z" />
+      </svg>
+    )
+  }
+
+  // 30. File / Storage / File I/O
   if (normalized.includes('file')) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#94a3b8'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

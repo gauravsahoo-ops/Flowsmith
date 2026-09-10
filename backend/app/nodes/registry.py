@@ -25,8 +25,17 @@ def register(cls: type[BaseNode]) -> type[BaseNode]:
     return cls
 
 
+_ALIASES: dict[str, str] = {
+    "token_fetch": "token_manager",
+    "token_store": "token_manager",
+    "auth_fetch": "token_manager",
+    "auth_store": "token_manager",
+}
+
+
 def get(node_type: str) -> type[BaseNode] | None:
-    return NODE_REGISTRY.get(node_type)
+    target = _ALIASES.get(node_type, node_type)
+    return NODE_REGISTRY.get(target)
 
 
 _list_cache: list[dict] | None = None
@@ -69,8 +78,6 @@ def _load_builtin_nodes() -> None:
         aggregate,
         ai,
         ai_agent,
-        auth_fetch,
-        auth_store,
         chat_trigger,
         code,
         compare_datasets,
@@ -113,6 +120,7 @@ def _load_builtin_nodes() -> None:
         switch,
         telegram,
         text_splitter,
+        token_manager,
         wait,
         webhook,
         websocket,

@@ -1,7 +1,7 @@
 # Flowsmith
 
 [![CI](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-578%2B%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-610%2B%20passing-brightgreen)](#testing)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-22-blue)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./)
@@ -98,13 +98,23 @@
 - **Template Gallery**: Publish any custom workflow as a workspace template with one click.
 - **Version History & Rollback**: Every save generates an immutable snapshot (`WorkflowVersionRecord`), allowing single-click rollback to any prior release.
 
-### 3. Native AI & RAG Subsystem
+### 3. Universal Token Management (`Token Manager`)
+- **Unified Lifecycle Node**: Merges token retrieval, persistence, and auto-refresh into a single node (`token_manager`).
+- **Native Dual Output Handles**:
+  - `🟢 valid` (upper handle): Emits stored credentials directly to downstream steps, completely skipping the Login API when active.
+  - `🟠 login` (lower handle): Emits to the Login API only on the initial run or when credentials are missing or expired.
+- **Zero Redundant Logins**: Never invokes external authentication APIs if valid credentials already exist in the database.
+- **Atomic Concurrency Protection**: PostgreSQL row-level locking (`SELECT ... FOR UPDATE`) prevents concurrent execution stampedes during token refresh.
+- **Auto-Extraction & Storage**: Automatically parses, normalizes, and AES-GCM encrypts tokens from upstream HTTP/Login responses into `WorkflowAuthState`.
+- **Self-Healing 401 Recovery**: Downstream HTTP Request nodes automatically force-refresh expired tokens under lock and retry once with strict infinite-loop prevention.
+
+### 4. Native AI & RAG Subsystem
 - **AI Chat & ReAct Agents**: Autonomous tool-calling loops executing web queries, database lookups, and API calls.
 - **RAG Knowledge Base**: Ingest files, split into chunks, generate embeddings, and retrieve relevant context via `pgvector`.
 - **Natural Language Workflow Generation**: Create complete multi-step automation workflows directly from plain English prompts.
 - **AI Error Assistant**: Click "Explain Error" in the debugger to instantly diagnose stack traces and receive actionable remediation suggestions.
 
-### 4. Interactive Debugger Drawer
+### 5. Interactive Debugger Drawer
 - Slide-in side drawer directly within the canvas.
 - Step-by-step visual timeline tracking execution duration, status, and failures.
 - Raw JSON inspections of incoming and outgoing data for each individual node.
@@ -135,7 +145,7 @@
 | **Cron Scheduling** | **croniter** | Standard Unix 5-field cron parsing powering scheduled background automation triggers. |
 | **Caching & Pub/Sub**| **Redis 7 (Optional)** | Low-latency job queue, real-time event distribution, and external message caching. |
 | **Background Queue** | **Flowsmith Queue Worker** | Dedicated background daemon process (`app.queue.worker`) for parallel execution consumption. |
-| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 578+ backend tests, 165+ frontend unit tests, and 12 end-to-end browser specs. |
+| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 610+ backend tests, 165+ frontend unit tests, and 12 end-to-end browser specs. |
 | **Monitoring** | **Prometheus + Grafana** | Built-in `/api/metrics` instrumentation endpoint and pre-packaged visual Grafana dashboard. |
 | **Containerization** | **Docker & Docker Compose** | Multi-stage production container packaging (Node 22 + Python 3.12) with multi-service orchestrator. |
 
@@ -319,7 +329,7 @@ Flowsmith/
 
 ## Built-in Node Types
 
-Flowsmith provides **36 built-in node types** organized across functional domains:
+Flowsmith provides **37 built-in node types** organized across functional domains:
 
 | Category | Node Type | Description |
 |---|---|---|
@@ -328,6 +338,7 @@ Flowsmith provides **36 built-in node types** organized across functional domain
 | | `schedule` | Time-based execution via standard 5-field cron syntax. |
 | | `salesforce_trigger` | Listens for Salesforce Outbound Messages and CDC events. |
 | **Actions** | `http_request` | Dispatches HTTP requests (GET, POST, PUT, PATCH, DELETE) with auth & headers. |
+| | `token_manager` | Universal authentication lifecycle manager: checks DB for valid tokens, auto-refreshes expired credentials under lock, auto-stores new logins, and provides dual-handle branching (`valid` vs `login`). |
 | | `set_data` | Transforms, reshapes, and maps JSON fields dynamically. |
 | | `send_email` | Sends transactional emails via SMTP or cloud relays. |
 | | `slack` | Posts rich Slack blocks and messages to channels. |
@@ -435,13 +446,14 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 
 ## Database Schema
 
-Flowsmith stores relational metadata in **25 normalized PostgreSQL tables** managed by Alembic:
+Flowsmith stores relational metadata in **26 normalized PostgreSQL tables** managed by Alembic:
 
 | Table Name | Description |
 |---|---|
 | `users` | User accounts, credentials, role authorizations, and timestamps. |
 | `workflows` | Workflow definitions (JSON graph, version, active status, workspace). |
 | `workflow_versions` | Immutable snapshots created on every workflow update. |
+| `workflow_auth_state` | Encrypted authentication tokens, refresh tokens, and lifecycle cache per `(workflow_id, provider)`. |
 | `executions` | High-level execution records (status, duration, error summary). |
 | `execution_events` | Granular event audit stream (per-node input/output/error). |
 | `credentials` | Fernet-encrypted customer secrets and OAuth tokens at rest. |
@@ -471,7 +483,7 @@ Flowsmith stores relational metadata in **25 normalized PostgreSQL tables** mana
 
 Flowsmith maintains a rigorous test suite spanning unit, integration, and security tests:
 
-### Backend Testing (578+ Tests)
+### Backend Testing (610+ Tests)
 
 ```bash
 cd backend
@@ -484,6 +496,7 @@ pytest -m "not timing" -q
 
 # Test specific subsystems
 pytest tests/test_engine tests/test_graph -q      # Execution & graph verification
+pytest tests/test_api/test_token_manager.py -q    # Universal Token Manager & dual handles
 pytest tests/test_api/test_workflows.py -q         # Workflow CRUD & active toggle
 pytest tests/test_api/test_templates.py -q         # Template cloning & import
 pytest tests/test_security/ -q                     # SSRF, auth, and encryption audits

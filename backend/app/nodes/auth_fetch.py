@@ -56,7 +56,6 @@ def _output(
     }
 
 
-@register
 class AuthFetchNode(BaseNode[AuthFetchParams]):
     node_type = "auth_fetch"
     display_name = "Auth Fetch"

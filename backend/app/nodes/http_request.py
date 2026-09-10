@@ -347,6 +347,9 @@ class HTTPRequestParams(BaseModel):
     idempotency_key: str | None = Field(default=None)
     # Import cURL passthrough (if frontend sends raw curl, backend parses server-side)
     importCurl: str | None = Field(default=None, description="Raw cURL string to import (parsed on validate).")
+    # Automatic token persistence (optional for Login API nodes)
+    auto_store_token: bool = Field(default=False, description="Automatically persist returned access_token/refresh_token in workflow credential store.")
+    auto_store_provider: str = Field(default="salesforce", description="Provider name when auto-storing credentials.")
 
     @model_validator(mode="before")
     @classmethod
@@ -945,9 +948,93 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                     except Exception as ex:
                         logger.warning("Auto-refresh for OAuth2 in HTTPRequestNode failed: %s", ex)
 
+        # On HTTP 401: check stored workflow auth state (Token Store / Auth Store), attempt single refresh & retry once
+        if (response.status_code == 401 or "INVALID_SESSION_ID" in getattr(response, "text", "")) and ctx and ctx.workflow_id:
+            try:
+                from app.auth_state.service import locked_refresh
+                from app.auth_state.adapter import refresh_bundle
+                from app.db import get_session
+                from app.models.workflow_auth import WorkflowAuthState
+                from sqlalchemy import select
+
+                db = get_session()
+                try:
+                    wf_rows = db.scalars(
+                        select(WorkflowAuthState).where(WorkflowAuthState.workflow_id == ctx.workflow_id)
+                    ).all()
+                finally:
+                    db.close()
+
+                for row in wf_rows:
+                    prov = row.provider
+                    db = get_session()
+                    try:
+                        async def _do_wf_rf(bundle: dict[str, Any], _p: str = prov) -> dict[str, Any]:
+                            return await refresh_bundle(_p, bundle)
+
+                        fresh = await locked_refresh(db, ctx.workflow_id, prov, _do_wf_rf, force=True)
+                    except Exception as rf_err:
+                        logger.warning("Workflow auth refresh on 401 failed for provider %s: %s", prov, rf_err)
+                        fresh = None
+                    finally:
+                        db.close()
+
+                    if fresh and fresh.get("access_token"):
+                        fresh_token = fresh["access_token"]
+                        for hk in list(headers.keys()):
+                            if hk.lower() == "authorization":
+                                del headers[hk]
+                        headers["Authorization"] = f"Bearer {fresh_token}"
+                        response = await self._do_request(ctx, params, url, headers, query, json_body, data, files)
+                        elapsed_ms = (time.monotonic() - started) * 1000
+                        logger.info(
+                            "Auto-refreshed expired workflow token (%s) on 401 and retried HTTP request (new status: %s)",
+                            prov, response.status_code,
+                        )
+                        break
+            except Exception as ex:
+                logger.warning("Workflow auth recovery on 401 encountered error: %s", ex)
+
         item = await self._to_item(ctx, params, response, elapsed_ms, url, headers, query)
+
+        # Auto-store token in workflow credential store if enabled and request succeeded
+        if getattr(params, "auto_store_token", False) and ctx and ctx.workflow_id and response.status_code < 400:
+            try:
+                from datetime import UTC, datetime
+                from app.nodes.token_store import _extract_from_item
+                from app.auth_state.service import upsert_state
+                from app.auth_state.adapter import canonical_provider, normalize_expires_at
+                from app.db import get_session
+
+                extracted = _extract_from_item(item)
+                if extracted.get("access_token"):
+                    db = get_session()
+                    try:
+                        prov = canonical_provider(getattr(params, "auto_store_provider", "salesforce") or "salesforce")
+                        epoch = normalize_expires_at(extracted.get("expires_at"))
+                        if epoch is None and extracted.get("expires_in"):
+                            try:
+                                epoch = time.time() + float(extracted["expires_in"])
+                            except Exception:
+                                pass
+                        col_ts = datetime.fromtimestamp(epoch, UTC) if epoch else None
+                        upsert_state(db, ctx.workflow_id, prov, extracted, expires_at=col_ts)
+                        logger.info("HTTPRequestNode automatically saved auth token for provider %s", prov)
+                    finally:
+                        db.close()
+            except Exception as ex:
+                logger.warning("HTTPRequestNode auto_store_token failed: %s", ex)
+
         # Handle HTTP error status codes — don't auto-succeed on 4xx/5xx
         if response.status_code >= 400:
+            if response.status_code == 401:
+                raise NodeExecutionError(
+                    "Authentication failed. Please reconnect the account or check the authentication configuration.",
+                    code="AUTH_UNAUTHORIZED",
+                    node_id=self.node_type,
+                    retryable=False,
+                    details={"statusCode": 401},
+                )
             # Check continue_on_error from node settings (spec 8.3) — if allowed, emit error item but don't fail
             # The engine handles continue_on_error at executor level; here we just prepare error details
             # We still raise NodeExecutionError so engine can apply continue_on_error logic

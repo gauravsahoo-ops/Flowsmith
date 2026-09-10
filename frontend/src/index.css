@@ -1620,6 +1620,12 @@ button.delete { color: var(--red); }
   white-space: nowrap;
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
+.rf-handle-label.rf-handle-valid {
+  color: #10b981;
+}
+.rf-handle-label.rf-handle-login {
+  color: #f59e0b;
+}
 
 /* Info: Label and Subtitle underneath */
 .rf-node-info {

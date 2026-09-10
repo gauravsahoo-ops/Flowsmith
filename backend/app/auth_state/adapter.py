@@ -74,6 +74,41 @@ def is_expired(expires_at: float | None, skew_s: float = 60.0) -> bool:
     return time.time() >= (expires_at - skew_s)
 
 
+def mask_token(token: str | None, prefix_len: int = 8, mask_len: int = 8) -> str:
+    """Safely mask tokens for UI and logs (e.g. eyJhbGci...••••••••)."""
+    if not token or not str(token).strip():
+        return ""
+    s = str(token).strip()
+    if len(s) <= prefix_len:
+        return "••••••••"
+    return f"{s[:prefix_len]}...{'•' * mask_len}"
+
+
+def normalize_token_payload(raw: dict[str, Any]) -> dict[str, Any]:
+    """Normalize varying token response payloads (camelCase / snake_case)."""
+    if not isinstance(raw, dict):
+        return {}
+    access_token = raw.get("access_token") or raw.get("accessToken") or raw.get("token") or ""
+    refresh_token = raw.get("refresh_token") or raw.get("refreshToken") or ""
+    token_type = raw.get("token_type") or raw.get("tokenType") or "Bearer"
+    scope = raw.get("scope") or raw.get("scopes") or ""
+    expires_in = raw.get("expires_in") or raw.get("expiresIn")
+    expires_at = raw.get("expires_at") or raw.get("expiresAt")
+    epoch = normalize_expires_at(expires_at)
+    if epoch is None and expires_in is not None:
+        try:
+            epoch = time.time() + float(expires_in)
+        except (TypeError, ValueError):
+            epoch = None
+    return {
+        "access_token": str(access_token) if access_token else "",
+        "refresh_token": str(refresh_token) if refresh_token else None,
+        "token_type": str(token_type) if token_type else "Bearer",
+        "scope": str(scope) if scope else None,
+        "expires_at": epoch,
+    }
+
+
 async def refresh_bundle(provider: str, bundle: dict[str, Any]) -> dict[str, Any]:
     """Refresh one stored bundle via the shared OAuth2 engine.
 

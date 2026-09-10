@@ -223,7 +223,7 @@ function CustomNode({ id, data, selected }) {
           <Fragment key={`out-frag-${h}`}>
             {nOutputs > 1 && (
               <span
-                className="rf-handle-label"
+                className={`rf-handle-label rf-handle-${h}`}
                 style={{ top: `${((i + 1) / (nOutputs + 1)) * 100}%` }}
               >
                 {h}
