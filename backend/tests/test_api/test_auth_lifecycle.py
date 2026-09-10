@@ -108,6 +108,14 @@ def test_second_run_reuses_without_login():
     assert out["requiresAuthentication"] is False
 
 
+def test_store_returns_stored_bundle():
+    saved = _store().output_items[0]
+    assert saved["status"] == "STORED" and saved["isValid"] is True
+    assert saved["accessToken"] == "tok-1" and saved["refreshToken"] == "ref-1"
+    assert saved["requiresAuthentication"] is False
+    assert saved["workflowId"] == "wf_auth" and saved["provider"] == "custom"
+
+
 # Test 3 — expired access token auto-refreshes; rotation preserved.
 def test_expired_refreshes_and_preserves_rotation(monkeypatch):
     _store(expires_at=time.time() - 100)

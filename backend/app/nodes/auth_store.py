@@ -97,5 +97,13 @@ class AuthStoreNode(BaseNode[AuthStoreParams]):
             "provider": provider,
             "credentialId": row_id,
             "updated": not created,
+            "accessToken": params.access_token,
+            "refreshToken": params.refresh_token or None,
             "expiresAt": datetime.fromtimestamp(epoch, UTC).isoformat() if epoch else None,
+            "tokenType": params.token_type or "Bearer",
+            "scope": params.scope or None,
+            "isValid": True,
+            "source": "auth_store",
+            "status": "STORED",
+            "requiresAuthentication": False,
         }])
