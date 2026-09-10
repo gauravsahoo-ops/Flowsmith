@@ -23,11 +23,13 @@ from app.models.user import User
 from app.models.webhook import ScheduleTrigger, WebhookDelivery, WebhookTrigger
 from app.models.data_table import DataTable, DataTableColumn, DataTableRow
 from app.models.workflow import WorkflowRecord
+from app.models.workflow_auth import WorkflowAuthState
 from app.models.workflow_test import WorkflowTest
 
 __all__ = [
     "User",
     "WorkflowRecord",
+    "WorkflowAuthState",
     "WorkflowTest",
     "WorkflowVersionRecord",
     "Execution",
