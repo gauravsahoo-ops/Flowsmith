@@ -142,7 +142,7 @@ class RedisFailureThrottle:
             if count == 1:
                 self._redis.expire(fail_key, self.window_s)
             if count >= self.max_failures:
-                self._redis.setex(self._lock_key(key), self.lockout_s, "1")
+                self._redis.set(self._lock_key(key), "1", ex=self.lockout_s)
         except Exception as exc:
             logger.warning("login throttle record failed (%s); skipping", exc)
 

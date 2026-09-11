@@ -71,13 +71,13 @@ def _validate_assertions(assertions: list[dict[str, Any]] | None) -> None:
     for a in assertions or []:
         if not isinstance(a, dict):
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 "Each assertion must be an object with a 'type'.",
             )
         kind = str(a.get("type") or "")
         if kind and kind not in ASSERTION_TYPES:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 f"Unknown assertion type '{kind}'. Known: {', '.join(ASSERTION_TYPES)}.",
             )
 

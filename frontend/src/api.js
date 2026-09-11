@@ -253,4 +253,13 @@ export const api = {
   ragCollectionStats: (id) => request('GET', `/rag/collections/${id}/stats`),
   ragIngest: (id, payload) => request('POST', `/rag/collections/${id}/documents`, payload),
   ragQuery: (id, payload) => request('POST', `/rag/collections/${id}/query`, payload),
+  getWorkflowAuthState: (workflowId, provider = '') => {
+    const q = provider ? `?provider=${encodeURIComponent(provider)}` : ''
+    return requestEnvelope('GET', `/workflows/${workflowId}/auth-state${q}`)
+  },
+  refreshWorkflowAuthState: (workflowId, provider = '', force = true) => {
+    const q = provider ? `?provider=${encodeURIComponent(provider)}&force=${force}` : `?force=${force}`
+    return requestEnvelope('POST', `/workflows/${workflowId}/auth-state/refresh${q}`)
+  },
 }
+

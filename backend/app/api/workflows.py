@@ -989,3 +989,141 @@ def rollback_workflow(
     log_event(db, WORKFLOW_UPDATE, target_type=SHARE_TARGET, target_id=rec.id, user_id=user.id)
     _sync_triggers(db)
     return ok(_to_dict(rec, get_permission(db, workflow_id, user) or "edit"), meta={"version_id": ver_id, "version": new_version})
+
+
+@router.get("/{workflow_id}/auth-state")
+def get_workflow_auth_state(
+    workflow_id: str,
+    provider: str = "",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Get live stored authentication credentials/status for a workflow."""
+    rec = get_workflow(db, workflow_id, user, require_edit=False)
+    if rec is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
+
+    from app.auth_state.service import get_state
+    from app.auth_state.adapter import canonical_provider, is_expired, normalize_expires_at
+
+    c_provider = canonical_provider(provider) if provider else ""
+
+    if c_provider:
+        state = get_state(db, workflow_id, c_provider)
+        if state:
+            epoch = normalize_expires_at(state.get("expires_at"))
+            valid = not is_expired(epoch)
+            raw_token = state.get("access_token") or ""
+            raw_type = state.get("token_type") or "Bearer"
+            masked = f"{raw_token[:8]}...••••••••" if len(raw_token) > 8 else "••••••••••••" if raw_token else None
+            return ok({
+                "workflow_id": workflow_id,
+                "provider": c_provider,
+                "is_valid": valid,
+                "status": "VALID" if valid else "EXPIRED",
+                "access_token_masked": masked,
+                "has_refresh_token": bool(state.get("refresh_token")),
+                "expires_at": datetime.fromtimestamp(epoch, UTC).isoformat() if epoch else None,
+                "token_type": raw_type,
+            })
+        return ok({
+            "workflow_id": workflow_id,
+            "provider": c_provider,
+            "is_valid": False,
+            "status": "MISSING",
+            "access_token_masked": None,
+            "has_refresh_token": False,
+            "expires_at": None,
+        })
+
+    # If no provider given, look up all active auth states for this workflow
+    from app.models.workflow_auth import WorkflowAuthState
+    rows = db.query(WorkflowAuthState).filter(WorkflowAuthState.workflow_id == workflow_id).all()
+    results = []
+    for r in rows:
+        st = get_state(db, workflow_id, r.provider)
+        if st:
+            ep = normalize_expires_at(st.get("expires_at"))
+            v = not is_expired(ep)
+            tok = st.get("access_token") or ""
+            results.append({
+                "provider": r.provider,
+                "is_valid": v,
+                "status": "VALID" if v else "EXPIRED",
+                "access_token_masked": f"{tok[:8]}...••••••••" if len(tok) > 8 else "••••••••••••",
+                "has_refresh_token": bool(st.get("refresh_token")),
+                "expires_at": datetime.fromtimestamp(ep, UTC).isoformat() if ep else None,
+            })
+    return ok({"workflow_id": workflow_id, "states": results})
+
+
+@router.post("/{workflow_id}/auth-state/refresh")
+async def refresh_workflow_auth_state(
+    workflow_id: str,
+    provider: str = "",
+    force: bool = True,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Manually trigger token refresh for a workflow provider using stored refresh token."""
+    rec = get_workflow(db, workflow_id, user, require_edit=True)
+    if rec is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
+
+    from app.auth_state.service import get_state, locked_refresh
+    from app.auth_state.adapter import canonical_provider, refresh_bundle, is_expired, normalize_expires_at
+    from app.engine.errors import NodeExecutionError
+
+    c_provider = canonical_provider(provider) if provider else ""
+    if not c_provider:
+        from app.models.workflow_auth import WorkflowAuthState
+        first_state = db.query(WorkflowAuthState).filter(WorkflowAuthState.workflow_id == workflow_id).first()
+        if first_state:
+            c_provider = first_state.provider
+        else:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Provider is required for token refresh.")
+
+    state = get_state(db, workflow_id, c_provider)
+    if not state:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            f"No stored credentials found for provider '{c_provider}' in this workflow. Please run Login API first.",
+        )
+
+    if not state.get("refresh_token"):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"No refresh token available for provider '{c_provider}'. Initial login or re-authentication required.",
+        )
+
+    async def _do_refresh(bundle: dict[str, Any]) -> dict[str, Any]:
+        return await refresh_bundle(c_provider, bundle)
+
+    try:
+        fresh = await locked_refresh(db, workflow_id, c_provider, _do_refresh, force=force)
+    except NodeExecutionError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Token refresh failed: {exc.message}") from exc
+    except Exception as exc:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Token refresh failed: {str(exc)}") from exc
+
+    if not fresh:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Could not refresh credentials.")
+
+    epoch = normalize_expires_at(fresh.get("expires_at"))
+    valid = not is_expired(epoch)
+    raw_token = fresh.get("access_token") or ""
+    raw_type = fresh.get("token_type") or "Bearer"
+    masked = f"{raw_token[:8]}...••••••••" if len(raw_token) > 8 else "••••••••••••" if raw_token else None
+
+    return ok({
+        "workflow_id": workflow_id,
+        "provider": c_provider,
+        "is_valid": valid,
+        "status": "REFRESHED" if valid else "EXPIRED",
+        "access_token_masked": masked,
+        "has_refresh_token": bool(fresh.get("refresh_token")),
+        "expires_at": datetime.fromtimestamp(epoch, UTC).isoformat() if epoch else None,
+        "token_type": raw_type,
+        "message": "Token refreshed successfully.",
+    })
+

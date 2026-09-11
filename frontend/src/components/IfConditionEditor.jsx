@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react'
 import MappingField from './MappingField'
 
 const OPERATOR_GROUPS = {

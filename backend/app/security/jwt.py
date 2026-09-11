@@ -107,7 +107,7 @@ def revoke_token(jti: str, exp: datetime | None = None) -> None:
             ttl = 3600  # default 1 hour
             if exp:
                 ttl = max(int((exp - datetime.now(UTC)).total_seconds()), 60)
-            r.setex(f"token_revoked:{jti}", ttl, "1")
+            r.set(f"token_revoked:{jti}", "1", ex=ttl)
             return
     except Exception:
         pass

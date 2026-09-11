@@ -23,6 +23,7 @@ from app.security.crypto import decrypt_text, encrypt_text
 _BUNDLE_KEYS = (
     "access_token", "refresh_token", "token_type", "scope",
     "expires_at", "client_id", "client_secret", "token_url",
+    "instance_url",
 )
 
 
@@ -92,7 +93,7 @@ def upsert_state(
         assert row is not None
         existing_bundle = _decode(row)
         merged_bundle = dict(bundle)
-        for preserve_key in ("refresh_token", "client_id", "client_secret", "token_url", "token_type", "scope"):
+        for preserve_key in ("refresh_token", "client_id", "client_secret", "token_url", "token_type", "scope", "instance_url"):
             if not merged_bundle.get(preserve_key) and existing_bundle.get(preserve_key):
                 merged_bundle[preserve_key] = existing_bundle[preserve_key]
         row.data = _encode(merged_bundle)

@@ -71,6 +71,9 @@ PUBLIC_ROUTES = {
     ("POST", "/api/billing/stripe/webhook"),     # signature-verified
     ("POST", "/api/webhooks/{path}"),            # entropy-gated secret path
     ("POST", "/api/triggers/salesforce/{path:path}"),
+    ("GET", "/api/auth/sso/providers"),          # list configured identity providers for login UI
+    ("GET", "/api/auth/sso/{provider}/login"),   # initiates SSO flow and redirects to IdP
+    ("GET", "/api/auth/sso/{provider}/callback"),# OAuth state-bound SSO callback
 }
 
 

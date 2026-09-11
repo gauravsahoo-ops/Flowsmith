@@ -285,7 +285,7 @@ def get_execution(execution_id: str, user: User = Depends(get_current_user), db:
     if results_outputs and isinstance(results_outputs, dict):
         for step in trace:
             nid = step.get("node_id")
-            if nid in results_outputs and results_outputs[nid]:
+            if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
                 step["outputs"] = results_outputs[nid]
 
     data = {
@@ -340,7 +340,7 @@ def get_execution_trace(
     if results_outputs and isinstance(results_outputs, dict):
         for step in trace:
             nid = step.get("node_id")
-            if nid in results_outputs and results_outputs[nid]:
+            if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
                 step["outputs"] = results_outputs[nid]
     return ok({"steps": trace})
 

@@ -30,7 +30,11 @@ _ALIASES: dict[str, str] = {
     "token_store": "token_manager",
     "auth_fetch": "token_manager",
     "auth_store": "token_manager",
+    "sub_workflow_trigger": "execute_workflow_trigger",
+    "when_executed_by_another_workflow": "execute_workflow_trigger",
+    "execute_sub_workflow": "sub_workflow",
 }
+
 
 
 def get(node_type: str) -> type[BaseNode] | None:

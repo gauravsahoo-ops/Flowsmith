@@ -107,5 +107,4 @@ class ExecuteWorkflowTriggerNode(BaseNode[ExecuteWorkflowTriggerParams]):
 
 # Aliases for compatibility
 SubWorkflowTriggerNode = ExecuteWorkflowTriggerNode
-NODE_REGISTRY["sub_workflow_trigger"] = ExecuteWorkflowTriggerNode
-NODE_REGISTRY["when_executed_by_another_workflow"] = ExecuteWorkflowTriggerNode
+

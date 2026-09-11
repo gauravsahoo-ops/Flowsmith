@@ -209,11 +209,20 @@ export default function TopBar({
               {typeof error === 'object' ? (error.message || 'Error') : error}
             </span>
           ) : saving ? (
-            'saving…'
+            <span className="save-state-saving">
+              <span className="save-dot save-dot-saving" />
+              <span>saving…</span>
+            </span>
           ) : savedAt ? (
-            'saved'
+            <span className="save-state-saved">
+              <span className="save-dot save-dot-saved" />
+              <span>saved</span>
+            </span>
           ) : (
-            'unsaved'
+            <span className="save-state-unsaved">
+              <span className="save-dot save-dot-unsaved" />
+              <span>unsaved</span>
+            </span>
           )}
         </span>
         <button className={`toggle toggle--active ${workflow?.active ? 'is-active' : ''}`} onClick={toggleActive} title={workflow?.active ? 'Active — triggers armed' : 'Inactive — triggers disarmed'}>

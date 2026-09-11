@@ -1461,11 +1461,8 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             await ctx.storage.set(f"idem:{params.idempotency_key}", item, ttl=86400)
 
         if binary_meta_auto:
-            return {
-                "json": item,
-                "binary": {
-                    params.binary_property: binary_meta_auto,
-                },
+            item["binary"] = {
+                params.binary_property: binary_meta_auto,
             }
         return item
 

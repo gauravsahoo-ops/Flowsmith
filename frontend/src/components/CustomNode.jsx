@@ -198,7 +198,7 @@ function CustomNode({ id, data, selected }) {
       style={{ '--node-accent': accent }}
     >
       {/* Modern Square Card */}
-      <div className="rf-node-card">
+      <div className={`rf-node-card ${running ? 'running' : ''} ${failed ? 'error' : ''}`}>
         {inputHandles.map((h, i) => (
           <Handle
             key={`in-${h}`}

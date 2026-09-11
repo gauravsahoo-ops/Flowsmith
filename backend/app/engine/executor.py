@@ -63,7 +63,7 @@ class ExecutionResult:
         return (end - self.started_at) * 1000
 
 
-def _cap(value: Any, depth: int = 25, max_items: int = 500, max_str: int = 50000) -> Any:
+def _cap(value: Any, depth: int = 25, max_items: int = 500, max_str: int = 500) -> Any:
     """Bound trace payloads so huge node I/O can't bloat the row (spec 26).
 
     Preserves all primitive values (int, float, bool, None, normal strings)

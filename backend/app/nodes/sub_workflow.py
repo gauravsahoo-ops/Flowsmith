@@ -262,5 +262,4 @@ class SubWorkflowNode(BaseNode[SubWorkflowParams]):
 
 
 ExecuteSubWorkflowNode = SubWorkflowNode
-from app.nodes.registry import NODE_REGISTRY  # noqa: E402
-NODE_REGISTRY["execute_sub_workflow"] = SubWorkflowNode
+

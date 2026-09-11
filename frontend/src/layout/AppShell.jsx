@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import AppSidebar from './AppSidebar'
+import GlobalSearch from '../components/shared/GlobalSearch'
 import { useWorkflowStore, isDirty } from '../stores/workflowStore'
 import { useCredentialStore } from '../stores/credentialStore'
 
@@ -12,6 +13,19 @@ export default function AppShell({ onLogout }) {
   })
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 900 : false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  // Global shortcut for search (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed(v => {
@@ -82,11 +96,29 @@ export default function AppShell({ onLogout }) {
               <span className="app-topbar-context-value">Personal</span>
             </span>
           </div>
+          <div className="app-topbar-center">
+            <button
+              type="button"
+              className="app-topbar-search-btn"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search workflows, credentials, templates (Ctrl+K)"
+              title="Search workflows, credentials, templates (Ctrl+K)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <span className="app-topbar-search-text">Search workflows, credentials, templates…</span>
+              <kbd className="app-topbar-search-kbd">⌘K</kbd>
+            </button>
+          </div>
           <div className="app-topbar-right">
             {!isCanvas && (
-              <button className="ghost" onClick={() => navigate('/workflows')} title="Go to workflows">Workflows</button>
+              <button className="ghost ghost--sm" onClick={() => navigate('/workflows')} title="Go to workflows">
+                Workflows
+              </button>
             )}
-            <button className="ghost" onClick={onLogout} title="Log out">
+            <button className="ghost ghost--sm" onClick={onLogout} title="Log out">
               Log out
             </button>
           </div>
@@ -97,6 +129,7 @@ export default function AppShell({ onLogout }) {
           </div>
         </main>
       </div>
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   )
 }

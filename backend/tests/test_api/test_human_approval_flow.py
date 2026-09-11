@@ -146,7 +146,6 @@ def test_resume_query_param_backward_compat(client):
     assert data["status"] == "success"
 
 
-@pytest.mark.usefixtures()
 def test_double_resume_conflicts(client):
     headers = auth_headers(register(client)["token"])
     client.post("/api/workflows", json=_approval_workflow(), headers=headers)

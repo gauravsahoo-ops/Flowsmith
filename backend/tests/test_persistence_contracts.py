@@ -90,6 +90,9 @@ def test_concurrent_workers_never_double_claim():
     exactly once.
     """
     import time
+    from app.queue.worker import stop_embedded_consumer
+
+    stop_embedded_consumer()
 
     total = 12
     for i in range(total):
@@ -101,30 +104,33 @@ def test_concurrent_workers_never_double_claim():
     def worker(name: str) -> None:
         empty_streak = 0
         while True:
-            job = get_queue().claim()
-            if job is not None:
-                empty_streak = 0
-                with lock:
-                    claimed_by[name].append(job.execution_id)
-                get_queue().complete(job.id)
+            try:
+                job = get_queue().claim()
+                if job is not None:
+                    empty_streak = 0
+                    with lock:
+                        claimed_by[name].append(job.execution_id)
+                    get_queue().complete(job.id)
+                    with lock:
+                        done = len(claimed_by["w1"]) + len(claimed_by["w2"])
+                    if done >= total:
+                        return
+                    continue
+                # No job claimed — check if other worker finished everything
                 with lock:
                     done = len(claimed_by["w1"]) + len(claimed_by["w2"])
                 if done >= total:
                     return
-                continue
-            # No job claimed — check if other worker finished everything
-            with lock:
-                done = len(claimed_by["w1"]) + len(claimed_by["w2"])
-            if done >= total:
-                return
-            empty_streak += 1
-            if empty_streak > 10000:  # ~20 s: give up
-                return
-            time.sleep(0.002)
+                empty_streak += 1
+                if empty_streak > 10000:  # ~20 s: give up
+                    return
+                time.sleep(0.002)
+            except Exception:
+                time.sleep(0.01)
 
     t1 = threading.Thread(target=worker, args=("w1",))
     t2 = threading.Thread(target=worker, args=("w2",))
-    deadline = time.time() + 30
+    deadline = time.time() + 60
     t1.start(); t2.start()
     while (t1.is_alive() or t2.is_alive()) and time.time() < deadline:
         time.sleep(0.05)

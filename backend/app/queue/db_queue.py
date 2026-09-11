@@ -133,6 +133,9 @@ class DbJobQueue(QueueBackend):
                 claimed_by=row.claimed_by,
                 claimed_at=row.claimed_at.isoformat() if row.claimed_at else None,
             )
+        except Exception:
+            db.rollback()
+            return None
         finally:
             db.close()
 

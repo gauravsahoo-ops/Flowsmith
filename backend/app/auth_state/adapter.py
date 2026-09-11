@@ -18,6 +18,7 @@ from app.engine.errors import NodeExecutionError
 
 # provider -> {"token_url"} for refreshable, or {"static": True}.
 PROVIDER_REFRESH: dict[str, dict[str, Any]] = {
+    "convertalogic": {"token_url": "https://convertalogic-dev.dev.idslogic.net/api/v1/auth/refresh", "json": True},
     "salesforce": {"token_url": "https://login.salesforce.com/services/oauth2/token"},
     "google": {"token_url": "https://oauth2.googleapis.com/token"},
     "hubspot": {"token_url": "https://api.hubapi.com/oauth/v1/token"},
@@ -139,43 +140,108 @@ async def refresh_bundle(provider: str, bundle: dict[str, Any]) -> dict[str, Any
     token_url = str(bundle.get("token_url") or spec.get("token_url") or "").strip()
     client_id = str(bundle.get("client_id") or "").strip()
     client_secret = str(bundle.get("client_secret") or "").strip()
-    if not token_url or not client_id or not client_secret:
-        raise NodeExecutionError(
-            "Refresh needs token_url + client_id + client_secret in the stored bundle.",
-            code="AUTH_REFRESH_FAILED", node_id="auth_fetch", retryable=False,
-        )
-    try:
-        refreshed = await OAuthManager().refresh({
-            "token_url": token_url,
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "refresh_token": refresh_token,
-        })
-    except ValueError as exc:
-        raise NodeExecutionError(
-            f"Token refresh failed: {exc}",
-            code="AUTH_REFRESH_FAILED", node_id="auth_fetch", retryable=False,
-        ) from exc
-    except Exception as exc:
-        raise NodeExecutionError(
-            f"Token endpoint unreachable: {exc}",
-            code="AUTH_REFRESH_FAILED", node_id="auth_fetch", retryable=True,
-        ) from exc
+
+    if spec.get("json") or not (client_id and client_secret):
+        if not token_url:
+            raise NodeExecutionError(
+                "Refresh needs token_url in the stored bundle.",
+                code="AUTH_REFRESH_FAILED", node_id="auth_fetch", retryable=False,
+            )
+        import httpx
+        try:
+            async with httpx.AsyncClient() as client:
+                body_payload = {"refresh_token": refresh_token}
+                if client_id:
+                    body_payload["client_id"] = client_id
+                if client_secret:
+                    body_payload["client_secret"] = client_secret
+                resp = await client.post(
+                    token_url,
+                    json=body_payload,
+                    headers={"Accept": "application/json"},
+                    timeout=15.0,
+                )
+                if resp.status_code != 200:
+                    raise NodeExecutionError(
+                        f"Token refresh failed ({resp.status_code}): {resp.text[:200]}",
+                        code="AUTH_REFRESH_FAILED", node_id="auth_fetch", retryable=False,
+                    )
+                refreshed = resp.json()
+        except NodeExecutionError:
+            raise
+        except Exception as exc:
+            raise NodeExecutionError(
+                f"Token endpoint unreachable: {exc}",
+                code="AUTH_REFRESH_FAILED", node_id="auth_fetch", retryable=True,
+            ) from exc
+    else:
+        try:
+            refreshed = await OAuthManager().refresh({
+                "token_url": token_url,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "refresh_token": refresh_token,
+            })
+        except ValueError as exc:
+            raise NodeExecutionError(
+                f"Token refresh failed: {exc}",
+                code="AUTH_REFRESH_FAILED", node_id="auth_fetch", retryable=False,
+            ) from exc
+        except Exception as exc:
+            raise NodeExecutionError(
+                f"Token endpoint unreachable: {exc}",
+                code="AUTH_REFRESH_FAILED", node_id="auth_fetch", retryable=True,
+            ) from exc
     new_bundle = dict(bundle)
-    new_bundle["access_token"] = refreshed.get("access_token", bundle.get("access_token"))
-    # Preserve the existing refresh token unless rotated.
-    if refreshed.get("refresh_token"):
-        new_bundle["refresh_token"] = refreshed["refresh_token"]
-    if refreshed.get("expires_at"):
+    # Support wrapped responses, e.g. {"body": {...}} or {"data": {...}}
+    payload_dict = refreshed
+    if isinstance(refreshed, dict):
+        for nested in ("body", "data", "json", "response", "auth"):
+            if isinstance(refreshed.get(nested), dict):
+                payload_dict = refreshed[nested]
+                break
+
+    new_at = (
+        payload_dict.get("access_token")
+        or payload_dict.get("accessToken")
+        or payload_dict.get("token")
+        or (refreshed.get("access_token") if isinstance(refreshed, dict) else None)
+    )
+    if new_at:
+        new_bundle["access_token"] = str(new_at)
+
+    new_rt = (
+        payload_dict.get("refresh_token")
+        or payload_dict.get("refreshToken")
+        or (refreshed.get("refresh_token") if isinstance(refreshed, dict) else None)
+    )
+    if new_rt:
+        new_bundle["refresh_token"] = str(new_rt)
+
+    new_tt = payload_dict.get("token_type") or payload_dict.get("tokenType")
+    if new_tt:
+        new_bundle["token_type"] = str(new_tt)
+
+    new_iu = payload_dict.get("instance_url") or payload_dict.get("instanceUrl")
+    if new_iu:
+        new_bundle["instance_url"] = str(new_iu)
+
+    raw_ea = payload_dict.get("expires_at") or payload_dict.get("expiresAt")
+    raw_ei = payload_dict.get("expires_in") or payload_dict.get("expiresIn")
+    if raw_ea:
         try:
-            new_bundle["expires_at"] = float(refreshed["expires_at"])
+            new_bundle["expires_at"] = float(raw_ea)
         except (TypeError, ValueError):
             pass
-    elif refreshed.get("expires_in"):
+    elif raw_ei:
         try:
-            new_bundle["expires_at"] = time.time() + float(refreshed["expires_in"])
+            new_bundle["expires_at"] = time.time() + float(raw_ei)
         except (TypeError, ValueError):
             pass
+
     new_bundle["token_url"] = token_url
-    new_bundle["client_id"] = client_id
+    if client_id:
+        new_bundle["client_id"] = client_id
+    if client_secret:
+        new_bundle["client_secret"] = client_secret
     return new_bundle

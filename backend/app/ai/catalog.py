@@ -22,7 +22,7 @@ from app.nodes.registry import NODE_REGISTRY
 
 TRIGGER_NODE_TYPES = frozenset({"manual_trigger", "webhook", "schedule", "salesforce_trigger"})
 
-_MAX_PROPS_PER_OP = 40
+_MAX_PROPS_PER_OP = 60
 
 
 def _compact_props(schema: dict[str, Any] | None) -> dict[str, Any]:
@@ -32,7 +32,8 @@ def _compact_props(schema: dict[str, Any] | None) -> dict[str, Any]:
     props = schema.get("properties") or {}
     required = set(schema.get("required") or [])
     out: dict[str, Any] = {}
-    for name in sorted(props)[:_MAX_PROPS_PER_OP]:
+    chosen = sorted(props, key=lambda n: (n not in required, n))[:_MAX_PROPS_PER_OP]
+    for name in sorted(chosen):
         spec = props.get(name) or {}
         entry: dict[str, Any] = {"type": spec.get("type", "any")}
         if spec.get("enum"):
