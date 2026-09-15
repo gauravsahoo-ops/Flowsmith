@@ -1,0 +1,17 @@
+.git
+.github
+.gitignore
+README.md
+docs
+opencode.json
+pyrightconfig.json
+
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.venv
+backend/data
+backend/tests
+frontend/node_modules
+frontend/dist
+**/*.test.js
