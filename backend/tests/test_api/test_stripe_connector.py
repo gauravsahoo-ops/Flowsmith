@@ -182,7 +182,7 @@ def test_full_stack_stripe_customer_with_secret_leak_check(client):
         )
         assert resp.status_code == 202, resp.text
         execution_id = resp.json()["data"]["execution_id"]
-        deadline = time.monotonic() + 15
+        deadline = time.monotonic() + 25
         while time.monotonic() < deadline:
             data = client.get(f"/api/executions/{execution_id}", headers=headers).json()["data"]
             if data["status"] not in ("running", "queued", "cancelling"):

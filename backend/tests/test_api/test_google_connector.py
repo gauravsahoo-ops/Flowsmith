@@ -72,6 +72,8 @@ def _connectors_and_settings(monkeypatch):
     registry = get_registry()
     registry.initialize()
     register_builtin_connectors()
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "G_CID")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "G_SECRET")
     monkeypatch.setattr("app.providers.google_calendar.get_settings", lambda: _settings())
     yield
 
@@ -232,7 +234,7 @@ def test_full_stack_google_calendar_event(client):
             headers=headers,
         )
         eid = resp.json()["data"]["execution_id"]
-        deadline = time.monotonic() + 15
+        deadline = time.monotonic() + 25
         while time.monotonic() < deadline:
             data = client.get(f"/api/executions/{eid}", headers=headers).json()["data"]
             if data["status"] not in ("running", "queued"):

@@ -83,7 +83,8 @@ class DbJobQueue(QueueBackend):
             db.add(Job(id=job_id, execution_id=execution_id, status=QUEUED, payload=payload))
             db.commit()
             return True
-        except Exception:
+        except Exception as exc:
+            logger.warning("DbJobQueue.enqueue failed: %s", exc)
             db.rollback()
             return False  # duplicate execution_id (idempotency guard)
         finally:
@@ -133,7 +134,8 @@ class DbJobQueue(QueueBackend):
                 claimed_by=row.claimed_by,
                 claimed_at=row.claimed_at.isoformat() if row.claimed_at else None,
             )
-        except Exception:
+        except Exception as exc:
+            logger.exception("DbJobQueue.claim failed: %s", exc)
             db.rollback()
             return None
         finally:

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 
 function NavIcon({ name, size = 18 }) {

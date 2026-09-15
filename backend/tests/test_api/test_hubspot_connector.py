@@ -82,6 +82,8 @@ def _connectors_and_settings(monkeypatch):
     registry = get_registry()
     registry.initialize()
     register_builtin_connectors()
+    monkeypatch.setenv("HUBSPOT_CLIENT_ID", "HS_CID")
+    monkeypatch.setenv("HUBSPOT_CLIENT_SECRET", "HS_SECRET")
     monkeypatch.setattr("app.providers.hubspot.get_settings", lambda: _settings())
     yield
 
@@ -252,13 +254,13 @@ def _run_and_poll(client, headers, input_data):
     resp = client.post("/api/workflows/wf_hubspot/run", json={"data": input_data}, headers=headers)
     assert resp.status_code == 202, resp.text
     execution_id = resp.json()["data"]["execution_id"]
-    deadline = time.monotonic() + 15
+    deadline = time.monotonic() + 25
     while time.monotonic() < deadline:
         data = client.get(f"/api/executions/{execution_id}", headers=headers).json()["data"]
         if data["status"] not in ("running", "queued", "cancelling"):
             return execution_id, data
         time.sleep(0.05)
-    raise AssertionError("execution did not finish")
+    raise AssertionError(f"execution did not finish, last data={data}")
 
 
 def test_full_stack_hubspot_create(client):

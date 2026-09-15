@@ -201,23 +201,37 @@ class QueueWorker:
 def ensure_embedded_consumer() -> None:
     """Start the API-process consumer once (spec 13 v1: the API process
     is also a worker unless queue_embedded_consumer is disabled)."""
-    global _consumer_started
-    if _consumer_started or not get_settings().queue_embedded_consumer:
+    global _consumer_started, _consumer_task
+    if not get_settings().queue_embedded_consumer:
         return
+
+    from app.runner import runner
+
+    if _consumer_started and _consumer_task is not None and not _consumer_task.done():
+        if runner.loop is not None and runner.loop.is_running():
+            return
     _consumer_started = True
 
     from app.eventbus import bus
-    from app.runner import runner
 
     worker = QueueWorker(event_sink=lambda ev: bus.publish(ev.get("execution_id", ""), ev))
 
     async def _loop() -> None:
-        while True:
-            try:
-                await worker.consume_once()
-            except Exception:
-                logger.exception("embedded consumer iteration failed")
-            await asyncio.sleep(worker.poll_interval_s)
+        global _consumer_started
+        try:
+            while True:
+                try:
+                    await worker.consume_once()
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    logger.exception("embedded consumer iteration failed")
+                try:
+                    await asyncio.sleep(worker.poll_interval_s)
+                except asyncio.CancelledError:
+                    break
+        finally:
+            _consumer_started = False
 
     def _schedule_consumer() -> None:
         global _consumer_task
