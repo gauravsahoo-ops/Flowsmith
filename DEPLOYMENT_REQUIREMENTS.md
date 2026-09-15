@@ -206,4 +206,4 @@ The IT team must back up the following Docker named volumes:
 - [ ] Database port `5432` and Redis port `6379` are bound to internal networks only, never exposed to public internet.
 - [ ] `CORS_ORIGINS` is restricted to the specific frontend domain (`https://flowsmith.yourdomain.com`).
 - [ ] Reverse proxy enforces HTTPS/TLS with modern cipher suites and HTTP-to-HTTPS redirection.
-- [ ] Proxy buffering is disabled (`proxy_buffering off;`) to prevent truncated execution log streams.
+- [ ] Proxy buffering is disabled (`proxy_buffering off;`) to prevent truncated execution log streams..
