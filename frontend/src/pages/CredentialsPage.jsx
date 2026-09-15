@@ -174,9 +174,18 @@ export default function CredentialsPage() {
       {notice && <div className="banner-inline ok">{notice}</div>}
       {error && <div className="banner-inline err">{error}</div>}
       {testResult && (
-        <div className={`banner-inline ${testResult.ok ? 'ok' : 'err'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span><strong>{testResult.name || testResult.id}:</strong> {testResult.message || (testResult.ok ? 'Connection test passed' : 'Test failed')}</span>
-          <button className="ghost small" onClick={() => setTestResult(null)}>✕</button>
+        <div className={`banner-inline ${testResult.ok ? 'ok' : 'err'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 8, padding: '10px 14px', margin: '12px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>{testResult.ok ? '✓' : '⚠'}</span>
+            <span>
+              <strong>{testResult.name || testResult.id}:</strong>{' '}
+              {testResult.message || (testResult.ok ? 'Connection test passed' : 'Test failed')}
+              {testResult.identity && (
+                <span className="hint" style={{ marginLeft: 6, opacity: 0.9 }}>({testResult.identity})</span>
+              )}
+            </span>
+          </div>
+          <button className="ghost small" onClick={() => setTestResult(null)} aria-label="Dismiss">✕</button>
         </div>
       )}
 
@@ -196,7 +205,36 @@ export default function CredentialsPage() {
                     {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive'].includes(c.type) && (
                       <button className="ghost small" onClick={() => handleOAuth(c.type, c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined)} disabled={oauthBusy === c.type}>{oauthBusy === c.type ? '…' : '↻ Reconnect'}</button>
                     )}
-                    <button className="ghost small" onClick={async () => { setTestingId(c.id); setTestResult(null); try { const r = await api.testCredential(c.id); setTestResult({ ...r, id: c.id, name: c.name }) } catch(e){ setTestResult({ ok:false, message:e.message, id:c.id, name:c.name }) } finally { setTestingId(null) } }} disabled={testingId===c.id} title="Test connection">{testingId===c.id ? '…' : 'Test'}</button>
+                    <button
+                      className="ghost small"
+                      onClick={async () => {
+                        setTestingId(c.id)
+                        setTestResult(null)
+                        try {
+                          const r = await api.testCredential(c.id)
+                          setTestResult({ ...r, id: c.id, name: c.name })
+                        } catch (e) {
+                          setTestResult({ ok: false, message: e.message, id: c.id, name: c.name })
+                        } finally {
+                          setTestingId(null)
+                        }
+                      }}
+                      disabled={testingId === c.id}
+                      title="Test connection with live service"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      {testingId === c.id ? (
+                        <>
+                          <span className="dot status-running" style={{ width: 6, height: 6 }} />
+                          <span>Testing…</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>⚡</span>
+                          <span>Test</span>
+                        </>
+                      )}
+                    </button>
                     <button className="ghost small" onClick={() => setDeleteTarget(c)} title={['database','postgres','mysql','redis','mongodb'].includes(c.type) ? 'Delete connection string' : 'Delete'}>{['database','postgres','mysql','redis','mongodb'].includes(c.type) ? '🗑 Delete connection string' : '🗑'}</button>
                   </td>
                 </tr>

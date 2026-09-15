@@ -173,7 +173,26 @@ function CustomNode({ id, data, selected }) {
     subtitle = params.toEmail || 'Email'
   } else if (nodeType === 'slack' || nodeType === 'telegram') {
     subtitle = params.channel || 'Message'
+  } else if (nodeType === 'gmail') {
+    subtitle = params.operation ? `${params.operation}${params.to ? `: ${params.to}` : ''}` : 'Gmail'
+  } else if (nodeType === 'google_sheets') {
+    subtitle = params.operation ? `${params.operation}${params.sheetName ? `: ${params.sheetName}` : ''}` : 'Sheets'
+  } else if (nodeType === 'google_calendar') {
+    subtitle = params.operation || 'Calendar'
+  } else if (nodeType === 'google_drive') {
+    subtitle = params.operation || 'Drive'
+  } else if (nodeType === 'hubspot') {
+    subtitle = params.resource || params.operation || 'HubSpot'
+  } else if (nodeType === 'ai_agent' || nodeType === 'llm' || nodeType === 'agent') {
+    subtitle = params.model ? `Model: ${params.model}` : 'AI Model'
+  } else if (nodeType === 'subworkflow') {
+    subtitle = params.workflow_id ? `Wf: ${params.workflow_id.slice(0, 8)}` : 'Subworkflow'
+  } else if (nodeType === 'switch') {
+    subtitle = Array.isArray(params.rules) && params.rules.length > 0 ? `${params.rules.length} route(s)` : 'Branch'
+  } else if (isLoop) {
+    subtitle = params.batch_size ? `Batch: ${params.batch_size}` : 'Loop'
   }
+  if (!fullSubtitle) fullSubtitle = subtitle
 
   const handleContextMenu = useCallback((e) => {
     e.preventDefault()
