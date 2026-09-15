@@ -91,10 +91,12 @@ export default function AppShell({ onLogout }) {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <span className="app-topbar-context">
+            <div className="app-topbar-context" title="Active workspace: Personal">
+              <span className="app-topbar-context-dot" aria-hidden="true" />
               <span className="app-topbar-context-label">Workspace</span>
+              <span className="app-topbar-context-sep">/</span>
               <span className="app-topbar-context-value">Personal</span>
-            </span>
+            </div>
           </div>
           <div className="app-topbar-center">
             <button

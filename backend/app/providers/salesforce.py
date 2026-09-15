@@ -106,9 +106,12 @@ class SalesforceProviderClient:
         return self._token is not None
 
     def _token_cache_key(self, creds: dict[str, Any]) -> str:
+        cid = creds.get("_credential_id")
+        if cid:
+            return f"cid:{cid}"
         return (
             f"{creds.get('instance_url', '')}|{creds.get('login_url', '')}"
-            f"|{creds.get('username', '')}"
+            f"|{creds.get('username', '')}|{creds.get('client_id', '')}"
             f"|{(creds.get('refresh_token') or '')[:10]}"
         )
 
@@ -147,7 +150,7 @@ class SalesforceProviderClient:
         if access_token and (expires_at and float(expires_at) > 0 and time.time() < (float(expires_at) - 60)):
             self._token = access_token
             self._token_key = self._token_cache_key(creds)
-            self._token_expires_at = time.monotonic() + self._token_ttl_s
+            self._token_expires_at = time.monotonic() + min(self._token_ttl_s, max(60.0, float(expires_at) - time.time()))
             if creds.get("instance_url"):
                 self._instance_url = creds["instance_url"].rstrip("/")
             return access_token
@@ -155,6 +158,36 @@ class SalesforceProviderClient:
         async with self._token_lock:
             if self._token_valid(creds):
                 return self._token  # type: ignore[return-value]
+
+            cid = creds.get("_credential_id")
+            # If another thread/process refreshed the credential in DB, load it now
+            if cid:
+                try:
+                    import json
+                    from app.db import get_session
+                    from app.models.credential import Credential
+                    from app.security.crypto import decrypt_text
+                    with get_session() as db_session:
+                        c_rec = db_session.get(Credential, cid)
+                        if c_rec:
+                            c_dict = json.loads(decrypt_text(c_rec.data))
+                            db_exp = c_dict.get("expires_at") or 0
+                            if c_dict.get("access_token") and float(db_exp) > (time.time() + 60):
+                                self._token = c_dict["access_token"]
+                                self._token_key = self._token_cache_key(creds)
+                                self._token_expires_at = time.monotonic() + min(self._token_ttl_s, max(60.0, float(db_exp) - time.time()))
+                                if c_dict.get("instance_url"):
+                                    self._instance_url = c_dict["instance_url"].rstrip("/")
+                                creds["access_token"] = c_dict["access_token"]
+                                creds["expires_at"] = db_exp
+                                if c_dict.get("refresh_token"):
+                                    creds["refresh_token"] = c_dict["refresh_token"]
+                                return self._token
+                            # Always take the newest refresh token from DB before hitting Salesforce
+                            if c_dict.get("refresh_token"):
+                                creds["refresh_token"] = c_dict["refresh_token"]
+                except Exception as ex:
+                    logger.debug("Could not verify token in DB: %s", ex)
 
             login_url = (
                 creds.get("login_url") or creds.get("instance_url") or DEFAULT_LOGIN_URL
@@ -235,21 +268,30 @@ class SalesforceProviderClient:
             if instance_url:
                 self._instance_url = instance_url
 
+            # Update caller's in-memory dictionary in place so downstream callers within
+            # the same execution or context hold the latest rotated tokens immediately.
+            new_rt = payload.get("refresh_token")
+            exp_at = time.time() + 7200
+            creds["access_token"] = token
+            creds["expires_at"] = exp_at
+            if new_rt:
+                creds["refresh_token"] = new_rt
+
             # Persist fresh access token and rotated refresh token
-            if creds.get("_credential_id"):
+            if cid:
                 try:
                     import json
                     from app.db import get_session
                     from app.models.credential import Credential
                     from app.security.crypto import encrypt_text, decrypt_text
                     with get_session() as db_session:
-                        c_rec = db_session.get(Credential, creds["_credential_id"])
+                        c_rec = db_session.get(Credential, cid)
                         if c_rec:
                             c_dict = json.loads(decrypt_text(c_rec.data))
                             c_dict["access_token"] = token
-                            c_dict["expires_at"] = time.time() + 7200
-                            if payload.get("refresh_token"):
-                                c_dict["refresh_token"] = payload["refresh_token"]
+                            c_dict["expires_at"] = exp_at
+                            if new_rt:
+                                c_dict["refresh_token"] = new_rt
                             c_rec.data = encrypt_text(json.dumps(c_dict))
                             db_session.commit()
                 except Exception as ex:
@@ -320,23 +362,14 @@ class SalesforceProviderClient:
                     self._token_expires_at = 0.0
                     fresh_creds = dict(creds)
                     fresh_creds["access_token"] = ""
-                    if creds.get("_credential_id"):
-                        try:
-                            from app.db import get_session
-                            from app.models.credential import Credential
-                            from app.security.crypto import decrypt_text
-                            import json as _json
-                            with get_session() as db_sess:
-                                c_rec = db_sess.get(Credential, creds["_credential_id"])
-                                if c_rec:
-                                    c_dict = _json.loads(decrypt_text(c_rec.data))
-                                    if c_dict.get("access_token") and c_dict["access_token"] != token:
-                                        fresh_creds["access_token"] = c_dict["access_token"]
-                                    if c_dict.get("refresh_token"):
-                                        fresh_creds["refresh_token"] = c_dict["refresh_token"]
-                        except Exception:
-                            pass
+                    fresh_creds["expires_at"] = 0
                     token = await self.authenticate(fresh_creds)
+                    if fresh_creds.get("access_token"):
+                        creds["access_token"] = fresh_creds["access_token"]
+                    if fresh_creds.get("expires_at"):
+                        creds["expires_at"] = fresh_creds["expires_at"]
+                    if fresh_creds.get("refresh_token"):
+                        creds["refresh_token"] = fresh_creds["refresh_token"]
                     auth_headers["Authorization"] = f"Bearer {token}"
                     response = await client.request(
                         method,
@@ -921,3 +954,14 @@ def build_bulk_csv(records: list[dict[str, Any]]) -> str:
     for row in records:
         writer.writerow([_cell(row.get(col)) for col in columns])
     return buffer.getvalue()
+
+
+_shared_salesforce_provider: SalesforceProviderClient | None = None
+
+
+def get_salesforce_provider() -> SalesforceProviderClient:
+    """Return the shared SalesforceProviderClient singleton instance."""
+    global _shared_salesforce_provider
+    if _shared_salesforce_provider is None:
+        _shared_salesforce_provider = SalesforceProviderClient()
+    return _shared_salesforce_provider

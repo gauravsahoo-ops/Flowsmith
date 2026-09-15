@@ -879,16 +879,22 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             sf_creds = ctx.credentials.get("salesforce")
             if isinstance(sf_creds, dict) and (sf_creds.get("refresh_token") or sf_creds.get("username")):
                 try:
-                    from app.providers.salesforce import SalesforceProviderClient
-                    sf_client = SalesforceProviderClient()
-                    sf_client._token = None
-                    sf_client._token_expires_at = 0.0
+                    from app.connectors import get_registry
+                    sf_conn = get_registry().get("salesforce")
+                    sf_client = getattr(sf_conn, "_provider", None)
+                    if sf_client is None:
+                        from app.providers.salesforce import SalesforceProviderClient
+                        sf_client = SalesforceProviderClient()
                     sf_creds_copy = dict(sf_creds)
                     sf_creds_copy["access_token"] = ""
                     sf_creds_copy["expires_at"] = 0
                     fresh_token = await sf_client.authenticate(sf_creds_copy)
                     if fresh_token:
                         sf_creds["access_token"] = fresh_token
+                        if sf_creds_copy.get("refresh_token"):
+                            sf_creds["refresh_token"] = sf_creds_copy["refresh_token"]
+                        if sf_creds_copy.get("expires_at"):
+                            sf_creds["expires_at"] = sf_creds_copy["expires_at"]
                         # Update all case-insensitive variations of Authorization header
                         for hk in list(headers.keys()):
                             if hk.lower() == "authorization":
