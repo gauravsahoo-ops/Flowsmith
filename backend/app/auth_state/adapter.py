@@ -77,9 +77,9 @@ def is_expired(expires_at: float | None, skew_s: float = 60.0) -> bool:
 
 def mask_token(token: str | None, prefix_len: int = 8, mask_len: int = 8) -> str:
     """Safely mask tokens for UI and logs (e.g. eyJhbGci...••••••••)."""
-    if not token or not str(token).strip():
+    if not token or not token.strip():
         return ""
-    s = str(token).strip()
+    s = token.strip()
     if len(s) <= prefix_len:
         return "••••••••"
     return f"{s[:prefix_len]}...{'•' * mask_len}"

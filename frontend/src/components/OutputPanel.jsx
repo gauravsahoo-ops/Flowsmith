@@ -172,7 +172,10 @@ export default function OutputPanel({
     ? selectedBranch
     : extracted.defaultBranch
 
-  const branchItems = extracted.branches[activeBranch] || []
+  const branchItems = useMemo(
+    () => extracted.branches[activeBranch] || [],
+    [extracted.branches, activeBranch]
+  )
 
   // Ensure pager index is within bounds
   const safeItemIdx = Math.min(currentItemIdx, Math.max(0, branchItems.length - 1))

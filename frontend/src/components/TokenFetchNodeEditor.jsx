@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useExecutionStore } from '../stores/executionStore'
 import { useWorkflowStore } from '../stores/workflowStore'
-import MappingField from './MappingField'
 
 const PROVIDER_OPTIONS = [
   { value: 'salesforce', label: 'Salesforce' },

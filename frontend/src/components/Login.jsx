@@ -99,8 +99,6 @@ export default function Login({ onAuthed }) {
 
   if (getToken()) return null
 
-  const title = { login: 'Log in', register: 'Create account', forgot: 'Reset password', reset: 'Set new password' }[mode]
-
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={submit}>

@@ -48,7 +48,9 @@ def _test_db_url() -> str:
 
     url = make_url(get_settings().database_url)
     host = "127.0.0.1" if (url.host or "") in ("localhost", "") else url.host
-    return url.set(host=host, database=f"{url.database}_test").render_as_string(
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "").strip()
+    db_name = f"{url.database}_test_{worker}" if worker else f"{url.database}_test"
+    return url.set(host=host, database=db_name).render_as_string(
         hide_password=False
     )
 
@@ -142,7 +144,8 @@ def _clean_db(_pg_harness):
                 conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
             break
         except Exception as exc:
-            if "deadlock" in str(exc).lower() and attempt < max_retries - 1:
+            exc_str = str(exc).lower()
+            if any(term in exc_str for term in ("deadlock", "lock timeout", "locknotavailable")) and attempt < max_retries - 1:
                 time.sleep(0.2 * (2 ** attempt))
                 continue
             raise

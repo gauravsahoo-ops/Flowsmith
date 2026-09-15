@@ -56,7 +56,8 @@ fi
 
 if [ -z "${CREDENTIALS_ENCRYPTION_KEY:-}" ]; then
   bold "Generating CREDENTIALS_ENCRYPTION_KEY..."
-  CRED_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null)
+  CRED_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null \
+    || python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null || true)
   if [ -z "$CRED_KEY" ]; then
     red "WARNING: Could not generate CREDENTIALS_ENCRYPTION_KEY. Set it manually."
   else

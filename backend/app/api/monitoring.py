@@ -5,15 +5,15 @@ from __future__ import annotations
 import time
 from datetime import UTC, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
-from app.api.common import ok
+from app.api.common import ok, page_params
 from app.db import get_db
 from app.metrics import render_metrics, _PROCESS_START
-from app.models import Execution, WorkflowRecord, WebhookDelivery
+from app.models import Execution, User, WebhookDelivery, WorkflowRecord
 
 router = APIRouter(prefix="/api/monitoring", tags=["monitoring"])
 
@@ -110,3 +110,61 @@ def get_metrics(
         "executions_running": running,
         "uptime_seconds": uptime,
     })
+
+
+@router.get("/dlq")
+def get_dead_letter_queue(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    page: int = 1,
+    pageSize: int = 50,
+) -> dict:
+    """Return failed or poison executions for Dead Letter Queue inspection."""
+    from app.api.access import accessible_ids
+
+    allowed_wfs = accessible_ids(db, user)
+    stmt = (
+        select(Execution)
+        .where(Execution.status.in_(["failed", "error"]))
+        .where(Execution.workflow_id.in_(allowed_wfs))
+        .order_by(Execution.started_at.desc())
+    )
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    p, sz = page_params(page=page, pageSize=pageSize)
+    executions = db.scalars(stmt.offset((p - 1) * sz).limit(sz)).all()
+
+    items = []
+    for exc in executions:
+        wf = db.get(WorkflowRecord, exc.workflow_id)
+        statuses = exc.node_statuses or {}
+        failed_nodes = [nid for nid, st in statuses.items() if st in ("failed", "error")]
+        items.append({
+            "id": exc.id,
+            "workflow_id": exc.workflow_id,
+            "workflow_name": wf.name if wf else "Unknown Workflow",
+            "status": exc.status,
+            "error": exc.error,
+            "failed_nodes": failed_nodes,
+            "started_at": exc.started_at.isoformat() if exc.started_at else None,
+            "finished_at": exc.finished_at.isoformat() if exc.finished_at else None,
+            "duration_ms": (
+                (exc.finished_at - exc.started_at).total_seconds() * 1000
+                if (exc.finished_at and exc.started_at)
+                else None
+            ),
+        })
+
+    return ok(items, {"page": p, "pageSize": sz, "total": total})
+
+
+@router.post("/dlq/{execution_id}/retry", status_code=status.HTTP_202_ACCEPTED)
+async def retry_dead_letter(
+    execution_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Requeue a Dead Letter Queue execution."""
+    from app.api.executions import retry_execution
+
+    return await retry_execution(execution_id=execution_id, body=None, user=user, db=db)
+

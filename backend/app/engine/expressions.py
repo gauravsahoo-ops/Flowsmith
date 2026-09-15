@@ -622,3 +622,13 @@ def _arith(op: str, left: Any, right: Any) -> Any:
         return result
     except (ValueError, OverflowError):
         return None
+
+
+def interpolate(template: str, base_item: dict[str, Any] | None = None, env_vars: dict[str, str] | None = None) -> Any:
+    """Convenience helper to interpolate {{ ... }} expressions against an item and env."""
+    context: dict[str, Any] = {
+        "$json": (base_item or {}).get("json", base_item or {}),
+        "$env": env_vars or {},
+    }
+    return resolve(template, context)
+

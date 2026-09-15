@@ -46,5 +46,6 @@ alembic>=1.13
 # test
 pytest>=8
 pytest-asyncio>=0.23
+pytest-xdist>=3.5
 respx>=0.21
 fakeredis>=2.23

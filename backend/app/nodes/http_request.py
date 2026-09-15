@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import shlex
 import time
 from typing import Any, Literal
@@ -296,7 +297,7 @@ class HTTPRequestParams(BaseModel):
     sendBody: bool = Field(default=False, description="Whether to send a request body.")
 
     # Path params (legacy)
-    path_params: dict[str, str] = Field(default_factory=dict, description="{placeholder} substitution values.")
+    path_params: dict[str, Any] = Field(default_factory=dict, description="{placeholder} substitution values.")
     # Query and headers as dicts (canonical); UI edits as lists and syncs here
     query: dict[str, Any] = Field(default_factory=dict, description="Query string parameters.")
     headers: dict[str, str] = Field(default_factory=dict)
@@ -339,7 +340,7 @@ class HTTPRequestParams(BaseModel):
     follow_redirects: bool = True
     max_redirects: int = Field(default=5, ge=0, le=50)
     ignore_ssl_issues: bool = Field(default=False, description="Skip TLS verification (insecure).")
-    response_format: Literal["json", "text", "file", "binary", "auto"] = Field(default="auto")
+    response_format: Literal["json", "text", "file", "binary", "auto"] = "auto"
     binary_property: str = Field(default="data", description="Binary property name on output item.")
     # Pagination (GET only): follow RFC 5988 Link rel="next"
     pagination_mode: Literal["none", "link_header"] = "none"
@@ -535,7 +536,7 @@ class HTTPRequestParams(BaseModel):
                     raise ValueError(f"Invalid Query Parameters JSON: {e.msg} at line {e.lineno}.")
         if self.sendQuery and self.queryMode == "fields":
             for k in self.query.keys():
-                if not str(k).strip():
+                if not k.strip():
                     raise ValueError("Query parameter name must not be empty.")
         if self.sendHeaders and self.headerMode == "json" and self.headerJson is not None:
             hj = self.headerJson.strip() if isinstance(self.headerJson, str) else ""
@@ -551,7 +552,7 @@ class HTTPRequestParams(BaseModel):
                     raise ValueError(f"Invalid Headers JSON: {e.msg} at line {e.lineno}.")
         if self.sendHeaders and self.headerMode == "fields":
             for k in self.headers.keys():
-                if not str(k).strip():
+                if not k.strip():
                     raise ValueError("Header name must not be empty.")
         return self
 
@@ -708,15 +709,15 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                         raise NodeExecutionError(f"Invalid Headers JSON: {e}", code="BAD_REQUEST", node_id=self.node_type, retryable=False) from e
             else:
                 for k in list(params.headers.keys()):
-                    if not str(k).strip():
+                    if not k.strip():
                         raise NodeExecutionError("Header name must not be empty.", code="BAD_REQUEST", node_id=self.node_type, retryable=False)
-                headers = {str(k).strip(): str(v) if v is not None else "" for k, v in (params.headers or {}).items() if str(k).strip()}
+                headers = {k.strip(): str(v) if v is not None else "" for k, v in (params.headers or {}).items() if k.strip()}
         else:
             # sendHeaders is False: do not send custom headers (strict n8n behavior)
             # But for backward compat, if headers is non-empty and sendHeaders was not explicitly set to False, allow
             if params.headers and "sendHeaders" not in params.model_fields_set:
                 # Legacy: headers present but toggle not explicitly set, treat as enabled
-                headers = {str(k).strip(): str(v) if v is not None else "" for k, v in params.headers.items() if str(k).strip()}
+                headers = {k.strip(): str(v) if v is not None else "" for k, v in params.headers.items() if k.strip()}
             else:
                 headers = {}
 
@@ -742,12 +743,12 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                         raise NodeExecutionError(f"Invalid Query JSON: {e}", code="BAD_REQUEST", node_id=self.node_type, retryable=False) from e
             else:
                 for k in list((params.query or {}).keys()):
-                    if not str(k).strip():
+                    if not k.strip():
                         raise NodeExecutionError("Query parameter name must not be empty.", code="BAD_REQUEST", node_id=self.node_type, retryable=False)
-                query = {str(k).strip(): v if v is not None else "" for k, v in (params.query or {}).items() if str(k).strip()}
+                query = {k.strip(): v if v is not None else "" for k, v in (params.query or {}).items() if k.strip()}
         else:
             if params.query and "sendQuery" not in params.model_fields_set:
-                query = {str(k).strip(): v if v is not None else "" for k, v in params.query.items() if str(k).strip()}
+                query = {k.strip(): v if v is not None else "" for k, v in params.query.items() if k.strip()}
             else:
                 query = {}
 

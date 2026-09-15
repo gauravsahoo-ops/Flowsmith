@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { api } from '../api'
 import ErrorState from './shared/ErrorState'
 
 const MODE_OPTIONS = [
@@ -13,7 +12,7 @@ const LANGUAGE_OPTIONS = [
   { value: 'python', label: 'Python (beta)' },
 ]
 
-export default function CodeNodeEditor({ node, onParamsChange, mapping, onPreview }) {
+export default function CodeNodeEditor({ node, onParamsChange }) {
   const params = node.parameters || {}
   const mode = params.mode || 'runOnceForAllItems'
   const language = params.language || 'javascript'
@@ -23,6 +22,10 @@ export default function CodeNodeEditor({ node, onParamsChange, mapping, onPrevie
   const [validating, setValidating] = useState(false)
   const [validation, setValidation] = useState(null)
   const editorRef = useRef(null)
+  const paramsRef = useRef(params)
+  paramsRef.current = params
+  const onParamsChangeRef = useRef(onParamsChange)
+  onParamsChangeRef.current = onParamsChange
 
   useEffect(() => {
     setLocalCode(code)
@@ -32,10 +35,10 @@ export default function CodeNodeEditor({ node, onParamsChange, mapping, onPrevie
   useEffect(() => {
     if (localCode === code) return
     const t = setTimeout(() => {
-      onParamsChange({ ...params, code: localCode })
+      onParamsChangeRef.current({ ...paramsRef.current, code: localCode })
     }, 500)
     return () => clearTimeout(t)
-  }, [localCode])
+  }, [localCode, code])
 
   async function handleCheckCode() {
     setValidating(true)

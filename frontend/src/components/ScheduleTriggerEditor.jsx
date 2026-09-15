@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 
 const INTERVAL_OPTIONS = [
   { value: 'seconds', label: 'Seconds', hint: 'Seconds Between Triggers', min: 1, max: 59 },
@@ -29,7 +29,7 @@ export default function ScheduleTriggerEditor({ node, onParamsChange }) {
 
   const [collapsed, setCollapsed] = useState(() => {
     const m = {}
-    rules.forEach((r,i)=> m[r.id] = !!r.collapsed)
+    rules.forEach((r) => { m[r.id] = !!r.collapsed })
     return m
   })
 

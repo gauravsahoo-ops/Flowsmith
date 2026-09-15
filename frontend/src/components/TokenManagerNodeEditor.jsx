@@ -33,22 +33,12 @@ export default function TokenManagerNodeEditor({
   const [showAutoLogin, setShowAutoLogin] = useState(
     Boolean(params.login_url || params.login_body)
   )
-  const [showManualRefresh, setShowManualRefresh] = useState(
-    Boolean(params.refresh_url || params.refresh_body)
-  )
   const [liveDbAuth, setLiveDbAuth] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState('')
   const [refreshSuccess, setRefreshSuccess] = useState('')
 
   const isCustomPreset = !PROVIDER_PRESETS.filter((p) => p !== 'custom').includes((provider || '').toLowerCase())
-
-  const allPresets = useMemo(() => {
-    if (provider && !PROVIDER_PRESETS.includes(provider.toLowerCase())) {
-      return [...PROVIDER_PRESETS, provider.toLowerCase()]
-    }
-    return PROVIDER_PRESETS
-  }, [provider])
 
   const currentWorkflow = useWorkflowStore((s) => s.workflow)
   const displayWorkflow = workflowId || currentWorkflow?.id || ''
