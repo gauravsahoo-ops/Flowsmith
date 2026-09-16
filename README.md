@@ -1,12 +1,14 @@
 # Flowsmith
 
+> Developed by **Gaurav** — designed, architected, and built from the ground up as an original work.
+
 [![CI](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-610%2B%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-1700%2B%20passing-brightgreen)](#testing)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-22-blue)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/license-MIT-green)](./)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**Flowsmith** is an enterprise-grade, self-hosted, open-source workflow automation platform designed to deliver n8n and Zapier-class automation with complete data sovereignty, zero per-run fees, and native enterprise integrations. It combines an interactive visual DAG canvas, sandboxed code execution, AI agents, RAG vector search, and 24 first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
+**Flowsmith** is an enterprise-grade, self-hosted, open-source workflow automation platform designed to deliver n8n and Zapier-class automation with complete data sovereignty, zero per-run fees, and native enterprise integrations. It combines an interactive visual DAG canvas, sandboxed code execution, AI agents, RAG vector search, and 28 first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
 
 ---
 
@@ -39,6 +41,7 @@
 - [Security](#security)
 - [Monitoring](#monitoring)
 - [CI/CD](#cicd)
+- [Developed By](#developed-by)
 - [License](#license)
 
 ---
@@ -56,13 +59,13 @@
 │  └── Control Panels: Credentials, Environment Variables, Templates, Approvals, RAG    │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Backend API & Orchestration (FastAPI + SQLAlchemy 2.0 + Pydantic v2)           :8000  │
-│  ├── REST API: 29 modular routers with 90+ endpoints (OpenAPI / Swagger documentation) │
+│  ├── REST API: 30 modular routers with 160+ endpoints (OpenAPI / Swagger documentation)│
 │  ├── Real-time Streams: WebSocket execution event broadcasting and log streaming       │
 │  ├── Workflow Engine: Cycle detection, DAG topological resolution, branch merging      │
 │  ├── Expression Evaluator: Sandboxed interpolation ({{ $json.* }}, $node, $cred, $env) │
 │  ├── Sandboxed Code Runtimes: JavaScript (DukPy engine) & Python execution sandboxes   │
 │  ├── Credential Vault: AES-128-CBC Fernet encryption with multi-key rotation keyring   │
-│  ├── Native Connectors: 24 first-party connectors with OAuth2 PKCE flows               │
+│  ├── Native Connectors: 28 first-party connectors with OAuth2 PKCE flows               │
 │  └── AI Subsystem: Natural-language workflow generator, error assistant, ReAct agents   │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Distributed Execution & Asynchronous Worker                                           │
@@ -108,13 +111,19 @@
 - **Auto-Extraction & Storage**: Automatically parses, normalizes, and AES-GCM encrypts tokens from upstream HTTP/Login responses into `WorkflowAuthState`.
 - **Self-Healing 401 Recovery**: Downstream HTTP Request nodes automatically force-refresh expired tokens under lock and retry once with strict infinite-loop prevention.
 
-### 4. Native AI & RAG Subsystem
+### 4. Credential Auto-Reconnect & Background Renewal
+- **Smart Reconnect**: `POST /api/credentials/{id}/reconnect` refreshes any OAuth credential from its stored refresh token (or Salesforce password flow) without interactive browser login; the UI falls back to OAuth only when background renewal is impossible.
+- **Proactive Renewal Sweep**: A maintenance daemon re-checks expiring credentials every 10 minutes (bounded batches, `FOR UPDATE SKIP LOCKED` across replicas) and persists rotated tokens automatically.
+- **Auto-Healing Probes**: `POST /api/credentials/{id}/test` refreshes an expired credential once and re-probes before reporting, so transient expiry never pages anyone.
+- **Audited**: Every user-initiated reconnect logs `credential.reconnect`; sweeps write one throttled `credential.auto_refresh_sweep` summary row.
+
+### 5. Native AI & RAG Subsystem
 - **AI Chat & ReAct Agents**: Autonomous tool-calling loops executing web queries, database lookups, and API calls.
 - **RAG Knowledge Base**: Ingest files, split into chunks, generate embeddings, and retrieve relevant context via `pgvector`.
 - **Natural Language Workflow Generation**: Create complete multi-step automation workflows directly from plain English prompts.
 - **AI Error Assistant**: Click "Explain Error" in the debugger to instantly diagnose stack traces and receive actionable remediation suggestions.
 
-### 5. Interactive Debugger Drawer
+### 6. Interactive Debugger Drawer
 - Slide-in side drawer directly within the canvas.
 - Step-by-step visual timeline tracking execution duration, status, and failures.
 - Raw JSON inspections of incoming and outgoing data for each individual node.
@@ -137,7 +146,7 @@
 | **Database ORM** | **SQLAlchemy 2.0** | Modern `mapped_column` type-safe object-relational mapping and database abstraction. |
 | **Schema Validation** | **Pydantic v2** | High-speed data serialization, strict payload validation, and typed workflow contracts. |
 | **Primary Database** | **PostgreSQL 16 + pgvector**| ACID-compliant transactional persistence + vector database for RAG document embeddings. |
-| **Database Migrations**| **Alembic** | Automated version-controlled database schema evolution (9 revision scripts). |
+| **Database Migrations**| **Alembic** | Automated version-controlled database schema evolution (12 revision scripts). |
 | **Security & Cryptography** | **Cryptography (Fernet)** | AES-128-CBC encryption for customer credentials, tokens, and secrets at rest. |
 | **Authentication** | **PyJWT + Passlib (PBKDF2)** | Stateless JSON Web Token authentication with secure salt password hashing. |
 | **HTTP Client** | **HTTPX (Async)** | Non-blocking HTTP client powering the `http_request` node with custom SSRF security filters. |
@@ -145,7 +154,7 @@
 | **Cron Scheduling** | **croniter** | Standard Unix 5-field cron parsing powering scheduled background automation triggers. |
 | **Caching & Pub/Sub**| **Redis 7 (Optional)** | Low-latency job queue, real-time event distribution, and external message caching. |
 | **Background Queue** | **Flowsmith Queue Worker** | Dedicated background daemon process (`app.queue.worker`) for parallel execution consumption. |
-| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 610+ backend tests, 165+ frontend unit tests, and 12 end-to-end browser specs. |
+| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1700+ backend tests, 173 frontend unit tests, and 9 end-to-end browser specs. |
 | **Monitoring** | **Prometheus + Grafana** | Built-in `/api/metrics` instrumentation endpoint and pre-packaged visual Grafana dashboard. |
 | **Containerization** | **Docker & Docker Compose** | Multi-stage production container packaging (Node 22 + Python 3.12) with multi-service orchestrator. |
 
@@ -196,6 +205,10 @@ pip install -r requirements.txt
 copy .env.example .env       # On Windows
 # cp .env.example .env       # On Linux/macOS
 
+# Generate the two mandatory secrets and put them in backend/.env:
+#   JWT_SECRET (e.g. openssl rand -hex 32)
+#   CREDENTIALS_ENCRYPTION_KEY (python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+
 # Apply database migrations
 alembic upgrade head
 
@@ -203,6 +216,7 @@ alembic upgrade head
 python -m app.serve
 ```
 * The API and Swagger documentation will be live at: **http://127.0.0.1:8000/docs**
+  (interactive docs are off by default — set `API_DOCS_ENABLED=true` in `backend/.env` to enable them).
 
 ### 4. Start the Background Worker (In a New Terminal)
 
@@ -276,7 +290,7 @@ Flowsmith/
 │   │   ├── db.py               # SQLAlchemy engine, session maker, connection pool
 │   │   ├── runner.py           # In-process asynchronous task execution manager
 │   │   ├── importexport.py     # Native & n8n workflow import/export converter
-│   │   ├── api/                # 29 REST API modules (90+ endpoints)
+│   │   ├── api/                # 30 REST API modules (160+ endpoints)
 │   │   │   ├── auth.py         # Login, register, JWT token refresh, password resets
 │   │   │   ├── workflows.py    # Workflow CRUD, active toggling, imports/exports
 │   │   │   ├── executions.py   # Execution history, traces, manual execution & retry
@@ -292,24 +306,24 @@ Flowsmith/
 │   │   │   ├── graph.py        # Topological sorting, cycle detection, edge validation
 │   │   │   ├── expressions.py  # Sandboxed {{ }} expression evaluation engine
 │   │   │   └── node_base.py    # BaseNode, NodeContext, and NodeResult interfaces
-│   │   ├── nodes/              # 36 Built-in node type implementations
-│   │   ├── connectors/         # 24 First-party enterprise connectors
+│   │   ├── nodes/              # 50+ built-in node type implementations
+│   │   ├── connectors/         # 28 first-party enterprise connectors (+ generated OpenAPI catalog)
 │   │   ├── providers/          # Low-level external integration clients
 │   │   ├── queue/              # Asynchronous job queue & worker processes
-│   │   ├── models/             # 25 SQLAlchemy ORM relational models
+│   │   ├── models/             # 19 SQLAlchemy ORM model files (29 tables)
 │   │   └── security/           # Safe HTTP clients, SSRF filters, Fernet encryption
-│   ├── tests/                  # 578+ automated backend pytest tests
+│   ├── tests/                  # 1700+ automated backend pytest tests (664 API + engine/unit suites)
 │   ├── alembic/                # Database migrations (schema evolution)
 │   └── requirements.txt        # Backend dependencies
 ├── frontend/
 │   ├── src/
-│   │   ├── components/         # 44 Modular React UI components
+│   │   ├── components/         # 70+ Modular React UI components
 │   │   │   ├── Canvas.jsx      # Interactive React Flow workspace
 │   │   │   ├── CustomNode.jsx  # Rich node renderer with badges & context menus
 │   │   │   ├── TopBar.jsx      # Navigation, run trigger, debugger toggle, publish switch
 │   │   │   ├── ExecutionInspector.jsx # Debugger drawer & timeline inspector
 │   │   │   └── NodeEditorModal.jsx # Multi-tab node configuration modal
-│   │   ├── pages/              # 18 Full application pages (Workflows, Templates, RAG, etc.)
+│   │   ├── pages/              # 19 Full application pages (Workflows, Templates, RAG, etc.)
 │   │   ├── stores/             # Zustand state management (workflowStore, executionStore, etc.)
 │   │   ├── api.js              # Comprehensive REST client with interceptors
 │   │   └── index.css           # Modern dark-mode styling with glassmorphic tokens
@@ -317,7 +331,6 @@ Flowsmith/
 │   ├── package.json            # Node.js dependencies and scripts
 │   └── vite.config.js          # Vite configuration
 ├── deploy/                     # Production configs (Prometheus, Grafana, setup scripts)
-├── docs/                       # 56 Extensive architectural & API documentation guides
 ├── docker-compose.yml          # Multi-container production deployment manifest
 ├── Dockerfile                  # Multi-stage container build definition
 ├── start.bat                   # Windows one-click startup automation
@@ -329,7 +342,7 @@ Flowsmith/
 
 ## Built-in Node Types
 
-Flowsmith provides **37 built-in node types** organized across functional domains:
+Flowsmith provides **50+ built-in node types** organized across functional domains:
 
 | Category | Node Type | Description |
 |---|---|---|
@@ -337,6 +350,8 @@ Flowsmith provides **37 built-in node types** organized across functional domain
 | | `webhook` | Public HTTP endpoint accepting incoming JSON payloads. |
 | | `schedule` | Time-based execution via standard 5-field cron syntax. |
 | | `salesforce_trigger` | Listens for Salesforce Outbound Messages and CDC events. |
+| | `chat_trigger` | Starts a workflow from an incoming chat widget message. |
+| | `form_trigger` | Starts a workflow from a public form submission. |
 | **Actions** | `http_request` | Dispatches HTTP requests (GET, POST, PUT, PATCH, DELETE) with auth & headers. |
 | | `token_manager` | Universal authentication lifecycle manager: checks DB for valid tokens, auto-refreshes expired credentials under lock, auto-stores new logins, and provides dual-handle branching (`valid` vs `login`). |
 | | `set_data` | Transforms, reshapes, and maps JSON fields dynamically. |
@@ -345,6 +360,8 @@ Flowsmith provides **37 built-in node types** organized across functional domain
 | | `telegram` | Sends notifications and markdown messages to Telegram chats. |
 | | `graphql` | Executes GraphQL queries and mutations against external schemas. |
 | | `database_query` | Executes direct parameterized SQL queries against relational databases. |
+| | `email_read` | Reads messages from a mailbox (IMAP) for processing. |
+| | `rss_feed` | Polls RSS/Atom feeds and emits new entries as items. |
 | **Logic** | `if_condition` | Evaluates boolean expressions; routes items to `true` or `false` handles. |
 | | `switch` | Multi-way branching based on discrete matching rules. |
 | | `merge` | Recombines multiple branches with configurable wait and merge rules. |
@@ -358,20 +375,33 @@ Flowsmith provides **37 built-in node types** organized across functional domain
 | | `wait` | Suspends execution for a specified duration or until a timestamp. |
 | | `human_approval` | Pauses execution awaiting manual approval via the UI. |
 | | `sub_workflow` | Invokes another workflow and resumes when completed. |
+| | `execute_workflow_trigger` | Entry point for runs triggered by another workflow. |
+| | `stop_and_error` | Aborts the execution immediately with a custom error. |
 | **Data & Code** | `code` | Executes custom JavaScript (via DukPy) or Python script blocks. |
 | | `data_table` | Interacts with native Flowsmith Data Tables (insert, update, query). |
 | | `csv_json_transform` | Converts CSV rows to JSON structures and vice versa. |
 | | `file_io` | Reads and writes files to local or object storage. |
 | | `websocket` | Connects to real-time WebSocket endpoints. |
+| | `compare_datasets` | Diffs two datasets and emits added/removed/changed items. |
+| | `crypto_tools` | Hashing, HMAC signing/verification, and symmetric crypto helpers. |
+| | `date_time` | Parses, formats, and computes with dates and timestamps. |
+| | `html_extract` | Extracts structured fields from HTML documents. |
+| | `item_lists` | Sorts, dedupes, limits, and reshapes item lists. |
+| | `markdown_text` | Renders Markdown content to HTML or plain text. |
+| | `xml_ops` | Parses XML documents and builds XML from JSON. |
 | **AI & RAG** | `ai` | OpenAI-compatible chat model with custom tool-calling loop. |
 | | `ai_agent` | Autonomous ReAct agent solving tasks with dynamically invoked tools. |
 | | `rag_pipeline` | Semantic RAG: ingests, embeds, and queries document chunks via pgvector. |
+| | `embeddings` | Generates vector embeddings for text via the configured provider. |
+| | `memory` | Conversation memory buffer for AI agents across runs. |
+| | `output_parser` | Parses raw LLM output into validated structured data. |
+| | `text_splitter` | Splits documents into overlapping chunks for embedding. |
 
 ---
 
 ## Connectors
 
-Flowsmith includes **24 first-party connectors** with pre-configured schemas and OAuth2 authentication handlers:
+Flowsmith includes **28 first-party connectors** with pre-configured schemas and authentication handlers, plus an auto-generated OpenAPI catalog (weather, finance, placeholder APIs) for keyless public endpoints:
 
 | Connector | Supported Operations & Resources | Authentication |
 |---|---|---|
@@ -389,12 +419,20 @@ Flowsmith includes **24 first-party connectors** with pre-configured schemas and
 | **MS Teams** | Channel messages, webhook web-alerts, adaptive cards | OAuth2 / Webhook |
 | **Outlook** | Email dispatch, calendar schedule lookups | OAuth2 |
 | **GitHub** | Repository stats, issue creation, pull request management | Personal Access Token |
+| **GitLab** | Issues, merge requests, notes (list, get, create) | Personal Access Token |
+| **Bitbucket** | Repositories, pull requests, comments | Access Token |
+| **Linear** | Issues and comments (list, get, create, update) | API Key |
 | **Notion** | Database queries, page creation, block manipulation | Internal Integration Token |
 | **Jira** | Issue lifecycle CRUD, transition management | API Token |
 | **Discord** | Webhook and bot channel notifications | Bot Token |
 | **Stripe** | Customer creation, charge intents, subscription queries | API Secret Key |
 | **Airtable** | Base record queries, row inserts, table updates | Personal Access Token |
 | **Shopify** | Product management, customer lookup, order lifecycle | OAuth2 / Admin Token |
+| **Asana** | Tasks and comments (list, get, create, update) | Personal Access Token |
+| **Trello** | Boards, cards, and comments (list, get, create) | API Key + Token |
+| **Calendly** | Event types and scheduled events (list, get, cancel) | Personal Access Token |
+| **Zoom** | Meetings (list, get, create, delete) | Access Token |
+| **Twilio** | SMS send, message history and lookup | Account SID / Auth Token |
 
 ---
 
@@ -432,9 +470,10 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 ### Credentials & Security
 - `GET /api/credentials` — List user's encrypted credentials
 - `POST /api/credentials` — Store credential (automatically encrypted with Fernet)
-- `POST /api/credentials/{id}/test` — Verify credential connectivity with remote service
+- `POST /api/credentials/{id}/test` — Verify credential connectivity (auto-refreshes expired OAuth tokens once and re-probes)
+- `POST /api/credentials/{id}/reconnect` — Background token renewal without interactive login
 - `DELETE /api/credentials/{id}` — Delete credential
-- `GET /api/credentials/types` — Discover supported credential schemas
+- `GET /api/credentials/types` — Discover supported credential schemas (47 types)
 
 ### AI & Assistant
 - `POST /api/ai/generate-workflow` — Generate full workflow from natural language
@@ -446,7 +485,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 
 ## Database Schema
 
-Flowsmith stores relational metadata in **26 normalized PostgreSQL tables** managed by Alembic:
+Flowsmith stores relational metadata in **29 normalized PostgreSQL tables** managed by Alembic (12 revision scripts; verified by `backend/scripts/check_schema_parity.py`):
 
 | Table Name | Description |
 |---|---|
@@ -475,7 +514,8 @@ Flowsmith stores relational metadata in **26 normalized PostgreSQL tables** mana
 | `user_api_keys` | Personal API access tokens for programmatic workflow invocation. |
 | `workflow_templates`| Public and workspace template gallery entries. |
 | `files` | Uploaded assets and local file metadata. |
-| `data_tables` / `cols` / `rows` | Embedded relational Data Tables allowing spreadsheet-like storage. |
+| `workflow_tests` | Saved first-class workflow tests (mock rules, assertions, expected outputs). |
+| `data_tables` / `data_table_columns` / `data_table_rows` | Embedded relational Data Tables allowing spreadsheet-like storage. |
 
 ---
 
@@ -483,7 +523,7 @@ Flowsmith stores relational metadata in **26 normalized PostgreSQL tables** mana
 
 Flowsmith maintains a rigorous test suite spanning unit, integration, and security tests:
 
-### Backend Testing (610+ Tests)
+### Backend Testing (1700+ Tests)
 
 ```bash
 cd backend
@@ -495,20 +535,20 @@ pytest -q
 pytest -m "not timing" -q
 
 # Test specific subsystems
-pytest tests/test_engine tests/test_graph -q      # Execution & graph verification
 pytest tests/test_api/test_token_manager.py -q    # Universal Token Manager & dual handles
 pytest tests/test_api/test_workflows.py -q         # Workflow CRUD & active toggle
 pytest tests/test_api/test_templates.py -q         # Template cloning & import
+pytest tests/test_api/test_credential_auto_reconnect.py -q  # OAuth auto-reconnect & renewal sweep
 pytest tests/test_security/ -q                     # SSRF, auth, and encryption audits
 ```
 
-### Frontend Testing (165+ Unit Tests & 12 E2E Specs)
+### Frontend Testing (173 Unit Tests & 9 E2E Specs)
 
 ```bash
 cd frontend
 
 # Run Vitest unit tests
-npm run test:unit
+npx vitest run
 
 # Run Playwright end-to-end browser tests
 npx playwright install chromium
@@ -567,7 +607,7 @@ python -m app.serve
 Flowsmith is built from the ground up for strict enterprise environments:
 
 - **Credential Encryption at Rest**: All external tokens, passwords, and private keys are encrypted using Fernet (AES-128-CBC) with HMAC-SHA256 integrity verification.
-- **Multi-Key Keyring & Rotation**: Secrets can be re-encrypted under a new master key with zero downtime via `scripts/rotate_credentials.py`.
+- **Multi-Key Keyring & Rotation**: Secrets support multi-key rotation with zero downtime via the credential keyring (`CREDENTIALS_ENCRYPTION_KEY` accepts a comma-separated key list with the newest key first).
 - **SSRF Attack Mitigation**: The `SafeHTTPClient` inspects destination IPs and rejects queries to loopback, link-local, private LAN, or cloud metadata endpoints (`169.254.169.254`).
 - **High-Entropy Trigger Validation**: Webhook endpoints enforce 24+ character high-entropy tokens to prevent brute-force discovery.
 - **Sensitive Key Redaction**: Credentials and authorization headers are scrubbed from execution logs, error messages, and database traces before storage.
@@ -590,9 +630,17 @@ Flowsmith is built from the ground up for strict enterprise environments:
 
 Automated GitHub Actions pipelines validate every commit:
 
-- **Continuous Integration (`ci.yml`)**: Executes Pyright static analysis, pytest test suites, frontend Oxlint, Vite build, and Playwright E2E smoke tests.
+- **Continuous Integration (`ci.yml`)**: Executes Pyright static analysis, pytest test suites, schema-parity check (migrations == models), frontend Oxlint, Vite build, and Playwright E2E smoke tests.
 - **PostgreSQL Integration (`ci-postgres.yml`)**: Runs full integration test matrices against live PostgreSQL 16 containers with the `pgvector` extension.
 - **Nightly Performance Gate (`loadtest.yml`)**: Runs 100 concurrent workflow executions at 03:00 UTC, enforcing a strict $p95 \le 8\text{s}$ latency SLA.
+
+---
+
+## Developed By
+
+**Flowsmith was designed, architected, and developed from scratch by Gaurav** ([gauravsahoo-ops](https://github.com/gauravsahoo-ops)) — every layer, from the visual DAG canvas and workflow execution engine to the OAuth framework, credential vault, AI subsystem, and deployment stack, is original work.
+
+Please retain this attribution when self-hosting or redistributing, as required by the [MIT License](./LICENSE).
 
 ---
 
