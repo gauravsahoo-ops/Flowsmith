@@ -1,9 +1,9 @@
 """Schema parity check: alembic migrations vs SQLAlchemy create_all.
 
 Builds one schema from `alembic upgrade head` and another from
-`Base.metadata.create_all`, then diffs tables and columns. Any drift
-means the migration chain no longer matches what a fresh app boot
-creates — release-blocking.
+`Base.metadata.create_all`, then diffs tables, columns, and index names.
+Any drift means the migration chain no longer matches what a fresh app
+boot creates — release-blocking.
 
 Usage (requires a reachable PostgreSQL; creates/drops two scratch DBs):
     python scripts/check_schema_parity.py
@@ -56,15 +56,34 @@ def _create_drop_db(admin_url: str, db: str, create: bool) -> None:
         conn.close()
 
 
-def _introspect(url: str) -> dict[str, set[str]]:
+def _introspect(url: str) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+    """Return (columns_by_table, indexes_by_table).
+
+    Indexes are compared by name; a model/migration pair that drifts on
+    indexes (added to one side only) is release-blocking just like column
+    drift — index-only changes are otherwise invisible to this gate.
+    """
     engine = create_engine(url)
     insp = inspect(engine)
-    out: dict[str, set[str]] = {}
+    cols: dict[str, set[str]] = {}
+    idxs: dict[str, set[str]] = {}
     for table in sorted(insp.get_table_names()):
-        cols = {c["name"] for c in insp.get_columns(table)}
-        out[table] = cols
+        cols[table] = {c["name"] for c in insp.get_columns(table)}
+        names: set[str] = set()
+        for i in insp.get_indexes(table):
+            n = i.get("name")
+            if n:
+                names.add(n)
+        idxs[table] = names
     engine.dispose()
-    return out
+    return cols, idxs
+
+
+# Index variances must be empty: every prior entry was repaired
+# (perf indexes declared in models; redundant files constraint dropped;
+# rag constraint named). Add an entry here ONLY with reviewed justification
+# in the comment — anything unlisted fails the gate.
+INDEX_PARITY_KNOWN: set[tuple[str, str, str]] = set()
 
 
 def main() -> int:
@@ -99,8 +118,8 @@ def main() -> int:
             print("FAIL: create_all did not succeed.")
             return 2
 
-        mig = _introspect(alembic_url)
-        cur = _introspect(all_url)
+        mig, mig_idx = _introspect(alembic_url)
+        cur, cur_idx = _introspect(all_url)
 
         problems = []
         for table in sorted(set(mig) | set(cur)):
@@ -117,6 +136,18 @@ def main() -> int:
                     problems.append(f"table '{table}': column '{c}' missing from migrations")
                 for c in sorted(extra):
                     problems.append(f"table '{table}': column '{c}' extra in migrations")
+                missing_idx = cur_idx.get(table, set()) - mig_idx.get(table, set())
+                extra_idx = mig_idx.get(table, set()) - cur_idx.get(table, set())
+                for i in sorted(missing_idx):
+                    if (table, i, "missing") in INDEX_PARITY_KNOWN:
+                        print(f"  (known index variance, tolerated: table '{table}' index '{i}' model-only)")
+                    else:
+                        problems.append(f"table '{table}': index '{i}' missing from migrations")
+                for i in sorted(extra_idx):
+                    if (table, i, "extra") in INDEX_PARITY_KNOWN:
+                        print(f"  (known index variance, tolerated: table '{table}' index '{i}' migration-only)")
+                    else:
+                        problems.append(f"table '{table}': index '{i}' extra in migrations")
 
         if problems:
             print("SCHEMA DRIFT detected:")

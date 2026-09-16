@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, JSON, String, Text, func
+from sqlalchemy import DateTime, Index, Integer, JSON, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -27,6 +27,16 @@ JOB_TERMINAL = frozenset({DONE, FAILED})
 
 class Job(Base):
     __tablename__ = "jobs"
+    # Mirrors migration a1b2c3d4e5f6 (ix_jobs_claim): covers the worker
+    # claim query WHERE status='queued' AND (next_retry_at IS NULL OR
+    # next_retry_at <= :now) ORDER BY created_at, id.
+    __table_args__ = (
+        Index(
+            "ix_jobs_claim",
+            "status", "next_retry_at", "created_at", "id",
+            postgresql_where=text("status = 'queued'"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     execution_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)

@@ -207,11 +207,62 @@ class MaintenanceDaemon:
         if self._cred_task is None or self._cred_task.done():
             self._cred_task = asyncio.create_task(self._cred_renewal_loop())
 
+    async def stop(self) -> None:
+        """Cancel both daemon loops.
+
+        Loop- and thread-safe: tasks owned by this loop are cancelled and
+        awaited; tasks owned by another loop (production: the worker loop
+        via ``runner.submit``) are cancelled via ``call_soon_threadsafe``
+        and cleared without cross-loop awaiting — ``runner.shutdown()``
+        finishes their teardown. Safe to call from the lifespan shutdown
+        path before ``runner.shutdown()``.
+        """
+        try:
+            running = asyncio.get_running_loop()
+        except RuntimeError:
+            running = None
+        for task_attr in ("_task", "_cred_task"):
+            task = getattr(self, task_attr)
+            if task is None:
+                continue
+            if task.done():
+                setattr(self, task_attr, None)
+                continue
+            task_loop = None
+            try:
+                task_loop = task.get_loop()
+            except Exception:
+                task_loop = None
+            same_loop = running is not None and task_loop is running
+            try:
+                if same_loop:
+                    task.cancel()
+                elif task_loop is not None:
+                    task_loop.call_soon_threadsafe(task.cancel)
+                else:
+                    task.cancel()
+            except Exception:
+                pass
+            # Only await tasks owned by this loop; cross-loop tasks are
+            # finished by runner.shutdown(). Clear the ref if already done.
+            if same_loop:
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                except Exception:
+                    logger.exception("maintenance stop failed")
+                setattr(self, task_attr, None)
+            elif task.done():
+                setattr(self, task_attr, None)
+
     async def _loop(self) -> None:
         interval = self._interval or timedelta(hours=24)
         while True:
             try:
                 await self.tick()
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.exception("maintenance tick failed")
             await asyncio.sleep(interval.total_seconds())
@@ -220,6 +271,8 @@ class MaintenanceDaemon:
         while True:
             try:
                 await self.renew_credentials()
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 logger.exception("credential renewal loop error")
             await asyncio.sleep(600)  # Sweep every 10 minutes
@@ -234,8 +287,12 @@ class MaintenanceDaemon:
         finally:
             db.close()
 
-    async def tick(self, now: datetime | None = None) -> dict[str, Any] | None:
-        """One prune pass + approval sweep + credential renewal sweep; returns counts."""
+    async def tick(self, now: datetime | None = None, *, include_credential_renewal: bool = True) -> dict[str, Any] | None:
+        """One prune pass + approval sweep + optional credential renewal sweep.
+
+        Prune/approval results are never lost to renewal failures: renewal
+        runs in isolation and reports ``{"error": ...}`` on failure.
+        """
         from app.config import get_settings
 
         retention_days = get_settings().execution_retention_days
@@ -245,7 +302,13 @@ class MaintenanceDaemon:
         try:
             pruned = prune(db, before)
             approvals_expired = fail_expired_approvals(db, now)
-            cred_stats = await self.renew_credentials()
+            cred_stats: dict[str, Any] = {"checked": 0, "refreshed": 0, "skipped": 0, "failed": 0}
+            if include_credential_renewal:
+                try:
+                    cred_stats = await self.renew_credentials()
+                except Exception as exc:
+                    logger.exception("credential renewal during tick failed")
+                    cred_stats = {"checked": 0, "refreshed": 0, "skipped": 0, "failed": 0, "error": str(exc)[:200]}
             return {**pruned, "approvals_expired": approvals_expired, "credentials_renewed": cred_stats}
         finally:
             db.close()

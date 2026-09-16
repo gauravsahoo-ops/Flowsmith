@@ -26,6 +26,11 @@ from app.security.crypto import decrypt_text, encrypt_text
 
 logger = logging.getLogger("credentials.auto_reconnect")
 
+#: Max owners listed in the sweep summary audit's ``detail.user_ids``.
+#: ``detail.user_count`` always carries the full cardinality and
+#: ``detail.user_ids_truncated`` tells consumers whether the list is complete.
+MAX_SWEEP_AUDIT_USER_IDS = 50
+
 
 def is_credential_expiring(cred_data: dict[str, Any], window_seconds: float = 1800.0) -> bool:
     """Check if a credential token is expired or will expire within `window_seconds` (default 30 mins)."""
@@ -69,6 +74,11 @@ async def reconnect_credential_data(
         from app.providers.salesforce import SalesforceProviderClient
 
         client = SalesforceProviderClient()
+        # NOTE: SalesforceProviderClient.authenticate() mutates the dict it is
+        # given in place (access_token/expires_at/refresh_token) and persists
+        # to the DB itself when "_credential_id" is present. We pass an
+        # explicit copy and read the rotated values back from it, so the
+        # contract does not depend on hidden side effects.
         fresh_copy: dict[str, Any] = dict(updated)
         fresh_copy.pop("access_token", None)
         fresh_copy.pop("expires_at", None)
@@ -76,14 +86,19 @@ async def reconnect_credential_data(
         if not token:
             raise ValueError("Salesforce re-authentication did not return a valid token.")
         updated["access_token"] = token
-        if fresh_copy.get("expires_at"):
-            updated["expires_at"] = fresh_copy["expires_at"]
-        else:
+        raw_exp = fresh_copy.get("expires_at")
+        try:
+            updated["expires_at"] = float(raw_exp) if raw_exp else time.time() + 7200.0
+        except (TypeError, ValueError):
             updated["expires_at"] = time.time() + 7200.0
+        # Rotation-aware: authenticate() only overwrites refresh_token when
+        # the provider returns a new one, otherwise the previous value
+        # survives in fresh_copy and is preserved here.
         if fresh_copy.get("refresh_token"):
             updated["refresh_token"] = fresh_copy["refresh_token"]
-        if fresh_copy.get("instance_url"):
-            updated["instance_url"] = fresh_copy["instance_url"]
+        instance_url = fresh_copy.get("instance_url") or getattr(client, "_instance_url", "")
+        if instance_url:
+            updated["instance_url"] = instance_url
         return updated
 
     # 2. General OAuth2 Providers (Google, HubSpot, Microsoft, GitHub, etc.)
@@ -93,8 +108,18 @@ async def reconnect_credential_data(
         raise ValueError(f"No token refresh endpoint known for provider '{cred_type}'.")
 
     settings = get_settings()
-    client_id = updated.get("client_id") or getattr(settings, f"{canon}_client_id", "")
-    client_secret = updated.get("client_secret") or getattr(settings, f"{canon}_client_secret", "")
+    # Server-side OAuth app credentials stay server-side: prefer the bundle's
+    # stored client_id/secret, else the deployment's settings for this
+    # canonical provider. Not every provider has a server-side app
+    # (e.g. microsoft/github have no *_client_id in Settings); in that case
+    # the bundle must carry them, otherwise refresh fails fast below.
+    # NOTE: cred_type aliases (google_calendar -> google, msteams ->
+    # microsoft, ...) are already canonicalized, so the settings key uses
+    # the canonical name on purpose.
+    server_client_id = getattr(settings, f"{canon}_client_id", "") or ""
+    server_client_secret = getattr(settings, f"{canon}_client_secret", "") or ""
+    client_id = updated.get("client_id") or server_client_id
+    client_secret = updated.get("client_secret") or server_client_secret
 
     refresh_token = updated.get("refresh_token")
     if not refresh_token:
@@ -118,12 +143,13 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
     """
     rec = db.get(Credential, credential_id)
     if rec is None or rec.user_id != user_id:
-        return {"ok": False, "message": "Credential not found or not owned by user."}
+        return {"ok": False, "code": "NOT_FOUND", "message": "Credential not found or not owned by user."}
 
     try:
         data = json.loads(decrypt_text(rec.data))
-    except Exception as exc:
-        return {"ok": False, "message": f"Cannot decrypt credential: {exc}"}
+    except Exception:
+        logger.warning("Cannot decrypt credential %s for auto-reconnect", credential_id)
+        return {"ok": False, "code": "DECRYPT_FAILED", "message": "Cannot decrypt credential."}
 
     if not can_auto_reconnect(rec.type, data):
         return {
@@ -155,40 +181,202 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
         }
 
 
-async def auto_refresh_all_expiring_credentials(db: Session, window_minutes: int = 30) -> dict[str, int]:
+async def auto_refresh_all_expiring_credentials(
+    db: Session, window_minutes: int = 30, batch_size: int = 100,
+    verify_missing: bool = True,
+) -> dict[str, int]:
     """Background sweep routine: finds all stored credentials expiring soon and refreshes them.
 
-    Returns summary counts: {"checked": n, "refreshed": n, "skipped": n, "failed": n}.
+    Returns summary counts: {"checked", "refreshed", "skipped", "failed"}
+    plus a stable breakdown (all ints, safe to add to): {"skipped_locked",
+    "skipped_deleted", "skipped_decrypt", "skipped_not_eligible",
+    "skipped_unverified"} where ``skipped`` is always the sum of the five.
+    ``skipped_locked`` rows were claimed by a concurrent sweeper (postgres
+    ``SKIP LOCKED``) and are retried on the next pass — not errors.
+    ``skipped_unverified`` rows were not disambiguated (only possible with
+    ``verify_missing=False``) and are likewise retried, never mislabelled.
+
+    Snapshot + bounded batches: the sweep first snapshots matching PKs
+    (``SELECT id`` — no secrets), then processes them in ``batch_size``
+    chunks, re-fetching each row by PK. Credential ids are random strings,
+    so positional keyset/offset pagination could skip rows when inserts or
+    deletes land mid-sweep; a fixed snapshot cannot shift. Rows created
+    mid-sweep are picked up on the next 10-minute pass (bounded delay);
+    rows deleted mid-sweep are counted as skipped. On PostgreSQL each
+    batch is locked with ``FOR UPDATE SKIP LOCKED`` so concurrent
+    API/worker replicas skip rows another sweeper already claimed instead
+    of double-refreshing them (other backends silently fall back to no
+    locking).
+
+    ``verify_missing`` (default True) disambiguates missing snapshot rows
+    (deleted vs lock-skipped) with one PK-existence query per affected
+    batch — steady-state passes with no missing rows issue zero extra
+    queries. Pass False to skip verification entirely: missing rows are
+    then counted honestly as ``skipped_unverified`` (still included in
+    ``skipped``) instead of being guessed as locked or deleted.
+
+    Audit-throttled: all-skipped passes write nothing; passes with a
+    refresh or failure write ``credential.auto_refresh_sweep`` rows
+    (``target_type="system"``, ``user_id=None``) sharing one ``sweep_id``:
+    a page-1 summary with counts plus the first ``MAX_SWEEP_AUDIT_USER_IDS``
+    owner ids, then one continuation page per further chunk of owners when
+    more than the cap are touched — so the full owner set is always in the
+    audit trail and never requires a follow-up credentials query.
+    Consumers must not hand-group pages — call
+    ``app.audit.collect_sweep_audit(db, sweep_id)`` which returns the
+    reassembled owner list, completeness flag, and summary stats.
+    User-initiated reconnects audit ``credential.reconnect`` per event.
     """
     window_seconds = window_minutes * 60.0
-    recs = db.scalars(select(Credential)).all()
-    stats = {"checked": len(recs), "refreshed": 0, "skipped": 0, "failed": 0}
+    stats = {
+        "checked": 0,
+        "refreshed": 0,
+        "skipped": 0,
+        "failed": 0,
+        "skipped_locked": 0,
+        "skipped_deleted": 0,
+        "skipped_decrypt": 0,
+        "skipped_not_eligible": 0,
+        "skipped_unverified": 0,
+    }
+    affected_user_ids: set[int] = set()
 
-    for rec in recs:
+    try:
+        bind = db.get_bind()
+        use_locking = getattr(getattr(bind, "dialect", None), "name", "") == "postgresql"
+    except Exception:
+        use_locking = False
+
+    # PK-only snapshot: cheap, holds no secrets, immune to paging shifts.
+    all_ids: list[str] = list(db.scalars(select(Credential.id).order_by(Credential.id)).all())
+
+    for start in range(0, len(all_ids), batch_size):
+        chunk = all_ids[start:start + batch_size]
+        if use_locking:
+            try:
+                batch = list(db.scalars(
+                    select(Credential)
+                    .where(Credential.id.in_(chunk))
+                    .order_by(Credential.id)
+                    .with_for_update(skip_locked=True)
+                ).all())
+            except Exception:
+                batch = [r for r in (db.get(Credential, cid) for cid in chunk) if r is not None]
+        else:
+            batch = [r for r in (db.get(Credential, cid) for cid in chunk) if r is not None]
+        # Missing rows are either deleted after the snapshot or (postgres)
+        # lock-skipped by a concurrent sweeper. With verify_missing (default)
+        # disambiguate via a cheap PK-existence check so stats stay honest;
+        # with verify_missing=False count them as skipped_unverified rather
+        # than guessing locked vs deleted. Either way steady-state batches
+        # with no missing rows cost nothing extra.
+        if len(batch) < len(chunk):
+            missing = set(chunk) - {r.id for r in batch}
+            if not verify_missing:
+                stats["skipped_unverified"] += len(missing)
+                stats["skipped"] += len(missing)
+            elif use_locking and missing:
+                try:
+                    still_there = set(
+                        db.scalars(select(Credential.id).where(Credential.id.in_(list(missing)))).all()
+                    )
+                except Exception:
+                    still_there = set()
+                n_locked = len(still_there & missing)
+                n_deleted = len(missing) - n_locked
+                stats["skipped_locked"] += n_locked
+                stats["skipped_deleted"] += n_deleted
+                stats["skipped"] += n_locked + n_deleted
+            else:
+                stats["skipped_deleted"] += len(missing)
+                stats["skipped"] += len(missing)
+        for rec in batch:
+            stats["checked"] += 1
+            try:
+                data = json.loads(decrypt_text(rec.data))
+            except Exception:
+                stats["skipped"] += 1
+                stats["skipped_decrypt"] += 1
+                continue
+
+            needs_refresh = can_auto_reconnect(rec.type, data) and is_credential_expiring(
+                data, window_seconds=window_seconds
+            )
+            # Drop plaintext before any network I/O; the refresh path
+            # re-reads only what it needs.
+            del data
+            if not needs_refresh:
+                stats["skipped"] += 1
+                stats["skipped_not_eligible"] += 1
+                continue
+
+            try:
+                logger.info("Proactively renewing credential %s (%s) expiring soon", rec.id, rec.type)
+                fresh = json.loads(decrypt_text(rec.data))
+                updated = await reconnect_credential_data(rec.type, fresh, credential_id=rec.id)
+                clean_to_save = {k: v for k, v in updated.items() if not k.startswith("_")}
+                rec.data = encrypt_text(json.dumps(clean_to_save))
+                db.commit()
+                stats["refreshed"] += 1
+                affected_user_ids.add(rec.user_id)
+                logger.info("Successfully renewed credential %s (%s)", rec.id, rec.type)
+            except Exception as exc:
+                db.rollback()
+                stats["failed"] += 1
+                try:
+                    affected_user_ids.add(rec.user_id)
+                except Exception:
+                    pass
+                logger.warning("Auto-refresh failed for %s (%s): %s", rec.id, rec.type, exc)
+            finally:
+                # Expire the row so decrypted state is not retained in the
+                # identity map (refresh() still works for callers).
+                try:
+                    db.expire(rec)
+                except Exception:
+                    pass
+
+    # Throttled summary audit: one row per sweep, only when something
+    # happened — never on all-skipped passes, so the audit table is not
+    # spammed every 10 minutes. Best-effort; sweep results never depend on it.
+    # Owner pages: page 1 carries the counts; every page carries a chunk of
+    # owner ids under a shared sweep_id, so the full owner set is always
+    # reassemblable from the audit trail (no follow-up query needed).
+    if stats["refreshed"] or stats["failed"]:
         try:
-            data = json.loads(decrypt_text(rec.data))
+            import uuid as _uuid
+
+            from app.audit import CREDENTIAL_SWEEP, log_event
+
+            sweep_id = _uuid.uuid4().hex[:12]
+            owner_ids = sorted(affected_user_ids)
+            pages = [
+                owner_ids[i:i + MAX_SWEEP_AUDIT_USER_IDS]
+                for i in range(0, len(owner_ids), MAX_SWEEP_AUDIT_USER_IDS)
+            ] or [[]]
+            for page_no, ids_page in enumerate(pages, start=1):
+                detail: dict[str, Any] = {
+                    "sweep_id": sweep_id,
+                    "page": page_no,
+                    "pages": len(pages),
+                    "user_ids": ids_page,
+                    "user_count": len(owner_ids),
+                }
+                if page_no == 1:
+                    detail.update(
+                        {**stats, "window_minutes": window_minutes,
+                         "sweep_id": sweep_id, "page": 1, "pages": len(pages)}
+                    )
+                # target_id always carries the sweep_id so page lookup is an
+                # indexed (action, target_id) equality query — never a scan.
+                log_event(
+                    db,
+                    CREDENTIAL_SWEEP,
+                    target_type="system",
+                    target_id=f"credential-sweep:{sweep_id}",
+                    detail=detail,
+                )
         except Exception:
-            stats["skipped"] += 1
-            continue
-
-        if not can_auto_reconnect(rec.type, data):
-            stats["skipped"] += 1
-            continue
-
-        if not is_credential_expiring(data, window_seconds=window_seconds):
-            stats["skipped"] += 1
-            continue
-
-        try:
-            logger.info("Proactively renewing credential %s (%s) expiring soon", rec.id, rec.type)
-            updated = await reconnect_credential_data(rec.type, data, credential_id=rec.id)
-            clean_to_save = {k: v for k, v in updated.items() if not k.startswith("_")}
-            rec.data = encrypt_text(json.dumps(clean_to_save))
-            db.commit()
-            stats["refreshed"] += 1
-            logger.info("Successfully renewed credential %s (%s)", rec.id, rec.type)
-        except Exception as exc:
-            stats["failed"] += 1
-            logger.warning("Auto-refresh failed for %s (%s): %s", rec.id, rec.type, exc)
+            logger.exception("credential sweep summary audit failed")
 
     return stats

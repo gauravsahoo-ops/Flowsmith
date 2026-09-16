@@ -63,6 +63,10 @@ async def lifespan(_app: FastAPI):
     yield
 
     stop_embedded_consumer()
+    try:
+        await maintenance.stop()
+    except Exception:
+        logger.exception("maintenance stop failed")
     runner.shutdown()
     # Close the shared HTTP client pool (P1: connection pool fix)
     from app.security.safe_http_client import get_safe_http_client as _get_http

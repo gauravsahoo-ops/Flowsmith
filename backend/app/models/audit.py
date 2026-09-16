@@ -17,7 +17,12 @@ if TYPE_CHECKING:
 
 class AuditEvent(Base):
     __tablename__ = "audit_events"
-    __table_args__ = (Index("ix_audit_created_action", "created_at", "action"),)
+    __table_args__ = (
+        Index("ix_audit_created_action", "created_at", "action"),
+        # Sweep-page lookup: collect_sweep_audit() queries
+        # WHERE action=:a AND target_id=:tid (equality on both).
+        Index("ix_audit_action_target", "action", "target_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True, nullable=True)

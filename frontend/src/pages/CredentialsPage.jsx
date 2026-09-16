@@ -77,9 +77,22 @@ export default function CredentialsPage() {
         await load()
         return
       }
+      if (res && res.ok === false && res.code === 'NOT_FOUND') {
+        setError('Credential not found. Refreshing list…')
+        await load()
+        return
+      }
+      if (res && res.ok === false && res.message) {
+        setNotice(res.message)
+      }
       handleOAuth(c.type, c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined)
-    } catch {
-      handleOAuth(c.type, c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined)
+    } catch (err) {
+      if (err && err.status === 404) {
+        setError('Credential not found. Refreshing list…')
+        try { await load() } catch {}
+        return
+      }
+      setError((err && err.message) || 'Reconnect failed.')
     } finally {
       setReconnectingId(null)
     }

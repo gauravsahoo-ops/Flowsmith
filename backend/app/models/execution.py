@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -20,6 +20,12 @@ if TYPE_CHECKING:
 
 class Execution(Base):
     __tablename__ = "executions"
+    # Mirrors migration a1b2c3d4e5f6: covers ORDER BY started_at DESC /
+    # WHERE workflow_id = :id listings and has_running_execution checks.
+    __table_args__ = (
+        Index("ix_executions_workflow_started", "workflow_id", text("started_at DESC")),
+        Index("ix_executions_wf_status", "workflow_id", "status"),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"), index=True, nullable=False)

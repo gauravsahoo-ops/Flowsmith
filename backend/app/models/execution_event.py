@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Integer, String, func
+from sqlalchemy import JSON, DateTime, Index, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -19,6 +19,11 @@ from app.db import Base
 
 class ExecutionEvent(Base):
     __tablename__ = "execution_events"
+    # Mirrors migration a1b2c3d4e5f6 (ix_exec_events_exec_seq): covers
+    # WHERE execution_id = :id ORDER BY seq DESC lookups.
+    __table_args__ = (
+        Index("ix_exec_events_exec_seq", "execution_id", text("seq DESC")),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     execution_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)

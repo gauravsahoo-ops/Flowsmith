@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -26,12 +26,17 @@ if TYPE_CHECKING:
 
 class RagCollection(Base):
     __tablename__ = "rag_collections"
+    # Named to match migration d7f1a2b3c4e5 (uq_rag_collections_store_name)
+    # so create_all and migrated schemas agree on the backing index name.
+    __table_args__ = (
+        UniqueConstraint("store_name", name="uq_rag_collections_store_name"),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     # Logical, human-chosen name — unique per tenant scope.
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     # Opaque physical collection key in the vector store.
-    store_name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    store_name: Mapped[str] = mapped_column(String(80), nullable=False)
 
     owner_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), index=True, nullable=False

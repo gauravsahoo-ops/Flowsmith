@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -52,11 +53,14 @@ def test_can_auto_reconnect():
 async def test_auto_refresh_all_expiring_credentials(client):
     user_info = register(client, email="autorefresh_worker@example.com")
     db = get_session()
+    suffix = uuid.uuid4().hex[:8]
+    c1_id = f"cred-expiring-{suffix}"
+    c2_id = f"cred-valid-{suffix}"
     try:
         now = time.time()
         # 1. Credential expiring soon
         c1 = Credential(
-            id="cred-expiring-1",
+            id=c1_id,
             user_id=user_info["user"]["id"],
             name="Expiring Google",
             type="google_calendar",
@@ -68,7 +72,7 @@ async def test_auto_refresh_all_expiring_credentials(client):
         )
         # 2. Credential far in the future
         c2 = Credential(
-            id="cred-valid-2",
+            id=c2_id,
             user_id=user_info["user"]["id"],
             name="Valid Google",
             type="google_calendar",
@@ -92,10 +96,42 @@ async def test_auto_refresh_all_expiring_credentials(client):
             stats = await auto_refresh_all_expiring_credentials(db, window_minutes=30)
             assert stats["refreshed"] >= 1
 
+            # Breakdown invariant: skipped is always the sum of its parts.
+            assert stats["skipped"] == (
+                stats["skipped_locked"] + stats["skipped_deleted"]
+                + stats["skipped_decrypt"] + stats["skipped_not_eligible"]
+                + stats["skipped_unverified"]
+            )
+
             # Verify DB was updated with new token
             db.refresh(c1)
             updated_data = json.loads(decrypt_text(c1.data))
             assert updated_data["access_token"] == "brand_new_token"
+
+            # Far-future credential must be untouched
+            db.refresh(c2)
+            untouched = json.loads(decrypt_text(c2.data))
+            assert untouched["access_token"] == "current_token"
+
+            # Sweep wrote exactly one summary audit page (single owner).
+            from app.models import AuditEvent
+
+            rows = db.query(AuditEvent).filter(
+                AuditEvent.action == "credential.auto_refresh_sweep"
+            ).all()
+            assert len(rows) == 1
+            detail = rows[0].detail or {}
+            assert detail["page"] == 1 and detail["pages"] == 1
+            assert detail["user_count"] == 1
+            assert user_info["user"]["id"] in detail["user_ids"]
+
+            # Helper reassembles the sweep without hand-grouping pages.
+            from app.audit import collect_sweep_audit
+
+            assembled = collect_sweep_audit(db, detail["sweep_id"])
+            assert assembled["complete"] is True
+            assert assembled["user_ids"] == [user_info["user"]["id"]]
+            assert assembled["stats"]["refreshed"] >= 1
     finally:
         db.close()
 
@@ -104,10 +140,11 @@ def test_reconnect_credential_api_endpoint(client):
     user_info = register(client, email="reconnect_api@example.com")
     headers = auth_headers(user_info["token"])
     db = get_session()
+    cred_id = f"cred-to-reconnect-{uuid.uuid4().hex[:8]}"
     try:
         # Create an OAuth credential
         c = Credential(
-            id="cred-to-reconnect",
+            id=cred_id,
             user_id=user_info["user"]["id"],
             name="My Google Calendar",
             type="google_calendar",
@@ -128,7 +165,7 @@ def test_reconnect_credential_api_endpoint(client):
                 "expires_at": time.time() + 3600,
             }
 
-            resp = client.post("/api/credentials/cred-to-reconnect/reconnect", headers=headers)
+            resp = client.post(f"/api/credentials/{cred_id}/reconnect", headers=headers)
             assert resp.status_code == 200, resp.text
             payload = resp.json()["data"]
             assert payload["ok"] is True
@@ -145,10 +182,11 @@ def test_reconnect_credential_static_fails_cleanly(client):
     user_info = register(client, email="reconnect_static@example.com")
     headers = auth_headers(user_info["token"])
     db = get_session()
+    cred_id = f"cred-static-auth-{uuid.uuid4().hex[:8]}"
     try:
         # Credential that cannot be auto-reconnected
         c = Credential(
-            id="cred-static-auth",
+            id=cred_id,
             user_id=user_info["user"]["id"],
             name="Static SMTP",
             type="smtp",
@@ -160,7 +198,7 @@ def test_reconnect_credential_static_fails_cleanly(client):
         db.add(c)
         db.commit()
 
-        resp = client.post("/api/credentials/cred-static-auth/reconnect", headers=headers)
+        resp = client.post(f"/api/credentials/{cred_id}/reconnect", headers=headers)
         assert resp.status_code == 200
         payload = resp.json()["data"]
         assert payload["ok"] is False
@@ -173,9 +211,10 @@ def test_test_credential_auto_reconnects_when_expired(client):
     user_info = register(client, email="test_autoreconnect@example.com")
     headers = auth_headers(user_info["token"])
     db = get_session()
+    cred_id = f"cred-expired-for-test-{uuid.uuid4().hex[:8]}"
     try:
         c = Credential(
-            id="cred-expired-for-test",
+            id=cred_id,
             user_id=user_info["user"]["id"],
             name="Expired Salesforce",
             type="salesforce",
@@ -193,9 +232,66 @@ def test_test_credential_auto_reconnects_when_expired(client):
             mock_auth.return_value = "new_live_sf_token"
             with patch("app.credentials.providers.salesforce.SalesforceAuthProvider.testConnection") as mock_conn:
                 mock_conn.return_value = {"ok": True, "message": "Salesforce connection successful."}
-                resp = client.post("/api/credentials/cred-expired-for-test/test", headers=headers)
+                resp = client.post(f"/api/credentials/{cred_id}/test", headers=headers)
                 assert resp.status_code == 200, resp.text
                 data = resp.json()["data"]
                 assert data["ok"] is True
     finally:
+        db.close()
+
+
+@pytest.mark.asyncio
+async def test_sweep_lock_skip_counts(client):
+    """A row locked by a concurrent session is lock-skipped, not refreshed.
+
+    With verify_missing=False it counts as skipped_unverified (honest, no
+    guessing); with the default True it is verified as skipped_locked.
+    Requires PostgreSQL row locking — skipped explicitly elsewhere so the
+    test cannot vacuously pass on a non-locking backend.
+    """
+    from sqlalchemy import select
+
+    user_info = register(client, email="sweep_lock@example.com")
+    db = get_session()
+    try:
+        dialect = getattr(getattr(db.get_bind(), "dialect", None), "name", "")
+    except Exception:
+        dialect = ""
+    if dialect != "postgresql":
+        db.close()
+        pytest.skip(f"requires postgres row locking (got {dialect!r})")
+    locker = get_session()
+    cred_id = f"cred-lock-{uuid.uuid4().hex[:8]}"
+    try:
+        db.add(Credential(
+            id=cred_id,
+            user_id=user_info["user"]["id"],
+            name="Locked Google",
+            type="google_calendar",
+            data=encrypt_text(json.dumps({
+                "access_token": "tok",
+                "refresh_token": "rt",
+                "expires_at": time.time() + 300,
+            })),
+        ))
+        db.commit()
+        # Hold the row lock in a second session (simulates a concurrent sweeper).
+        locker.execute(select(Credential).where(Credential.id == cred_id).with_for_update())
+
+        unverified = await auto_refresh_all_expiring_credentials(
+            db, window_minutes=30, batch_size=10, verify_missing=False)
+        assert unverified["skipped_unverified"] == 1
+        assert unverified["skipped_locked"] == 0
+        assert unverified["skipped"] == 1
+        assert unverified["refreshed"] == 0
+
+        verified = await auto_refresh_all_expiring_credentials(
+            db, window_minutes=30, batch_size=10, verify_missing=True)
+        assert verified["skipped_locked"] == 1
+        assert verified["skipped_deleted"] == 0
+        assert verified["skipped_unverified"] == 0
+        assert verified["skipped"] == 1
+    finally:
+        locker.rollback()
+        locker.close()
         db.close()

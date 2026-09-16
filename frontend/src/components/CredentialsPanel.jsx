@@ -5,7 +5,7 @@
 // stores the encrypted connection (client id/secret stay server-side).
 
 import { useEffect, useRef, useState } from 'react'
-import api from '../api'
+import { api } from '../api'
 import { useCredentialStore } from '../stores/credentialStore'
 import ErrorState from './shared/ErrorState'
 import Select from './shared/Select'
@@ -96,9 +96,26 @@ export default function CredentialsPanel({ open, onClose }) {
         await load()
         return
       }
+      if (res && res.ok === false && res.code === 'NOT_FOUND') {
+        setError('Credential not found. Refreshing list…')
+        await load()
+        return
+      }
+      // Background refresh did not succeed (e.g. interactive_required):
+      // fall through to interactive OAuth, surfacing the server message.
+      if (res && res.ok === false && res.message) {
+        setNotice(res.message)
+      }
       runConnect(provider, loginUrl)
-    } catch {
-      runConnect(provider, loginUrl)
+    } catch (err) {
+      if (err && err.status === 404) {
+        setError('Credential not found. Refreshing list…')
+        try { await load() } catch {}
+        return
+      }
+      // Transport / server errors: surface them instead of opening a
+      // misleading OAuth popup.
+      setError((err && err.message) || 'Reconnect failed.')
     } finally {
       setReconnectingId(null)
     }
