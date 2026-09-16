@@ -316,6 +316,7 @@ def health() -> dict:
     return ok({
         "status": "ok",
         "version": "0.3.1",
+        "developed_by": "Gaurav Sahoo (gauravsahoo-ops)",
         "public_url": settings.public_url,
         "uptime_s": int(time.monotonic() - _PROCESS_START),
         "database": database,

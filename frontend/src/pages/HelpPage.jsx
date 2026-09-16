@@ -149,6 +149,13 @@ export default function HelpPage() {
           </div>
         </div>
       </section>
+      <section className="help-section-card">
+        <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>About the Developer</h3>
+        <p className="hint" style={{ margin: 0, fontSize: 13.5, lineHeight: 1.7 }}>
+          Flowsmith was designed, architected, and developed from scratch by <strong>Gaurav</strong> — every layer,
+          from the visual canvas and execution engine to OAuth, the credential vault, AI, and deployment, is original work.
+        </p>
+      </section>
     </div>
   )
 }

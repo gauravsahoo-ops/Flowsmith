@@ -205,6 +205,9 @@ export default function Login({ onAuthed }) {
           </button>
         )}
       </form>
+      <p className="hint" style={{ marginTop: 12, fontSize: 12, textAlign: 'center' }}>
+        Developed by Gaurav
+      </p>
     </div>
   )
 }
