@@ -9,10 +9,15 @@ explicit unique ix_files_object_key, leaving two unique enforcements
 (backing indexes files_object_key_key + ix_files_object_key). The model
 renders a single unique ix_files_object_key. Drop the redundant
 constraint; uniqueness stays enforced by ix_files_object_key.
+
+Databases built via create_all (model-style files table) never had the
+redundant constraint, so both directions guard on existence and are
+safe to run anywhere (same pattern as 7c2d's _has_table guard).
 """
 from typing import Sequence, Union
 
 from alembic import op
+import sqlalchemy as sa
 
 
 revision: str = 'd2e6f8a0b1c3'
@@ -21,9 +26,22 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _has_unique_constraint(bind, table: str, name: str) -> bool:
+    try:
+        return any(
+            c.get("name") == name for c in sa.inspect(bind).get_unique_constraints(table)
+        )
+    except Exception:
+        return False
+
+
 def upgrade() -> None:
-    op.drop_constraint('files_object_key_key', 'files', type_='unique')
+    bind = op.get_bind()
+    if _has_unique_constraint(bind, "files", "files_object_key_key"):
+        op.drop_constraint('files_object_key_key', 'files', type_='unique')
 
 
 def downgrade() -> None:
-    op.create_unique_constraint('files_object_key_key', 'files', ['object_key'])
+    bind = op.get_bind()
+    if not _has_unique_constraint(bind, "files", "files_object_key_key"):
+        op.create_unique_constraint('files_object_key_key', 'files', ['object_key'])
