@@ -35,7 +35,7 @@ jobs:
       DATABASE_URL: postgresql://automate:automate@localhost:5432/automate
       REDIS_URL: redis://localhost:6379/0
       JWT_SECRET: ci-test-secret-0123456789abcdef0123456789abcdef
-      CREDENTIALS_ENCRYPTION_KEY: ci-test-encryption-key-0123456789abcdef
+      CREDENTIALS_ENCRYPTION_KEY: YcUnzpKJ_p_IXRh5b_uXEx3I3wh7BkWD5WFfl5pJX_o=
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -101,7 +101,7 @@ jobs:
       DATABASE_URL: postgresql://automate:automate@localhost:5432/automate
       REDIS_URL: redis://localhost:6379/0
       JWT_SECRET: ci-test-secret-0123456789abcdef0123456789abcdef
-      CREDENTIALS_ENCRYPTION_KEY: ci-test-encryption-key-0123456789abcdef
+      CREDENTIALS_ENCRYPTION_KEY: YcUnzpKJ_p_IXRh5b_uXEx3I3wh7BkWD5WFfl5pJX_o=
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -177,6 +177,7 @@ jobs:
         run: |
           docker run -d --name mat --network host \
             -e JWT_SECRET=ci-test-secret-0123456789abcdef \
+            -e CREDENTIALS_ENCRYPTION_KEY=YcUnzpKJ_p_IXRh5b_uXEx3I3wh7BkWD5WFfl5pJX_o= \
             -e DATABASE_URL=postgresql://automate:automate@localhost:5432/automate \
             -e REDIS_URL=redis://localhost:6379/0 \
             -e PUBLIC_URL=http://127.0.0.1:8000 \
@@ -193,7 +194,7 @@ jobs:
           docker logs mat >&2 || true
           exit 1
       - name: Full-stack smoke
-        run: python scripts/ci_smoke.py
+        run: python backend/scripts/ci_smoke.py
       - name: Cleanup
         if: always()
         run: docker rm -f mat || true

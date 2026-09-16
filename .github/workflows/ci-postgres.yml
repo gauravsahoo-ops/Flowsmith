@@ -2,9 +2,9 @@ name: CI (Postgres)
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   test-postgres:
@@ -57,7 +57,7 @@ jobs:
           DATABASE_URL: postgresql://app:testpass@localhost:5432/automation
           REDIS_URL: redis://localhost:6379/0
           JWT_SECRET: test-secret-0123456789abcdef0123456789abcdef
-          CREDENTIALS_ENCRYPTION_KEY: test-encryption-key-0123456789abcdef
+          CREDENTIALS_ENCRYPTION_KEY: YcUnzpKJ_p_IXRh5b_uXEx3I3wh7BkWD5WFfl5pJX_o=
           QUEUE_EMBEDDED_CONSUMER: "true"
         run: |
           .venv/bin/pytest -q
