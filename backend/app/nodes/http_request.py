@@ -711,13 +711,13 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 for k in list(params.headers.keys()):
                     if not k.strip():
                         raise NodeExecutionError("Header name must not be empty.", code="BAD_REQUEST", node_id=self.node_type, retryable=False)
-                headers = {k.strip(): str(v) if v is not None else "" for k, v in (params.headers or {}).items() if k.strip()}
+                headers = {k.strip(): v if v is not None else "" for k, v in (params.headers or {}).items() if k.strip()}
         else:
             # sendHeaders is False: do not send custom headers (strict n8n behavior)
             # But for backward compat, if headers is non-empty and sendHeaders was not explicitly set to False, allow
             if params.headers and "sendHeaders" not in params.model_fields_set:
                 # Legacy: headers present but toggle not explicitly set, treat as enabled
-                headers = {k.strip(): str(v) if v is not None else "" for k, v in params.headers.items() if k.strip()}
+                headers = {k.strip(): v if v is not None else "" for k, v in params.headers.items() if k.strip()}
             else:
                 headers = {}
 
@@ -885,9 +885,9 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                     if sf_client is None:
                         from app.providers.salesforce import SalesforceProviderClient
                         sf_client = SalesforceProviderClient()
-                    sf_creds_copy = dict(sf_creds)
+                    sf_creds_copy: dict[str, Any] = dict(sf_creds)
                     sf_creds_copy["access_token"] = ""
-                    sf_creds_copy["expires_at"] = 0
+                    sf_creds_copy.pop("expires_at", None)
                     fresh_token = await sf_client.authenticate(sf_creds_copy)
                     if fresh_token:
                         sf_creds["access_token"] = fresh_token

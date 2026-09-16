@@ -61,7 +61,7 @@ class SwitchRule(BaseModel):
     right: Any = None  # legacy fallback
     rename_output: bool = Field(default=False, description="Whether to customize the output name")
     output_name: str = Field(default="", description="Custom output name")
-    output: str = Field(default="route_0", description="Route handle key")
+    output: str = Field(default="", description="Route handle key")
 
 
 class SwitchParams(BaseModel):
@@ -133,7 +133,7 @@ class SwitchNode(BaseNode[SwitchParams]):
 
         # Pre-seed buckets for all configured rules
         for idx, r in enumerate(rules):
-            h = r.output_name.strip() if (r.rename_output and r.output_name) else (r.output or f"route_{idx}")
+            h = r.output_name.strip() if (r.rename_output and r.output_name) else (r.output if r.output else f"route_{idx}")
             buckets.setdefault(h, [])
         if fallback_enabled:
             buckets.setdefault("fallback", [])
@@ -158,7 +158,7 @@ class SwitchNode(BaseNode[SwitchParams]):
                 )
 
                 if match:
-                    h = rule.output_name.strip() if (rule.rename_output and rule.output_name) else ((rule.output if rule.output and rule.output != 'route_0' or idx == 0 else f'route_{idx}'))
+                    h = rule.output_name.strip() if (rule.rename_output and rule.output_name) else (rule.output if rule.output else f"route_{idx}")
                     buckets.setdefault(h, []).append(item)
                     routed = True
                     if not send_to_all:

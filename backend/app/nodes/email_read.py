@@ -12,7 +12,7 @@ import asyncio
 import email
 import email.policy
 import imaplib
-from email.message import Message
+from email.message import EmailMessage
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -32,7 +32,7 @@ class EmailReadParams(BaseModel):
     timeout_seconds: float = Field(default=30.0, ge=5, le=120)
 
 
-def _body_text(message: Message) -> str:
+def _body_text(message: EmailMessage) -> str:
     """Prefer the first text/plain part; fall back to stripped text/html."""
     if message.is_multipart():
         fallback = ""
@@ -114,7 +114,8 @@ def _fetch_via_imap(creds: dict[str, Any], params: EmailReadParams) -> list[dict
         ids = (data[0] or b"").split()[-params.limit :]
         items: list[dict[str, Any]] = []
         for num in ids:
-            status, fetched = client.fetch(num, "(RFC822)")
+            num_str = num.decode("ascii", errors="replace") if isinstance(num, bytes) else str(num)
+            status, fetched = client.fetch(num_str, "(RFC822)")
             if status != "OK" or not fetched or not fetched[0]:
                 continue
             raw = fetched[0][1]

@@ -118,7 +118,7 @@ class XmlOpsNode(BaseNode[XmlOpsParams]):
             root = Element(params.root.strip() or "root")
             _json_to_element(root, data)
             return NodeResult(output_items=[{"xml": tostring(root, encoding="unicode")}])
-        src = _read_xml(params, input_items or "")
+        src = _read_xml(params, input_items or [])
         if not src.strip():
             raise NodeExecutionError(
                 "parse needs XML input.",

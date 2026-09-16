@@ -66,7 +66,7 @@ class TextSplitterNode(BaseNode[TextSplitterParams]):
         params: TextSplitterParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
-        src = _source(params, input_items or "")
+        src = _source(params, input_items or [])
         if not src.strip():
             return NodeResult(output_items=[{"chunk": "", "index": 0, "total": 1}])
         overlap = min(params.overlap, params.chunk_size - 1)

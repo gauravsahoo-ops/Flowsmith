@@ -626,6 +626,7 @@ class SafeHTTPClient:
         data: Any = None,
         headers: dict[str, str] | None = None,
         cookies: dict[str, Any] | None = None,
+        auth: Any = None,
         timeout: float | httpx.Timeout | None = None,
         max_response_bytes: int | None = None,
     ) -> httpx.Response:
@@ -634,13 +635,19 @@ class SafeHTTPClient:
         Mirrors httpx.AsyncClient.request() for callers that build the
         method dynamically.
         """
+        request_headers = dict(headers) if headers else {}
+        if auth is not None:
+            if isinstance(auth, (tuple, list)) and len(auth) == 2:
+                import base64
+                b64 = base64.b64encode(f"{auth[0]}:{auth[1]}".encode("utf-8")).decode("ascii")
+                request_headers.setdefault("Authorization", f"Basic {b64}")
         return await self._request(
             method,
             url,
             params=params,
             json=json,
             data=data,
-            headers=headers,
+            headers=request_headers or None,
             cookies=cookies,
             timeout=timeout,
             max_response_bytes=max_response_bytes,

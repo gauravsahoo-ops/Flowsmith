@@ -80,7 +80,7 @@ class OutputParserNode(BaseNode[OutputParserParams]):
         params: OutputParserParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
-        src = _source(params, input_items or "")
+        src = _source(params, input_items or [])
         if params.mode == "lines":
             lines = [ln.strip() for ln in src.splitlines() if ln.strip()]
             return NodeResult(output_items=[{"line": ln, "index": i} for i, ln in enumerate(lines)] or [{"line": ""}])

@@ -43,6 +43,9 @@ python-multipart>=0.0.9
 # database migrations
 alembic>=1.13
 
+# OpenAPI specification import (YAML support)
+PyYAML>=6.0
+
 # test
 pytest>=8
 pytest-asyncio>=0.23

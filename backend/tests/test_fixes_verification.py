@@ -242,12 +242,14 @@ class _WSEchoServer:
     def start(self):
         import websockets
         self._stop_event = asyncio.Event()
+        ready = threading.Event()
 
         async def _run():
             self._server = await websockets.serve(
                 self._handler, "127.0.0.1", self.port
             )
             self.port = self._server.sockets[0].getsockname()[1]
+            ready.set()
             await self._stop_event.wait()
             self._server.close()
             await self._server.wait_closed()
@@ -255,7 +257,7 @@ class _WSEchoServer:
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=lambda: self._loop.run_until_complete(_run()), daemon=True)
         self._thread.start()
-        time.sleep(0.3)
+        ready.wait(timeout=5)
 
     def stop(self):
         if self._loop and self._loop.is_running():
@@ -291,12 +293,14 @@ class _WSEchoServerWithHeaders:
     def start(self):
         import websockets
         self._stop_event = asyncio.Event()
+        ready = threading.Event()
 
         async def _run():
             self._server = await websockets.serve(
                 self._handler, "127.0.0.1", self.port
             )
             self.port = self._server.sockets[0].getsockname()[1]
+            ready.set()
             await self._stop_event.wait()
             self._server.close()
             await self._server.wait_closed()
@@ -304,7 +308,7 @@ class _WSEchoServerWithHeaders:
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=lambda: self._loop.run_until_complete(_run()), daemon=True)
         self._thread.start()
-        time.sleep(0.3)
+        ready.wait(timeout=5)
 
     def stop(self):
         if self._loop and self._loop.is_running():

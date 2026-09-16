@@ -15,7 +15,7 @@ import {
   withDecorations,
 } from '../mappers'
 import { useUiStore } from './uiStore'
-import { edgeKey, wouldCreateCycle } from '../utils/graphUtils'
+import { edgeKey } from '../utils/graphUtils'
 import { createHistory } from '../utils/history'
 
 let saveTimer = null

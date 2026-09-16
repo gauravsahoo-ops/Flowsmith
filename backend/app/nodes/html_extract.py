@@ -108,7 +108,7 @@ class HtmlExtractNode(BaseNode[HtmlExtractParams]):
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
         parser = _Collector()
-        parser.feed(_source(params, input_items or "")[:500000])
+        parser.feed(_source(params, input_items or [])[:500000])
         if params.operation == "links":
             return NodeResult(output_items=[{"href": l["href"], "text": l["text"].strip()} for l in parser.links[: params.max_items]])
         if params.operation == "images":

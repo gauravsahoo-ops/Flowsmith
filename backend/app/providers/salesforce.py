@@ -182,7 +182,7 @@ class SalesforceProviderClient:
                                 creds["expires_at"] = db_exp
                                 if c_dict.get("refresh_token"):
                                     creds["refresh_token"] = c_dict["refresh_token"]
-                                return self._token
+                                return str(self._token or "")
                             # Always take the newest refresh token from DB before hitting Salesforce
                             if c_dict.get("refresh_token"):
                                 creds["refresh_token"] = c_dict["refresh_token"]
@@ -360,9 +360,9 @@ class SalesforceProviderClient:
                 if response.status_code == 401 and creds.get("refresh_token"):
                     self._token = None
                     self._token_expires_at = 0.0
-                    fresh_creds = dict(creds)
-                    fresh_creds["access_token"] = ""
-                    fresh_creds["expires_at"] = 0
+                    fresh_creds: dict[str, Any] = dict(creds)
+                    fresh_creds.pop("access_token", None)
+                    fresh_creds.pop("expires_at", None)
                     token = await self.authenticate(fresh_creds)
                     if fresh_creds.get("access_token"):
                         creds["access_token"] = fresh_creds["access_token"]

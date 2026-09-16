@@ -89,8 +89,10 @@ async def _run_salesforce_op(
         http_status = (
             status.HTTP_404_NOT_FOUND
             if exc.code in ("CONNECTOR_NOT_FOUND",)
-            else status.HTTP_502_BAD_GATEWAY
-            if exc.code in ("CONNECTOR_AUTH_FAILED", "CONNECTOR_FORBIDDEN", "CONNECTOR_NOT_CONFIGURED")
+            else status.HTTP_401_UNAUTHORIZED
+            if exc.code in ("CONNECTOR_AUTH_FAILED", "CONNECTOR_NOT_CONFIGURED")
+            else status.HTTP_403_FORBIDDEN
+            if exc.code in ("CONNECTOR_FORBIDDEN",)
             else status.HTTP_502_BAD_GATEWAY
         )
         raise HTTPException(http_status, detail={"code": exc.code, "message": str(exc)}) from exc

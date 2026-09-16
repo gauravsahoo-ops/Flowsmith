@@ -14,6 +14,7 @@ export default function AppShell({ onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 900 : false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
 
   // Global shortcut for search (Ctrl+K or Cmd+K)
   useEffect(() => {
@@ -111,7 +112,7 @@ export default function AppShell({ onLogout }) {
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <span className="app-topbar-search-text">Search workflows, credentials, templates…</span>
-              <kbd className="app-topbar-search-kbd">⌘K</kbd>
+              <kbd className="app-topbar-search-kbd">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
             </button>
           </div>
           <div className="app-topbar-right">

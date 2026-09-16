@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from enum import Enum
+import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel
@@ -259,10 +260,10 @@ class ConnectorSDK:
     version: str = "1.0.0"
     category: ConnectorCategory | str = ConnectorCategory.API
 
-    def __init__(self, connector_id: str, display_name: str, description: str) -> None:
-        self.connector_id = connector_id
-        self.display_name = display_name
-        self.description = description
+    def __init__(self, connector_id: str = "", display_name: str = "", description: str = "") -> None:
+        self.connector_id = connector_id or self.connector_id
+        self.display_name = display_name or self.display_name
+        self.description = description or self.description
         self.status: str = "initialized"
         self._metadata: dict[str, Any] = {}
 
@@ -646,7 +647,6 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     # app/connectors/generated/. Missing dir or broken files are skipped
     # silently — builtins above are never affected.
     try:
-        import logging as _logging
         from pathlib import Path as _Path
 
         from app.connectors.openapi_emit import register_generated as _register_generated
@@ -655,9 +655,9 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         if _generated_dir.is_dir():
             _count = _register_generated(registry, str(_generated_dir))
             if _count:
-                _logging.getLogger("connectors").info("registered %d generated connectors", _count)
+                logging.getLogger("connectors").info("registered %d generated connectors", _count)
     except Exception:
-        _logging.getLogger("connectors").exception("generated connector scan failed")
+        logging.getLogger("connectors").exception("generated connector scan failed")
 
 
 def _builtin_operations(connector_key: str, connector_version: str) -> Dict[str, ConnectorOperationV1]:
