@@ -5,6 +5,7 @@
 // stores the encrypted connection (client id/secret stay server-side).
 
 import { useEffect, useRef, useState } from 'react'
+import api from '../api'
 import { useCredentialStore } from '../stores/credentialStore'
 import ErrorState from './shared/ErrorState'
 import Select from './shared/Select'
@@ -40,6 +41,7 @@ export default function CredentialsPanel({ open, onClose }) {
   const [hsBusy, setHsBusy] = useState(false)
   const [sfOrgUrl, setSfOrgUrl] = useState('')
   const [sfAdvExpanded, setSfAdvExpanded] = useState(false)
+  const [reconnectingId, setReconnectingId] = useState(null)
   const popupRef = useRef(null)
   const msgHandlerRef = useRef(null)
 
@@ -74,6 +76,7 @@ export default function CredentialsPanel({ open, onClose }) {
       setNotice(null)
       setSfBusy(false)
       setHsBusy(false)
+      setReconnectingId(null)
     }
   }, [open])
 
@@ -81,6 +84,25 @@ export default function CredentialsPanel({ open, onClose }) {
 
   const schema = types.find((t) => t.type === form.type)?.parameters_schema
   const secretFields = new Set(types.find((t) => t.type === form.type)?.secret_fields || [])
+
+  async function handleSmartReconnect(c, provider, loginUrl) {
+    setReconnectingId(c.id)
+    setError(null)
+    setNotice(null)
+    try {
+      const res = await api.reconnectCredential(c.id)
+      if (res && res.ok && res.refreshed) {
+        setNotice(res.message || `${c.name} reconnected successfully.`)
+        await load()
+        return
+      }
+      runConnect(provider, loginUrl)
+    } catch {
+      runConnect(provider, loginUrl)
+    } finally {
+      setReconnectingId(null)
+    }
+  }
 
   async function runConnect(provider, loginUrl) {
     setError(null)
@@ -152,33 +174,63 @@ export default function CredentialsPanel({ open, onClose }) {
               </div>
               <div className="cred-actions">
                 {isSalesforce(c) && (
-                  <button className="ghost" onClick={() => runConnect('salesforce', sfOrgUrl || undefined)} title="Reconnect">
-                    ↻ Reconnect
+                  <button
+                    className="ghost"
+                    onClick={() => handleSmartReconnect(c, 'salesforce', sfOrgUrl || undefined)}
+                    disabled={reconnectingId === c.id}
+                    title="Reconnect"
+                  >
+                    {reconnectingId === c.id ? 'Reconnecting…' : '↻ Reconnect'}
                   </button>
                 )}
                 {c.type === 'hubspot' && (
-                  <button className="ghost" onClick={() => runConnect('hubspot')} title="Reconnect">
-                    ↻ Reconnect
+                  <button
+                    className="ghost"
+                    onClick={() => handleSmartReconnect(c, 'hubspot')}
+                    disabled={reconnectingId === c.id}
+                    title="Reconnect"
+                  >
+                    {reconnectingId === c.id ? 'Reconnecting…' : '↻ Reconnect'}
                   </button>
                 )}
                 {c.type === 'google_calendar' && (
-                  <button className="ghost" onClick={() => runConnect('google_calendar')} title="Reconnect">
-                    ↻ Reconnect
+                  <button
+                    className="ghost"
+                    onClick={() => handleSmartReconnect(c, 'google_calendar')}
+                    disabled={reconnectingId === c.id}
+                    title="Reconnect"
+                  >
+                    {reconnectingId === c.id ? 'Reconnecting…' : '↻ Reconnect'}
                   </button>
                 )}
                 {c.type === 'google_sheets' && (
-                  <button className="ghost" onClick={() => runConnect('google_sheets')} title="Reconnect">
-                    ↻ Reconnect
+                  <button
+                    className="ghost"
+                    onClick={() => handleSmartReconnect(c, 'google_sheets')}
+                    disabled={reconnectingId === c.id}
+                    title="Reconnect"
+                  >
+                    {reconnectingId === c.id ? 'Reconnecting…' : '↻ Reconnect'}
                   </button>
                 )}
                 {c.type === 'gmail' && (
-                  <button className="ghost" onClick={() => runConnect('gmail')} title="Reconnect">
-                    ↻ Reconnect
+                  <button
+                    className="ghost"
+                    onClick={() => handleSmartReconnect(c, 'gmail')}
+                    disabled={reconnectingId === c.id}
+                    title="Reconnect"
+                  >
+                    {reconnectingId === c.id ? 'Reconnecting…' : '↻ Reconnect'}
                   </button>
                 )}
                 {c.type === 'google_drive' && (
-                  <button className="ghost" onClick={() => runConnect('google_drive')} title="Reconnect">
-                    ↻ Reconnect
+                  <button
+                    className="ghost"
+                    onClick={() => handleSmartReconnect(c, 'google_drive')}
+                    disabled={reconnectingId === c.id}
+                    title="Reconnect"
+                  >
+                    {reconnectingId === c.id ? 'Reconnecting…' : '↻ Reconnect'}
                   </button>
                 )}
                 <button className="ghost" onClick={() => remove(c.id)} title={['database','postgres','mysql','redis','mongodb'].includes(c.type) ? 'Delete connection string' : 'Disconnect / delete'}>

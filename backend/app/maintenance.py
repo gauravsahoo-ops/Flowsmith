@@ -191,10 +191,11 @@ def fail_expired_approvals(db: Session, now: datetime) -> int:
 
 
 class MaintenanceDaemon:
-    """Periodically prunes old data and expires stale approvals."""
+    """Periodically prunes old data, expires stale approvals, and auto-renews credentials."""
 
     def __init__(self) -> None:
         self._task: asyncio.Task | None = None
+        self._cred_task: asyncio.Task | None = None
         self._interval: timedelta | None = None
 
     def configure(self, interval: timedelta) -> None:
@@ -203,6 +204,8 @@ class MaintenanceDaemon:
     async def ensure_started(self) -> None:
         if self._task is None or self._task.done():
             self._task = asyncio.create_task(self._loop())
+        if self._cred_task is None or self._cred_task.done():
+            self._cred_task = asyncio.create_task(self._cred_renewal_loop())
 
     async def _loop(self) -> None:
         interval = self._interval or timedelta(hours=24)
@@ -213,8 +216,26 @@ class MaintenanceDaemon:
                 logger.exception("maintenance tick failed")
             await asyncio.sleep(interval.total_seconds())
 
+    async def _cred_renewal_loop(self) -> None:
+        while True:
+            try:
+                await self.renew_credentials()
+            except Exception:
+                logger.exception("credential renewal loop error")
+            await asyncio.sleep(600)  # Sweep every 10 minutes
+
+    async def renew_credentials(self) -> dict[str, int]:
+        """Sweep and renew all credentials expiring within the next 30 minutes."""
+        from app.credentials.auto_reconnect import auto_refresh_all_expiring_credentials
+
+        db = get_session()
+        try:
+            return await auto_refresh_all_expiring_credentials(db, window_minutes=30)
+        finally:
+            db.close()
+
     async def tick(self, now: datetime | None = None) -> dict[str, Any] | None:
-        """One prune pass + approval sweep; returns counts."""
+        """One prune pass + approval sweep + credential renewal sweep; returns counts."""
         from app.config import get_settings
 
         retention_days = get_settings().execution_retention_days
@@ -224,7 +245,8 @@ class MaintenanceDaemon:
         try:
             pruned = prune(db, before)
             approvals_expired = fail_expired_approvals(db, now)
-            return {**pruned, "approvals_expired": approvals_expired}
+            cred_stats = await self.renew_credentials()
+            return {**pruned, "approvals_expired": approvals_expired, "credentials_renewed": cred_stats}
         finally:
             db.close()
 

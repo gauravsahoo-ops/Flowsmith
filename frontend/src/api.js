@@ -148,6 +148,7 @@ export const api = {
   listCredentialProviders: () => request('GET', '/credentials/providers'),
   listPredefinedCredentials: () => request('GET', '/credentials/predefined'),
   testCredential: (id) => request('POST', `/credentials/${id}/test`),
+  reconnectCredential: (id) => request('POST', `/credentials/${id}/reconnect`),
   createCredential: (payload) => request('POST', '/credentials', payload),
   deleteCredential: (id) => request('DELETE', `/credentials/${id}`),
   getHealth: () => request('GET', '/health'),

@@ -98,13 +98,29 @@ def create_credential(
     return ok(meta)
 
 
+@router.post("/{credential_id}/reconnect")
+async def reconnect_credential_endpoint(
+    credential_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Explicitly trigger background reconnection / token renewal for a credential."""
+    from app.credentials.auto_reconnect import reconnect_credential
+
+    res = await reconnect_credential(db, user.id, credential_id)
+    if res.get("message") == "Credential not found or not owned by user.":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, res["message"])
+    return ok(res)
+
+
 @router.post("/{credential_id}/test")
-def test_credential(
+async def test_credential(
     credential_id: str,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     """Test a credential's validity without exposing secrets (spec 12)."""
+    from app.credentials.auto_reconnect import can_auto_reconnect, is_credential_expiring, reconnect_credential
     from app.credentials.credential_store import get_credential_store
     from app.credentials.registry import CREDENTIAL_PROVIDER, get_provider_for_type
 
@@ -117,30 +133,50 @@ def test_credential(
         data = store.decrypt(rec)
     except Exception as exc:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Cannot decrypt credential: {exc}")
-    provider_id = CREDENTIAL_PROVIDER.get(rec.type) or get_provider_for_type(rec.type) or rec.type
-    reg = get_provider_registry()
-    provider = reg.get(provider_id) or reg.get_by_auth_type(provider_id)
-    if provider is None:
-        # Product connectors (Batch B+): live probe through the connector
-        # owning this credential type, when it implements test_connection.
-        live = _connector_live_test(rec.type, data)
-        if live is not None:
-            return ok({**live, "provider": rec.type})
-        # Fallback: try authType from credential type registry
-        from app.credentials.registry import CREDENTIAL_TYPES
-        # Generic test: just validate via schema
-        try:
-            from app.credentials.registry import validate_data
-            validate_data(rec.type, data)
-            return ok({"ok": True, "message": "Credential schema valid.", "provider": provider_id or rec.type})
-        except Exception as e:
-            return ok({"ok": False, "message": str(e), "provider": provider_id or rec.type})
-    # Redact before returning
-    result = provider.testConnection(data)
-    # Ensure no secrets leak
-    sanitized = provider.sanitize(data) if hasattr(provider, "sanitize") else {}
-    # Do not return sanitized secrets, just ok/message and non-secret provider info
-    return ok({**result, "provider": provider_id, "implemented": bool(getattr(provider, "implemented", True))})
+
+    # If already expired and can auto-reconnect, refresh proactively before testing
+    if can_auto_reconnect(rec.type, data) and is_credential_expiring(data, window_seconds=0):
+        reconn = await reconnect_credential(db, user.id, credential_id)
+        if reconn.get("ok"):
+            rec = store.get_encrypted(db, user.id, credential_id)
+            data = store.decrypt(rec)
+
+    def _run_test(target_data: dict[str, Any]) -> dict[str, Any]:
+        provider_id = CREDENTIAL_PROVIDER.get(rec.type) or get_provider_for_type(rec.type) or rec.type
+        reg = get_provider_registry()
+        provider = reg.get(provider_id) or reg.get_by_auth_type(provider_id)
+        if provider is None:
+            # Product connectors (Batch B+): live probe through the connector
+            # owning this credential type, when it implements test_connection.
+            live = _connector_live_test(rec.type, target_data)
+            if live is not None:
+                return {**live, "provider": rec.type}
+            # Fallback: try authType from credential type registry
+            # Generic test: just validate via schema
+            try:
+                from app.credentials.registry import validate_data
+                validate_data(rec.type, target_data)
+                return {"ok": True, "message": "Credential schema valid.", "provider": provider_id or rec.type}
+            except Exception as e:
+                return {"ok": False, "message": str(e), "provider": provider_id or rec.type}
+        # Redact before returning
+        result = provider.testConnection(target_data)
+        # Ensure no secrets leak
+        return {**result, "provider": provider_id, "implemented": bool(getattr(provider, "implemented", True))}
+
+    res = _run_test(data)
+
+    # If probe failed and can auto-reconnect, attempt re-auth/refresh and re-probe once
+    if not res.get("ok") and can_auto_reconnect(rec.type, data):
+        reconn = await reconnect_credential(db, user.id, credential_id)
+        if reconn.get("ok"):
+            rec = store.get_encrypted(db, user.id, credential_id)
+            data = store.decrypt(rec)
+            res = _run_test(data)
+            if res.get("ok"):
+                res["message"] = f"{res.get('message', '')} (Auto-reconnected successfully)".strip()
+
+    return ok(res)
 
 
 @router.delete("/{credential_id}", status_code=status.HTTP_204_NO_CONTENT)

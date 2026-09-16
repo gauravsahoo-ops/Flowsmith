@@ -43,9 +43,9 @@ export default function CredentialsPage() {
   const [reportOpen, setReportOpen] = useState(false)
   const [testingId, setTestingId] = useState(null)
   const [testResult, setTestResult] = useState(null)
+  const [reconnectingId, setReconnectingId] = useState(null)
 
   useEffect(() => {
-    setLoading(true)
     load().finally(() => setLoading(false))
   }, [])
   useEffect(() => {
@@ -65,6 +65,25 @@ export default function CredentialsPage() {
   const schema = types.find(t => t.type === form.type)?.parameters_schema
   const secretFields = new Set(types.find(t => t.type === form.type)?.secret_fields || [])
   const isOAuthType = ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive'].includes(form.type)
+
+  async function handleReconnect(c) {
+    setReconnectingId(c.id)
+    setError(null)
+    setNotice(null)
+    try {
+      const res = await api.reconnectCredential(c.id)
+      if (res && res.ok && res.refreshed) {
+        setNotice(res.message || `${c.name} reconnected successfully.`)
+        await load()
+        return
+      }
+      handleOAuth(c.type, c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined)
+    } catch {
+      handleOAuth(c.type, c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined)
+    } finally {
+      setReconnectingId(null)
+    }
+  }
 
   async function handleOAuth(provider, loginUrl) {
     setOauthBusy(provider); setError(null); setNotice(null); setFallbackUrl('')
@@ -203,7 +222,14 @@ export default function CredentialsPage() {
                   <td><span className="dot status-success" /> <span className="hint">Encrypted</span></td>
                   <td>
                     {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive'].includes(c.type) && (
-                      <button className="ghost small" onClick={() => handleOAuth(c.type, c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined)} disabled={oauthBusy === c.type}>{oauthBusy === c.type ? '…' : '↻ Reconnect'}</button>
+                      <button
+                        className="ghost small"
+                        onClick={() => handleReconnect(c)}
+                        disabled={oauthBusy === c.type || reconnectingId === c.id}
+                        title="Auto-reconnect or renew token"
+                      >
+                        {reconnectingId === c.id ? 'Reconnecting…' : (oauthBusy === c.type ? '…' : '↻ Reconnect')}
+                      </button>
                     )}
                     <button
                       className="ghost small"
