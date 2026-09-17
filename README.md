@@ -156,6 +156,27 @@
 - **Autonomous Node Self-Healing**: `POST /api/ai/auto-fix` diagnoses runtime errors (URL scheme omissions, JSON syntax errors, auth header issues).
 - **Interactive Parameter Auto-Repair**: Inside the node editor, click `✨ AI Auto-Repair` to inspect root causes, view side-by-side parameter diffs, and click `✨ Apply Fix & Re-test` to auto-heal and immediately re-verify the step.
 
+### 12. Complete White-Labeling & Client Custom Branding
+- **100% Brand Customization**: Any enterprise client, office, or reseller can rebrand Flowsmith into their own proprietary platform.
+- **Configurable Attributes**: Custom application name, tagline, brand logo image URL, custom favicon, primary & accent color palettes, and custom copyright footer text.
+- **Dynamic UI Syncing**: Changes immediately propagate to the TopBar, navigation header, login screen, browser title, and themes via `/api/branding`.
+- **One-Click Reset**: Instant rollback to original Flowsmith defaults whenever required.
+
+### 13. Model Context Protocol (MCP) AI Server
+- **External AI Integration**: Flowsmith acts as a native Model Context Protocol (MCP) server, allowing external AI coding assistants (Claude Desktop, Cursor, Antigravity, LLM agents) to interact with workflows.
+- **MCP Tools (`/api/mcp/tools`)**: External agents can programmatically trigger workflows, query Data Tables, list active connectors, and inspect execution results.
+- **MCP Resources (`/api/mcp/resources`)**: Exposes workflow graph schemas, execution traces, and operational metadata directly into the model's context window.
+
+### 14. Native Relational Data Tables
+- **Embedded Spreadsheet Storage**: Built-in relational data store designed for persistent tabular data without spinning up an external database.
+- **Custom Schema Definition**: Create custom columns with strict types (`string`, `number`, `boolean`, `date`, `json`).
+- **Full CRUD & Canvas Node**: Insert, update, filter, and query rows via `/api/data-tables` and directly through the visual `data_table` canvas node.
+
+### 15. Human-in-the-Loop & Interactive Approvals
+- **Pausable Execution Graphs**: The `human_approval` node halts workflow execution at critical junctions (e.g. large financial transactions, sensitive CRM deletions, deployment triggers).
+- **Approval Drawer**: Authorized reviewers can inspect pending execution state, view item payloads, and click **Approve** or **Reject** to resume the DAG.
+- **Audit Logging**: Every approval and rejection action records reviewer identity, timestamp, and decision notes in the immutable audit log.
+
 ---
 
 ## Tech Stack
@@ -504,6 +525,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `POST /api/workflows/{id}/rollback` — Rollback to a specific snapshot
 - `GET /api/workflows/{id}/export` — Export workflow JSON
 - `POST /api/workflows/import` — Import workflow (Flowsmith native or n8n JSON format)
+- `POST /api/workflows/{id}/preview-expression` — Live evaluate visual expressions against upstream node context
 
 ### Executions & Live Traces
 - `GET /api/executions` — List execution history with status and duration filters
@@ -511,6 +533,8 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `GET /api/executions/{id}` — Fetch detailed execution results per node
 - `POST /api/executions/{id}/retry` — Retry a failed execution
 - `POST /api/executions/{id}/cancel` — Cancel an in-flight execution
+- `POST /api/executions/{id}/approve` — Approve a pending human-approval step
+- `POST /api/executions/{id}/reject` — Reject a pending human-approval step
 - `WS /api/ws/executions/{id}` — Real-time WebSocket execution event stream
 
 ### Credentials & Security
@@ -521,15 +545,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `DELETE /api/credentials/{id}` — Delete credential
 - `GET /api/credentials/types` — Discover supported credential schemas (63 types)
 
-### Workflows
-- `GET /api/workflows` — List workflows
-- `POST /api/workflows` — Create workflow
-- `GET /api/workflows/{id}` — Get workflow details
-- `PUT /api/workflows/{id}` — Update workflow
-- `DELETE /api/workflows/{id}` — Delete workflow
-- `POST /api/workflows/{id}/preview-expression` — Live evaluate visual expressions against upstream node context
-
-### Connectors & Catalog
+### Connectors & OpenAPI Importer
 - `GET /api/connectors` — List registered connectors and operations
 - `POST /api/connectors/preview-openapi` — Parse and preview OpenAPI / Swagger specs
 - `POST /api/connectors/import-openapi` — One-click generate native first-class connector
@@ -541,6 +557,27 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `POST /api/ai/document-workflow` — Generate Mermaid flowchart diagram & architectural docs
 - `POST /api/ai/auto-fix` — Autonomous failure diagnosis and self-healing parameter repair
 - `GET /api/ai/status` — Check LLM provider availability
+
+### White-Labeling & Custom Branding
+- `GET /api/branding` — Fetch active public branding settings (logo, app name, colors)
+- `PUT /api/branding` — Update corporate branding and white-labeling configurations
+- `POST /api/branding/reset` — Reset to default Flowsmith branding
+
+### Model Context Protocol (MCP) Server
+- `GET /api/mcp/tools` — List available automation tools for external AI models
+- `POST /api/mcp/tools/call` — Execute Flowsmith automation tool via external AI agent
+- `GET /api/mcp/resources` — Read workflow schemas and execution resources
+
+### Data Tables
+- `GET /api/data-tables` — List workspace Data Tables
+- `POST /api/data-tables` — Create new Data Table with custom column schema
+- `GET /api/data-tables/{id}/rows` — Query and filter rows with pagination
+- `POST /api/data-tables/{id}/rows` — Insert new rows into table
+
+### Workflow Regression Testing
+- `GET /api/workflow-tests` — List automated test suites for a workflow
+- `POST /api/workflow-tests` — Create test suite with mock data and assertions
+- `POST /api/workflow-tests/run` — Run automated regression test in CI/CD
 
 ---
 
