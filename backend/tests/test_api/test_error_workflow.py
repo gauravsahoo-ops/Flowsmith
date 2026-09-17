@@ -184,3 +184,60 @@ def test_error_workflow_skipped_in_test_mode():
         assert db.query(Execution).count() == before
     finally:
         db.close()
+
+
+def _boom_workflow(workflow_id, settings):
+    return {
+        "id": workflow_id,
+        "name": workflow_id,
+        "nodes": [
+            {"id": "trigger", "type": "manual_trigger", "parameters": {}},
+            {"id": "boom", "type": "stop_and_error", "parameters": {}},
+        ],
+        "connections": [{"source": "trigger", "target": "boom"}],
+        "settings": settings,
+    }
+
+
+def test_error_workflow_not_fired_without_setting(client):
+    headers = _setup(client)
+    suffix = uuid.uuid4().hex[:8]
+    _make(client, headers, _boom_workflow(f"wf_err_plain_{suffix}", {}))
+    main_exec = _run(client, headers, f"wf_err_plain_{suffix}")
+    assert _poll_execution(client, headers, main_exec)["status"] == "failed"
+    db = get_session()
+    try:
+        assert db.query(Execution).filter(Execution.trigger == "error_handler").count() == 0
+    finally:
+        db.close()
+
+
+def test_error_workflow_inactive_handler_never_fires(client):
+    headers = _setup(client)
+    suffix = uuid.uuid4().hex[:8]
+    handler_id = f"wf_err_inactive_{suffix}"
+    main_id = f"wf_err_inactive_main_{suffix}"
+    # Handler left inactive on purpose.
+    _make(client, headers, _boom_workflow(handler_id, {}))
+    _make(client, headers, _boom_workflow(main_id, {"on_error_workflow_id": handler_id}))
+    main_exec = _run(client, headers, main_id)
+    assert _poll_execution(client, headers, main_exec)["status"] == "failed"
+    db = get_session()
+    try:
+        assert db.query(Execution).filter(Execution.trigger == "error_handler").count() == 0
+    finally:
+        db.close()
+
+
+def test_error_workflow_self_reference_does_not_loop(client):
+    headers = _setup(client)
+    suffix = uuid.uuid4().hex[:8]
+    loop_id = f"wf_err_loop_{suffix}"
+    _make(client, headers, _boom_workflow(loop_id, {"on_error_workflow_id": loop_id}), active=True)
+    main_exec = _run(client, headers, loop_id)
+    assert _poll_execution(client, headers, main_exec)["status"] == "failed"
+    time.sleep(1.0)  # let any cascade start
+    items = client.get(
+        "/api/executions", params={"workflow_id": loop_id}, headers=headers,
+    ).json()["data"]
+    assert len(items) == 1

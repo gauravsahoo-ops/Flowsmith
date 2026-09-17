@@ -181,6 +181,10 @@ class Settings(BaseSettings):
     google_drive_scopes: str = (
         "openid email https://www.googleapis.com/auth/drive"
     )
+    # Google Docs connector: same shared Google app, documents scope.
+    google_docs_scopes: str = (
+        "openid email https://www.googleapis.com/auth/documents"
+    )
 
     # Password self-service reset (Phase 42). SMTP is optional: when
     # unset (or APP_ENV != production) the reset link is surfaced in the

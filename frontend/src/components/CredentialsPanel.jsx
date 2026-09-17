@@ -250,6 +250,16 @@ export default function CredentialsPanel({ open, onClose }) {
                     {reconnectingId === c.id ? 'Reconnecting…' : '↻ Reconnect'}
                   </button>
                 )}
+                {c.type === 'google_docs' && (
+                  <button
+                    className="ghost"
+                    onClick={() => handleSmartReconnect(c, 'google_docs')}
+                    disabled={reconnectingId === c.id}
+                    title="Reconnect"
+                  >
+                    {reconnectingId === c.id ? 'Reconnecting…' : '↻ Reconnect'}
+                  </button>
+                )}
                 <button className="ghost" onClick={() => remove(c.id)} title={['database','postgres','mysql','redis','mongodb'].includes(c.type) ? 'Delete connection string' : 'Disconnect / delete'}>
                   {['database','postgres','mysql','redis','mongodb'].includes(c.type) ? '🗑 Delete connection string' : '🗑'}
                 </button>
@@ -335,6 +345,22 @@ export default function CredentialsPanel({ open, onClose }) {
               disabled={hsBusy}
             >
               {hsBusy ? 'Connecting…' : 'Connect Google Drive'}
+            </button>
+          </div>
+        )}
+
+        {types.find((t) => t.type === 'google_docs') && form.type === 'google_docs' && (
+          <div className="sf-connect-box">
+            <p className="hint">
+              Connect your Google account for Docs (offline access — refresh token stored
+              encrypted, app credentials stay on the server).
+            </p>
+            <button
+              className="primary"
+              onClick={() => runConnect('google_docs')}
+              disabled={hsBusy}
+            >
+              {hsBusy ? 'Connecting…' : 'Connect Google Docs'}
             </button>
           </div>
         )}

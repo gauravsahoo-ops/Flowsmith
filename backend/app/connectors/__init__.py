@@ -539,6 +539,12 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.whatsapp_definition import build_whatsapp_definition
     from app.connectors.clickup_connector import ClickUpConnector
     from app.connectors.clickup_definition import build_clickup_definition
+    from app.connectors.mailchimp_connector import MailchimpConnector
+    from app.connectors.mailchimp_definition import build_mailchimp_definition
+    from app.connectors.quickbooks_connector import QuickBooksConnector
+    from app.connectors.quickbooks_definition import build_quickbooks_definition
+    from app.connectors.google_docs_connector import GoogleDocsConnector
+    from app.connectors.google_docs_definition import build_google_docs_definition
     from app.connectors.pipedrive_connector import PipedriveConnector
     from app.connectors.pipedrive_definition import build_pipedrive_definition
     from app.connectors.dropbox_connector import DropboxConnector
@@ -636,6 +642,9 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (PipedriveConnector(), build_pipedrive_definition),
         (DropboxConnector(), build_dropbox_definition),
         (OpenAIConnector(), build_openai_definition),
+        (MailchimpConnector(), build_mailchimp_definition),
+        (QuickBooksConnector(), build_quickbooks_definition),
+        (GoogleDocsConnector(), build_google_docs_definition),
     ]
 
     registry = get_registry()

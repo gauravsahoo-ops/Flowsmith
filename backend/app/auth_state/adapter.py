@@ -38,6 +38,7 @@ PROVIDER_ALIASES: dict[str, str] = {
     "google_calendar": "google",
     "google_sheets": "google",
     "google_drive": "google",
+    "google_docs": "google",
     "gmail": "google",
     "msteams": "microsoft",
     "outlook": "microsoft",

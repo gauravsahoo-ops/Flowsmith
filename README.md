@@ -442,8 +442,9 @@ Flowsmith includes **36 first-party connectors** with pre-configured schemas and
 | **Pipedrive** | Deals and notes (list, get, create, update) | API Token |
 | **Dropbox** | Folder browse, metadata, upload, delete | Access Token |
 | **OpenAI** | Models, embeddings, chat completions (or compatible endpoint) | API Key |
-| **Dropbox** | Folder browse, metadata, upload, delete | Access Token |
-| **OpenAI** | Models, embeddings, chat completions (or compatible endpoint) | API Key |
+| **Mailchimp** | Audiences and contacts (lists, members, tags) | API Key |
+| **QuickBooks** | Company, customers, invoices, raw queries (sandbox/production) | OAuth2 Token |
+| **Google Docs** | Documents read/create/append via shared Google OAuth app | OAuth2 |
 
 ---
 
@@ -484,7 +485,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `POST /api/credentials/{id}/test` — Verify credential connectivity (auto-refreshes expired OAuth tokens once and re-probes)
 - `POST /api/credentials/{id}/reconnect` — Background token renewal without interactive login
 - `DELETE /api/credentials/{id}` — Delete credential
-- `GET /api/credentials/types` — Discover supported credential schemas (52 types)
+- `GET /api/credentials/types` — Discover supported credential schemas (55 types)
 
 ### AI & Assistant
 - `POST /api/ai/generate-workflow` — Generate full workflow from natural language

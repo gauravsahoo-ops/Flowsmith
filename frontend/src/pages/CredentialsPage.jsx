@@ -64,7 +64,7 @@ export default function CredentialsPage() {
 
   const schema = types.find(t => t.type === form.type)?.parameters_schema
   const secretFields = new Set(types.find(t => t.type === form.type)?.secret_fields || [])
-  const isOAuthType = ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive'].includes(form.type)
+  const isOAuthType = ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(form.type)
 
   async function handleReconnect(c) {
     setReconnectingId(c.id)
@@ -234,7 +234,7 @@ export default function CredentialsPage() {
                   <td><span className="badge badge-muted">{c.type}</span></td>
                   <td><span className="dot status-success" /> <span className="hint">Encrypted</span></td>
                   <td>
-                    {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive'].includes(c.type) && (
+                    {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                       <button
                         className="ghost small"
                         onClick={() => handleReconnect(c)}

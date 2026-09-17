@@ -478,6 +478,31 @@ GOOGLE_DRIVE = OAuthProviderSpec(
 )
 
 
+# ----------------------------------------------------------------------
+# Google Docs: same Google OAuth app as Calendar/Sheets/Gmail/Drive
+# with the documents scope set.
+# ----------------------------------------------------------------------
+
+GOOGLE_DOCS = OAuthProviderSpec(
+    key="google_docs",
+    display_name="Google Docs",
+    credential_type="google_docs",
+    audit_connected="oauth.connected",
+    audit_failed="oauth.connect_failed",
+    marker_ok="oauth_connected",
+    marker_failed="oauth_connect_failed",
+    scopes_setting="google_docs_scopes",
+    config_prefix="google",
+    supports_pkce=False,
+    uses_login_url=False,
+    authorize_url=_google_authorize_url_factory("google_docs", "google", "google_docs_scopes", "Google Docs"),
+    token_request=_google_token_request_factory("google"),
+    token_headers=_google_token_headers,
+    identity_label=_google_identity_label,
+    credential_data=_google_credential_data,
+)
+
+
 PROVIDERS: dict[str, OAuthProviderSpec] = {
     SALESFORCE.key: SALESFORCE,
     HUBSPOT.key: HUBSPOT,
@@ -485,6 +510,7 @@ PROVIDERS: dict[str, OAuthProviderSpec] = {
     GOOGLE_SHEETS.key: GOOGLE_SHEETS,
     GMAIL.key: GMAIL,
     GOOGLE_DRIVE.key: GOOGLE_DRIVE,
+    GOOGLE_DOCS.key: GOOGLE_DOCS,
 }
 
 

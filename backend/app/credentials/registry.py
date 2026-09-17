@@ -351,6 +351,36 @@ class ClickUpCredential(BaseModel):
     api_key: str = Field(min_length=1, description="ClickUp personal API token (avatar menu > Apps).")
 
 
+class MailchimpCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Mailchimp API key (Account > Extras > API keys, ends -usXX).")
+    datacenter: str = Field(default="", description="Datacenter override (auto-parsed from key suffix when empty).")
+
+
+class QuickBooksCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="QuickBooks Online OAuth access token.")
+    refresh_token: str = Field(default="", description="OAuth refresh token (optional).")
+    realm_id: str = Field(min_length=1, description="QuickBooks company realm ID.")
+    environment: str = Field(default="sandbox", description="sandbox or production (default sandbox).")
+
+
+class GoogleDocsCredential(BaseModel):
+    """Google Docs connection. OAuth-only ('Connect Google Docs'): the refresh token is stored
+    encrypted; access tokens are minted server-side on demand."""
+
+    user: str = Field(default="", description="Authorizing account email (display label).")
+    refresh_token: str = Field(min_length=1, description="OAuth2 refresh token from the authorization flow.")
+    oauth: bool = Field(
+        default=False,
+        description="Created via 'Connect Google Docs'.",
+    )
+
+    @model_validator(mode="after")
+    def _require_auth(self) -> "GoogleDocsCredential":
+        if not self.refresh_token.strip():
+            raise ValueError("A Google Docs credential needs a refresh_token (use 'Connect Google Docs').")
+        return self
+
+
 class PipedriveCredential(BaseModel):
     api_token: str = Field(min_length=1, description="Pipedrive API token (Settings > Personal preferences > API).")
     domain: str = Field(min_length=1, description="Company domain (e.g. acme.pipedrive.com).")
@@ -504,6 +534,9 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "pipedrive": PipedriveCredential,
     "dropbox": DropboxCredential,
     "openai": OpenAICredential,
+    "mailchimp": MailchimpCredential,
+    "quickbooks": QuickBooksCredential,
+    "google_docs": GoogleDocsCredential,
     # Generic HTTP Auth providers (spec)
     "basic_auth": BasicAuthCredential,
     "bearer_auth": BearerAuthCredential,
@@ -561,6 +594,9 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "pipedrive": frozenset({"api_token"}),
     "dropbox": frozenset({"access_token"}),
     "openai": frozenset({"api_key"}),
+    "mailchimp": frozenset({"api_key"}),
+    "quickbooks": frozenset({"access_token", "refresh_token"}),
+    "google_docs": frozenset({"refresh_token"}),
     "basic_auth": frozenset({"password"}),
     "bearer_auth": frozenset({"token"}),
     "header_auth": frozenset({"header_value"}),
@@ -618,6 +654,9 @@ TYPE_META: dict[str, dict[str, str]] = {
     "pipedrive": {"name": "Pipedrive", "description": "Pipedrive API token + company domain for the Pipedrive connector."},
     "dropbox": {"name": "Dropbox", "description": "Dropbox OAuth access token for the Dropbox connector."},
     "openai": {"name": "OpenAI", "description": "OpenAI API key (or compatible endpoint) for the OpenAI connector."},
+    "mailchimp": {"name": "Mailchimp", "description": "Mailchimp API key for the Mailchimp connector."},
+    "quickbooks": {"name": "QuickBooks", "description": "QuickBooks Online OAuth token + realm for the QuickBooks connector."},
+    "google_docs": {"name": "Google Docs", "description": "Google Docs documents (Connect Google Docs OAuth)."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
     "bearer_auth": {"name": "Bearer Auth", "description": "Bearer token for Authorization header."},
     "header_auth": {"name": "Header Auth", "description": "Custom header (e.g. X-API-Key) authentication."},
@@ -718,6 +757,9 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "pipedrive": True,
     "dropbox": True,
     "openai": True,
+    "mailchimp": True,
+    "quickbooks": True,
+    "google_docs": True,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work
@@ -744,8 +786,8 @@ def list_types() -> list[dict[str, Any]]:
             "parameters_schema": schema.model_json_schema(),
             "provider": CREDENTIAL_PROVIDER.get(t, ""),
             "implemented": CREDENTIAL_IMPLEMENTED.get(t, True),
-            "supportsOAuth": t in ("oauth2", "oauth1", "salesforce", "hubspot", "google_calendar", "google_sheets", "gmail", "google_drive"),
-            "supportsRefresh": t in ("oauth2", "salesforce", "hubspot", "google_calendar", "google_sheets", "gmail", "google_drive"),
+            "supportsOAuth": t in ("oauth2", "oauth1", "salesforce", "hubspot", "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs"),
+            "supportsRefresh": t in ("oauth2", "salesforce", "hubspot", "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs"),
             "supportsTest": CREDENTIAL_IMPLEMENTED.get(t, True),
         }
         for t, schema in CREDENTIAL_TYPES.items()
