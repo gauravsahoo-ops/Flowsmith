@@ -381,6 +381,20 @@ class GoogleDocsCredential(BaseModel):
         return self
 
 
+class PagerDutyCredential(BaseModel):
+    api_token: str = Field(min_length=1, description="PagerDuty API token (Configuration > API Access).")
+
+
+class ZendeskCredential(BaseModel):
+    email: str = Field(min_length=1, description="Zendesk agent email.")
+    api_token: str = Field(min_length=1, description="Zendesk API token.")
+    subdomain: str = Field(min_length=1, description="Subdomain (acme in acme.zendesk.com).")
+
+
+class TodoistCredential(BaseModel):
+    api_token: str = Field(min_length=1, description="Todoist personal API token (Settings > Integrations).")
+
+
 class PipedriveCredential(BaseModel):
     api_token: str = Field(min_length=1, description="Pipedrive API token (Settings > Personal preferences > API).")
     domain: str = Field(min_length=1, description="Company domain (e.g. acme.pipedrive.com).")
@@ -537,6 +551,9 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "mailchimp": MailchimpCredential,
     "quickbooks": QuickBooksCredential,
     "google_docs": GoogleDocsCredential,
+    "pagerduty": PagerDutyCredential,
+    "zendesk": ZendeskCredential,
+    "todoist": TodoistCredential,
     # Generic HTTP Auth providers (spec)
     "basic_auth": BasicAuthCredential,
     "bearer_auth": BearerAuthCredential,
@@ -597,6 +614,9 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "mailchimp": frozenset({"api_key"}),
     "quickbooks": frozenset({"access_token", "refresh_token"}),
     "google_docs": frozenset({"refresh_token"}),
+    "pagerduty": frozenset({"api_token"}),
+    "zendesk": frozenset({"api_token"}),
+    "todoist": frozenset({"api_token"}),
     "basic_auth": frozenset({"password"}),
     "bearer_auth": frozenset({"token"}),
     "header_auth": frozenset({"header_value"}),
@@ -657,6 +677,9 @@ TYPE_META: dict[str, dict[str, str]] = {
     "mailchimp": {"name": "Mailchimp", "description": "Mailchimp API key for the Mailchimp connector."},
     "quickbooks": {"name": "QuickBooks", "description": "QuickBooks Online OAuth token + realm for the QuickBooks connector."},
     "google_docs": {"name": "Google Docs", "description": "Google Docs documents (Connect Google Docs OAuth)."},
+    "pagerduty": {"name": "PagerDuty", "description": "PagerDuty API token for the PagerDuty connector."},
+    "zendesk": {"name": "Zendesk", "description": "Zendesk email + API token + subdomain for the Zendesk connector."},
+    "todoist": {"name": "Todoist", "description": "Todoist personal API token for the Todoist connector."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
     "bearer_auth": {"name": "Bearer Auth", "description": "Bearer token for Authorization header."},
     "header_auth": {"name": "Header Auth", "description": "Custom header (e.g. X-API-Key) authentication."},
@@ -760,6 +783,9 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "mailchimp": True,
     "quickbooks": True,
     "google_docs": True,
+    "pagerduty": True,
+    "zendesk": True,
+    "todoist": True,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work

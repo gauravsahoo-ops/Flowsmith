@@ -96,6 +96,7 @@ def _load_builtin_nodes() -> None:
         file_io,
         filter,
         form_trigger,
+        git,
         graphql,
         html_extract,
         http_request,

@@ -545,6 +545,12 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.quickbooks_definition import build_quickbooks_definition
     from app.connectors.google_docs_connector import GoogleDocsConnector
     from app.connectors.google_docs_definition import build_google_docs_definition
+    from app.connectors.pagerduty_connector import PagerDutyConnector
+    from app.connectors.pagerduty_definition import build_pagerduty_definition
+    from app.connectors.zendesk_connector import ZendeskConnector
+    from app.connectors.zendesk_definition import build_zendesk_definition
+    from app.connectors.todoist_connector import TodoistConnector
+    from app.connectors.todoist_definition import build_todoist_definition
     from app.connectors.pipedrive_connector import PipedriveConnector
     from app.connectors.pipedrive_definition import build_pipedrive_definition
     from app.connectors.dropbox_connector import DropboxConnector
@@ -645,6 +651,9 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (MailchimpConnector(), build_mailchimp_definition),
         (QuickBooksConnector(), build_quickbooks_definition),
         (GoogleDocsConnector(), build_google_docs_definition),
+        (PagerDutyConnector(), build_pagerduty_definition),
+        (ZendeskConnector(), build_zendesk_definition),
+        (TodoistConnector(), build_todoist_definition),
     ]
 
     registry = get_registry()
