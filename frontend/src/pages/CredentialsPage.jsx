@@ -6,6 +6,7 @@ import EmptyState from '../components/shared/EmptyState'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import WorkspaceTabs from '../components/shared/WorkspaceTabs'
+import { NodeIcon } from '../components/NodeIcons'
 
 function defaultsFromSchema(schema) {
   const out = {}
@@ -230,7 +231,17 @@ export default function CredentialsPage() {
             <tbody>
               {filtered.map(c => (
                 <tr key={c.id}>
-                  <td><strong>{c.name}</strong><div className="hint" style={{ fontSize: 11 }}>{c.id.slice(0,8)}</div></td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.04)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                        <NodeIcon type={c.type} size={20} />
+                      </div>
+                      <div>
+                        <strong>{c.name}</strong>
+                        <div className="hint" style={{ fontSize: 11 }}>{c.id.slice(0,8)}</div>
+                      </div>
+                    </div>
+                  </td>
                   <td><span className="badge badge-muted">{c.type}</span></td>
                   <td><span className="dot status-success" /> <span className="hint">Encrypted</span></td>
                   <td>
