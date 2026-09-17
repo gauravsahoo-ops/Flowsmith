@@ -1,19 +1,29 @@
-"""Public webhook endpoint (spec 9, 32): no auth, returns 202.
+"""Public webhook endpoint (spec 9, 32): async 202 by default.
 
 Flow (spec 32): validate path → validate method → validate payload size
 → create execution → queue → 202. Every hit gets a delivery record.
 Spec 8.4: if the workflow already has a running execution the hit is
 accepted but skipped (like n8n). An optional Idempotency-Key header
 makes retries return the original delivery instead of re-queuing.
+
+Synchronous responses: ``POST /api/webhooks/{path}?respond=true`` waits
+(up to ``wait_seconds``, default 30, max 120) for the execution to finish
+and returns the output of the workflow's ``respond_to_webhook`` node with
+its status code (n8n "Respond to Webhook" parity). Without that node, on
+execution failure, or on timeout, the caller gets the normal 202 envelope
+(with ``timed_out: true`` on timeout) and the execution id for polling.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
+import time
 import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -50,8 +60,69 @@ def _payload(raw: bytes) -> Any:
         return raw.decode("utf-8", errors="replace")
 
 
+_TERMINAL_EXECUTION_STATUSES = frozenset({"success", "failed", "timeout", "cancelled"})
+
+
+async def _await_webhook_response(
+    execution_id: str, workflow_data: dict, wait_seconds: float,
+) -> tuple[int, Any] | None:
+    """Wait for an execution and extract its ``respond_to_webhook`` output.
+
+    Returns ``(status_code, body)`` on success, ``(500, error)`` when the
+    execution itself failed, or ``None`` when there is no respond node or
+    the wait expires (caller falls back to the 202 envelope).
+    """
+    respond_node_id: str | None = None
+    for node in (workflow_data or {}).get("nodes", []) or []:
+        if isinstance(node, dict) and node.get("type") == "respond_to_webhook":
+            respond_node_id = str(node.get("id"))
+            break
+    if respond_node_id is None:
+        return None
+
+    from app.models import Execution
+
+    deadline = time.monotonic() + wait_seconds
+    while True:
+        poll_db = get_session()
+        try:
+            rec = poll_db.get(Execution, execution_id)
+            exec_status = rec.status if rec is not None else "failed"
+            results = rec.results if rec is not None and isinstance(rec.results, dict) else {}
+            error = rec.error if rec is not None else None
+        finally:
+            poll_db.close()
+        if exec_status in _TERMINAL_EXECUTION_STATUSES:
+            if exec_status != "success":
+                message = "Execution failed."
+                if isinstance(error, dict) and error.get("message"):
+                    message = str(error["message"])[:500]
+                return 500, {"ok": False, "error": message, "execution_id": execution_id}
+            outputs = results.get("outputs", {}) if isinstance(results, dict) else {}
+            node_out = (outputs.get(respond_node_id, {}) or {}).get("main", [])
+            first = node_out[0] if isinstance(node_out, list) and node_out else {}
+            code = first.get("status_code", 200) if isinstance(first, dict) else 200
+            try:
+                code = int(code)
+            except (TypeError, ValueError):
+                code = 200
+            if not 100 <= code <= 599:
+                code = 200
+            body = first.get("body", first) if isinstance(first, dict) else first
+            return code, body
+        if time.monotonic() >= deadline:
+            return None
+        await asyncio.sleep(0.25)
+
+
 @router.post("/{path}", status_code=status.HTTP_202_ACCEPTED)
-async def webhook_receive(path: str, request: Request) -> dict:
+async def webhook_receive(
+    path: str,
+    request: Request,
+    respond: bool = False,
+    wait_seconds: float = 30.0,
+) -> Any:
+    wait_seconds = max(1.0, min(float(wait_seconds or 30.0), 120.0))
     db = get_session()
     try:
         wh = get_webhook(db, path)
@@ -152,6 +223,21 @@ async def webhook_receive(path: str, request: Request) -> dict:
             idempotency_key=idempotency_key,
         ))
         db.commit()
+        if respond:
+            answered = await _await_webhook_response(execution_id, wh.workflow_data, wait_seconds)
+            if answered is not None:
+                code, body = answered
+                if body is None:
+                    body = {}
+                if not isinstance(body, (dict, list, str, int, float, bool)):
+                    body = {"data": body}
+                return JSONResponse(status_code=code, content=body)
+            return ok({
+                "delivery_id": delivery_id,
+                "execution_id": execution_id,
+                "skipped": False,
+                "timed_out": True,
+            })
         return ok({
             "delivery_id": delivery_id,
             "execution_id": execution_id,

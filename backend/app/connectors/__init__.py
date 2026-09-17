@@ -539,6 +539,12 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.whatsapp_definition import build_whatsapp_definition
     from app.connectors.clickup_connector import ClickUpConnector
     from app.connectors.clickup_definition import build_clickup_definition
+    from app.connectors.pipedrive_connector import PipedriveConnector
+    from app.connectors.pipedrive_definition import build_pipedrive_definition
+    from app.connectors.dropbox_connector import DropboxConnector
+    from app.connectors.dropbox_definition import build_dropbox_definition
+    from app.connectors.openai_connector import OpenAIConnector
+    from app.connectors.openai_definition import build_openai_definition
     from app.connectors.twilio_connector import TwilioConnector
     from app.connectors.twilio_definition import build_twilio_definition
     from app.connectors.zoom_connector import ZoomConnector
@@ -627,6 +633,9 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (BitbucketConnector(), build_bitbucket_definition),
         (WhatsAppConnector(), build_whatsapp_definition),
         (ClickUpConnector(), build_clickup_definition),
+        (PipedriveConnector(), build_pipedrive_definition),
+        (DropboxConnector(), build_dropbox_definition),
+        (OpenAIConnector(), build_openai_definition),
     ]
 
     registry = get_registry()

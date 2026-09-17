@@ -8,7 +8,7 @@
 [![Node](https://img.shields.io/badge/node-22-blue)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**Flowsmith** is an enterprise-grade, self-hosted, open-source workflow automation platform designed to deliver n8n and Zapier-class automation with complete data sovereignty, zero per-run fees, and native enterprise integrations. It combines an interactive visual DAG canvas, sandboxed code execution, AI agents, RAG vector search, and 30 first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
+**Flowsmith** is an enterprise-grade, self-hosted, open-source workflow automation platform designed to deliver n8n and Zapier-class automation with complete data sovereignty, zero per-run fees, and native enterprise integrations. It combines an interactive visual DAG canvas, sandboxed code execution, AI agents, RAG vector search, and 33 first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
 
 ---
 
@@ -65,7 +65,7 @@
 │  ├── Expression Evaluator: Sandboxed interpolation ({{ $json.* }}, $node, $cred, $env) │
 │  ├── Sandboxed Code Runtimes: JavaScript (DukPy engine) & Python execution sandboxes   │
 │  ├── Credential Vault: AES-128-CBC Fernet encryption with multi-key rotation keyring   │
-│  ├── Native Connectors: 30 first-party connectors with OAuth2 PKCE flows               │
+│  ├── Native Connectors: 33 first-party connectors with OAuth2 PKCE flows               │
 │  └── AI Subsystem: Natural-language workflow generator, error assistant, ReAct agents   │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Distributed Execution & Asynchronous Worker                                           │
@@ -100,6 +100,7 @@
 - **1-Click Publishing**: Toggling **Active** immediately arms background triggers (cron schedules, public webhooks, Salesforce Outbound Messages).
 - **Template Gallery**: Publish any custom workflow as a workspace template with one click.
 - **Version History & Rollback**: Every save generates an immutable snapshot (`WorkflowVersionRecord`), allowing single-click rollback to any prior release.
+- **Synchronous Webhook Responses**: `POST /api/webhooks/{path}?respond=true` waits for the run and returns the `respond_to_webhook` node's output with its status code (async 202 by default).
 
 ### 3. Universal Token Management (`Token Manager`)
 - **Unified Lifecycle Node**: Merges token retrieval, persistence, and auto-refresh into a single node (`token_manager`).
@@ -307,7 +308,7 @@ Flowsmith/
 │   │   │   ├── expressions.py  # Sandboxed {{ }} expression evaluation engine
 │   │   │   └── node_base.py    # BaseNode, NodeContext, and NodeResult interfaces
 │   │   ├── nodes/              # 50+ built-in node type implementations
-│   │   ├── connectors/         # 30 first-party enterprise connectors (+ generated OpenAPI catalog)
+│   │   ├── connectors/         # 33 first-party enterprise connectors (+ generated OpenAPI catalog)
 │   │   ├── providers/          # Low-level external integration clients
 │   │   ├── queue/              # Asynchronous job queue & worker processes
 │   │   ├── models/             # 19 SQLAlchemy ORM model files (29 tables)
@@ -378,6 +379,7 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 | | `execute_workflow_trigger` | Entry point for runs triggered by another workflow. |
 | | `stop_and_error` | Aborts the execution immediately with a custom error. |
 | | `noop` | Passes input items through unchanged (placeholder / wiring anchor). |
+| | `respond_to_webhook` | Returns a synchronous HTTP response to the triggering webhook (`?respond=true`). |
 | **Data & Code** | `code` | Executes custom JavaScript (via DukPy) or Python script blocks. |
 | | `data_table` | Interacts with native Flowsmith Data Tables (insert, update, query). |
 | | `csv_json_transform` | Converts CSV rows to JSON structures and vice versa. |
@@ -402,7 +404,7 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 
 ## Connectors
 
-Flowsmith includes **30 first-party connectors** with pre-configured schemas and authentication handlers, plus an auto-generated OpenAPI catalog (weather, finance, placeholder APIs) for keyless public endpoints:
+Flowsmith includes **33 first-party connectors** with pre-configured schemas and authentication handlers, plus an auto-generated OpenAPI catalog (weather, finance, placeholder APIs) for keyless public endpoints:
 
 | Connector | Supported Operations & Resources | Authentication |
 |---|---|---|
@@ -436,6 +438,9 @@ Flowsmith includes **30 first-party connectors** with pre-configured schemas and
 | **Twilio** | SMS send, message history and lookup | Account SID / Auth Token |
 | **WhatsApp** | Text and template messages via Meta Cloud API | Access Token |
 | **ClickUp** | Lists, tasks, and comments (list, get, create, update) | API Token |
+| **Pipedrive** | Deals and notes (list, get, create, update) | API Token |
+| **Dropbox** | Folder browse, metadata, upload, delete | Access Token |
+| **OpenAI** | Models, embeddings, chat completions (or compatible endpoint) | API Key |
 
 ---
 
@@ -476,7 +481,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `POST /api/credentials/{id}/test` — Verify credential connectivity (auto-refreshes expired OAuth tokens once and re-probes)
 - `POST /api/credentials/{id}/reconnect` — Background token renewal without interactive login
 - `DELETE /api/credentials/{id}` — Delete credential
-- `GET /api/credentials/types` — Discover supported credential schemas (49 types)
+- `GET /api/credentials/types` — Discover supported credential schemas (52 types)
 
 ### AI & Assistant
 - `POST /api/ai/generate-workflow` — Generate full workflow from natural language

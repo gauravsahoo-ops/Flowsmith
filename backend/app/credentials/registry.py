@@ -351,6 +351,21 @@ class ClickUpCredential(BaseModel):
     api_key: str = Field(min_length=1, description="ClickUp personal API token (avatar menu > Apps).")
 
 
+class PipedriveCredential(BaseModel):
+    api_token: str = Field(min_length=1, description="Pipedrive API token (Settings > Personal preferences > API).")
+    domain: str = Field(min_length=1, description="Company domain (e.g. acme.pipedrive.com).")
+
+
+class DropboxCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Dropbox OAuth access token (App Console).")
+
+
+class OpenAICredential(BaseModel):
+    api_key: str = Field(min_length=1, description="OpenAI API key (or compatible provider key).")
+    base_url: str = Field(default="https://api.openai.com/v1", description="Base URL (default OpenAI, or compatible endpoint).")
+    organization: str = Field(default="", description="OpenAI organization (optional).")
+
+
 # ----------------------------------------------------------------------
 # Generic HTTP Auth credential types (spec: 8 providers)
 # ----------------------------------------------------------------------
@@ -486,6 +501,9 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "bitbucket": BitbucketCredential,
     "whatsapp": WhatsAppCredential,
     "clickup": ClickUpCredential,
+    "pipedrive": PipedriveCredential,
+    "dropbox": DropboxCredential,
+    "openai": OpenAICredential,
     # Generic HTTP Auth providers (spec)
     "basic_auth": BasicAuthCredential,
     "bearer_auth": BearerAuthCredential,
@@ -540,6 +558,9 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "bitbucket": frozenset({"access_token"}),
     "whatsapp": frozenset({"access_token"}),
     "clickup": frozenset({"api_key"}),
+    "pipedrive": frozenset({"api_token"}),
+    "dropbox": frozenset({"access_token"}),
+    "openai": frozenset({"api_key"}),
     "basic_auth": frozenset({"password"}),
     "bearer_auth": frozenset({"token"}),
     "header_auth": frozenset({"header_value"}),
@@ -594,6 +615,9 @@ TYPE_META: dict[str, dict[str, str]] = {
     "bitbucket": {"name": "Bitbucket", "description": "Bitbucket access token for the Bitbucket connector."},
     "whatsapp": {"name": "WhatsApp", "description": "Meta WhatsApp Business token + phone number ID for the WhatsApp connector."},
     "clickup": {"name": "ClickUp", "description": "ClickUp personal API token for the ClickUp connector."},
+    "pipedrive": {"name": "Pipedrive", "description": "Pipedrive API token + company domain for the Pipedrive connector."},
+    "dropbox": {"name": "Dropbox", "description": "Dropbox OAuth access token for the Dropbox connector."},
+    "openai": {"name": "OpenAI", "description": "OpenAI API key (or compatible endpoint) for the OpenAI connector."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
     "bearer_auth": {"name": "Bearer Auth", "description": "Bearer token for Authorization header."},
     "header_auth": {"name": "Header Auth", "description": "Custom header (e.g. X-API-Key) authentication."},
@@ -691,6 +715,9 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "bitbucket": True,
     "whatsapp": True,
     "clickup": True,
+    "pipedrive": True,
+    "dropbox": True,
+    "openai": True,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work

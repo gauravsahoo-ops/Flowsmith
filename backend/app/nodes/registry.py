@@ -113,6 +113,7 @@ def _load_builtin_nodes() -> None:
         output_parser,
         pagination,
         rag_pipeline,
+        respond_to_webhook,
         rss_feed,
         salesforce_trigger,
         schedule,
