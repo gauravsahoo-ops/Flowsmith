@@ -388,3 +388,50 @@ async def document_workflow(
     log_event(db, AI_ASSIST, target_type="workflow", target_id=body.workflow_id,
               user_id=user.id, detail={"surface": "document"})
     return ok(result)
+
+
+class AutoFixRequest(BaseModel):
+    workflow_id: str
+    node_id: str
+    error_message: str
+    credential_id: str | None = None
+
+
+@router.post("/auto-fix")
+async def auto_fix_endpoint(
+    body: AutoFixRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Diagnose a node failure and propose fixed parameters to self-heal the workflow."""
+    from app.ai.assistant import repair_node_failure
+    from app.schemas.workflow import Workflow
+
+    rec = get_workflow_read(db, body.workflow_id, user)
+    workflow = Workflow.model_validate(rec.data or {})
+    node = next((n for n in workflow.nodes if n.id == body.node_id), None)
+    if node is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Node not found in workflow.")
+
+    upstream_samples = _upstream_fields(db, rec.data or {}, body.node_id)
+    sample = upstream_samples[0] if upstream_samples else None
+
+    llm: dict | None = None
+    try:
+        llm = _pick_llm(db, user, body.credential_id)
+    except HTTPException:
+        llm = None
+
+    result = await repair_node_failure(
+        node_type=node.type,
+        operation=(node.parameters or {}).get("operation"),
+        current_parameters=dict(node.parameters or {}),
+        error_message=body.error_message,
+        upstream_sample=sample,
+        chat=chat_completion if llm else None,
+        llm=llm,
+    )
+    log_event(db, AI_ASSIST, target_type="workflow", target_id=body.workflow_id,
+              user_id=user.id, detail={"surface": "auto_fix", "node_id": body.node_id})
+    return ok(result)
+

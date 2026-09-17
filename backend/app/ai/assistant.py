@@ -348,13 +348,43 @@ async def suggest_optimizations(
     return {"findings": findings, "suggestions": advisory}
 
 
+def _generate_mermaid(workflow_data: dict[str, Any]) -> str:
+    """Generate Mermaid flowchart diagram from nodes and connections."""
+    nodes = workflow_data.get("nodes") or []
+    conns = workflow_data.get("connections") or []
+    lines = ["graph TD"]
+    for n in nodes:
+        nid = re.sub(r"[^a-zA-Z0-9_]", "_", str(n.get("id", "")))
+        label = (n.get("settings") or {}).get("label") or n.get("name") or n.get("type", "")
+        clean_label = str(label).replace('"', "'")
+        lines.append(f'  {nid}["{clean_label}"]')
+    for c in conns:
+        src = re.sub(r"[^a-zA-Z0-9_]", "_", str(c.get("source", "")))
+        tgt = re.sub(r"[^a-zA-Z0-9_]", "_", str(c.get("target", "")))
+        lines.append(f"  {src} --> {tgt}")
+    return "\n".join(lines)
+
+
 async def document_workflow(
     workflow_data: dict[str, Any], *, chat: ChatFn | None, llm: dict[str, Any] | None
 ) -> dict[str, Any]:
-    """Grounded markdown reference + optional LLM overview paragraph."""
+    """Grounded markdown reference + Mermaid diagram + optional LLM overview paragraph."""
     summary = _structure_summary(workflow_data)
+    mermaid = _generate_mermaid(workflow_data)
     trigger_lines = [f"- `{t['id']}` ({t['type']})" for t in summary["triggers"]] or ["- (none)"]
-    lines = [f"# {summary['name']}", "", "## Triggers", *trigger_lines, "", "## Steps"]
+    lines = [
+        f"# {summary['name'] or 'Workflow Documentation'}",
+        "",
+        "## Architecture Diagram",
+        "```mermaid",
+        mermaid,
+        "```",
+        "",
+        "## Triggers",
+        *trigger_lines,
+        "",
+        "## Steps & Actions",
+    ]
     for step in summary["steps"]:
         op = f" · op `{step['operation']}`" if step.get("operation") else ""
         feeds = (f" → feeds {', '.join('`' + f + '`' for f in step['feeds'])}"
@@ -375,7 +405,7 @@ async def document_workflow(
             overview = (message.get("content") or "").strip()
         except Exception:
             overview = ""  # doc stays useful without the LLM
-    return {"markdown": markdown, "overview": overview, "structure": summary}
+    return {"markdown": markdown, "overview": overview, "structure": summary, "mermaid": mermaid}
 
 
 async def explain_workflow(
@@ -391,3 +421,70 @@ async def explain_workflow(
         {"role": "user", "content": json.dumps(summary, ensure_ascii=False)},
     ], temperature=0.3, max_tokens=500)
     return {"explanation": (message.get("content") or "").strip(), "structure": summary}
+
+
+async def repair_node_failure(
+    *,
+    node_type: str,
+    operation: str | None,
+    current_parameters: dict[str, Any],
+    error_message: str,
+    upstream_sample: dict[str, Any] | None,
+    chat: ChatFn | None,
+    llm: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Diagnose execution error on a node and suggest parameter repairs."""
+    err_lower = error_message.lower()
+    suggested = dict(current_parameters)
+    cause = "Execution failure"
+    summary = "Suggested fixes based on error analysis."
+
+    if "invalid url" in err_lower or "missing schema" in err_lower or "scheme" in err_lower:
+        if "url" in suggested and not str(suggested["url"]).startswith("http"):
+            suggested["url"] = f"https://{suggested['url']}"
+            cause = "Malformed URL missing http:// or https:// protocol prefix."
+            summary = "Prepended https:// to destination URL."
+    elif "json" in err_lower and "decode" in err_lower:
+        cause = "Invalid JSON syntax in request body or payload."
+        summary = "Ensure payload is well-formed JSON or valid expression."
+    elif "401" in err_lower or "unauthorized" in err_lower:
+        cause = "Authentication failure or missing credential."
+        summary = "Check authentication headers or select a valid credential."
+
+    if chat is not None and llm is not None:
+        try:
+            parsed = await _complete_json(chat, llm, [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an autonomous self-healing debugger for workflow automation. "
+                        "Given a node type, current parameters, and the runtime error message, "
+                        "diagnose the failure and return a JSON object with: "
+                        '{"root_cause": "1-2 sentence explanation", '
+                        '"suggested_parameters": { <full fixed parameters dict> }, '
+                        '"changes_summary": "1 sentence describing what was changed"}'
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps({
+                        "node_type": node_type,
+                        "operation": operation,
+                        "current_parameters": current_parameters,
+                        "error_message": error_message,
+                        "upstream_sample": upstream_sample,
+                    }, ensure_ascii=False),
+                },
+            ], max_tokens=900)
+            if isinstance(parsed, dict) and "suggested_parameters" in parsed:
+                cause = parsed.get("root_cause", cause)
+                suggested = parsed.get("suggested_parameters", suggested)
+                summary = parsed.get("changes_summary", summary)
+        except Exception:
+            pass
+
+    return {
+        "root_cause": cause,
+        "suggested_parameters": suggested,
+        "changes_summary": summary,
+    }

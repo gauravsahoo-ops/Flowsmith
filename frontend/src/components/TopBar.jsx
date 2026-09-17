@@ -4,6 +4,7 @@ import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
 import { toWorkflowJson, withDecorations } from '../mappers'
 import { api } from '../api'
+import WorkflowDocModal from './WorkflowDocModal'
 
 const STATUS_LABEL = {
   idle: 'idle',
@@ -47,6 +48,7 @@ export default function TopBar({
   const [deleteError, setDeleteError] = useState(null)
   const [ioError, setIoError] = useState(null)
   const [downloading, setDownloading] = useState(false)
+  const [docModalOpen, setDocModalOpen] = useState(false)
   const fileRef = useRef(null)
 
   async function listWorkflows() {
@@ -303,6 +305,22 @@ export default function TopBar({
         </button>
         <button
           className="ghost ghost--quiet"
+          disabled={!workflow?.id}
+          onClick={() => setDocModalOpen(true)}
+          title="View & Export Workflow Architecture Blueprint & Docs"
+          aria-label="Workflow Architecture"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          <span>Docs</span>
+        </button>
+        <button
+          className="ghost ghost--quiet"
           disabled={downloading || (!workflow?.id && !useWorkflowStore.getState().nodes?.length)}
           onClick={handleExport}
           title="Download workflow JSON file to your computer"
@@ -358,6 +376,15 @@ export default function TopBar({
           </button>
           {menuOpen && (
             <div className="topbar-menu" role="menu">
+              <button role="menuitem" onClick={() => { setMenuOpen(false); setDocModalOpen(true); }} disabled={!workflow?.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                <span>Architecture & Docs</span>
+              </button>
               <button role="menuitem" onClick={() => { setMenuOpen(false); togglePinned(); }} disabled={!workflow?.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: isPinned ? '#fbbf24' : 'currentColor' }}>
                   <line x1="12" y1="17" x2="12" y2="22" />
@@ -395,6 +422,22 @@ export default function TopBar({
                     onChange={(e) => setWorkflowSettings({ max_parallelism: Math.min(32, Math.max(1, Number(e.target.value) || 8)) })}
                     style={{ width: '100%' }}
                   />
+                </label>
+                <label className="check" style={{ fontSize: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(workflow?.settings?.save_execution_progress)}
+                    onChange={(e) => setWorkflowSettings({ save_execution_progress: e.target.checked })}
+                  />
+                  Save execution progress
+                </label>
+                <label className="check" style={{ fontSize: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(workflow?.settings?.error_workflow_id)}
+                    onChange={(e) => setWorkflowSettings({ error_workflow_id: e.target.checked ? 'default' : null })}
+                  />
+                  Route failure to error workflow
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
                   <span>Error workflow</span>
@@ -435,6 +478,13 @@ export default function TopBar({
             if (f) handleImportFile(f)
             e.target.value = ''
           }}
+        />
+
+        <WorkflowDocModal
+          isOpen={docModalOpen}
+          onClose={() => setDocModalOpen(false)}
+          workflowId={workflow?.id}
+          workflowName={workflow?.name}
         />
       </div>
     </header>

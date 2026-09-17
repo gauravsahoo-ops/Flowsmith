@@ -511,3 +511,29 @@ describe('environment endpoints', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/workspaces?pageSize=100')
   })
 })
+
+describe('ai assistant superpowers', () => {
+  it('calls documentWorkflow endpoint', async () => {
+    mockFetchSuccess({ markdown: '# Doc', mermaid: 'graph TD' })
+    const res = await api.documentWorkflow('wf_123')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/ai/document-workflow')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ workflow_id: 'wf_123' })
+    expect(res.mermaid).toBe('graph TD')
+  })
+
+  it('calls autoFixNode endpoint', async () => {
+    mockFetchSuccess({
+      root_cause: 'Malformed URL',
+      suggested_parameters: { url: 'https://api.com' },
+      changes_summary: 'Added https',
+    })
+    const res = await api.autoFixNode({
+      workflow_id: 'wf_123',
+      node_id: 'node_456',
+      error_message: 'Invalid URL',
+    })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/ai/auto-fix')
+    expect(res.suggested_parameters.url).toBe('https://api.com')
+  })
+})
+

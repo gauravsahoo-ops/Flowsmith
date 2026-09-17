@@ -36,6 +36,7 @@ import TokenFetchNodeEditor from './TokenFetchNodeEditor'
 import TokenStoreNodeEditor from './TokenStoreNodeEditor'
 import DataTableDiscovery from './DataTableDiscovery'
 import ExpressionHelper from './ExpressionHelper'
+import NodeAutoRepair from './NodeAutoRepair'
 import {
   IDEMPOTENCY_LABEL,
   IDEMPOTENCY_HINT,
@@ -72,6 +73,7 @@ export default function NodeEditorModal() {
   const [outputData, setOutputData] = useState(null)
   const [executing, setExecuting] = useState(false)
   const [execError, setExecError] = useState(null)
+  const [showAutoRepair, setShowAutoRepair] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [closing, setClosing] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -98,6 +100,7 @@ export default function NodeEditorModal() {
 
   useEffect(() => {
     setConfirmDelete(false)
+    setShowAutoRepair(false)
   }, [selectedId])
 
   // Animate open/close
@@ -181,6 +184,7 @@ export default function NodeEditorModal() {
 
   const status = nodeStatuses[selectedId]
   const preview = runPreview[selectedId]
+  const effectiveError = execError || preview?.error || (status === 'failed' || status === 'error' ? (preview?.note || 'Execution failed') : null)
   const operation = node?.parameters?.operation
   const connectorName = meta?.display_name || node?.type || 'Node'
 
@@ -339,6 +343,20 @@ export default function NodeEditorModal() {
             )}
           </div>
           <div className="nem-actions">
+            {effectiveError && (
+              <Button
+                variant="secondary"
+                onClick={() => setShowAutoRepair((prev) => !prev)}
+                title="Autonomous AI node diagnosis and self-healing"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%)',
+                  borderColor: 'rgba(168, 85, 247, 0.4)',
+                  color: '#d8b4fe',
+                }}
+              >
+                ✨ AI Auto-Repair
+              </Button>
+            )}
             <Button
               variant="ghost"
               onClick={handleExecutePrevious}
@@ -361,8 +379,49 @@ export default function NodeEditorModal() {
           </div>
         </header>
 
-        {execError && (
-          <ErrorState icon="⚠️" title="Execution failed" description={execError} />
+        {effectiveError && (
+          <ErrorState
+            icon="⚠️"
+            title="Execution failed"
+            description={effectiveError}
+            action={
+              <Button
+                variant="primary"
+                onClick={() => setShowAutoRepair(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+                  border: 'none',
+                  color: '#fff',
+                }}
+              >
+                ✨ AI Auto-Repair
+              </Button>
+            }
+          />
+        )}
+
+        {showAutoRepair && effectiveError && (
+          <NodeAutoRepair
+            workflowId={workflow.id}
+            node={node}
+            errorMessage={effectiveError}
+            onClose={() => setShowAutoRepair(false)}
+            onApplyFix={async (suggestedParams, retest) => {
+              updateNode(node.id, { parameters: suggestedParams })
+              setShowAutoRepair(false)
+              setExecError(null)
+              try {
+                await useWorkflowStore.getState().save()
+              } catch (e) {
+                console.error('Failed to save repaired workflow', e)
+              }
+              if (retest) {
+                setTimeout(() => {
+                  handleExecuteStep()
+                }, 100)
+              }
+            }}
+          />
         )}
 
         {status === 'skipped' && (

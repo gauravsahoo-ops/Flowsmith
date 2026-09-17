@@ -135,5 +135,45 @@ def test_assist_requires_access(client):
         ("/api/ai/suggest-mapping", {"workflow_id": "wf_assist", "node_id": "set"}),
         ("/api/ai/optimize-workflow", {"workflow_id": "wf_assist"}),
         ("/api/ai/explain-workflow", {"workflow_id": "wf_assist"}),
+        ("/api/ai/auto-fix", {"workflow_id": "wf_assist", "node_id": "h", "error_message": "Invalid URL"}),
     ]:
         assert client.post(path, json=body, headers=other).status_code == 404, path
+
+
+def test_document_generates_mermaid_diagram(client):
+    token = _setup(client)
+    resp = client.post("/api/ai/document-workflow",
+                       json={"workflow_id": "wf_assist"}, headers=token)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert "mermaid" in data
+    assert "graph TD" in data["mermaid"]
+    assert "t --> set" in data["mermaid"]
+    assert "set --> h" in data["mermaid"]
+
+
+def test_auto_fix_node_recovers_malformed_url(client):
+    token = _setup(client)
+    # Patch the node url in the workflow to be malformed (missing scheme)
+    client.put("/api/workflows/wf_assist", json={
+        "id": "wf_assist",
+        "name": "Assist me",
+        "nodes": [
+            {"id": "t", "type": "manual_trigger", "parameters": {}},
+            {"id": "h", "type": "http_request",
+             "parameters": {"method": "GET", "url": "api.example.com/v1/users"}},
+        ],
+        "connections": [{"source": "t", "target": "h"}],
+        "settings": {},
+    }, headers=token)
+
+    resp = client.post("/api/ai/auto-fix", json={
+        "workflow_id": "wf_assist",
+        "node_id": "h",
+        "error_message": "Invalid URL: missing schema http:// or https://",
+    }, headers=token)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["suggested_parameters"]["url"].startswith("https://")
+    assert "scheme" in data["root_cause"].lower() or "url" in data["root_cause"].lower()
+

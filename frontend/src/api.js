@@ -199,6 +199,7 @@ export const api = {
   optimizeWorkflow: (workflowId) => request('POST', '/ai/optimize-workflow', { workflow_id: workflowId }),
   explainWorkflow: (workflowId) => request('POST', '/ai/explain-workflow', { workflow_id: workflowId }),
   documentWorkflow: (workflowId) => request('POST', '/ai/document-workflow', { workflow_id: workflowId }),
+  autoFixNode: (payload) => request('POST', '/ai/auto-fix', payload),
   // Data Tables (DATA-TABLES-01)
   listDataTables: (params = {}) => {
     const q = new URLSearchParams()
