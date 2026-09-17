@@ -177,6 +177,21 @@
 - **Approval Drawer**: Authorized reviewers can inspect pending execution state, view item payloads, and click **Approve** or **Reject** to resume the DAG.
 - **Audit Logging**: Every approval and rejection action records reviewer identity, timestamp, and decision notes in the immutable audit log.
 
+### 16. Dedicated Webhook Trigger Editor & Multi-Language Code Generator
+- **Visual URL Builder & Copier**: Displays live public URL with 1-click clipboard copy, supporting both async 202 queuing and synchronous response waiting (`?respond=true`).
+- **cURL & Code Snippet Generator**: Instantly generates production-ready code in **cURL**, **JavaScript (Fetch)**, and **Python (Requests)**.
+- **In-Editor Test Webhook Dispatcher**: Directly send custom JSON test payloads from the editor to trigger executions and view real-time HTTP response codes, headers, and execution IDs.
+- **Recent Deliveries Inspection**: Embedded delivery log displaying historical requests, response statuses, latencies, and error diagnostics.
+
+### 17. Code Node Snippet Templates Library
+- **Pre-Built Data Transformation Recipes**: Direct access to production-tested JavaScript and Python algorithms inside `CodeNodeEditor`:
+  - *Group by Field*: Group and aggregate items by arbitrary categories or foreign keys.
+  - *Deduplicate by Unique Key*: High-speed deduplication using memory-efficient Sets.
+  - *Flatten Nested Arrays*: Unrolls nested lists into individual downstream items.
+  - *Filter Items*: Clean predicate filtering logic.
+  - *Map & Rename Fields*: Re-key and reshape payloads with ISO timestamping.
+  - *Python Data Transforms*: List comprehensions and dict modifications for Python sandboxes.
+
 ---
 
 ## Tech Stack
@@ -395,7 +410,7 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 | Category | Node Type | Description |
 |---|---|---|
 | **Triggers** | `manual_trigger` | Starts workflow via manual UI click or API trigger call. |
-| | `webhook` | Public HTTP endpoint accepting incoming JSON payloads. |
+| | `webhook` | Public HTTP endpoint with dedicated editor, live URL copier, cURL/Fetch/Python code generator, test dispatcher, and synchronous `?respond=true` mode. |
 | | `schedule` | Time-based execution via standard 5-field cron syntax. |
 | | `salesforce_trigger` | Listens for Salesforce Outbound Messages and CDC events. |
 | | `chat_trigger` | Starts a workflow from an incoming chat widget message. |
@@ -430,7 +445,7 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 | | `git` | Read-only Git inspection: status, log, branches. |
 | | `ftp` | List, download, upload, and delete files on FTP/FTPS servers. |
 | | `ssh` | Run remote commands and move files over SSH/SFTP (needs `paramiko`). |
-| **Data & Code** | `code` | Executes custom JavaScript (via DukPy) or Python script blocks. |
+| **Data & Code** | `code` | Executes custom JavaScript (via DukPy) or Python script blocks with built-in Snippet Templates (Group by, Deduplicate, Flatten, Filter, Map). |
 | | `data_table` | Interacts with native Flowsmith Data Tables (insert, update, query). |
 | | `csv_json_transform` | Converts CSV rows to JSON structures and vice versa. |
 | | `file_io` | Reads and writes files to local or object storage. |
