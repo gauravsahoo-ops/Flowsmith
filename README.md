@@ -8,7 +8,7 @@
 [![Node](https://img.shields.io/badge/node-22-blue)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**Flowsmith** is an enterprise-grade, self-hosted, open-source workflow automation platform designed to deliver n8n and Zapier-class automation with complete data sovereignty, zero per-run fees, and native enterprise integrations. It combines an interactive visual DAG canvas, sandboxed code execution, AI agents, RAG vector search, and 33 first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
+**Flowsmith** is an enterprise-grade, self-hosted, open-source workflow automation platform designed to deliver n8n and Zapier-class automation with complete data sovereignty, zero per-run fees, and native enterprise integrations. It combines an interactive visual DAG canvas, sandboxed code execution, AI agents, RAG vector search, and 36 first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
 
 ---
 
@@ -65,7 +65,7 @@
 │  ├── Expression Evaluator: Sandboxed interpolation ({{ $json.* }}, $node, $cred, $env) │
 │  ├── Sandboxed Code Runtimes: JavaScript (DukPy engine) & Python execution sandboxes   │
 │  ├── Credential Vault: AES-128-CBC Fernet encryption with multi-key rotation keyring   │
-│  ├── Native Connectors: 33 first-party connectors with OAuth2 PKCE flows               │
+│  ├── Native Connectors: 36 first-party connectors with OAuth2 PKCE flows               │
 │  └── AI Subsystem: Natural-language workflow generator, error assistant, ReAct agents   │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Distributed Execution & Asynchronous Worker                                           │
@@ -101,6 +101,7 @@
 - **Template Gallery**: Publish any custom workflow as a workspace template with one click.
 - **Version History & Rollback**: Every save generates an immutable snapshot (`WorkflowVersionRecord`), allowing single-click rollback to any prior release.
 - **Synchronous Webhook Responses**: `POST /api/webhooks/{path}?respond=true` waits for the run and returns the `respond_to_webhook` node's output with its status code (async 202 by default).
+- **Global Error Workflows**: Point any workflow at an error-handler workflow in settings — failures fire it once with the full error context (`error`, `failed_execution_id`, `failed_workflow_id`); handlers never cascade and test runs never trigger them.
 
 ### 3. Universal Token Management (`Token Manager`)
 - **Unified Lifecycle Node**: Merges token retrieval, persistence, and auto-refresh into a single node (`token_manager`).
@@ -308,7 +309,7 @@ Flowsmith/
 │   │   │   ├── expressions.py  # Sandboxed {{ }} expression evaluation engine
 │   │   │   └── node_base.py    # BaseNode, NodeContext, and NodeResult interfaces
 │   │   ├── nodes/              # 50+ built-in node type implementations
-│   │   ├── connectors/         # 33 first-party enterprise connectors (+ generated OpenAPI catalog)
+│   │   ├── connectors/         # 36 first-party enterprise connectors (+ generated OpenAPI catalog)
 │   │   ├── providers/          # Low-level external integration clients
 │   │   ├── queue/              # Asynchronous job queue & worker processes
 │   │   ├── models/             # 19 SQLAlchemy ORM model files (29 tables)
@@ -404,7 +405,7 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 
 ## Connectors
 
-Flowsmith includes **33 first-party connectors** with pre-configured schemas and authentication handlers, plus an auto-generated OpenAPI catalog (weather, finance, placeholder APIs) for keyless public endpoints:
+Flowsmith includes **36 first-party connectors** with pre-configured schemas and authentication handlers, plus an auto-generated OpenAPI catalog (weather, finance, placeholder APIs) for keyless public endpoints:
 
 | Connector | Supported Operations & Resources | Authentication |
 |---|---|---|
@@ -439,6 +440,8 @@ Flowsmith includes **33 first-party connectors** with pre-configured schemas and
 | **WhatsApp** | Text and template messages via Meta Cloud API | Access Token |
 | **ClickUp** | Lists, tasks, and comments (list, get, create, update) | API Token |
 | **Pipedrive** | Deals and notes (list, get, create, update) | API Token |
+| **Dropbox** | Folder browse, metadata, upload, delete | Access Token |
+| **OpenAI** | Models, embeddings, chat completions (or compatible endpoint) | API Key |
 | **Dropbox** | Folder browse, metadata, upload, delete | Access Token |
 | **OpenAI** | Models, embeddings, chat completions (or compatible endpoint) | API Key |
 
