@@ -12,6 +12,85 @@ const LANGUAGE_OPTIONS = [
   { value: 'python', label: 'Python (beta)' },
 ]
 
+const SNIPPETS = {
+  javascript: [
+    {
+      label: 'Group Items by Field',
+      code: `// Group items by category or key
+const items = $input.all();
+const grouped = {};
+for (const item of items) {
+  const key = item.json.category || 'default';
+  if (!grouped[key]) grouped[key] = [];
+  grouped[key].push(item.json);
+}
+return Object.entries(grouped).map(([category, items]) => ({ json: { category, items } }));`,
+    },
+    {
+      label: 'Deduplicate by Unique Key',
+      code: `// Deduplicate items matching by email or id
+const seen = new Set();
+const unique = [];
+for (const item of $input.all()) {
+  const key = item.json.email || item.json.id;
+  if (!seen.has(key)) {
+    seen.add(key);
+    unique.push(item);
+  }
+}
+return unique;`,
+    },
+    {
+      label: 'Flatten Nested Arrays',
+      code: `// Unroll nested arrays into individual output items
+const output = [];
+for (const item of $input.all()) {
+  const records = item.json.records || [item.json];
+  for (const r of records) {
+    output.push({ json: r });
+  }
+}
+return output;`,
+    },
+    {
+      label: 'Filter Items by Condition',
+      code: `// Keep only items that meet criteria
+return $input.all().filter(item => {
+  return item.json.status === 'active';
+});`,
+    },
+    {
+      label: 'Map & Rename Fields',
+      code: `// Transform and rename fields cleanly
+return $input.all().map(item => ({
+  json: {
+    id: item.json.id,
+    title: item.json.name || item.json.title,
+    processedAt: new Date().toISOString()
+  }
+}));`,
+    },
+  ],
+  python: [
+    {
+      label: 'Transform & Add Field',
+      code: `# Process each item and add calculated fields
+output = []
+for item in items:
+    record = dict(item.get("json", {}))
+    record["processed"] = True
+    output.append({"json": record})
+return output`,
+    },
+    {
+      label: 'Filter Active Items',
+      code: `# Filter items based on criteria
+output = [item for item in items if item.get("json", {}).get("status") == "active"]
+return output`,
+    },
+  ],
+}
+
 export default function CodeNodeEditor({ node, onParamsChange }) {
   const params = node.parameters || {}
   const mode = params.mode || 'runOnceForAllItems'
@@ -184,9 +263,29 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
       <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', background: '#1e1e1e' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: '#252526', borderBottom: '1px solid var(--border)' }}>
           <span style={{ color: '#cccccc', fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }}>Code</span>
-          <button type="button" className="ghost small" onClick={handleCheckCode} disabled={validating} style={{ fontSize: 11, padding: '3px 8px' }}>
-            {validating ? 'Checking…' : 'Check Code'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <select
+              className="small"
+              value=""
+              onChange={(e) => {
+                const s = (SNIPPETS[language] || []).find((item) => item.label === e.target.value)
+                if (s) {
+                  setLocalCode(s.code)
+                  onParamsChange({ ...params, code: s.code })
+                }
+              }}
+              style={{ fontSize: 11, padding: '2px 6px', background: '#18181b', color: '#a5b4fc', border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: 4 }}
+              title="Insert pre-built battle-tested code snippets"
+            >
+              <option value="" disabled>📚 Snippet Templates…</option>
+              {(SNIPPETS[language] || []).map((s) => (
+                <option key={s.label} value={s.label}>{s.label}</option>
+              ))}
+            </select>
+            <button type="button" className="ghost small" onClick={handleCheckCode} disabled={validating} style={{ fontSize: 11, padding: '3px 8px' }}>
+              {validating ? 'Checking…' : 'Check Code'}
+            </button>
+          </div>
         </div>
         <Editor
           height="320px"

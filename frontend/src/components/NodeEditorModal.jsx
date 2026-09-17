@@ -19,6 +19,7 @@ import Status from './shared/Status'
 import ErrorState from './shared/ErrorState'
 import SalesforceNodeEditor from './SalesforceNodeEditor'
 import ScheduleTriggerEditor from './ScheduleTriggerEditor'
+import WebhookNodeEditor from './WebhookNodeEditor'
 import HttpRequestNodeEditor from './HttpRequestNodeEditor'
 const CodeNodeEditor = lazy(() => import('./CodeNodeEditor'))
 import { NodeIcon } from './NodeIcons'
@@ -524,6 +525,12 @@ export default function NodeEditorModal() {
                     />
                   ) : node.type === 'schedule' ? (
                     <ScheduleTriggerEditor node={node} onParamsChange={handleParamsChange} />
+                  ) : node.type === 'webhook' ? (
+                    <WebhookNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      workflowId={workflow?.id}
+                    />
                   ) : node.type === 'http_request' ? (
                     <HttpRequestNodeEditor
                       node={node}

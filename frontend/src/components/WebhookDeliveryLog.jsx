@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api'
-import { Status } from './shared/Status'
-import { Badge } from './shared/Badge'
-import { EmptyState } from './shared/EmptyState'
-import { LoadingSkeleton } from './shared/LoadingSkeleton'
+import Status from './shared/Status'
+import Badge from './shared/Badge'
+import EmptyState from './shared/EmptyState'
+import LoadingSkeleton from './shared/LoadingSkeleton'
 
 const STATUS_VARIANTS = {
   success: 'ok',

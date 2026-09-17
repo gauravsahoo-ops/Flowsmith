@@ -1,0 +1,137 @@
+.webhook-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #e2e8f0;
+}
+
+.we-section {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.we-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c4b5fd;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.we-url-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #090b10;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.we-method-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.we-url-text {
+  flex: 1;
+  font-family: monospace;
+  font-size: 12px;
+  color: #f1f5f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.we-copy-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.we-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.we-code-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 4px;
+}
+
+.we-code-tab {
+  background: none;
+  border: none;
+  font-size: 11px;
+  padding: 4px 10px;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.we-code-tab.active {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  font-weight: 600;
+}
+
+.we-code-snippet {
+  background: #090b10;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #e2e8f0;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.we-test-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.we-test-textarea {
+  width: 100%;
+  height: 90px;
+  background: #090b10;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.we-test-result {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #6ee7b7;
+}
