@@ -551,6 +551,12 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.zendesk_definition import build_zendesk_definition
     from app.connectors.todoist_connector import TodoistConnector
     from app.connectors.todoist_definition import build_todoist_definition
+    from app.connectors.brevo_connector import BrevoConnector
+    from app.connectors.brevo_definition import build_brevo_definition
+    from app.connectors.freshdesk_connector import FreshdeskConnector
+    from app.connectors.freshdesk_definition import build_freshdesk_definition
+    from app.connectors.monday_connector import MondayConnector
+    from app.connectors.monday_definition import build_monday_definition
     from app.connectors.pipedrive_connector import PipedriveConnector
     from app.connectors.pipedrive_definition import build_pipedrive_definition
     from app.connectors.dropbox_connector import DropboxConnector
@@ -654,6 +660,9 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (PagerDutyConnector(), build_pagerduty_definition),
         (ZendeskConnector(), build_zendesk_definition),
         (TodoistConnector(), build_todoist_definition),
+        (BrevoConnector(), build_brevo_definition),
+        (FreshdeskConnector(), build_freshdesk_definition),
+        (MondayConnector(), build_monday_definition),
     ]
 
     registry = get_registry()

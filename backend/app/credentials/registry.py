@@ -395,6 +395,20 @@ class TodoistCredential(BaseModel):
     api_token: str = Field(min_length=1, description="Todoist personal API token (Settings > Integrations).")
 
 
+class BrevoCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Brevo API key (SMTP & API > API Keys).")
+
+
+class FreshdeskCredential(BaseModel):
+    email: str = Field(min_length=1, description="Freshdesk agent email.")
+    api_token: str = Field(min_length=1, description="Freshdesk API key (Profile Settings).")
+    domain: str = Field(min_length=1, description="Domain (acme in acme.freshdesk.com).")
+
+
+class MondayCredential(BaseModel):
+    api_token: str = Field(min_length=1, description="Monday.com API token (avatar menu > Developers).")
+
+
 class FtpCredential(BaseModel):
     host: str = Field(min_length=1, description="FTP server hostname.")
     port: int = Field(default=21, ge=1, le=65535, description="FTP port (21, or 990 for implicit FTPS).")
@@ -577,6 +591,9 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "pagerduty": PagerDutyCredential,
     "zendesk": ZendeskCredential,
     "todoist": TodoistCredential,
+    "brevo": BrevoCredential,
+    "freshdesk": FreshdeskCredential,
+    "monday": MondayCredential,
     "ftp": FtpCredential,
     "ssh": SshCredential,
     # Generic HTTP Auth providers (spec)
@@ -642,6 +659,9 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "pagerduty": frozenset({"api_token"}),
     "zendesk": frozenset({"api_token"}),
     "todoist": frozenset({"api_token"}),
+    "brevo": frozenset({"api_key"}),
+    "freshdesk": frozenset({"api_token"}),
+    "monday": frozenset({"api_token"}),
     "ftp": frozenset({"password"}),
     "ssh": frozenset({"password", "private_key", "passphrase"}),
     "basic_auth": frozenset({"password"}),
@@ -707,6 +727,9 @@ TYPE_META: dict[str, dict[str, str]] = {
     "pagerduty": {"name": "PagerDuty", "description": "PagerDuty API token for the PagerDuty connector."},
     "zendesk": {"name": "Zendesk", "description": "Zendesk email + API token + subdomain for the Zendesk connector."},
     "todoist": {"name": "Todoist", "description": "Todoist personal API token for the Todoist connector."},
+    "brevo": {"name": "Brevo", "description": "Brevo API key for the Brevo connector."},
+    "freshdesk": {"name": "Freshdesk", "description": "Freshdesk email + API key + domain for the Freshdesk connector."},
+    "monday": {"name": "Monday.com", "description": "Monday.com API token for the Monday connector."},
     "ftp": {"name": "FTP", "description": "FTP/FTPS server connection for the FTP node."},
     "ssh": {"name": "SSH", "description": "SSH server connection (password or key) for the SSH node."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
@@ -817,6 +840,9 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "todoist": True,
     "ftp": True,
     "ssh": True,
+    "brevo": True,
+    "freshdesk": True,
+    "monday": True,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work
