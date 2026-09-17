@@ -46,6 +46,9 @@ alembic>=1.13
 # OpenAPI specification import (YAML support)
 PyYAML>=6.0
 
+# SSH node (paramiko, lazy import so the app boots without it)
+paramiko>=3.0
+
 # test
 pytest>=8
 pytest-asyncio>=0.23

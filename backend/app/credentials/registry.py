@@ -395,6 +395,29 @@ class TodoistCredential(BaseModel):
     api_token: str = Field(min_length=1, description="Todoist personal API token (Settings > Integrations).")
 
 
+class FtpCredential(BaseModel):
+    host: str = Field(min_length=1, description="FTP server hostname.")
+    port: int = Field(default=21, ge=1, le=65535, description="FTP port (21, or 990 for implicit FTPS).")
+    username: str = Field(default="", description="FTP username (anonymous if empty and allowed).")
+    password: str = Field(default="", description="FTP password.")
+    secure: bool = Field(default=False, description="Use explicit FTPS (FTP_TLS).")
+
+
+class SshCredential(BaseModel):
+    host: str = Field(min_length=1, description="SSH server hostname.")
+    port: int = Field(default=22, ge=1, le=65535, description="SSH port.")
+    username: str = Field(min_length=1, description="SSH username.")
+    password: str = Field(default="", description="Password (or leave empty for key auth).")
+    private_key: str = Field(default="", description="PEM private key (or leave empty for password auth).")
+    passphrase: str = Field(default="", description="Private key passphrase (optional).")
+
+    @model_validator(mode="after")
+    def _require_auth(self) -> "SshCredential":
+        if not self.password.strip() and not self.private_key.strip():
+            raise ValueError("An SSH credential needs a password or a private_key.")
+        return self
+
+
 class PipedriveCredential(BaseModel):
     api_token: str = Field(min_length=1, description="Pipedrive API token (Settings > Personal preferences > API).")
     domain: str = Field(min_length=1, description="Company domain (e.g. acme.pipedrive.com).")
@@ -554,6 +577,8 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "pagerduty": PagerDutyCredential,
     "zendesk": ZendeskCredential,
     "todoist": TodoistCredential,
+    "ftp": FtpCredential,
+    "ssh": SshCredential,
     # Generic HTTP Auth providers (spec)
     "basic_auth": BasicAuthCredential,
     "bearer_auth": BearerAuthCredential,
@@ -617,6 +642,8 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "pagerduty": frozenset({"api_token"}),
     "zendesk": frozenset({"api_token"}),
     "todoist": frozenset({"api_token"}),
+    "ftp": frozenset({"password"}),
+    "ssh": frozenset({"password", "private_key", "passphrase"}),
     "basic_auth": frozenset({"password"}),
     "bearer_auth": frozenset({"token"}),
     "header_auth": frozenset({"header_value"}),
@@ -680,6 +707,8 @@ TYPE_META: dict[str, dict[str, str]] = {
     "pagerduty": {"name": "PagerDuty", "description": "PagerDuty API token for the PagerDuty connector."},
     "zendesk": {"name": "Zendesk", "description": "Zendesk email + API token + subdomain for the Zendesk connector."},
     "todoist": {"name": "Todoist", "description": "Todoist personal API token for the Todoist connector."},
+    "ftp": {"name": "FTP", "description": "FTP/FTPS server connection for the FTP node."},
+    "ssh": {"name": "SSH", "description": "SSH server connection (password or key) for the SSH node."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
     "bearer_auth": {"name": "Bearer Auth", "description": "Bearer token for Authorization header."},
     "header_auth": {"name": "Header Auth", "description": "Custom header (e.g. X-API-Key) authentication."},
@@ -786,6 +815,8 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "pagerduty": True,
     "zendesk": True,
     "todoist": True,
+    "ftp": True,
+    "ssh": True,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work

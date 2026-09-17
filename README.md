@@ -382,6 +382,8 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 | | `noop` | Passes input items through unchanged (placeholder / wiring anchor). |
 | | `respond_to_webhook` | Returns a synchronous HTTP response to the triggering webhook (`?respond=true`). |
 | | `git` | Read-only Git inspection: status, log, branches. |
+| | `ftp` | List, download, upload, and delete files on FTP/FTPS servers. |
+| | `ssh` | Run remote commands and move files over SSH/SFTP (needs `paramiko`). |
 | **Data & Code** | `code` | Executes custom JavaScript (via DukPy) or Python script blocks. |
 | | `data_table` | Interacts with native Flowsmith Data Tables (insert, update, query). |
 | | `csv_json_transform` | Converts CSV rows to JSON structures and vice versa. |
@@ -489,7 +491,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `POST /api/credentials/{id}/test` — Verify credential connectivity (auto-refreshes expired OAuth tokens once and re-probes)
 - `POST /api/credentials/{id}/reconnect` — Background token renewal without interactive login
 - `DELETE /api/credentials/{id}` — Delete credential
-- `GET /api/credentials/types` — Discover supported credential schemas (58 types)
+- `GET /api/credentials/types` — Discover supported credential schemas (60 types)
 
 ### AI & Assistant
 - `POST /api/ai/generate-workflow` — Generate full workflow from natural language

@@ -73,6 +73,7 @@ idna==3.10
 importlib_resources==7.1.0
 iniconfig==2.3.0
 itsdangerous==2.2.0
+invoke==3.0.3
 Jinja2==3.1.6
 jiter==0.16.0
 joblib==1.5.3
@@ -112,6 +113,7 @@ orjson==3.11.9
 overrides==7.7.0
 packaging==26.0
 pandas==3.0.2
+paramiko==5.0.0
 passlib==1.7.4
 patsy==1.0.2
 pillow==12.2.0
@@ -137,6 +139,7 @@ PyJWT==2.13.0
 pyparsing==3.3.2
 PyPDF2==3.0.1
 PyPika==0.51.1
+pynacl==1.6.2
 pyproject_hooks==1.2.0
 pytest==9.1.1
 pytest-asyncio==1.4.0
