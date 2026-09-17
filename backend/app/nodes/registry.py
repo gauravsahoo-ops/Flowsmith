@@ -109,6 +109,7 @@ def _load_builtin_nodes() -> None:
         markdown_text,
         memory,
         merge,
+        noop,
         output_parser,
         pagination,
         rag_pipeline,

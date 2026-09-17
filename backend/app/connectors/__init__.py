@@ -535,6 +535,10 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.gitlab_definition import build_gitlab_definition
     from app.connectors.bitbucket_connector import BitbucketConnector
     from app.connectors.bitbucket_definition import build_bitbucket_definition
+    from app.connectors.whatsapp_connector import WhatsAppConnector
+    from app.connectors.whatsapp_definition import build_whatsapp_definition
+    from app.connectors.clickup_connector import ClickUpConnector
+    from app.connectors.clickup_definition import build_clickup_definition
     from app.connectors.twilio_connector import TwilioConnector
     from app.connectors.twilio_definition import build_twilio_definition
     from app.connectors.zoom_connector import ZoomConnector
@@ -621,6 +625,8 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (ZoomConnector(), build_zoom_definition),
         (TwilioConnector(), build_twilio_definition),
         (BitbucketConnector(), build_bitbucket_definition),
+        (WhatsAppConnector(), build_whatsapp_definition),
+        (ClickUpConnector(), build_clickup_definition),
     ]
 
     registry = get_registry()
