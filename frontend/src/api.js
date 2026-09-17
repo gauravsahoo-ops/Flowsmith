@@ -262,5 +262,9 @@ export const api = {
     const q = provider ? `?provider=${encodeURIComponent(provider)}&force=${force}` : `?force=${force}`
     return requestEnvelope('POST', `/workflows/${workflowId}/auth-state/refresh${q}`)
   },
+  // Custom company branding & white-labeling
+  getBranding: () => request('GET', '/branding'),
+  updateBranding: (data) => request('PUT', '/branding', data),
+  resetBranding: () => request('POST', '/branding/reset'),
 }
 

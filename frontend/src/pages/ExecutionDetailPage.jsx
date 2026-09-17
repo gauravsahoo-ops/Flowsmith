@@ -5,7 +5,6 @@ import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ExecutionTimeline from '../components/ExecutionTimeline'
 import StepDetail from '../components/StepDetail'
-import { useExecutionStore } from '../stores/executionStore'
 
 const STATUS_LABEL = { success: 'success', failed: 'failed', cancelled: 'cancelled', running: 'running…', queued: 'queued…', waiting_approval: 'waiting approval' }
 

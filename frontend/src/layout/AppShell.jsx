@@ -4,6 +4,7 @@ import AppSidebar from './AppSidebar'
 import GlobalSearch from '../components/shared/GlobalSearch'
 import { useWorkflowStore, isDirty } from '../stores/workflowStore'
 import { useCredentialStore } from '../stores/credentialStore'
+import { useBrandingStore } from '../stores/brandingStore'
 
 export default function AppShell({ onLogout }) {
   const location = useLocation()
@@ -53,6 +54,7 @@ export default function AppShell({ onLogout }) {
 
   // Init stores once
   useEffect(() => {
+    useBrandingStore.getState().init().catch(() => {})
     useWorkflowStore.getState().init().catch(() => {})
     useCredentialStore.getState().load().catch(() => {})
 

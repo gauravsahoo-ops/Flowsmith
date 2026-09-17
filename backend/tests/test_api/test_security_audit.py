@@ -74,6 +74,7 @@ PUBLIC_ROUTES = {
     ("GET", "/api/auth/sso/providers"),          # list configured identity providers for login UI
     ("GET", "/api/auth/sso/{provider}/login"),   # initiates SSO flow and redirects to IdP
     ("GET", "/api/auth/sso/{provider}/callback"),# OAuth state-bound SSO callback
+    ("GET", "/api/branding"),                    # public branding (app name/logo for login and app shell)
 }
 
 

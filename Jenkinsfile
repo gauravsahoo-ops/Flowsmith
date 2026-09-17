@@ -60,8 +60,14 @@ pipeline {
                     // 2. Rsync app code and compose files to release folder
                     sh """
                     rsync -az --delete \
-                        --exclude='.*' \
+                        --exclude='__pycache__.*' \
                         --exclude='.git' \
+                        --exclude='.env.production' \
+                        --exclude='.env' \
+                        --exclude='.claude' \
+                        --exclude='.jenkins' \
+                        --exclude='.vscode' \
+                        --exclude='deployment_requirements.md' \
                         --exclude='Jenkinsfile' \
                         --exclude-from='.jenkins' \
                         -e "ssh -o StrictHostKeyChecking=no" \

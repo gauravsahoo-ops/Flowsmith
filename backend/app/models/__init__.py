@@ -25,6 +25,7 @@ from app.models.data_table import DataTable, DataTableColumn, DataTableRow
 from app.models.workflow import WorkflowRecord
 from app.models.workflow_auth import WorkflowAuthState
 from app.models.workflow_test import WorkflowTest
+from app.models.branding import BrandingSetting
 
 __all__ = [
     "User",
@@ -56,5 +57,6 @@ __all__ = [
     "DataTable",
     "DataTableColumn",
     "DataTableRow",
+    "BrandingSetting",
 ]
 

@@ -68,7 +68,6 @@ export default function NodeEditorModal() {
   const runPreview = useExecutionStore((s) => s.runPreview)
 
   const [mapping, setMapping] = useState([])
-  const [upstreamData, setUpstreamData] = useState(null)
   const [outputData, setOutputData] = useState(null)
   const [executing, setExecuting] = useState(false)
   const [execError, setExecError] = useState(null)

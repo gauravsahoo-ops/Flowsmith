@@ -157,10 +157,11 @@ echo    Redis ............... READY
 
 :: Run migrations with fallback
 cd /d "%ROOT%backend"
-"%VENV_ALEMBIC%" upgrade head 2>nul
+"%VENV_PY%" -m alembic upgrade head 2>nul
+if errorlevel 1 "%VENV_ALEMBIC%" upgrade head 2>nul
 if errorlevel 1 (
     echo    Alembic migration had issues. Attempting create_all fallback...
-    "%VENV_PY%" -c "from app.db import init_db; init_db()" 2>nul
+    "%VENV_PY%" -c "from app.db import init_db; init_db()"
     if errorlevel 1 (
         echo.
         echo ERROR: Database migration failed.

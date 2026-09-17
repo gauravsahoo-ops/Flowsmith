@@ -76,7 +76,7 @@ def recover_orphaned_executions(grace_seconds: float) -> int:
             job_id = f"job_{uuid4().hex[:12]}"
             enqueued = False
             try:
-                enqueued = bool(get_queue().enqueue(job_id, rec.id, payload))
+                enqueued = get_queue().enqueue(job_id, rec.id, payload)
             except Exception:
                 logger.exception("orphan sweep: enqueue failed for %s", rec.id)
             if enqueued:

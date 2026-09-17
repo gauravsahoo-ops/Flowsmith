@@ -260,10 +260,11 @@ if not exist "%VENV_PY%" (
 )
 
 :: Run Alembic migrations (includes Data Tables 58767f324966)
-"%VENV_ALEMBIC%" upgrade head 2>nul
+"%VENV_PY%" -m alembic upgrade head 2>nul
+if errorlevel 1 "%VENV_ALEMBIC%" upgrade head 2>nul
 if errorlevel 1 (
     echo    Alembic migration had issues. Attempting create_all fallback...
-    "%VENV_PY%" -c "from app.db import init_db; init_db()" 2>nul
+    "%VENV_PY%" -c "from app.db import init_db; init_db()"
     if errorlevel 1 (
         echo.
         echo ERROR: Database migration failed.
@@ -492,7 +493,7 @@ echo     Network:   http://!LAN_IP!:%FRONTEND_PORT%
 )
 echo     API:       http://localhost:%BACKEND_PORT%/api/health
 if defined LAN_IP (
-echo     API (LAN): http://!LAN_IP!:%BACKEND_PORT%/api/health
+echo     API [LAN]: http://!LAN_IP!:%BACKEND_PORT%/api/health
 )
 echo.
 echo   Service Status:

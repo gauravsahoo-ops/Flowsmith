@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { useBrandingStore } from '../stores/brandingStore'
 
 function NavIcon({ name, size = 18 }) {
   switch (name) {
@@ -176,23 +177,41 @@ function SidebarItem({ item, collapsed, mobileClose }) {
 
 export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, onMobileClose }) {
   const sidebarClass = `app-sidebar ${collapsed ? 'is-collapsed' : 'is-expanded'} ${isMobile ? 'is-mobile' : ''} ${mobileOpen ? 'mobile-open' : ''}`
+  const appName = useBrandingStore((s) => s.appName) || 'Flowsmith'
+  const logoUrl = useBrandingStore((s) => s.logoUrl)
+  const logoData = useBrandingStore((s) => s.logoData)
+  const logoSrc = logoData || logoUrl
 
   const content = (
     <>
       <div className="app-sidebar-brand">
         <div
           className="app-sidebar-brand-mark"
-          title={collapsed ? 'Click to open full tab' : 'Flowsmith'}
+          title={collapsed ? 'Click to open full tab' : appName}
           onClick={collapsed ? onToggle : undefined}
-          style={collapsed ? { cursor: 'pointer' } : undefined}
+          style={{
+            cursor: collapsed ? 'pointer' : undefined,
+            background: logoSrc ? 'transparent' : 'var(--brand-gradient, linear-gradient(135deg, #6366f1 0%, #3b82f6 100%))',
+            boxShadow: logoSrc ? 'none' : 'var(--brand-shadow, 0 4px 14px rgba(99, 102, 241, 0.4))',
+            padding: logoSrc ? 2 : 0,
+            overflow: 'hidden',
+          }}
           role={collapsed ? 'button' : undefined}
-          aria-label={collapsed ? 'Open full tab' : 'Flowsmith'}
+          aria-label={collapsed ? 'Open full tab' : appName}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" />
-          </svg>
+          {logoSrc ? (
+            <img
+              src={logoSrc}
+              alt={appName}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }}
+            />
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" />
+            </svg>
+          )}
         </div>
-        <span className="app-sidebar-brand-name">Flowsmith</span>
+        <span className="app-sidebar-brand-name">{appName}</span>
       </div>
 
       <nav className="app-sidebar-nav" aria-label="Main navigation">

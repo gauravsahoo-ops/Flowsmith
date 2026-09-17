@@ -4429,6 +4429,92 @@ button.primary:hover:not(:disabled) {
 }
 .inline-form { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 
+/* ---------- White-labeling & Branding Editor ---------- */
+.branding-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .branding-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.branding-preview-box {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.branding-preview-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+.branding-preview-sample {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.branding-color-swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 6px;
+}
+.branding-swatch-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  padding: 0;
+}
+.branding-swatch-btn:hover {
+  transform: scale(1.15);
+}
+.branding-swatch-btn.is-active {
+  border-color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  transform: scale(1.12);
+}
+.branding-color-picker-input {
+  width: 34px;
+  height: 30px;
+  padding: 0 2px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.branding-logo-dropzone {
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.15s;
+}
+.branding-logo-dropzone:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
 /* ---------- Workflow editor ---------- */
 .workflow-editor-page { display: flex; flex-direction: column; flex: 1; min-height: 0; height: 100%; margin: 0; padding: 0; }
 .workflow-editor-breadcrumb { padding: 4px 10px; font-size: 12px; display: flex; gap: 6px; align-items: center; flex-shrink: 0; background: var(--panel); border-bottom: 1px solid var(--border); }

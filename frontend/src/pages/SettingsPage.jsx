@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, getToken } from '../api'
+import { useBrandingStore, DEFAULT_BRANDING } from '../stores/brandingStore'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 
@@ -19,6 +20,16 @@ function Section({ title, description, children, defaultOpen = true }) {
   )
 }
 
+const BRAND_COLOR_PRESETS = [
+  { name: 'Flowsmith Indigo', hex: '#6366f1' },
+  { name: 'Electric Blue', hex: '#3b82f6' },
+  { name: 'Emerald Green', hex: '#10b981' },
+  { name: 'Royal Violet', hex: '#8b5cf6' },
+  { name: 'Amber Glow', hex: '#f59e0b' },
+  { name: 'Crimson Rose', hex: '#f43f5e' },
+  { name: 'Cyan Sky', hex: '#06b6d4' },
+]
+
 export default function SettingsPage() {
   const [profile, setProfile] = useState(null)
   const [workspaces, setWorkspaces] = useState([])
@@ -30,6 +41,80 @@ export default function SettingsPage() {
   const [newKeyName, setNewKeyName] = useState('')
   const [newKey, setNewKey] = useState(null)
   const [keyBusy, setKeyBusy] = useState(false)
+
+  const branding = useBrandingStore()
+  const [brandForm, setBrandForm] = useState({
+    appName: branding.appName || 'Flowsmith',
+    tagline: branding.tagline || 'Next-Gen Workflow Automation',
+    logoUrl: branding.logoUrl || '',
+    logoData: branding.logoData || '',
+    primaryColor: branding.primaryColor || '#6366f1',
+  })
+  const [brandNotice, setBrandNotice] = useState(null)
+  const [brandBusy, setBrandBusy] = useState(false)
+
+  useEffect(() => {
+    setBrandForm({
+      appName: branding.appName || 'Flowsmith',
+      tagline: branding.tagline || 'Next-Gen Workflow Automation',
+      logoUrl: branding.logoUrl || '',
+      logoData: branding.logoData || '',
+      primaryColor: branding.primaryColor || '#6366f1',
+    })
+  }, [branding.appName, branding.tagline, branding.logoUrl, branding.logoData, branding.primaryColor])
+
+  function handleLogoFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Logo image must be smaller than 2MB.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setBrandForm(f => ({ ...f, logoData: reader.result, logoUrl: '' }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  async function handleSaveBranding(e) {
+    e.preventDefault()
+    setBrandBusy(true)
+    setError(null)
+    setBrandNotice(null)
+    try {
+      await branding.updateBranding(brandForm)
+      setBrandNotice('Branding configuration saved and applied across the entire platform!')
+      setTimeout(() => setBrandNotice(null), 4000)
+    } catch (err) {
+      setError(err.message || 'Failed to update branding.')
+    } finally {
+      setBrandBusy(false)
+    }
+  }
+
+  async function handleResetBranding() {
+    if (!window.confirm('Reset software name, logo, and colors back to Flowsmith defaults?')) return
+    setBrandBusy(true)
+    setError(null)
+    setBrandNotice(null)
+    try {
+      const defs = await branding.resetBranding()
+      setBrandForm({
+        appName: defs.appName,
+        tagline: defs.tagline,
+        logoUrl: '',
+        logoData: '',
+        primaryColor: defs.primaryColor,
+      })
+      setBrandNotice('Branding restored to default Flowsmith settings.')
+      setTimeout(() => setBrandNotice(null), 4000)
+    } catch (err) {
+      setError(err.message || 'Failed to reset branding.')
+    } finally {
+      setBrandBusy(false)
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -119,6 +204,243 @@ export default function SettingsPage() {
           <div className="settings-attr">
             <div className="settings-attr-label">API Endpoint Base</div>
             <div className="settings-attr-value"><code>/api</code></div>
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        title="Branding & White-Labeling"
+        description="Customize the software name, company logo, tagline, and brand colors for your organization or clients."
+      >
+        {brandNotice && <div className="banner-inline ok" style={{ marginBottom: 14 }}>{brandNotice}</div>}
+
+        <div className="branding-grid">
+          {/* Left column: Branding Form */}
+          <form onSubmit={handleSaveBranding} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+                Software / Company Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Acme Corp or Flowsmith"
+                value={brandForm.appName}
+                onChange={e => setBrandForm(f => ({ ...f, appName: e.target.value }))}
+                style={{ width: '100%', maxWidth: 440 }}
+                maxLength={128}
+                required
+              />
+              <span className="hint" style={{ fontSize: 11.5, display: 'block', marginTop: 4 }}>
+                Replaces "Flowsmith" in the sidebar, navigation header, document title, and login screen.
+              </span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+                Tagline / Subtitle
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Next-Gen Workflow Automation"
+                value={brandForm.tagline}
+                onChange={e => setBrandForm(f => ({ ...f, tagline: e.target.value }))}
+                style={{ width: '100%', maxWidth: 440 }}
+                maxLength={255}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+                Company Logo
+              </label>
+              <div className="branding-logo-dropzone" style={{ maxWidth: 440 }}>
+                <div style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 10,
+                  background: (brandForm.logoData || brandForm.logoUrl)
+                    ? 'rgba(0,0,0,0.3)'
+                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, rgba(99,102,241,0.6) 100%)`,
+                  display: 'grid',
+                  placeItems: 'center',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  {(brandForm.logoData || brandForm.logoUrl) ? (
+                    <img
+                      src={brandForm.logoData || brandForm.logoUrl}
+                      alt="Logo preview"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#fff' }}>
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" />
+                    </svg>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <label className="button ghost small" style={{ cursor: 'pointer', margin: 0 }}>
+                      <span>📁 Upload Logo Image</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/svg+xml,image/jpeg,image/webp"
+                        style={{ display: 'none' }}
+                        onChange={handleLogoFile}
+                      />
+                    </label>
+                    {(brandForm.logoData || brandForm.logoUrl) && (
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ color: '#ef4444' }}
+                        onClick={() => setBrandForm(f => ({ ...f, logoData: '', logoUrl: '' }))}
+                      >
+                        Remove Logo
+                      </button>
+                    )}
+                  </div>
+                  <span className="hint" style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
+                    Supports PNG, SVG, JPG, WebP (max 2MB).
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 8 }}>
+                <input
+                  type="url"
+                  placeholder="Or paste an external logo URL (https://...)"
+                  value={brandForm.logoUrl}
+                  onChange={e => setBrandForm(f => ({ ...f, logoUrl: e.target.value, logoData: '' }))}
+                  style={{ width: '100%', maxWidth: 440, fontSize: 12 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#e2e8f0', marginBottom: 4 }}>
+                Brand Accent Color
+              </label>
+              <div className="branding-color-swatches">
+                {BRAND_COLOR_PRESETS.map(preset => (
+                  <button
+                    key={preset.hex}
+                    type="button"
+                    title={preset.name}
+                    className={`branding-swatch-btn ${brandForm.primaryColor.toLowerCase() === preset.hex.toLowerCase() ? 'is-active' : ''}`}
+                    style={{ background: preset.hex }}
+                    onClick={() => setBrandForm(f => ({ ...f, primaryColor: preset.hex }))}
+                  />
+                ))}
+                <input
+                  type="color"
+                  title="Custom hex color"
+                  className="branding-color-picker-input"
+                  value={brandForm.primaryColor}
+                  onChange={e => setBrandForm(f => ({ ...f, primaryColor: e.target.value }))}
+                />
+                <code style={{ fontSize: 12, padding: '3px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>
+                  {brandForm.primaryColor}
+                </code>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
+              <button className="primary" type="submit" disabled={brandBusy}>
+                {brandBusy ? 'Saving…' : '✓ Save Branding'}
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                disabled={brandBusy}
+                onClick={handleResetBranding}
+              >
+                ↺ Reset to Defaults
+              </button>
+            </div>
+          </form>
+
+          {/* Right column: Live Preview */}
+          <div className="branding-preview-box">
+            <div className="branding-preview-header">Live Brand Preview</div>
+            
+            {/* Sidebar header preview */}
+            <div>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>Sidebar Header</div>
+              <div className="branding-preview-sample">
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: (brandForm.logoData || brandForm.logoUrl)
+                    ? 'transparent'
+                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, rgba(99,102,241,0.6) 100%)`,
+                  boxShadow: (brandForm.logoData || brandForm.logoUrl)
+                    ? 'none'
+                    : `0 4px 12px ${brandForm.primaryColor}66`,
+                  display: 'grid',
+                  placeItems: 'center',
+                  overflow: 'hidden',
+                  flexShrink: 0
+                }}>
+                  {(brandForm.logoData || brandForm.logoUrl) ? (
+                    <img
+                      src={brandForm.logoData || brandForm.logoUrl}
+                      alt="Logo"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#fff' }}>
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" />
+                    </svg>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <span style={{ fontWeight: 800, fontSize: 13.5, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {brandForm.appName || 'Flowsmith'}
+                  </span>
+                  <span style={{ fontSize: 10.5, color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {brandForm.tagline || 'Next-Gen Workflow Automation'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Login card preview */}
+            <div>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>Login Card Header</div>
+              <div className="branding-preview-sample" style={{ flexDirection: 'column', textAlign: 'center', padding: '16px 12px' }}>
+                <div style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: (brandForm.logoData || brandForm.logoUrl)
+                    ? 'transparent'
+                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, rgba(99,102,241,0.6) 100%)`,
+                  display: 'grid',
+                  placeItems: 'center',
+                  overflow: 'hidden',
+                  margin: '0 auto 8px'
+                }}>
+                  {(brandForm.logoData || brandForm.logoUrl) ? (
+                    <img
+                      src={brandForm.logoData || brandForm.logoUrl}
+                      alt="Logo"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 20 }}>⚡</span>
+                  )}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>
+                  {brandForm.appName || 'Flowsmith'}
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                  {brandForm.tagline || 'Next-Gen Workflow Automation'}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </Section>

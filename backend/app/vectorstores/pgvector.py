@@ -201,7 +201,7 @@ class PgVectorStore(VectorStore):
             doc_ids: list[str] = []
             for i in range(len(documents)):
                 given = ids[i] if ids is not None else None
-                doc_ids.append(str(given) if given else f"auto_{handle}_{next_seq + i + 1}")
+                doc_ids.append(given if given else f"auto_{handle}_{next_seq + i + 1}")
             unique_ids = list(dict.fromkeys(doc_ids))
             if unique_ids:
                 conn.execute(
@@ -275,10 +275,10 @@ class PgVectorStore(VectorStore):
         try:
             res = conn.execute(
                 text(f'DELETE FROM "{table}" WHERE chunk_id = ANY(:ids)'),
-                {"ids": [int(c) for c in chunk_ids]},
+                {"ids": list(chunk_ids)},
             )
             conn.commit()
-            return int(res.rowcount or 0)
+            return res.rowcount or 0
         except Exception:
             conn.rollback()
             raise
@@ -296,7 +296,7 @@ class PgVectorStore(VectorStore):
                 {"ids": list(ids)},
             )
             conn.commit()
-            return int(res.rowcount or 0)
+            return res.rowcount or 0
         except Exception:
             conn.rollback()
             raise

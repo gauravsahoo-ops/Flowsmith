@@ -95,6 +95,9 @@ def _insert_rows(
     if not rows:
         raise ValueError("insert_rows needs at least one row.")
     keys = list(rows[0].keys())
+    for k in keys:
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(k)):
+            raise ValueError(f"Invalid column identifier: {k!r}")
     placeholders = ", ".join(f":{k}" for k in keys)
     columns = ", ".join(f'"{k}"' for k in keys)
     sql = text(f'INSERT INTO "{table}" ({columns}) VALUES ({placeholders})')  # noqa: S608 - identifiers quoted

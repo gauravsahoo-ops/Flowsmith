@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, getToken, setToken } from '../api'
+import { useBrandingStore } from '../stores/brandingStore'
 
 // Login / Register / Forgot-password / Reset-password / SSO (Phase 42 + SSO EE).
 // The backend's reset email links to /reset-password?token=... — the SPA
@@ -92,6 +93,16 @@ export default function Login({ onAuthed }) {
     }
   }
 
+  const appName = useBrandingStore((s) => s.appName) || 'Flowsmith'
+  const tagline = useBrandingStore((s) => s.tagline) || 'Visual workflow automation'
+  const logoUrl = useBrandingStore((s) => s.logoUrl)
+  const logoData = useBrandingStore((s) => s.logoData)
+  const logoSrc = logoData || logoUrl
+
+  useEffect(() => {
+    useBrandingStore.getState().init().catch(() => {})
+  }, [])
+
   function handleSsoLogin(providerId) {
     // Redirect to backend SSO login endpoint
     window.location.href = `/api/auth/sso/${providerId}/login`
@@ -102,8 +113,26 @@ export default function Login({ onAuthed }) {
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={submit}>
-        <h1>⚡ Flowsmith</h1>
-        <p className="hint">Visual workflow automation</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            background: logoSrc ? 'transparent' : 'var(--brand-gradient, linear-gradient(135deg, #6366f1 0%, #3b82f6 100%))',
+            boxShadow: logoSrc ? 'none' : 'var(--brand-shadow, 0 4px 14px rgba(99, 102, 241, 0.4))',
+            display: 'grid',
+            placeItems: 'center',
+            overflow: 'hidden',
+          }}>
+            {logoSrc ? (
+              <img src={logoSrc} alt={appName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            ) : (
+              <span style={{ fontSize: 24 }}>⚡</span>
+            )}
+          </div>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>{appName}</h1>
+          <p className="hint" style={{ margin: 0 }}>{tagline}</p>
+        </div>
 
         {(mode === 'login' || mode === 'register') && (
           <div className="tabs">
