@@ -7,6 +7,7 @@ import logging
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import httpx
 import pytest
@@ -23,9 +24,10 @@ from app.nodes.websocket import WebSocketNode, WebSocketParams
 @pytest.fixture(scope="module", autouse=True)
 def echo_server():
     """Start a local WebSocket echo server in a background process."""
+    backend_dir = Path(__file__).resolve().parents[1]
     proc = subprocess.Popen(
         [sys.executable, "ws_echo_server.py"],
-        cwd="D:\\my-automation-tool\\backend",
+        cwd=str(backend_dir),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

@@ -352,6 +352,8 @@ class PgVectorStore(VectorStore):
         table = _table_name(suffix)
         conn = self._connect()
         try:
+            self._ensure_extension(conn)
+            conn.execute(_ENSURE_CATALOG_SQL)
             deleted = bool(conn.execute(
                 text(f"DELETE FROM {CATALOG_TABLE} WHERE name = :name RETURNING name"),
                 {"name": name},

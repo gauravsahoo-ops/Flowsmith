@@ -26,10 +26,8 @@ def register(cls: type[BaseNode]) -> type[BaseNode]:
 
 
 _ALIASES: dict[str, str] = {
-    "token_fetch": "token_manager",
-    "token_store": "token_manager",
-    "auth_fetch": "token_manager",
-    "auth_store": "token_manager",
+    "auth_fetch": "token_fetch",
+    "auth_store": "token_store",
     "sub_workflow_trigger": "execute_workflow_trigger",
     "when_executed_by_another_workflow": "execute_workflow_trigger",
     "execute_sub_workflow": "sub_workflow",
@@ -129,7 +127,9 @@ def _load_builtin_nodes() -> None:
         switch,
         telegram,
         text_splitter,
+        token_fetch,
         token_manager,
+        token_store,
         wait,
         webhook,
         websocket,

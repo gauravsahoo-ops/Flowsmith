@@ -589,7 +589,7 @@ class CodeNode(BaseNode[CodeParams]):
     display_name = "Code"
     version = 1
     description = "Run JavaScript code to transform data. Use $input.all() and $input.item."
-    category = "Data"
+    category = "Transform"
     icon = "💻"
     parameters_schema = CodeParams
     idempotency = "idempotent"

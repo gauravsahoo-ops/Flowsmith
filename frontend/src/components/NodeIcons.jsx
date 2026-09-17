@@ -80,8 +80,8 @@ export function NodeIcon({ type, icon, size = 34, color }) {
     )
   }
 
-  // 5b. Token Fetch (Key with lock loop - auth retrieval)
-  if (normalized === 'token_fetch' || normalized === 'auth_fetch') {
+  // 5b. Token Manager / Token Fetch (Key with lock loop - auth retrieval)
+  if (normalized === 'token_manager' || normalized === 'token_fetch' || normalized === 'auth_fetch') {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#f59e0b'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 2l-2 2m-1.5 1.5L14 9a5.5 5.5 0 1 0 3 3l6.5-6.5-2-2-1.5 1.5z" />

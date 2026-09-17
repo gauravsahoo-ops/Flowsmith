@@ -33,6 +33,9 @@ export default function TokenManagerNodeEditor({
   const [showAutoLogin, setShowAutoLogin] = useState(
     Boolean(params.login_url || params.login_body)
   )
+  const [showManualRefresh, setShowManualRefresh] = useState(
+    Boolean(params.refresh_url || params.refresh_body)
+  )
   const [liveDbAuth, setLiveDbAuth] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState('')

@@ -143,6 +143,7 @@ def _extract_from_item(item: dict[str, Any]) -> dict[str, Any]:
     return res
 
 
+@register
 class TokenStoreNode(BaseNode[TokenStoreParams]):
     node_type = "token_store"
     display_name = "Token Store"

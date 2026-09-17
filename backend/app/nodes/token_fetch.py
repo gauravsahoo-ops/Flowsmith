@@ -78,6 +78,7 @@ def _output(
     }
 
 
+@register
 class TokenFetchNode(BaseNode[TokenFetchParams]):
     node_type = "token_fetch"
     display_name = "Token Fetch"
@@ -86,6 +87,7 @@ class TokenFetchNode(BaseNode[TokenFetchParams]):
     category = "Actions"
     icon = "🔑"
     parameters_schema = TokenFetchParams
+    idempotency = "conditionally_idempotent"
 
     async def run(
         self,

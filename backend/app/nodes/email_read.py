@@ -146,7 +146,7 @@ class EmailReadNode(BaseNode[EmailReadParams]):
     display_name = "Read Email"
     version = 1
     description = "Read messages from an IMAP mailbox."
-    category = "Actions"
+    category = "Communication"
     icon = "📥"
     credential_types = ["imap"]
     parameters_schema = EmailReadParams

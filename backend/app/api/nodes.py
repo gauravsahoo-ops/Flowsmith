@@ -90,13 +90,17 @@ def _connector_catalog_entries() -> list[dict]:
     entries: list[dict] = []
     registry = _get_connector_registry()
     if not registry.is_initialized():
+        from app.connectors import register_builtin_connectors
+        register_builtin_connectors()
+        registry = _get_connector_registry()
+    if not registry.is_initialized():
         return entries
     for connector in registry.list_all():
         definition = registry.get_definition(connector.connector_id)
         for node_type in connector.node_types:
             if node_type in NODE_REGISTRY:
                 continue
-            category = str(connector.category)
+            category = "Connectors"
             credential_types = (
                 list(definition.credential_types.keys())
                 if definition is not None and definition.credential_types

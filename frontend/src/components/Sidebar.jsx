@@ -131,18 +131,19 @@ export default function Sidebar({ onOpenCredentials }) {
     const q = query.trim()
     const matches = catalog.filter((node) => {
       if (node.type === 'loop') return false
-      if (selectedCategory && (node.category || 'Other') !== selectedCategory) {
+      if (!q && selectedCategory && (node.category || 'Other') !== selectedCategory) {
         return false
       }
       if (!q) return true
       return (
-        fuzzyScore(q, `${node.display_name} ${node.type} ${node.category || ''}`) >= 0
+        fuzzyScore(q, `${node.display_name} ${node.type} ${node.category || ''} ${node.description || ''}`) >= 0
       )
     })
     const out = {}
     const seen = new Set()
     for (const node of matches) {
-      if (node.icon === '🔌' || node.type === 'loop') continue
+      if (node.type === 'loop') continue
+      if (!q && selectedCategory !== 'Connectors' && (node.icon === '🔌' || node.category === 'Connectors')) continue
       const key = `${node.category || 'Other'}::${node.display_name}`
       if (seen.has(key)) continue
       seen.add(key)
@@ -158,16 +159,8 @@ export default function Sidebar({ onOpenCredentials }) {
   }, [catalog, query, selectedCategory])
 
   const connectorNodes = useMemo(() => {
-    if (!query.trim()) {
-      return catalog.filter((n) => n.icon === '🔌')
-    }
-    const q = query.trim().toLowerCase()
-    return catalog.filter(
-      (n) =>
-        n.icon === '🔌' &&
-        (`${n.display_name} ${n.type}`.toLowerCase().includes(q)),
-    )
-  }, [catalog, query])
+    return catalog.filter((n) => n.icon === '🔌' || n.category === 'Connectors')
+  }, [catalog])
 
   /** Jump to the first canvas instance of a node type. */
   function jumpToType(type) {
@@ -225,7 +218,6 @@ export default function Sidebar({ onOpenCredentials }) {
   const categoryMeta = useMemo(() => {
     const counts = {}
     for (const node of catalog) {
-      if (node.icon === '🔌') continue
       const cat = node.category || 'Other'
       counts[cat] = (counts[cat] || 0) + 1
     }
@@ -233,7 +225,7 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Flow',
         title: 'Flow',
-        desc: `Control the flow of data through your workflow (${counts['Flow'] || 10} nodes)`,
+        desc: `Control the flow of data through your workflow (${counts['Flow'] || 18} nodes)`,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="18" cy="5" r="3" />
@@ -248,7 +240,7 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Triggers',
         title: 'Triggers',
-        desc: `Start workflows automatically or manually (${counts['Triggers'] || 4} nodes)`,
+        desc: `Start workflows automatically or manually (${counts['Triggers'] || 6} nodes)`,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="#f97316" stroke="#ea580c" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -259,7 +251,7 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Actions',
         title: 'Actions',
-        desc: `Send HTTP requests, API calls and external actions (${counts['Actions'] || 2} nodes)`,
+        desc: `Send HTTP requests, API calls and external actions (${counts['Actions'] || 7} nodes)`,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="16 18 22 12 16 6" />
@@ -271,7 +263,7 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Transform',
         title: 'Transform',
-        desc: `Transform, edit and convert data payloads (${counts['Transform'] || 3} nodes)`,
+        desc: `Code, transform, edit and convert data payloads (${counts['Transform'] || 10} nodes)`,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -283,7 +275,7 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Logic',
         title: 'Logic',
-        desc: `Human approvals, loops, splits and pagination (${counts['Logic'] || 5} nodes)`,
+        desc: `Human approvals, loops, splits and pagination (${counts['Logic'] || 3} nodes)`,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -295,7 +287,7 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'AI',
         title: 'AI & Agents',
-        desc: `AI LLM agents, RAG pipelines and prompts (${counts['AI'] || 3} nodes)`,
+        desc: `AI LLM agents, RAG pipelines and prompts (${counts['AI'] || 7} nodes)`,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
@@ -319,13 +311,26 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Communication',
         title: 'Communication',
-        desc: `Send emails, Slack and Telegram messages (${counts['Communication'] || 3} nodes)`,
+        desc: `Send emails, Slack, Telegram & WebSockets (${counts['Communication'] || 5} nodes)`,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         ),
         accent: '#06b6d4',
+      },
+      {
+        id: 'Connectors',
+        title: 'Connectors & Apps',
+        desc: `Salesforce, Google, HubSpot, Slack, GitHub, Stripe (${counts['Connectors'] || 59} apps)`,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="4" />
+            <line x1="7" y1="12" x2="17" y2="12" />
+            <line x1="12" y1="7" x2="12" y2="17" />
+          </svg>
+        ),
+        accent: '#3b82f6',
       },
     ]
   }, [catalog])
@@ -556,15 +561,19 @@ export default function Sidebar({ onOpenCredentials }) {
           )
         })}
 
-      {!selectedCategory && connectorNodes.length > 0 && (
+      {!selectedCategory && !searching && connectorNodes.length > 0 && (
         <div className="node-group">
-          <h3>🔌 Connectors</h3>
-          {!searching && (
-            <p className="hint">
-              Connector node types have no built-in node class — they execute through the connector framework.
-            </p>
-          )}
-          {connectorNodes.map((node) => (
+          <h3
+            className="clickable"
+            onClick={() => setSelectedCategory('Connectors')}
+            title="Click to view all Connectors"
+          >
+            🔌 Connectors ({connectorNodes.length})
+          </h3>
+          <p className="hint">
+            First-class integrations for Salesforce, Google, HubSpot, Slack, GitHub, Jira, and more.
+          </p>
+          {connectorNodes.slice(0, 10).map((node) => (
             <PaletteRow
               key={node.type}
               node={node}
@@ -573,6 +582,16 @@ export default function Sidebar({ onOpenCredentials }) {
               onClick={node.type === 'salesforce' ? () => setSalesforceOpen(true) : (node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') ? () => setSubWorkflowOpen(true) : undefined}
             />
           ))}
+          {connectorNodes.length > 10 && (
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => setSelectedCategory('Connectors')}
+              style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              View all {connectorNodes.length} connectors →
+            </button>
+          )}
         </div>
       )}
 

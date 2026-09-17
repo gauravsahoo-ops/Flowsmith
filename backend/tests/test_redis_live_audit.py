@@ -25,9 +25,9 @@ from app.queue import QueueJob
 
 # ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
+import os
 
-REDIS_URL = "redis://127.0.0.1:6379/0"
+REDIS_URL = os.environ.get("TEST_REDIS_URL", "redis://127.0.0.1:6379/15")
 PREFIXES_TO_CLEAN = [
     QUEUE_KEY,
     PROCESSING_KEY,
