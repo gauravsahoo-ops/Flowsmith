@@ -1,5 +1,6 @@
 pydantic>=2.7
 pydantic-settings>=2.2
+python-dotenv>=1.0
 httpx>=0.27
 fastapi>=0.111
 uvicorn>=0.30
@@ -15,6 +16,8 @@ cryptography>=42.0
 # No extra Python package is required: embeddings go through SQLAlchemy +
 # psycopg2 with the pgvector extension enabled by Alembic migration
 # c3f7a91b0d12_create_pgvector_extension.py.
+# Local SQLite vector fallback:
+sqlite-vec>=0.1.6
 
 # job queue (Phase 15): the redis backend (QUEUE_BACKEND=redis + REDIS_URL)
 redis>=5.0

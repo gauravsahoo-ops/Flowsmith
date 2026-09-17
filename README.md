@@ -131,6 +131,31 @@
 - Raw JSON inspections of incoming and outgoing data for each individual node.
 - Live rerun and manual retry capabilities without leaving the workflow view.
 
+### 7. Data Pinning & Mocking Engine
+- **Instant Output Mocking**: Pin output data (`pinned_data`) on any canvas node with a single click (📌 badge).
+- **Zero API Quota Consumption**: When pinned, the execution engine completely bypasses live external calls (HTTP, database mutations, CRM updates) and directly feeds mock payloads downstream.
+- **Interactive JSON Mock Drawer**: Edit mock responses on the fly directly inside the Output panel.
+
+### 8. Canvas Single-Step Testing & Dependency Scoping
+- **▶ Test Step (Run Node)**: Right-click any canvas node to execute only that single step.
+- **⏩ Run to Here**: Automatically computes all upstream dependencies in topological order and executes them up to the selected step.
+- **Rapid Iteration**: Test isolated API integrations or transformations without running end-to-end triggers.
+
+### 9. Visual Expression Autocomplete & Live Evaluation Drawer
+- **Live Variable Explorer Tree**: Browse upstream nodes, `$json`, `$execution.id`, `$workflow.id`, `$now`, and workspace environment variables (`$env.KEY`).
+- **Data Transformation Pipes**: Built-in pipe filters (`| upper`, `| lower`, `| trim`, `| json`, `| length`, etc.).
+- **Debounced Real-Time Evaluation**: Live evaluation of expressions against upstream context via `/api/workflows/{id}/preview-expression` with type badges (`String`, `Number`, `Boolean`, `Array`, `Object`) and syntax warning indicators.
+
+### 10. Universal OpenAPI 3.1 & Swagger Connector Importer
+- **One-Click Connector Generation**: Paste any OpenAPI 3.0/3.1 or Swagger 2.0 URL or JSON/YAML file.
+- **Auto-Detection**: Discovers authentication schemes (Bearer, API Key, Basic, OAuth2), base URLs, operation IDs, and schemas.
+- **First-Class Palette Integration**: Automatically registers generated connectors with Flowsmith's connector catalog, making them immediately available in the visual canvas palette (`+ Import API`).
+
+### 11. Autonomous AI Workflow Architect & Self-Healing
+- **Architecture Blueprints & Mermaid Flowcharts**: Generate comprehensive markdown documentation and `graph TD` Mermaid architecture diagrams via `POST /api/ai/document-workflow`, exportable with one click via the TopBar **Docs** modal.
+- **Autonomous Node Self-Healing**: `POST /api/ai/auto-fix` diagnoses runtime errors (URL scheme omissions, JSON syntax errors, auth header issues).
+- **Interactive Parameter Auto-Repair**: Inside the node editor, click `✨ AI Auto-Repair` to inspect root causes, view side-by-side parameter diffs, and click `✨ Apply Fix & Re-test` to auto-heal and immediately re-verify the step.
+
 ---
 
 ## Tech Stack
@@ -496,10 +521,25 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `DELETE /api/credentials/{id}` — Delete credential
 - `GET /api/credentials/types` — Discover supported credential schemas (63 types)
 
+### Workflows
+- `GET /api/workflows` — List workflows
+- `POST /api/workflows` — Create workflow
+- `GET /api/workflows/{id}` — Get workflow details
+- `PUT /api/workflows/{id}` — Update workflow
+- `DELETE /api/workflows/{id}` — Delete workflow
+- `POST /api/workflows/{id}/preview-expression` — Live evaluate visual expressions against upstream node context
+
+### Connectors & Catalog
+- `GET /api/connectors` — List registered connectors and operations
+- `POST /api/connectors/preview-openapi` — Parse and preview OpenAPI / Swagger specs
+- `POST /api/connectors/import-openapi` — One-click generate native first-class connector
+
 ### AI & Assistant
 - `POST /api/ai/generate-workflow` — Generate full workflow from natural language
 - `POST /api/ai/explain` — Explain execution error and recommend fixes
 - `POST /api/ai/suggest-node-config` — Suggest node parameters from user prompt
+- `POST /api/ai/document-workflow` — Generate Mermaid flowchart diagram & architectural docs
+- `POST /api/ai/auto-fix` — Autonomous failure diagnosis and self-healing parameter repair
 - `GET /api/ai/status` — Check LLM provider availability
 
 ---
@@ -563,7 +603,7 @@ pytest tests/test_api/test_credential_auto_reconnect.py -q  # OAuth auto-reconne
 pytest tests/test_security/ -q                     # SSRF, auth, and encryption audits
 ```
 
-### Frontend Testing (173 Unit Tests & 9 E2E Specs)
+### Frontend Testing (270 Unit Tests & E2E Specs)
 
 ```bash
 cd frontend
