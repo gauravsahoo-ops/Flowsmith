@@ -266,5 +266,8 @@ export const api = {
   getBranding: () => request('GET', '/branding'),
   updateBranding: (data) => request('PUT', '/branding', data),
   resetBranding: () => request('POST', '/branding/reset'),
+  // OpenAPI / Swagger Connector Importer
+  previewOpenApi: (payload) => request('POST', '/connectors/preview-openapi', payload),
+  importOpenApi: (payload) => request('POST', '/connectors/import-openapi', payload),
 }
 

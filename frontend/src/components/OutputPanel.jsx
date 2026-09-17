@@ -4,6 +4,7 @@ import Status from './shared/Status'
 import ErrorState from './shared/ErrorState'
 import { TableView } from './DataViewer'
 import BinaryDataViewModal from './BinaryDataViewModal'
+import { useWorkflowStore } from '../stores/workflowStore'
 import './OutputPanel.css'
 
 function unwrapItem(item) {
@@ -113,13 +114,16 @@ export default function OutputPanel({
   const [copiedSnippet, setCopiedSnippet] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editedText, setEditedText] = useState('')
-  const [pinned, setPinned] = useState(() => {
+  const storePinned = useWorkflowStore((s) => s.nodes.find((n) => n.id === nodeId)?.pinned_data)
+  const updateNode = useWorkflowStore((s) => s.updateNode)
+  const [localPinned, setLocalPinned] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(`op_pinned_${nodeId}`) || 'null')
     } catch {
       return null
     }
   })
+  const pinned = storePinned !== undefined ? storePinned : localPinned
   const [selectedBinaryModal, setSelectedBinaryModal] = useState(null)
 
   const binaryEntries = useMemo(() => {
@@ -228,19 +232,22 @@ export default function OutputPanel({
   const handlePin = useCallback(() => {
     if (pinned) {
       localStorage.removeItem(`op_pinned_${nodeId}`)
-      setPinned(null)
+      updateNode(nodeId, { pinned_data: null })
+      setLocalPinned(null)
     } else {
       const toPin = branchItems.length === 1 ? branchItems[0] : branchItems
       localStorage.setItem(`op_pinned_${nodeId}`, JSON.stringify(toPin))
-      setPinned(toPin)
+      updateNode(nodeId, { pinned_data: toPin })
+      setLocalPinned(toPin)
     }
-  }, [pinned, branchItems, nodeId])
+  }, [pinned, branchItems, nodeId, updateNode])
 
   const handleEditSave = () => {
     try {
       const parsed = JSON.parse(editedText)
       localStorage.setItem(`op_pinned_${nodeId}`, JSON.stringify(parsed))
-      setPinned(parsed)
+      updateNode(nodeId, { pinned_data: parsed })
+      setLocalPinned(parsed)
       setIsEditing(false)
     } catch (e) {
       alert('Invalid JSON: ' + e.message)

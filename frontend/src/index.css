@@ -1881,6 +1881,17 @@ button.delete { color: var(--red); }
 .rf-node-card .status-dot.status-failed,
 .rf-node-card .status-dot.status-error { background: #f43f5e; color: #f43f5e; }
 
+.rf-node-card .rf-node-pin-badge {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  font-size: 11px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  cursor: help;
+  z-index: 5;
+}
+
 /* Connection Handles */
 .rf-node-card .react-flow__handle {
   width: 12px;

@@ -51,3 +51,49 @@ def test_generated_credential_type_listed(client, _generated_tree):
     body = client.get("/api/connectors/widget_api/credential-types", headers=headers).json()["data"]
     types = body.get("credential_types", body)
     assert "widget_api" in types
+
+
+def test_preview_openapi_endpoint(client):
+    headers = auth_headers(register(client)["token"])
+    res = client.post(
+        "/api/connectors/preview-openapi",
+        json={"spec": SAMPLE},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["title"] == "Widget API"
+    assert data["operations_count"] > 0
+    assert len(data["operations"]) > 0
+    assert data["auth"]["kind"] in ("api_key_header", "none", "bearer")
+
+
+def test_import_openapi_endpoint(client, tmp_path, monkeypatch):
+    from pathlib import Path
+    headers = auth_headers(register(client)["token"])
+    gen_dir = Path(__file__).resolve().parents[2] / "app" / "connectors" / "generated"
+    try:
+        res = client.post(
+            "/api/connectors/import-openapi",
+            json={
+                "spec": SAMPLE,
+                "name": "test_sample_api",
+                "title": "Test Sample API",
+                "category": "api",
+                "base_url": "https://api.example.com/v1",
+            },
+            headers=headers,
+        )
+        assert res.status_code == 200
+        data = res.json()["data"]
+        assert data["success"] is True
+        assert data["connector_key"] == "test_sample_api"
+        assert data["operations_count"] > 0
+    finally:
+        for f in gen_dir.glob("gen_test_sample_api_*.py"):
+            try:
+                f.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+

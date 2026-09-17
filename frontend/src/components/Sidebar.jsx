@@ -8,6 +8,7 @@ import SalesforceBrowser from './SalesforceBrowser'
 import SubWorkflowBrowser from './SubWorkflowBrowser'
 import Input from './shared/Input'
 import { NodeIcon } from './NodeIcons'
+import OpenApiImportModal from './OpenApiImportModal'
 
 function PaletteRow({ node, onCanvasCount, onJump, onClick }) {
   const isTrigger =
@@ -85,6 +86,7 @@ export default function Sidebar({ onOpenCredentials }) {
   const [salesforceOpen, setSalesforceOpen] = useState(false)
   const [subWorkflowOpen, setSubWorkflowOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
+  const [openApiImportOpen, setOpenApiImportOpen] = useState(false)
   const [collapsedSubgroups, setCollapsedSubgroups] = useState({
     popular: false,
     triggers: false,
@@ -541,13 +543,27 @@ export default function Sidebar({ onOpenCredentials }) {
 
           return (
             <div key={category} className="node-group">
-              <h3
-                className="clickable"
-                onClick={() => setSelectedCategory(category)}
-                title={`Click to view ${category}`}
-              >
-                {category}
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <h3
+                  className="clickable"
+                  onClick={() => setSelectedCategory(category)}
+                  title={`Click to view ${category}`}
+                  style={{ margin: 0 }}
+                >
+                  {category}
+                </h3>
+                {category === 'Connectors' && (
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => setOpenApiImportOpen(true)}
+                    style={{ fontSize: 11, padding: '2px 8px', color: 'var(--primary, #6366f1)' }}
+                    title="Import custom OpenAPI / Swagger connector"
+                  >
+                    + Import API
+                  </button>
+                )}
+              </div>
               {list.map((node) => (
                 <PaletteRow
                   key={node.type}
@@ -563,13 +579,25 @@ export default function Sidebar({ onOpenCredentials }) {
 
       {!selectedCategory && !searching && connectorNodes.length > 0 && (
         <div className="node-group">
-          <h3
-            className="clickable"
-            onClick={() => setSelectedCategory('Connectors')}
-            title="Click to view all Connectors"
-          >
-            🔌 Connectors ({connectorNodes.length})
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <h3
+              className="clickable"
+              onClick={() => setSelectedCategory('Connectors')}
+              title="Click to view all Connectors"
+              style={{ margin: 0 }}
+            >
+              🔌 Connectors ({connectorNodes.length})
+            </h3>
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => setOpenApiImportOpen(true)}
+              style={{ fontSize: 11, padding: '2px 8px', color: 'var(--primary, #6366f1)' }}
+              title="Import custom OpenAPI / Swagger connector"
+            >
+              + Import API
+            </button>
+          </div>
           <p className="hint">
             First-class integrations for Salesforce, Google, HubSpot, Slack, GitHub, Jira, and more.
           </p>
@@ -675,6 +703,10 @@ export default function Sidebar({ onOpenCredentials }) {
           🔑 Credentials
         </button>
       )}
+      <OpenApiImportModal
+        isOpen={openApiImportOpen}
+        onClose={() => setOpenApiImportOpen(false)}
+      />
     </aside>
   )
 }

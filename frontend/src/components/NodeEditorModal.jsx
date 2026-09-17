@@ -800,7 +800,7 @@ export default function NodeEditorModal() {
             </span>
           )}
           <div className="nem-footer-right">
-            <ExpressionHelper workflowId={workflow?.id} />
+            <ExpressionHelper workflowId={workflow?.id} nodeId={selectedId} />
           </div>
         </footer>
       </div>

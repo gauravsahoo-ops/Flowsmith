@@ -1,0 +1,329 @@
+/* OpenAPI Import Modal Styling */
+
+.oai-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 15, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.oai-modal-window {
+  background: #131722;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99, 102, 241, 0.15);
+  width: 680px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.oai-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.oai-header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.oai-icon {
+  font-size: 24px;
+}
+
+.oai-header-title h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.oai-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.oai-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.oai-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.oai-modal-body {
+  padding: 20px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.oai-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 10px;
+}
+
+.oai-tab {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.oai-tab.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+.oai-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oai-form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.oai-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.oai-form-group input,
+.oai-form-group select,
+.oai-form-group textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #f8fafc;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.oai-form-group textarea {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.oai-form-group input:focus,
+.oai-form-group select:focus,
+.oai-form-group textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+.oai-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.oai-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.oai-preview-box {
+  background: #0b0e14;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oai-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.oai-preview-ops {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #10b981;
+}
+
+.oai-auth-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.oai-base-url {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.oai-base-url code {
+  font-family: 'JetBrains Mono', monospace;
+  color: #38bdf8;
+}
+
+.oai-ops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.oai-op-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.oai-method {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  width: 44px;
+  text-align: center;
+}
+
+.oai-method.get { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.oai-method.post { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.oai-method.put { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+.oai-method.patch { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+.oai-method.delete { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+
+.oai-path {
+  font-family: 'JetBrains Mono', monospace;
+  color: #e2e8f0;
+}
+
+.oai-op-summary {
+  color: #64748b;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oai-ops-more {
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 4px;
+}
+
+.oai-error-banner {
+  padding: 8px 12px;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: 8px;
+  color: #f43f5e;
+  font-size: 12px;
+}
+
+.oai-success-state {
+  text-align: center;
+  padding: 24px 12px;
+}
+
+.oai-success-badge {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #10b981;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oai-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.oai-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.oai-btn.ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.oai-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.oai-btn.primary {
+  background: #6366f1;
+  border: 1px solid #4f46e5;
+  color: #fff;
+}
+
+.oai-btn.primary:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.oai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

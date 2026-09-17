@@ -565,12 +565,42 @@ async def _run_one(
             started_at=datetime.now(UTC).isoformat(), duration_ms=0,
             note="No input items arrived; step was not executed.",
         )
+    # Phase 1: Pin Data (Node Mocking) - bypass live execution if pinned
+    pinned_data = getattr(node, "pinned_data", None)
+    if pinned_data is not None:
+        emit("node.started", node_id=node.id, status="running")
+        started_wall = datetime.now(UTC).isoformat()
+        started_mono = time.monotonic()
+        inputs_capped = _cap(input_items)
+        if isinstance(pinned_data, list):
+            output_items = pinned_data
+        elif isinstance(pinned_data, dict):
+            if "main" in pinned_data and isinstance(pinned_data["main"], list):
+                output_items = pinned_data["main"]
+            else:
+                output_items = [pinned_data]
+        else:
+            output_items = [{"result": pinned_data}]
+
+        results[node.id] = {"main": output_items}
+        emit("node.completed", node_id=node.id, status="success")
+        _add_step(
+            result, node_id=node.id, node_type=node.type, status="success",
+            started_at=started_wall,
+            duration_ms=(time.monotonic() - started_mono) * 1000,
+            inputs=inputs_capped,
+            outputs=_cap(results[node.id]),
+            note="Using pinned mock data (live execution bypassed).",
+            attempts=1,
+            retries=0,
+        )
         return
 
     emit("node.started", node_id=node.id, status="running")
     started_wall = datetime.now(UTC).isoformat()
     started_mono = time.monotonic()
     inputs_capped = _cap(input_items)
+
 
     max_attempts = max(1, int(node.settings.get("retry_max_attempts", 0) or 0) + 1)
     try:

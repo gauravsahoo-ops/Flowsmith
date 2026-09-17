@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from app.api.auth import get_current_user
 from app.api.common import ok
@@ -226,3 +227,140 @@ def get_connector_credential_types(
             },
         }
     )
+
+
+def _load_source_text(spec: Any) -> str | dict[str, Any]:
+    """Fetch spec from HTTP/HTTPS URL or return raw text or dict."""
+    if isinstance(spec, dict):
+        return spec
+    if isinstance(spec, str) and spec.strip().startswith(("http://", "https://")):
+        import urllib.request
+
+        request = urllib.request.Request(
+            spec.strip(), headers={"User-Agent": "Flowsmith-Connector-Importer/1.0"}
+        )
+        with urllib.request.urlopen(request, timeout=30) as resp:
+            return resp.read().decode("utf-8", errors="replace")
+    return spec
+
+
+class PreviewOpenApiRequest(BaseModel):
+    spec: Any
+
+
+class ImportOpenApiRequest(BaseModel):
+    spec: Any
+    name: str
+    title: str = ""
+    category: str = "api"
+    base_url: str = ""
+
+
+@router.post("/preview-openapi")
+def preview_openapi(
+    body: PreviewOpenApiRequest,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Preview an OpenAPI/Swagger spec before importing."""
+    from app.connectors.openapi_import import parse_spec
+
+    if not body.spec:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Spec URL, raw content, or schema object is required.")
+
+    try:
+        raw = _load_source_text(body.spec)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Failed to load spec: {exc}")
+
+    try:
+        api_spec = parse_spec(raw)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Failed to parse OpenAPI spec: {exc}")
+
+    return ok({
+        "title": api_spec.title,
+        "base_url": api_spec.base_url,
+        "auth": {
+            "kind": api_spec.auth.kind,
+            "name": api_spec.auth.name,
+        },
+        "operations": [
+            {
+                "operation_key": op.operation_key,
+                "method": op.method,
+                "path": op.path,
+                "summary": op.summary,
+            }
+            for op in api_spec.operations
+        ],
+        "operations_count": len(api_spec.operations),
+    })
+
+
+@router.post("/import-openapi")
+def import_openapi(
+    body: ImportOpenApiRequest,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Generate and register a first-class Flowsmith connector from an OpenAPI/Swagger spec."""
+    from pathlib import Path
+    from app.connectors.openapi_import import parse_spec
+    from app.connectors.openapi_emit import (
+        connector_key_for,
+        emit_connector_files,
+        register_generated,
+    )
+
+    name = body.name.strip()
+    if not body.spec or not name:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Spec and connector name are required.")
+
+    try:
+        raw = _load_source_text(body.spec)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Failed to load spec: {exc}")
+
+    try:
+        api_spec = parse_spec(raw)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Failed to parse OpenAPI spec: {exc}")
+
+    if body.base_url.strip():
+        api_spec.base_url = body.base_url.strip().rstrip("/")
+
+    if not api_spec.base_url:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "No server URL declared in spec; please specify a Base URL override.",
+        )
+
+    if not api_spec.operations:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No operations found in OpenAPI spec.")
+
+    key = connector_key_for(name)
+    display = body.title.strip() or api_spec.title or name
+    files = emit_connector_files(key, display, api_spec, body.category or "api")
+
+    for filename, source in files.items():
+        try:
+            compile(source, f"<gen_{key}>", "exec")
+        except SyntaxError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Generated code syntax error: {exc}")
+
+    gen_dir = Path(__file__).resolve().parent.parent / "connectors" / "generated"
+    gen_dir.mkdir(parents=True, exist_ok=True)
+
+    for filename, source in files.items():
+        (gen_dir / filename).write_text(source, encoding="utf-8")
+
+    registry = get_registry()
+    count = register_generated(registry, str(gen_dir))
+
+    return ok({
+        "success": True,
+        "connector_key": key,
+        "display_name": display,
+        "operations_count": len(api_spec.operations),
+        "auth_kind": api_spec.auth.kind,
+        "registered_count": count,
+    })

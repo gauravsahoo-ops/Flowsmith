@@ -17,11 +17,14 @@ const CATEGORY_COLORS = {
   communication: '#4f8cff',
 }
 
-function ContextMenu({ x, y, nodeId, onClose }) {
+function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
   const menuRef = useRef(null)
   const deleteNodes = useWorkflowStore((s) => s.deleteNodes)
   const duplicateNodes = useWorkflowStore((s) => s.duplicateNodes)
   const openNodeEditor = useUiStore((s) => s.openNodeEditor)
+  const workflowId = useWorkflowStore((s) => s.workflow?.id)
+  const loadExecution = useExecutionStore((s) => s.load)
+  const [runningStep, setRunningStep] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -57,6 +60,42 @@ function ContextMenu({ x, y, nodeId, onClose }) {
     }
   }, [onClose])
 
+  const handleTestStep = async () => {
+    if (!workflowId || runningStep) return
+    setRunningStep(true)
+    try {
+      try { await useWorkflowStore.getState().save() } catch {}
+      const { api } = await import('../api')
+      const res = await api.runNode(workflowId, nodeId)
+      if (res?.execution_id) {
+        await loadExecution(res.execution_id)
+      }
+      onClose()
+    } catch (err) {
+      alert('Test step failed: ' + err.message)
+    } finally {
+      setRunningStep(false)
+    }
+  }
+
+  const handleRunToHere = async () => {
+    if (!workflowId || runningStep) return
+    setRunningStep(true)
+    try {
+      try { await useWorkflowStore.getState().save() } catch {}
+      const { api } = await import('../api')
+      const res = await api.runToNode(workflowId, nodeId)
+      if (res?.execution_id) {
+        await loadExecution(res.execution_id)
+      }
+      onClose()
+    } catch (err) {
+      alert('Run to here failed: ' + err.message)
+    } finally {
+      setRunningStep(false)
+    }
+  }
+
   return (
     <div
       ref={menuRef}
@@ -74,6 +113,37 @@ function ContextMenu({ x, y, nodeId, onClose }) {
         <span className="ctx-label">Open</span>
         <span className="ctx-shortcut">Enter</span>
       </button>
+
+      <div className="ctx-sep" />
+
+      <button onClick={handleTestStep} disabled={runningStep}>
+        <span className="ctx-icon" style={{ color: 'var(--primary, #6366f1)' }}>
+          ▶
+        </span>
+        <span className="ctx-label">{runningStep ? 'Testing…' : 'Test Step (Run Node)'}</span>
+      </button>
+
+      <button onClick={handleRunToHere} disabled={runningStep}>
+        <span className="ctx-icon" style={{ color: '#10b981' }}>
+          ⏩
+        </span>
+        <span className="ctx-label">Run to Here</span>
+      </button>
+
+      {isPinned ? (
+        <button onClick={() => { onUnpin(); onClose() }}>
+          <span className="ctx-icon">📌</span>
+          <span className="ctx-label">Unpin Mock Data</span>
+        </button>
+      ) : (
+        <button onClick={() => { onPin(); onClose() }}>
+          <span className="ctx-icon">📌</span>
+          <span className="ctx-label">Pin Output Data</span>
+        </button>
+      )}
+
+      <div className="ctx-sep" />
+
       <button onClick={() => { duplicateNodes([nodeId]); onClose() }}>
         <span className="ctx-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -204,6 +274,18 @@ function CustomNode({ id, data, selected }) {
     })
   }, [])
 
+  const updateNode = useWorkflowStore((s) => s.updateNode)
+  const isPinned = data.node.pinned_data != null
+
+  const handlePin = useCallback(() => {
+    const lastResult = preview?.output_items || preview?.items || (preview?.outputCount ? [{ message: "mock output" }] : [{ id: 1, name: "Sample item" }])
+    updateNode(id, { pinned_data: lastResult })
+  }, [id, preview, updateNode])
+
+  const handleUnpin = useCallback(() => {
+    updateNode(id, { pinned_data: null })
+  }, [id, updateNode])
+
   return (
     <div
       ref={nodeRef}
@@ -236,6 +318,13 @@ function CustomNode({ id, data, selected }) {
 
         {/* Status indicator dot */}
         {status && <span className={`status-dot status-${status}`} />}
+
+        {/* Pinned mock data badge */}
+        {isPinned && (
+          <span className="rf-node-pin-badge" title="Pinned Mock Data Active (live API calls bypassed)">
+            📌
+          </span>
+        )}
 
         {/* Output Handles with branch labels for multi-outputs like If */}
         {outputHandles.map((h, i) => (
@@ -311,6 +400,9 @@ function CustomNode({ id, data, selected }) {
           x={ctx.x}
           y={ctx.y}
           nodeId={id}
+          isPinned={isPinned}
+          onPin={handlePin}
+          onUnpin={handleUnpin}
           onClose={() => setCtx(null)}
         />
       )}

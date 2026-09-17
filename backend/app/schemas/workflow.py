@@ -4,6 +4,7 @@ Both the engine and the future API/frontend must speak this shape.
 """
 
 from datetime import datetime, timezone
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -36,6 +37,7 @@ class WorkflowNode(BaseModel):
     settings: dict = Field(default_factory=dict)
     credentials: dict[str, str] = Field(default_factory=dict)
     name: str = Field(default="", description="Display name for n8n-style $('Name') expressions.")
+    pinned_data: Any = Field(default=None, description="Pinned mock output data (bypasses execution).")
 
 
 class Connection(BaseModel):
