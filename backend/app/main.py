@@ -206,6 +206,12 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if req_host in self._allowed or req_host in ("127.0.0.1", "localhost", "::1"):
             return await call_next(request)
 
+        # Allow same-origin requests matching the request's own Host or X-Forwarded-Host
+        host_header = request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
+        current_host = host_header.split(":")[0].lower() if host_header else (request.url.hostname or "").lower()
+        if req_host and current_host and (req_host == current_host or req_host == (request.url.hostname or "").lower()):
+            return await call_next(request)
+
         return Response(status_code=403, content="CSRF validation failed: cross-origin request rejected")
 
 
@@ -250,6 +256,8 @@ app.add_middleware(SPAFallbackMiddleware)
 # CORS: wildcard with credentials is rejected in production (validate_production_settings)
 # and downgraded to non-credentialed in development.
 _cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+if settings.public_url and settings.public_url.strip() and settings.public_url.strip() not in _cors_origins:
+    _cors_origins.append(settings.public_url.strip())
 _cors_allow_credentials = "*" not in _cors_origins
 app.add_middleware(
     CORSMiddleware,
