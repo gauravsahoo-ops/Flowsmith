@@ -43,6 +43,9 @@ pipeline {
         }
 
         stage('Production Approval') {
+            when {
+                branch 'production'
+            }
             steps {
                 timeout(time: 30, unit: 'MINUTES') {
                     input message: "Deploy build ${env.BUILD_NUMBER} to PRODUCTION?", ok: "Deploy"
