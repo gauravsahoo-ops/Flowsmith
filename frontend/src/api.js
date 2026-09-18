@@ -133,6 +133,22 @@ export const api = {
   retry: (id, nodeId) => request('POST', `/executions/${id}/retry`, nodeId ? { node_id: nodeId } : {}),
   resume: (id, approved = true) => request('POST', `/executions/${id}/resume`, { approved }),
   getExecution: (id) => request('GET', `/executions/${id}`),
+  exportExecution: async (id, format = 'json') => {
+    const token = getToken()
+    const res = await fetch(`${BASE_URL}/executions/${id}/export?format=${format}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error(`Export failed: ${res.statusText}`)
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `execution-${id.slice(0, 8)}-${format === 'csv' ? 'trace.csv' : 'audit.json'}`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+  },
   listExecutions: (params = {}) => {
     const q = new URLSearchParams()
     if (params.workflowId) q.set('workflow_id', params.workflowId)

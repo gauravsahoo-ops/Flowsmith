@@ -12,6 +12,10 @@ export const DEFAULT_BRANDING = {
   logoData: null,
   faviconUrl: null,
   primaryColor: '#6366f1',
+  documentationUrl: null,
+  supportEmail: null,
+  copyrightText: null,
+  customCss: null,
 }
 
 function hexToRgb(hex) {
@@ -68,6 +72,19 @@ function applyToDom(branding) {
   } else if (link) {
     link.href = '/vite.svg'
   }
+
+  // Apply custom CSS overrides if provided
+  let styleEl = document.getElementById('flowsmith-custom-css')
+  if (branding.customCss) {
+    if (!styleEl) {
+      styleEl = document.createElement('style')
+      styleEl.id = 'flowsmith-custom-css'
+      document.head.appendChild(styleEl)
+    }
+    styleEl.textContent = branding.customCss
+  } else if (styleEl) {
+    styleEl.remove()
+  }
 }
 
 function getStoredBranding() {
@@ -93,6 +110,10 @@ export const useBrandingStore = create((set, get) => ({
   logoData: initial.logoData,
   faviconUrl: initial.faviconUrl,
   primaryColor: initial.primaryColor,
+  documentationUrl: initial.documentationUrl,
+  supportEmail: initial.supportEmail,
+  copyrightText: initial.copyrightText,
+  customCss: initial.customCss,
   loading: false,
   error: null,
 
@@ -108,6 +129,10 @@ export const useBrandingStore = create((set, get) => ({
           logoData: res.logo_data || null,
           faviconUrl: res.favicon_url || null,
           primaryColor: res.primary_color || DEFAULT_BRANDING.primaryColor,
+          documentationUrl: res.documentation_url || null,
+          supportEmail: res.support_email || null,
+          copyrightText: res.copyright_text || null,
+          customCss: res.custom_css || null,
         }
         set(next)
         applyToDom(next)
@@ -132,6 +157,10 @@ export const useBrandingStore = create((set, get) => ({
         logo_data: payload.logoData,
         favicon_url: payload.faviconUrl,
         primary_color: payload.primaryColor,
+        documentation_url: payload.documentationUrl,
+        support_email: payload.supportEmail,
+        copyright_text: payload.copyrightText,
+        custom_css: payload.customCss,
       }
       const res = await api.updateBranding(backendPayload)
       const next = {
@@ -141,6 +170,10 @@ export const useBrandingStore = create((set, get) => ({
         logoData: res.logo_data || null,
         faviconUrl: res.favicon_url || null,
         primaryColor: res.primary_color || DEFAULT_BRANDING.primaryColor,
+        documentationUrl: res.documentation_url || null,
+        supportEmail: res.support_email || null,
+        copyrightText: res.copyright_text || null,
+        customCss: res.custom_css || null,
       }
       set(next)
       applyToDom(next)
@@ -167,6 +200,10 @@ export const useBrandingStore = create((set, get) => ({
         logoData: null,
         faviconUrl: null,
         primaryColor: res.primary_color || DEFAULT_BRANDING.primaryColor,
+        documentationUrl: null,
+        supportEmail: null,
+        copyrightText: null,
+        customCss: null,
       }
       set(next)
       applyToDom(next)

@@ -63,6 +63,7 @@ export default function ExecutionInspector({ onClose }) {
   const [selectedStepId, setSelectedStepId] = useState(null)
   const [recentExecutions, setRecentExecutions] = useState([])
   const [loadingRecent, setLoadingRecent] = useState(false)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
 
   // Full payload of THIS execution (results.outputs drive branch chips
   // and the compare baseline); fetched once per terminal state.
@@ -340,6 +341,57 @@ export default function ExecutionInspector({ onClose }) {
             <button className="ghost" onClick={retry} title="Replay: re-run this exact snapshot with the original input">
               ↻ Replay
             </button>
+          )}
+          {terminal && (
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                className="ghost"
+                onClick={() => setExportMenuOpen((o) => !o)}
+                title="Export execution audit trace"
+              >
+                📥 Export
+              </button>
+              {exportMenuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '100%',
+                    marginTop: 4,
+                    zIndex: 100,
+                    minWidth: 130,
+                    background: 'var(--panel-2, #1e293b)',
+                    border: '1px solid var(--border, #334155)',
+                    borderRadius: 6,
+                    padding: 4,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="ghost small"
+                    style={{ width: '100%', textAlign: 'left', padding: '6px 10px', display: 'block', fontSize: 12 }}
+                    onClick={() => {
+                      setExportMenuOpen(false)
+                      api.exportExecution(executionId, 'json')
+                    }}
+                  >
+                    📄 JSON Trace
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    style={{ width: '100%', textAlign: 'left', padding: '6px 10px', display: 'block', fontSize: 12 }}
+                    onClick={() => {
+                      setExportMenuOpen(false)
+                      api.exportExecution(executionId, 'csv')
+                    }}
+                  >
+                    📊 CSV Audit
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           <button className="ghost" onClick={onClose || clear} title="Close Console">
             ✕

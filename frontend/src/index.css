@@ -2311,14 +2311,25 @@ button.delete { color: var(--red); }
 .comment-node:hover .comment-delete { display: block; }
 .comment-text { white-space: pre-wrap; word-break: break-word; }
 
-/* ---------- groups ---------- */
+/* ---------- groups & frames ---------- */
 .group-node {
   width: 100%; height: 100%;
   border-radius: 14px; border: 1.5px dashed #3f6fd8;
   background: rgba(63,111,216,.05);
   pointer-events: all; cursor: grab;
+  transition: border-color 0.2s, background 0.2s;
 }
-.group-node.selected { border-color: var(--accent); background: rgba(79,140,255,.09); }
+.group-node.group-blue { border-color: #3b82f6; background: rgba(59,130,246,.06); }
+.group-node.group-blue .group-label { color: #93c5fd; }
+.group-node.group-emerald { border-color: #10b981; background: rgba(16,185,129,.06); }
+.group-node.group-emerald .group-label { color: #6ee7b7; }
+.group-node.group-amber { border-color: #f59e0b; background: rgba(245,158,11,.06); }
+.group-node.group-amber .group-label { color: #fcd34d; }
+.group-node.group-purple { border-color: #a855f7; background: rgba(168,85,247,.06); }
+.group-node.group-purple .group-label { color: #d8b4fe; }
+.group-node.group-rose { border-color: #f43f5e; background: rgba(244,63,94,.06); }
+.group-node.group-rose .group-label { color: #fda4af; }
+.group-node.selected { border-color: var(--accent); background: rgba(79,140,255,.12); box-shadow: 0 0 0 1px var(--accent); }
 .group-label {
   position: absolute; top: -26px; left: 8px;
   display: flex; gap: 6px; align-items: center;

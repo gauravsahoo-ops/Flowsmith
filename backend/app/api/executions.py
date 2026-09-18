@@ -298,6 +298,80 @@ def get_execution(execution_id: str, user: User = Depends(get_current_user), db:
     return ok(data)
 
 
+@router.get("/api/executions/{execution_id}/export")
+def export_execution(
+    execution_id: str,
+    format: str = "json",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Any:
+    """Export execution trace and results as downloadable JSON or CSV audit file."""
+    from fastapi.responses import Response
+
+    rec = db.get(Execution, execution_id)
+    if rec is None or not _can_view_execution(db, rec, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
+
+    results_outputs = (rec.results or {}).get("outputs") if isinstance(rec.results, dict) else {}
+    trace = [dict(s) for s in (rec.trace or [])]
+    if results_outputs and isinstance(results_outputs, dict):
+        for step in trace:
+            nid = step.get("node_id")
+            if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
+                step["outputs"] = results_outputs[nid]
+
+    data = {
+        **_to_dict(rec),
+        "results": rec.results,
+        "node_statuses": rec.node_statuses,
+        "trace": trace,
+        "workflow_data": rec.workflow_data,
+    }
+
+    if format.lower() == "csv":
+        import csv
+        import io
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "step_index", "node_id", "node_type", "status",
+            "duration_ms", "started_at", "attempts", "retries",
+            "error_code", "error_message", "note",
+        ])
+        for idx, step in enumerate(trace, 1):
+            err = step.get("error") or {}
+            writer.writerow([
+                idx,
+                step.get("node_id", ""),
+                step.get("node_type", ""),
+                step.get("status", ""),
+                step.get("duration_ms", 0),
+                step.get("started_at", ""),
+                step.get("attempts", 1),
+                step.get("retries", 0),
+                err.get("code", "") if isinstance(err, dict) else "",
+                err.get("message", str(err)) if isinstance(err, dict) else str(err),
+                step.get("note", ""),
+            ])
+        csv_content = output.getvalue()
+        filename = f"execution-{execution_id[:8]}-trace.csv"
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    import json
+    json_content = json.dumps(data, indent=2, default=str)
+    filename = f"execution-{execution_id[:8]}-audit.json"
+    return Response(
+        content=json_content,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get("/api/executions/{execution_id}/items")
 def get_execution_items(
     execution_id: str,

@@ -1,17 +1,28 @@
-// GroupNode (Phase 12): visual frame around a set of nodes.
+// GroupNode: visual frame around a set of nodes.
 //
 // Groups are editor-only decorations (workflow.settings.editor.groups).
 // Members remain plain workflow nodes with absolute positions; dragging
 // the group moves every member currently inside its bounds.
 
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
+
+const GROUP_COLORS = [
+  { id: 'blue', label: 'Blue', color: '#3b82f6' },
+  { id: 'emerald', label: 'Green', color: '#10b981' },
+  { id: 'amber', label: 'Amber', color: '#f59e0b' },
+  { id: 'purple', label: 'Purple', color: '#a855f7' },
+  { id: 'rose', label: 'Rose', color: '#f43f5e' },
+]
 
 function GroupNode({ id, data, selected }) {
   const ungroup = useWorkflowStore((s) => s.ungroup)
   const updateGroup = useWorkflowStore((s) => s.updateGroup)
+  const [editing, setEditing] = useState(false)
+  const [labelVal, setLabelVal] = useState(data.group.label || 'Group')
 
   function startMove(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return
     e.stopPropagation()
     const group = data.group
     const startX = e.clientX
@@ -36,7 +47,6 @@ function GroupNode({ id, data, selected }) {
       const dy = ev.clientY - startY
       const s = useWorkflowStore.getState()
       s.updateGroup(id, { x: originX + dx, y: originY + dy })
-      const byId = new Map(s.nodes.map((n) => [n.id, n]))
       s.onNodesChange(
         starts.map((m) => ({
           id: m.id,
@@ -45,7 +55,6 @@ function GroupNode({ id, data, selected }) {
           dragging: true,
         })),
       )
-      void byId
     }
     function onUp() {
       window.removeEventListener('mousemove', onMove)
@@ -55,28 +64,86 @@ function GroupNode({ id, data, selected }) {
     window.addEventListener('mouseup', onUp)
   }
 
+  function commitLabel() {
+    setEditing(false)
+    if (labelVal.trim() && labelVal !== data.group.label) {
+      updateGroup(id, { label: labelVal.trim() })
+    }
+  }
+
+  const currentColor = data.group.color || 'blue'
+
   return (
     <div
-      className={`group-node group-${data.group.color || 'blue'} ${selected ? 'selected' : ''}`}
+      className={`group-node group-${currentColor} ${selected ? 'selected' : ''}`}
       onMouseDown={startMove}
-      onDoubleClick={(e) => {
-        e.stopPropagation()
-        const label = window.prompt('Group name:', data.group.label)
-        if (label != null) updateGroup(id, { label })
-      }}
     >
-      <div className="group-label">
-        <span>{data.group.label}</span>
+      <div className="group-label" onMouseDown={(e) => e.stopPropagation()}>
+        {editing ? (
+          <input
+            type="text"
+            value={labelVal}
+            autoFocus
+            onChange={(e) => setLabelVal(e.target.value)}
+            onBlur={commitLabel}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitLabel()
+              if (e.key === 'Escape') setEditing(false)
+              e.stopPropagation()
+            }}
+            style={{
+              background: 'var(--panel)',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '2px 6px',
+              outline: 'none',
+            }}
+          />
+        ) : (
+          <span
+            onDoubleClick={() => setEditing(true)}
+            title="Double-click to rename frame"
+            style={{ cursor: 'pointer' }}
+          >
+            {data.group.label || 'Group Frame'}
+          </span>
+        )}
+
+        <div style={{ display: 'inline-flex', gap: 3, alignItems: 'center', marginLeft: 4 }}>
+          {GROUP_COLORS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              title={c.label}
+              onClick={(e) => {
+                e.stopPropagation()
+                updateGroup(id, { color: c.id })
+              }}
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: c.color,
+                border: currentColor === c.id ? '1.5px solid #fff' : 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            />
+          ))}
+        </div>
+
         <button
           className="group-ungroup"
-          title="Ungroup (keeps the nodes)"
-          onMouseDown={(e) => e.stopPropagation()}
+          title="Remove frame (keeps nodes)"
           onClick={(e) => {
             e.stopPropagation()
             ungroup(id)
           }}
         >
-          ⊘
+          ✕
         </button>
       </div>
     </div>

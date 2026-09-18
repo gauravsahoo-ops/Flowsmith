@@ -681,14 +681,27 @@ export const useWorkflowStore = create((set, get) => ({
     scheduleSave()
   },
 
-  groupSelected(nodeIds, label = 'Group') {
+  groupSelected(nodeIds = [], label = 'Group Frame', color = 'blue') {
     const { nodes } = get()
     const members = nodes.filter((n) => nodeIds.includes(n.id))
-    if (members.length < 2) return null
-    const minX = Math.min(...members.map((n) => n.position.x)) - 28
-    const minY = Math.min(...members.map((n) => n.position.y)) - 44
-    const maxX = Math.max(...members.map((n) => n.position.x + (n.width || 172)))
-    const maxY = Math.max(...members.map((n) => n.position.y + (n.height || 64)))
+    let minX = 140
+    let minY = 140
+    let maxX = 460
+    let maxY = 320
+    if (members.length > 0) {
+      minX = Math.min(...members.map((n) => n.position.x)) - 32
+      minY = Math.min(...members.map((n) => n.position.y)) - 48
+      maxX = Math.max(...members.map((n) => n.position.x + (n.width || 180)))
+      maxY = Math.max(...members.map((n) => n.position.y + (n.height || 72)))
+    } else {
+      const allNodes = nodes.filter((n) => n.type === 'custom')
+      if (allNodes.length > 0) {
+        minX = Math.min(...allNodes.map((n) => n.position.x)) - 32
+        minY = Math.min(...allNodes.map((n) => n.position.y)) - 48
+        maxX = minX + 360
+        maxY = minY + 220
+      }
+    }
     const id = `group_${crypto.randomUUID().slice(0, 8)}`
     set({
       groups: [
@@ -698,9 +711,9 @@ export const useWorkflowStore = create((set, get) => ({
           label,
           x: minX,
           y: minY,
-          width: Math.max(maxX - minX + 28, 240),
-          height: Math.max(maxY - minY + 28, 140),
-          color: 'blue',
+          width: Math.max(maxX - minX + 32, 260),
+          height: Math.max(maxY - minY + 32, 160),
+          color,
         },
       ],
     })

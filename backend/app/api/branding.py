@@ -28,6 +28,10 @@ DEFAULT_BRANDING: dict[str, Any] = {
     "logo_data": None,
     "favicon_url": None,
     "primary_color": "#6366f1",
+    "documentation_url": None,
+    "support_email": None,
+    "copyright_text": None,
+    "custom_css": None,
 }
 
 
@@ -41,6 +45,10 @@ def _branding_to_dict(rec: BrandingSetting | None) -> dict[str, Any]:
         "logo_data": rec.logo_data,
         "favicon_url": rec.favicon_url,
         "primary_color": rec.primary_color or DEFAULT_BRANDING["primary_color"],
+        "documentation_url": rec.documentation_url,
+        "support_email": rec.support_email,
+        "copyright_text": rec.copyright_text,
+        "custom_css": rec.custom_css,
         "updated_at": rec.updated_at.isoformat() if rec.updated_at else None,
     }
 
@@ -52,6 +60,10 @@ class BrandingUpdateRequest(BaseModel):
     logo_data: str | None = None
     favicon_url: str | None = None
     primary_color: str | None = None
+    documentation_url: str | None = Field(default=None, max_length=512)
+    support_email: str | None = Field(default=None, max_length=255)
+    copyright_text: str | None = Field(default=None, max_length=255)
+    custom_css: str | None = Field(default=None, max_length=65536)
 
 
 @router.get("")
@@ -100,6 +112,14 @@ def update_branding(
         rec.favicon_url = body.favicon_url if body.favicon_url else None
     if body.primary_color is not None:
         rec.primary_color = body.primary_color.strip()
+    if body.documentation_url is not None:
+        rec.documentation_url = body.documentation_url.strip() if body.documentation_url else None
+    if body.support_email is not None:
+        rec.support_email = body.support_email.strip() if body.support_email else None
+    if body.copyright_text is not None:
+        rec.copyright_text = body.copyright_text.strip() if body.copyright_text else None
+    if body.custom_css is not None:
+        rec.custom_css = body.custom_css.strip() if body.custom_css else None
 
     db.commit()
     db.refresh(rec)
@@ -130,6 +150,10 @@ def reset_branding(
         rec.logo_data = None
         rec.favicon_url = None
         rec.primary_color = DEFAULT_BRANDING["primary_color"]
+        rec.documentation_url = None
+        rec.support_email = None
+        rec.copyright_text = None
+        rec.custom_css = None
         db.commit()
         db.refresh(rec)
 

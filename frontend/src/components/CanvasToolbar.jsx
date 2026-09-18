@@ -85,7 +85,7 @@ export default function CanvasToolbar() {
   function onGroup() {
     const store = useWorkflowStore.getState()
     const selected = store.nodes.filter((n) => n.selected).map((n) => n.id)
-    if (!store.groupSelected(selected)) return
+    store.groupSelected(selected)
   }
 
   const problemCount = health.problems.length
@@ -132,9 +132,8 @@ export default function CanvasToolbar() {
         </span>
       </ToolButton>
       <ToolButton
-        title={`Group selected nodes (${groups.length} groups)`}
+        title={`Add Group Frame (${groups.length} active)`}
         onClick={onGroup}
-        disabled={nodes.filter((n) => n.selected).length < 2}
       >
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -142,7 +141,7 @@ export default function CanvasToolbar() {
             <rect x="7" y="7" width="4" height="4" rx="1" />
             <rect x="13" y="13" width="4" height="4" rx="1" />
           </svg>
-          Group
+          Frame
         </span>
       </ToolButton>
       <span className="tool-sep" />

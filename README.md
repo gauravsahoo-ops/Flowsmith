@@ -159,7 +159,8 @@
 
 ### 12. Complete White-Labeling & Client Custom Branding
 - **100% Brand Customization**: Any enterprise client, office, or reseller can rebrand Flowsmith into their own proprietary platform.
-- **Configurable Attributes**: Custom application name, tagline, brand logo image URL, custom favicon, primary & accent color palettes, and custom copyright footer text.
+- **Configurable Attributes**: Custom application name, tagline, brand logo image URL, custom favicon, primary & accent color palettes, documentation URL, support email, and custom copyright notice.
+- **Dynamic CSS Injection**: Inject custom CSS rules dynamically into the client application DOM (`<style id="flowsmith-custom-css">`) for complete style theming, custom brand fonts, and tailored component styling.
 - **Dynamic UI Syncing**: Changes immediately propagate to the TopBar, navigation header, login screen, browser title, and themes via `/api/branding`.
 - **One-Click Reset**: Instant rollback to original Flowsmith defaults whenever required.
 
@@ -192,6 +193,16 @@
   - *Filter Items*: Clean predicate filtering logic.
   - *Map & Rename Fields*: Re-key and reshape payloads with ISO timestamping.
   - *Python Data Transforms*: List comprehensions and dict modifications for Python sandboxes.
+
+### 18. Execution Trace & Audit Exporter
+- **One-Click Export**: Download complete execution traces directly from the Execution Inspector header or REST API.
+- **Structured JSON & CSV Formats**: Choose between comprehensive nested JSON audit logs or flattened CSV execution traces containing step-by-step node IDs, types, execution status, duration, item counts, error messages, and ISO timestamps.
+- **RESTful Ingress**: `GET /api/executions/{execution_id}/export?format=json|csv` with attachment streaming for seamless integration with enterprise log aggregators (Splunk, Datadog, ELK).
+
+### 19. Canvas Visual Grouping & Frames
+- **Organizational Bounding Frames**: Visually group related nodes into color-coded canvas frames directly from the canvas toolbar at any time.
+- **Color Themes & Inline Titles**: Choose between 5 theme accents (Blue, Emerald, Amber, Purple, Rose) and double-click the frame title to customize section names directly on canvas.
+- **Synchronized Drag & Drop**: Moving the frame boundary automatically recalculates and translates all child member nodes smoothly across the canvas graph.
 
 ---
 
@@ -547,6 +558,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `GET /api/executions` — List execution history with status and duration filters
 - `POST /api/workflows/{id}/run` — Execute workflow manually
 - `GET /api/executions/{id}` — Fetch detailed execution results per node
+- `GET /api/executions/{id}/export?format=json|csv` — Export execution trace and step records as structured JSON or flattened CSV audit records
 - `POST /api/executions/{id}/retry` — Retry a failed execution
 - `POST /api/executions/{id}/cancel` — Cancel an in-flight execution
 - `POST /api/executions/{id}/approve` — Approve a pending human-approval step
@@ -575,8 +587,8 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `GET /api/ai/status` — Check LLM provider availability
 
 ### White-Labeling & Custom Branding
-- `GET /api/branding` — Fetch active public branding settings (logo, app name, colors)
-- `PUT /api/branding` — Update corporate branding and white-labeling configurations
+- `GET /api/branding` — Fetch active public branding settings (logo, app name, colors, custom CSS, documentation URL, support email, copyright)
+- `PUT /api/branding` — Update corporate branding, white-labeling configurations, and custom CSS injection
 - `POST /api/branding/reset` — Reset to default Flowsmith branding
 
 ### Model Context Protocol (MCP) Server

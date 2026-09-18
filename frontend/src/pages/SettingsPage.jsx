@@ -49,6 +49,10 @@ export default function SettingsPage() {
     logoUrl: branding.logoUrl || '',
     logoData: branding.logoData || '',
     primaryColor: branding.primaryColor || '#6366f1',
+    documentationUrl: branding.documentationUrl || '',
+    supportEmail: branding.supportEmail || '',
+    copyrightText: branding.copyrightText || '',
+    customCss: branding.customCss || '',
   })
   const [brandNotice, setBrandNotice] = useState(null)
   const [brandBusy, setBrandBusy] = useState(false)
@@ -60,8 +64,12 @@ export default function SettingsPage() {
       logoUrl: branding.logoUrl || '',
       logoData: branding.logoData || '',
       primaryColor: branding.primaryColor || '#6366f1',
+      documentationUrl: branding.documentationUrl || '',
+      supportEmail: branding.supportEmail || '',
+      copyrightText: branding.copyrightText || '',
+      customCss: branding.customCss || '',
     })
-  }, [branding.appName, branding.tagline, branding.logoUrl, branding.logoData, branding.primaryColor])
+  }, [branding.appName, branding.tagline, branding.logoUrl, branding.logoData, branding.primaryColor, branding.documentationUrl, branding.supportEmail, branding.copyrightText, branding.customCss])
 
   function handleLogoFile(e) {
     const file = e.target.files?.[0]
@@ -344,6 +352,67 @@ export default function SettingsPage() {
                   {brandForm.primaryColor}
                 </code>
               </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+                Documentation & Runbook URL
+              </label>
+              <input
+                type="url"
+                placeholder="e.g. https://docs.yourcompany.com"
+                value={brandForm.documentationUrl}
+                onChange={e => setBrandForm(f => ({ ...f, documentationUrl: e.target.value }))}
+                style={{ width: '100%', maxWidth: 440 }}
+                maxLength={512}
+              />
+              <span className="hint" style={{ fontSize: 11.5, display: 'block', marginTop: 4 }}>
+                Replaces external documentation links with your organization's internal runbook.
+              </span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+                Support & Helpdesk Email
+              </label>
+              <input
+                type="email"
+                placeholder="e.g. it-support@yourcompany.com"
+                value={brandForm.supportEmail}
+                onChange={e => setBrandForm(f => ({ ...f, supportEmail: e.target.value }))}
+                style={{ width: '100%', maxWidth: 440 }}
+                maxLength={255}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+                Footer Copyright Text
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. © 2026 Your Company Inc. All rights reserved."
+                value={brandForm.copyrightText}
+                onChange={e => setBrandForm(f => ({ ...f, copyrightText: e.target.value }))}
+                style={{ width: '100%', maxWidth: 440 }}
+                maxLength={255}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#e2e8f0', marginBottom: 6 }}>
+                Custom CSS Stylesheet Overrides
+              </label>
+              <textarea
+                rows={4}
+                placeholder=":root { /* Custom styling rules injected live */ }"
+                value={brandForm.customCss}
+                onChange={e => setBrandForm(f => ({ ...f, customCss: e.target.value }))}
+                style={{ width: '100%', maxWidth: 440, fontFamily: 'monospace', fontSize: 12 }}
+              />
+              <span className="hint" style={{ fontSize: 11.5, display: 'block', marginTop: 4 }}>
+                Injects custom CSS styles into all pages in real-time.
+              </span>
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
