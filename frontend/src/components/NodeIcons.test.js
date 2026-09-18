@@ -19,7 +19,7 @@ describe('NodeIcon Real Logos Suite', () => {
     'http_request', 'code', 'if_condition', 'switch', 'loop',
     'loop_over_items', 'split', 'merge', 'wait', 'filter',
     'set_data', 'aggregate', 'compare_datasets', 'data_table',
-    'database_query', 'manual_trigger', 'schedule', 'webhook',
+    'database_query', 'manual_trigger', 'error_trigger', 'schedule', 'webhook',
     'form_trigger', 'chat_trigger', 'salesforce_trigger',
     'stop_and_error', 'human_approval', 'noop', 'ai', 'ai_agent',
     'embeddings', 'rag_pipeline', 'memory', 'text_splitter',

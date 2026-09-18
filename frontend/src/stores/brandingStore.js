@@ -55,16 +55,18 @@ function applyToDom(branding) {
     document.title = document.title.replace(/Flowsmith|.*?(?= —|$)/, appName)
   }
 
-  // Update favicon if custom logo available
-  const logo = branding.logoData || branding.logoUrl
+  // Update favicon if custom logo available, or revert to default
+  const logo = branding.logoData || branding.logoUrl || branding.faviconUrl
+  let link = document.querySelector("link[rel~='icon']")
   if (logo) {
-    let link = document.querySelector("link[rel~='icon']")
     if (!link) {
       link = document.createElement('link')
       link.rel = 'icon'
       document.getElementsByTagName('head')[0].appendChild(link)
     }
     link.href = logo
+  } else if (link) {
+    link.href = '/vite.svg'
   }
 }
 

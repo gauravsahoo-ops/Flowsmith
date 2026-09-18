@@ -20,7 +20,7 @@ from typing import Any
 from app.connectors import get_registry as get_connector_registry
 from app.nodes.registry import NODE_REGISTRY
 
-TRIGGER_NODE_TYPES = frozenset({"manual_trigger", "webhook", "schedule", "salesforce_trigger"})
+TRIGGER_NODE_TYPES = frozenset({"manual_trigger", "webhook", "schedule", "salesforce_trigger", "error_trigger"})
 
 _MAX_PROPS_PER_OP = 60
 

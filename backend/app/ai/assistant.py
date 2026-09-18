@@ -266,7 +266,7 @@ def analyze_workflow(workflow_data: dict[str, Any]) -> list[dict[str, Any]]:
     for c in connections:
         outgoing.setdefault(c.get("source"), []).append(c.get("target"))
     for n in nodes:
-        if n.get("type") in ("manual_trigger", "webhook", "schedule", "salesforce_trigger"):
+        if n.get("type") in ("manual_trigger", "webhook", "schedule", "salesforce_trigger", "error_trigger"):
             stack, seen = [n.get("id")], set()
             while stack:
                 cur = stack.pop()
@@ -310,7 +310,7 @@ def _structure_summary(workflow_data: dict[str, Any]) -> dict[str, Any]:
     outgoing: dict[str, list[str]] = {}
     for c in conns:
         outgoing.setdefault(c.get("source"), []).append(c.get("target"))
-    trigger_types = ("manual_trigger", "webhook", "schedule", "salesforce_trigger")
+    trigger_types = ("manual_trigger", "webhook", "schedule", "salesforce_trigger", "error_trigger")
     triggers = [n for n in nodes if n.get("type") in trigger_types]
     trigger_ids = {n.get("id") for n in triggers}
     return {

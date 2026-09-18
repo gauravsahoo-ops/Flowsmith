@@ -90,6 +90,7 @@ def _load_builtin_nodes() -> None:
         date_time,
         embeddings,
         email_read,
+        error_trigger,
         execute_workflow_trigger,
         file_io,
         filter,

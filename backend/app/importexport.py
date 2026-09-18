@@ -155,6 +155,8 @@ def _n8n_salesforce_params(p: dict[str, Any]) -> dict[str, Any]:
 _N8N_TYPE_MAP: dict[str, tuple[str, Callable[[dict[str, Any]], dict[str, Any]]]] = {
     "n8n-nodes-base.manualTrigger": ("manual_trigger", lambda p: {}),
     "manualTrigger": ("manual_trigger", lambda p: {}),
+    "n8n-nodes-base.errorTrigger": ("error_trigger", lambda p: {}),
+    "errorTrigger": ("error_trigger", lambda p: {}),
     "n8n-nodes-base.scheduleTrigger": ("schedule", _n8n_schedule_params),
     "scheduleTrigger": ("schedule", _n8n_schedule_params),
     "n8n-nodes-base.set": ("set_data", _n8n_set_params),
@@ -172,6 +174,7 @@ _N8N_TYPE_MAP: dict[str, tuple[str, Callable[[dict[str, Any]], dict[str, Any]]]]
 
 _KNOWN_NATIVE_TYPES = {
     "manual_trigger",
+    "error_trigger",
     "schedule_trigger",
     "schedule",
     "webhook",
