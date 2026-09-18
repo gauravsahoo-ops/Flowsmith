@@ -15,7 +15,7 @@ pipeline {
     stages {
         stage('Checkout') {
             when {
-				branch 'production'
+				branch 'staging'
 			}
             steps {
                 checkout scm
@@ -26,8 +26,8 @@ pipeline {
             steps {
                 script {
                     switch(env.BRANCH_NAME) {
-                        case 'production':
-                            env.ENVIRONMENT = 'PRODUCTION'
+                        case 'staging':
+                            env.ENVIRONMENT = 'STAGING'
                             env.REMOTE_HOST = env.FLOWSMITH_HOST
                             env.REMOTE_USER = env.FLOWSMITH_SSHUSER
                             env.BASE_PATH   = env.FLOWSMITH_PATH
