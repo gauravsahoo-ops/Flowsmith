@@ -565,6 +565,8 @@ async def _run_one(
             started_at=datetime.now(UTC).isoformat(), duration_ms=0,
             note="No input items arrived; step was not executed.",
         )
+        return
+
     # Phase 1: Pin Data (Node Mocking) - bypass live execution if pinned
     pinned_data = getattr(node, "pinned_data", None)
     if pinned_data is not None:
