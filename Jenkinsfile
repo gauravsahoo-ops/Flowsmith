@@ -67,7 +67,6 @@ pipeline {
                         --exclude='.env.production' \
                         --exclude='.env' \
                         --exclude='.claude' \
-                        --exclude='.jenkins' \
                         --exclude='.vscode' \
                         --exclude='deployment_requirements.md' \
                         --exclude='Jenkinsfile' \
