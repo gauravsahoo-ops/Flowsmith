@@ -96,7 +96,7 @@ def _insert_rows(
         raise ValueError("insert_rows needs at least one row.")
     keys = list(rows[0].keys())
     for k in keys:
-        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(k)):
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", k):
             raise ValueError(f"Invalid column identifier: {k!r}")
     placeholders = ", ".join(f":{k}" for k in keys)
     columns = ", ".join(f'"{k}"' for k in keys)
@@ -137,7 +137,7 @@ class SQLProviderClient:
 
     async def query(self, creds: dict[str, Any], sql: str, params: dict[str, Any] | None = None,
                     max_rows: int = _MAX_ROWS) -> dict[str, Any]:
-        statement = str(sql or "").strip()
+        statement = (sql or "").strip()
         if not statement:
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "operation=query requires sql.", retryable=False)
         client = self
@@ -158,7 +158,7 @@ class SQLProviderClient:
         return await asyncio.to_thread(job)
 
     async def execute(self, creds: dict[str, Any], sql: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        statement = str(sql or "").strip()
+        statement = (sql or "").strip()
         if not statement:
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "operation=execute requires sql.", retryable=False)
         client = self
@@ -197,7 +197,7 @@ class SQLProviderClient:
         return await asyncio.to_thread(job)
 
     async def insert_rows(self, creds: dict[str, Any], table: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
-        table_name = str(table or "").strip()
+        table_name = (table or "").strip()
         if not table_name or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "operation=insert_rows requires a valid plain table name (alphanumeric/underscore only).", retryable=False)
         if not isinstance(rows, list) or not rows or not all(isinstance(r, dict) for r in rows):
