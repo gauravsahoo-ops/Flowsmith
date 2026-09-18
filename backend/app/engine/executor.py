@@ -116,8 +116,8 @@ def _add_step(
         "outputs": outputs,
         "error": error,
         "note": note,
-        "attempts": max(1, int(attempts)),
-        "retries": max(0, int(retries)),
+        "attempts": max(1, attempts),
+        "retries": max(0, retries),
     })
 
 
@@ -609,7 +609,7 @@ async def _run_one(
         backoff = max(0.0, float(node.settings.get("retry_backoff_seconds", 2) or 2))
     except (TypeError, ValueError):
         backoff = 2.0
-    retries = 0
+    retries: int = 0
     timeout = float(node.settings.get("timeout_seconds", 0)) or None
 
     if node.credentials and credential_resolver is not None:
@@ -913,7 +913,7 @@ async def _run_one(
             inputs=inputs_capped,
             outputs=_cap(results[node.id]),
             note=(f"Succeeded after {retries} retr{'y' if retries == 1 else 'ies'}."
-                  if retries else None),
+                  if retries > 0 else None),
             attempts=retries + 1,
             retries=retries,
         )
@@ -936,7 +936,7 @@ async def _run_one(
             note=(
                 f"Failed {max_attempts} attempt(s); {retries} failed"
                 f" retr{'y' if retries == 1 else 'ies'} before this error."
-                if retries else None
+                if retries > 0 else None
             ),
         )
     except Exception as exc:  # any unexpected failure becomes a typed error
@@ -947,7 +947,7 @@ async def _run_one(
             attempts=retries + 1, retries=retries,
             note=(f"Failed {max_attempts} attempt(s); {retries} failed"
                   f" retr{'y' if retries == 1 else 'ies'} before this error."
-                  if retries else None),
+                  if retries > 0 else None),
         )
 
 
