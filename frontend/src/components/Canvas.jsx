@@ -507,7 +507,9 @@ function CanvasInner() {
         connectionLineType="bezier"
         multiSelectionKeyCode="Shift"
         selectionKeyCode="Shift"
-        panOnScroll
+        panOnDrag={[1, 2]}
+        zoomOnPinch={true}
+        preventScrolling={true}
         deleteKeyCode={['Backspace', 'Delete']}
         minZoom={0.1}
         maxZoom={2.5}

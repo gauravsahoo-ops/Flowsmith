@@ -76,7 +76,6 @@ export default function Sidebar({ onOpenCredentials }) {
   const nodes = useWorkflowStore((s) => s.nodes)
   const generateWorkflow = useWorkflowStore((s) => s.generateWorkflow)
   const selectNode = useUiStore((s) => s.selectNode)
-  const toggleSidebar = useUiStore((s) => s.toggleSidebar)
   const closeSidebar = useUiStore((s) => s.closeSidebar)
   const { fitView } = useReactFlow()
   const [prompt, setPrompt] = useState('')
@@ -191,7 +190,6 @@ export default function Sidebar({ onOpenCredentials }) {
   const searching = Boolean(query.trim())
   const generated = useWorkflowStore((s) => s.generated)
   const approveGenerated = useWorkflowStore((s) => s.approveGenerated)
-  const discardGenerated = useWorkflowStore((s) => s.discardGenerated)
   const [approving, setApproving] = useState(false)
 
 

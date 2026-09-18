@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, getToken } from '../api'
-import { useBrandingStore, DEFAULT_BRANDING } from '../stores/brandingStore'
+import { useBrandingStore } from '../stores/brandingStore'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 

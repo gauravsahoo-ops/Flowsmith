@@ -199,7 +199,7 @@ export default function Login({ onAuthed }) {
           <div className="hero-features-list">
             <div className="feature-chip">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>100+ Enterprise Connectors</span>
+              <span>100+ Visual Connectors</span>
             </div>
             <div className="feature-chip">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -383,7 +383,7 @@ export default function Login({ onAuthed }) {
                     {mode === 'login'
                       ? 'Sign In to Workspace'
                       : mode === 'register'
-                        ? 'Create Enterprise Account'
+                        ? 'Create Account'
                         : mode === 'forgot'
                           ? 'Send Password Reset Link'
                           : 'Update Password & Login'}

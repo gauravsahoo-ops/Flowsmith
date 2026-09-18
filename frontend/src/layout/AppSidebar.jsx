@@ -212,6 +212,20 @@ export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, 
           )}
         </div>
         <span className="app-sidebar-brand-name">{appName}</span>
+        {isMobile && (
+          <button
+            type="button"
+            className="app-sidebar-mobile-close"
+            onClick={onMobileClose}
+            aria-label="Close sidebar"
+            title="Close sidebar"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <nav className="app-sidebar-nav" aria-label="Main navigation">

@@ -242,8 +242,54 @@ export default function CredentialsPage() {
                       </div>
                     </div>
                   </td>
-                  <td><span className="badge badge-muted">{c.type}</span></td>
-                  <td><span className="dot status-success" /> <span className="hint">Encrypted</span></td>
+                  <td>
+                    <span
+                      className="badge"
+                      style={{
+                        background: `${{
+                          salesforce: '#00a1e0',
+                          hubspot: '#ff7a59',
+                          google_sheets: '#0f9d58',
+                          google_drive: '#4285f4',
+                          google_calendar: '#4285f4',
+                          gmail: '#ea4335',
+                          postgres: '#38bdf8',
+                          mysql: '#00758f',
+                          redis: '#f43f5e',
+                          mongodb: '#10b981',
+                          openai: '#10a37f',
+                          slack: '#a855f7',
+                          telegram: '#38bdf8',
+                        }[c.type] || '#818cf8'}18`,
+                        color: {
+                          salesforce: '#38bdf8',
+                          hubspot: '#fb923c',
+                          google_sheets: '#34d399',
+                          google_drive: '#60a5fa',
+                          google_calendar: '#60a5fa',
+                          gmail: '#f87171',
+                          postgres: '#38bdf8',
+                          mysql: '#38bdf8',
+                          redis: '#fb7185',
+                          mongodb: '#34d399',
+                          openai: '#34d399',
+                          slack: '#c084fc',
+                          telegram: '#38bdf8',
+                        }[c.type] || '#a5b4fc',
+                        borderColor: 'rgba(255, 255, 255, 0.12)',
+                        fontWeight: 600,
+                        textTransform: 'capitalize'
+                      }}
+                    >
+                      {c.type.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="status-pill status-success" title="Encrypted at rest with Fernet 256-bit AES">
+                      <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                      <span>Encrypted (Fernet)</span>
+                    </span>
+                  </td>
                   <td>
                     {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                       <button

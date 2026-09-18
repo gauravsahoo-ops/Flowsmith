@@ -119,12 +119,24 @@ export default function AppShell({ onLogout }) {
           </div>
           <div className="app-topbar-right">
             {!isCanvas && (
-              <button className="ghost ghost--sm" onClick={() => navigate('/workflows')} title="Go to workflows">
-                Workflows
+              <button className="ghost ghost--sm topbar-nav-btn" onClick={() => navigate('/workflows')} title="Go to workflows">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.18" />
+                </svg>
+                <span>Workflows</span>
               </button>
             )}
-            <button className="ghost ghost--sm" onClick={onLogout} title="Log out">
-              Log out
+            <div className="app-topbar-user-badge" title="Gaurav Sahoo · Administrator">
+              <span className="user-avatar-dot" />
+              <span className="user-avatar-text">GS</span>
+            </div>
+            <button className="ghost ghost--sm app-topbar-logout" onClick={onLogout} title="Log out">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Log out</span>
             </button>
           </div>
         </header>

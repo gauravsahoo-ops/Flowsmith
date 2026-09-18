@@ -75,8 +75,21 @@ function Icon({ name, size = 20, color = 'currentColor' }) {
 
 function StatCard({ label, value, hint, onClick, iconName, iconColor }) {
   return (
-    <button className="stat-card" onClick={onClick} disabled={!onClick}>
-      <div className="stat-icon">
+    <button
+      className="stat-card"
+      onClick={onClick}
+      disabled={!onClick}
+      style={{ '--stat-color': iconColor }}
+      type="button"
+    >
+      <div
+        className="stat-icon"
+        style={{
+          background: `radial-gradient(circle at 35% 35%, ${iconColor}26 0%, ${iconColor}0a 100%)`,
+          borderColor: `${iconColor}45`,
+          boxShadow: `0 4px 14px -2px ${iconColor}33`,
+        }}
+      >
         <Icon name={iconName} size={20} color={iconColor} />
       </div>
       <div className="stat-body">
@@ -104,18 +117,39 @@ function RecentWorkflows({ workflows, loading }) {
   return (
     <div className="overview-cards">
       {workflows.slice(0, 6).map(w => (
-        <button key={w.id} className="overview-card" onClick={() => navigate(`/workflows/${w.id}`)}>
+        <button key={w.id} className="overview-card" onClick={() => navigate(`/workflows/${w.id}`)} type="button">
           <div className="overview-card-head">
-            <strong>{w.name ? w.name : <span className="muted">Untitled workflow</span>}</strong>
-            <span className={`badge ${w.active ? 'badge-green' : 'badge-muted'}`}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span className="overview-card-icon" style={{
+                width: 24, height: 24, borderRadius: 6,
+                background: w.active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.12)',
+                display: 'inline-grid', placeItems: 'center',
+                color: w.active ? '#34d399' : '#818cf8', flexShrink: 0
+              }}>
+                <Icon name="workflows" size={13} color="currentColor" />
+              </span>
+              <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {w.name ? w.name : <span className="muted">Untitled workflow</span>}
+              </strong>
+            </div>
+            <span className={`status-pill ${w.active ? 'status-success' : 'status-failed'}`} style={{
+              fontSize: 10.5, padding: '2px 8px',
+              color: w.active ? '#34d399' : '#94a3b8',
+              background: w.active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+              borderColor: w.active ? 'rgba(16, 185, 129, 0.28)' : 'rgba(255, 255, 255, 0.1)'
+            }}>
+              <span className="dot" style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
               {w.active ? 'Active' : 'Inactive'}
             </span>
           </div>
-          <div className="hint" style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}>
+          <div className="hint" style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', marginTop: 4 }}>
             {w.id.slice(0, 8)} · v{w.version} · {new Date(w.updated_at).toLocaleDateString()}
           </div>
-          <div className="hint" style={{ marginTop: 6, color: '#94a3b8' }}>
-            {(w.data?.nodes?.length ?? w.node_count ?? 0)} nodes · {(w.data?.connections?.length ?? 0)} connections
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="hint" style={{ color: '#94a3b8', fontSize: 11.5 }}>
+              {(w.data?.nodes?.length ?? w.node_count ?? 0)} nodes · {(w.data?.connections?.length ?? 0)} links
+            </span>
+            <span className="overview-card-arrow">→</span>
           </div>
         </button>
       ))}

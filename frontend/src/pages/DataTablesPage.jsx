@@ -38,7 +38,7 @@ export default function DataTablesPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data, meta } = await api.listDataTables({ workspace_id: wsId || undefined, search: search.trim() || undefined, page: 1, pageSize: 100 })
+      const { data } = await api.listDataTables({ workspace_id: wsId || undefined, search: search.trim() || undefined, page: 1, pageSize: 100 })
       setTables(data || [])
     } catch (e) {
       setError(e.message)
