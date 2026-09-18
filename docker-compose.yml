@@ -76,9 +76,9 @@ services:
       QUEUE_EMBEDDED_CONSUMER: "false"
       JWT_SECRET: ${JWT_SECRET:-}
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8000}
+      PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
       APP_ENV: ${APP_ENV:-production}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8000,http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://flowsmith.dev.idslogic.net,http://localhost:8000,http://localhost:5173}
       OBJECT_STORE_BACKEND: ${OBJECT_STORE_BACKEND:-local}
       OBJECT_STORE_LOCAL_PATH: ${OBJECT_STORE_LOCAL_PATH:-/app/backend/data/objects}
       OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-}
@@ -126,7 +126,7 @@ services:
       QUEUE_EMBEDDED_CONSUMER: "false"
       JWT_SECRET: ${JWT_SECRET:-}
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8000}
+      PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
       APP_ENV: ${APP_ENV:-production}
       OBJECT_STORE_BACKEND: ${OBJECT_STORE_BACKEND:-local}
       OBJECT_STORE_LOCAL_PATH: ${OBJECT_STORE_LOCAL_PATH:-/app/backend/data/objects}
