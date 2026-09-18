@@ -150,7 +150,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     """
 
     _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
-    _SAFE_PREFIXES = ("/api/health", "/readyz", "/api/readyz", "/docs", "/redoc", "/openapi.json")
+    _SAFE_PREFIXES = ("/api/health", "/readyz", "/api/readyz", "/docs", "/redoc", "/openapi.json", "/api/auth", "/api/webhooks")
 
     def __init__(self, app: Any, allowed_origins: list[str]) -> None:
         super().__init__(app)
