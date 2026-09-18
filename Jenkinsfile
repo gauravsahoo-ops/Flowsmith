@@ -70,7 +70,6 @@ pipeline {
                         --exclude='.vscode' \
                         --exclude='deployment_requirements.md' \
                         --exclude='Jenkinsfile' \
-                        --exclude-from='.jenkins' \
                         -e "ssh -o StrictHostKeyChecking=no" \
                         ./ \
                         ${REMOTE_USER}@${REMOTE_HOST}:${BASE_PATH}/
