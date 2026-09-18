@@ -63,6 +63,8 @@ class OAuthProviderSpec:
             base = (getattr(settings, "public_url", "") or "").rstrip("/")
             if base:
                 redirect = f"{base}/api/auth/{self.key}/callback"
+            else:
+                redirect = f"https://flowsmith.dev.idslogic.net/api/auth/{self.key}/callback"
         if not cid or not csecret:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
