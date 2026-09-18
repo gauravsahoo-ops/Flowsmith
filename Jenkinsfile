@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'docker-jenkingsagent'
+    }
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '20'))
