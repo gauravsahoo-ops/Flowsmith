@@ -9,6 +9,11 @@ pipeline {
         timestamps()
     }
 
+    triggers {
+        // Automatically check Bitbucket every 2 minutes for new commits
+        pollSCM('H/2 * * * *')
+    }
+
     environment {
         // Manage SSH credentials safely via Jenkins Credentials Manager
         SSH_CRED_ID = 'flowsmith_ssh_key_user' 
