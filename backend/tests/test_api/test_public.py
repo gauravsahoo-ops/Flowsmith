@@ -56,9 +56,12 @@ def test_frontend_disabled_404s(client, monkeypatch):
 
 
 def test_cors_headers_present(client):
-    resp = client.get("/api/health", headers={"Origin": "http://example.com"})
+    settings = get_settings()
+    allowed = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    origin = allowed[0] if (allowed and "*" not in allowed) else "http://example.com"
+    resp = client.get("/api/health", headers={"Origin": origin})
     assert resp.status_code == 200
-    assert resp.headers.get("access-control-allow-origin") in ("*", "http://example.com")
+    assert resp.headers.get("access-control-allow-origin") in ("*", origin)
 
 
 def test_health_reports_public_url(client):
