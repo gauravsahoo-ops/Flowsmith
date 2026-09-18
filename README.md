@@ -94,6 +94,7 @@
   - `{{ $env.VAR_NAME }}` — workspace-scoped environment variables
 - **Branching & Merging**: True multi-parent branching, IF-conditions, multi-way Switch, and flexible Merge strategies.
 - **Resilience & Fault Tolerance**: Per-node retry with exponential backoff, custom node timeouts, and cooperative execution cancellation.
+- **Global Error Workflows & Error Trigger**: Workflows can bind an automated error handler (`on_error_workflow_id`). The dedicated **Error Trigger** node receives structured failure context (`error`, `failed_execution_id`, `failed_workflow_id`) to orchestrate incident alerts across Slack, email, or PagerDuty.
 
 ### 2. Live Publishing & Lifecycle Control
 - **Draft vs. Active**: Workflows start in `Draft` (Inactive) mode for risk-free editing.
