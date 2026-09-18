@@ -3,9 +3,7 @@ import { api, getToken, setToken } from '../api'
 import { useBrandingStore } from '../stores/brandingStore'
 
 // Login / Register / Forgot-password / Reset-password / SSO (Phase 42 + SSO EE).
-// The backend's reset email links to /reset-password?token=... — the SPA
-// fallback serves this screen, which detects the path + token and jumps
-// straight into the reset form.
+// Premium Enterprise Grade Auth UI with interactive workflow showcase.
 
 const SSO_ICONS = {
   google: (
@@ -23,6 +21,7 @@ export default function Login({ onAuthed }) {
   const [mode, setMode] = useState('login') // login | register | forgot | reset
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [resetToken, setResetToken] = useState('')
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -41,7 +40,6 @@ export default function Login({ onAuthed }) {
         window.history.replaceState({}, '', window.location.pathname)
       }
     }
-    // Handle SSO callback token
     const params = new URLSearchParams(window.location.search)
     const ssoToken = params.get('sso_token')
     if (ssoToken) {
@@ -50,10 +48,9 @@ export default function Login({ onAuthed }) {
       onAuthed({ token: ssoToken })
       return
     }
-    // Load SSO providers
     api.getSsoProviders().then(providers => {
       if (Array.isArray(providers)) setSsoProviders(providers)
-    }).catch(() => { /* SSO not configured, ignore */ })
+    }).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit(e) {
@@ -94,7 +91,7 @@ export default function Login({ onAuthed }) {
   }
 
   const appName = useBrandingStore((s) => s.appName) || 'Flowsmith'
-  const tagline = useBrandingStore((s) => s.tagline) || 'Visual workflow automation'
+  const tagline = useBrandingStore((s) => s.tagline) || 'Next-Gen Workflow Automation'
   const logoUrl = useBrandingStore((s) => s.logoUrl)
   const logoData = useBrandingStore((s) => s.logoData)
   const logoSrc = logoData || logoUrl
@@ -104,7 +101,6 @@ export default function Login({ onAuthed }) {
   }, [])
 
   function handleSsoLogin(providerId) {
-    // Redirect to backend SSO login endpoint
     window.location.href = `/api/auth/sso/${providerId}/login`
   }
 
@@ -112,131 +108,310 @@ export default function Login({ onAuthed }) {
 
   return (
     <div className="login-screen">
-      <form className="login-card" onSubmit={submit}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            background: logoSrc ? 'transparent' : 'var(--brand-gradient, linear-gradient(135deg, #6366f1 0%, #3b82f6 100%))',
-            boxShadow: logoSrc ? 'none' : 'var(--brand-shadow, 0 4px 14px rgba(99, 102, 241, 0.4))',
-            display: 'grid',
-            placeItems: 'center',
-            overflow: 'hidden',
-          }}>
-            {logoSrc ? (
-              <img src={logoSrc} alt={appName} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            ) : (
-              <span style={{ fontSize: 24 }}>⚡</span>
-            )}
+      {/* Background Ambient Glow Orbs */}
+      <div className="login-ambient-orb orb-1" aria-hidden="true" />
+      <div className="login-ambient-orb orb-2" aria-hidden="true" />
+      <div className="login-ambient-orb orb-3" aria-hidden="true" />
+
+      <div className="login-container">
+        {/* Left Side: Enterprise Feature Showcase */}
+        <div className="login-hero">
+          <div className="login-badge">
+            <span className="badge-pulse-dot" />
+            <span>FLOWSMITH PLATFORM</span>
+            <span className="badge-pill">v2.4 Live</span>
           </div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>{appName}</h1>
-          <p className="hint" style={{ margin: 0 }}>{tagline}</p>
+
+          <h1 className="hero-heading">
+            Automate at the <span className="gradient-text">speed of thought.</span>
+          </h1>
+
+          <p className="hero-subheading">
+            The next-generation visual workflow engine connecting Salesforce, enterprise databases, AI models, and real-time APIs in milliseconds.
+          </p>
+
+          {/* Interactive Visual Flow Diagram Preview */}
+          <div className="hero-flow-card">
+            <div className="flow-card-header">
+              <div className="flow-card-dots">
+                <span className="dot dot-red" />
+                <span className="dot dot-yellow" />
+                <span className="dot dot-green" />
+              </div>
+              <span className="flow-card-title">Live Pipeline • sync-crm-contacts</span>
+              <span className="flow-status-pill">Active</span>
+            </div>
+
+            <div className="flow-nodes-track">
+              <div className="flow-node node-trigger">
+                <div className="node-icon">⚡</div>
+                <div className="node-info">
+                  <span className="node-name">Webhook</span>
+                  <span className="node-sub">Trigger</span>
+                </div>
+              </div>
+
+              <div className="flow-connector">
+                <span className="connector-line" />
+                <span className="connector-pulse" />
+              </div>
+
+              <div className="flow-node node-salesforce">
+                <div className="node-icon">☁️</div>
+                <div className="node-info">
+                  <span className="node-name">Salesforce</span>
+                  <span className="node-sub">Sync Record</span>
+                </div>
+              </div>
+
+              <div className="flow-connector">
+                <span className="connector-line" />
+                <span className="connector-pulse" style={{ animationDelay: '0.8s' }} />
+              </div>
+
+              <div className="flow-node node-ai">
+                <div className="node-icon">🤖</div>
+                <div className="node-info">
+                  <span className="node-name">AI Agent</span>
+                  <span className="node-sub">Enrich Data</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flow-metrics-bar">
+              <div className="metric-item">
+                <span className="metric-label">Execution Time</span>
+                <span className="metric-val text-green">14ms</span>
+              </div>
+              <div className="metric-divider" />
+              <div className="metric-item">
+                <span className="metric-label">Security</span>
+                <span className="metric-val text-blue">AES-128 Fernet</span>
+              </div>
+              <div className="metric-divider" />
+              <div className="metric-item">
+                <span className="metric-label">Engine</span>
+                <span className="metric-val text-purple">Async SSE</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hero-features-list">
+            <div className="feature-chip">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>100+ Enterprise Connectors</span>
+            </div>
+            <div className="feature-chip">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Self-Healing Graph Execution</span>
+            </div>
+            <div className="feature-chip">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Zero-Config OAuth Engine</span>
+            </div>
+          </div>
         </div>
 
-        {(mode === 'login' || mode === 'register') && (
-          <div className="tabs">
-            <button
-              type="button"
-              className={mode === 'login' ? 'tab active' : 'tab'}
-              onClick={() => setMode('login')}
-            >
-              Log in
-            </button>
-            <button
-              type="button"
-              className={mode === 'register' ? 'tab active' : 'tab'}
-              onClick={() => setMode('register')}
-            >
-              Sign up
-            </button>
-          </div>
-        )}
-        {(mode === 'forgot' || mode === 'reset') && (
-          <h2 style={{ margin: '4px 0', fontSize: 16 }}>
-            {mode === 'forgot' ? 'Forgot password' : 'Choose a new password'}
-          </h2>
-        )}
+        {/* Right Side: Sleek Glassmorphic Login Card */}
+        <div className="login-card-container">
+          <form className="login-card" onSubmit={submit}>
+            {/* Header / Brand */}
+            <div className="login-card-header">
+              <div className="login-logo-badge">
+                {logoSrc ? (
+                  <img src={logoSrc} alt={appName} className="login-logo-img" />
+                ) : (
+                  <span className="login-logo-emoji">⚡</span>
+                )}
+              </div>
+              <h2 className="login-brand-title">{appName}</h2>
+              <p className="login-brand-tagline">{tagline}</p>
+            </div>
 
-        {/* SSO Buttons */}
-        {ssoProviders.length > 0 && (mode === 'login' || mode === 'register') && (
-          <>
-            <div className="sso-providers">
-              {ssoProviders.map(p => (
+            {/* Segmented Tab Switch */}
+            {(mode === 'login' || mode === 'register') && (
+              <div className="login-tabs-segmented" role="tablist">
                 <button
-                  key={p.id}
                   type="button"
-                  className="sso-btn"
-                  onClick={() => handleSsoLogin(p.id)}
+                  role="tab"
+                  aria-selected={mode === 'login'}
+                  className={`segmented-tab ${mode === 'login' ? 'active' : ''}`}
+                  onClick={() => { setMode('login'); setError(null); setNotice(null); }}
                 >
-                  <span className="sso-icon">{SSO_ICONS[p.icon] || SSO_ICONS.shield}</span>
-                  <span>Continue with {p.name}</span>
+                  Log in
                 </button>
-              ))}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'register'}
+                  className={`segmented-tab ${mode === 'register' ? 'active' : ''}`}
+                  onClick={() => { setMode('register'); setError(null); setNotice(null); }}
+                >
+                  Sign up
+                </button>
+              </div>
+            )}
+
+            {(mode === 'forgot' || mode === 'reset') && (
+              <div className="login-subheading-box">
+                <h3 className="login-subheading-title">
+                  {mode === 'forgot' ? 'Reset your password' : 'Create new password'}
+                </h3>
+                <p className="login-subheading-desc">
+                  {mode === 'forgot'
+                    ? 'Enter your email address to receive password reset instructions.'
+                    : 'Choose a strong password with at least 8 characters.'}
+                </p>
+              </div>
+            )}
+
+            {/* SSO Providers */}
+            {ssoProviders.length > 0 && (mode === 'login' || mode === 'register') && (
+              <>
+                <div className="sso-providers">
+                  {ssoProviders.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="sso-btn"
+                      onClick={() => handleSsoLogin(p.id)}
+                    >
+                      <span className="sso-icon">{SSO_ICONS[p.icon] || SSO_ICONS.shield}</span>
+                      <span>Continue with {p.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="sso-divider">
+                  <span>or continue with email</span>
+                </div>
+              </>
+            )}
+
+            {/* Form Fields */}
+            <div className="login-fields-group">
+              <label className="input-field-label">
+                <span className="label-text">Email address</span>
+                <div className="input-with-icon">
+                  <svg className="input-prefix-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                  <input
+                    type="email"
+                    className="styled-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required={mode !== 'reset'}
+                    placeholder="name@company.com"
+                    autoComplete="email"
+                    autoFocus
+                  />
+                </div>
+              </label>
+
+              {mode !== 'forgot' && (
+                <label className="input-field-label">
+                  <div className="label-row">
+                    <span className="label-text">{mode === 'reset' ? 'New password' : 'Password'}</span>
+                    {mode === 'login' && (
+                      <button
+                        type="button"
+                        className="forgot-link"
+                        onClick={() => { setMode('forgot'); setError(null); setNotice(null); }}
+                      >
+                        Forgot?
+                      </button>
+                    )}
+                  </div>
+                  <div className="input-with-icon">
+                    <svg className="input-prefix-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="styled-input"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="••••••••••••"
+                      minLength={mode === 'login' ? 1 : 8}
+                      autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex="-1"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      )}
+                    </button>
+                  </div>
+                </label>
+              )}
             </div>
-            <div className="sso-divider">
-              <span>or</span>
+
+            {error && (
+              <div className="login-alert-banner alert-error" role="alert">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                <span>{error}</span>
+              </div>
+            )}
+
+            {notice && (
+              <div className="login-alert-banner alert-notice" role="alert">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>{notice}</span>
+              </div>
+            )}
+
+            {/* Primary Submit Button */}
+            <button type="submit" className="login-submit-btn" disabled={busy}>
+              {busy ? (
+                <span className="btn-spinner-content">
+                  <span className="btn-spinner" />
+                  <span>Processing…</span>
+                </span>
+              ) : (
+                <span className="btn-label-content">
+                  <span>
+                    {mode === 'login'
+                      ? 'Sign In to Workspace'
+                      : mode === 'register'
+                        ? 'Create Enterprise Account'
+                        : mode === 'forgot'
+                          ? 'Send Password Reset Link'
+                          : 'Update Password & Login'}
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </span>
+              )}
+            </button>
+
+            {mode !== 'login' && (
+              <button
+                type="button"
+                className="login-back-btn"
+                onClick={() => { setMode('login'); setError(null); setNotice(null); }}
+              >
+                ← Back to sign in
+              </button>
+            )}
+
+            {/* Footer Credit Pill */}
+            <div className="login-card-footer">
+              <span className="footer-credit">
+                Designed & Engineered with precision by <strong className="credit-name">Gaurav</strong>
+              </span>
             </div>
-          </>
-        )}
-
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required={mode !== 'reset'}
-            autoFocus
-          />
-        </label>
-
-        {mode !== 'forgot' && (
-          <label>
-            {mode === 'reset' ? 'New password' : 'Password'}
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={mode === 'login' ? 1 : 8}
-            />
-          </label>
-        )}
-
-        {error && <div className="form-error">{error}</div>}
-        {notice && <div className="banner ok">{notice}</div>}
-
-        <button type="submit" className="primary" disabled={busy}>
-          {busy
-            ? '...'
-            : mode === 'login'
-              ? 'Log in'
-              : mode === 'register'
-                ? 'Create account'
-                : mode === 'forgot'
-                  ? 'Email me a reset link'
-                  : 'Save new password'}
-        </button>
-
-        {mode === 'login' && (
-          <button type="button" className="ghost linklike" onClick={() => { setMode('forgot'); setError(null); setNotice(null) }}>
-            Forgot password?
-          </button>
-        )}
-        {mode !== 'login' && (
-          <button
-            type="button"
-            className="ghost linklike"
-            onClick={() => { setMode('login'); setError(null); setNotice(null) }}
-          >
-            ← Back to log in
-          </button>
-        )}
-      </form>
-      <p className="hint" style={{ marginTop: 12, fontSize: 12, textAlign: 'center' }}>
-        Developed by Gaurav
-      </p>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }
