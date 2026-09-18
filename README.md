@@ -1,48 +1,68 @@
 # Flowsmith
 
-> Developed by **Gaurav** — designed, architected, and built from the ground up as an original work.
+> **Designed, architected, and engineered from the ground up by [Gaurav](https://github.com/gauravsahoo-ops) as an original work.**
 
 [![CI](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-1700%2B%20passing-brightgreen)](#testing)
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-1700%2B%20passing-brightgreen)](#backend-testing-1700-tests)
+[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-271%20passing-brightgreen)](#frontend-testing-271-vitest-tests--e2e-specs)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
-[![Node](https://img.shields.io/badge/node-22-blue)](https://nodejs.org/)
+[![FastAPI](https://img.shields.io/badge/fastapi-0.115-009688)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/react-19-61dafb)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/vite-8-646cff)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**Flowsmith** is an enterprise-grade, self-hosted, open-source workflow automation platform designed to deliver n8n and Zapier-class automation with complete data sovereignty, zero per-run fees, and native enterprise integrations. It combines an interactive visual DAG canvas, sandboxed code execution, AI agents, RAG vector search, and 42 first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
+**Flowsmith** is an ultra-premium, self-hosted, open-source workflow automation and orchestration suite engineered to deliver n8n- and Zapier-class capability with complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, and 45+ first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
 
 ---
 
 ## Motto & Mission
 
-> **"Orchestrate complex business logic with absolute visual clarity, enterprise-level security, and zero vendor lock-in."**
+> **"Orchestrate complex business logic with absolute visual clarity, enterprise-grade security, and zero vendor lock-in."**
 
 ### Core Purpose & Target Audience
-- **Target Audience**: DevOps engineers, enterprise backend developers, automation specialists, and IT teams requiring secure on-premise or private-cloud orchestration.
-- **Problem It Solves**: Eliminates exorbitant per-task SaaS subscription fees (Zapier, Workato, Make) while avoiding the compliance risks of sending sensitive enterprise credentials and customer records to third-party clouds.
-- **Enterprise Ready**: Full OAuth2 + PKCE support, Fernet-encrypted credential storage at rest, SSRF prevention, audit trails, and multi-tenant organization workspaces.
+- **Target Audience**: DevOps engineers, enterprise architects, backend developers, automation specialists, and IT teams requiring secure on-premise or private-cloud orchestration.
+- **Problem It Solves**: Eliminates exorbitant per-task SaaS subscription fees (Zapier, Workato, Make) while eliminating compliance risks associated with transmitting sensitive enterprise credentials and customer records to third-party multi-tenant clouds.
+- **Enterprise Grade**: Full OAuth2 + PKCE support, Fernet (AES-128-CBC) encrypted credential vault at rest, SSRF prevention, multi-tenant organization workspaces, audit logging, and custom white-label branding.
 
 ---
 
 ## Table of Contents
 
+- [Super-Premium UI/UX & Mobile Experience](#super-premium-uiux--mobile-experience)
 - [Architecture](#architecture)
-- [Features](#features)
+- [Key Features](#key-features)
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [How to Use Flowsmith](#how-to-use-flowsmith)
 - [Project Structure](#project-structure)
 - [Built-in Node Types](#built-in-node-types)
-- [Connectors](#connectors)
+- [First-Party Connectors](#first-party-connectors)
 - [API Reference](#api-reference)
 - [Database Schema](#database-schema)
 - [Testing](#testing)
 - [Deployment](#deployment)
-- [Security](#security)
-- [Monitoring](#monitoring)
+- [Security & Compliance](#security--compliance)
+- [Monitoring & Telemetry](#monitoring--telemetry)
 - [CI/CD](#cicd)
 - [Developed By](#developed-by)
 - [License](#license)
+
+---
+
+## Super-Premium UI/UX & Mobile Experience
+
+Flowsmith is designed from the ground up to captivate users and provide a frictionless, world-class developer experience across both desktop and mobile viewports:
+
+- **Frosted Glassmorphism Design System**: Tailored dark-mode palette (`#0b0e14` background with radial luminescence) layered with multi-tier frosted glass surfaces (`backdrop-filter: blur(20px)`), luminous 1px top-highlight borders, and deep ambient drop shadows.
+- **Interactive Login & Auth Showcase**: Ambient background glowing orbs with breathing animations, an interactive live pipeline preview displaying real-time execution stats (`14ms`, `AES-128 Fernet`, `Async SSE`), show/hide password toggle, and SSO connectivity.
+- **Fluid Micro-Animations**: Smooth card hover lifts (`translateY(-3px)`), button shimmer states, and pulsing live indicators (`● Active`, `● Encrypted`, `● Success`).
+- **Tactile Visual Canvas**: 78px beveled glass node cards with category-colored glows (Triggers: Amber, Connectors: Blue, Logic: Indigo/Purple, AI: Cyan), custom input/output port handles, and instant node context menus.
+- **Full Android & iOS Mobile Optimization**:
+  - **Safe-Area Insets**: Seamless layout alignment around iPhone notches and Dynamic Island (`env(safe-area-inset-top)` / `env(safe-area-inset-bottom)`).
+  - **iOS Safari Auto-Zoom Fix**: All form inputs maintain `16px` font size on mobile screens to eliminate disruptive auto-zoom behavior.
+  - **Canvas Touch Controls**: Multi-touch canvas panning (`panOnDrag={[1, 2]}`) and pinch-to-zoom (`zoomOnPinch={true}`).
+  - **Fluid Responsive Layouts**: Non-wrapping headers, collapsible sidebars with explicit mobile dismiss triggers (`✕`), and horizontally scrollable data tables.
 
 ---
 
@@ -54,9 +74,10 @@
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Frontend Client (React 19 + React Flow v12 + Zustand + Vite 8)             :5173 / :8000│
 │  ├── Visual Canvas: Drag & drop node creation, fluid edge routing, auto-layout, undo/redo│
-│  ├── Node Config Modal: Multi-tab editor (Input preview, Parameters, Output inspector) │
+│  ├── Node Editor Modal: 3-panel inspector (Inputs preview, Parameters, Output inspector)│
 │  ├── Debugger Drawer: Execution timeline, per-step input/output payloads, retry actions│
-│  └── Control Panels: Credentials, Environment Variables, Templates, Approvals, RAG    │
+│  ├── Control Panels: Credentials, Environment Variables, Templates, Approvals, RAG    │
+│  └── Client Customization: White-labeling engine, logo upload, color presets, CSS theme │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Backend API & Orchestration (FastAPI + SQLAlchemy 2.0 + Pydantic v2)           :8000  │
 │  ├── REST API: 30 modular routers with 160+ endpoints (OpenAPI / Swagger documentation)│
@@ -65,7 +86,7 @@
 │  ├── Expression Evaluator: Sandboxed interpolation ({{ $json.* }}, $node, $cred, $env) │
 │  ├── Sandboxed Code Runtimes: JavaScript (DukPy engine) & Python execution sandboxes   │
 │  ├── Credential Vault: AES-128-CBC Fernet encryption with multi-key rotation keyring   │
-│  ├── Native Connectors: 42 first-party connectors with OAuth2 PKCE flows               │
+│  ├── Native Connectors: 45+ first-party connectors with OAuth2 PKCE flows              │
 │  └── AI Subsystem: Natural-language workflow generator, error assistant, ReAct agents   │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Distributed Execution & Asynchronous Worker                                           │
@@ -82,9 +103,9 @@
 
 ---
 
-## Features
+## Key Features
 
-### 1. Robust Workflow DAG Engine
+### 1. Robust Visual Workflow DAG Engine
 - **Topological Execution**: Nodes execute strictly based on dependency resolution.
 - **Cycle & Graph Validation**: Automatic validation prevents infinite loops and deadlocks before saving.
 - **Dynamic Expression Engine**: Reference any upstream node:
@@ -92,9 +113,9 @@
   - `{{ $('Node Name').item.json.field }}` — named upstream node output
   - `{{ $cred.apiKey }}` — secure credentials (never stored in plain text)
   - `{{ $env.VAR_NAME }}` — workspace-scoped environment variables
-- **Branching & Merging**: True multi-parent branching, IF-conditions, multi-way Switch, and flexible Merge strategies.
+- **Branching & Merging**: Multi-parent branching, IF-conditions, multi-way Switch, and flexible Merge strategies.
 - **Resilience & Fault Tolerance**: Per-node retry with exponential backoff, custom node timeouts, and cooperative execution cancellation.
-- **Global Error Workflows & Error Trigger**: Workflows can bind an automated error handler (`on_error_workflow_id`). The dedicated **Error Trigger** node receives structured failure context (`error`, `failed_execution_id`, `failed_workflow_id`) to orchestrate incident alerts across Slack, email, or PagerDuty.
+- **Global Error Workflows**: Bind an automated error handler (`on_error_workflow_id`). The dedicated **Error Trigger** receives structured failure context (`error`, `failed_execution_id`, `failed_workflow_id`) to orchestrate incident alerts across Slack, email, or PagerDuty.
 
 ### 2. Live Publishing & Lifecycle Control
 - **Draft vs. Active**: Workflows start in `Draft` (Inactive) mode for risk-free editing.
@@ -102,12 +123,11 @@
 - **Template Gallery**: Publish any custom workflow as a workspace template with one click.
 - **Version History & Rollback**: Every save generates an immutable snapshot (`WorkflowVersionRecord`), allowing single-click rollback to any prior release.
 - **Synchronous Webhook Responses**: `POST /api/webhooks/{path}?respond=true` waits for the run and returns the `respond_to_webhook` node's output with its status code (async 202 by default).
-- **Global Error Workflows**: Point any workflow at an error-handler workflow in settings — failures fire it once with the full error context (`error`, `failed_execution_id`, `failed_workflow_id`); handlers never cascade and test runs never trigger them.
 
 ### 3. Universal Token Management (`Token Manager`)
 - **Unified Lifecycle Node**: Merges token retrieval, persistence, and auto-refresh into a single node (`token_manager`).
 - **Native Dual Output Handles**:
-  - `🟢 valid` (upper handle): Emits stored credentials directly to downstream steps, completely skipping the Login API when active.
+  - `🟢 valid` (upper handle): Emits stored credentials directly to downstream steps, skipping the Login API when active.
   - `🟠 login` (lower handle): Emits to the Login API only on the initial run or when credentials are missing or expired.
 - **Zero Redundant Logins**: Never invokes external authentication APIs if valid credentials already exist in the database.
 - **Atomic Concurrency Protection**: PostgreSQL row-level locking (`SELECT ... FOR UPDATE`) prevents concurrent execution stampedes during token refresh.
@@ -115,100 +135,49 @@
 - **Self-Healing 401 Recovery**: Downstream HTTP Request nodes automatically force-refresh expired tokens under lock and retry once with strict infinite-loop prevention.
 
 ### 4. Credential Auto-Reconnect & Background Renewal
-- **Smart Reconnect**: `POST /api/credentials/{id}/reconnect` refreshes any OAuth credential from its stored refresh token (or Salesforce password flow) without interactive browser login; the UI falls back to OAuth only when background renewal is impossible.
+- **Smart Reconnect**: `POST /api/credentials/{id}/reconnect` refreshes any OAuth credential from its stored refresh token (or Salesforce password flow) without interactive browser login.
 - **Proactive Renewal Sweep**: A maintenance daemon re-checks expiring credentials every 10 minutes (bounded batches, `FOR UPDATE SKIP LOCKED` across replicas) and persists rotated tokens automatically.
-- **Auto-Healing Probes**: `POST /api/credentials/{id}/test` refreshes an expired credential once and re-probes before reporting, so transient expiry never pages anyone.
-- **Audited**: Every user-initiated reconnect logs `credential.reconnect`; sweeps write one throttled `credential.auto_refresh_sweep` summary row.
+- **Auto-Healing Probes**: `POST /api/credentials/{id}/test` refreshes an expired credential once and re-probes before reporting, so transient expiry never causes downtime.
 
 ### 5. Native AI & RAG Subsystem
 - **AI Chat & ReAct Agents**: Autonomous tool-calling loops executing web queries, database lookups, and API calls.
 - **RAG Knowledge Base**: Ingest files, split into chunks, generate embeddings, and retrieve relevant context via `pgvector`.
 - **Natural Language Workflow Generation**: Create complete multi-step automation workflows directly from plain English prompts.
 - **AI Error Assistant**: Click "Explain Error" in the debugger to instantly diagnose stack traces and receive actionable remediation suggestions.
+- **Autonomous Node Self-Healing**: Inside the node editor, click `✨ AI Auto-Repair` to inspect root causes, view side-by-side parameter diffs, and click `✨ Apply Fix & Re-test` to auto-heal steps.
 
-### 6. Interactive Debugger Drawer
-- Slide-in side drawer directly within the canvas.
-- Step-by-step visual timeline tracking execution duration, status, and failures.
-- Raw JSON inspections of incoming and outgoing data for each individual node.
-- Live rerun and manual retry capabilities without leaving the workflow view.
+### 6. Embedded Relational Data Tables
+- **In-App Spreadsheet Database**: Built-in relational data store designed for persistent tabular data without spinning up an external database.
+- **Custom Column Schemas**: Define custom columns with strict types (`string`, `number`, `boolean`, `date`, `datetime`, `json`).
+- **Spreadsheet Row Editor**: Full search, multi-column sorting, operators (`contains`, `eq`, `ne`, `gt`, `lt`), inline row editing, and bulk deletion.
 
-### 7. Data Pinning & Mocking Engine
+### 7. Human-in-the-Loop & Interactive Approvals
+- **Pausable Execution Graphs**: The `human_approval` node halts workflow execution at critical junctions (financial transactions, sensitive CRM deletions, deployment triggers).
+- **Approval Drawer**: Authorized reviewers inspect pending execution state, view item payloads, and click **Approve** or **Reject** to resume the DAG.
+- **Audit Logging**: Every approval and rejection action records reviewer identity, timestamp, and decision notes in the immutable audit log.
+
+### 8. Complete White-Labeling & Client Custom Branding
+- **100% Brand Customization**: Any client, enterprise team, or reseller can rebrand Flowsmith into their own proprietary platform.
+- **Configurable Attributes**: Custom application name, tagline, brand logo image upload, custom favicon, primary & accent color palettes, documentation URL, support email, and custom copyright notice.
+- **Dynamic CSS Injection**: Inject custom CSS rules dynamically into the client application DOM for complete style theming and custom typography.
+- **Dynamic UI Syncing**: Changes immediately propagate to the TopBar, navigation header, login screen, browser title, and themes via `/api/branding`.
+
+### 9. Data Pinning & Mocking Engine
 - **Instant Output Mocking**: Pin output data (`pinned_data`) on any canvas node with a single click (📌 badge).
 - **Zero API Quota Consumption**: When pinned, the execution engine completely bypasses live external calls (HTTP, database mutations, CRM updates) and directly feeds mock payloads downstream.
-- **Interactive JSON Mock Drawer**: Edit mock responses on the fly directly inside the Output panel.
 
-### 8. Canvas Single-Step Testing & Dependency Scoping
+### 10. Canvas Single-Step Testing & Dependency Scoping
 - **▶ Test Step (Run Node)**: Right-click any canvas node to execute only that single step.
 - **⏩ Run to Here**: Automatically computes all upstream dependencies in topological order and executes them up to the selected step.
-- **Rapid Iteration**: Test isolated API integrations or transformations without running end-to-end triggers.
 
-### 9. Visual Expression Autocomplete & Live Evaluation Drawer
-- **Live Variable Explorer Tree**: Browse upstream nodes, `$json`, `$execution.id`, `$workflow.id`, `$now`, and workspace environment variables (`$env.KEY`).
-- **Data Transformation Pipes**: Built-in pipe filters (`| upper`, `| lower`, `| trim`, `| json`, `| length`, etc.).
-- **Debounced Real-Time Evaluation**: Live evaluation of expressions against upstream context via `/api/workflows/{id}/preview-expression` with type badges (`String`, `Number`, `Boolean`, `Array`, `Object`) and syntax warning indicators.
-
-### 10. Universal OpenAPI 3.1 & Swagger Connector Importer
-- **One-Click Connector Generation**: Paste any OpenAPI 3.0/3.1 or Swagger 2.0 URL or JSON/YAML file.
-- **Auto-Detection**: Discovers authentication schemes (Bearer, API Key, Basic, OAuth2), base URLs, operation IDs, and schemas.
-- **First-Class Palette Integration**: Automatically registers generated connectors with Flowsmith's connector catalog, making them immediately available in the visual canvas palette (`+ Import API`).
-
-### 11. Autonomous AI Workflow Architect & Self-Healing
-- **Architecture Blueprints & Mermaid Flowcharts**: Generate comprehensive markdown documentation and `graph TD` Mermaid architecture diagrams via `POST /api/ai/document-workflow`, exportable with one click via the TopBar **Docs** modal.
-- **Autonomous Node Self-Healing**: `POST /api/ai/auto-fix` diagnoses runtime errors (URL scheme omissions, JSON syntax errors, auth header issues).
-- **Interactive Parameter Auto-Repair**: Inside the node editor, click `✨ AI Auto-Repair` to inspect root causes, view side-by-side parameter diffs, and click `✨ Apply Fix & Re-test` to auto-heal and immediately re-verify the step.
-
-### 12. Complete White-Labeling & Client Custom Branding
-- **100% Brand Customization**: Any enterprise client, office, or reseller can rebrand Flowsmith into their own proprietary platform.
-- **Configurable Attributes**: Custom application name, tagline, brand logo image URL, custom favicon, primary & accent color palettes, documentation URL, support email, and custom copyright notice.
-- **Dynamic CSS Injection**: Inject custom CSS rules dynamically into the client application DOM (`<style id="flowsmith-custom-css">`) for complete style theming, custom brand fonts, and tailored component styling.
-- **Dynamic UI Syncing**: Changes immediately propagate to the TopBar, navigation header, login screen, browser title, and themes via `/api/branding`.
-- **One-Click Reset**: Instant rollback to original Flowsmith defaults whenever required.
-
-### 13. Model Context Protocol (MCP) AI Server
+### 11. Model Context Protocol (MCP) AI Server
 - **External AI Integration**: Flowsmith acts as a native Model Context Protocol (MCP) server, allowing external AI coding assistants (Claude Desktop, Cursor, Antigravity, LLM agents) to interact with workflows.
 - **MCP Tools (`/api/mcp/tools`)**: External agents can programmatically trigger workflows, query Data Tables, list active connectors, and inspect execution results.
 - **MCP Resources (`/api/mcp/resources`)**: Exposes workflow graph schemas, execution traces, and operational metadata directly into the model's context window.
 
-### 14. Native Relational Data Tables
-- **Embedded Spreadsheet Storage**: Built-in relational data store designed for persistent tabular data without spinning up an external database.
-- **Custom Schema Definition**: Create custom columns with strict types (`string`, `number`, `boolean`, `date`, `json`).
-- **Full CRUD & Canvas Node**: Insert, update, filter, and query rows via `/api/data-tables` and directly through the visual `data_table` canvas node.
-
-### 15. Human-in-the-Loop & Interactive Approvals
-- **Pausable Execution Graphs**: The `human_approval` node halts workflow execution at critical junctions (e.g. large financial transactions, sensitive CRM deletions, deployment triggers).
-- **Approval Drawer**: Authorized reviewers can inspect pending execution state, view item payloads, and click **Approve** or **Reject** to resume the DAG.
-- **Audit Logging**: Every approval and rejection action records reviewer identity, timestamp, and decision notes in the immutable audit log.
-
-### 16. Dedicated Webhook Trigger Editor & Multi-Language Code Generator
-- **Visual URL Builder & Copier**: Displays live public URL with 1-click clipboard copy, supporting both async 202 queuing and synchronous response waiting (`?respond=true`).
-- **cURL & Code Snippet Generator**: Instantly generates production-ready code in **cURL**, **JavaScript (Fetch)**, and **Python (Requests)**.
-- **In-Editor Test Webhook Dispatcher**: Directly send custom JSON test payloads from the editor to trigger executions and view real-time HTTP response codes, headers, and execution IDs.
-- **Recent Deliveries Inspection**: Embedded delivery log displaying historical requests, response statuses, latencies, and error diagnostics.
-
-### 17. Code Node Snippet Templates Library
-- **Pre-Built Data Transformation Recipes**: Direct access to production-tested JavaScript and Python algorithms inside `CodeNodeEditor`:
-  - *Group by Field*: Group and aggregate items by arbitrary categories or foreign keys.
-  - *Deduplicate by Unique Key*: High-speed deduplication using memory-efficient Sets.
-  - *Flatten Nested Arrays*: Unrolls nested lists into individual downstream items.
-  - *Filter Items*: Clean predicate filtering logic.
-  - *Map & Rename Fields*: Re-key and reshape payloads with ISO timestamping.
-  - *Python Data Transforms*: List comprehensions and dict modifications for Python sandboxes.
-
-### 18. Execution Trace & Audit Exporter
-- **One-Click Export**: Download complete execution traces directly from the Execution Inspector header or REST API.
-- **Structured JSON & CSV Formats**: Choose between comprehensive nested JSON audit logs or flattened CSV execution traces containing step-by-step node IDs, types, execution status, duration, item counts, error messages, and ISO timestamps.
-- **RESTful Ingress**: `GET /api/executions/{execution_id}/export?format=json|csv` with attachment streaming for seamless integration with enterprise log aggregators (Splunk, Datadog, ELK).
-
-### 19. Canvas Visual Grouping & Frames
-- **Organizational Bounding Frames**: Visually group related nodes into color-coded canvas frames directly from the canvas toolbar at any time.
-- **Color Themes & Inline Titles**: Choose between 5 theme accents (Blue, Emerald, Amber, Purple, Rose) and double-click the frame title to customize section names directly on canvas.
-- **Synchronized Drag & Drop**: Moving the frame boundary automatically recalculates and translates all child member nodes smoothly across the canvas graph.
-
 ---
 
 ## Tech Stack
-
-### Detailed Tech Stack Breakdown & Purpose
 
 | Layer | Technology | Primary Purpose & Usage in Project |
 |---|---|---|
@@ -229,7 +198,7 @@
 | **Cron Scheduling** | **croniter** | Standard Unix 5-field cron parsing powering scheduled background automation triggers. |
 | **Caching & Pub/Sub**| **Redis 7 (Optional)** | Low-latency job queue, real-time event distribution, and external message caching. |
 | **Background Queue** | **Flowsmith Queue Worker** | Dedicated background daemon process (`app.queue.worker`) for parallel execution consumption. |
-| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1700+ backend tests, 173 frontend unit tests, and 9 end-to-end browser specs. |
+| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1700+ backend tests, 271 frontend unit tests, and end-to-end browser specs. |
 | **Monitoring** | **Prometheus + Grafana** | Built-in `/api/metrics` instrumentation endpoint and pre-packaged visual Grafana dashboard. |
 | **Containerization** | **Docker & Docker Compose** | Multi-stage production container packaging (Node 22 + Python 3.12) with multi-service orchestrator. |
 
@@ -251,8 +220,8 @@ Before running Flowsmith locally or in production, ensure your machine has:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/gauravsahoo-ops/Flowsmith.git
-cd Flowsmith
+git clone https://bitbucket.org/ids-team/flowsmith.git
+cd flowsmith
 ```
 
 ### 2. Start Supporting Infrastructure (PostgreSQL & Redis)
@@ -291,13 +260,14 @@ alembic upgrade head
 python -m app.serve
 ```
 * The API and Swagger documentation will be live at: **http://127.0.0.1:8000/docs**
-  (interactive docs are off by default — set `API_DOCS_ENABLED=true` in `backend/.env` to enable them).
+  (set `API_DOCS_ENABLED=true` in `backend/.env` to enable interactive docs).
 
 ### 4. Start the Background Worker (In a New Terminal)
 
 ```bash
 cd backend
 .venv\Scripts\activate       # On Windows
+# source .venv/bin/activate  # On Linux/macOS
 python -m app.queue.worker
 ```
 
@@ -327,29 +297,30 @@ restart.bat    # Restarts all components cleanly
 ## How to Use Flowsmith
 
 ### Step 1: Account Creation & Login
-- Navigate to `http://localhost:5173`.
+- Open `http://localhost:5173`.
 - The first user to register automatically receives the **Admin** role with organization configuration privileges.
 
 ### Step 2: Create or Clone a Workflow
-- **From Scratch**: Click **"+ New Workflow"** on the `/workflows` page to open a blank canvas.
-- **From Templates**: Go to **"/templates"** and click **"Use template"** on pre-built flows (e.g. *Webhook to Slack & Teams Notification*, *Salesforce Lead Routing & Sync*, *Daily Scheduled Data Table Report*).
+- **From Scratch**: Click **"＋ Create workflow"** on the `/workflows` page to open a blank canvas.
+- **From AI**: Click **"From AI ✨"** and type a plain-English prompt (e.g. *"When a Salesforce contact is updated, verify with AI and send a Slack notification"*).
+- **From Templates**: Browse **"/templates"** and click **"Use template →"** on pre-built starter flows.
 
 ### Step 3: Design the Graph
-- **Add Nodes**: Open the left sidebar node catalog and drag nodes onto the canvas, or press `Ctrl+K` to open the Command Palette.
-- **Connect Ports**: Drag output handles to input handles to establish execution dependencies.
-- **Configure Parameters**: Double-click any node to open the configuration modal. Use expressions like `{{ $json.field }}` or pick upstream fields using the visual expression helper.
+- **Add Nodes**: Open the left sidebar palette and drag nodes onto the canvas, or press `Ctrl+K` for the Command Palette.
+- **Connect Ports**: Drag from output handles to input handles to establish execution dependencies.
+- **Configure Parameters**: Double-click any node to open the 3-panel configuration modal (Inputs preview, Parameters, Outputs). Use expressions like `{{ $json.field }}` or pick upstream fields using the visual expression helper.
 
 ### Step 4: Add Credentials
-- Go to `/credentials` to register API keys, database connection strings, or initiate OAuth2 consent for Salesforce, Google, HubSpot, Slack, etc.
+- Navigate to `/credentials` to register API keys, database connection strings, or initiate OAuth2 consent for Salesforce, Google, HubSpot, Slack, etc.
 - Assign the credential to your node. Credentials are encrypted with Fernet and automatically injected at runtime.
 
 ### Step 5: Test & Debug
-- Click **"Execute Workflow"** in the top bar to run a test execution.
-- Click **"Debugger"** to open the side drawer, inspect live step runtimes, view full JSON inputs/outputs, or trigger a re-run.
+- Click **"Run"** in the top bar to execute a test run.
+- Open **"Console"** to view live step execution runtimes, inspect full JSON inputs/outputs, or retry failed steps.
 
 ### Step 6: Publish & Arm Triggers
-- When satisfied with your workflow, toggle the switch in the top bar from **"Inactive"** to **"Active"**.
-- Your webhook URLs, schedule timers, and external listeners are now armed and running live in production!
+- Toggle the switch in the top bar from **"Inactive"** to **"Active"**.
+- Your webhook URLs, cron schedules, and external listeners are now armed and running live in production!
 
 ---
 
@@ -370,11 +341,12 @@ Flowsmith/
 │   │   │   ├── workflows.py    # Workflow CRUD, active toggling, imports/exports
 │   │   │   ├── executions.py   # Execution history, traces, manual execution & retry
 │   │   │   ├── credentials.py  # Credential management, type definitions, health checks
-│   │   │   ├── environments.py # Workspace-level encrypted environment variables & templates
+│   │   │   ├── environments.py # Workspace-level encrypted environment variables
 │   │   │   ├── salesforce.py   # Dedicated Salesforce OAuth2 & resource router
 │   │   │   ├── ai.py           # Natural language generation, RAG, error explainers
 │   │   │   ├── data_tables.py  # Native database tables (columns, rows, queries)
-│   │   │   ├── webhooks.py     # Public unauthenticated webhook trigger endpoints
+│   │   │   ├── webhooks.py     # Public webhook trigger endpoints
+│   │   │   ├── branding.py     # White-labeling & corporate branding API
 │   │   │   └── ws.py           # Real-time WebSocket execution log streams
 │   │   ├── engine/             # Core workflow execution engine
 │   │   │   ├── executor.py     # execute_workflow() DAG traversal algorithm
@@ -382,27 +354,27 @@ Flowsmith/
 │   │   │   ├── expressions.py  # Sandboxed {{ }} expression evaluation engine
 │   │   │   └── node_base.py    # BaseNode, NodeContext, and NodeResult interfaces
 │   │   ├── nodes/              # 50+ built-in node type implementations
-│   │   ├── connectors/         # 42 first-party enterprise connectors (+ generated OpenAPI catalog)
+│   │   ├── connectors/         # 45+ first-party enterprise connectors (+ OpenAPI catalog)
 │   │   ├── providers/          # Low-level external integration clients
 │   │   ├── queue/              # Asynchronous job queue & worker processes
 │   │   ├── models/             # 19 SQLAlchemy ORM model files (29 tables)
 │   │   └── security/           # Safe HTTP clients, SSRF filters, Fernet encryption
-│   ├── tests/                  # 1700+ automated backend pytest tests (664 API + engine/unit suites)
+│   ├── tests/                  # 1700+ automated backend pytest tests
 │   ├── alembic/                # Database migrations (schema evolution)
 │   └── requirements.txt        # Backend dependencies
 ├── frontend/
 │   ├── src/
-│   │   ├── components/         # 70+ Modular React UI components
+│   │   ├── components/         # 75+ Modular React UI components
 │   │   │   ├── Canvas.jsx      # Interactive React Flow workspace
-│   │   │   ├── CustomNode.jsx  # Rich node renderer with badges & context menus
+│   │   │   ├── CustomNode.jsx  # Beveled glass node renderer with badges & handles
 │   │   │   ├── TopBar.jsx      # Navigation, run trigger, debugger toggle, publish switch
 │   │   │   ├── ExecutionInspector.jsx # Debugger drawer & timeline inspector
-│   │   │   └── NodeEditorModal.jsx # Multi-tab node configuration modal
-│   │   ├── pages/              # 19 Full application pages (Workflows, Templates, RAG, etc.)
+│   │   │   └── NodeEditorModal.jsx # 3-panel node configuration modal
+│   │   ├── pages/              # 19 Application pages (Workflows, Templates, RAG, Data Tables, etc.)
 │   │   ├── stores/             # Zustand state management (workflowStore, executionStore, etc.)
 │   │   ├── api.js              # Comprehensive REST client with interceptors
-│   │   └── index.css           # Modern dark-mode styling with glassmorphic tokens
-│   ├── tests/                  # Frontend unit tests (Vitest) & E2E specs (Playwright)
+│   │   └── index.css           # Master design system with glassmorphic tokens & animations
+│   ├── tests/                  # Frontend unit tests (Vitest: 271 passing) & E2E specs (Playwright)
 │   ├── package.json            # Node.js dependencies and scripts
 │   └── vite.config.js          # Vite configuration
 ├── deploy/                     # Production configs (Prometheus, Grafana, setup scripts)
@@ -456,7 +428,7 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 | | `respond_to_webhook` | Returns a synchronous HTTP response to the triggering webhook (`?respond=true`). |
 | | `git` | Read-only Git inspection: status, log, branches. |
 | | `ftp` | List, download, upload, and delete files on FTP/FTPS servers. |
-| | `ssh` | Run remote commands and move files over SSH/SFTP (needs `paramiko`). |
+| | `ssh` | Run remote commands and move files over SSH/SFTP. |
 | **Data & Code** | `code` | Executes custom JavaScript (via DukPy) or Python script blocks with built-in Snippet Templates (Group by, Deduplicate, Flatten, Filter, Map). |
 | | `data_table` | Interacts with native Flowsmith Data Tables (insert, update, query). |
 | | `csv_json_transform` | Converts CSV rows to JSON structures and vice versa. |
@@ -479,9 +451,9 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 
 ---
 
-## Connectors
+## First-Party Connectors
 
-Flowsmith includes **42 first-party connectors** with pre-configured schemas and authentication handlers, plus an auto-generated OpenAPI catalog (weather, finance, placeholder APIs) for keyless public endpoints:
+Flowsmith includes **45+ first-party connectors** with pre-configured schemas and authentication handlers:
 
 | Connector | Supported Operations & Resources | Authentication |
 |---|---|---|
@@ -558,7 +530,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `GET /api/executions` — List execution history with status and duration filters
 - `POST /api/workflows/{id}/run` — Execute workflow manually
 - `GET /api/executions/{id}` — Fetch detailed execution results per node
-- `GET /api/executions/{id}/export?format=json|csv` — Export execution trace and step records as structured JSON or flattened CSV audit records
+- `GET /api/executions/{id}/export?format=json|csv` — Export execution trace and step records as structured JSON or CSV audit records
 - `POST /api/executions/{id}/retry` — Retry a failed execution
 - `POST /api/executions/{id}/cancel` — Cancel an in-flight execution
 - `POST /api/executions/{id}/approve` — Approve a pending human-approval step
@@ -572,19 +544,6 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `POST /api/credentials/{id}/reconnect` — Background token renewal without interactive login
 - `DELETE /api/credentials/{id}` — Delete credential
 - `GET /api/credentials/types` — Discover supported credential schemas (63 types)
-
-### Connectors & OpenAPI Importer
-- `GET /api/connectors` — List registered connectors and operations
-- `POST /api/connectors/preview-openapi` — Parse and preview OpenAPI / Swagger specs
-- `POST /api/connectors/import-openapi` — One-click generate native first-class connector
-
-### AI & Assistant
-- `POST /api/ai/generate-workflow` — Generate full workflow from natural language
-- `POST /api/ai/explain` — Explain execution error and recommend fixes
-- `POST /api/ai/suggest-node-config` — Suggest node parameters from user prompt
-- `POST /api/ai/document-workflow` — Generate Mermaid flowchart diagram & architectural docs
-- `POST /api/ai/auto-fix` — Autonomous failure diagnosis and self-healing parameter repair
-- `GET /api/ai/status` — Check LLM provider availability
 
 ### White-Labeling & Custom Branding
 - `GET /api/branding` — Fetch active public branding settings (logo, app name, colors, custom CSS, documentation URL, support email, copyright)
@@ -601,11 +560,6 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `POST /api/data-tables` — Create new Data Table with custom column schema
 - `GET /api/data-tables/{id}/rows` — Query and filter rows with pagination
 - `POST /api/data-tables/{id}/rows` — Insert new rows into table
-
-### Workflow Regression Testing
-- `GET /api/workflow-tests` — List automated test suites for a workflow
-- `POST /api/workflow-tests` — Create test suite with mock data and assertions
-- `POST /api/workflow-tests/run` — Run automated regression test in CI/CD
 
 ---
 
@@ -668,22 +622,22 @@ pytest tests/test_api/test_credential_auto_reconnect.py -q  # OAuth auto-reconne
 pytest tests/test_security/ -q                     # SSRF, auth, and encryption audits
 ```
 
-### Frontend Testing (270 Unit Tests & E2E Specs)
+### Frontend Testing (271 Vitest Tests & E2E Specs)
 
 ```bash
 cd frontend
 
-# Run Vitest unit tests
+# Run Vitest unit tests (100% passing across 10 test suites)
 npx vitest run
 
 # Run Playwright end-to-end browser tests
 npx playwright install chromium
 npm test
 
-# Run code linter
+# Run code linter (Oxlint: 0 errors)
 npm run lint
 
-# Validate production build bundle
+# Validate production build bundle (~270ms build time)
 npm run build
 ```
 
@@ -728,7 +682,7 @@ python -m app.serve
 
 ---
 
-## Security
+## Security & Compliance
 
 Flowsmith is built from the ground up for strict enterprise environments:
 
@@ -741,7 +695,7 @@ Flowsmith is built from the ground up for strict enterprise environments:
 
 ---
 
-## Monitoring
+## Monitoring & Telemetry
 
 - **Prometheus Metrics**: Available out-of-the-box at `GET /api/metrics` (tracks execution durations, active workflows, queue depth, and HTTP error rates).
 - **Health Probes**: 
@@ -764,7 +718,7 @@ Automated GitHub Actions pipelines validate every commit:
 
 ## Developed By
 
-**Flowsmith was designed, architected, and developed from scratch by Gaurav** ([gauravsahoo-ops](https://github.com/gauravsahoo-ops)) — every layer, from the visual DAG canvas and workflow execution engine to the OAuth framework, credential vault, AI subsystem, and deployment stack, is original work.
+**Flowsmith was designed, architected, and developed from scratch by [Gaurav](https://github.com/gauravsahoo-ops)** — every layer, from the visual DAG canvas and workflow execution engine to the OAuth framework, credential vault, AI subsystem, and deployment stack, is original work.
 
 Please retain this attribution when self-hosting or redistributing, as required by the [MIT License](./LICENSE).
 
