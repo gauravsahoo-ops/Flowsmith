@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, getToken, setToken } from '../api'
 import { useBrandingStore } from '../stores/brandingStore'
+import FlowsmithBrandMark from './FlowsmithBrandMark'
 
 // Login / Register / Forgot-password / Reset-password / SSO (Phase 42 + SSO EE).
 // Premium Enterprise Grade Auth UI with interactive workflow showcase.
@@ -217,11 +218,14 @@ export default function Login({ onAuthed }) {
           <form className="login-card" onSubmit={submit}>
             {/* Header / Brand */}
             <div className="login-card-header">
-              <div className="login-logo-badge">
+              <div
+                className="login-logo-badge"
+                style={logoSrc ? { background: 'transparent', boxShadow: 'none', padding: 2 } : undefined}
+              >
                 {logoSrc ? (
                   <img src={logoSrc} alt={appName} className="login-logo-img" />
                 ) : (
-                  <span className="login-logo-emoji">⚡</span>
+                  <FlowsmithBrandMark size={28} variant="glyph" style={{ color: '#fff' }} />
                 )}
               </div>
               <h2 className="login-brand-title">{appName}</h2>

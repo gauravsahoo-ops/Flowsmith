@@ -3,6 +3,7 @@ import { api, getToken } from '../api'
 import { useBrandingStore } from '../stores/brandingStore'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
+import FlowsmithBrandMark from '../components/FlowsmithBrandMark'
 
 function Section({ title, description, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -460,9 +461,7 @@ export default function SettingsPage() {
                       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#fff' }}>
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" />
-                    </svg>
+                    <FlowsmithBrandMark size={18} variant="glyph" style={{ color: '#fff' }} />
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -499,7 +498,7 @@ export default function SettingsPage() {
                       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   ) : (
-                    <span style={{ fontSize: 20 }}>⚡</span>
+                    <FlowsmithBrandMark size={22} variant="glyph" style={{ color: '#fff' }} />
                   )}
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>

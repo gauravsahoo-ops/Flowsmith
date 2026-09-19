@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useBrandingStore } from '../stores/brandingStore'
+import FlowsmithBrandMark from '../components/FlowsmithBrandMark'
 
 function NavIcon({ name, size = 18 }) {
   switch (name) {
@@ -206,9 +207,7 @@ export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, 
               style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }}
             />
           ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" />
-            </svg>
+            <FlowsmithBrandMark size={20} variant="glyph" />
           )}
         </div>
         <span className="app-sidebar-brand-name">{appName}</span>
