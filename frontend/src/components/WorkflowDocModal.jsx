@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { api } from '../api'
 import './WorkflowDocModal.css'
 
@@ -56,8 +57,8 @@ export default function WorkflowDocModal({ isOpen, onClose, workflowId, workflow
     URL.revokeObjectURL(url)
   }
 
-  return (
-    <div className="wdm-modal-overlay" onClick={onClose}>
+  return createPortal(
+    <div className="wdm-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="wdm-modal-window" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="wdm-modal-header">
@@ -199,6 +200,7 @@ export default function WorkflowDocModal({ isOpen, onClose, workflowId, workflow
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
