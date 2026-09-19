@@ -523,7 +523,7 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
         same record instead of duplicating it, so provider errors keep
         their retryable classification and the engine may retry.
         """
-        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(params.external_id_field)):
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", params.external_id_field):
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
                 "operation=upsert requires a valid external_id_field API name.",
@@ -575,7 +575,7 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
                 retryable=False,
             )
         for field, value in record.items():
-            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", str(field)):
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", field):
                 raise make_connector_error(
                     ConnectorErrorCode.BAD_REQUEST,
                     f"operation={op} has an invalid field name '{field}'.",
@@ -596,7 +596,7 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
         update/upsert/delete are safe to retry.
         """
         object_name = params.object_name
-        if not object_name or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(object_name)):
+        if not object_name or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", object_name):
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
                 "operation=bulk requires a valid object name (e.g. Lead).",
