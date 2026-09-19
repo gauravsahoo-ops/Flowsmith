@@ -44,6 +44,15 @@ export const useUiStore = create((set) => ({
       try { localStorage.setItem('canvas_show_minimap', String(next)) } catch {}
       return { showMiniMap: next }
     }),
+
+  // Workflow audio cues (opt-in; default: false / muted)
+  soundEffects: typeof localStorage !== 'undefined' ? localStorage.getItem('flowsmith_sound_effects') === 'true' : false,
+  toggleSoundEffects: () =>
+    set((s) => {
+      const next = !s.soundEffects
+      try { localStorage.setItem('flowsmith_sound_effects', String(next)) } catch {}
+      return { soundEffects: next }
+    }),
 }))
 
 // E2E/test hook (mirrors __wfStore) — dev only

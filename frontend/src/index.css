@@ -3098,7 +3098,15 @@ button.delete { color: var(--red); }
 }
 
 /* minimap tuning */
-.react-flow__minimap { border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+.react-flow__minimap {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 20, 32, 0.88) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
 .react-flow__controls { border-radius: 8px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.35); }
 
 /* ============================================================

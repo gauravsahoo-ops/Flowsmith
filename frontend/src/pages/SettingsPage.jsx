@@ -4,6 +4,8 @@ import { useBrandingStore } from '../stores/brandingStore'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import FlowsmithBrandMark from '../components/FlowsmithBrandMark'
+import { useUiStore } from '../stores/uiStore'
+import { playChime } from '../utils/soundEffects'
 
 function Section({ title, description, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -44,6 +46,10 @@ export default function SettingsPage() {
   const [keyBusy, setKeyBusy] = useState(false)
 
   const branding = useBrandingStore()
+  const soundEffects = useUiStore((s) => s.soundEffects)
+  const toggleSoundEffects = useUiStore((s) => s.toggleSoundEffects)
+  const showMiniMap = useUiStore((s) => s.showMiniMap)
+  const toggleMiniMap = useUiStore((s) => s.toggleMiniMap)
   const [brandForm, setBrandForm] = useState({
     appName: branding.appName || 'Flowsmith',
     tagline: branding.tagline || 'Next-Gen Workflow Automation',
@@ -508,6 +514,54 @@ export default function SettingsPage() {
                   {brandForm.tagline || 'Next-Gen Workflow Automation'}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Preferences" description="Audio cues, canvas display, and interface behavior.">
+        <div className="settings-grid">
+          <div className="settings-attr" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
+            <div>
+              <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>Execution Audio Cues</div>
+              <div className="hint" style={{ fontSize: 12, marginTop: 2 }}>
+                Play subtle harmonic chime when runs complete or fail
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                className="secondary"
+                style={{ padding: '4px 10px', fontSize: 11.5 }}
+                onClick={() => playChime('success')}
+                title="Preview success chime"
+              >
+                Test Chime
+              </button>
+              <input
+                type="checkbox"
+                checked={soundEffects}
+                onChange={toggleSoundEffects}
+                style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                aria-label="Toggle execution sound effects"
+              />
+            </div>
+          </div>
+          <div className="settings-attr" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
+            <div>
+              <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>Canvas MiniMap</div>
+              <div className="hint" style={{ fontSize: 12, marginTop: 2 }}>
+                Show canvas overview thumbnail in editor (shortcut: M)
+              </div>
+            </div>
+            <div>
+              <input
+                type="checkbox"
+                checked={showMiniMap}
+                onChange={toggleMiniMap}
+                style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                aria-label="Toggle canvas minimap"
+              />
             </div>
           </div>
         </div>

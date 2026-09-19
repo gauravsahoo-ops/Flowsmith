@@ -522,7 +522,22 @@ function CanvasInner() {
         <Background gap={22} size={1.4} />
         {showMiniMap && (
           <div className="canvas-minimap-wrap" style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 10 }}>
-            <MiniMap pannable zoomable maskColor="rgba(15,17,21,.72)" />
+            <MiniMap
+              pannable
+              zoomable
+              nodeColor={(n) => {
+                const s = nodeStatuses[n.id]
+                if (s === 'success') return '#10b981'
+                if (s === 'error' || s === 'failed') return '#f43f5e'
+                if (s === 'running') return '#818cf8'
+                if (s === 'waiting_approval') return '#f59e0b'
+                if (n.data?.disabled) return '#475569'
+                return '#6366f1'
+              }}
+              nodeStrokeColor="rgba(255, 255, 255, 0.25)"
+              nodeBorderRadius={4}
+              maskColor="rgba(11, 14, 20, 0.72)"
+            />
             <button
               type="button"
               onClick={toggleMiniMap}

@@ -4,6 +4,8 @@
 
 import { create } from 'zustand'
 import { api, getToken } from '../api'
+import { playChime } from '../utils/soundEffects'
+import { useUiStore } from './uiStore'
 
 function wsUrl(executionId) {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -148,6 +150,9 @@ export const useExecutionStore = create((set, get) => ({
       get().connect(execution_id)
     } catch (err) {
       set({ running: false, status: 'failed', error: err.message })
+      if (useUiStore.getState().soundEffects) {
+        playChime('error')
+      }
     }
   },
 
@@ -226,6 +231,9 @@ export const useExecutionStore = create((set, get) => ({
     if (ev.type === 'execution.terminal') {
       set({ status: ev.status, error: ev.error || null, running: false })
       get().close()
+      if (useUiStore.getState().soundEffects) {
+        playChime(ev.status === 'success' ? 'success' : 'error')
+      }
       // Delay loadTrace slightly to allow DB commit to finish after
       // the execution completes (the terminal bus event fires before
       // the worker writes trace/node_statuses to the DB).
@@ -311,7 +319,11 @@ export const useExecutionStore = create((set, get) => ({
       if (data.status === 'running' || data.status === 'cancelling' || data.status === 'queued') {
         get().schedulePoll(id)
       } else {
+        const prevRunning = get().running
         set({ running: false, pollTimer: null })
+        if (prevRunning && useUiStore.getState().soundEffects) {
+          playChime(data.status === 'success' ? 'success' : 'error')
+        }
       }
     } catch {
       get().schedulePoll(id)
