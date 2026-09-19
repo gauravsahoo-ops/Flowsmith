@@ -231,19 +231,87 @@ DEFAULT_TEMPLATES = [
         }
     },
     {
-        "name": "Salesforce Lead Routing & Sync",
-        "description": "Capture new business leads via webhook, enrich with qualification logic, and record directly in Salesforce CRM.",
+        "name": "Salesforce Lead Routing & AI Summary",
+        "description": "Capture new business leads, generate an AI qualification summary, and record directly in Salesforce CRM.",
         "category": "salesforce",
         "workflow_data": {
-            "name": "Salesforce Lead Routing",
+            "name": "Salesforce Lead Routing & AI Summary",
             "nodes": [
                 {"id": "webhook_1", "type": "webhook", "name": "Inbound Lead", "position": {"x": 100, "y": 200}, "parameters": {"path": "sales-lead-1234567890abcdef1234", "http_method": "POST"}},
-                {"id": "code_enrich", "type": "code", "name": "Qualify & Enrich", "position": {"x": 380, "y": 200}, "parameters": {"language": "python", "code": "lead = items[0] if items else {}\nlead['Company'] = lead.get('company', 'Unknown')\nlead['Status'] = 'Open - Not Contacted'\nreturn [lead]"}},
+                {"id": "ai_summary", "type": "ai", "name": "AI Lead Qualification", "position": {"x": 380, "y": 200}, "parameters": {"prompt": "Analyze lead interest and assign priority (High, Medium, Low): {{ JSON.stringify($json) }}"}},
                 {"id": "sf_lead", "type": "salesforce", "name": "Upsert Salesforce Lead", "position": {"x": 660, "y": 200}, "parameters": {"resource": "Lead", "operation": "create"}}
             ],
             "connections": [
-                {"source": "webhook_1", "sourceHandle": "main", "target": "code_enrich", "targetHandle": "main"},
-                {"source": "code_enrich", "sourceHandle": "main", "target": "sf_lead", "targetHandle": "main"}
+                {"source": "webhook_1", "sourceHandle": "main", "target": "ai_summary", "targetHandle": "main"},
+                {"source": "ai_summary", "sourceHandle": "main", "target": "sf_lead", "targetHandle": "main"}
+            ]
+        }
+    },
+    {
+        "name": "Stripe Payment Failure to Resend & Supabase",
+        "description": "Listen for Stripe payment_intent.payment_failed webhooks, notify customer via Resend, and log to Supabase.",
+        "category": "automation",
+        "workflow_data": {
+            "name": "Stripe Payment Recovery Pipeline",
+            "nodes": [
+                {"id": "stripe_hook", "type": "webhook", "name": "Stripe Event Webhook", "position": {"x": 100, "y": 200}, "parameters": {"path": "stripe-webhook-1234567890abcdef", "http_method": "POST"}},
+                {"id": "resend_notify", "type": "resend", "name": "Send Dunning Email", "position": {"x": 380, "y": 140}, "parameters": {"operation": "send_email", "from": "billing@flowsmith.io", "subject": "Action Required: Payment Failed"}},
+                {"id": "supabase_log", "type": "supabase", "name": "Log Audit in Supabase", "position": {"x": 380, "y": 280}, "parameters": {"operation": "insert_row", "table": "payment_failures"}}
+            ],
+            "connections": [
+                {"source": "stripe_hook", "sourceHandle": "main", "target": "resend_notify", "targetHandle": "main"},
+                {"source": "stripe_hook", "sourceHandle": "main", "target": "supabase_log", "targetHandle": "main"}
+            ]
+        }
+    },
+    {
+        "name": "Sentry Error Triage to AI Root Cause & Jira",
+        "description": "Trigger on Sentry error alerts, diagnose root cause with AI, and create a prioritized Jira bug ticket.",
+        "category": "automation",
+        "workflow_data": {
+            "name": "Sentry Error Triage Pipeline",
+            "nodes": [
+                {"id": "sentry_hook", "type": "webhook", "name": "Sentry Alert Webhook", "position": {"x": 100, "y": 200}, "parameters": {"path": "sentry-alert-1234567890abcdef", "http_method": "POST"}},
+                {"id": "ai_diagnose", "type": "ai", "name": "AI Root Cause Diagnosis", "position": {"x": 380, "y": 200}, "parameters": {"prompt": "Diagnose root cause and suggest fix for error: {{ JSON.stringify($json) }}"}},
+                {"id": "jira_ticket", "type": "jira", "name": "Create Jira Bug", "position": {"x": 660, "y": 200}, "parameters": {"operation": "create_issue"}}
+            ],
+            "connections": [
+                {"source": "sentry_hook", "sourceHandle": "main", "target": "ai_diagnose", "targetHandle": "main"},
+                {"source": "ai_diagnose", "sourceHandle": "main", "target": "jira_ticket", "targetHandle": "main"}
+            ]
+        }
+    },
+    {
+        "name": "Cloud Archival: Webhook to AWS S3 & Database",
+        "description": "Ingest high-throughput JSON payloads, back up raw blobs to AWS S3 / MinIO, and insert structured rows into PostgreSQL.",
+        "category": "automation",
+        "workflow_data": {
+            "name": "S3 & Database Archival",
+            "nodes": [
+                {"id": "ingest_hook", "type": "webhook", "name": "Raw Ingest Webhook", "position": {"x": 100, "y": 200}, "parameters": {"path": "raw-ingest-1234567890abcdef", "http_method": "POST"}},
+                {"id": "s3_backup", "type": "s3", "name": "Store S3 Object", "position": {"x": 380, "y": 140}, "parameters": {"operation": "upload_file", "key": "backups/raw_{{ $now }}.json"}},
+                {"id": "db_insert", "type": "database_query", "name": "Insert Database Row", "position": {"x": 380, "y": 280}, "parameters": {"operation": "insert"}}
+            ],
+            "connections": [
+                {"source": "ingest_hook", "sourceHandle": "main", "target": "s3_backup", "targetHandle": "main"},
+                {"source": "ingest_hook", "sourceHandle": "main", "target": "db_insert", "targetHandle": "main"}
+            ]
+        }
+    },
+    {
+        "name": "AI Vector Search via Pinecone & Chat Model",
+        "description": "Embed user queries, search nearest vectors in Pinecone index, and generate context-aware LLM answers.",
+        "category": "ai",
+        "workflow_data": {
+            "name": "Pinecone RAG Search",
+            "nodes": [
+                {"id": "chat_in", "type": "chat_trigger", "name": "Chat Message Ingest", "position": {"x": 100, "y": 200}, "parameters": {}},
+                {"id": "pinecone_query", "type": "pinecone", "name": "Query Vector Embeddings", "position": {"x": 380, "y": 200}, "parameters": {"operation": "query_vectors", "top_k": 5}},
+                {"id": "ai_respond", "type": "ai", "name": "Synthesize AI Answer", "position": {"x": 660, "y": 200}, "parameters": {"prompt": "Answer question based on matched Pinecone context: {{ JSON.stringify($json) }}"}}
+            ],
+            "connections": [
+                {"source": "chat_in", "sourceHandle": "main", "target": "pinecone_query", "targetHandle": "main"},
+                {"source": "pinecone_query", "sourceHandle": "main", "target": "ai_respond", "targetHandle": "main"}
             ]
         }
     },
@@ -278,23 +346,6 @@ DEFAULT_TEMPLATES = [
             "connections": [
                 {"source": "manual_1", "sourceHandle": "main", "target": "approval_node", "targetHandle": "main"},
                 {"source": "approval_node", "sourceHandle": "main", "target": "http_fulfill", "targetHandle": "main"}
-            ]
-        }
-    },
-    {
-        "name": "AI Knowledge Retrieval & Q&A",
-        "description": "Accept user questions, query your RAG knowledge collections for relevant document chunks, and synthesize answers.",
-        "category": "ai",
-        "workflow_data": {
-            "name": "AI Knowledge Query",
-            "nodes": [
-                {"id": "trigger_q", "type": "webhook", "name": "User Query Webhook", "position": {"x": 100, "y": 200}, "parameters": {"path": "ask-ai-query-1234567890abcdef", "http_method": "POST"}},
-                {"id": "rag_query", "type": "rag_pipeline", "name": "Retrieve Similar Chunks", "position": {"x": 380, "y": 200}, "parameters": {"top_k": 4}},
-                {"id": "code_synth", "type": "code", "name": "Format Answer Payload", "position": {"x": 660, "y": 200}, "parameters": {"language": "javascript", "code": "const hits = $json.hits || [];\nreturn { answer: 'Retrieved ' + hits.length + ' context matches', hits };"}}
-            ],
-            "connections": [
-                {"source": "trigger_q", "sourceHandle": "main", "target": "rag_query", "targetHandle": "main"},
-                {"source": "rag_query", "sourceHandle": "main", "target": "code_synth", "targetHandle": "main"}
             ]
         }
     }

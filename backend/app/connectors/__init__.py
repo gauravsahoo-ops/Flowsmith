@@ -612,6 +612,16 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.trello_connector import TrelloConnector
     from app.connectors.trello_definition import build_trello_definition
     from app.connectors.webhook_connector import WebhookConnector
+    from app.connectors.supabase_connector import SupabaseConnector
+    from app.connectors.supabase_definition import build_supabase_definition
+    from app.connectors.resend_connector import ResendConnector
+    from app.connectors.resend_definition import build_resend_definition
+    from app.connectors.pinecone_connector import PineconeConnector
+    from app.connectors.pinecone_definition import build_pinecone_definition
+    from app.connectors.sentry_connector import SentryConnector
+    from app.connectors.sentry_definition import build_sentry_definition
+    from app.connectors.s3_connector import S3Connector
+    from app.connectors.s3_definition import build_s3_definition
 
     # connector_id -> (instance factory, definition builder). Definition
     # builders are paired with their connectors so discovery, the node
@@ -663,6 +673,11 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (BrevoConnector(), build_brevo_definition),
         (FreshdeskConnector(), build_freshdesk_definition),
         (MondayConnector(), build_monday_definition),
+        (SupabaseConnector(), build_supabase_definition),
+        (ResendConnector(), build_resend_definition),
+        (PineconeConnector(), build_pinecone_definition),
+        (SentryConnector(), build_sentry_definition),
+        (S3Connector(), build_s3_definition),
     ]
 
     registry = get_registry()
