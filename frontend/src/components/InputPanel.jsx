@@ -169,7 +169,7 @@ export default function InputPanel({
         defaultBranch: extracted.defaultBranch,
       }
     })
-  }, [upstreamNodes, trace, edges, currentNodeId, catalog])
+  }, [upstreamNodes, trace, edges, currentNodeId, catalog, results])
 
   // Auto-expand the immediate direct parent by default
   useEffect(() => {
