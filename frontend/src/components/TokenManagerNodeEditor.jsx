@@ -28,14 +28,8 @@ export default function TokenManagerNodeEditor({
   const provider = params.provider || 'convertalogic'
   const workflowId = params.workflow_id || ''
   const autoRefresh = params.auto_refresh !== false
-  const maxRecoveryAttempts = params.max_recovery_attempts ?? 1
-
-  const [showAutoLogin, setShowAutoLogin] = useState(
-    Boolean(params.login_url || params.login_body)
-  )
-  const [showManualRefresh, setShowManualRefresh] = useState(
-    Boolean(params.refresh_url || params.refresh_body)
-  )
+  const showAutoLogin = Boolean(params.login_url || params.login_body)
+  const showManualRefresh = Boolean(params.refresh_url || params.refresh_body)
   const [liveDbAuth, setLiveDbAuth] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState('')

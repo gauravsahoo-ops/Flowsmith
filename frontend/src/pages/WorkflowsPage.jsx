@@ -348,8 +348,6 @@ export default function WorkflowsPage() {
 
   async function handleDuplicate(wf) {
     try {
-      const full = await api.getWorkflow(wf.id)
-      const doc = { ...full, id: undefined, name: `${full.name} (copy)` }
       // Use export/import roundtrip to duplicate
       const exported = await api.exportWorkflow(wf.id)
       const copyDoc = { ...exported, name: `${exported.name || wf.name} (copy)` }

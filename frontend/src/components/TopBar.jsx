@@ -20,7 +20,7 @@ export default function TopBar({
   debuggerOpen,
   setDebuggerOpen,
   hasExecution,
-  onLogout,
+  _onLogout,
   onOpenHistory,
   onOpenApprovals,
   onOpenTemplates,

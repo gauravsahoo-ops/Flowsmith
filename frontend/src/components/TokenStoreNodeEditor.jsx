@@ -24,9 +24,7 @@ export default function TokenStoreNodeEditor({
   const params = node.parameters || {}
   const autoDetect = params.auto_detect !== false
   const [showManual, setShowManual] = useState(!autoDetect)
-  const [showOAuthConfig, setShowOAuthConfig] = useState(
-    Boolean(params.client_id || params.client_secret || params.token_url)
-  )
+  const showOAuthConfig = Boolean(params.client_id || params.client_secret || params.token_url)
 
   const results = useExecutionStore((s) => s.results)
   const nodeResult = results?.[node.id]
