@@ -15,9 +15,14 @@ export function setToken(token) {
 
 export class ApiError extends Error {
   constructor(status, detail) {
-    const msg = Array.isArray(detail)
-      ? detail.map((d) => d.message || d.msg || JSON.stringify(d)).join('; ')
-      : typeof detail === 'string' ? detail : JSON.stringify(detail)
+    let msg = 'Request failed'
+    if (typeof detail === 'string') {
+      msg = detail
+    } else if (Array.isArray(detail)) {
+      msg = detail.map((d) => d.message || d.msg || JSON.stringify(d)).join('; ')
+    } else if (detail && typeof detail === 'object') {
+      msg = detail.message || detail.detail || detail.msg || JSON.stringify(detail)
+    }
     super(msg)
     this.status = status
     this.detail = detail

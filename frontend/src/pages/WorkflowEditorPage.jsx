@@ -19,6 +19,8 @@ export default function WorkflowEditorPage() {
   const workflow = useWorkflowStore(s => s.workflow)
   const loading = useWorkflowStore(s => s.loading)
   const error = useWorkflowStore(s => s.error)
+  const executionError = useExecutionStore(s => s.error)
+  const activeError = error || executionError
   const load = useWorkflowStore(s => s.load)
   const sidebarOpen = useUiStore(s => s.sidebarOpen)
   const toggleSidebar = useUiStore(s => s.toggleSidebar)
@@ -104,7 +106,7 @@ export default function WorkflowEditorPage() {
           onOpenTests={() => navigate('/settings')}
           onOpenRag={() => navigate('/knowledge')}
         />
-        {error && (
+        {activeError && (
           <div
             className="banner-inline err"
             style={{
@@ -116,11 +118,16 @@ export default function WorkflowEditorPage() {
               boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
             }}
           >
-            <span>{error}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 12 }}>
+              {activeError}
+            </span>
             <button
               className="ghost"
-              style={{ padding: '2px 8px', fontSize: 12 }}
-              onClick={() => useWorkflowStore.setState({ error: null })}
+              style={{ padding: '2px 8px', fontSize: 12, flexShrink: 0 }}
+              onClick={() => {
+                if (error) useWorkflowStore.setState({ error: null })
+                if (executionError) useExecutionStore.setState({ error: null })
+              }}
             >
               Dismiss
             </button>

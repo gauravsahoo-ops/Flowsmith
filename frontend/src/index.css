@@ -1126,8 +1126,10 @@ button.delete { color: var(--red); }
   font-size: 11.5px;
   font-weight: 500;
   min-width: 68px;
+  max-width: 140px;
   white-space: nowrap;
   user-select: none;
+  flex-shrink: 0;
 }
 .save-state-saved, .save-state-saving, .save-state-unsaved {
   display: inline-flex;
@@ -1157,7 +1159,14 @@ button.delete { color: var(--red); }
   background: #64748b;
   opacity: 0.65;
 }
-.save-state .err, .banner.err { color: var(--red); }
+.save-state .err {
+  color: var(--red);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+.banner.err { color: var(--red); }
 .run-status {
   display: inline-flex;
   align-items: center;

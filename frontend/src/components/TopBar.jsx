@@ -32,6 +32,7 @@ export default function TopBar({
   const saving = useWorkflowStore((s) => s.saving)
   const savedAt = useWorkflowStore((s) => s.savedAt)
   const save = useWorkflowStore((s) => s.save)
+  const saveError = useWorkflowStore((s) => s.error)
   const setName = useWorkflowStore((s) => s.setName)
   const setWorkflowSettings = useWorkflowStore((s) => s.setWorkflowSettings)
   const toggleActive = useWorkflowStore((s) => s.toggleActive)
@@ -43,7 +44,6 @@ export default function TopBar({
   const running = useExecutionStore((s) => s.running)
   const run = useExecutionStore((s) => s.run)
   const cancel = useExecutionStore((s) => s.cancel)
-  const error = useExecutionStore((s) => s.error)
   const [workflows, setWorkflows] = useState([])
   const [deleteError, setDeleteError] = useState(null)
   const [ioError, setIoError] = useState(null)
@@ -206,9 +206,12 @@ export default function TopBar({
           aria-label="Workflow name"
         />
         <span className="save-state">
-          {error ? (
-            <span className="err" title={typeof error === 'object' ? JSON.stringify(error) : error}>
-              {typeof error === 'object' ? (error.message || 'Error') : error}
+          {saveError ? (
+            <span
+              className="err"
+              title={typeof saveError === 'object' ? (saveError.message || JSON.stringify(saveError)) : saveError}
+            >
+              Save error
             </span>
           ) : saving ? (
             <span className="save-state-saving">
