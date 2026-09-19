@@ -16,6 +16,7 @@ import GroupNode from './GroupNode'
 import ExecutionEdge from './ExecutionEdge'
 import CanvasToolbar from './CanvasToolbar'
 import CommandPalette from './CommandPalette'
+import FlowsmithBrandMark from './FlowsmithBrandMark'
 import { draggedNodeType } from '../utils/drag'
 import { edgeKey } from '../utils/graphUtils'
 import { toReactFlow, readDecorations } from '../mappers'
@@ -520,6 +521,40 @@ function CanvasInner() {
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={22} size={1.4} />
+        {nodes.length === 0 && (
+          <div className="canvas-empty-state">
+            <div className="canvas-empty-card">
+              <FlowsmithBrandMark size={42} variant="badge" glow />
+              <h3 className="canvas-empty-title">Build your next flow</h3>
+              <p className="canvas-empty-desc">
+                Drag nodes from the sidebar, press <kbd className="canvas-kbd">Ctrl</kbd> <kbd className="canvas-kbd">K</kbd>, or start with a trigger below.
+              </p>
+              <div className="canvas-empty-actions">
+                <button
+                  type="button"
+                  className="primary primary--sm"
+                  onClick={() => addNode('webhook', { x: 280, y: 180 })}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                  </svg>
+                  Webhook Trigger
+                </button>
+                <button
+                  type="button"
+                  className="secondary secondary--sm"
+                  onClick={() => addNode('manual_trigger', { x: 280, y: 180 })}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Manual Trigger
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {showMiniMap && (
           <div className="canvas-minimap-wrap" style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 10 }}>
             <MiniMap

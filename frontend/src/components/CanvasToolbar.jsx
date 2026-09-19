@@ -5,7 +5,7 @@
 // and the graph-health indicator (connection validation summary).
 
 import { useMemo, useState } from 'react'
-import { useReactFlow } from '@xyflow/react'
+import { useReactFlow, useViewport } from '@xyflow/react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
 import Tooltip from './shared/Tooltip'
@@ -26,7 +26,9 @@ function ToolButton({ onClick, disabled, title, children, className = '' }) {
 }
 
 export default function CanvasToolbar() {
-  const { fitView, zoomIn, zoomOut } = useReactFlow()
+  const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow()
+  const viewport = useViewport()
+  const zoomPercent = Math.round((viewport?.zoom || 1) * 100)
   const canUndo = useWorkflowStore((s) => s.canUndo)
   const canRedo = useWorkflowStore((s) => s.canRedo)
   const undo = useWorkflowStore((s) => s.undo)
@@ -164,14 +166,19 @@ export default function CanvasToolbar() {
         </span>
       </ToolButton>
       <span className="tool-sep" />
-      <ToolButton title="Zoom in (+)" onClick={() => zoomIn({ duration: 200 })}>
+      <ToolButton title="Zoom out (-)" onClick={() => zoomOut({ duration: 200 })}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </ToolButton>
-      <ToolButton title="Zoom out (-)" onClick={() => zoomOut({ duration: 200 })}>
+      <ToolButton title="Reset zoom to 100% (Ctrl+1)" onClick={() => zoomTo(1, { duration: 200 })}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, minWidth: 32, textAlign: 'center', color: '#cbd5e1' }}>
+          {zoomPercent}%
+        </span>
+      </ToolButton>
+      <ToolButton title="Zoom in (+)" onClick={() => zoomIn({ duration: 200 })}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </ToolButton>

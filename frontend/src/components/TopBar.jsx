@@ -487,6 +487,7 @@ export default function TopBar({
           workflowName={workflow?.name}
         />
       </div>
+      {running && <div className="execution-progress-beam" />}
     </header>
   )
 }
