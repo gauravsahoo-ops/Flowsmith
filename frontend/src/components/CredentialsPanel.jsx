@@ -42,6 +42,7 @@ export default function CredentialsPanel({ open, onClose }) {
   const [sfOrgUrl, setSfOrgUrl] = useState('')
   const [sfAdvExpanded, setSfAdvExpanded] = useState(false)
   const [reconnectingId, setReconnectingId] = useState(null)
+  const [fallbackUrl, setFallbackUrl] = useState('')
   const popupRef = useRef(null)
   const msgHandlerRef = useRef(null)
 
@@ -50,30 +51,64 @@ export default function CredentialsPanel({ open, onClose }) {
   }, [open, load])
 
   useEffect(() => {
-    const handler = (event) => {
-      const msg = event.data
-      // Legacy Salesforce marker + generic provider marker (Phase 33).
+    let bc = null
+
+    const handleOAuthResult = (msg) => {
       if (!msg || (msg.source !== 'salesforce-oauth' && msg.source !== 'oauth')) return
       if (msg.ok) {
-        setNotice(msg.message || `${msg.provider || 'Salesforce'} connected. Your encrypted connection is ready to use.`)
+        setNotice(msg.message || `${msg.provider || 'Provider'} connected. Your encrypted connection is ready to use.`)
+        setError(null)
       } else {
         setError(msg.error || `${msg.provider || 'Provider'} authorization failed.`)
       }
-      if (popupRef.current && !popupRef.current.closed) popupRef.current.close()
+      if (popupRef.current && !popupRef.current.closed) {
+        try { popupRef.current.close() } catch {}
+      }
       popupRef.current = null
       setSfBusy(false)
       setHsBusy(false)
+      setFallbackUrl('')
       if (msg.ok) load()
     }
-    msgHandlerRef.current = handler
-    window.addEventListener('message', handler)
-    return () => window.removeEventListener('message', handler)
+
+    const messageHandler = (event) => {
+      handleOAuthResult(event.data)
+    }
+
+    const storageHandler = (event) => {
+      if (event.key === 'flowsmith_oauth_result' && event.newValue) {
+        try {
+          handleOAuthResult(JSON.parse(event.newValue))
+        } catch {}
+      }
+    }
+
+    window.addEventListener('message', messageHandler)
+    window.addEventListener('storage', storageHandler)
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('flowsmith_oauth')
+        bc.onmessage = (event) => {
+          if (event?.data) handleOAuthResult(event.data)
+        }
+      }
+    } catch {}
+
+    return () => {
+      window.removeEventListener('message', messageHandler)
+      window.removeEventListener('storage', storageHandler)
+      if (bc) {
+        try { bc.close() } catch {}
+      }
+    }
   }, [load])
 
   useEffect(() => {
     if (!open) {
       setError(null)
       setNotice(null)
+      setFallbackUrl('')
       setSfBusy(false)
       setHsBusy(false)
       setReconnectingId(null)
@@ -89,6 +124,8 @@ export default function CredentialsPanel({ open, onClose }) {
     setReconnectingId(c.id)
     setError(null)
     setNotice(null)
+    setFallbackUrl('')
+    const effectiveLoginUrl = loginUrl || c.data?.instance_url || c.data?.login_url || (provider === 'salesforce' ? (sfOrgUrl || undefined) : undefined)
     try {
       const res = await api.reconnectCredential(c.id)
       if (res && res.ok && res.refreshed) {
@@ -106,15 +143,13 @@ export default function CredentialsPanel({ open, onClose }) {
       if (res && res.ok === false && res.message) {
         setNotice(res.message)
       }
-      runConnect(provider, loginUrl)
+      runConnect(provider, effectiveLoginUrl)
     } catch (err) {
       if (err && err.status === 404) {
         setError('Credential not found. Refreshing list…')
         try { await load() } catch {}
         return
       }
-      // Transport / server errors: surface them instead of opening a
-      // misleading OAuth popup.
       setError((err && err.message) || 'Reconnect failed.')
     } finally {
       setReconnectingId(null)
@@ -124,13 +159,16 @@ export default function CredentialsPanel({ open, onClose }) {
   async function runConnect(provider, loginUrl) {
     setError(null)
     setNotice(null)
+    setFallbackUrl('')
     if (provider === 'salesforce') setSfBusy(true)
     else setHsBusy(true)
     try {
       const { authorizeUrl } = await connectOAuth(provider, loginUrl)
+      if (!authorizeUrl) throw new Error('Failed to obtain authorization URL')
+      setFallbackUrl(authorizeUrl)
       const w = window.open(authorizeUrl, `oauth-${provider}`, 'width=520,height=640')
       if (!w) {
-        setError('Popup blocked. Allow popups for this site, or copy the authorization link below.')
+        setError('Popup was blocked by your browser. Click the "Authorize in New Tab" button below to continue.')
         if (provider === 'salesforce') setSfBusy(false)
         else setHsBusy(false)
         return
@@ -177,6 +215,17 @@ export default function CredentialsPanel({ open, onClose }) {
 
         {error && <ErrorState icon="🔒" title="Credential error" description={error} />}
         {notice && <div className="banner ok">{notice}</div>}
+        {fallbackUrl && (
+          <div className="banner ok" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, margin: '8px 0', padding: '10px 14px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 8 }}>
+            <span style={{ fontSize: 13 }}>Interactive login needed:</span>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" className="primary" style={{ padding: '4px 10px', fontSize: 12, borderRadius: 6, textDecoration: 'none', background: 'var(--accent, #3b82f6)', color: '#fff', fontWeight: 600 }}>
+                Authorize in New Tab ↗
+              </a>
+              <button className="ghost small" onClick={() => setFallbackUrl('')}>✕</button>
+            </div>
+          </div>
+        )}
 
         <div className="cred-list">
           {credentials.length === 0 && <p className="hint">No credentials yet.</p>}

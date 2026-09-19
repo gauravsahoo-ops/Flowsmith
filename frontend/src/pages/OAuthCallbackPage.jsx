@@ -24,19 +24,34 @@ export default function OAuthCallbackPage() {
       // Cross-origin opener, keep *
     }
 
+    const payload = isSuccess
+      ? { source: 'oauth', type: 'salesforce-oauth-success', ok: true, provider }
+      : { source: 'oauth', type: 'salesforce-oauth-error', ok: false, provider, error: error || 'Authorization failed' }
+
     if (window.opener) {
-      const message = isSuccess
-        ? { source: 'oauth', type: 'salesforce-oauth-success', ok: true, provider }
-        : { source: 'oauth', type: 'salesforce-oauth-error', ok: false, provider, error: error || 'Authorization failed' }
       // Also send legacy shape for backward compat
       const legacyMessage = isSuccess
         ? { source: provider === 'salesforce' ? 'salesforce-oauth' : 'oauth', ok: true, provider }
         : { source: provider === 'salesforce' ? 'salesforce-oauth' : 'oauth', ok: false, provider, error: error || 'Authorization failed' }
       try {
-        window.opener.postMessage(message, targetOrigin)
+        window.opener.postMessage(payload, targetOrigin)
         window.opener.postMessage(legacyMessage, targetOrigin)
       } catch {}
     }
+
+    // BroadcastChannel fallback: communicates across tabs/windows even if window.opener was severed by COOP
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('flowsmith_oauth')
+        bc.postMessage(payload)
+        bc.close()
+      }
+    } catch {}
+
+    // LocalStorage fallback: triggers storage event in parent window
+    try {
+      localStorage.setItem('flowsmith_oauth_result', JSON.stringify({ ...payload, _ts: Date.now() }))
+    } catch {}
 
     if (isSuccess) {
       setStatus('success')

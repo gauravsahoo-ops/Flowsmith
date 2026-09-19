@@ -86,7 +86,7 @@ export default function CredentialsPage() {
       if (res && res.ok === false && res.message) {
         setNotice(res.message)
       }
-      handleOAuth(c.type, c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined)
+      handleOAuth(c.type, c.type === 'salesforce' ? (c.data?.instance_url || c.data?.login_url || sfLoginUrl || undefined) : undefined)
     } catch (err) {
       if (err && err.status === 404) {
         setError('Credential not found. Refreshing list…')
@@ -106,13 +106,9 @@ export default function CredentialsPage() {
       if (!authorizeUrl) throw new Error('Failed to get authorization URL')
       setFallbackUrl(authorizeUrl)
       const w = window.open(authorizeUrl, `oauth-${provider}`, 'width=520,height=640')
-      if (!w) {
-        setError('Popup blocked. Allow popups for this site, or copy the authorization link below.')
-        return
-      }
+
       let handled = false
       const expectedOrigin = window.location.origin
-      // Also accept backend API origin if different from frontend origin
       let backendOrigin = null
       try {
         const apiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
@@ -121,56 +117,91 @@ export default function CredentialsPage() {
           backendOrigin = u.origin
         }
       } catch {}
-      const handler = (event) => {
-        // Validate origin - allow same origin and backend origin
-        try {
-          const origin = event.origin
-          const isExpected = origin === expectedOrigin || origin === backendOrigin
-          if (!isExpected && origin !== 'null') {
-            // Still allow * for dev, but log
-            console.warn('OAuth message from unexpected origin', origin)
-          }
-        } catch {}
-        const msg = event.data
+
+      let bc = null
+      const cleanupListeners = () => {
+        window.removeEventListener('message', messageHandler)
+        window.removeEventListener('storage', storageHandler)
+        if (bc) {
+          try { bc.close() } catch {}
+        }
+      }
+
+      const processResult = (msg) => {
         if (!msg || typeof msg !== 'object') return
-        // Support both new (source:oauth,type:...) and legacy (source:salesforce-oauth)
         const isOAuth = msg.source === 'oauth' || msg.source === 'salesforce-oauth'
         const isSuccess = msg.type === 'salesforce-oauth-success' || (msg.ok === true)
         const isError = msg.type === 'salesforce-oauth-error' || (msg.ok === false)
         if (!isOAuth || (!isSuccess && !isError)) return
-        // Validate provider matches if present
         if (msg.provider && msg.provider !== provider) return
         handled = true
         if (isSuccess || msg.ok) {
-          setNotice(`${msg.provider || provider} connected.`)
+          setNotice(`${msg.provider || provider} connected successfully.`)
           setError(null)
         } else {
           setError(msg.error || 'Authorization failed.')
           setNotice(null)
         }
-        window.removeEventListener('message', handler)
+        cleanupListeners()
         setOauthBusy('')
         setFallbackUrl('')
-        // Refetch real backend state (source of truth)
         load()
-        if (w && !w.closed) w.close()
+        if (w && !w.closed) {
+          try { w.close() } catch {}
+        }
       }
-      window.addEventListener('message', handler)
+
+      const messageHandler = (event) => {
+        try {
+          const origin = event.origin
+          const isExpected = origin === expectedOrigin || origin === backendOrigin
+          if (!isExpected && origin !== 'null') {
+            console.warn('OAuth message from unexpected origin', origin)
+          }
+        } catch {}
+        processResult(event.data)
+      }
+
+      const storageHandler = (event) => {
+        if (event.key === 'flowsmith_oauth_result' && event.newValue) {
+          try {
+            processResult(JSON.parse(event.newValue))
+          } catch {}
+        }
+      }
+
+      window.addEventListener('message', messageHandler)
+      window.addEventListener('storage', storageHandler)
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          bc = new BroadcastChannel('flowsmith_oauth')
+          bc.onmessage = (event) => {
+            if (event?.data) processResult(event.data)
+          }
+        }
+      } catch {}
+
+      if (!w) {
+        setError('Popup was blocked by your browser. Click the "Authorize in New Tab" button below to finish connecting.')
+        return
+      }
+
       // Detect popup closed without success
       const pollClosed = setInterval(() => {
         if (w.closed) {
           clearInterval(pollClosed)
           if (!handled) {
             setOauthBusy('')
-            // Don't show error if user just closed, just reset
+            // Check if backend completed connection in the background
+            setTimeout(() => { load() }, 1000)
           }
-          window.removeEventListener('message', handler)
+          cleanupListeners()
         }
       }, 500)
       setTimeout(() => {
         clearInterval(pollClosed)
         setOauthBusy('')
-        window.removeEventListener('message', handler)
+        cleanupListeners()
       }, 120000)
     } catch (e) { setError(e.message); setOauthBusy(''); setFallbackUrl('') }
   }
@@ -178,13 +209,17 @@ export default function CredentialsPage() {
   async function handleCreate(e) {
     e.preventDefault()
     if (!form.name.trim() || !form.type) return
-    setBusy(true); setError(null); setNotice(null)
+    setBusy(true)
+    setError(null)
     try {
       await create({ name: form.name.trim(), type: form.type, data: form.data })
       setForm({ name: '', type: '', data: {} })
-      setNotice('Credential saved.')
-    } catch (e) { setError(e.message) }
-    finally { setBusy(false) }
+      setNotice('Credential created.')
+    } catch (err) {
+      setError((err && err.message) || 'Failed to save credential.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -206,6 +241,28 @@ export default function CredentialsPage() {
 
       {notice && <div className="banner-inline ok">{notice}</div>}
       {error && <div className="banner-inline err">{error}</div>}
+      {fallbackUrl && (
+        <div className="banner-inline ok" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '10px 0', padding: '12px 16px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+          <div>
+            <strong>Interactive Authorization Required</strong>
+            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>
+              If the popup did not open automatically, click the button to complete authorization in a new tab.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a
+              href={fallbackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 6, textDecoration: 'none', background: 'var(--accent, #3b82f6)', color: '#fff', fontWeight: 600 }}
+            >
+              Authorize in New Tab ↗
+            </a>
+            <button className="ghost small" onClick={() => setFallbackUrl('')}>✕</button>
+          </div>
+        </div>
+      )}
       {testResult && (
         <div className={`banner-inline ${testResult.ok ? 'ok' : 'err'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 8, padding: '10px 14px', margin: '12px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
