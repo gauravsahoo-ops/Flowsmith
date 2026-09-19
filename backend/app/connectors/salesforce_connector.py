@@ -53,7 +53,7 @@ def _coerce_record_id(value) -> str:
     the first element and log a warning so existing workflows keep working.
     """
     if isinstance(value, str):
-        return value.strip()
+        return value.strip().strip("'\"")
     if isinstance(value, list):
         if not value:
             return ""
@@ -65,14 +65,14 @@ def _coerce_record_id(value) -> str:
                 "Use records[0].Id in your expression to silence this warning.",
                 extracted,
             )
-            return str(extracted).strip()
+            return str(extracted).strip().strip("'\"")
         logger.warning("record_id received a list of scalars - using first element %r.", first)
-        return str(first).strip()
+        return str(first).strip().strip("'\"")
     if isinstance(value, dict):
         extracted = value.get("Id") or value.get("id") or ""
         logger.warning("record_id received a dict - auto-extracted Id %r.", extracted)
-        return str(extracted).strip()
-    return str(value).strip() if value is not None else ""
+        return str(extracted).strip().strip("'\"")
+    return str(value).strip().strip("'\"") if value is not None else ""
 
 
 class SalesforceConnectorParams(BaseModel):
@@ -496,10 +496,16 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
         engine may retry (unlike create, Phase 9).
         """
         record_id = _coerce_record_id(params.record_id)
+        if (not record_id or not re.fullmatch(r"[A-Za-z0-9]{15}([A-Za-z0-9]{3})?", record_id)) and isinstance(params.record, dict):
+            fallback_id = _coerce_record_id(params.record.get("Id") or params.record.get("id"))
+            if fallback_id and re.fullmatch(r"[A-Za-z0-9]{15}([A-Za-z0-9]{3})?", fallback_id):
+                record_id = fallback_id
+
         if not re.fullmatch(r"[A-Za-z0-9]{15}([A-Za-z0-9]{3})?", record_id):
+            detail = f" (received: '{record_id}')" if record_id else " (received none/empty)"
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
-                "operation=update requires a valid 15- or 18-character Salesforce record id.",
+                f"operation=update requires a valid 15- or 18-character Salesforce record id{detail}. Provide a valid Record ID or map it from an upstream node (e.g. {{{{ $json.Id }}}}).",
                 retryable=False,
             )
         self._validate_record_fields(params.record, op="update")
