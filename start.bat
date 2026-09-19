@@ -248,6 +248,7 @@ echo.
 echo [5/9] Running database migrations...
 
 cd /d "%ROOT%backend"
+if not defined DATABASE_URL set "DATABASE_URL=postgresql://automate:automate@127.0.0.1:5432/automate"
 
 :: Use venv Python explicitly (fixes 3.12 vs 3.13 mismatch)
 set "VENV_PY=%ROOT%.venv\Scripts\python.exe"
@@ -259,9 +260,8 @@ if not exist "%VENV_PY%" (
     set "VENV_ALEMBIC=alembic"
 )
 
-:: Run Alembic migrations (includes Data Tables 58767f324966)
-"%VENV_PY%" -m alembic upgrade head 2>nul
-if errorlevel 1 "%VENV_ALEMBIC%" upgrade head 2>nul
+:: Run Alembic migrations
+"%VENV_PY%" -m alembic upgrade head
 if errorlevel 1 (
     echo    Alembic migration had issues. Attempting create_all fallback...
     "%VENV_PY%" -c "from app.db import init_db; init_db()"

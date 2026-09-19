@@ -42,7 +42,7 @@ def _engine_kwargs() -> dict:
     return kwargs
 
 
-_DEFAULT_URL = get_settings().database_url
+_DEFAULT_URL = get_settings().database_url.strip()
 logger.debug("Using PostgreSQL database: %s", _DEFAULT_URL)
 engine = create_engine(_DEFAULT_URL, **_engine_kwargs())
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
@@ -126,6 +126,7 @@ def init_db(url: str | None = None) -> None:
     """Point the app at a different database (used by tests) and create schema."""
     global engine, SessionLocal
     if url:
+        url = url.strip()
         engine = create_engine(url, **_engine_kwargs())
         SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     import app.models  # noqa: F401  (register all tables)

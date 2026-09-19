@@ -12,6 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +26,23 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator(
+        "database_url",
+        "redis_url",
+        "public_url",
+        "jwt_secret",
+        "credentials_encryption_key",
+        "safe_http_allowed_hosts",
+        "safe_http_allowed_ports",
+        "app_env",
+        mode="before",
+    )
+    @classmethod
+    def _strip_whitespace(cls, v: object) -> object:
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
     # Database (spec 17: make PostgreSQL authoritative). Default matches
     # docker-compose.yml (postgres service, user/db `automate`).
