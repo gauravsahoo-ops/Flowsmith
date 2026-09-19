@@ -69,7 +69,18 @@ export default function ExecutionDetailPage() {
         <div className="meta-item"><span className="meta-label">Finished</span><span>{data.finished_at ? new Date(data.finished_at).toLocaleString() : '—'}</span></div>
       </div>
 
-      {data.error && <div className="banner-inline err"><strong>{data.error.code}:</strong> {data.error.message}</div>}
+      {data.error && (
+        <div className="banner-inline err">
+          {typeof data.error === 'object' ? (
+            <>
+              {data.error.code && <strong>{data.error.code}: </strong>}
+              {data.error.message || JSON.stringify(data.error)}
+            </>
+          ) : (
+            String(data.error)
+          )}
+        </div>
+      )}
       {explain && <div className={`banner-inline ${explain.ok ? 'info' : 'err'}`}>{explain.ok && <strong>AI: </strong>}{explain.text}</div>}
       {data.pause_state && <div className="banner-inline info">⏸ {data.pause_state.message || 'Waiting for approval'}</div>}
 

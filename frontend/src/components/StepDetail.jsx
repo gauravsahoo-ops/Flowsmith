@@ -124,8 +124,10 @@ export default function StepDetail({ execution, step, onRetryNode }) {
 
       {failed && (
         <div className="banner-inline err sd-error">
-          <strong>{step.error?.code || 'Error'}:</strong>{' '}
-          {step.error?.message || JSON.stringify(step.error)}
+          <strong>{(typeof step.error === 'object' && step.error?.code) || 'Error'}:</strong>{' '}
+          {typeof step.error === 'object' && step.error !== null
+            ? (step.error.message || JSON.stringify(step.error))
+            : String(step.error || 'Step execution failed')}
         </div>
       )}
 

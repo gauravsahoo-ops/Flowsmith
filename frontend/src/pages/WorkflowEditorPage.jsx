@@ -75,7 +75,7 @@ export default function WorkflowEditorPage() {
   if (error && !workflow) {
     return (
       <div className="page">
-        <div className="banner err">{error}</div>
+        <div className="banner err">{typeof error === 'object' && error !== null ? (error.message || JSON.stringify(error)) : error}</div>
         <button className="ghost" onClick={() => navigate('/workflows')}>Back to Workflows</button>
       </div>
     )
@@ -119,7 +119,9 @@ export default function WorkflowEditorPage() {
             }}
           >
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 12 }}>
-              {activeError}
+              {typeof activeError === 'object' && activeError !== null && !React.isValidElement(activeError)
+                ? (activeError.message || (activeError.code ? `${activeError.code}: ${JSON.stringify(activeError.details || activeError)}` : JSON.stringify(activeError)))
+                : String(activeError)}
             </span>
             <button
               className="ghost"

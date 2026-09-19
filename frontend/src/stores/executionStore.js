@@ -259,7 +259,10 @@ export const useExecutionStore = create((set, get) => ({
               status,
               durationMs: Math.round(durationMs),
               _startMs: status === 'running' ? now : prev._startMs,
-              error: ev.error || prev.error || null,
+              error:
+                ev.error && typeof ev.error !== 'string'
+                  ? ev.error.message || JSON.stringify(ev.error)
+                  : (ev.error || prev.error || null),
             },
           },
         }

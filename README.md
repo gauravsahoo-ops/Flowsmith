@@ -207,7 +207,7 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 | **Cron Scheduling** | **croniter** | Standard Unix 5-field cron parsing powering scheduled background automation triggers. |
 | **Caching & Pub/Sub**| **Redis 7 (Optional)** | Low-latency job queue, real-time event distribution, and external message caching. |
 | **Background Queue** | **Flowsmith Queue Worker** | Dedicated background daemon process (`app.queue.worker`) for parallel execution consumption. |
-| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1700+ backend tests, 277 frontend unit tests (12 test suites), and end-to-end browser specs. |
+| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1700+ backend tests, 281 frontend unit tests (13 test suites), and end-to-end browser specs. |
 | **Monitoring** | **Prometheus + Grafana** | Built-in `/api/metrics` instrumentation endpoint and pre-packaged visual Grafana dashboard. |
 | **Containerization** | **Docker & Docker Compose** | Multi-stage production container packaging (Node 22 + Python 3.12) with multi-service orchestrator. |
 
@@ -383,7 +383,7 @@ Flowsmith/
 │   │   ├── stores/             # Zustand state management (workflowStore, executionStore, etc.)
 │   │   ├── api.js              # Comprehensive REST client with interceptors
 │   │   └── index.css           # Master design system with glassmorphic tokens & animations
-│   ├── tests/                  # Frontend unit tests (Vitest: 277 passing across 12 suites) & E2E specs (Playwright)
+│   ├── tests/                  # Frontend unit tests (Vitest: 281 passing across 13 suites) & E2E specs (Playwright)
 │   ├── package.json            # Node.js dependencies and scripts
 │   └── vite.config.js          # Vite configuration
 ├── deploy/                     # Production configs (Prometheus, Grafana, setup scripts)
@@ -635,12 +635,12 @@ pytest tests/test_api/test_credential_auto_reconnect.py -q  # OAuth auto-reconne
 pytest tests/test_security/ -q                     # SSRF, auth, and encryption audits
 ```
 
-### Frontend Testing (277 Vitest Tests & E2E Specs)
+### Frontend Testing (281 Vitest Tests & E2E Specs)
 
 ```bash
 cd frontend
 
-# Run Vitest unit tests (100% passing across 12 test suites)
+# Run Vitest unit tests (100% passing across 13 test suites)
 npx vitest run
 
 # Run Playwright end-to-end browser tests

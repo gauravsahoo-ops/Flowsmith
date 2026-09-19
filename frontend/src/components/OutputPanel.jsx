@@ -519,7 +519,15 @@ export default function OutputPanel({
         )}
 
         {!executing && isError && (
-          <ErrorState title="Execution Failed" description={error || 'Unknown error'} />
+          <ErrorState
+            title="Execution Failed"
+            description={
+              typeof error === 'object' && error !== null
+                ? (error.message || (error.code ? `${error.code}: ${JSON.stringify(error.details || error)}` : JSON.stringify(error)))
+                : (error || 'Unknown error')
+            }
+            details={typeof error === 'object' && error !== null ? (error.details || error) : undefined}
+          />
         )}
 
         {!executing && !isError && isEmpty && (

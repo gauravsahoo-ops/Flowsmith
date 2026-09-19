@@ -1,3 +1,5 @@
+import React from 'react'
+
 function getIconComponent(icon, size = 24) {
   if (typeof icon !== 'string') return icon
 
@@ -112,14 +114,27 @@ function getIconComponent(icon, size = 24) {
   }
 }
 
+function toSafeText(val) {
+  if (val == null) return null
+  if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return val
+  if (React.isValidElement(val)) return val
+  if (typeof val === 'object') {
+    return val.message || val.error || (val.code ? `${val.code}: ${JSON.stringify(val.details || val)}` : JSON.stringify(val))
+  }
+  return String(val)
+}
+
 export default function EmptyState({ icon = "📭", title, description, action, secondaryAction }) {
+  const safeTitle = toSafeText(title)
+  const safeDesc = toSafeText(description)
+
   return (
     <div className="empty-state">
       <div className="empty-icon-box">
         {getIconComponent(icon, 26)}
       </div>
-      <h3 className="empty-title">{title}</h3>
-      {description && <p className="empty-description">{description}</p>}
+      <h3 className="empty-title">{safeTitle}</h3>
+      {safeDesc && <p className="empty-description">{safeDesc}</p>}
       {(action || secondaryAction) && (
         <div className="empty-actions">
           {action}
@@ -129,3 +144,4 @@ export default function EmptyState({ icon = "📭", title, description, action, 
     </div>
   )
 }
+

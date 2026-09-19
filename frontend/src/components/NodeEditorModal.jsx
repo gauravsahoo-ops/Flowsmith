@@ -187,7 +187,10 @@ export default function NodeEditorModal() {
 
   const status = nodeStatuses[selectedId]
   const preview = runPreview[selectedId]
-  const effectiveError = execError || preview?.error || (status === 'failed' || status === 'error' ? (preview?.note || 'Execution failed') : null)
+  const rawError = execError || preview?.error || (status === 'failed' || status === 'error' ? (preview?.note || 'Execution failed') : null)
+  const effectiveError = typeof rawError === 'object' && rawError !== null && !React.isValidElement(rawError)
+    ? (rawError.message || (rawError.code ? `${rawError.code}: ${JSON.stringify(rawError.details || rawError)}` : JSON.stringify(rawError)))
+    : rawError
   const operation = node?.parameters?.operation
   const connectorName = meta?.display_name || node?.type || 'Node'
 
@@ -887,7 +890,21 @@ export default function NodeEditorModal() {
               data={outputData}
               status={status}
               executing={executing}
-              error={execError || (status==='error' ? trace.find(s=>s.node_id===selectedId)?.error?.message : null)}
+              error={
+                execError ||
+                ((status === 'error' || status === 'failed')
+                  ? (() => {
+                      const stepErr = trace.find((s) => s.node_id === selectedId)?.error
+                      if (stepErr) {
+                        return typeof stepErr === 'object' ? (stepErr.message || JSON.stringify(stepErr)) : String(stepErr)
+                      }
+                      if (preview?.error) {
+                        return typeof preview.error === 'object' ? (preview.error.message || JSON.stringify(preview.error)) : String(preview.error)
+                      }
+                      return preview?.note || 'Execution failed'
+                    })()
+                  : null)
+              }
               nodeId={selectedId}
               nodeLabel={node?.settings?.label || node?.name || node?.data?.label || meta?.display_name || node?.type}
               onExecuteStep={handleExecuteStep}
