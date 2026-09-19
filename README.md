@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml)
 [![Backend Tests](https://img.shields.io/badge/backend%20tests-1700%2B%20passing-brightgreen)](#backend-testing-1700-tests)
-[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-271%20passing-brightgreen)](#frontend-testing-271-vitest-tests--e2e-specs)
+[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-277%20passing-brightgreen)](#frontend-testing-277-vitest-tests--e2e-specs)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/react-19-61dafb)](https://react.dev/)
@@ -58,6 +58,9 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 - **Interactive Login & Auth Showcase**: Ambient background glowing orbs with breathing animations, an interactive live pipeline preview displaying real-time execution stats (`14ms`, `AES-128 Fernet`, `Async SSE`), show/hide password toggle, and SSO connectivity.
 - **Fluid Micro-Animations**: Smooth card hover lifts (`translateY(-3px)`), button shimmer states, and pulsing live indicators (`● Active`, `● Encrypted`, `● Success`).
 - **Tactile Visual Canvas**: 78px beveled glass node cards with category-colored glows (Triggers: Amber, Connectors: Blue, Logic: Indigo/Purple, AI: Cyan), custom input/output port handles, and instant node context menus.
+- **Clamped 3-Panel Node Editor Modal**: n8n-style centered modal with safe viewport containment (`max-width: 1480px; max-height: 920px`) and 16px overlay padding, preventing edge clipping and guaranteeing persistent visibility of modal action controls (`✨ AI Auto-Repair`, `▶ Previous`, `▶ Execute Step`, and `✕ Close`).
+- **Responsive Panel Switcher**: Below `1150px`, the 3-panel layout automatically adapts into clean single-panel tab views (`Input`, `Parameters`, `Output`) with real-time status badges, allowing comfortable node editing on laptops, tablets, and split-screen windows without content squishing.
+- **Full DAG Ancestor Inspection**: The Input Panel traverses the execution graph backwards, presenting upstream ancestor outputs as collapsible cards with auto-expanded direct parents, schema/table/JSON views, visual expression copy helpers, and zero-overlap card accordions.
 - **Full Android & iOS Mobile Optimization**:
   - **Safe-Area Insets**: Seamless layout alignment around iPhone notches and Dynamic Island (`env(safe-area-inset-top)` / `env(safe-area-inset-bottom)`).
   - **iOS Safari Auto-Zoom Fix**: All form inputs maintain `16px` font size on mobile screens to eliminate disruptive auto-zoom behavior.
@@ -175,6 +178,12 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 - **MCP Tools (`/api/mcp/tools`)**: External agents can programmatically trigger workflows, query Data Tables, list active connectors, and inspect execution results.
 - **MCP Resources (`/api/mcp/resources`)**: Exposes workflow graph schemas, execution traces, and operational metadata directly into the model's context window.
 
+### 12. Complete API Import & Custom Connector Engine
+- **OpenAPI 3.0 / Swagger 2.0 Importer**: Instantly transform any third-party or internal REST API into first-class Flowsmith connector nodes. Paste an OpenAPI specification URL or raw JSON/YAML to preview base URLs, authentication schemes (Bearer, API Key, Basic, OAuth2), and all endpoints, then generate native connector nodes with one click.
+- **cURL Request Importer**: Inside the HTTP Request node, paste any standard `curl` command (from Postman, DevTools, or documentation) to auto-extract the HTTP method, endpoint URL, query parameters, authorization headers, and request body.
+- **cURL & Code Snippet Generator**: The Webhook trigger node generates ready-to-run `curl`, JavaScript `fetch`, and Python `requests` commands to trigger workflows from external systems.
+- **Programmatic Importer API**: `POST /api/connectors/preview-openapi` and `POST /api/connectors/import-openapi` allow automated API connector registration in CI/CD or platform initialization scripts.
+
 ---
 
 ## Tech Stack
@@ -198,7 +207,7 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 | **Cron Scheduling** | **croniter** | Standard Unix 5-field cron parsing powering scheduled background automation triggers. |
 | **Caching & Pub/Sub**| **Redis 7 (Optional)** | Low-latency job queue, real-time event distribution, and external message caching. |
 | **Background Queue** | **Flowsmith Queue Worker** | Dedicated background daemon process (`app.queue.worker`) for parallel execution consumption. |
-| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1700+ backend tests, 271 frontend unit tests, and end-to-end browser specs. |
+| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1700+ backend tests, 277 frontend unit tests (12 test suites), and end-to-end browser specs. |
 | **Monitoring** | **Prometheus + Grafana** | Built-in `/api/metrics` instrumentation endpoint and pre-packaged visual Grafana dashboard. |
 | **Containerization** | **Docker & Docker Compose** | Multi-stage production container packaging (Node 22 + Python 3.12) with multi-service orchestrator. |
 
@@ -374,7 +383,7 @@ Flowsmith/
 │   │   ├── stores/             # Zustand state management (workflowStore, executionStore, etc.)
 │   │   ├── api.js              # Comprehensive REST client with interceptors
 │   │   └── index.css           # Master design system with glassmorphic tokens & animations
-│   ├── tests/                  # Frontend unit tests (Vitest: 271 passing) & E2E specs (Playwright)
+│   ├── tests/                  # Frontend unit tests (Vitest: 277 passing across 12 suites) & E2E specs (Playwright)
 │   ├── package.json            # Node.js dependencies and scripts
 │   └── vite.config.js          # Vite configuration
 ├── deploy/                     # Production configs (Prometheus, Grafana, setup scripts)
@@ -550,6 +559,10 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `PUT /api/branding` — Update corporate branding, white-labeling configurations, and custom CSS injection
 - `POST /api/branding/reset` — Reset to default Flowsmith branding
 
+### OpenAPI Connector Importer
+- `POST /api/connectors/preview-openapi` — Preview and parse OpenAPI 3.0/3.1 or Swagger 2.0 specification
+- `POST /api/connectors/import-openapi` — Generate and register a custom first-class connector node from an OpenAPI spec
+
 ### Model Context Protocol (MCP) Server
 - `GET /api/mcp/tools` — List available automation tools for external AI models
 - `POST /api/mcp/tools/call` — Execute Flowsmith automation tool via external AI agent
@@ -622,12 +635,12 @@ pytest tests/test_api/test_credential_auto_reconnect.py -q  # OAuth auto-reconne
 pytest tests/test_security/ -q                     # SSRF, auth, and encryption audits
 ```
 
-### Frontend Testing (271 Vitest Tests & E2E Specs)
+### Frontend Testing (277 Vitest Tests & E2E Specs)
 
 ```bash
 cd frontend
 
-# Run Vitest unit tests (100% passing across 10 test suites)
+# Run Vitest unit tests (100% passing across 12 test suites)
 npx vitest run
 
 # Run Playwright end-to-end browser tests
