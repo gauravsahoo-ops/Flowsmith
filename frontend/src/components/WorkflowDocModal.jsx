@@ -24,6 +24,15 @@ export default function WorkflowDocModal({ isOpen, onClose, workflowId, workflow
       .finally(() => setLoading(false))
   }, [isOpen, workflowId])
 
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   const handleCopy = () => {
@@ -100,6 +109,14 @@ export default function WorkflowDocModal({ isOpen, onClose, workflowId, workflow
               disabled={!doc?.markdown}
             >
               Download .md
+            </button>
+            <button
+              type="button"
+              className="wdm-btn ghost"
+              onClick={onClose}
+              title="Close modal (Esc)"
+            >
+              Close
             </button>
           </div>
         </div>

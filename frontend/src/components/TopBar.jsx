@@ -307,10 +307,10 @@ export default function TopBar({
           <span>{saving ? 'Saving…' : 'Save'}</span>
         </button>
         <button
-          className="ghost ghost--quiet"
+          className={`ghost ghost--quiet ${docModalOpen ? 'active' : ''}`}
           disabled={!workflow?.id}
-          onClick={() => setDocModalOpen(true)}
-          title="View & Export Workflow Architecture Blueprint & Docs"
+          onClick={() => setDocModalOpen((v) => !v)}
+          title={docModalOpen ? 'Close Workflow Architecture & Docs' : 'View & Export Workflow Architecture Blueprint & Docs'}
           aria-label="Workflow Architecture"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
         >
