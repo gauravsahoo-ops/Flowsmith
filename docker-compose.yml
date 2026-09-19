@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-automate}
       POSTGRES_DB: automate
     ports:
-      - "5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - mat-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -39,7 +39,7 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - mat-redis-data:/data
     healthcheck:
