@@ -334,12 +334,19 @@ export default function ExecutionInspector({ onClose }) {
           </button>
           {status === 'failed' && (
             <button className="ghost" onClick={onExplain} disabled={explaining} title="Ask the AI to explain the failure">
-              ✨ Explain
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ec4899' }}>
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+              </svg>
+              <span>Explain</span>
             </button>
           )}
           {terminal && (
             <button className="ghost" onClick={retry} title="Replay: re-run this exact snapshot with the original input">
-              ↻ Replay
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+              </svg>
+              <span>Replay</span>
             </button>
           )}
           {terminal && (
@@ -349,7 +356,12 @@ export default function ExecutionInspector({ onClose }) {
                 onClick={() => setExportMenuOpen((o) => !o)}
                 title="Export execution audit trace"
               >
-                📥 Export
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Export</span>
               </button>
               {exportMenuOpen && (
                 <div
@@ -393,15 +405,15 @@ export default function ExecutionInspector({ onClose }) {
               )}
             </div>
           )}
-          <button className="ghost" onClick={onClose || clear} title="Close Console">
-            ✕
+          <button className="ghost" onClick={onClose || clear} title="Close Console" style={{ padding: '4px 7px', minWidth: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
       </header>
 
-      {status && (
-        <Status status={status} live className="run-status" />
-      )}
       {status === 'waiting_approval' && (
         <div className="banner-inline info">
           ⏸ {pauseState?.message || 'Waiting for a human decision.'} Approve it in ✅ Approvals.
@@ -414,6 +426,14 @@ export default function ExecutionInspector({ onClose }) {
         </div>
       )}
       <div className="meta">
+        {status && (
+          <>
+            <span>Status</span>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Status status={status} live />
+            </div>
+          </>
+        )}
         <span>Execution</span>
         <code className="exec-id" title={executionId}>{executionId}</code>
         <span>Version</span>

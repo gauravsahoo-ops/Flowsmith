@@ -18,9 +18,9 @@ export default function Status({ status, label, dot = true, live = false, classN
   const s = STATUS_MAP[status] || STATUS_MAP.idle
   const text = label || s.label
   return (
-    <span className={[s.cls, className].filter(Boolean).join(' ')} role={live ? 'status' : undefined} aria-live={live ? 'polite' : undefined}>
+    <span className={['status-badge', s.cls, className].filter(Boolean).join(' ')} role={live ? 'status' : undefined} aria-live={live ? 'polite' : undefined}>
       {dot && <span className="status-dot" aria-hidden="true" />}
-      <span className="status-label">{text}</span>
+      <span className="status-text">{text}</span>
     </span>
   )
 }
