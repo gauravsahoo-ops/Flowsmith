@@ -168,7 +168,7 @@ function ObjectField({ schema, value, onChange, path, rootSchema, errors }) {
   )
 }
 
-function MapField({ schema, value, onChange, path, rootSchema }) {
+function MapField({ schema, value, onChange, path }) {
   const valueType = schema.additionalProperties?.type || 'string'
   const entries = Object.entries(value || {})
   const [expanded, setExpanded] = useState(true)

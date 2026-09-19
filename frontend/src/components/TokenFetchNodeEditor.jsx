@@ -17,8 +17,6 @@ const PROVIDER_OPTIONS = [
 export default function TokenFetchNodeEditor({
   node,
   onParamsChange,
-  mapping = [],
-  onPreview,
 }) {
   const params = node.parameters || {}
   const provider = params.provider || 'salesforce'

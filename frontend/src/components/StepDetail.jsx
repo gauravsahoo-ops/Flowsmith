@@ -32,7 +32,6 @@ function Badge({ tone = 'muted', title, children }) {
 }
 
 export default function StepDetail({ execution, step, onRetryNode }) {
-  const canvasNodes = useWorkflowStore((s) => s.nodes)
   const catalogIndex = useWorkflowStore((s) => s.catalogIndex)
   const [confirmUnsafe, setConfirmUnsafe] = useState(false)
 

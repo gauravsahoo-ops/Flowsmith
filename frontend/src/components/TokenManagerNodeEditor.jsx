@@ -20,8 +20,6 @@ const PROVIDER_PRESETS = [
 export default function TokenManagerNodeEditor({
   node,
   onParamsChange,
-  mapping = [],
-  onPreview,
 }) {
   const params = node.parameters || {}
   const mode = params.mode || 'auto'

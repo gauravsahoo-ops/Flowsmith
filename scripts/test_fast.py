@@ -36,7 +36,7 @@ def main() -> int:
     ]
 
     if not run_all:
-        cmd.extend(["-m", "not timing"])
+        cmd.extend(["-m", "not timing", "--ignore=tests/test_websocket_live_audit.py"])
 
     if filtered_args:
         for arg in filtered_args:

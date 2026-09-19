@@ -28,7 +28,6 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
   const [isOpen, setIsOpen] = useState(false)
   const [filter, setFilter] = useState('')
   const [ctx, setCtx] = useState(null)
-  const [error, setError] = useState(null)
   const [copied, setCopied] = useState('')
 
   // Live Builder State
