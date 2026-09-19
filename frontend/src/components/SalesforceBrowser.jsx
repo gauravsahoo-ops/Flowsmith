@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../api'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
 
@@ -27,7 +26,6 @@ export default function SalesforceBrowser({ onClose }) {
   const [opsData, setOpsData] = useState(null)
   const [triggersData, setTriggersData] = useState(null)
   const [matrix, setMatrix] = useState(null)
-  const [labels, setLabels] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -149,7 +147,6 @@ export default function SalesforceBrowser({ onClose }) {
   }, [opsData, matrix, search])
 
   const triggerCount = triggersData ? Object.keys(triggersData).length : 0
-  const actionCount = useMemo(() => Object.values(filteredOpsGroups).reduce((s, arr) => s + arr.length, 0), [filteredOpsGroups])
   // For header when not searching, show total unique backend ops or matrix total
   const totalActionCount = useMemo(() => {
     if (matrix) return Object.values(matrix).reduce((s, arr) => s + arr.length, 0) + (matrix.Account?.includes('create') ? 1 : 0) // + Add Note
@@ -159,7 +156,7 @@ export default function SalesforceBrowser({ onClose }) {
   const filteredTriggerCount = Object.keys(filteredTriggers).length
   const filteredActionCount = Object.values(filteredOpsGroups).reduce((s, arr) => s + arr.length, 0)
 
-  const handleSelectTrigger = (key) => {
+  const handleSelectTrigger = () => {
     const addNode = useWorkflowStore.getState().addNode
     const openEditor = useUiStore.getState().openNodeEditor
     const id = addNode('salesforce_trigger', { x: 200 + Math.random()*100, y: 200 + Math.random()*100 })
@@ -179,15 +176,6 @@ export default function SalesforceBrowser({ onClose }) {
       if (list.includes(op)) {
         resource = cat.replace(' Actions', '')
         break
-      }
-    }
-    // If matrix not loaded, fallback to generic
-    if (!matrix) {
-      for (const [cat, list] of Object.entries(filteredOpsGroups)) {
-        if (list.some(o => o.key === op.key)) {
-          // try to infer resource from cat
-          break
-        }
       }
     }
     const id = addNode('salesforce', { x: 300 + Math.random()*100, y: 200 + Math.random()*100 })

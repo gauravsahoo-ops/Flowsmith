@@ -349,10 +349,13 @@ class TestRateLimiting:
 
 class TestCORSHeaders:
     def test_cors_preflight(self):
+        settings = get_settings()
+        allowed = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+        origin = allowed[0] if (allowed and "*" not in allowed) else "http://localhost:3000"
         r = client.options(
             "/api/workflows",
             headers={
-                "Origin": "http://localhost:3000",
+                "Origin": origin,
                 "Access-Control-Request-Method": "GET",
             },
         )
@@ -360,7 +363,10 @@ class TestCORSHeaders:
         assert r.status_code in (200, 204, 405)
 
     def test_cors_in_response(self):
-        r = client.get("/api/workflows", headers={"Origin": "http://localhost:3000"})
+        settings = get_settings()
+        allowed = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+        origin = allowed[0] if (allowed and "*" not in allowed) else "http://localhost:3000"
+        r = client.get("/api/workflows", headers={"Origin": origin})
         # Check CORS header is present
         if "access-control-allow-origin" in r.headers:
             assert r.headers["access-control-allow-origin"]

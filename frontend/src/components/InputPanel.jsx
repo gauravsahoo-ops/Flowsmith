@@ -626,9 +626,9 @@ function SchemaFieldRow({
     valPreview = typeof value === 'string' ? `"${value}"` : String(value)
   }
 
-  // Expression syntax
+  // Expression syntax: direct upstream parent can simply use $json.path
   const cleanLabel = (nodeLabel || '').replace(/'/g, "\\'")
-  const expr = cleanLabel ? `{{ $('${cleanLabel}').item.json.${path} }}` : `{{ $json.${path} }}`
+  const expr = (!isDirectParent && cleanLabel) ? `{{ $('${cleanLabel}').item.json.${path} }}` : `{{ $json.${path} }}`
 
   const matches =
     !filter ||

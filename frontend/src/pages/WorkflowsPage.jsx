@@ -12,8 +12,8 @@ function PortalMenu({ anchorRef, open, onClose, children }) {
   const menuRef = useRef(null)
   const [pos, setPos] = useState({ top: 0, left: 0, maxHeight: 400 })
 
-  const updatePosition = () => {
-    if (!anchorRef.current || !menuRef.current) return
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current || !menuRef.current) return
     const anchor = anchorRef.current.getBoundingClientRect()
     const menu = menuRef.current.getBoundingClientRect()
     const viewportH = window.innerHeight
@@ -29,11 +29,7 @@ function PortalMenu({ anchorRef, open, onClose, children }) {
     if (left < margin) left = margin
     if (left + menu.width + margin > viewportW) left = viewportW - menu.width - margin
     setPos({ top, left, maxHeight: Math.min(400, viewportH - top - margin) })
-  }
-
-  useLayoutEffect(() => {
-    if (open) updatePosition()
-  }, [open])
+  }, [open, anchorRef])
 
   useEffect(() => {
     if (!open) return
@@ -54,7 +50,7 @@ function PortalMenu({ anchorRef, open, onClose, children }) {
       window.removeEventListener('touchstart', onDoc, true)
       document.removeEventListener('keydown', onKey)
     }
-  }, [open, onClose])
+  }, [open, onClose, anchorRef])
 
   if (!open) return null
   return createPortal(

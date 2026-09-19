@@ -33,11 +33,11 @@ def echo_server():
     )
     time.sleep(2)  # let the server bind
     yield proc
-    proc.terminate()
     try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
         proc.kill()
+        proc.wait(timeout=1)
+    except Exception:
+        pass
 
 
 def make_ctx() -> NodeContext:

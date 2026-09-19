@@ -1,6 +1,6 @@
 // JsonTree: collapsible viewer for node inputs/outputs with search highlighting.
 
-import { memo, useState, useCallback } from 'react'
+import { memo } from 'react'
 
 function Highlight({ text, search }) {
   if (!search || !text) return <>{text}</>
@@ -9,7 +9,6 @@ function Highlight({ text, search }) {
   const searchLower = search.toLowerCase()
   const parts = []
   let idx = 0
-  let found = false
   while (idx < str.length) {
     const pos = lower.indexOf(searchLower, idx)
     if (pos === -1) {
@@ -19,7 +18,6 @@ function Highlight({ text, search }) {
     if (pos > idx) parts.push(<span key={`p${idx}`}>{str.slice(idx, pos)}</span>)
     parts.push(<mark key={`m${pos}`} className="jt-highlight">{str.slice(pos, pos + search.length)}</mark>)
     idx = pos + search.length
-    found = true
   }
   return <>{parts}</>
 }
@@ -28,8 +26,7 @@ function Scalar({ value, search }) {
   if (value === null) return <span className="jt-null">null</span>
   if (value === undefined) return <span className="jt-null">undefined</span>
   if (typeof value === 'string') {
-    const display = search ? value : `"${value}"`
-    return <span className="jt-str">{search ? <Highlight text={value} search={search} /> : `"${value}"`}</span>
+    return <span className="jt-str">"{search ? <Highlight text={value} search={search} /> : value}"</span>
   }
   if (typeof value === 'number') return <span className="jt-num">{String(value)}</span>
   if (typeof value === 'boolean') return <span className="jt-bool">{String(value)}</span>

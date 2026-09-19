@@ -120,19 +120,6 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
     return rawOperation
   }, [rawOperation, operationOptions])
 
-  // If current operation not valid for new resource, auto-reset to first valid (preserve serialization on save)
-  useEffect(() => {
-    if (rawOperation && !operationOptions.some(o => o.value === rawOperation) && !operationOptions.some(o => o.backend === (ALL_OPS[rawOperation]?.backend || rawOperation))) {
-      // Only auto-correct if raw was execute/empty or now invalid
-      if (rawOperation === 'execute' || rawOperation === '' || !validBackendOps.includes(ALL_OPS[rawOperation]?.backend || rawOperation)) {
-        const first = operationOptions[0]?.value
-        if (first && rawOperation !== first) {
-          // Do not auto-save on mount if node is being edited — only if operation is clearly invalid
-          // We will not auto-mutate; validation will show error instead. So no auto onParamsChange here.
-        }
-      }
-    }
-  }, [resource, validBackendOps])
 
   const getTargetObject = (res, objName) => {
     if (res === 'CustomObject') return objName || 'Recruitment__c'

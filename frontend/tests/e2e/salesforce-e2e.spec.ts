@@ -156,7 +156,7 @@ async function bindCredentialViaUi(page, nodeId, credName) {
   // Wait for the credential to land in the store (React state update
   // from selectOption must flush before we close the editor / save).
   await page.waitForFunction(
-    ([nid, cname]) => {
+    ([nid]) => {
       const n = window.__wfStore.getState().nodes.find(
         (x) => x.data?.node?.id === nid,
       );
@@ -212,7 +212,7 @@ function stepByName(steps, nodeType) {
   return step;
 }
 
-async function checkHistoryUi(page, workflowName, expectedSteps) {
+async function checkHistoryUi(page, workflowName) {
   // The topbar 🕘 button navigates to the /executions page (a full page
   // route, not a slide-in panel). Find the row for our workflow and verify
   // its status badge, then open the detail page.

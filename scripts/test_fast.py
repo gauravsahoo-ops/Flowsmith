@@ -32,7 +32,7 @@ def main() -> int:
         "pytest",
         "-n",
         workers,
-        "--dist=loadscope",
+        "--dist=loadfile",
     ]
 
     if not run_all:
