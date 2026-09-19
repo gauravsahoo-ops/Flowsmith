@@ -5,6 +5,7 @@
 // Header: node icon + name, connector, operation, Execute/Save/Close buttons.
 
 import { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react'
+import { createPortal } from 'react-dom'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
@@ -48,6 +49,7 @@ import { CollapsibleSection, OpSafetyHint } from './shared/CollapsibleSection'
 export default function NodeEditorModal() {
   const nodeEditorOpen = useUiStore((s) => s.nodeEditorOpen)
   const activeTab = useUiStore((s) => s.nodeEditorTab)
+  const setNodeEditorTab = useUiStore((s) => s.setNodeEditorTab)
   const close = useUiStore((s) => s.closeNodeEditor)
   const selectedId = useUiStore((s) => s.selectedNodeId)
   const [settingsTab, setSettingsTab] = useState(false)
@@ -297,7 +299,9 @@ export default function NodeEditorModal() {
     updateNode(node.id, { parameters: newParams })
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div
       className={`node-editor-overlay ${closing ? 'closing' : ''}`}
       onClick={handleClose}
@@ -318,7 +322,10 @@ export default function NodeEditorModal() {
               <NodeIcon type={node.type} icon={node.settings?.icon || meta?.icon} size={26} />
             </span>
             <div className="nem-title-text">
-              <h2>{node.settings?.label || node.name || meta?.display_name || node.type}</h2>
+              <div className="nem-title-row">
+                <h2>{node.settings?.label || node.name || meta?.display_name || node.type}</h2>
+                <span className="nem-node-id-badge">{node.id}</span>
+              </div>
               <span className="nem-connector-meta">
                 {node.settings?.label && meta?.display_name && (
                   <span className="nem-connector-type" style={{ color: '#a5b4fc', marginRight: 4 }}>
@@ -329,9 +336,8 @@ export default function NodeEditorModal() {
                 {operation && <span className="nem-operation">{operation}</span>}
               </span>
             </div>
-            <span className="nem-node-id">{node.id}</span>
             {status && (
-              <>
+              <div className="nem-title-status">
                 {preview?.durationMs != null && (
                   <span className="nem-duration">
                     {preview.durationMs < 1000
@@ -340,7 +346,7 @@ export default function NodeEditorModal() {
                   </span>
                 )}
                 <Status status={status} live />
-              </>
+              </div>
             )}
           </div>
           <div className="nem-actions">
@@ -379,6 +385,41 @@ export default function NodeEditorModal() {
             </Button>
           </div>
         </header>
+
+        {/* Responsive Panel Navigation Bar (< 1150px) */}
+        <nav className="nem-panel-nav" role="tablist" aria-label="Editor Panels">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'input'}
+            className={`nem-panel-nav-btn ${activeTab === 'input' ? 'active' : ''}`}
+            onClick={() => setNodeEditorTab('input')}
+          >
+            <span className="nem-panel-nav-dot" />
+            Input
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'parameters'}
+            className={`nem-panel-nav-btn ${activeTab === 'parameters' ? 'active' : ''}`}
+            onClick={() => setNodeEditorTab('parameters')}
+          >
+            <span className="nem-panel-nav-dot" />
+            Parameters
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'output'}
+            className={`nem-panel-nav-btn ${activeTab === 'output' ? 'active' : ''}`}
+            onClick={() => setNodeEditorTab('output')}
+          >
+            <span className="nem-panel-nav-dot" />
+            Output
+            {outputData && <span className="nem-panel-nav-badge">Data</span>}
+          </button>
+        </nav>
 
         {effectiveError && (
           <ErrorState
@@ -870,7 +911,8 @@ export default function NodeEditorModal() {
           </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

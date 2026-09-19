@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { NodeIcon } from './NodeIcons'
 import JsonTree from './JsonTree'
 import { TableView } from './DataViewer'
@@ -171,9 +171,17 @@ export default function InputPanel({
     })
   }, [upstreamNodes, trace, edges, currentNodeId, catalog, results])
 
-  // Auto-expand the immediate direct parent by default
+  // Auto-expand the immediate direct parent by default when currentNodeId changes
+  const prevNodeIdRef = useRef(currentNodeId)
   useEffect(() => {
-    if (detailedUpstreamNodes.length > 0) {
+    if (prevNodeIdRef.current !== currentNodeId) {
+      prevNodeIdRef.current = currentNodeId
+      if (detailedUpstreamNodes.length > 0) {
+        setExpandedNodes({ [detailedUpstreamNodes[0].id]: true })
+      } else {
+        setExpandedNodes({})
+      }
+    } else if (detailedUpstreamNodes.length > 0) {
       setExpandedNodes((prev) => {
         if (Object.keys(prev).length === 0) {
           return { [detailedUpstreamNodes[0].id]: true }
@@ -181,7 +189,7 @@ export default function InputPanel({
         return prev
       })
     }
-  }, [detailedUpstreamNodes])
+  }, [currentNodeId, detailedUpstreamNodes])
 
   const toggleNode = useCallback((id) => {
     setExpandedNodes((prev) => ({
