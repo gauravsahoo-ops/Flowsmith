@@ -65,11 +65,6 @@ class OAuthProviderSpec:
                 redirect = f"{base}/api/auth/{self.key}/callback"
             else:
                 redirect = f"https://flowsmith.dev.idslogic.net/api/auth/{self.key}/callback"
-        if prefix == "salesforce":
-            if not cid:
-                cid = "3MVG97L7PWbPq6UzeixCsscpT5gtAB.fUQbF.I8eQfR_bFSR00nPPioDD8SP6lzDkwL7ejLvrgfLSBgM4ZkUs"
-            if not csecret:
-                csecret = "67AA7F50BE823ACC3F0DF49709C5B07F4A29579555358C8F6C0BE31989086E03"
         if not cid or not csecret:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
