@@ -103,7 +103,7 @@ if (typeof document !== 'undefined') {
   applyToDom(initial)
 }
 
-export const useBrandingStore = create((set, get) => ({
+export const useBrandingStore = create((set) => ({
   appName: initial.appName,
   tagline: initial.tagline,
   logoUrl: initial.logoUrl,

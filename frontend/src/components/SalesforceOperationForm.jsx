@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react'
-
 const OPERATION_FIELDS = {
   search: ['object_name', 'search_field', 'search_value'],
   get: ['object_name', 'record_id'],
@@ -13,19 +11,6 @@ const OPERATION_FIELDS = {
   bulk: ['object_name', 'bulk_operation', 'records', 'external_id_field'],
 }
 
-const FIELD_LABELS = {
-  object_name: 'Object',
-  search_field: 'Search field',
-  search_value: 'Search value',
-  record_id: 'Record ID',
-  record: 'Record fields',
-  external_id_field: 'External ID field',
-  external_id: 'External ID value',
-  soql: 'SOQL query',
-  bulk_operation: 'Bulk operation',
-  records: 'Records',
-}
-
 const FIELD_PLACEHOLDERS = {
   object_name: 'Account',
   search_field: 'Email',
@@ -36,7 +21,7 @@ const FIELD_PLACEHOLDERS = {
   soql: 'SELECT Id, Name FROM Account LIMIT 10',
 }
 
-export default function SalesforceOperationForm({ node, onParamsChange, mapping, onPreview }) {
+export default function SalesforceOperationForm({ node, onParamsChange }) {
   const params = node.parameters || {}
   const operation = params.operation || 'query'
   const objectName = params.object_name || ''

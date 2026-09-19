@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api'
 
 // Live Salesforce object/field discovery (Phase 9): populates the
@@ -18,10 +18,8 @@ export default function SalesforceDiscovery({ node, onParamsChange }) {
   const [schemaLabel, setSchemaLabel] = useState('')
   const [schemaError, setSchemaError] = useState('')
   const [loadingSchema, setLoadingSchema] = useState(false)
-  const [filter, setFilter] = useState('')
 
   const objectName = params.object_name || ''
-  // Field reference is most useful for write ops + describe (legacy search kept for older nodes).
   const showFields =
     WRITE_OPS.has(rawOp) || WRITE_OPS.has(operation) || operation === 'describe' || operation === 'search'
 
@@ -50,18 +48,6 @@ export default function SalesforceDiscovery({ node, onParamsChange }) {
     }
   }, [objectName, showFields])
 
-  const visibleFields = useMemo(() => {
-    const needle = filter.trim().toLowerCase()
-    const base = needle
-      ? fields.filter(
-          (f) =>
-            f.name?.toLowerCase().includes(needle) ||
-            f.label?.toLowerCase().includes(needle),
-        )
-      : fields
-    return base.slice(0, 200)
-  }, [fields, filter])
-
   function setObject(name) {
     onParamsChange({ ...params, object_name: name })
   }
@@ -81,6 +67,9 @@ export default function SalesforceDiscovery({ node, onParamsChange }) {
         <>
           {loadingSchema && <p className="hint">Loading fields…</p>}
           {schemaError && <p className="hint">Field discovery unavailable ({schemaError}).</p>}
+          {!loadingSchema && !schemaError && fields.length > 0 && (
+            <p className="hint">✓ Discovered {fields.length} fields for {schemaLabel || objectName}.</p>
+          )}
         </>
       )}
     </div>

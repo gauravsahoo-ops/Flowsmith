@@ -44,7 +44,6 @@ export default function CredentialsPanel({ open, onClose }) {
   const [reconnectingId, setReconnectingId] = useState(null)
   const [fallbackUrl, setFallbackUrl] = useState('')
   const popupRef = useRef(null)
-  const msgHandlerRef = useRef(null)
 
   useEffect(() => {
     if (open) load()

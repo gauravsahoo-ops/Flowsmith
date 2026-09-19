@@ -239,7 +239,6 @@ export const useExecutionStore = create((set, get) => ({
         const prev = s.runPreview[node_id] || {}
         // Build a live runPreview entry from the bus event so the
         // canvas shows status badges and timing during execution.
-        const startedAt = status === 'running' ? now : (prev.startedAt || now)
         const durationMs = (status === 'success' || status === 'error' || status === 'failed')
           ? (prev._startMs ? now - prev._startMs : prev.durationMs || 0)
           : prev.durationMs || 0
