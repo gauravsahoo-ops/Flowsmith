@@ -5,6 +5,7 @@
 // the group moves every member currently inside its bounds.
 
 import { memo, useState } from 'react'
+import { useViewport } from '@xyflow/react'
 import { useWorkflowStore } from '../stores/workflowStore'
 
 const GROUP_COLORS = [
@@ -16,13 +17,14 @@ const GROUP_COLORS = [
 ]
 
 function GroupNode({ id, data, selected }) {
+  const { zoom = 1 } = useViewport()
   const ungroup = useWorkflowStore((s) => s.ungroup)
   const updateGroup = useWorkflowStore((s) => s.updateGroup)
   const [editing, setEditing] = useState(false)
   const [labelVal, setLabelVal] = useState(data.group.label || 'Group')
 
   function startMove(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.classList.contains('group-resize-handle')) return
     e.stopPropagation()
     const group = data.group
     const startX = e.clientX
@@ -40,28 +42,66 @@ function GroupNode({ id, data, selected }) {
         n.position.y <= group.y + group.height,
     )
     const starts = members.map((n) => ({ id: n.id, x: n.position.x, y: n.position.y }))
-    if (!starts.length) return
 
     function onMove(ev) {
-      const dx = ev.clientX - startX
-      const dy = ev.clientY - startY
+      const dx = (ev.clientX - startX) / (zoom || 1)
+      const dy = (ev.clientY - startY) / (zoom || 1)
       const s = useWorkflowStore.getState()
-      s.updateGroup(id, { x: originX + dx, y: originY + dy })
-      s.onNodesChange(
-        starts.map((m) => ({
-          id: m.id,
-          type: 'position',
-          position: { x: m.x + dx, y: m.y + dy },
-          dragging: true,
-        })),
-      )
+      s.updateGroup(id, { x: Math.round(originX + dx), y: Math.round(originY + dy) })
+      if (starts.length) {
+        s.onNodesChange(
+          starts.map((m) => ({
+            id: m.id,
+            type: 'position',
+            position: { x: Math.round(m.x + dx), y: Math.round(m.y + dy) },
+            dragging: true,
+          })),
+        )
+      }
     }
     function onUp() {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
+      if (starts.length) {
+        const s = useWorkflowStore.getState()
+        s.onNodesChange(
+          starts.map((m) => ({
+            id: m.id,
+            type: 'position',
+            dragging: false,
+          })),
+        )
+      }
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
+  }
+
+  function startResize(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return
+    e.stopPropagation()
+    e.preventDefault()
+    const group = data.group
+    const startX = e.clientX
+    const startY = e.clientY
+    const originW = group.width || 260
+    const originH = group.height || 160
+
+    function onResizing(ev) {
+      const dx = (ev.clientX - startX) / (zoom || 1)
+      const dy = (ev.clientY - startY) / (zoom || 1)
+      const newW = Math.max(160, Math.round(originW + dx))
+      const newH = Math.max(120, Math.round(originH + dy))
+      updateGroup(id, { width: newW, height: newH })
+    }
+
+    function onStopResize() {
+      window.removeEventListener('mousemove', onResizing)
+      window.removeEventListener('mouseup', onStopResize)
+    }
+
+    window.addEventListener('mousemove', onResizing)
+    window.addEventListener('mouseup', onStopResize)
   }
 
   function commitLabel() {
@@ -146,6 +186,12 @@ function GroupNode({ id, data, selected }) {
           ✕
         </button>
       </div>
+
+      <div
+        className="group-resize-handle"
+        onMouseDown={startResize}
+        title="Drag to resize frame"
+      />
     </div>
   )
 }

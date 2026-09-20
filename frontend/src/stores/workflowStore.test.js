@@ -379,3 +379,32 @@ describe('insertNodeOnEdge', () => {
     expect(useUiStore.getState().selectedNodeId).toBe(newId)
   })
 })
+
+describe('group frames', () => {
+  it('creates, updates, syncs bounds on move, and ungroups correctly', () => {
+    add('set_data', 100)
+    const node = useWorkflowStore.getState().nodes[0]
+    const groupId = useWorkflowStore.getState().groupSelected([node.id], 'Stage 1', 'emerald')
+    const state = useWorkflowStore.getState()
+    expect(state.groups).toHaveLength(1)
+    expect(state.groups[0].label).toBe('Stage 1')
+    expect(state.groups[0].color).toBe('emerald')
+
+    // Updating group properties
+    useWorkflowStore.getState().updateGroup(groupId, { label: 'New Label', color: 'purple' })
+    expect(useWorkflowStore.getState().groups[0].label).toBe('New Label')
+    expect(useWorkflowStore.getState().groups[0].color).toBe('purple')
+
+    // Moving member node triggers syncGroupBounds without throwing ReferenceError
+    useWorkflowStore.getState().onNodesChange([
+      { id: node.id, type: 'position', position: { x: 120, y: 10 } },
+    ])
+    expect(useWorkflowStore.getState().groups).toHaveLength(1)
+
+    // Ungroup removes the frame while keeping the node
+    useWorkflowStore.getState().ungroup(groupId)
+    expect(useWorkflowStore.getState().groups).toHaveLength(0)
+    expect(useWorkflowStore.getState().nodes).toHaveLength(1)
+  })
+})
+

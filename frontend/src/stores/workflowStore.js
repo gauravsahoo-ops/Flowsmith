@@ -336,7 +336,7 @@ export const useWorkflowStore = create((set, get) => ({
     if (structural) get().pushHistory()
     if (plain.length) {
       set({ nodes: applyNodeChanges(plain, get().nodes) })
-      syncGroupBounds(get)
+      syncGroupBounds(get, set)
       scheduleSave()
     }
     if (startsDrag) {
@@ -822,7 +822,7 @@ export const useWorkflowStore = create((set, get) => ({
 }))
 
 /** Keep stored group geometry roughly in step while members move. */
-function syncGroupBounds(get) {
+function syncGroupBounds(get, set) {
   const groups = get().groups
   if (!groups.length) return
   const nodes = get().nodes
@@ -853,7 +853,7 @@ function syncGroupBounds(get) {
     }
     return g
   })
-  if (changed) set({ groups: next })
+  if (changed && set) set({ groups: next })
 }
 
 /** Drop groups whose members are all gone. */
