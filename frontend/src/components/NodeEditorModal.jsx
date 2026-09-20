@@ -4,7 +4,7 @@
 // Right: OUTPUT — execution results (JSON/Table/Schema)
 // Header: node icon + name, connector, operation, Execute/Save/Close buttons.
 
-import { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react'
+import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react'
 import { createPortal } from 'react-dom'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
