@@ -102,6 +102,15 @@ class MicrosoftGraphProviderClient(BaseProviderClient):
     def _invalidate(self, creds: dict) -> None:
         self._access_tokens.pop(self._cache_key(creds), None)
 
+    async def test_connection(self, creds: dict) -> dict:
+        """Cheap live probe for credential Test button."""
+        try:
+            await self._get_access_token(creds)
+            return {"ok": True, "message": "Connected to Microsoft Graph successfully."}
+        except Exception as exc:
+            msg = getattr(exc, "message", str(exc))
+            return {"ok": False, "message": str(msg)}
+
     # ------------------------------------------------------------------
     # High-level operations
     # ------------------------------------------------------------------

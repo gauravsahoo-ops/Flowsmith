@@ -6,8 +6,8 @@ import EmptyState from '../components/shared/EmptyState'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import WorkspaceTabs from '../components/shared/WorkspaceTabs'
-import Select from '../components/shared/Select'
 import { NodeIcon } from '../components/NodeIcons'
+import SearchableSelect from '../components/SearchableSelect'
 
 function defaultsFromSchema(schema) {
   const out = {}
@@ -473,30 +473,24 @@ export default function CredentialsPage() {
 
         <form onSubmit={handleCreate} className="cred-form">
           <label>Name<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="My credential" /></label>
-          <label>Type
-            <Select
-              searchable
+          <div>
+            <label style={{ display: 'block', marginBottom: 4 }}>Type</label>
+            <SearchableSelect
               value={form.type}
-              onChange={v => setForm({
-                ...form,
-                type: v,
-                data: defaultsFromSchema(types.find(t => t.type === v)?.parameters_schema)
-              })}
+              onChange={val => setForm({ ...form, type: val, data: defaultsFromSchema(types.find(t => t.type === val)?.parameters_schema) })}
               options={types.map(t => ({
                 value: t.type,
                 label: `${t.name} (${t.type})`,
-                hint: t.description || (t.implemented === false ? 'Not implemented' : ''),
                 disabled: t.implemented === false,
                 disabledReason: t.implemented === false ? 'Not implemented' : undefined,
-                icon: <NodeIcon type={t.type} size={16} />,
-                keywords: `${t.provider || ''} ${t.category || ''} ${t.type}`
+                hint: t.description || undefined,
               }))}
               placeholder="Search or select credential type…"
             />
             {form.type && types.find(t => t.type === form.type)?.implemented === false && (
               <div className="banner-inline err" style={{ marginTop: 6 }}>Authentication provider not implemented yet — execution will be blocked.</div>
             )}
-          </label>
+          </div>
           {schema && !isOAuthType && Object.entries(schema.properties || {}).map(([key, prop]) => {
             const isConnStr = ['dsn','uri','connection_string','connectionString'].includes(key) || (prop.description && prop.description.toLowerCase().includes('connection string'))
             return (
