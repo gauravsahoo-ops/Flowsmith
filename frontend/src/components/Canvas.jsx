@@ -508,7 +508,9 @@ function CanvasInner() {
         connectionLineType="bezier"
         multiSelectionKeyCode="Shift"
         selectionKeyCode="Shift"
-        panOnDrag={[1, 2]}
+        panOnDrag={true}
+        panOnScroll={true}
+        panOnScrollMode="free"
         zoomOnPinch={true}
         preventScrolling={true}
         deleteKeyCode={['Backspace', 'Delete']}
