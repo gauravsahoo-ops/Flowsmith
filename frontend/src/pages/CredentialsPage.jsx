@@ -6,6 +6,7 @@ import EmptyState from '../components/shared/EmptyState'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import WorkspaceTabs from '../components/shared/WorkspaceTabs'
+import Select from '../components/shared/Select'
 import { NodeIcon } from '../components/NodeIcons'
 
 function defaultsFromSchema(schema) {
@@ -473,10 +474,25 @@ export default function CredentialsPage() {
         <form onSubmit={handleCreate} className="cred-form">
           <label>Name<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="My credential" /></label>
           <label>Type
-            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value, data: defaultsFromSchema(types.find(t => t.type === e.target.value)?.parameters_schema) })} required>
-              <option value="">Select…</option>
-              {types.map(t => <option key={t.type} value={t.type} disabled={t.implemented === false}>{t.name} ({t.type}){t.implemented === false ? ' — Not implemented' : ''}</option>)}
-            </select>
+            <Select
+              searchable
+              value={form.type}
+              onChange={v => setForm({
+                ...form,
+                type: v,
+                data: defaultsFromSchema(types.find(t => t.type === v)?.parameters_schema)
+              })}
+              options={types.map(t => ({
+                value: t.type,
+                label: `${t.name} (${t.type})`,
+                hint: t.description || (t.implemented === false ? 'Not implemented' : ''),
+                disabled: t.implemented === false,
+                disabledReason: t.implemented === false ? 'Not implemented' : undefined,
+                icon: <NodeIcon type={t.type} size={16} />,
+                keywords: `${t.provider || ''} ${t.category || ''} ${t.type}`
+              }))}
+              placeholder="Search or select credential type…"
+            />
             {form.type && types.find(t => t.type === form.type)?.implemented === false && (
               <div className="banner-inline err" style={{ marginTop: 6 }}>Authentication provider not implemented yet — execution will be blocked.</div>
             )}

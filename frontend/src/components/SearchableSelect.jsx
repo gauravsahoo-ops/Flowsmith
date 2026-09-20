@@ -13,7 +13,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
   const filtered = useMemo(() => {
     if (!query) return options
     const q = query.toLowerCase()
-    return options.filter(o => `${o.label} ${o.value}`.toLowerCase().includes(q))
+    return options.filter(o => `${o.label || ''} ${o.value || ''} ${o.hint || ''} ${o.description || ''} ${o.keywords || ''}`.toLowerCase().includes(q))
   }, [options, query])
 
   useEffect(() => {
@@ -93,8 +93,15 @@ export default function SearchableSelect({ value, onChange, options, placeholder
           opacity: disabled ? 0.6 : 1,
         }}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-          {selected ? selected.label : <span style={{ color: 'var(--muted)' }}>{placeholder}</span>}
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {selected ? (
+            <>
+              {selected.icon && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{selected.icon}</span>}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.label}</span>
+            </>
+          ) : (
+            <span style={{ color: 'var(--muted)' }}>{placeholder}</span>
+          )}
         </span>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
             {loading && <span className="spinner-sm" aria-hidden="true" style={{ width: 12, height: 12, borderWidth: 2 }} />}
@@ -209,11 +216,15 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                     gap: 2,
                   }}
                 >
-                  <span style={{ fontWeight: value === opt.value ? 600 : 400 }}>
-                    {opt.label}
-                    {opt.disabled && opt.disabledReason && <span style={{ color: 'var(--red)', marginLeft: 6, fontSize: 10 }}>— {opt.disabledReason}</span>}
-                  </span>
-                  {opt.hint && <span style={{ color: 'var(--muted)', fontSize: 10 }}>{opt.hint}</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                    {opt.icon && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{opt.icon}</span>}
+                    <span style={{ fontWeight: value === opt.value ? 600 : 400, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {opt.label}
+                      {opt.disabled && opt.disabledReason && <span style={{ color: 'var(--red)', marginLeft: 6, fontSize: 10 }}>— {opt.disabledReason}</span>}
+                    </span>
+                    {opt.badge && <span className="badge" style={{ fontSize: 10, padding: '1px 5px', flexShrink: 0 }}>{opt.badge}</span>}
+                  </div>
+                  {opt.hint && <span style={{ color: 'var(--muted)', fontSize: 10, marginLeft: opt.icon ? 24 : 0 }}>{opt.hint}</span>}
                 </div>
               ))
             )}

@@ -9,6 +9,7 @@ import { api } from '../api'
 import { useCredentialStore } from '../stores/credentialStore'
 import ErrorState from './shared/ErrorState'
 import Select from './shared/Select'
+import { NodeIcon } from './NodeIcons'
 
 function defaultsFromSchema(schema) {
   const out = {}
@@ -33,6 +34,7 @@ export default function CredentialsPanel({ open, onClose }) {
   const remove = useCredentialStore((s) => s.remove)
   const connectOAuth = useCredentialStore((s) => s.connectOAuth)
 
+  const [search, setSearch] = useState('')
   const [form, setForm] = useState({ name: '', type: '', data: {} })
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -202,6 +204,12 @@ export default function CredentialsPanel({ open, onClose }) {
   const formTypeIsSalesforce = form.type === 'salesforce'
   const formTypeIsHubspot = form.type === 'hubspot'
 
+  const filteredCredentials = credentials.filter((c) => {
+    if (!search.trim()) return true
+    const q = search.trim().toLowerCase()
+    return `${c.name} ${c.type}`.toLowerCase().includes(q)
+  })
+
   return (
     <div className="overlay" onClick={onClose}>
       <div className="credentials-panel" onClick={(e) => e.stopPropagation()}>
@@ -226,16 +234,46 @@ export default function CredentialsPanel({ open, onClose }) {
           </div>
         )}
 
+        {credentials.length > 0 && (
+          <div style={{ margin: '8px 0 10px' }}>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search stored credentials…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                fontSize: 13,
+                borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: 'var(--bg)',
+                color: 'var(--text)'
+              }}
+              aria-label="Search credentials"
+            />
+          </div>
+        )}
+
         <div className="cred-list">
           {credentials.length === 0 && <p className="hint">No credentials yet.</p>}
-          {credentials.map((c) => (
+          {credentials.length > 0 && filteredCredentials.length === 0 && (
+            <p className="hint">No credentials match “{search}”.</p>
+          )}
+          {filteredCredentials.map((c) => (
             <div key={c.id} className="cred-row">
-              <div>
-                <strong>{c.name}</strong>
-                <span className="muted"> {c.type}</span>
-                {isSalesforce(c) && (
-                  <span className="sf-dot" title="Connected via OAuth">●</span>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <NodeIcon type={c.type} size={18} />
+                </span>
+                <div>
+                  <strong>{c.name}</strong>
+                  <span className="muted"> {c.type}</span>
+                  {isSalesforce(c) && (
+                    <span className="sf-dot" title="Connected via OAuth">●</span>
+                  )}
+                </div>
               </div>
               <div className="cred-actions">
                 {isSalesforce(c) && (
@@ -468,8 +506,16 @@ export default function CredentialsPanel({ open, onClose }) {
                   ),
                 })
               }
-              options={types.map((t) => ({ value: t.type, label: `${t.name} (${t.type})` }))}
-              placeholder="Select…"
+              options={types.map((t) => ({
+                value: t.type,
+                label: `${t.name} (${t.type})`,
+                hint: t.description || (t.implemented === false ? 'Not implemented' : ''),
+                disabled: t.implemented === false,
+                disabledReason: t.implemented === false ? 'Not implemented' : undefined,
+                icon: <NodeIcon type={t.type} size={16} />,
+                keywords: `${t.provider || ''} ${t.category || ''} ${t.type}`,
+              }))}
+              placeholder="Search or select credential type…"
             />
           </label>
 
