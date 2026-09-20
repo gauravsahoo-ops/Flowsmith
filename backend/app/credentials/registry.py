@@ -544,6 +544,34 @@ class AwsAssumeRoleCredential(BaseModel):
     external_id: str = Field(default="", description="External ID (optional).")
 
 
+class SupabaseCredential(BaseModel):
+    url: str = Field(min_length=1, description="Supabase project URL (e.g. https://xyz.supabase.co).")
+    service_role_key: str = Field(min_length=1, description="Supabase service role secret key or anon key.")
+    anon_key: str = Field(default="", description="Supabase anon public key (optional).")
+
+
+class ResendCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Resend API key (re_...).")
+
+
+class PineconeCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Pinecone API key.")
+    host: str = Field(default="", description="Default Pinecone index host URL (optional).")
+
+
+class SentryCredential(BaseModel):
+    auth_token: str = Field(min_length=1, description="Sentry User Auth Token.")
+    organization_slug: str = Field(default="", description="Sentry Organization Slug (optional).")
+
+
+class S3Credential(BaseModel):
+    access_key_id: str = Field(min_length=1, description="AWS Access Key ID.")
+    secret_access_key: str = Field(min_length=1, description="AWS Secret Access Key.")
+    bucket_name: str = Field(default="", description="Default bucket name (optional).")
+    region: str = Field(default="us-east-1", description="AWS Region (e.g. us-east-1).")
+    endpoint_url: str = Field(default="", description="Custom endpoint URL for MinIO, Wasabi, or Cloudflare R2 (optional).")
+
+
 CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "smtp": SMTPCredential,
     "imap": IMAPCredential,
@@ -596,6 +624,12 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "monday": MondayCredential,
     "ftp": FtpCredential,
     "ssh": SshCredential,
+    "supabase": SupabaseCredential,
+    "resend": ResendCredential,
+    "pinecone": PineconeCredential,
+    "sentry": SentryCredential,
+    "aws_s3": S3Credential,
+    "s3": S3Credential,
     # Generic HTTP Auth providers (spec)
     "basic_auth": BasicAuthCredential,
     "bearer_auth": BearerAuthCredential,
@@ -664,6 +698,12 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "monday": frozenset({"api_token"}),
     "ftp": frozenset({"password"}),
     "ssh": frozenset({"password", "private_key", "passphrase"}),
+    "supabase": frozenset({"service_role_key", "anon_key"}),
+    "resend": frozenset({"api_key"}),
+    "pinecone": frozenset({"api_key"}),
+    "sentry": frozenset({"auth_token"}),
+    "aws_s3": frozenset({"secret_access_key"}),
+    "s3": frozenset({"secret_access_key"}),
     "basic_auth": frozenset({"password"}),
     "bearer_auth": frozenset({"token"}),
     "header_auth": frozenset({"header_value"}),
@@ -730,6 +770,12 @@ TYPE_META: dict[str, dict[str, str]] = {
     "brevo": {"name": "Brevo", "description": "Brevo API key for the Brevo connector."},
     "freshdesk": {"name": "Freshdesk", "description": "Freshdesk email + API key + domain for the Freshdesk connector."},
     "monday": {"name": "Monday.com", "description": "Monday.com API token for the Monday connector."},
+    "supabase": {"name": "Supabase", "description": "Supabase project URL and service role / anon API key."},
+    "resend": {"name": "Resend", "description": "Resend API key for transactional email sending."},
+    "pinecone": {"name": "Pinecone", "description": "Pinecone API key for vector embeddings database."},
+    "sentry": {"name": "Sentry", "description": "Sentry Auth Token for error tracking and issue management."},
+    "aws_s3": {"name": "AWS S3", "description": "AWS S3 / S3-compatible object storage access credentials."},
+    "s3": {"name": "AWS S3 / Storage", "description": "AWS S3, MinIO, or Cloudflare R2 credentials."},
     "ftp": {"name": "FTP", "description": "FTP/FTPS server connection for the FTP node."},
     "ssh": {"name": "SSH", "description": "SSH server connection (password or key) for the SSH node."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
@@ -843,6 +889,12 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "brevo": True,
     "freshdesk": True,
     "monday": True,
+    "supabase": True,
+    "resend": True,
+    "pinecone": True,
+    "sentry": True,
+    "aws_s3": True,
+    "s3": True,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work
