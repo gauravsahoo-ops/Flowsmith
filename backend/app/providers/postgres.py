@@ -6,10 +6,6 @@ credential reaching other engines. All work runs off the event loop.
 
 from __future__ import annotations
 
-from app.providers.sql_provider import SQLProviderClient
+from app.providers.sql_provider import PostgresProviderClient
 
-
-class PostgresProviderClient(SQLProviderClient):
-    credential_type = "postgres"
-    product_name = "PostgreSQL"
-    allowed_dsn_prefixes = ("postgresql://", "postgresql+psycopg2://", "postgresql+psycopg://", "postgres://")
+__all__ = ["PostgresProviderClient"]
