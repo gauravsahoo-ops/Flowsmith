@@ -80,7 +80,7 @@ pipeline {
                         cd ${BASE_PATH}
                         
                         # Build and launch new containers
-                        docker compose up -d --build --force-recreate app
+                        docker compose up -d --build --force-recreate
                                                 
                         # Clean up unused Docker images to save disk space
                         docker image prune -f
