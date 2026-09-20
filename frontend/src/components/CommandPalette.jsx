@@ -74,7 +74,19 @@ export default function CommandPalette({ open, onClose }) {
         id: 'cmd-comment',
         title: '💬 Add comment',
         enabled: true,
-        perform: () => useWorkflowStore.getState().addComment({ x: 160, y: 160 }, ''),
+        perform: () => {
+          let at = { x: 160, y: 160 }
+          if (typeof screenToFlowPosition === 'function') {
+            const center = screenToFlowPosition({
+              x: window.innerWidth / 2 - 110,
+              y: window.innerHeight / 2 - 45,
+            })
+            if (Number.isFinite(center.x) && Number.isFinite(center.y)) {
+              at = { x: Math.round(center.x), y: Math.round(center.y) }
+            }
+          }
+          useWorkflowStore.getState().addComment(at, '')
+        },
       },
       {
         id: 'cmd-group',
