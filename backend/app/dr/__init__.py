@@ -41,22 +41,9 @@ ADMIN_DSN_TEMPLATE = (
 )
 
 
-def _admin_parts(dsn: str) -> dict[str, str]:
-    import urllib.parse
-
-    parsed = urllib.parse.urlparse(dsn)
-    return {
-        "user": parsed.username or "postgres",
-        "password": parsed.password or "",
-        "host": parsed.hostname or "127.0.0.1",
-        "port": str(parsed.port or 5432),
-    }
-
-
 def _admin_engine(dsn: str):
     from sqlalchemy.engine import make_url
 
-    parts = _admin_parts(dsn)
     url = make_url(dsn)
     admin_url = url.set(database="postgres", drivername="postgresql+psycopg2")
     return create_engine(admin_url, isolation_level="AUTOCOMMIT")
@@ -239,18 +226,15 @@ def run_drill(base_dsn: str | None = None, *, work_dir=None) -> dict[str, Any]:
         from app.config import get_settings
 
         settings_dsn = get_settings().database_url
-    parts = _admin_parts(settings_dsn)
+    from sqlalchemy.engine import make_url
+
+    base_url = make_url(settings_dsn)
     suffix = uuid.uuid4().hex[:8]
     source_db = f"drill_source_{suffix}"
     target_db = f"drill_target_{suffix}"
 
-    def dsn_for(db: str) -> str:
-        return (
-            f"postgresql://{parts['user']}:{parts['password']}"
-            f"@{parts['host']}:{parts['port']}/{db}"
-        )
-
-    src_dsn, tgt_dsn = dsn_for(source_db), dsn_for(target_db)
+    src_dsn = base_url.set(database=source_db).render_as_string(hide_password=False)
+    tgt_dsn = base_url.set(database=target_db).render_as_string(hide_password=False)
     admin = _admin_engine(settings_dsn)
     report: dict[str, Any] = {"ok": False, "checks": {}, "rto_seconds": {}, "rpo": {}}
     try:
