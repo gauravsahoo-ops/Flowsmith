@@ -888,7 +888,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                     sf_creds_copy: dict[str, Any] = dict(sf_creds)
                     sf_creds_copy["access_token"] = ""
                     sf_creds_copy.pop("expires_at", None)
-                    fresh_token = await sf_client.authenticate(sf_creds_copy)
+                    fresh_token = await sf_client.authenticate(sf_creds_copy, force=True)
                     if fresh_token:
                         sf_creds["access_token"] = fresh_token
                         if sf_creds_copy.get("refresh_token"):

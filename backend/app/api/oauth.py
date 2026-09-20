@@ -40,6 +40,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import OAuthState, User
 from app.oauth_providers import (
+    get_existing_oauth_credential,
     get_provider,
     pkce_pair,
     purge_stale_states,
@@ -223,20 +224,32 @@ async def provider_callback(
             host = ""
 
     # Reconnect semantics: keep a single active OAuth connection per user
-    # and provider. Any previous OAuth-created credential is replaced.
-    replace_oauth_credential(db, user, spec.credential_type)
+    # and provider. Reuse the existing credential record if present so workflows
+    # referencing its ID continue working uninterrupted.
+    existing_rec = get_existing_oauth_credential(db, user, spec.credential_type)
 
     assert spec.credential_data is not None, f"provider {provider} misconfigured"
     data = spec.credential_data(settings, payload, login_url, label)
     name = f"{spec.display_name} ({label or host or data.get('hub_id') or 'connected'})"
-    try:
-        meta = create_for_user(
-            db, user.id, name, spec.credential_type, data
-        )
-    except Exception as exc:
-        logger.warning("credential creation failed for user %s: %s", user.id, exc)
-        log_event(db, audit_fail, target_type="credential", detail={"reason": "credential save failed", "provider": provider})
-        return _fail_redirect(frontend_url, spec, "credential save failed")
+
+    if existing_rec is not None:
+        from app.security.crypto import encrypt_text
+        existing_rec.name = name
+        existing_rec.data = encrypt_text(json.dumps(data))
+        replace_oauth_credential(db, user, spec.credential_type, keep_id=existing_rec.id)
+        db.commit()
+        db.refresh(existing_rec)
+        meta = {"id": existing_rec.id, "name": existing_rec.name, "type": existing_rec.type}
+    else:
+        replace_oauth_credential(db, user, spec.credential_type)
+        try:
+            meta = create_for_user(
+                db, user.id, name, spec.credential_type, data
+            )
+        except Exception as exc:
+            logger.warning("credential creation failed for user %s: %s", user.id, exc)
+            log_event(db, audit_fail, target_type="credential", detail={"reason": "credential save failed", "provider": provider})
+            return _fail_redirect(frontend_url, spec, "credential save failed")
 
     log_event(
         db, audit_ok,

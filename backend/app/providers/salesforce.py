@@ -138,25 +138,26 @@ class SalesforceProviderClient:
             "client_secret": client_secret,
         }
 
-    async def authenticate(self, creds: dict[str, Any]) -> str:
+    async def authenticate(self, creds: dict[str, Any], force: bool = False) -> str:
         """Return a valid access token, fetching one if needed (single flight)."""
         creds = self._apply_server_oauth_config(creds)
-        if self._token_valid(creds):
+        if not force and self._token_valid(creds):
             return self._token  # type: ignore[return-value]
 
         # Reuse unexpired access token from stored credentials if present
-        access_token = (creds.get("access_token") or "").strip()
-        expires_at = creds.get("expires_at") or 0
-        if access_token and (expires_at and float(expires_at) > 0 and time.time() < (float(expires_at) - 60)):
-            self._token = access_token
-            self._token_key = self._token_cache_key(creds)
-            self._token_expires_at = time.monotonic() + min(self._token_ttl_s, max(60.0, float(expires_at) - time.time()))
-            if creds.get("instance_url"):
-                self._instance_url = creds["instance_url"].rstrip("/")
-            return access_token
+        if not force:
+            access_token = (creds.get("access_token") or "").strip()
+            expires_at = creds.get("expires_at") or 0
+            if access_token and (expires_at and float(expires_at) > 0 and time.time() < (float(expires_at) - 60)):
+                self._token = access_token
+                self._token_key = self._token_cache_key(creds)
+                self._token_expires_at = time.monotonic() + min(self._token_ttl_s, max(60.0, float(expires_at) - time.time()))
+                if creds.get("instance_url"):
+                    self._instance_url = creds["instance_url"].rstrip("/")
+                return access_token
 
         async with self._token_lock:
-            if self._token_valid(creds):
+            if not force and self._token_valid(creds):
                 return self._token  # type: ignore[return-value]
 
             cid = creds.get("_credential_id")
@@ -172,7 +173,7 @@ class SalesforceProviderClient:
                         if c_rec:
                             c_dict = json.loads(decrypt_text(c_rec.data))
                             db_exp = c_dict.get("expires_at") or 0
-                            if c_dict.get("access_token") and float(db_exp) > (time.time() + 60):
+                            if not force and c_dict.get("access_token") and float(db_exp) > (time.time() + 60):
                                 self._token = c_dict["access_token"]
                                 self._token_key = self._token_cache_key(creds)
                                 self._token_expires_at = time.monotonic() + min(self._token_ttl_s, max(60.0, float(db_exp) - time.time()))
@@ -363,7 +364,7 @@ class SalesforceProviderClient:
                     fresh_creds: dict[str, Any] = dict(creds)
                     fresh_creds.pop("access_token", None)
                     fresh_creds.pop("expires_at", None)
-                    token = await self.authenticate(fresh_creds)
+                    token = await self.authenticate(fresh_creds, force=True)
                     if fresh_creds.get("access_token"):
                         creds["access_token"] = fresh_creds["access_token"]
                     if fresh_creds.get("expires_at"):
