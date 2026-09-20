@@ -12,7 +12,9 @@ describe('NodeIcon Real Logos Suite', () => {
     'stripe', 'shopify', 'quickbooks', 'dropbox', 'calendly', 'openai',
     'mailchimp', 'brevo', 'pipedrive', 'google_drive', 'google_sheets',
     'google_calendar', 'google_docs', 'gmail', 'postgres', 'mysql',
-    'mongodb', 'redis'
+    'mongodb', 'redis', 'supabase', 'resend', 'pinecone', 'sentry',
+    'aws_s3', 'coin_gecko', 'frankfurter', 'open_meteo', 'open_notify',
+    'open_router', 'poke_api', 'dummy_json', 'sso'
   ]
 
   const flowNodes = [

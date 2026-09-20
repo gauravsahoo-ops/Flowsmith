@@ -520,6 +520,175 @@ export function NodeIcon({ type, icon, size = 34, color }) {
     )
   }
 
+  // Supabase (Official Emerald Green Bolt)
+  if (matches('supabase')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#1C1C1C" />
+        <path d="M12.5 3.5L5.5 13.5h6l-1 7 7-10h-6l1-7z" fill="#3ECF8E" />
+      </svg>
+    )
+  }
+
+  // Resend (Official Modern Fast-Forward Mark)
+  if (matches('resend')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#000000" />
+        <path d="M6 7.5L14 12L6 16.5V7.5Z" fill="#FFFFFF" />
+        <path d="M12 7.5L20 12L12 16.5V7.5Z" fill="#FFFFFF" opacity="0.6" />
+      </svg>
+    )
+  }
+
+  // Pinecone (Official Vector Mesh / Pinecone Icon)
+  if (matches('pinecone')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0A0F1D" />
+        <path d="M12 4L18 8V16L12 20L6 16V8L12 4Z" stroke="#00FFE0" strokeWidth="1.5" />
+        <circle cx="12" cy="8" r="1.5" fill="#00FFE0" />
+        <circle cx="8.5" cy="12" r="1.5" fill="#00FFE0" />
+        <circle cx="15.5" cy="12" r="1.5" fill="#00FFE0" />
+        <circle cx="12" cy="16" r="1.5" fill="#00FFE0" />
+        <line x1="12" y1="8" x2="8.5" y2="12" stroke="#00FFE0" strokeWidth="1.2" />
+        <line x1="12" y1="8" x2="15.5" y2="12" stroke="#00FFE0" strokeWidth="1.2" />
+        <line x1="8.5" y1="12" x2="12" y2="16" stroke="#00FFE0" strokeWidth="1.2" />
+        <line x1="15.5" y1="12" x2="12" y2="16" stroke="#00FFE0" strokeWidth="1.2" />
+      </svg>
+    )
+  }
+
+  // Sentry (Official Stylized S Wireframe Knot)
+  if (matches('sentry')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#362D59" />
+        <path
+          d="M13.1 5.2a6.8 6.8 0 0 0-4.6 2.4c-1.8 2.2-2.1 5.3-.8 7.8l-1.9 3.3c-2.3-3.6-1.8-8.4.9-11.4a10.5 10.5 0 0 1 7.2-3.8l-.8 1.7zm4.2 2.6c2.3 3.6 1.8 8.4-.9 11.4a10.5 10.5 0 0 1-7.2 3.8l.8-1.7a6.8 6.8 0 0 0 4.6-2.4c1.8-2.2 2.1-5.3.8-7.8l1.9-3.3z"
+          fill="#FF385C"
+        />
+        <circle cx="12" cy="12" r="2.2" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // AWS S3 / Object Store (Official S3 Bucket & Cloud Mark)
+  if (matches('s3', 'aws_s3', 'aws', 'object_store', 'minio')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#232F3E" />
+        <path d="M6 8.5L12 5L18 8.5V15.5L12 19L6 15.5V8.5Z" stroke="#FF9900" strokeWidth="1.5" fill="#FF9900" fillOpacity="0.2" />
+        <path d="M12 5V19M6 8.5L18 15.5M18 8.5L6 15.5" stroke="#FF9900" strokeWidth="1.2" />
+      </svg>
+    )
+  }
+
+  // CoinGecko (Official Green Gecko Face)
+  if (matches('coin_gecko', 'coingecko')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#8DC63F" />
+        <circle cx="8.5" cy="10" r="2.8" fill="#FFFFFF" />
+        <circle cx="15.5" cy="10" r="2.8" fill="#FFFFFF" />
+        <circle cx="9" cy="10" r="1.4" fill="#231F20" />
+        <circle cx="15" cy="10" r="1.4" fill="#231F20" />
+        <path d="M8.5 15.5c2 1.5 5 1.5 7 0" stroke="#231F20" strokeWidth="1.5" strokeLinecap="round" />
+        <ellipse cx="12" cy="13.5" rx="1.5" ry="0.8" fill="#FFF200" />
+      </svg>
+    )
+  }
+
+  // Frankfurter / Currency Exchange
+  if (matches('frankfurter', 'fx', 'currency')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#003399" />
+        <path d="M7 9h6M7 12h4M7 7v10" stroke="#FFCC00" strokeWidth="2" strokeLinecap="round" />
+        <path d="M14 15l3-3m0 0l-3-3m3 3h-5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Open-Meteo / Weather (Air Quality, Flood, Marine, Historical Weather)
+  if (matches('open_meteo', 'weather', 'climate', 'meteo', 'flood', 'marine', 'air_quality')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="10" cy="9" r="4.5" fill="#FFB300" />
+        <path
+          d="M7 17a4 4 0 0 1-.2-8 5.5 5.5 0 0 1 10.7-1.5A4.5 4.5 0 0 1 18 17H7z"
+          fill="#4285F4"
+        />
+        <line x1="9" y1="19" x2="8" y2="21" stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="13" y1="19" x2="12" y2="21" stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="17" y1="19" x2="16" y2="21" stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // Open Notify ISS (Satellite Orbit)
+  if (matches('open_notify', 'iss', 'satellite')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0B132B" />
+        <circle cx="12" cy="12" r="5" stroke="#48CAE4" strokeWidth="1.5" strokeDasharray="2 2" />
+        <rect x="9.5" y="9.5" width="5" height="5" rx="1" fill="#0077B6" />
+        <rect x="5" y="10.5" width="3.5" height="3" fill="#90E0EF" />
+        <rect x="15.5" y="10.5" width="3.5" height="3" fill="#90E0EF" />
+      </svg>
+    )
+  }
+
+  // OpenRouter (Multi-Model AI Gateway)
+  if (matches('open_router', 'openrouter')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#18181B" />
+        <circle cx="6" cy="12" r="2.5" fill="#6366F1" />
+        <circle cx="18" cy="7" r="2.5" fill="#EC4899" />
+        <circle cx="18" cy="17" r="2.5" fill="#10B981" />
+        <path d="M8.5 12h3m0 0l4-5m-4 5l4 5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // PokeAPI / Pokemon (Official Pokéball)
+  if (matches('poke_api', 'pokemon', 'pokeapi')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#FFFFFF" stroke="#232323" strokeWidth="1.5" />
+        <path d="M2 12a10 10 0 0 1 20 0H2z" fill="#EE1515" />
+        <line x1="2" y1="12" x2="22" y2="12" stroke="#232323" strokeWidth="2" />
+        <circle cx="12" cy="12" r="3.5" fill="#FFFFFF" stroke="#232323" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="1.5" fill="#232323" />
+      </svg>
+    )
+  }
+
+  // Developer REST APIs (DummyJSON, JSONPlaceholder, Httpbin)
+  if (matches('dummy_json', 'dummyjson', 'json_placeholder', 'jsonplaceholder', 'httpbin')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0284C7" />
+        <text x="12" y="16" fill="#FFFFFF" fontSize="11" fontWeight="bold" textAnchor="middle" fontFamily="monospace">
+          {'{ }'}
+        </text>
+      </svg>
+    )
+  }
+
+  // Single Sign-On (SSO / OIDC / Google SSO / GitHub SSO)
+  if (matches('sso', 'oidc', 'saml', 'identity')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#3B82F6" />
+        <path d="M12 5l6 2.5v4.5c0 4-2.5 7-6 8-3.5-1-6-4-6-8V7.5L12 5z" fill="#1D4ED8" stroke="#FFFFFF" strokeWidth="1.2" />
+        <circle cx="12" cy="11" r="1.8" fill="#FFFFFF" />
+        <path d="M12 12.8v2.5M10.8 14.5h2.4" stroke="#FFFFFF" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
   // =========================================================================
   // 2. FLOW & CORE LOGIC NODES (PRECISION VECTOR ARCHITECTURE)
   // =========================================================================
