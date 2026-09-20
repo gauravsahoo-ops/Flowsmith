@@ -6104,7 +6104,6 @@ button[aria-label="More actions"][aria-expanded="true"] {
 .op-state { display:flex; align-items:center; gap:8px; padding:12px; color:var(--muted); }
 .op-state.error { flex-direction:column; align-items:flex-start; color:var(--red); }
 .op-spinner { width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
 .op-error-title { font-weight:700; }
 .op-error-msg { font-size:12px; word-break:break-word; background:var(--panel-2); border:1px solid var(--border); padding:8px; border-radius:6px; width:100%; }
 .op-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:24px; text-align:center; color:var(--muted); min-height:140px; }
@@ -6231,10 +6230,8 @@ select { transition: border-color .12s ease, box-shadow .12s ease; }
 
 /* --- Error states: compact, actionable --- */
 .banner-inline.err { animation: slideDown .18s ease; }
-@keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
 
 /* --- Loading skeletons --- */
-@keyframes shimmer { 0%{background-position:-200px 0} 100%{background-position:200px 0} }
 .skeleton { background: linear-gradient(90deg, var(--panel-2) 25%, #2a2f3e 37%, var(--panel-2) 63%); background-size: 400px 100%; animation: shimmer 1.2s ease infinite; }
 
 /* --- Responsive: node editor modal handles sizing and panel navigation cleanly --- */
@@ -6303,7 +6300,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 }
 
 /* --- Spinner (loading states) --- */
-@keyframes spin { to { transform: rotate(360deg); } }
 .spinner, .spinner-sm {
   display: inline-block;
   border-radius: 50%;
