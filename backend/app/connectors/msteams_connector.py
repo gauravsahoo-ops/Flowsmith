@@ -122,5 +122,14 @@ class MSTeamsConnector(ConnectorSDK):
             "success": True,
         }
 
+    async def test_connection(self, config: dict[str, Any]) -> dict[str, Any]:
+        try:
+            token = await self._provider._get_access_token(config)
+            if token:
+                return {"ok": True, "message": "Successfully authenticated with Microsoft Graph API."}
+            return {"ok": False, "message": "Failed to obtain access token."}
+        except Exception as exc:
+            return {"ok": False, "message": str(exc)}
+
     async def op_describe(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         return {"output": self.to_dict(), "success": True}
