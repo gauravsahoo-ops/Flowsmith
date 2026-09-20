@@ -22,6 +22,7 @@ Security properties (enforced here for every provider):
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote, urlparse
