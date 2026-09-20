@@ -129,6 +129,13 @@ if errorlevel 1 (
     )
     goto RESTART_WAIT_PG
 )
+
+:: Verify host port mapping
+"%VENV_PY%" -c "import socket; s=socket.create_connection(('127.0.0.1', %POSTGRES_PORT%), timeout=2); s.close()" >nul 2>&1
+if errorlevel 1 (
+    docker compose up -d --force-recreate postgres redis >nul 2>&1
+    timeout /t 3 /nobreak >nul
+)
 echo    PostgreSQL .......... READY
 
 :: Verify pgvector extension
