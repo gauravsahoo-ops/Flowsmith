@@ -38,7 +38,10 @@ async function requestEnvelope(method, path, body, opts = {}) {
   const { timeout = DEFAULT_TIMEOUT_MS } = opts
   const headers = { 'Content-Type': 'application/json' }
   const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+    headers['X-Authorization'] = `Bearer ${token}`
+  }
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeout)
@@ -141,7 +144,7 @@ export const api = {
   exportExecution: async (id, format = 'json') => {
     const token = getToken()
     const res = await fetch(`${BASE_URL}/executions/${id}/export?format=${format}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: token ? { Authorization: `Bearer ${token}`, 'X-Authorization': `Bearer ${token}` } : {},
     })
     if (!res.ok) throw new Error(`Export failed: ${res.statusText}`)
     const blob = await res.blob()
