@@ -22,7 +22,6 @@ def build_s3_definition() -> ConnectorDefinitionV1:
         category=ConnectorCategory.API.value,
         connector_version=S3_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
-        supported_node_types=["s3", "aws_s3"],
         credential_types={
             "aws_s3": CredentialTypeV1(
                 type_key="aws_s3",

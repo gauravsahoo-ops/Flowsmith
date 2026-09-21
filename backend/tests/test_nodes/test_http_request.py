@@ -110,7 +110,7 @@ async def test_auto_refresh_on_401_invalid_session_id(respx_mock, http_client, m
 
     from app.providers.salesforce import SalesforceProviderClient
 
-    async def _fake_auth(self, creds):
+    async def _fake_auth(self, creds, force: bool = False, **kwargs):
         return "fresh_sf_token_123"
 
     monkeypatch.setattr(

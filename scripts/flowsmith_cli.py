@@ -179,7 +179,7 @@ def cmd_connector_validate(args: argparse.Namespace) -> int:
         print(f"  Lifecycle: {definition.lifecycle_status}")
         print(f"  Operations ({len(definition.operations)}): {list(definition.operations.keys())}")
         print(f"  Triggers ({len(definition.triggers)}): {list(definition.triggers.keys())}")
-        cred_types = [c.credential_type if hasattr(c, 'credential_type') else str(c) for c in (definition.credential_types or [])]
+        cred_types = list(definition.credential_types.keys()) if definition.credential_types else []
         print(f"  Credential Types: {cred_types}")
         return 0
     except Exception as e:

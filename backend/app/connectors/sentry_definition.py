@@ -22,7 +22,6 @@ def build_sentry_definition() -> ConnectorDefinitionV1:
         category=ConnectorCategory.API.value,
         connector_version=SENTRY_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
-        supported_node_types=["sentry"],
         credential_types={
             "sentry": CredentialTypeV1(
                 type_key="sentry",

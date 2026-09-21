@@ -10,7 +10,6 @@ from app.connectors import (
     ConnectorSDK,
     ConnectorCategory,
     ConnectorHealthCheck,
-    ConnectorStatus,
     ConnectorError,
     ConnectorErrorCode,
     make_connector_error,
@@ -28,14 +27,17 @@ class PineconeConnector(ConnectorSDK, ConnectorOperations):
     description = "Upsert embeddings, query nearest neighbors, and manage vector indexes in Pinecone."
     category = ConnectorCategory.API
     version = "1.0.0"
-    node_types = ["pinecone"]
 
     def __init__(self) -> None:
         super().__init__(self.connector_id, self.display_name, self.description)
         self.credentials: Dict[str, Any] = {}
 
-    async def connect(self, credentials: Dict[str, Any]) -> bool:
-        self.credentials = credentials or {}
+    @property
+    def node_types(self) -> List[str]:
+        return ["pinecone"]
+
+    async def connect(self, config: Dict[str, Any]) -> bool:
+        self.credentials = config or {}
         return True
 
     async def disconnect(self) -> None:
@@ -53,7 +55,7 @@ class PineconeConnector(ConnectorSDK, ConnectorOperations):
         api_key = self.credentials.get("api_key") or ""
         if not api_key:
             return ConnectorHealthCheck(
-                status=ConnectorStatus.UNHEALTHY,
+                healthy=False,
                 message="Missing Pinecone API Key",
             )
         headers = self._get_headers(self.credentials)
@@ -61,16 +63,26 @@ class PineconeConnector(ConnectorSDK, ConnectorOperations):
             async with httpx.AsyncClient(timeout=10.0) as client:
                 res = await client.get("https://api.pinecone.io/indexes", headers=headers)
                 if res.status_code == 200:
-                    return ConnectorHealthCheck(status=ConnectorStatus.HEALTHY, message="Pinecone connection active")
-                return ConnectorHealthCheck(status=ConnectorStatus.UNHEALTHY, message=f"HTTP {res.status_code}")
+                    return ConnectorHealthCheck(healthy=True, message="Pinecone connection active")
+                return ConnectorHealthCheck(healthy=False, message=f"HTTP {res.status_code}")
         except Exception as e:
-            return ConnectorHealthCheck(status=ConnectorStatus.UNHEALTHY, message=str(e))
+            return ConnectorHealthCheck(healthy=False, message=str(e))
 
-    async def op_execute(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        creds = self.credentials or {}
+    async def op_execute(
+        self,
+        operation: str,
+        payload: Dict[str, Any],
+        context: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        creds = (context or {}).get("credentials", {}).get("pinecone") or self.credentials or {}
+        params = payload or {}
         api_key = creds.get("api_key") or ""
         if not api_key:
-            raise make_connector_error("Pinecone API Key is required.", code=ConnectorErrorCode.CONFIG_MISSING)
+            raise make_connector_error(
+                ConnectorErrorCode.NOT_CONFIGURED,
+                "Pinecone API Key is required.",
+                retryable=False,
+            )
 
         headers = self._get_headers(creds)
         host = (params.get("host") or creds.get("host") or "").rstrip("/")
@@ -84,7 +96,11 @@ class PineconeConnector(ConnectorSDK, ConnectorOperations):
                     return res.json()
 
                 if not host:
-                    raise make_connector_error("Pinecone Index host URL is required for vector operations.", code=ConnectorErrorCode.CONFIG_MISSING)
+                    raise make_connector_error(
+                        ConnectorErrorCode.NOT_CONFIGURED,
+                        "Pinecone Index host URL is required for vector operations.",
+                        retryable=False,
+                    )
 
                 if not host.startswith("http"):
                     host = f"https://{host}"
@@ -148,8 +164,36 @@ class PineconeConnector(ConnectorSDK, ConnectorOperations):
                     return check.model_dump()
 
                 else:
-                    raise make_connector_error(f"Unsupported Pinecone operation: {operation}", code=ConnectorErrorCode.VALIDATION_FAILED)
+                    raise make_connector_error(
+                        ConnectorErrorCode.VALIDATION_FAILED,
+                        f"Unsupported Pinecone operation: {operation}",
+                        retryable=False,
+                    )
+            except ConnectorError:
+                raise
             except httpx.HTTPStatusError as e:
-                raise make_connector_error(f"Pinecone API error: {e.response.text}", code=ConnectorErrorCode.REMOTE_ERROR)
+                status_code = e.response.status_code
+                code = (
+                    ConnectorErrorCode.AUTH_FAILED
+                    if status_code == 401
+                    else ConnectorErrorCode.FORBIDDEN
+                    if status_code == 403
+                    else ConnectorErrorCode.NOT_FOUND
+                    if status_code == 404
+                    else ConnectorErrorCode.RATE_LIMITED
+                    if status_code == 429
+                    else ConnectorErrorCode.UNAVAILABLE
+                    if status_code >= 500
+                    else ConnectorErrorCode.BAD_REQUEST
+                )
+                raise make_connector_error(
+                    code,
+                    f"Pinecone API error: {e.response.text}",
+                    retryable=status_code >= 500 or status_code == 429,
+                ) from e
             except Exception as e:
-                raise make_connector_error(str(e), code=ConnectorErrorCode.EXECUTION_FAILED)
+                raise make_connector_error(
+                    ConnectorErrorCode.BAD_REQUEST,
+                    str(e),
+                    retryable=False,
+                ) from e

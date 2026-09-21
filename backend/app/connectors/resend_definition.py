@@ -22,7 +22,6 @@ def build_resend_definition() -> ConnectorDefinitionV1:
         category=ConnectorCategory.API.value,
         connector_version=RESEND_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
-        supported_node_types=["resend"],
         credential_types={
             "resend": CredentialTypeV1(
                 type_key="resend",

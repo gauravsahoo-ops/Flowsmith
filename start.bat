@@ -132,6 +132,8 @@ if errorlevel 1 (
     set "DOCKER_DESKTOP="
     if exist "C:\Program Files\Docker\Docker\Docker Desktop.exe" (
         set "DOCKER_DESKTOP=C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    ) else if exist "%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe" (
+        set "DOCKER_DESKTOP=%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe"
     ) else if exist "%LOCALAPPDATA%\Programs\Docker\Docker\Docker Desktop.exe" (
         set "DOCKER_DESKTOP=%LOCALAPPDATA%\Programs\Docker\Docker\Docker Desktop.exe"
     )
