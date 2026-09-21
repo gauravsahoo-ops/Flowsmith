@@ -43,6 +43,9 @@ def is_credential_expiring(cred_data: dict[str, Any], window_seconds: float = 18
 
 def can_auto_reconnect(cred_type: str, cred_data: dict[str, Any]) -> bool:
     """Check whether a credential has the necessary parameters to reconnect in the background."""
+    if cred_data.get("refresh_token_expired"):
+        return False
+
     canon = canonical_provider(cred_type)
     if canon == "salesforce":
         has_refresh = bool(cred_data.get("refresh_token"))
@@ -173,6 +176,14 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
             "type": rec.type,
         }
     except Exception as exc:
+        err_str = str(exc).lower()
+        if "invalid_grant" in err_str or "expired access/refresh token" in err_str:
+            try:
+                data["refresh_token_expired"] = True
+                rec.data = encrypt_text(json.dumps(data))
+                db.commit()
+            except Exception:
+                db.rollback()
         logger.warning("Background auto-reconnect failed for %s (%s): %s", rec.id, rec.type, exc)
         return {
             "ok": False,
@@ -310,9 +321,13 @@ async def auto_refresh_all_expiring_credentials(
                 stats["skipped_not_eligible"] += 1
                 continue
 
+            fresh: dict[str, Any] | None = None
             try:
                 logger.info("Proactively renewing credential %s (%s) expiring soon", rec.id, rec.type)
-                fresh = json.loads(decrypt_text(rec.data))
+                loaded = json.loads(decrypt_text(rec.data))
+                if not isinstance(loaded, dict):
+                    continue
+                fresh = loaded
                 updated = await reconnect_credential_data(rec.type, fresh, credential_id=rec.id)
                 clean_to_save = {k: v for k, v in updated.items() if not k.startswith("_")}
                 rec.data = encrypt_text(json.dumps(clean_to_save))
@@ -327,7 +342,21 @@ async def auto_refresh_all_expiring_credentials(
                     affected_user_ids.add(rec.user_id)
                 except Exception:
                     pass
-                logger.warning("Auto-refresh failed for %s (%s): %s", rec.id, rec.type, exc)
+                err_str = str(exc).lower()
+                if ("invalid_grant" in err_str or "expired access/refresh token" in err_str) and fresh is not None:
+                    try:
+                        fresh["refresh_token_expired"] = True
+                        rec.data = encrypt_text(json.dumps(fresh))
+                        db.commit()
+                        logger.warning(
+                            "Auto-refresh for %s (%s) failed due to expired/revoked refresh token. Marked as requiring interactive re-login: %s",
+                            rec.id, rec.type, exc
+                        )
+                    except Exception:
+                        db.rollback()
+                        logger.warning("Auto-refresh failed for %s (%s): %s", rec.id, rec.type, exc)
+                else:
+                    logger.warning("Auto-refresh failed for %s (%s): %s", rec.id, rec.type, exc)
             finally:
                 # Expire the row so decrypted state is not retained in the
                 # identity map (refresh() still works for callers).
