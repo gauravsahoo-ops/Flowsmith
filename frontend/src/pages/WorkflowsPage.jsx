@@ -444,27 +444,31 @@ export default function WorkflowsPage() {
           <EmptyState icon="🔍" title="No matches" description={`No workflows match “${search}” or the current filter.`} action={<button className="ghost" onClick={() => { setSearch(''); setFilterActive('all') }}>Clear filters</button>} />
         )
       ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead><tr><th>Workflow</th><th>Status</th><th>Updated</th><th>Created</th><th>Actions</th></tr></thead>
-            <tbody>
-              {filtered.map(w => (
-                <WorkflowRow
-                  key={w.id}
-                  wf={w}
-                  isPinned={isWfPinned(w)}
-                  onTogglePin={handleTogglePin}
-                  onOpen={(id) => navigate(`/workflows/${id}`)}
-                  onDuplicate={handleDuplicate}
-                  onDelete={(wf) => setDeleteTarget(wf)}
-                  onToggleActive={handleToggleActive}
-                  onExport={handleExport}
-                />
-              ))}
-            </tbody>
-          </table>
-          <div className="hint" style={{ marginTop: 8 }}>{filtered.length} workflow{filtered.length !== 1 ? 's' : ''} · {workflows.length} total</div>
-        </div>
+        <>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead><tr><th>Workflow</th><th>Status</th><th>Updated</th><th>Created</th><th>Actions</th></tr></thead>
+              <tbody>
+                {filtered.map(w => (
+                  <WorkflowRow
+                    key={w.id}
+                    wf={w}
+                    isPinned={isWfPinned(w)}
+                    onTogglePin={handleTogglePin}
+                    onOpen={(id) => navigate(`/workflows/${id}`)}
+                    onDuplicate={handleDuplicate}
+                    onDelete={(wf) => setDeleteTarget(wf)}
+                    onToggleActive={handleToggleActive}
+                    onExport={handleExport}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="hint" style={{ marginTop: 12, padding: '0 4px', fontSize: 13, color: 'var(--muted)' }}>
+            {filtered.length} workflow{filtered.length !== 1 ? 's' : ''} · {workflows.length} total
+          </div>
+        </>
       )}
 
       <ConfirmDialog
