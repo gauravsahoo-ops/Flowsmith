@@ -285,13 +285,15 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)) -
 @router.post("/logout")
 def logout(
     authorization: str | None = Header(default=None),
+    x_authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> dict:
     """Revoke the current token (S2: token revocation)."""
-    if not authorization or not authorization.startswith("Bearer "):
+    header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
+    if not header_val or not header_val.startswith("Bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token.")
     try:
-        payload = decode_token(authorization.removeprefix("Bearer ").strip())
+        payload = decode_token(header_val.removeprefix("Bearer ").strip())
         jti = payload.get("jti")
         if jti:
             exp_ts = payload.get("exp")
@@ -305,13 +307,15 @@ def logout(
 
 def get_current_user(
     authorization: str | None = Header(default=None),
+    x_authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> User:
     """FastAPI dependency: require a valid Bearer JWT and return the user."""
-    if not authorization or not authorization.startswith("Bearer "):
+    header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
+    if not header_val or not header_val.startswith("Bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token.")
     try:
-        payload = decode_token(authorization.removeprefix("Bearer ").strip())
+        payload = decode_token(header_val.removeprefix("Bearer ").strip())
         user_id = int(payload["sub"])
     except (pyjwt.InvalidTokenError, KeyError, ValueError):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token.")

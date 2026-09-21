@@ -108,3 +108,13 @@ def test_wrong_password_still_rejected_after_normalization(client):
     client.post("/api/auth/register", json={"email": "norm@x.com", "password": "Right1!"})
     bad = client.post("/api/auth/login", json={"email": " norm@x.com", "password": " Wrong1!"})
     assert bad.status_code == 401
+
+
+def test_x_authorization_header_accepted_with_proxy_basic_auth(client):
+    reg = client.post("/api/auth/register", json={"email": "proxy@example.com", "password": "ProxyPassword1!"})
+    token = reg.json()["data"]["token"]
+    # When an upstream proxy sends Basic Auth in Authorization, X-Authorization carries Bearer
+    resp = client.get("/api/auth/me", headers={"Authorization": "Basic dXNlcjpwYXNz", "X-Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    assert resp.json()["data"]["email"] == "proxy@example.com"
+

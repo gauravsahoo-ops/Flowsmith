@@ -22,7 +22,6 @@ def build_supabase_definition() -> ConnectorDefinitionV1:
         category=ConnectorCategory.API.value,
         connector_version=SUPABASE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
-        supported_node_types=["supabase"],
         credential_types={
             "supabase": CredentialTypeV1(
                 type_key="supabase",

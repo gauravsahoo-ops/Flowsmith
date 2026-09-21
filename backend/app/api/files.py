@@ -124,12 +124,14 @@ def get_file_meta(
 
 def _get_user_from_header_or_query(
     authorization: str | None = Header(default=None),
+    x_authorization: str | None = Header(default=None),
     token: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> User:
     raw_token = None
-    if authorization and authorization.startswith("Bearer "):
-        raw_token = authorization.removeprefix("Bearer ").strip()
+    header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
+    if header_val and header_val.startswith("Bearer "):
+        raw_token = header_val.removeprefix("Bearer ").strip()
     elif token:
         raw_token = token.strip()
 

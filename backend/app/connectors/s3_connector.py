@@ -11,7 +11,6 @@ from app.connectors import (
     ConnectorSDK,
     ConnectorCategory,
     ConnectorHealthCheck,
-    ConnectorStatus,
     ConnectorError,
     ConnectorErrorCode,
     make_connector_error,
@@ -29,14 +28,17 @@ class S3Connector(ConnectorSDK, ConnectorOperations):
     description = "Upload, download, list, and delete files in AWS S3, Cloudflare R2, MinIO, or Wasabi."
     category = ConnectorCategory.API
     version = "1.0.0"
-    node_types = ["s3", "aws_s3"]
 
     def __init__(self) -> None:
         super().__init__(self.connector_id, self.display_name, self.description)
         self.credentials: Dict[str, Any] = {}
 
-    async def connect(self, credentials: Dict[str, Any]) -> bool:
-        self.credentials = credentials or {}
+    @property
+    def node_types(self) -> List[str]:
+        return ["s3", "aws_s3"]
+
+    async def connect(self, config: Dict[str, Any]) -> bool:
+        self.credentials = config or {}
         return True
 
     async def disconnect(self) -> None:
@@ -48,16 +50,26 @@ class S3Connector(ConnectorSDK, ConnectorOperations):
         bucket = creds.get("bucket_name") or creds.get("bucket") or ""
         if not key or not bucket:
             return ConnectorHealthCheck(
-                status=ConnectorStatus.UNHEALTHY,
+                healthy=False,
                 message="Missing AWS Access Key ID or default Bucket Name",
             )
-        return ConnectorHealthCheck(status=ConnectorStatus.HEALTHY, message="S3 credentials configured")
+        return ConnectorHealthCheck(healthy=True, message="S3 credentials configured")
 
-    async def op_execute(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        creds = self.credentials or {}
+    async def op_execute(
+        self,
+        operation: str,
+        payload: Dict[str, Any],
+        context: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        creds = (context or {}).get("credentials", {}).get("aws_s3") or self.credentials or {}
+        params = payload or {}
         bucket = params.get("bucket") or creds.get("bucket_name") or creds.get("bucket") or ""
         if not bucket:
-            raise make_connector_error("Bucket name is required.", code=ConnectorErrorCode.CONFIG_MISSING)
+            raise make_connector_error(
+                ConnectorErrorCode.NOT_CONFIGURED,
+                "Bucket name is required.",
+                retryable=False,
+            )
 
         key = params.get("key", "").strip()
 
@@ -102,4 +114,8 @@ class S3Connector(ConnectorSDK, ConnectorOperations):
             }
 
         else:
-            raise make_connector_error(f"Unsupported S3 operation: {operation}", code=ConnectorErrorCode.VALIDATION_FAILED)
+            raise make_connector_error(
+                ConnectorErrorCode.VALIDATION_FAILED,
+                f"Unsupported S3 operation: {operation}",
+                retryable=False,
+            )

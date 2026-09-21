@@ -10,7 +10,6 @@ from app.connectors import (
     ConnectorSDK,
     ConnectorCategory,
     ConnectorHealthCheck,
-    ConnectorStatus,
     ConnectorError,
     ConnectorErrorCode,
     make_connector_error,
@@ -28,14 +27,17 @@ class SentryConnector(ConnectorSDK, ConnectorOperations):
     description = "List, inspect, and manage errors and unresolved issues in Sentry."
     category = ConnectorCategory.API
     version = "1.0.0"
-    node_types = ["sentry"]
 
     def __init__(self) -> None:
         super().__init__(self.connector_id, self.display_name, self.description)
         self.credentials: Dict[str, Any] = {}
 
-    async def connect(self, credentials: Dict[str, Any]) -> bool:
-        self.credentials = credentials or {}
+    @property
+    def node_types(self) -> List[str]:
+        return ["sentry"]
+
+    async def connect(self, config: Dict[str, Any]) -> bool:
+        self.credentials = config or {}
         return True
 
     async def disconnect(self) -> None:
@@ -52,7 +54,7 @@ class SentryConnector(ConnectorSDK, ConnectorOperations):
         token = self.credentials.get("auth_token") or self.credentials.get("api_key") or ""
         if not token:
             return ConnectorHealthCheck(
-                status=ConnectorStatus.UNHEALTHY,
+                healthy=False,
                 message="Missing Sentry Auth Token",
             )
         headers = self._get_headers(self.credentials)
@@ -60,16 +62,26 @@ class SentryConnector(ConnectorSDK, ConnectorOperations):
             async with httpx.AsyncClient(timeout=10.0) as client:
                 res = await client.get("https://sentry.io/api/0/api-tokens/", headers=headers)
                 if res.status_code in (200, 403):
-                    return ConnectorHealthCheck(status=ConnectorStatus.HEALTHY, message="Sentry connection active")
-                return ConnectorHealthCheck(status=ConnectorStatus.UNHEALTHY, message=f"HTTP {res.status_code}")
+                    return ConnectorHealthCheck(healthy=True, message="Sentry connection active")
+                return ConnectorHealthCheck(healthy=False, message=f"HTTP {res.status_code}")
         except Exception as e:
-            return ConnectorHealthCheck(status=ConnectorStatus.UNHEALTHY, message=str(e))
+            return ConnectorHealthCheck(healthy=False, message=str(e))
 
-    async def op_execute(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        creds = self.credentials or {}
+    async def op_execute(
+        self,
+        operation: str,
+        payload: Dict[str, Any],
+        context: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        creds = (context or {}).get("credentials", {}).get("sentry") or self.credentials or {}
+        params = payload or {}
         token = creds.get("auth_token") or creds.get("api_key") or ""
         if not token:
-            raise make_connector_error("Sentry Auth Token is required.", code=ConnectorErrorCode.CONFIG_MISSING)
+            raise make_connector_error(
+                ConnectorErrorCode.NOT_CONFIGURED,
+                "Sentry Auth Token is required.",
+                retryable=False,
+            )
 
         org_slug = params.get("organization_slug") or creds.get("organization_slug") or ""
         headers = self._get_headers(creds)
@@ -104,8 +116,36 @@ class SentryConnector(ConnectorSDK, ConnectorOperations):
                     return check.model_dump()
 
                 else:
-                    raise make_connector_error(f"Unsupported Sentry operation: {operation}", code=ConnectorErrorCode.VALIDATION_FAILED)
+                    raise make_connector_error(
+                        ConnectorErrorCode.VALIDATION_FAILED,
+                        f"Unsupported Sentry operation: {operation}",
+                        retryable=False,
+                    )
+            except ConnectorError:
+                raise
             except httpx.HTTPStatusError as e:
-                raise make_connector_error(f"Sentry API error: {e.response.text}", code=ConnectorErrorCode.REMOTE_ERROR)
+                status_code = e.response.status_code
+                code = (
+                    ConnectorErrorCode.AUTH_FAILED
+                    if status_code == 401
+                    else ConnectorErrorCode.FORBIDDEN
+                    if status_code == 403
+                    else ConnectorErrorCode.NOT_FOUND
+                    if status_code == 404
+                    else ConnectorErrorCode.RATE_LIMITED
+                    if status_code == 429
+                    else ConnectorErrorCode.UNAVAILABLE
+                    if status_code >= 500
+                    else ConnectorErrorCode.BAD_REQUEST
+                )
+                raise make_connector_error(
+                    code,
+                    f"Sentry API error: {e.response.text}",
+                    retryable=status_code >= 500 or status_code == 429,
+                ) from e
             except Exception as e:
-                raise make_connector_error(str(e), code=ConnectorErrorCode.EXECUTION_FAILED)
+                raise make_connector_error(
+                    ConnectorErrorCode.BAD_REQUEST,
+                    str(e),
+                    retryable=False,
+                ) from e

@@ -22,7 +22,6 @@ def build_pinecone_definition() -> ConnectorDefinitionV1:
         category=ConnectorCategory.API.value,
         connector_version=PINECONE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
-        supported_node_types=["pinecone"],
         credential_types={
             "pinecone": CredentialTypeV1(
                 type_key="pinecone",

@@ -10,7 +10,6 @@ from app.connectors import (
     ConnectorSDK,
     ConnectorCategory,
     ConnectorHealthCheck,
-    ConnectorStatus,
     ConnectorError,
     ConnectorErrorCode,
     make_connector_error,
@@ -28,14 +27,17 @@ class ResendConnector(ConnectorSDK, ConnectorOperations):
     description = "Send transactional emails, batch campaigns, and manage email domains via Resend."
     category = ConnectorCategory.API
     version = "1.0.0"
-    node_types = ["resend"]
 
     def __init__(self) -> None:
         super().__init__(self.connector_id, self.display_name, self.description)
         self.credentials: Dict[str, Any] = {}
 
-    async def connect(self, credentials: Dict[str, Any]) -> bool:
-        self.credentials = credentials or {}
+    @property
+    def node_types(self) -> List[str]:
+        return ["resend"]
+
+    async def connect(self, config: Dict[str, Any]) -> bool:
+        self.credentials = config or {}
         return True
 
     async def disconnect(self) -> None:
@@ -52,26 +54,36 @@ class ResendConnector(ConnectorSDK, ConnectorOperations):
         api_key = self.credentials.get("api_key") or ""
         if not api_key:
             return ConnectorHealthCheck(
-                status=ConnectorStatus.UNHEALTHY,
+                healthy=False,
                 message="Missing Resend API Key",
             )
         headers = self._get_headers(self.credentials)
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 res = await client.get("https://api.resend.com/api_keys", headers=headers)
-                if res.status_code in (200, 401):
-                    status = ConnectorStatus.HEALTHY if res.status_code == 200 else ConnectorStatus.UNHEALTHY
-                    msg = "Resend API connection active" if status == ConnectorStatus.HEALTHY else "Invalid API key"
-                    return ConnectorHealthCheck(status=status, message=msg)
-                return ConnectorHealthCheck(status=ConnectorStatus.UNHEALTHY, message=f"HTTP {res.status_code}")
+                if res.status_code == 200:
+                    return ConnectorHealthCheck(healthy=True, message="Resend API connection active")
+                if res.status_code == 401:
+                    return ConnectorHealthCheck(healthy=False, message="Invalid API key")
+                return ConnectorHealthCheck(healthy=False, message=f"HTTP {res.status_code}")
         except Exception as e:
-            return ConnectorHealthCheck(status=ConnectorStatus.UNHEALTHY, message=str(e))
+            return ConnectorHealthCheck(healthy=False, message=str(e))
 
-    async def op_execute(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        creds = self.credentials or {}
+    async def op_execute(
+        self,
+        operation: str,
+        payload: Dict[str, Any],
+        context: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        creds = (context or {}).get("credentials", {}).get("resend") or self.credentials or {}
+        params = payload or {}
         api_key = creds.get("api_key") or ""
         if not api_key:
-            raise make_connector_error("Resend API Key is required.", code=ConnectorErrorCode.CONFIG_MISSING)
+            raise make_connector_error(
+                ConnectorErrorCode.NOT_CONFIGURED,
+                "Resend API Key is required.",
+                retryable=False,
+            )
 
         headers = self._get_headers(creds)
         base_url = "https://api.resend.com"
@@ -80,23 +92,23 @@ class ResendConnector(ConnectorSDK, ConnectorOperations):
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
                 if operation == "send_email":
-                    payload = {
+                    email_payload = {
                         "from": params.get("from", ""),
                         "to": params.get("to") if isinstance(params.get("to"), list) else [params.get("to", "")],
                         "subject": params.get("subject", ""),
                     }
                     if params.get("html"):
-                        payload["html"] = params["html"]
+                        email_payload["html"] = params["html"]
                     if params.get("text"):
-                        payload["text"] = params["text"]
+                        email_payload["text"] = params["text"]
                     if params.get("cc"):
-                        payload["cc"] = params["cc"] if isinstance(params["cc"], list) else [params["cc"]]
+                        email_payload["cc"] = params["cc"] if isinstance(params["cc"], list) else [params["cc"]]
                     if params.get("bcc"):
-                        payload["bcc"] = params["bcc"] if isinstance(params["bcc"], list) else [params["bcc"]]
+                        email_payload["bcc"] = params["bcc"] if isinstance(params["bcc"], list) else [params["bcc"]]
                     if params.get("reply_to"):
-                        payload["reply_to"] = params["reply_to"]
+                        email_payload["reply_to"] = params["reply_to"]
 
-                    res = await client.post(f"{base_url}/emails", headers=headers, json=payload)
+                    res = await client.post(f"{base_url}/emails", headers=headers, json=email_payload)
                     res.raise_for_status()
                     return res.json()
 
@@ -122,8 +134,36 @@ class ResendConnector(ConnectorSDK, ConnectorOperations):
                     return check.model_dump()
 
                 else:
-                    raise make_connector_error(f"Unsupported Resend operation: {operation}", code=ConnectorErrorCode.VALIDATION_FAILED)
+                    raise make_connector_error(
+                        ConnectorErrorCode.VALIDATION_FAILED,
+                        f"Unsupported Resend operation: {operation}",
+                        retryable=False,
+                    )
+            except ConnectorError:
+                raise
             except httpx.HTTPStatusError as e:
-                raise make_connector_error(f"Resend API error: {e.response.text}", code=ConnectorErrorCode.REMOTE_ERROR)
+                status_code = e.response.status_code
+                code = (
+                    ConnectorErrorCode.AUTH_FAILED
+                    if status_code == 401
+                    else ConnectorErrorCode.FORBIDDEN
+                    if status_code == 403
+                    else ConnectorErrorCode.NOT_FOUND
+                    if status_code == 404
+                    else ConnectorErrorCode.RATE_LIMITED
+                    if status_code == 429
+                    else ConnectorErrorCode.UNAVAILABLE
+                    if status_code >= 500
+                    else ConnectorErrorCode.BAD_REQUEST
+                )
+                raise make_connector_error(
+                    code,
+                    f"Resend API error: {e.response.text}",
+                    retryable=status_code >= 500 or status_code == 429,
+                ) from e
             except Exception as e:
-                raise make_connector_error(str(e), code=ConnectorErrorCode.EXECUTION_FAILED)
+                raise make_connector_error(
+                    ConnectorErrorCode.BAD_REQUEST,
+                    str(e),
+                    retryable=False,
+                ) from e

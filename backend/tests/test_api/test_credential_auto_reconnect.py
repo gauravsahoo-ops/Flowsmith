@@ -37,6 +37,7 @@ def test_can_auto_reconnect():
     assert can_auto_reconnect("salesforce", {"username": "user@org.com", "password": "pwd"}) is True
     # Salesforce with refresh token
     assert can_auto_reconnect("salesforce", {"refresh_token": "sf_refresh_123"}) is True
+    assert can_auto_reconnect("salesforce", {"refresh_token": "sf_refresh_123", "refresh_token_expired": True}) is False
     # Salesforce without auth credentials
     assert can_auto_reconnect("salesforce", {"instance_url": "https://foo.salesforce.com"}) is False
 
