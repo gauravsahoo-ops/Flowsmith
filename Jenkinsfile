@@ -67,6 +67,7 @@ pipeline {
                         --exclude='.env' \
                         --exclude='.claude' \
                         --exclude='.vscode' \
+                        --exclude='docker-compose.yml' \
                         --exclude='deployment_requirements.md' \
                         --exclude='Jenkinsfile' \
                         -e "ssh -o StrictHostKeyChecking=no" \
@@ -78,6 +79,16 @@ pipeline {
                     sh """
                     ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
                         cd ${BASE_PATH}
+
+                        # Remove the currentl compose file if exists
+                        if [ -f "docker-compose.yml" ]; then
+                            rm -rf docker-compose.yml
+                        fi
+
+                        # Rename the compose file if it exists 
+                        if [ -f "docker-compose.staging.yml" ]; then
+                            mv docker-compose.staging.yml docker-compose.yml
+                        fi
                         
                         # Build and launch new containers
                         docker compose up -d --build --force-recreate app worker
