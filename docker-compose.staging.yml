@@ -1,0 +1,233 @@
+services:
+  postgres:
+    # pgvector-enabled PostgreSQL (16). Same official-image entrypoint;
+    # the named volume below carries existing data across the swap.
+    image: pgvector/pgvector:pg16
+    container_name: mat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: automate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-automate}
+      POSTGRES_DB: automate
+    volumes:
+      - mat-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U automate -d automate" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  redis:
+    image: redis:7-alpine
+    container_name: mat-redis
+    restart: unless-stopped
+    # Require a password when REDIS_PASSWORD is set (production).
+    command: [ "sh", "-c", "if [ -n \"$REDIS_PASSWORD\" ]; then exec redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 256mb --maxmemory-policy allkeys-lru; else exec redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru; fi" ]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - mat-redis-data:/data
+    healthcheck:
+      test: [ "CMD-SHELL", "if [ -n \"$REDIS_PASSWORD\" ]; then redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG; else redis-cli ping | grep -q PONG; fi" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  app:
+    build: .
+    container_name: mat-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:-automate}@postgres:5432/automate}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      QUEUE_BACKEND: redis
+      QUEUE_EMBEDDED_CONSUMER: "false"
+      JWT_SECRET: ${JWT_SECRET:-}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
+      PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
+      APP_ENV: ${APP_ENV:-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://flowsmith.dev.idslogic.net,http://localhost:8000,http://localhost:5173}
+      OBJECT_STORE_BACKEND: ${OBJECT_STORE_BACKEND:-local}
+      OBJECT_STORE_LOCAL_PATH: ${OBJECT_STORE_LOCAL_PATH:-/app/backend/data/objects}
+      OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-}
+      OBJECT_STORE_ENDPOINT: ${OBJECT_STORE_ENDPOINT:-}
+      OBJECT_STORE_REGION: ${OBJECT_STORE_REGION:-us-east-1}
+      OBJECT_STORE_ACCESS_KEY: ${OBJECT_STORE_ACCESS_KEY:-}
+      OBJECT_STORE_SECRET_KEY: ${OBJECT_STORE_SECRET_KEY:-}
+      SALESFORCE_CLIENT_ID: ${SALESFORCE_CLIENT_ID:-3MVG97L7PWbPq6UzeixCsscpT5gtAB.fUQbF.I8eQfR_bFSR00nPPioDD8SP6lzDkwL7ejLvrgfLSBgM4ZkUs}
+      SALESFORCE_CLIENT_SECRET: ${SALESFORCE_CLIENT_SECRET:-67AA7F50BE823ACC3F0DF49709C5B07F4A29579555358C8F6C0BE31989086E03}
+      SALESFORCE_REDIRECT_URI: ${SALESFORCE_REDIRECT_URI:-https://flowsmith.dev.idslogic.net/api/auth/salesforce/callback}
+      SALESFORCE_LOGIN_URL: ${SALESFORCE_LOGIN_URL:-https://orgfarm-a3163db0ee-dev-ed.develop.my.salesforce.com}
+      SALESFORCE_API_VERSION: ${SALESFORCE_API_VERSION:-v60.0}
+      SALESFORCE_SCOPES: ${SALESFORCE_SCOPES:-refresh_token full}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - mat-app-data:/app/backend/data
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request, json; data=json.loads(urllib.request.urlopen('http://127.0.0.1:8000/api/readyz', timeout=2).read()); assert data['data']['status']=='ready'\"" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "10"
+    stop_grace_period: 30s
+
+  worker:
+    build: .
+    container_name: mat-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:-automate}@postgres:5432/automate}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      QUEUE_BACKEND: redis
+      QUEUE_EMBEDDED_CONSUMER: "false"
+      JWT_SECRET: ${JWT_SECRET:-}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
+      PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
+      APP_ENV: ${APP_ENV:-production}
+      OBJECT_STORE_BACKEND: ${OBJECT_STORE_BACKEND:-local}
+      OBJECT_STORE_LOCAL_PATH: ${OBJECT_STORE_LOCAL_PATH:-/app/backend/data/objects}
+      OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-}
+      OBJECT_STORE_ENDPOINT: ${OBJECT_STORE_ENDPOINT:-}
+      OBJECT_STORE_REGION: ${OBJECT_STORE_REGION:-us-east-1}
+      OBJECT_STORE_ACCESS_KEY: ${OBJECT_STORE_ACCESS_KEY:-}
+      OBJECT_STORE_SECRET_KEY: ${OBJECT_STORE_SECRET_KEY:-}
+      SALESFORCE_CLIENT_ID: ${SALESFORCE_CLIENT_ID:-3MVG97L7PWbPq6UzeixCsscpT5gtAB.fUQbF.I8eQfR_bFSR00nPPioDD8SP6lzDkwL7ejLvrgfLSBgM4ZkUs}
+      SALESFORCE_CLIENT_SECRET: ${SALESFORCE_CLIENT_SECRET:-67AA7F50BE823ACC3F0DF49709C5B07F4A29579555358C8F6C0BE31989086E03}
+      SALESFORCE_REDIRECT_URI: ${SALESFORCE_REDIRECT_URI:-https://flowsmith.dev.idslogic.net/api/auth/salesforce/callback}
+      SALESFORCE_LOGIN_URL: ${SALESFORCE_LOGIN_URL:-https://orgfarm-a3163db0ee-dev-ed.develop.my.salesforce.com}
+      SALESFORCE_API_VERSION: ${SALESFORCE_API_VERSION:-v60.0}
+      SALESFORCE_SCOPES: ${SALESFORCE_SCOPES:-refresh_token full}
+    command: [ "python", "-m", "app.queue.worker" ]
+    volumes:
+      - mat-app-data:/app/backend/data
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import os; exit(0 if os.path.exists('/app/backend/tmp/worker_alive') else 1)\"" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    stop_grace_period: 30s
+
+  # Optional S3-compatible object storage for local development.
+  # Enable with:  docker compose --profile s3 up -d
+  minio:
+    image: minio/minio:latest
+    container_name: mat-minio
+    profiles: [ "s3" ]
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY:-minioadmin}
+    volumes:
+      - mat-minio-data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend
+
+  # ── Monitoring (enable with: docker compose --profile monitoring up -d) ──
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mat-prometheus
+    profiles: [ "monitoring" ]
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=2GB"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - mat-prometheus-data:/prometheus
+    networks:
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mat-grafana
+    profiles: [ "monitoring" ]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/flowsmith.json
+    volumes:
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - mat-grafana-data:/var/lib/grafana
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mat-postgres-data:
+  mat-redis-data:
+  mat-app-data:
+  mat-minio-data:
+  mat-prometheus-data:
+  mat-grafana-data:
