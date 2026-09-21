@@ -212,7 +212,7 @@ function stepByName(steps, nodeType) {
   return step;
 }
 
-async function checkHistoryUi(page, workflowName) {
+async function checkHistoryUi(page, workflowName, _expectedSteps?: number) {
   // The topbar 🕘 button navigates to the /executions page (a full page
   // route, not a slide-in panel). Find the row for our workflow and verify
   // its status badge, then open the detail page.

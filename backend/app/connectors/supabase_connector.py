@@ -10,7 +10,6 @@ from app.connectors import (
     ConnectorSDK,
     ConnectorCategory,
     ConnectorHealthCheck,
-    ConnectorStatus,
     ConnectorError,
     ConnectorErrorCode,
     make_connector_error,
@@ -28,14 +27,17 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
     description = "Query tables, insert/update/delete records, and call RPC functions in Supabase."
     category = ConnectorCategory.API
     version = "1.0.0"
-    node_types = ["supabase"]
 
     def __init__(self) -> None:
         super().__init__(self.connector_id, self.display_name, self.description)
         self.credentials: Dict[str, Any] = {}
 
-    async def connect(self, credentials: Dict[str, Any]) -> bool:
-        self.credentials = credentials or {}
+    @property
+    def node_types(self) -> List[str]:
+        return ["supabase"]
+
+    async def connect(self, config: Dict[str, Any]) -> bool:
+        self.credentials = config or {}
         return True
 
     async def disconnect(self) -> None:
@@ -54,7 +56,7 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
         url = (self.credentials.get("url") or self.credentials.get("supabase_url") or "").rstrip("/")
         if not url:
             return ConnectorHealthCheck(
-                status=ConnectorStatus.UNHEALTHY,
+                healthy=False,
                 message="Missing Supabase project URL",
             )
         headers = self._get_headers(self.credentials)
@@ -62,20 +64,27 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
             async with httpx.AsyncClient(timeout=10.0) as client:
                 res = await client.get(f"{url}/rest/v1/", headers=headers)
                 if res.status_code in (200, 404):
-                    return ConnectorHealthCheck(status=ConnectorStatus.HEALTHY, message="Supabase API reachable")
-                return ConnectorHealthCheck(status=ConnectorStatus.UNHEALTHY, message=f"HTTP {res.status_code}")
+                    return ConnectorHealthCheck(healthy=True, message="Supabase API reachable")
+                return ConnectorHealthCheck(healthy=False, message=f"HTTP {res.status_code}")
         except Exception as e:
-            return ConnectorHealthCheck(status=ConnectorStatus.UNHEALTHY, message=str(e))
+            return ConnectorHealthCheck(healthy=False, message=str(e))
 
-    async def op_execute(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        creds = self.credentials or {}
+    async def op_execute(
+        self,
+        operation: str,
+        payload: Dict[str, Any],
+        context: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        creds = (context or {}).get("credentials", {}).get("supabase") or self.credentials or {}
         url = (creds.get("url") or creds.get("supabase_url") or "").rstrip("/")
         if not url:
             raise make_connector_error(
+                ConnectorErrorCode.NOT_CONFIGURED,
                 "Supabase URL is required.",
-                code=ConnectorErrorCode.CONFIG_MISSING,
+                retryable=False,
             )
         headers = self._get_headers(creds)
+        params = payload or {}
         table = params.get("table", "").strip()
         timeout = float(params.get("timeout_seconds", 30.0))
 
@@ -90,7 +99,7 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
                             query_params[k] = v
                     if params.get("limit"):
                         query_params["limit"] = str(params["limit"])
-                    
+
                     res = await client.get(f"{url}/rest/v1/{table}", headers=headers, params=query_params)
                     res.raise_for_status()
                     return {"data": res.json()}
@@ -131,16 +140,35 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
 
                 else:
                     raise make_connector_error(
+                        ConnectorErrorCode.VALIDATION_FAILED,
                         f"Unsupported Supabase operation: {operation}",
-                        code=ConnectorErrorCode.VALIDATION_FAILED,
+                        retryable=False,
                     )
+            except ConnectorError:
+                raise
             except httpx.HTTPStatusError as e:
-                raise make_connector_error(
-                    f"Supabase API error: {e.response.text}",
-                    code=ConnectorErrorCode.REMOTE_ERROR,
+                status_code = e.response.status_code
+                code = (
+                    ConnectorErrorCode.AUTH_FAILED
+                    if status_code == 401
+                    else ConnectorErrorCode.FORBIDDEN
+                    if status_code == 403
+                    else ConnectorErrorCode.NOT_FOUND
+                    if status_code == 404
+                    else ConnectorErrorCode.RATE_LIMITED
+                    if status_code == 429
+                    else ConnectorErrorCode.UNAVAILABLE
+                    if status_code >= 500
+                    else ConnectorErrorCode.BAD_REQUEST
                 )
+                raise make_connector_error(
+                    code,
+                    f"Supabase API error: {e.response.text}",
+                    retryable=status_code >= 500 or status_code == 429,
+                ) from e
             except Exception as e:
                 raise make_connector_error(
+                    ConnectorErrorCode.BAD_REQUEST,
                     str(e),
-                    code=ConnectorErrorCode.EXECUTION_FAILED,
-                )
+                    retryable=False,
+                ) from e

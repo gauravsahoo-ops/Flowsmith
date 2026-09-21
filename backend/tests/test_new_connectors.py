@@ -82,3 +82,27 @@ async def test_s3_connector_operations():
     # Delete
     res_del = await conn.op_execute("delete_object", {"key": "test.txt"})
     assert res_del["deleted"] is True
+
+
+@pytest.mark.asyncio
+async def test_supabase_connector_operations():
+    from app.connectors import ConnectorError, ConnectorErrorCode
+
+    conn = SupabaseConnector()
+    assert conn.node_types == ["supabase"]
+
+    # Health check without URL returns healthy=False
+    hc = await conn.op_health_check()
+    assert hc.healthy is False
+
+    # op_execute without URL raises ConnectorError with NOT_CONFIGURED
+    with pytest.raises(ConnectorError) as exc_info:
+        await conn.op_execute("select_rows", {})
+    assert exc_info.value.code == ConnectorErrorCode.NOT_CONFIGURED.value
+
+    # Connect with config
+    await conn.connect({"url": "https://example.supabase.co", "anon_key": "dummy"})
+    with pytest.raises(ConnectorError) as exc_info:
+        await conn.op_execute("unknown_operation", {})
+    assert exc_info.value.code == ConnectorErrorCode.VALIDATION_FAILED.value
+
