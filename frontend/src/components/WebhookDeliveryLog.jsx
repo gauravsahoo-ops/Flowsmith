@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api'
 import Status from './shared/Status'
-import Badge from './shared/Badge'
 import EmptyState from './shared/EmptyState'
 import LoadingSkeleton from './shared/LoadingSkeleton'
 
@@ -33,7 +32,7 @@ function DeliveryRow({ delivery, onSelect }) {
         {new Date(delivery.created_at).toLocaleString()}
       </td>
       <td>
-        <Badge variant={variant}>{delivery.attempt || 1}</Badge>
+        <span className={`badge badge-${variant}`}>{delivery.attempt || 1}</span>
       </td>
     </tr>
   )
