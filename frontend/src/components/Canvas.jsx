@@ -558,7 +558,7 @@ function CanvasInner() {
           </div>
         )}
         {showMiniMap && (
-          <div className="canvas-minimap-wrap" style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 10 }}>
+          <div className="canvas-minimap-wrap" style={{ position: 'absolute', bottom: 36, right: 16, zIndex: 10 }}>
             <MiniMap
               pannable
               zoomable
