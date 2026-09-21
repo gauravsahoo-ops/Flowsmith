@@ -11,7 +11,7 @@ export default function DataTableDiscovery({ node, onParamsChange }) {
   useEffect(() => {
     api.listWorkspaces().then(data => {
       setWorkspaces(data || [])
-      if (data?.length && !selectedWs) setSelectedWs(data[0].id)
+      if (data?.length) setSelectedWs(prev => prev || data[0].id)
     }).catch(() => {})
   }, [])
 
