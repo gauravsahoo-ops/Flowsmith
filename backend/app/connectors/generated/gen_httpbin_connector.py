@@ -17,7 +17,7 @@ from app.connectors import (
     make_connector_error,
 )
 
-from gen_httpbin_provider import GeneratedProvider
+from .gen_httpbin_provider import GeneratedProvider
 
 
 class GeneratedConnectorParams(BaseModel):

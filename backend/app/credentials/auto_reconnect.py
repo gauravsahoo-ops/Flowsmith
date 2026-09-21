@@ -82,7 +82,7 @@ async def reconnect_credential_data(
         fresh_copy: dict[str, Any] = dict(updated)
         fresh_copy.pop("access_token", None)
         fresh_copy.pop("expires_at", None)
-        token = await client.authenticate(fresh_copy)
+        token = await client.authenticate(fresh_copy, force=True)
         if not token:
             raise ValueError("Salesforce re-authentication did not return a valid token.")
         updated["access_token"] = token

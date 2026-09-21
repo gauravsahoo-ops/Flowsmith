@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState, isValidElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ReactFlowProvider } from '@xyflow/react'
 import TopBar from '../components/TopBar'
@@ -119,7 +119,7 @@ export default function WorkflowEditorPage() {
             }}
           >
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 12 }}>
-              {typeof activeError === 'object' && activeError !== null && !React.isValidElement(activeError)
+              {typeof activeError === 'object' && activeError !== null && !isValidElement(activeError)
                 ? (activeError.message || (activeError.code ? `${activeError.code}: ${JSON.stringify(activeError.details || activeError)}` : JSON.stringify(activeError)))
                 : String(activeError)}
             </span>

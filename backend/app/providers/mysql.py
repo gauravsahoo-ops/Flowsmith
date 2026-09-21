@@ -7,10 +7,6 @@ loop via asyncio.to_thread.
 
 from __future__ import annotations
 
-from app.providers.sql_provider import SQLProviderClient
+from app.providers.sql_provider import MySQLProviderClient
 
-
-class MySQLProviderClient(SQLProviderClient):
-    credential_type = "mysql"
-    product_name = "MySQL"
-    allowed_dsn_prefixes = ("mysql://", "mysql+pymysql://", "mariadb://", "mariadb+pymysql://")
+__all__ = ["MySQLProviderClient"]

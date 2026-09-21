@@ -546,9 +546,8 @@ def purge_stale_states(db: Session) -> None:
     db.commit()
 
 
-def replace_oauth_credential(db: Session, user: User, cred_type: str) -> None:
-    """Keep a single active OAuth connection per user+type: delete any
-    previous OAuth-created credential of this type (manual ones stay)."""
+def get_existing_oauth_credential(db: Session, user: User, cred_type: str) -> credential_service.Credential | None:
+    """Find an existing active OAuth connection for user+type to reuse its ID across reconnects."""
     previous = db.scalars(
         select(credential_service.Credential).where(
             credential_service.Credential.user_id == user.id,
@@ -556,6 +555,29 @@ def replace_oauth_credential(db: Session, user: User, cred_type: str) -> None:
         )
     ).all()
     for rec in previous:
+        try:
+            raw = rec.data
+            blob = decrypt_text(raw if isinstance(raw, bytes) else str(raw).encode())
+            if json.loads(blob).get("oauth"):
+                return rec
+        except Exception:
+            continue
+    return None
+
+
+def replace_oauth_credential(db: Session, user: User, cred_type: str, keep_id: str | None = None) -> None:
+    """Keep a single active OAuth connection per user+type: delete any
+    previous OAuth-created credential of this type (manual ones stay),
+    optionally preserving keep_id."""
+    previous = db.scalars(
+        select(credential_service.Credential).where(
+            credential_service.Credential.user_id == user.id,
+            credential_service.Credential.type == cred_type,
+        )
+    ).all()
+    for rec in previous:
+        if keep_id and rec.id == keep_id:
+            continue
         try:
             raw = rec.data
             blob = decrypt_text(raw if isinstance(raw, bytes) else str(raw).encode())

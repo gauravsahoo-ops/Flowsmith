@@ -1,9 +1,9 @@
-import React from 'react'
+import React, { isValidElement } from 'react'
 
 function toSafeText(val) {
   if (val == null) return null
   if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return val
-  if (React.isValidElement(val)) return val
+  if (isValidElement(val)) return val
   if (typeof val === 'object') {
     return val.message || val.error || (val.code ? `${val.code}: ${JSON.stringify(val.details || val)}` : JSON.stringify(val))
   }
@@ -13,7 +13,7 @@ function toSafeText(val) {
 function toSafeDetails(details, description) {
   const raw = details !== undefined
     ? details
-    : (typeof description === 'object' && description !== null && !React.isValidElement(description))
+    : (typeof description === 'object' && description !== null && !isValidElement(description))
       ? (description.details || (description.code && description.message ? { code: description.code, node_id: description.node_id, retryable: description.retryable, details: description.details } : null))
       : null
 

@@ -218,3 +218,15 @@ class SQLProviderClient:
                 engine.dispose()
 
         return await asyncio.to_thread(job)
+
+
+class PostgresProviderClient(SQLProviderClient):
+    credential_type = "postgres"
+    product_name = "PostgreSQL"
+    allowed_dsn_prefixes = ("postgresql://", "postgresql+psycopg2://", "postgresql+psycopg://", "postgres://")
+
+
+class MySQLProviderClient(SQLProviderClient):
+    credential_type = "mysql"
+    product_name = "MySQL"
+    allowed_dsn_prefixes = ("mysql://", "mysql+pymysql://", "mariadb://", "mariadb+pymysql://")

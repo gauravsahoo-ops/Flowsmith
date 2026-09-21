@@ -4,7 +4,7 @@
 // Right: OUTPUT — execution results (JSON/Table/Schema)
 // Header: node icon + name, connector, operation, Execute/Save/Close buttons.
 
-import { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react'
+import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy, isValidElement } from 'react'
 import { createPortal } from 'react-dom'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -188,7 +188,7 @@ export default function NodeEditorModal() {
   const status = nodeStatuses[selectedId]
   const preview = runPreview[selectedId]
   const rawError = execError || preview?.error || (status === 'failed' || status === 'error' ? (preview?.note || 'Execution failed') : null)
-  const effectiveError = typeof rawError === 'object' && rawError !== null && !React.isValidElement(rawError)
+  const effectiveError = typeof rawError === 'object' && rawError !== null && !isValidElement(rawError)
     ? (rawError.message || (rawError.code ? `${rawError.code}: ${JSON.stringify(rawError.details || rawError)}` : JSON.stringify(rawError)))
     : rawError
   const operation = node?.parameters?.operation

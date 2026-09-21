@@ -89,3 +89,12 @@ def _resolve_field(item: dict[str, Any], field: str) -> Any:
         else:
             return None
     return current
+
+
+@register
+class LoopOverItemsNode(LoopNode):
+    node_type = "loop_over_items"
+    display_name = "Loop Over Items"
+    description = "Split data into batches and iterate over each batch"
+    icon = "loop_over_items"
+

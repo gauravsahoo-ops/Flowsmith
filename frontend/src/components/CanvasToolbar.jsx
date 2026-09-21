@@ -26,7 +26,7 @@ function ToolButton({ onClick, disabled, title, children, className = '' }) {
 }
 
 export default function CanvasToolbar() {
-  const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow()
+  const { fitView, zoomIn, zoomOut, zoomTo, screenToFlowPosition } = useReactFlow()
   const viewport = useViewport()
   const zoomPercent = Math.round((viewport?.zoom || 1) * 100)
   const canUndo = useWorkflowStore((s) => s.canUndo)
@@ -80,8 +80,17 @@ export default function CanvasToolbar() {
 
   function onAddComment() {
     const store = useWorkflowStore.getState()
-    // Drop new notes near the viewport centre so they're never lost.
-    store.addComment({ x: 120 + store.comments.length * 24, y: 120 + store.comments.length * 18 }, '')
+    let at = { x: 120 + store.comments.length * 24, y: 120 + store.comments.length * 18 }
+    if (typeof screenToFlowPosition === 'function') {
+      const center = screenToFlowPosition({
+        x: window.innerWidth / 2 - 110,
+        y: window.innerHeight / 2 - 45,
+      })
+      if (Number.isFinite(center.x) && Number.isFinite(center.y)) {
+        at = { x: Math.round(center.x), y: Math.round(center.y) }
+      }
+    }
+    store.addComment(at, '')
   }
 
   function onGroup() {

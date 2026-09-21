@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { isValidElement } from 'react'
 
 function getIconComponent(icon, size = 24) {
   if (typeof icon !== 'string') return icon
@@ -117,7 +117,7 @@ function getIconComponent(icon, size = 24) {
 function toSafeText(val) {
   if (val == null) return null
   if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return val
-  if (React.isValidElement(val)) return val
+  if (isValidElement(val)) return val
   if (typeof val === 'object') {
     return val.message || val.error || (val.code ? `${val.code}: ${JSON.stringify(val.details || val)}` : JSON.stringify(val))
   }
