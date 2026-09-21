@@ -6372,6 +6372,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 /* Execution Edge Animated Dash */
 @keyframes edgeFlow {
   from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+
 /* Micro-spring interaction on primary buttons */
 button:not(:disabled):active {
   transform: scale(0.98);
