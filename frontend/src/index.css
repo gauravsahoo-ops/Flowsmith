@@ -1272,6 +1272,15 @@ button.delete { color: var(--red); }
 
 .main { flex: 1; display: flex; min-height: 0; position: relative; }
 
+.canvas-wrapper {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+}
+
 .nodes-palette-wrap {
   position: relative;
   height: 100%;
@@ -1287,7 +1296,7 @@ button.delete { color: var(--red); }
               opacity 0.26s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: width, min-width, max-width, transform, opacity;
   overflow: hidden;
-  z-index: 20;
+  z-index: 30;
 }
 .nodes-palette-wrap.is-closed {
   width: 0 !important;
@@ -1313,7 +1322,7 @@ button.delete { color: var(--red); }
   height: 100%;
   background: #11141d;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 14px 12px;
+  padding: 14px 12px 24px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1702,7 +1711,7 @@ button.delete { color: var(--red); }
 .retry-risky { color: var(--red); }
 .banner { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: var(--panel); padding: 8px 14px; border-radius: 6px; border: 1px solid var(--red); z-index: 13; max-width: min(80vw, 720px); }
 .muted { color: var(--muted); font-weight: 400; }
-.creds-button { margin-top: 12px; width: 100%; }
+.creds-button { margin-top: 12px; margin-bottom: 8px; width: 100%; flex-shrink: 0; }
 .panel-actions { display: flex; gap: 8px; margin-top: 18px; }
 .panel-actions button { flex: 1; }
 

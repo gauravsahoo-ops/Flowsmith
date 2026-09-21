@@ -137,9 +137,11 @@ export default function WorkflowEditorPage() {
         )}
         <div className="main" style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', position: 'relative', display: 'flex' }}>
           <ReactFlowProvider>
-            <Canvas />
+            <div className="canvas-wrapper">
+              <Canvas />
+              <LogsPanel onOpenDebugger={() => handleSetDebuggerOpen(true)} />
+            </div>
             <WorkflowHistoryDrawer />
-            <LogsPanel onOpenDebugger={() => handleSetDebuggerOpen(true)} />
             <div className={`nodes-palette-wrap ${sidebarOpen ? 'is-open' : 'is-closed'}`}>
               <Sidebar onOpenCredentials={() => navigate('/credentials')} />
             </div>
