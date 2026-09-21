@@ -60,6 +60,7 @@ export default function WorkflowEditorPage() {
     }
     setLocalError(null)
     load(id).catch(e => setLocalError(e.message))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   // Also ensure canvas is visible even if store still loading

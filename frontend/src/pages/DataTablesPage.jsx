@@ -52,6 +52,7 @@ export default function DataTablesPage() {
     if (!wsId) return
     const t = setTimeout(() => { loadTables() }, search ? 300 : 0)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wsId, search])
 
   useEffect(() => {

@@ -1,19 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import MappingField from './MappingField'
-
-export const formatToInput = (format) => {
-  if (!format) return 'text'
-  switch (format) {
-    case 'uri': return 'url'
-    case 'url': return 'url'
-    case 'email': return 'email'
-    case 'date-time': return 'datetime-local'
-    case 'date': return 'date'
-    case 'color': return 'color'
-    case 'password': return 'password'
-    default: return 'text'
-  }
-}
+import { formatToInput, getDefaultForSchema, resolveRef } from '../utils/jsonFormHelpers'
 
 const TYPE_COMPONENTS = {
   string: StringField,
@@ -302,24 +289,6 @@ function ArrayField({ schema, value, onChange, path, rootSchema, errors }) {
   )
 }
 
-export function getDefaultForSchema(schema) {
-  if (!schema) return null
-  switch (schema.type) {
-    case 'string': return schema.default ?? (schema.enum?.[0] ?? '')
-    case 'number':
-    case 'integer': return schema.default ?? 0
-    case 'boolean': return schema.default ?? false
-    case 'object': return {}
-    case 'array': return []
-    default: return null
-  }
-}
-
-export function resolveRef(schema, rootSchema) {
-  if (!schema || !schema.$ref) return schema
-  const name = schema.$ref.split('/').pop()
-  return (rootSchema?.$defs || {})[name] || schema
-}
 
 export function SchemaField({ schema, value, onChange, path, rootSchema, mapping = [], onPreview, errors }) {
   const resolved = resolveRef(schema, rootSchema || schema)
