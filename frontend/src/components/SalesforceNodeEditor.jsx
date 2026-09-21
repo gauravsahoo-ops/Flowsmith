@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import SalesforceAdditionalFields from './SalesforceAdditionalFields'
 import SearchableSelect from './SearchableSelect'
 
@@ -38,6 +38,8 @@ const ALL_OPS = {
 
 export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [], onPreview }) {
   const params = node.parameters || {}
+  const paramsRef = useRef(params)
+  paramsRef.current = params
   const rawOperation = params.operation || ''
   const objectName = params.object_name || ''
   const resource = params.resource || (['Account','Contact','Lead','Opportunity','Case','Task'].includes(objectName) ? objectName : objectName ? 'CustomObject' : 'Account')
@@ -214,19 +216,20 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
   }
 
   // Auto-fix stale SOQL that still points to Account when Custom Object is Recruitment__c (critical bug)
+  const currentSoql = params.soql
   useEffect(() => {
-    if ((operation === 'get_many' || operation === 'query') && resource === 'CustomObject' && objectName && params.soql) {
+    if ((operation === 'get_many' || operation === 'query') && resource === 'CustomObject' && objectName && currentSoql) {
       const expectedFrom = `FROM ${objectName}`
-      if (!params.soql.includes(expectedFrom)) {
+      if (!currentSoql.includes(expectedFrom)) {
         const fields = objectName === 'Account' ? 'Id, Name, Type, LastModifiedDate' : 'Id, Name'
         const newSoql = `SELECT ${fields} FROM ${objectName}`
         // Only update if SOQL is generic Account fallback
-        if (params.soql.includes('FROM Account') || params.soql.includes('FROM My_Object__c')) {
-          onParamsChange({ ...params, soql: newSoql })
+        if (currentSoql.includes('FROM Account') || currentSoql.includes('FROM My_Object__c')) {
+          onParamsChange({ ...paramsRef.current, soql: newSoql })
         }
       }
     }
-  }, [resource, objectName, operation])
+  }, [resource, objectName, operation, currentSoql, onParamsChange])
 
 
   return (

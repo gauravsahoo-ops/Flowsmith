@@ -48,12 +48,11 @@ export default function DataTablesPage() {
   }
 
   useEffect(() => { loadWorkspaces() }, [])
-  useEffect(() => { if (wsId) loadTables() }, [wsId])
-  // debounced search
   useEffect(() => {
-    const t = setTimeout(() => { if (wsId) loadTables() }, 300)
+    if (!wsId) return
+    const t = setTimeout(() => { loadTables() }, search ? 300 : 0)
     return () => clearTimeout(t)
-  }, [search])
+  }, [wsId, search])
 
   useEffect(() => {
     if (!showCreate) return
