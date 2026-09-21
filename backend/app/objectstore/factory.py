@@ -22,11 +22,8 @@ def get_object_store():
         if backend == "local":
             from app.objectstore.local import LocalObjectStore
             _instance = LocalObjectStore()
-        elif backend == "s3":
-            from app.objectstore.s3 import S3ObjectStore
-            _instance = S3ObjectStore()
         else:
-            raise ValueError(f"Unknown object store backend '{backend}' (expected local|s3)")
+            raise ValueError(f"Unknown object store backend '{backend}' (expected local)")
         _checked_backend = backend
         return _instance
 
