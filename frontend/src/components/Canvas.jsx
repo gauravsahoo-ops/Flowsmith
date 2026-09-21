@@ -482,14 +482,6 @@ function CanvasInner() {
 
       <CanvasToolbar />
       {flash && <div className="canvas-flash">{flash}</div>}
-      {isEmpty && (
-        <div className="canvas-empty">
-          <div className="canvas-empty-icon">🗂️</div>
-          <h3>Workflow is empty</h3>
-          <p>Drag a node from the left palette to start building your workflow.</p>
-          <p className="hint">A workflow must contain at least one node.</p>
-        </div>
-      )}
       <ReactFlow
         nodes={decoratedNodes}
         edges={displayEdges}
@@ -523,7 +515,7 @@ function CanvasInner() {
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={22} size={1.4} />
-        {nodes.length === 0 && (
+        {isEmpty && (
           <div className="canvas-empty-state">
             <div className="canvas-empty-card">
               <FlowsmithBrandMark size={42} variant="badge" glow />

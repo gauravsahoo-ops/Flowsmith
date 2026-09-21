@@ -2482,23 +2482,6 @@ button.delete { color: var(--red); }
 
 /* ---------- floating canvas toolbar ---------- */
 .canvas { position: relative; }
-.canvas-empty {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
-  text-align: center;
-  background: rgba(30, 33, 40, 0.92);
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  padding: 24px 28px;
-  pointer-events: none;
-  backdrop-filter: blur(4px);
-}
-.canvas-empty-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.8; }
-.canvas-empty h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
-.canvas-empty p { margin: 0; font-size: 12px; color: var(--muted); max-width: 280px; }
 .canvas.drop-target::after {
   content: "Drop to add node";
   position: absolute; inset: 10px; pointer-events: none;
