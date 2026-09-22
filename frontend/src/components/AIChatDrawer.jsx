@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { api } from '../api'
 
@@ -7,6 +7,25 @@ const SUGGESTIONS = [
   'Check current time and compute 125 * 8',
   'Test workflow step and summarize response',
 ]
+
+function getNodeTypeString(n) {
+  if (!n) return ''
+  const raw = n.data?.node?.type ?? n.type
+  if (typeof raw === 'string') return raw.toLowerCase()
+  if (raw && typeof raw === 'object') {
+    if (typeof raw.name === 'string') return raw.name.toLowerCase()
+    if (typeof raw.type === 'string') return raw.type.toLowerCase()
+    if (typeof raw.id === 'string') return raw.id.toLowerCase()
+  }
+  return ''
+}
+
+function getNodeLabel(node) {
+  if (!node) return 'Node'
+  if (typeof node.data?.node?.name === 'string' && node.data.node.name) return node.data.node.name
+  if (typeof node.data?.node?.type === 'string' && node.data.node.type) return node.data.node.type
+  return String(node.id || 'Node')
+}
 
 export default function AIChatDrawer({ isOpen, onClose }) {
   const workflow = useWorkflowStore((s) => s.workflow)
@@ -27,11 +46,14 @@ export default function AIChatDrawer({ isOpen, onClose }) {
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
-  // Find all AI nodes in the current workflow
-  const aiNodes = (nodes || []).filter((n) => {
-    const type = (n.data?.node?.type || n.type || '').toLowerCase()
-    return type === 'ai_agent' || type === 'ai' || type === 'llm'
-  })
+  // Find all AI nodes in the current workflow safely
+  const aiNodes = useMemo(() => {
+    if (!isOpen || !Array.isArray(nodes)) return []
+    return nodes.filter((n) => {
+      const type = getNodeTypeString(n)
+      return type === 'ai_agent' || type === 'ai' || type === 'llm' || type.includes('ai')
+    })
+  }, [nodes, isOpen])
 
   useEffect(() => {
     if (aiNodes.length > 0 && !selectedNodeId) {
@@ -93,7 +115,7 @@ export default function AIChatDrawer({ isOpen, onClose }) {
 
     try {
       // Find selected AI node or use default agent params
-      const targetNode = nodes.find((n) => n.id === selectedNodeId)
+      const targetNode = Array.isArray(nodes) ? nodes.find((n) => n?.id === selectedNodeId) : null
       const targetParams = targetNode?.data?.node?.parameters || {
         instructions: 'You are an autonomous AI assistant that solves complex tasks using available tools.',
         tools: ['current_time', 'calculator', 'http_request', 'database_query'],
@@ -190,7 +212,7 @@ export default function AIChatDrawer({ isOpen, onClose }) {
 
   if (!isOpen) return null
 
-  const selectedNodeObj = nodes.find((n) => n.id === selectedNodeId)
+  const selectedNodeObj = Array.isArray(nodes) ? nodes.find((n) => n?.id === selectedNodeId) : null
 
   return (
     <div className="ai-chat-drawer-overlay" onClick={onClose}>
@@ -221,13 +243,13 @@ export default function AIChatDrawer({ isOpen, onClose }) {
               >
                 {aiNodes.map((n) => (
                   <option key={n.id} value={n.id}>
-                    {n.data?.node?.name || n.data?.node?.type || n.id}
+                    {getNodeLabel(n)}
                   </option>
                 ))}
               </select>
             ) : selectedNodeObj ? (
               <span className="ai-node-pill" title="Target Node">
-                ⚡ {selectedNodeObj.data?.node?.name || 'AI Agent'}
+                ⚡ {getNodeLabel(selectedNodeObj)}
               </span>
             ) : null}
 

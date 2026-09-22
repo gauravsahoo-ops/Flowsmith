@@ -226,7 +226,9 @@ export default function WorkflowEditorPage() {
               </div>
             </>
           )}
-          <AIChatDrawer isOpen={aiChatOpen} onClose={() => setAiChatOpen(false)} />
+          {aiChatOpen && (
+            <AIChatDrawer isOpen={aiChatOpen} onClose={() => setAiChatOpen(false)} />
+          )}
         </div>
       </div>
     </div>
