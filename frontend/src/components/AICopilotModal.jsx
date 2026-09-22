@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
+import { api } from '../api'
+import { toReactFlow } from '../mappers'
 
 const EXAMPLE_PROMPTS = [
   'Stripe payment webhook to Slack notification with AI summary',
@@ -12,8 +14,6 @@ export default function AICopilotModal({ isOpen, onClose }) {
   const [prompt, setPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState(null)
-  const addNode = useWorkflowStore((s) => s.addNode)
-  const addEdge = useWorkflowStore((s) => s.addEdge)
 
   if (!isOpen) return null
 
@@ -25,11 +25,25 @@ export default function AICopilotModal({ isOpen, onClose }) {
     setError(null)
 
     try {
-      // In production, calls /api/ai/assistant/generate
-      // We parse the prompt or generate a curated visual graph
-      const lower = text.toLowerCase()
       let generatedNodes = []
       let generatedEdges = []
+
+      // 1. Try real LLM workflow generation via backend API
+      try {
+        const res = await api.generateWorkflow(text)
+        const wf = res?.data?.workflow || res?.workflow
+        if (wf && Array.isArray(wf.nodes) && wf.nodes.length > 0) {
+          const rf = toReactFlow(wf)
+          generatedNodes = rf.nodes || []
+          generatedEdges = rf.edges || []
+        }
+      } catch (backendErr) {
+        console.warn('Backend LLM generation fallback:', backendErr)
+      }
+
+      // 2. If backend didn't return nodes, use curated graph templates
+      if (generatedNodes.length === 0) {
+        const lower = text.toLowerCase()
 
       if (lower.includes('slack') || lower.includes('stripe') || lower.includes('webhook')) {
         generatedNodes = [
@@ -185,14 +199,15 @@ export default function AICopilotModal({ isOpen, onClose }) {
           { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, target: generatedNodes[2].id },
         ]
       }
+    }
 
-      // Add nodes and edges to the workflow store
-      for (const n of generatedNodes) {
-        addNode(n)
-      }
-      for (const e of generatedEdges) {
-        addEdge(e)
-      }
+      // Add nodes and edges to the workflow store atomically
+      useWorkflowStore.getState().pushHistory()
+      useWorkflowStore.setState((state) => ({
+        nodes: [...(state.nodes || []), ...generatedNodes],
+        edges: [...(state.edges || []), ...generatedEdges],
+      }))
+      useWorkflowStore.getState().scheduleSave?.()
 
       onClose()
     } catch (err) {
