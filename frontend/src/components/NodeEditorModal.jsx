@@ -18,27 +18,28 @@ import Button from './shared/Button'
 import Tabs from './shared/Tabs'
 import Status from './shared/Status'
 import ErrorState from './shared/ErrorState'
-import SalesforceNodeEditor from './SalesforceNodeEditor'
-import ScheduleTriggerEditor from './ScheduleTriggerEditor'
-import WebhookNodeEditor from './WebhookNodeEditor'
-import HttpRequestNodeEditor from './HttpRequestNodeEditor'
-const CodeNodeEditor = lazy(() => import('./CodeNodeEditor'))
 import { NodeIcon } from './NodeIcons'
-import IfConditionEditor from './IfConditionEditor'
-import FilterNodeEditor from './FilterNodeEditor'
-import SplitNodeEditor from './SplitNodeEditor'
-import CompareDatasetsEditor from './CompareDatasetsEditor'
-import StopAndErrorNodeEditor from './StopAndErrorNodeEditor'
-import SwitchNodeEditor from './SwitchNodeEditor'
-import WaitNodeEditor from './WaitNodeEditor'
-import ExecuteWorkflowNodeEditor from './ExecuteWorkflowNodeEditor'
-import ExecuteWorkflowTriggerEditor from './ExecuteWorkflowTriggerEditor'
-import TokenManagerNodeEditor from './TokenManagerNodeEditor'
-import TokenFetchNodeEditor from './TokenFetchNodeEditor'
-import TokenStoreNodeEditor from './TokenStoreNodeEditor'
-import DataTableDiscovery from './DataTableDiscovery'
 import ExpressionHelper from './ExpressionHelper'
 import NodeAutoRepair from './NodeAutoRepair'
+
+const SalesforceNodeEditor = lazy(() => import('./SalesforceNodeEditor'))
+const ScheduleTriggerEditor = lazy(() => import('./ScheduleTriggerEditor'))
+const WebhookNodeEditor = lazy(() => import('./WebhookNodeEditor'))
+const HttpRequestNodeEditor = lazy(() => import('./HttpRequestNodeEditor'))
+const CodeNodeEditor = lazy(() => import('./CodeNodeEditor'))
+const IfConditionEditor = lazy(() => import('./IfConditionEditor'))
+const FilterNodeEditor = lazy(() => import('./FilterNodeEditor'))
+const SplitNodeEditor = lazy(() => import('./SplitNodeEditor'))
+const CompareDatasetsEditor = lazy(() => import('./CompareDatasetsEditor'))
+const StopAndErrorNodeEditor = lazy(() => import('./StopAndErrorNodeEditor'))
+const SwitchNodeEditor = lazy(() => import('./SwitchNodeEditor'))
+const WaitNodeEditor = lazy(() => import('./WaitNodeEditor'))
+const ExecuteWorkflowNodeEditor = lazy(() => import('./ExecuteWorkflowNodeEditor'))
+const ExecuteWorkflowTriggerEditor = lazy(() => import('./ExecuteWorkflowTriggerEditor'))
+const TokenManagerNodeEditor = lazy(() => import('./TokenManagerNodeEditor'))
+const TokenFetchNodeEditor = lazy(() => import('./TokenFetchNodeEditor'))
+const TokenStoreNodeEditor = lazy(() => import('./TokenStoreNodeEditor'))
+const DataTableDiscovery = lazy(() => import('./DataTableDiscovery'))
 import {
   IDEMPOTENCY_LABEL,
   IDEMPOTENCY_HINT,
@@ -533,6 +534,7 @@ export default function NodeEditorModal() {
                     <OpSafetyHint operation={operation} operations={meta.operations} />
                   )}
 
+                  <Suspense fallback={<div className="panel-loading" style={{ padding: '24px', textAlign: 'center', opacity: 0.7 }}><p className="hint">Loading editor…</p></div>}>
                   {node.type === 'salesforce' ? (
                     <SalesforceNodeEditor
                       node={node}
@@ -543,14 +545,12 @@ export default function NodeEditorModal() {
                       onPreview={previewExpression}
                     />
                   ) : node.type === 'code' ? (
-                    <Suspense fallback={<p className="hint">Loading code editor…</p>}>
                     <CodeNodeEditor
                       node={node}
                       onParamsChange={handleParamsChange}
                       mapping={mapping}
                       onPreview={previewExpression}
                     />
-                    </Suspense>
                   ) : node.type === 'if_condition' ? (
                     <IfConditionEditor
                       node={node}
@@ -675,6 +675,7 @@ export default function NodeEditorModal() {
                       )}
                     </>
                   )}
+                  </Suspense>
 
                   {node.type === 'webhook' && (
                     <CollapsibleSection title="Webhook URL" defaultOpen={true}>
