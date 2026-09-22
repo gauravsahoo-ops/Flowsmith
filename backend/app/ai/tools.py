@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import inspect
 import json
 import logging
 import math
@@ -93,13 +94,26 @@ async def _vector_search_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
     query = args.get("query", "")
     top_k = int(args.get("top_k", 3))
 
+    if not query:
+        return {"warning": "No search query provided."}
+
     try:
         from app.vectorstores import get_vector_store
-        store = get_vector_store("pgvector")
+        store = get_vector_store()
         if not store:
             return {"warning": "Vector store not configured or unavailable."}
-        # In a real pipeline, query embedding is resolved from embedding service
-        results = await store.similarity_search(collection=collection, query_text=query, top_k=top_k)
+
+        # Resolve query embedding via EmbeddingService
+        from app.ai.rag import EmbeddingService
+        embedder = EmbeddingService()
+        embeddings = await embedder.get_embeddings([query])
+        query_embedding = embeddings[0] if embeddings else []
+
+        if not query_embedding:
+            return {"warning": "Could not generate query embedding."}
+
+        handle = store.ensure_collection(collection, len(query_embedding))
+        results = store.query(handle, query_embedding, top_k)
         return results if results else {"message": f"No matches found in collection '{collection}'."}
     except Exception as exc:
         return {"error": f"Vector search error: {exc}"}
@@ -259,7 +273,7 @@ async def run_tool(ctx: NodeContext, name: str, args: dict[str, Any]) -> str:
         value = await _vector_search_handler(ctx, args)
     elif spec.name == "database_query":
         value = await asyncio.to_thread(_database_query_handler, ctx, args)
-    elif asyncio.iscoroutinefunction(spec.handler):
+    elif inspect.iscoroutinefunction(spec.handler):
         value = await spec.handler(ctx, args)
     else:
         value = spec.handler(ctx, args)

@@ -140,14 +140,15 @@ class EpisodicVectorMemory:
         # Attempt to persist to pgvector if vector store is initialized
         try:
             from app.vectorstores import get_vector_store
-            store = get_vector_store("pgvector")
+            store = get_vector_store()
             if store and embedding:
-                await store.add_document(
-                    collection=self.collection_name,
-                    doc_id=f"{self.session_id}_{len(self._in_memory_records)}",
-                    text=text,
-                    embedding=embedding,
-                    metadata={"session_id": self.session_id, **(metadata or {})},
+                handle = store.ensure_collection(self.collection_name, len(embedding))
+                store.add(
+                    handle,
+                    documents=[text],
+                    embeddings=[embedding],
+                    metadatas=[{"session_id": self.session_id, **(metadata or {})}],
+                    ids=[f"{self.session_id}_{len(self._in_memory_records)}"],
                 )
         except Exception:
             # Fallback to local in-memory store if DB is offline or in mock test
@@ -167,16 +168,12 @@ class EpisodicVectorMemory:
         if query_embedding:
             try:
                 from app.vectorstores import get_vector_store
-                store = get_vector_store("pgvector")
+                store = get_vector_store()
                 if store:
-                    results = await store.similarity_search(
-                        collection=self.collection_name,
-                        query_embedding=query_embedding,
-                        top_k=top_k,
-                        filters={"session_id": self.session_id},
-                    )
+                    handle = store.ensure_collection(self.collection_name, len(query_embedding))
+                    results = store.query(handle, query_embedding, top_k)
                     if results:
-                        return [r.get("text", "") for r in results]
+                        return [r.get("content", "") for r in results if r.get("content")]
             except Exception:
                 pass
 
