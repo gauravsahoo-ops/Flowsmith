@@ -395,58 +395,101 @@ export default function CredentialsPage() {
                     </span>
                   </td>
                   <td>
-                    {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
-                      <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        onClick={async () => {
+                          setTestingId(c.id)
+                          setTestResult(null)
+                          try {
+                            const r = await api.testCredential(c.id)
+                            setTestResult({ ...r, id: c.id, name: c.name })
+                          } catch (e) {
+                            setTestResult({ ok: false, message: e.message, id: c.id, name: c.name })
+                          } finally {
+                            setTestingId(null)
+                          }
+                        }}
+                        disabled={testingId === c.id}
+                        title="Test connection with live service"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                      >
+                        {testingId === c.id ? (
+                          <>
+                            <span className="dot status-running" style={{ width: 6, height: 6 }} />
+                            <span>Testing…</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                            </svg>
+                            <span>Test</span>
+                          </>
+                        )}
+                      </button>
+
+                      {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                         <button
+                          type="button"
                           className="ghost small"
                           onClick={() => handleReconnect(c)}
-                          disabled={oauthBusy === c.type || reconnectingId === c.id}
+                          disabled={reconnectingId === c.id}
                           title="Auto-reconnect or renew token"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                         >
-                          {reconnectingId === c.id ? 'Reconnecting…' : (oauthBusy === c.type ? '…' : '↻ Reconnect')}
+                          {reconnectingId === c.id ? (
+                            <>
+                              <span className="dot status-running" style={{ width: 6, height: 6 }} />
+                              <span>Reconnecting…</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                              </svg>
+                              <span>Reconnect</span>
+                            </>
+                          )}
                         </button>
+                      )}
+
+                      {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) ? (
                         <button
+                          type="button"
                           className="ghost small"
                           onClick={() => setLogoutTarget(c)}
                           title="Revoke session and tokens on provider and disconnect completely"
-                          style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.25)', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          style={{
+                            color: '#f87171',
+                            borderColor: 'rgba(248, 113, 113, 0.25)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                          }}
                         >
-                          <span>🚪</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                          </svg>
                           <span>Logout</span>
                         </button>
-                      </>
-                    )}
-                    <button
-                      className="ghost small"
-                      onClick={async () => {
-                        setTestingId(c.id)
-                        setTestResult(null)
-                        try {
-                          const r = await api.testCredential(c.id)
-                          setTestResult({ ...r, id: c.id, name: c.name })
-                        } catch (e) {
-                          setTestResult({ ok: false, message: e.message, id: c.id, name: c.name })
-                        } finally {
-                          setTestingId(null)
-                        }
-                      }}
-                      disabled={testingId === c.id}
-                      title="Test connection with live service"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                    >
-                      {testingId === c.id ? (
-                        <>
-                          <span className="dot status-running" style={{ width: 6, height: 6 }} />
-                          <span>Testing…</span>
-                        </>
                       ) : (
-                        <>
-                          <span>⚡</span>
-                          <span>Test</span>
-                        </>
+                        <button
+                          type="button"
+                          className="ghost small"
+                          onClick={() => setDeleteTarget(c)}
+                          title={['database','postgres','mysql','redis','mongodb'].includes(c.type) ? 'Delete connection string' : 'Delete'}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#f87171' }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                          <span>Delete</span>
+                        </button>
                       )}
-                    </button>
-                    <button className="ghost small" onClick={() => setDeleteTarget(c)} title={['database','postgres','mysql','redis','mongodb'].includes(c.type) ? 'Delete connection string' : 'Delete'}>{['database','postgres','mysql','redis','mongodb'].includes(c.type) ? '🗑 Delete connection string' : '🗑'}</button>
+                    </div>
                   </td>
                 </tr>
               ))}
