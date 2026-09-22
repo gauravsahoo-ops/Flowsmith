@@ -26,6 +26,7 @@ export default function CredentialsPage() {
   const load = useCredentialStore(s => s.load)
   const create = useCredentialStore(s => s.create)
   const remove = useCredentialStore(s => s.remove)
+  const logout = useCredentialStore(s => s.logout)
   const connectOAuth = useCredentialStore(s => s.connectOAuth)
 
   const [search, setSearch] = useState('')
@@ -39,6 +40,8 @@ export default function CredentialsPage() {
   const [sfLoginUrl, setSfLoginUrl] = useState('')
   const [showSfAdvanced, setShowSfAdvanced] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [logoutTarget, setLogoutTarget] = useState(null)
+  const [forceLoginPrompt, setForceLoginPrompt] = useState(false)
   const [loading, setLoading] = useState(true)
   const [providers, setProviders] = useState([])
   const [predefined, setPredefined] = useState([])
@@ -114,10 +117,10 @@ export default function CredentialsPage() {
     }
   }
 
-  async function handleOAuth(provider, loginUrl) {
+  async function handleOAuth(provider, loginUrl, prompt) {
     setOauthBusy(provider); setError(null); setNotice(null); setFallbackUrl('')
     try {
-      const { authorizeUrl } = await connectOAuth(provider, loginUrl)
+      const { authorizeUrl } = await connectOAuth(provider, loginUrl, prompt)
       if (!authorizeUrl) throw new Error('Failed to get authorization URL')
       setFallbackUrl(authorizeUrl)
       const w = window.open(authorizeUrl, `oauth-${provider}`, 'width=520,height=640')
@@ -393,14 +396,25 @@ export default function CredentialsPage() {
                   </td>
                   <td>
                     {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
-                      <button
-                        className="ghost small"
-                        onClick={() => handleReconnect(c)}
-                        disabled={oauthBusy === c.type || reconnectingId === c.id}
-                        title="Auto-reconnect or renew token"
-                      >
-                        {reconnectingId === c.id ? 'Reconnecting…' : (oauthBusy === c.type ? '…' : '↻ Reconnect')}
-                      </button>
+                      <>
+                        <button
+                          className="ghost small"
+                          onClick={() => handleReconnect(c)}
+                          disabled={oauthBusy === c.type || reconnectingId === c.id}
+                          title="Auto-reconnect or renew token"
+                        >
+                          {reconnectingId === c.id ? 'Reconnecting…' : (oauthBusy === c.type ? '…' : '↻ Reconnect')}
+                        </button>
+                        <button
+                          className="ghost small"
+                          onClick={() => setLogoutTarget(c)}
+                          title="Revoke session and tokens on provider and disconnect completely"
+                          style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.25)', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <span>🚪</span>
+                          <span>Logout</span>
+                        </button>
+                      </>
                     )}
                     <button
                       className="ghost small"
@@ -489,26 +503,86 @@ export default function CredentialsPage() {
         <h2 style={{ fontSize: 14, margin: '0 0 8px' }}>New credential</h2>
 
         {isOAuthType && (
-          <div className="sf-connect-box">
-            <p className="hint">Connect via OAuth — you authorize with your own account; refresh tokens are stored encrypted server-side.</p>
-            <button className="primary" onClick={() => handleOAuth(form.type, form.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined)} disabled={!!oauthBusy || !form.type}>{oauthBusy ? 'Connecting…' : `Connect ${form.type}`}</button>
-            {form.type === 'salesforce' && (
-              <>
-                <button className="ghost" onClick={() => setShowSfAdvanced(v => !v)} style={{ marginTop: 6, marginLeft: 6 }}>
-                  {showSfAdvanced ? 'Hide' : 'Use a different org login URL'}
-                </button>
-                {showSfAdvanced && (
-                  <div style={{ marginTop: 6 }}>
-                    <input value={sfLoginUrl} onChange={e => setSfLoginUrl(e.target.value)} placeholder="https://login.salesforce.com" />
-                  </div>
+          <div className="sf-connect-box" style={{ padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+              <strong style={{ textTransform: 'capitalize', fontSize: 14 }}>
+                OAuth Connection ({form.type.replace(/_/g, ' ')})
+              </strong>
+              {credentials.filter(c => c.type === form.type).length > 0 && (
+                <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+                  ✓ {credentials.filter(c => c.type === form.type).length} account{credentials.filter(c => c.type === form.type).length > 1 ? 's' : ''} connected
+                </span>
+              )}
+            </div>
+
+            {credentials.filter(c => c.type === form.type).length > 0 && (
+              <div style={{ margin: '8px 0 12px', padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div className="hint" style={{ fontSize: 12, marginBottom: 6 }}>Active connected accounts (all available to workflows):</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {credentials.filter(c => c.type === form.type).map(acc => (
+                    <span key={acc.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', fontSize: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
+                      <strong>{acc.name}</strong>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '0 4px', fontSize: 11, color: '#f87171' }}
+                        onClick={() => setLogoutTarget(acc)}
+                        title="Logout and revoke this account"
+                      >
+                        🚪 Logout
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="hint" style={{ margin: '4px 0 10px' }}>
+              Flowsmith supports connecting <strong>multiple accounts</strong> (e.g. multiple Salesforce orgs or users). Each account is encrypted and isolated.
+            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0 12px' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={forceLoginPrompt}
+                  onChange={e => setForceLoginPrompt(e.target.checked)}
+                />
+                <span>Prompt for login / switch user (forces login prompt so you can log into a different account)</span>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                className="primary"
+                type="button"
+                onClick={() => handleOAuth(
+                  form.type,
+                  form.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined,
+                  forceLoginPrompt ? (form.type === 'salesforce' ? 'login' : 'select_account') : undefined
                 )}
-              </>
+                disabled={!!oauthBusy || !form.type}
+              >
+                {oauthBusy ? 'Connecting…' : (credentials.some(c => c.type === form.type) ? `+ Connect another ${form.type.replace(/_/g, ' ')} account` : `Connect ${form.type.replace(/_/g, ' ')}`)}
+              </button>
+              {form.type === 'salesforce' && (
+                <button type="button" className="ghost" onClick={() => setShowSfAdvanced(v => !v)}>
+                  {showSfAdvanced ? 'Hide custom URL' : 'Use a custom org login URL'}
+                </button>
+              )}
+            </div>
+
+            {form.type === 'salesforce' && showSfAdvanced && (
+              <div style={{ marginTop: 8 }}>
+                <input value={sfLoginUrl} onChange={e => setSfLoginUrl(e.target.value)} placeholder="https://login.salesforce.com, https://test.salesforce.com or custom domain" />
+              </div>
             )}
             {fallbackUrl && (
               <div style={{ marginTop: 8, wordBreak: 'break-all' }}>
                 <p className="hint">If the popup didn't open, copy this link:</p>
                 <a href={fallbackUrl} target="_blank" rel="noreferrer" className="linklike" style={{ fontSize: 11 }}>{fallbackUrl.slice(0,80)}…</a>
-                <button className="ghost small" onClick={() => navigator.clipboard.writeText(fallbackUrl)} style={{ marginLeft: 6 }}>Copy</button>
+                <button type="button" className="ghost small" onClick={() => navigator.clipboard.writeText(fallbackUrl)} style={{ marginLeft: 6 }}>Copy</button>
               </div>
             )}
           </div>
@@ -597,6 +671,26 @@ export default function CredentialsPage() {
       </section>
 
       <ConfirmDialog open={Boolean(deleteTarget)} title={`Delete “${deleteTarget?.name}”?`} description={deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'The connection string will be permanently deleted. Workflows using this connection will fail until updated.' : 'This credential will be disconnected. Workflows referencing it will fail until updated.'} confirmLabel={deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'Delete connection string' : 'Delete'} variant="danger" onCancel={() => setDeleteTarget(null)} onConfirm={async () => { try { await remove(deleteTarget.id); setNotice(deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'Connection string deleted.' : 'Deleted.'); } catch(e){ setError(e.message)} finally{ setDeleteTarget(null) } }} />
+
+      <ConfirmDialog
+        open={Boolean(logoutTarget)}
+        title={`Total Logout: Disconnect “${logoutTarget?.name}”?`}
+        description={`This will completely revoke the active OAuth session and tokens with ${logoutTarget?.type?.toUpperCase()} on their servers, and remove the connection from Flowsmith. Workflows using this account will stop working until reconnected.`}
+        confirmLabel="Logout & Revoke"
+        variant="danger"
+        onCancel={() => setLogoutTarget(null)}
+        onConfirm={async () => {
+          try {
+            const res = await logout(logoutTarget.id)
+            setNotice(res?.message || `Logged out and revoked ${logoutTarget.name}.`)
+            await load()
+          } catch (e) {
+            setError(e.message || 'Logout failed.')
+          } finally {
+            setLogoutTarget(null)
+          }
+        }}
+      />
     </div>
   )
 }

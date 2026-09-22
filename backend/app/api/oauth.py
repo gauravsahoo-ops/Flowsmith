@@ -62,6 +62,10 @@ class ConnectRequest(BaseModel):
         default=None,
         description="Provider-specific org base (Salesforce only; defaults to SALESFORCE_LOGIN_URL).",
     )
+    prompt: str | None = Field(
+        default=None,
+        description="OAuth prompt parameter (e.g. 'login' to force account selection / re-login).",
+    )
 
 
 def _audit_names(provider_key: str) -> tuple[str, str]:
@@ -136,9 +140,15 @@ def connect_provider(
     db.add(OAuthState(state=state, user_id=user.id, login_url=login_url, code_verifier=verifier))
     db.commit()
 
-    authorize_url = spec.authorize_url(
-        get_settings(), state=state, challenge=challenge, login_url=login_url
-    )
+    prompt = (body.prompt or "").strip() if body else ""
+    try:
+        authorize_url = spec.authorize_url(
+            get_settings(), state=state, challenge=challenge, login_url=login_url, prompt=prompt
+        )
+    except TypeError:
+        authorize_url = spec.authorize_url(
+            get_settings(), state=state, challenge=challenge, login_url=login_url
+        )
     return ok({"authorize_url": authorize_url, "state": state})
 
 
@@ -245,25 +255,24 @@ async def provider_callback(
         except Exception:
             host = ""
 
-    # Reconnect semantics: keep a single active OAuth connection per user
-    # and provider. Reuse the existing credential record if present so workflows
-    # referencing its ID continue working uninterrupted.
-    existing_rec = get_existing_oauth_credential(db, user, spec.credential_type)
-
     assert spec.credential_data is not None, f"provider {provider} misconfigured"
     data = spec.credential_data(settings, payload, login_url, label)
     name = f"{spec.display_name} ({label or host or data.get('hub_id') or 'connected'})"
+
+    # Multi-account support: match by account identity (username/org/hub_id)
+    # Reconnecting the same account updates its tokens; connecting a distinct account
+    # creates a new separate credential row so multiple accounts can coexist.
+    existing_rec = get_existing_oauth_credential(db, user, spec.credential_type, account_data=data)
 
     if existing_rec is not None:
         from app.security.crypto import encrypt_text
         existing_rec.name = name
         existing_rec.data = encrypt_text(json.dumps(data))
-        replace_oauth_credential(db, user, spec.credential_type, keep_id=existing_rec.id)
+        replace_oauth_credential(db, user, spec.credential_type, keep_id=existing_rec.id, account_data=data)
         db.commit()
         db.refresh(existing_rec)
         meta = {"id": existing_rec.id, "name": existing_rec.name, "type": existing_rec.type}
     else:
-        replace_oauth_credential(db, user, spec.credential_type)
         try:
             meta = create_for_user(
                 db, user.id, name, spec.credential_type, data

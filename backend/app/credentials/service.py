@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.credentials.registry import validate_data
 from app.models.credential import Credential
 from app.security.crypto import CredentialDecryptionError, decrypt_text, encrypt_text
+from app.security.safe_http_client import get_safe_http_client
 
 logger = logging.getLogger("credentials")
 
@@ -60,6 +61,48 @@ def delete_for_user(db: Session, user_id: int, credential_id: str) -> None:
         raise CredentialError("Credential not found.", code="CREDENTIAL_NOT_FOUND")
     db.delete(rec)
     db.commit()
+
+
+async def logout_for_user(db: Session, user_id: int, credential_id: str) -> dict[str, Any]:
+    """Revoke tokens on the upstream provider (if supported) and delete the credential completely."""
+    rec = db.get(Credential, credential_id)
+    if rec is None or rec.user_id != user_id:
+        raise CredentialError("Credential not found.", code="CREDENTIAL_NOT_FOUND")
+
+    cred_type = rec.type
+    cred_name = rec.name
+    revoked = False
+    provider_key = None
+
+    try:
+        decrypted = json.loads(decrypt_text(rec.data))
+    except Exception:
+        decrypted = {}
+
+    if isinstance(decrypted, dict) and decrypted.get("oauth"):
+        from app.config import get_settings
+        from app.oauth_providers import PROVIDERS
+
+        spec = next((s for s in PROVIDERS.values() if s.credential_type == cred_type), None)
+        if spec and spec.revoke_token:
+            provider_key = spec.key
+            try:
+                async with get_safe_http_client() as client:
+                    revoked = await spec.revoke_token(client, get_settings(), decrypted)
+            except Exception as exc:
+                logger.warning("Revocation failed during logout for %s: %s", credential_id, exc)
+
+    db.delete(rec)
+    db.commit()
+
+    return {
+        "id": credential_id,
+        "name": cred_name,
+        "type": cred_type,
+        "provider": provider_key,
+        "revoked": bool(revoked),
+        "message": f"Credential '{cred_name}' logged out and revoked completely.",
+    }
 
 
 def reencrypt_all(db: Session) -> int:

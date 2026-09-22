@@ -76,9 +76,20 @@ def _patch_client(responses: list[httpx.Response]):
     cm = MagicMock()
     cm.__aenter__.return_value = fake
     cm.__aexit__ = AsyncMock(return_value=False)
-    patcher = patch("app.api.oauth.get_safe_http_client", return_value=cm)
-    patcher.start()
-    return patcher, fake
+    p1 = patch("app.api.oauth.get_safe_http_client", return_value=cm)
+    p2 = patch("app.credentials.service.get_safe_http_client", return_value=cm)
+    p3 = patch("app.security.safe_http_client.get_safe_http_client", return_value=cm)
+    p1.start()
+    p2.start()
+    p3.start()
+
+    class MultiPatcher:
+        def stop(self):
+            p1.stop()
+            p2.stop()
+            p3.stop()
+
+    return MultiPatcher(), fake
 
 
 @pytest.fixture(autouse=True)
@@ -471,4 +482,133 @@ def test_oauth_credential_allows_empty_client_id_secret(client):
         assert plain["oauth"] is True
     finally:
         db.close()
+
+
+# ----------------------------------------------------------------------
+# Multi-account support & Total Logout Revocation
+# ----------------------------------------------------------------------
+
+
+def test_connect_supports_prompt_parameter(client, _configure_oauth):
+    headers = _setup(client)
+    resp = client.post("/api/auth/salesforce/connect", json={"prompt": "login"}, headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert "prompt=login" in data["authorize_url"]
+
+
+def test_callback_allows_multiple_distinct_accounts(client, _configure_oauth):
+    """Multiple distinct accounts (e.g. user1@example.com and user2@example.com)
+
+    coexist as separate credentials rather than overwriting each other.
+    """
+    headers = _setup(client)
+
+    # 1. Connect Account 1
+    state1 = _connect(client, headers)["state"]
+    payload1 = dict(TOKEN_PAYLOAD, id="https://login.salesforce.com/id/00Dorg1/005user1")
+    patcher1, _ = _patch_client([
+        _json_response(200, payload1),
+        _json_response(200, {"username": "user1@org1.com"}),
+    ])
+    try:
+        r1 = client.get(f"/api/auth/salesforce/callback?code=c1&state={state1}")
+        assert r1.status_code == 302
+        assert "ok=1" in r1.headers["location"]
+    finally:
+        patcher1.stop()
+
+    creds = client.get("/api/credentials", headers=headers).json()["data"]
+    sf_creds = [c for c in creds if c["type"] == "salesforce"]
+    assert len(sf_creds) == 1
+    assert sf_creds[0]["name"] == "Salesforce (user1@org1.com)"
+    id1 = sf_creds[0]["id"]
+
+    # 2. Connect Account 2 (different user/org)
+    state2 = _connect(client, headers)["state"]
+    payload2 = dict(TOKEN_PAYLOAD, id="https://login.salesforce.com/id/00Dorg2/005user2", access_token="acc2", refresh_token="ref2")
+    patcher2, _ = _patch_client([
+        _json_response(200, payload2),
+        _json_response(200, {"username": "user2@org2.com"}),
+    ])
+    try:
+        r2 = client.get(f"/api/auth/salesforce/callback?code=c2&state={state2}")
+        assert r2.status_code == 302
+        assert "ok=1" in r2.headers["location"]
+    finally:
+        patcher2.stop()
+
+    creds = client.get("/api/credentials", headers=headers).json()["data"]
+    sf_creds = [c for c in creds if c["type"] == "salesforce"]
+    assert len(sf_creds) == 2, "Both Salesforce accounts must coexist as separate credentials"
+    names = {c["name"] for c in sf_creds}
+    assert "Salesforce (user1@org1.com)" in names
+    assert "Salesforce (user2@org2.com)" in names
+
+    # 3. Reconnect Account 1: only Account 1 should update, Account 2 is untouched
+    state3 = _connect(client, headers)["state"]
+    payload1_new = dict(payload1, access_token="acc1_new", refresh_token="ref1_new")
+    patcher3, _ = _patch_client([
+        _json_response(200, payload1_new),
+        _json_response(200, {"username": "user1@org1.com"}),
+    ])
+    try:
+        r3 = client.get(f"/api/auth/salesforce/callback?code=c3&state={state3}")
+        assert r3.status_code == 302
+        assert "ok=1" in r3.headers["location"]
+    finally:
+        patcher3.stop()
+
+    creds = client.get("/api/credentials", headers=headers).json()["data"]
+    sf_creds = [c for c in creds if c["type"] == "salesforce"]
+    assert len(sf_creds) == 2, "Count should remain 2 after reconnecting an existing account"
+
+    # Verify Account 1 ID was preserved and updated
+    acc1 = next(c for c in sf_creds if c["name"] == "Salesforce (user1@org1.com)")
+    assert acc1["id"] == id1
+
+
+def test_credential_total_logout_revokes_token_with_provider(client, _configure_oauth):
+    """Logout endpoint revokes token with provider and deletes the DB credential."""
+    headers = _setup(client)
+
+    # Connect an account first
+    state = _connect(client, headers)["state"]
+    patcher, _ = _patch_client([
+        _json_response(200, TOKEN_PAYLOAD),
+        _json_response(200, {"username": "user_logout@example.com"}),
+    ])
+    try:
+        client.get(f"/api/auth/salesforce/callback?code=good&state={state}")
+    finally:
+        patcher.stop()
+
+    creds = client.get("/api/credentials", headers=headers).json()["data"]
+    assert len(creds) == 1
+    cred_id = creds[0]["id"]
+
+    # Now test logout with revocation
+    patcher_revoke, fake_client = _patch_client([
+        _json_response(200, {}),  # Revocation endpoint response
+    ])
+    try:
+        resp = client.post(f"/api/credentials/{cred_id}/logout", headers=headers)
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["revoked"] is True
+        assert data["id"] == cred_id
+    finally:
+        patcher_revoke.stop()
+
+    # Verify revoke call was made to Salesforce revoke URL
+    assert len(fake_client.calls) >= 1
+    method, url, kwargs = fake_client.calls[0]
+    assert method == "POST"
+    assert "services/oauth2/revoke" in url
+    assert "token=refresh_oauth_secret_999" in kwargs["data"]
+
+    # Verify credential was deleted
+    creds_after = client.get("/api/credentials", headers=headers).json()["data"]
+    assert len(creds_after) == 0
+
 
