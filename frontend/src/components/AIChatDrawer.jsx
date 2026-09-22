@@ -68,7 +68,7 @@ export default function AIChatDrawer({ isOpen, onClose }) {
     setInput(e.target.value)
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`
+      textareaRef.current.style.height = `${Math.max(44, Math.min(textareaRef.current.scrollHeight, 120))}px`
     }
   }
 
@@ -87,7 +87,7 @@ export default function AIChatDrawer({ isOpen, onClose }) {
     setMessages(newMessages)
     setInput('')
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = '44px'
     }
     setLoading(true)
 
@@ -380,14 +380,14 @@ export default function AIChatDrawer({ isOpen, onClose }) {
               ref={textareaRef}
               className="ai-chat-textarea"
               rows={1}
-              placeholder="Ask agent or test workflow tools (e.g. 'What is the current time and 125 * 8?')..."
+              placeholder="Ask agent or test workflow tools..."
               value={input}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               disabled={loading}
             />
             <button
-              className="primary ai-chat-send-btn"
+              className="ai-chat-send-btn"
               type="submit"
               disabled={!input.trim() || loading}
               title="Send (Enter)"
@@ -406,7 +406,9 @@ export default function AIChatDrawer({ isOpen, onClose }) {
             </button>
           </div>
           <div className="ai-chat-footer-hints">
-            <span>Press <strong>Enter</strong> to send, <strong>Shift + Enter</strong> for new line</span>
+            <span>
+              Press <kbd className="ai-chat-hint-kbd">Enter</kbd> to send · <kbd className="ai-chat-hint-kbd">Shift</kbd> + <kbd className="ai-chat-hint-kbd">Enter</kbd> for new line
+            </span>
             <span className="ai-memory-badge">Stateful Memory</span>
           </div>
         </form>
