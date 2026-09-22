@@ -41,167 +41,348 @@ export default function AICopilotModal({ isOpen, onClose }) {
         console.warn('Backend LLM generation fallback:', backendErr)
       }
 
-      // 2. If backend didn't return nodes, use curated graph templates
+      // 2. If backend didn't return nodes, use intelligent curated graph templates
       if (generatedNodes.length === 0) {
         const lower = text.toLowerCase()
+        const currentNodes = useWorkflowStore.getState().nodes || []
+        const startY = currentNodes.length > 0
+          ? Math.max(...currentNodes.map((n) => n.position?.y || 0)) + 220
+          : 160
+        const now = Date.now()
 
-      if (lower.includes('slack') || lower.includes('stripe') || lower.includes('webhook')) {
-        generatedNodes = [
-          {
-            id: `node_${Date.now()}_1`,
-            type: 'custom',
-            position: { x: 100, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_1`,
-                type: 'webhook',
-                name: 'Stripe Webhook',
-                parameters: { path: 'stripe-events', method: 'POST' },
-              },
-            },
-          },
-          {
-            id: `node_${Date.now()}_2`,
-            type: 'custom',
-            position: { x: 400, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_2`,
-                type: 'ai_agent',
-                name: 'AI Transaction Analyst',
-                parameters: {
-                  instructions: 'Analyze customer transaction details and summarize key highlights.',
-                  tools: ['calculator', 'current_time'],
-                  model: 'claude-3-5-sonnet',
+        if (lower.includes('slack') || lower.includes('stripe') || lower.includes('webhook')) {
+          generatedNodes = [
+            {
+              id: `node_${now}_1`,
+              type: 'custom',
+              position: { x: 100, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_1`,
+                  type: 'webhook',
+                  name: 'Stripe Webhook',
+                  version: 1,
+                  parameters: { path: 'stripe-events', method: 'POST' },
+                  settings: {},
                 },
               },
             },
-          },
-          {
-            id: `node_${Date.now()}_3`,
-            type: 'custom',
-            position: { x: 750, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_3`,
-                type: 'slack',
-                name: 'Notify Slack',
-                parameters: { channel: '#finance-alerts', message: '{{ $json.output }}' },
-              },
-            },
-          },
-        ]
-        generatedEdges = [
-          { id: `e_${generatedNodes[0].id}_${generatedNodes[1].id}`, source: generatedNodes[0].id, target: generatedNodes[1].id },
-          { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, target: generatedNodes[2].id },
-        ]
-      } else if (lower.includes('rag') || lower.includes('vector') || lower.includes('knowledge')) {
-        generatedNodes = [
-          {
-            id: `node_${Date.now()}_1`,
-            type: 'custom',
-            position: { x: 100, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_1`,
-                type: 'chat_trigger',
-                name: 'User Chat Question',
-                parameters: {},
-              },
-            },
-          },
-          {
-            id: `node_${Date.now()}_2`,
-            type: 'custom',
-            position: { x: 420, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_2`,
-                type: 'rag_pipeline',
-                name: 'PGVector Knowledge Search',
-                parameters: {
-                  collection_name: 'company_docs',
-                  top_k: 4,
-                  query: '{{ $json.message }}',
+            {
+              id: `node_${now}_2`,
+              type: 'custom',
+              position: { x: 420, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_2`,
+                  type: 'ai_agent',
+                  name: 'AI Transaction Analyst',
+                  version: 1,
+                  parameters: {
+                    instructions: 'Analyze customer transaction details and summarize key highlights.',
+                    tools: ['calculator', 'current_time'],
+                    model: 'claude-3-5-sonnet',
+                  },
+                  settings: {},
                 },
               },
             },
-          },
-          {
-            id: `node_${Date.now()}_3`,
-            type: 'custom',
-            position: { x: 780, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_3`,
-                type: 'ai',
-                name: 'Synthesis & Response',
-                parameters: {
-                  prompt: 'Answer user question: {{ $json.message }}\nUsing context:\n{{ $json.context }}',
-                  model: 'gpt-4o',
+            {
+              id: `node_${now}_3`,
+              type: 'custom',
+              position: { x: 760, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_3`,
+                  type: 'slack',
+                  name: 'Notify Slack',
+                  version: 1,
+                  parameters: {
+                    webhook_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL',
+                    channel: '#finance-alerts',
+                    text: '{{ $json.output }}',
+                  },
+                  settings: {},
                 },
               },
             },
-          },
-        ]
-        generatedEdges = [
-          { id: `e_${generatedNodes[0].id}_${generatedNodes[1].id}`, source: generatedNodes[0].id, target: generatedNodes[1].id },
-          { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, target: generatedNodes[2].id },
-        ]
-      } else {
-        // General workflow generator
-        generatedNodes = [
-          {
-            id: `node_${Date.now()}_1`,
-            type: 'custom',
-            position: { x: 100, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_1`,
-                type: 'schedule',
-                name: 'Schedule Trigger',
-                parameters: { rules: [{ mode: 'everyHour' }] },
-              },
-            },
-          },
-          {
-            id: `node_${Date.now()}_2`,
-            type: 'custom',
-            position: { x: 420, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_2`,
-                type: 'ai_agent',
-                name: 'Autonomous Assistant',
-                parameters: {
-                  instructions: `Solve the following objective: ${text}`,
-                  tools: ['http_request', 'database_query', 'calculator', 'current_time'],
+          ]
+          generatedEdges = [
+            { id: `e_${generatedNodes[0].id}_${generatedNodes[1].id}`, source: generatedNodes[0].id, sourceHandle: 'main', target: generatedNodes[1].id, targetHandle: 'main' },
+            { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, sourceHandle: 'main', target: generatedNodes[2].id, targetHandle: 'main' },
+          ]
+        } else if (lower.includes('postgres') || lower.includes('customer') || lower.includes('email') || lower.includes('crm')) {
+          generatedNodes = [
+            {
+              id: `node_${now}_1`,
+              type: 'custom',
+              position: { x: 80, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_1`,
+                  type: 'schedule',
+                  name: 'Daily Schedule Trigger',
+                  version: 1,
+                  parameters: { rules: [{ interval: 'hours', value: 24, timezone: 'UTC' }] },
+                  settings: {},
                 },
               },
             },
-          },
-          {
-            id: `node_${Date.now()}_3`,
-            type: 'custom',
-            position: { x: 780, y: 200 },
-            data: {
-              node: {
-                id: `node_${Date.now()}_3`,
-                type: 'http_request',
-                name: 'Export / Webhook',
-                parameters: { method: 'POST', url: 'https://api.example.com/results' },
+            {
+              id: `node_${now}_2`,
+              type: 'custom',
+              position: { x: 380, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_2`,
+                  type: 'database_query',
+                  name: 'Query New Customers',
+                  version: 1,
+                  parameters: {
+                    sql: "SELECT id, name, email, created_at FROM customers WHERE created_at >= NOW() - INTERVAL '1 day'",
+                  },
+                  settings: {},
+                },
               },
             },
-          },
-        ]
-        generatedEdges = [
-          { id: `e_${generatedNodes[0].id}_${generatedNodes[1].id}`, source: generatedNodes[0].id, target: generatedNodes[1].id },
-          { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, target: generatedNodes[2].id },
-        ]
+            {
+              id: `node_${now}_3`,
+              type: 'custom',
+              position: { x: 680, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_3`,
+                  type: 'ai_agent',
+                  name: 'Personalization Agent',
+                  version: 1,
+                  parameters: {
+                    instructions: 'Craft a warm, personalized welcome message based on customer profile.',
+                    tools: ['calculator', 'current_time'],
+                    model: 'gpt-4o',
+                  },
+                  settings: {},
+                },
+              },
+            },
+            {
+              id: `node_${now}_4`,
+              type: 'custom',
+              position: { x: 980, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_4`,
+                  type: 'send_email',
+                  name: 'Send Welcome Email',
+                  version: 1,
+                  parameters: {
+                    to: '{{ $json.email }}',
+                    subject: 'Welcome to Flowsmith!',
+                    body: '{{ $json.output }}',
+                    from_address: 'welcome@flowsmith.io',
+                  },
+                  settings: {},
+                },
+              },
+            },
+          ]
+          generatedEdges = [
+            { id: `e_${generatedNodes[0].id}_${generatedNodes[1].id}`, source: generatedNodes[0].id, sourceHandle: 'main', target: generatedNodes[1].id, targetHandle: 'main' },
+            { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, sourceHandle: 'main', target: generatedNodes[2].id, targetHandle: 'main' },
+            { id: `e_${generatedNodes[2].id}_${generatedNodes[3].id}`, source: generatedNodes[2].id, sourceHandle: 'main', target: generatedNodes[3].id, targetHandle: 'main' },
+          ]
+        } else if (lower.includes('rss') || lower.includes('telegram') || lower.includes('news')) {
+          generatedNodes = [
+            {
+              id: `node_${now}_1`,
+              type: 'custom',
+              position: { x: 80, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_1`,
+                  type: 'schedule',
+                  name: 'Hourly Feed Trigger',
+                  version: 1,
+                  parameters: { rules: [{ interval: 'hours', value: 1, timezone: 'UTC' }] },
+                  settings: {},
+                },
+              },
+            },
+            {
+              id: `node_${now}_2`,
+              type: 'custom',
+              position: { x: 380, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_2`,
+                  type: 'rss_feed',
+                  name: 'Fetch Tech News RSS',
+                  version: 1,
+                  parameters: { url: 'https://news.ycombinator.com/rss', limit: 10 },
+                  settings: {},
+                },
+              },
+            },
+            {
+              id: `node_${now}_3`,
+              type: 'custom',
+              position: { x: 680, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_3`,
+                  type: 'ai',
+                  name: 'Claude 3.5 Digest',
+                  version: 1,
+                  parameters: {
+                    prompt: 'Summarize the following tech articles into a 3-bullet daily brief:\n{{ $json.title }}\n{{ $json.link }}',
+                    model: 'claude-3-5-sonnet',
+                  },
+                  settings: {},
+                },
+              },
+            },
+            {
+              id: `node_${now}_4`,
+              type: 'custom',
+              position: { x: 980, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_4`,
+                  type: 'telegram',
+                  name: 'Telegram Channel Alert',
+                  version: 1,
+                  parameters: {
+                    bot_token: 'YOUR_TELEGRAM_BOT_TOKEN',
+                    chat_id: '@tech_digest_channel',
+                    text: '🚀 *Daily Tech Brief:*\n\n{{ $json.output }}',
+                  },
+                  settings: {},
+                },
+              },
+            },
+          ]
+          generatedEdges = [
+            { id: `e_${generatedNodes[0].id}_${generatedNodes[1].id}`, source: generatedNodes[0].id, sourceHandle: 'main', target: generatedNodes[1].id, targetHandle: 'main' },
+            { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, sourceHandle: 'main', target: generatedNodes[2].id, targetHandle: 'main' },
+            { id: `e_${generatedNodes[2].id}_${generatedNodes[3].id}`, source: generatedNodes[2].id, sourceHandle: 'main', target: generatedNodes[3].id, targetHandle: 'main' },
+          ]
+        } else if (lower.includes('rag') || lower.includes('vector') || lower.includes('knowledge')) {
+          generatedNodes = [
+            {
+              id: `node_${now}_1`,
+              type: 'custom',
+              position: { x: 100, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_1`,
+                  type: 'chat_trigger',
+                  name: 'User Chat Question',
+                  version: 1,
+                  parameters: {},
+                  settings: {},
+                },
+              },
+            },
+            {
+              id: `node_${now}_2`,
+              type: 'custom',
+              position: { x: 420, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_2`,
+                  type: 'rag_pipeline',
+                  name: 'PGVector Knowledge Search',
+                  version: 1,
+                  parameters: {
+                    collection_name: 'company_docs',
+                    top_k: 4,
+                    query: '{{ $json.message }}',
+                  },
+                  settings: {},
+                },
+              },
+            },
+            {
+              id: `node_${now}_3`,
+              type: 'custom',
+              position: { x: 760, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_3`,
+                  type: 'ai',
+                  name: 'Synthesis & Response',
+                  version: 1,
+                  parameters: {
+                    prompt: 'Answer user question: {{ $json.message }}\nUsing context:\n{{ $json.context }}',
+                    model: 'gpt-4o',
+                  },
+                  settings: {},
+                },
+              },
+            },
+          ]
+          generatedEdges = [
+            { id: `e_${generatedNodes[0].id}_${generatedNodes[1].id}`, source: generatedNodes[0].id, sourceHandle: 'main', target: generatedNodes[1].id, targetHandle: 'main' },
+            { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, sourceHandle: 'main', target: generatedNodes[2].id, targetHandle: 'main' },
+          ]
+        } else {
+          // General autonomous workflow
+          generatedNodes = [
+            {
+              id: `node_${now}_1`,
+              type: 'custom',
+              position: { x: 100, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_1`,
+                  type: 'manual_trigger',
+                  name: 'Manual Start',
+                  version: 1,
+                  parameters: {},
+                  settings: {},
+                },
+              },
+            },
+            {
+              id: `node_${now}_2`,
+              type: 'custom',
+              position: { x: 420, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_2`,
+                  type: 'ai_agent',
+                  name: 'Autonomous Assistant',
+                  version: 1,
+                  parameters: {
+                    instructions: `Solve the following objective: ${text}`,
+                    tools: ['http_request', 'database_query', 'calculator', 'current_time'],
+                  },
+                  settings: {},
+                },
+              },
+            },
+            {
+              id: `node_${now}_3`,
+              type: 'custom',
+              position: { x: 760, y: startY },
+              data: {
+                node: {
+                  id: `node_${now}_3`,
+                  type: 'http_request',
+                  name: 'Export / Webhook',
+                  version: 1,
+                  parameters: { method: 'POST', url: 'https://api.example.com/results' },
+                  settings: {},
+                },
+              },
+            },
+          ]
+          generatedEdges = [
+            { id: `e_${generatedNodes[0].id}_${generatedNodes[1].id}`, source: generatedNodes[0].id, sourceHandle: 'main', target: generatedNodes[1].id, targetHandle: 'main' },
+            { id: `e_${generatedNodes[1].id}_${generatedNodes[2].id}`, source: generatedNodes[1].id, sourceHandle: 'main', target: generatedNodes[2].id, targetHandle: 'main' },
+          ]
+        }
       }
-    }
 
-      // Add nodes and edges to the workflow store atomically
+      // 3. Add nodes and edges to the workflow store atomically
       useWorkflowStore.getState().pushHistory()
       useWorkflowStore.setState((state) => ({
         nodes: [...(state.nodes || []), ...generatedNodes],
@@ -249,38 +430,35 @@ export default function AICopilotModal({ isOpen, onClose }) {
               {EXAMPLE_PROMPTS.map((ex, i) => (
                 <button
                   key={i}
-                  className="example-chip"
                   type="button"
+                  className="example-chip"
                   onClick={() => setPrompt(ex)}
+                  disabled={generating}
                 >
-                  {ex}
+                  ✨ {ex}
                 </button>
               ))}
             </div>
           </div>
 
-          {error && <div className="banner-inline err" style={{ marginTop: 12 }}>{error}</div>}
+          {error && (
+            <div className="ai-copilot-error banner-inline err" style={{ marginTop: 12 }}>
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="ai-copilot-footer modal-footer">
-          <button className="ghost" type="button" onClick={onClose} disabled={generating}>Cancel</button>
+          <button className="ghost" type="button" onClick={onClose} disabled={generating}>
+            Cancel
+          </button>
           <button
             className="primary"
             type="button"
             onClick={handleGenerate}
             disabled={!prompt.trim() || generating}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            {generating ? (
-              <>
-                <span className="spinner-sm" />
-                <span>Generating Nodes…</span>
-              </>
-            ) : (
-              <>
-                <span>✨ Generate Workflow</span>
-              </>
-            )}
+            {generating ? 'Generating Workflow…' : 'Generate Workflow'}
           </button>
         </div>
       </div>
