@@ -37,12 +37,7 @@ export default function CredentialsPage() {
   const [busy, setBusy] = useState(false)
   const [oauthBusy, setOauthBusy] = useState('')
   const [fallbackUrl, setFallbackUrl] = useState('')
-  const [sfLoginUrl, setSfLoginUrl] = useState('')
-  const [sfClientId, setSfClientId] = useState('')
-  const [sfClientSecret, setSfClientSecret] = useState('')
   const [showManualForm, setShowManualForm] = useState(false)
-  const [savingAppConfig, setSavingAppConfig] = useState(false)
-  const [showSfAdvanced, setShowSfAdvanced] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [logoutTarget, setLogoutTarget] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -592,97 +587,12 @@ export default function CredentialsPage() {
               <button
                 className="primary"
                 type="button"
-                onClick={() => handleOAuth(
-                  form.type,
-                  form.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined,
-                  undefined,
-                  form.type === 'salesforce' && sfClientId ? { clientId: sfClientId.trim(), clientSecret: sfClientSecret.trim() } : {}
-                )}
+                onClick={() => handleOAuth(form.type)}
                 disabled={!!oauthBusy || !form.type}
               >
                 {oauthBusy ? 'Connecting…' : (credentials.some(c => c.type === form.type) ? `+ Connect another ${form.type.replace(/_/g, ' ')} account` : `Connect ${form.type.replace(/_/g, ' ')}`)}
               </button>
-              {form.type === 'salesforce' && (
-                <button type="button" className="ghost" onClick={() => setShowSfAdvanced(v => !v)}>
-                  {showSfAdvanced ? 'Hide advanced settings' : '⚙️ Custom org URL / Connected App credentials'}
-                </button>
-              )}
             </div>
-
-            {form.type === 'salesforce' && showSfAdvanced && (
-              <div style={{ marginTop: 12, padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>
-                  Advanced Salesforce Settings (Stored Encrypted in Database)
-                </div>
-                <label style={{ display: 'block', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12 }}>Custom Org Login URL (Optional)</span>
-                  <input
-                    value={sfLoginUrl}
-                    onChange={e => setSfLoginUrl(e.target.value)}
-                    placeholder="https://login.salesforce.com, https://test.salesforce.com, or custom my.salesforce.com domain"
-                    style={{ marginTop: 4 }}
-                  />
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginTop: 8 }}>
-                  <label style={{ margin: 0 }}>
-                    <span style={{ fontSize: 12 }}>Consumer Key (Client ID)</span>
-                    <input
-                      value={sfClientId}
-                      onChange={e => setSfClientId(e.target.value)}
-                      placeholder="e.g. 3MVG9..."
-                      style={{ marginTop: 4 }}
-                    />
-                  </label>
-                  <label style={{ margin: 0 }}>
-                    <span style={{ fontSize: 12 }}>Consumer Secret (Client Secret)</span>
-                    <input
-                      type="password"
-                      value={sfClientSecret}
-                      onChange={e => setSfClientSecret(e.target.value)}
-                      placeholder="Client Secret"
-                      style={{ marginTop: 4 }}
-                    />
-                  </label>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-                  <button
-                    type="button"
-                    className="ghost small"
-                    style={{ background: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)', color: '#60a5fa' }}
-                    disabled={savingAppConfig || !sfClientId.trim() || !sfClientSecret.trim()}
-                    onClick={async () => {
-                      if (!sfClientId.trim() || !sfClientSecret.trim()) return
-                      setSavingAppConfig(true)
-                      setError(null)
-                      try {
-                        await create({
-                          name: 'Salesforce Connected App',
-                          type: 'salesforce',
-                          data: {
-                            client_id: sfClientId.trim(),
-                            client_secret: sfClientSecret.trim(),
-                            login_url: sfLoginUrl.trim() || 'https://login.salesforce.com',
-                            instance_url: sfLoginUrl.trim() || 'https://login.salesforce.com',
-                            refresh_token: 'init_app_config',
-                            oauth: true,
-                          },
-                        })
-                        setNotice('Salesforce Connected App saved to database (encrypted at rest). You can now connect accounts!')
-                      } catch (err) {
-                        setError(err.message || 'Failed to save configuration.')
-                      } finally {
-                        setSavingAppConfig(false)
-                      }
-                    }}
-                  >
-                    {savingAppConfig ? 'Saving…' : '🔒 Save Connected App to Database (Encrypted)'}
-                  </button>
-                  <span className="hint" style={{ fontSize: 11 }}>
-                    Saves keys encrypted in database so you never need server .env files.
-                  </span>
-                </div>
-              </div>
-            )}
             {fallbackUrl && (
               <div style={{ marginTop: 8, wordBreak: 'break-all' }}>
                 <p className="hint">If the popup didn't open, copy this link:</p>
