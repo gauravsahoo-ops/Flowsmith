@@ -13,12 +13,9 @@ instance via ``register``); registering an older version is rejected.
 
 from __future__ import annotations
 
-import asyncio
 import re
-import uuid
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set
 
-from pydantic import BaseModel
 
 from app.connectors import (
     ConnectorSDK,
@@ -26,23 +23,13 @@ from app.connectors import (
     ConnectorHealthCheck,
     ConnectorInfo,
     ConnectorCategory,
-    ConnectorStatus,
-    OP_SEARCH,
-    OP_GET,
-    OP_CREATE,
-    OP_UPDATE,
-    OP_DELETE,
-    OP_EXECUTE,
-    OP_HEALTH_CHECK,
     ConnectorID,
-    ConnectorType,
     ConnectorLifecycle,
     ConnectorDefinitionV1,
     ConnectorOperationV1,
     ConnectorTriggerV1,
     CredentialTypeV1,
     ConnectorErrorCode,
-    make_connector_error,
 )
 
 _VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")

@@ -9,38 +9,21 @@ Uses SafeHTTPClient for all external API calls (spec 37.28).
 
 from __future__ import annotations
 
-import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from app.security.safe_http_client import SafeHTTPClient, get_safe_http_client
+from app.security.safe_http_client import get_safe_http_client
 import httpx
 from pydantic import BaseModel, Field
 
 from app.connectors import (
     ConnectorSDK,
-    ConnectorError,
     ConnectorHealthCheck,
     ConnectorCategory,
-    ConnectorStatus,
-    OP_SEARCH,
-    OP_GET,
-    OP_CREATE,
-    OP_UPDATE,
-    OP_DELETE,
-    OP_EXECUTE,
-    OP_HEALTH_CHECK,
     ConnectorErrorCode,
     make_connector_error,
-    ConnectorDefinitionV1,
-    ConnectorOperationV1,
-    ConnectorTriggerV1,
-    CredentialTypeV1,
-    ConnectorLifecycle,
 )
 from app.connectors.operations import ConnectorOperations
-from app.connectors.operations import build_operations as _build_operations
-from app.connectors.registry import ConnectorRegistry
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,6 @@
 """HttpRequestExecutor — separated from node, uses HttpAuthBuilder + provider registry."""
 from __future__ import annotations
 
-import time
 from typing import Any, Dict
 
 import httpx

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from app.schemas.workflow import Connection, Workflow, WorkflowNode
+from app.schemas.workflow import Workflow, WorkflowNode
 from app.engine.errors import WorkflowValidationError
 from app.nodes.registry import NODE_REGISTRY
 

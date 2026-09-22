@@ -13,7 +13,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
-from app.nodes.registry import register, NODE_REGISTRY
+from app.nodes.registry import register
 
 
 class SchemaField(BaseModel):

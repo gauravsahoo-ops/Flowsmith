@@ -47,7 +47,7 @@ class FilterParams(BaseModel):
                     cond_dict = cond.__dict__
                 else:
                     cond_dict = {"left": getattr(cond, "left", ""), "operator": getattr(cond, "operator", "is equal to"), "right": getattr(cond, "right", "")}
-                
+
                 op_raw = cond_dict.get("operator")
                 op_str = str(op_raw) if op_raw is not None else "is equal to"
                 op = LEGACY_OPERATOR_MAP.get(op_str, op_str)

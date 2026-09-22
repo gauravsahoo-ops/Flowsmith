@@ -1,6 +1,5 @@
 """AWS Assume Role — STS AssumeRole then SigV4."""
 from typing import Any, Dict
-import time
 from .base import AuthProvider
 from .aws_iam import AwsIamAuthProvider
 

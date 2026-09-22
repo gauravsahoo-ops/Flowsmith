@@ -43,7 +43,6 @@ MAX_WEBHOOK_BODY = 5 * 1024 * 1024  # spec: 5 MB
 _settings = get_settings()
 # Shared Redis budget when REDIS_URL is configured (multi-replica safe);
 # per-process sliding window otherwise (audit phase 13).
-from app.security.ratelimit import get_webhook_limiter
 
 _limiter = get_webhook_limiter(
     capacity=_settings.webhook_rate_limit,
@@ -257,8 +256,6 @@ def list_deliveries(
     pageSize: int = 50,
 ) -> dict:
     """Authenticated endpoint to list webhook deliveries with pagination."""
-    from app.api.access import accessible_ids
-    from app.models import User
     page, size = page_params(page=page, pageSize=pageSize)
     stmt = select(WebhookDelivery)
     count_stmt = select(func.count()).select_from(WebhookDelivery)

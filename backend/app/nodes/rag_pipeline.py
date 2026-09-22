@@ -25,7 +25,7 @@ from app.ai.client import chat_completion, LLMError
 from app.engine.errors import NodeExecutionError
 from app.engine.node_base import NON_IDEMPOTENT, BaseNode, NodeContext, NodeResult
 from app.nodes.registry import register
-from app.vectorstores import VectorStore, VectorStoreUnavailable, get_vector_store
+from app.vectorstores import VectorStoreUnavailable, get_vector_store
 
 
 class RAGParams(BaseModel):

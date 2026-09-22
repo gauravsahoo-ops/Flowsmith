@@ -26,12 +26,11 @@ import ipaddress
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 
-from pydantic import BaseModel, Field
 
 from app.connectors import ConnectorErrorCode, make_connector_error
 

@@ -1,0 +1,31 @@
+# Ruff linter configuration for Flowsmith backend
+line-length = 120
+target-version = "py313"
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes (undefined variables, unused imports, syntax errors)
+]
+ignore = [
+    "E501",  # line too long
+    "E402",  # module level import not at top of file
+    "E731",  # do not assign a lambda expression
+    "E722",  # do not use bare except (in legacy handlers)
+    "E712",  # comparison to True/False (idiomatic in SQLAlchemy query filters)
+    "E721",  # do not compare types directly (needed for strict condition evaluation)
+    "E741",  # ambiguous variable name (e.g., l in list comprehensions)
+    "F841",  # local variable assigned to but never used
+]
+
+exclude = [
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    "alembic",
+    "tests",
+    "tmp",
+    "data",
+    "app/connectors/generated",
+]

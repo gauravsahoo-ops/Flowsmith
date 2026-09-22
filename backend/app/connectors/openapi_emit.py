@@ -97,7 +97,7 @@ def emit_provider(key: str, api: ApiSpec) -> str:
     ]
     if auth.kind == "api_key_header":
         lines += [
-            f"    token = str((creds or {{}}).get('api_key') or '').strip()",
+            "    token = str((creds or {}).get('api_key') or '').strip()",
             "    if not token:",
             "        return {}, {}",
             f"    return {{{_py_str(auth.name)}: token}}, {{}}",
@@ -241,7 +241,7 @@ def emit_definition(key: str, display_name: str, api: ApiSpec, category: str = "
         f"        credential_require={require},",
         "        retryable=retryable,",
         "        idempotency=idempotency,",
-        f"        node_types=[CONNECTOR_KEY],",
+        "        node_types=[CONNECTOR_KEY],",
         "    )",
         "",
         "",

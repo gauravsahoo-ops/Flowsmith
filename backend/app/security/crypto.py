@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import re
-from typing import Any
 
 from cryptography.exceptions import InvalidTag
 from cryptography.fernet import Fernet, InvalidToken

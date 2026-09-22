@@ -103,7 +103,7 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
       style={{ left: x, top: y }}
       onClick={(e) => e.stopPropagation()}
     >
-      <button onClick={() => { openNodeEditor(nodeId); onClose() }}>
+      <button type="button" onClick={() => { openNodeEditor(nodeId); onClose() }}>
         <span className="ctx-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -116,14 +116,14 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
 
       <div className="ctx-sep" />
 
-      <button onClick={handleTestStep} disabled={runningStep}>
+      <button type="button" onClick={handleTestStep} disabled={runningStep}>
         <span className="ctx-icon" style={{ color: 'var(--primary, #6366f1)' }}>
           ▶
         </span>
         <span className="ctx-label">{runningStep ? 'Testing…' : 'Test Step (Run Node)'}</span>
       </button>
 
-      <button onClick={handleRunToHere} disabled={runningStep}>
+      <button type="button" onClick={handleRunToHere} disabled={runningStep}>
         <span className="ctx-icon" style={{ color: '#10b981' }}>
           ⏩
         </span>
@@ -131,12 +131,12 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
       </button>
 
       {isPinned ? (
-        <button onClick={() => { onUnpin(); onClose() }}>
+        <button type="button" onClick={() => { onUnpin(); onClose() }}>
           <span className="ctx-icon">📌</span>
           <span className="ctx-label">Unpin Mock Data</span>
         </button>
       ) : (
-        <button onClick={() => { onPin(); onClose() }}>
+        <button type="button" onClick={() => { onPin(); onClose() }}>
           <span className="ctx-icon">📌</span>
           <span className="ctx-label">Pin Output Data</span>
         </button>
@@ -144,7 +144,7 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
 
       <div className="ctx-sep" />
 
-      <button onClick={() => { duplicateNodes([nodeId]); onClose() }}>
+      <button type="button" onClick={() => { duplicateNodes([nodeId]); onClose() }}>
         <span className="ctx-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -155,7 +155,7 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
         <span className="ctx-shortcut">Ctrl+D</span>
       </button>
       <div className="ctx-sep" />
-      <button className="ctx-danger" onClick={() => { deleteNodes([nodeId]); onClose() }}>
+      <button type="button" className="ctx-danger" onClick={() => { deleteNodes([nodeId]); onClose() }}>
         <span className="ctx-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6" />

@@ -93,6 +93,9 @@ pipeline {
                         # Build and launch new containers
                         docker compose up -d --build --force-recreate app worker
                                                 
+                        # Verify container code quality
+                        docker compose exec -T app python -m ruff check app
+
                         # Clean up unused Docker images to save disk space
                         docker image prune -f
                     '

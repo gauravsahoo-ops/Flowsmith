@@ -5,7 +5,7 @@ Sends a message to a Slack channel via incoming webhook.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 

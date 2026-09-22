@@ -8,7 +8,7 @@ Single source: ScheduleTriggerParams.rules
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Literal
 
 from croniter import croniter

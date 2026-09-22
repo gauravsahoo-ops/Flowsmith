@@ -177,7 +177,8 @@ class QueueWorker:
 
     async def run_forever(self) -> None:
         """Main loop for a standalone worker process."""
-        import os, pathlib
+        import os
+        import pathlib
         hb = pathlib.Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tmp"))
         hb.mkdir(parents=True, exist_ok=True)
         hb = hb / "worker_alive"

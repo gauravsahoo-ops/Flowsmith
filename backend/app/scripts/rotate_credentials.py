@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import sys
 
-from app.config import get_settings
 from app.db import get_session, init_db
 from app.security.crypto import _keys
 

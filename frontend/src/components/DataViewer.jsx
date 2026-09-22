@@ -204,7 +204,7 @@ function CopyButton({ data }) {
     })
   }, [data])
   return (
-    <button className="ghost dv-copy" onClick={handleCopy} title="Copy to clipboard">
+    <button type="button" className="ghost dv-copy" onClick={handleCopy} title="Copy to clipboard">
       {copied ? '✓ Copied' : '⧉ Copy'}
     </button>
   )

@@ -20,7 +20,7 @@ import os
 import shlex
 import time
 from typing import Any, Literal
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse, quote, unquote
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import logging
 import httpx
@@ -1289,8 +1289,10 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             try:
                 req = {"method": p.method, "url": self._build_url(p) if p.url and "{{" not in p.url else p.url, "headers": headers, "query": query, "body": p.body}
                 updated = prov.prepareRequest(req, cred)
-                headers.clear(); headers.update(updated.get("headers") or {})
-                query.clear(); query.update(updated.get("query") or {})
+                headers.clear()
+                headers.update(updated.get("headers") or {})
+                query.clear()
+                query.update(updated.get("query") or {})
             except ValueError as e:
                 raise NodeExecutionError(str(e), code="BAD_REQUEST", node_id=self.node_type, retryable=False) from e
         elif p.auth_type == "custom":

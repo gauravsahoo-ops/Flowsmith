@@ -136,7 +136,7 @@ function EdgeContextMenu({ x, y, edgeId, onClose }) {
       style={{ left: x, top: y }}
       onClick={(e) => e.stopPropagation()}
     >
-      <button className="ctx-danger" onClick={deleteEdge}>
+      <button type="button" className="ctx-danger" onClick={deleteEdge}>
         <span className="ctx-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6" />

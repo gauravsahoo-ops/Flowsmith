@@ -25,7 +25,6 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import User
 from app.security.jwt import create_token, hash_password
-from app.security.safe_http_client import get_safe_http_client
 
 logger = logging.getLogger("sso")
 

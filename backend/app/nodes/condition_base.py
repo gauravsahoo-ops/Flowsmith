@@ -310,7 +310,7 @@ def _compare_array(left: Any, operator: str, right: Any, convert_types: bool) ->
     if not isinstance(left, (list, tuple)):
         if _is_empty(left):
             return operator in ("does not contain", "is empty")
-        raise NodeExecutionError(f"Left value is not an array", code="INVALID_CONDITION", retryable=False)
+        raise NodeExecutionError("Left value is not an array", code="INVALID_CONDITION", retryable=False)
     if operator == "contains":
         return right in left or str(right) in [str(x) for x in left]
     if operator == "does not contain":
@@ -356,7 +356,7 @@ def _compare_date(left: Any, operator: str, right: Any, convert_types: bool) -> 
             raise NodeExecutionError(f"Cannot convert '{left}' or '{right}' to date", code="INVALID_CONDITION", retryable=False)
     else:
         if ld is None or rd is None:
-            raise NodeExecutionError(f"Left or right value is not a valid date (convert types is OFF)", code="INVALID_CONDITION", retryable=False)
+            raise NodeExecutionError("Left or right value is not a valid date (convert types is OFF)", code="INVALID_CONDITION", retryable=False)
     if operator == "is equal to":
         return ld == rd
     if operator == "is not equal to":

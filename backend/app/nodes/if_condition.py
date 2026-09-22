@@ -219,7 +219,6 @@ class IfConditionNode(BaseNode[IfConditionParams]):
                 ))
 
             # Evaluate
-            from app.nodes.condition_base import evaluate_conditions
             try:
                 is_true = evaluate_conditions(resolved_conds, item, convert_types=params.convertTypes)
             except Exception as e:

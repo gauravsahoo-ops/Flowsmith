@@ -15,7 +15,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.ai.client import chat_completion, LLMError
-from app.ai.tools import TOOLS, openai_tools, run_tool
+from app.ai.tools import openai_tools, run_tool
 from app.engine.errors import NodeExecutionError
 from app.engine.node_base import NON_IDEMPOTENT, BaseNode, NodeContext, NodeResult
 from app.nodes.registry import register

@@ -16,7 +16,6 @@ from pydantic import BaseModel, Field
 from app.auth_state.adapter import canonical_provider, normalize_expires_at
 from app.engine.errors import NodeExecutionError
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
-from app.nodes.registry import register
 
 
 class AuthStoreParams(BaseModel):

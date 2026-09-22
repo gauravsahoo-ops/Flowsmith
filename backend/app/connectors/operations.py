@@ -7,21 +7,12 @@ without knowing the underlying implementation details.
 
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Dict, List, Optional, cast
+from typing import Any, Awaitable, Callable, cast
 
 from app.connectors import (
     ConnectorSDK,
     ConnectorError,
     ConnectorHealthCheck,
-    OP_SEARCH,
-    OP_GET,
-    OP_CREATE,
-    OP_UPDATE,
-    OP_DELETE,
-    OP_EXECUTE,
-    OP_HEALTH_CHECK,
-    OP_LIST,
-    OP_DESCRIBE,
 )
 
 

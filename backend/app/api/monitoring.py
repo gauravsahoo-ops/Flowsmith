@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import func, select
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params
 from app.db import get_db
-from app.metrics import render_metrics, _PROCESS_START
+from app.metrics import _PROCESS_START
 from app.models import Execution, User, WebhookDelivery, WorkflowRecord
 
 router = APIRouter(prefix="/api/monitoring", tags=["monitoring"])

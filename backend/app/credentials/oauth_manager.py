@@ -127,7 +127,6 @@ class OAuthManager:
 
     def persist_refresh(self, db: Session, credential_id: str, new_data: Dict[str, Any]) -> None:
         """Persist refreshed tokens back to store."""
-        from app.db import get_session
         rec = db.get(Credential, credential_id)
         if rec is None:
             return

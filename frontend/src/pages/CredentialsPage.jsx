@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { useCredentialStore } from '../stores/credentialStore'
 import PageHeader from '../components/shared/PageHeader'
@@ -46,6 +46,19 @@ export default function CredentialsPage() {
   const [testingId, setTestingId] = useState(null)
   const [testResult, setTestResult] = useState(null)
   const [reconnectingId, setReconnectingId] = useState(null)
+  const mountedRef = useRef(true)
+  const oauthCleanupRef = useRef(null)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (oauthCleanupRef.current) {
+        oauthCleanupRef.current()
+        oauthCleanupRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     load().finally(() => setLoading(false))
@@ -121,13 +134,27 @@ export default function CredentialsPage() {
       } catch {}
 
       let bc = null
+      let pollClosed = null
+      let timeoutTimer = null
+
       const cleanupListeners = () => {
         window.removeEventListener('message', messageHandler)
         window.removeEventListener('storage', storageHandler)
         if (bc) {
           try { bc.close() } catch {}
+          bc = null
         }
+        if (pollClosed) {
+          clearInterval(pollClosed)
+          pollClosed = null
+        }
+        if (timeoutTimer) {
+          clearTimeout(timeoutTimer)
+          timeoutTimer = null
+        }
+        oauthCleanupRef.current = null
       }
+      oauthCleanupRef.current = cleanupListeners
 
       const processResult = (msg) => {
         if (!msg || typeof msg !== 'object') return
@@ -137,16 +164,18 @@ export default function CredentialsPage() {
         if (!isOAuth || (!isSuccess && !isError)) return
         if (msg.provider && msg.provider !== provider) return
         handled = true
-        if (isSuccess || msg.ok) {
-          setNotice(`${msg.provider || provider} connected successfully.`)
-          setError(null)
-        } else {
-          setError(msg.error || 'Authorization failed.')
-          setNotice(null)
+        if (mountedRef.current) {
+          if (isSuccess || msg.ok) {
+            setNotice(`${msg.provider || provider} connected successfully.`)
+            setError(null)
+          } else {
+            setError(msg.error || 'Authorization failed.')
+            setNotice(null)
+          }
+          setOauthBusy('')
+          setFallbackUrl('')
         }
         cleanupListeners()
-        setOauthBusy('')
-        setFallbackUrl('')
         load()
         if (w && !w.closed) {
           try { w.close() } catch {}
@@ -184,28 +213,34 @@ export default function CredentialsPage() {
       } catch {}
 
       if (!w) {
-        setError('Popup was blocked by your browser. Click the "Authorize in New Tab" button below to finish connecting.')
+        if (mountedRef.current) {
+          setError('Popup was blocked by your browser. Click the "Authorize in New Tab" button below to finish connecting.')
+        }
         return
       }
 
       // Detect popup closed without success
-      const pollClosed = setInterval(() => {
+      pollClosed = setInterval(() => {
         if (w.closed) {
-          clearInterval(pollClosed)
-          if (!handled) {
+          if (!handled && mountedRef.current) {
             setOauthBusy('')
             // Check if backend completed connection in the background
-            setTimeout(() => { load() }, 1000)
+            setTimeout(() => { if (mountedRef.current) load() }, 1000)
           }
           cleanupListeners()
         }
       }, 500)
-      setTimeout(() => {
-        clearInterval(pollClosed)
-        setOauthBusy('')
+      timeoutTimer = setTimeout(() => {
+        if (mountedRef.current) setOauthBusy('')
         cleanupListeners()
       }, 120000)
-    } catch (e) { setError(e.message); setOauthBusy(''); setFallbackUrl('') }
+    } catch (e) {
+      if (mountedRef.current) {
+        setError(e.message)
+        setOauthBusy('')
+        setFallbackUrl('')
+      }
+    }
   }
 
   async function handleCreate(e) {

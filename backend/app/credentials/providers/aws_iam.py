@@ -3,7 +3,7 @@ from typing import Any, Dict
 import hashlib
 import hmac
 import time
-from urllib.parse import urlparse, quote
+from urllib.parse import urlparse
 from .base import AuthProvider
 
 class AwsIamAuthProvider(AuthProvider):

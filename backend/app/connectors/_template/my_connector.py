@@ -23,7 +23,6 @@ from pydantic import BaseModel, Field
 
 from app.connectors import (
     ConnectorSDK,
-    ConnectorError,
     ConnectorCategory,
     ConnectorErrorCode,
     make_connector_error,
