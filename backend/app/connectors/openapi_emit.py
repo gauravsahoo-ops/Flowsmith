@@ -435,10 +435,15 @@ def discover_generated(directory: str) -> list[tuple[Any, Any]]:
             stem = connector_file.stem  # gen_<key>_connector
             key = stem[len("gen_"): -len("_connector")]
             try:
-                provider_mod = importlib.import_module(f"gen_{key}_provider")
-                definition_mod = importlib.import_module(f"gen_{key}_definition")
-                connector_mod = importlib.import_module(f"gen_{key}_connector")
-            except ImportError as exc:
+                try:
+                    provider_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_provider")
+                    definition_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_definition")
+                    connector_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_connector")
+                except (ImportError, ModuleNotFoundError):
+                    provider_mod = importlib.import_module(f"gen_{key}_provider")
+                    definition_mod = importlib.import_module(f"gen_{key}_definition")
+                    connector_mod = importlib.import_module(f"gen_{key}_connector")
+            except Exception as exc:
                 log.warning("generated connector %s skipped (import): %s", key, exc)
                 continue
             builders = [
