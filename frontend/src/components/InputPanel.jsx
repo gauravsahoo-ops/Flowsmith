@@ -7,7 +7,7 @@ import { ancestors } from '../utils/graphUtils'
 function unwrapItem(item) {
   if (item == null) return item
   if (typeof item !== 'object') return { value: item }
-  // n8n standard: unwrap { json: { ... } }
+  // Standard: unwrap { json: { ... } }
   if (item.json && typeof item.json === 'object' && !Array.isArray(item.json)) {
     return item.json
   }
@@ -41,7 +41,7 @@ function extractOutputs(step, incomingEdge, fallbackOutputs) {
       for (const k of keys) {
         const val = raw[k]
         if (Array.isArray(val)) {
-          // If 2D array (n8n raw format: [ [ item1, item2 ] ])
+          // If 2D array (raw format: [ [ item1, item2 ] ])
           if (val.length > 0 && Array.isArray(val[0])) {
             branches[k] = val[0].map(unwrapItem)
           } else {
@@ -216,7 +216,7 @@ export default function InputPanel({
 
   return (
     <div className="nem-input-panel">
-      {/* Top Header matching n8n */}
+      {/* Top Header */}
       <div className="nem-input-header">
         <div className="nem-input-title-group">
           <span className="nem-input-title">INPUT</span>
@@ -581,7 +581,7 @@ export default function InputPanel({
   )
 }
 
-// Hierarchical n8n-style Schema Tree view with sample values & copy expressions
+// Hierarchical Schema Tree view with sample values & copy expressions
 function SchemaNodeView({ item, nodeLabel, isDirectParent, onCopy, filter }) {
   if (!item || typeof item !== 'object' || Object.keys(item).length === 0) {
     return <p className="hint" style={{ padding: '8px 4px' }}>No fields found in output payload.</p>

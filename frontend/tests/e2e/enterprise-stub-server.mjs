@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Stub server for n8n-workflow E2E test.
+ * Stub server for complex workflow E2E test.
  * Handles: login, data fetch, search, create, update
  * Port: 8182 (separate from salesforce stub on 8181)
  */
@@ -96,7 +96,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`n8n-workflow stub server listening on http://127.0.0.1:${PORT}`);
+  console.log(`workflow stub server listening on http://127.0.0.1:${PORT}`);
 });
 
 process.on('SIGTERM', () => server.close());

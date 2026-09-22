@@ -183,7 +183,7 @@ print(response.status_code, response.json())`
                 checked={respond}
                 onChange={(e) => onParamsChange({ ...params, respond: e.target.checked })}
               />
-              <span>Wait for execution and return synchronous response (n8n "Respond to Webhook" parity)</span>
+              <span>Wait for execution and return synchronous response</span>
             </label>
 
             <div className="we-url-box">

@@ -425,7 +425,7 @@ export const useWorkflowStore = create((set, get) => ({
       const p = { ...rawParams }
       if (!p.url || p.url === '') p.url = ''
       if (!p.method) p.method = 'GET'
-      // Ensure toggles default to false for new nodes (clean n8n-like empty state)
+      // Ensure toggles default to false for new nodes (clean empty state)
       if (p.sendQuery === undefined) p.sendQuery = false
       if (p.sendHeaders === undefined) p.sendHeaders = false
       if (p.sendBody === undefined) p.sendBody = false

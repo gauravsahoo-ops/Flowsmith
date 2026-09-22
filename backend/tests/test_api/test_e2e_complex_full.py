@@ -1,6 +1,6 @@
-"""E2E test: n8n workflow compatibility.
+"""E2E test: enterprise workflow execution.
 
-Recreates the exact n8n workflow structure and verifies end-to-end execution:
+Verifies end-to-end execution across full node topology:
 
 Schedule Trigger -> Code -> Login API (HTTP) -> IF -> Get Extracted Data (HTTP)
 -> Split -> Loop Over Items -> Run for Each Item (Code) -> Search Custom Object (HTTP)
@@ -142,17 +142,17 @@ def _start_server(handler_cls, port):
 # Workflow builder
 # ---------------------------------------------------------------------------
 
-def build_n8n_workflow(
+def build_enterprise_workflow(
     login_url: str,
     search_url: str,
     create_url: str,
     update_url: str,
 ) -> dict[str, Any]:
-    """Build the exact n8n workflow structure as platform workflow JSON."""
+    """Build the enterprise workflow structure as platform workflow JSON."""
     wf_id = f"wf_{uuid.uuid4().hex[:8]}"
     return {
         "id": wf_id,
-        "name": "n8n Workflow Compatibility Test",
+        "name": "Enterprise Workflow Compatibility Test",
         "nodes": [
             {
                 "id": "schedule_1",
@@ -503,12 +503,12 @@ def mock_servers():
     update_server.shutdown()
 
 
-class TestN8nWorkflowCompatibility:
-    """End-to-end test of the n8n workflow structure."""
+class TestEnterpriseWorkflowE2E:
+    """End-to-end test of the enterprise workflow structure."""
 
     def test_full_workflow_e2e(self, mock_servers):
-        """Test the complete n8n workflow: Schedule -> Code -> Login -> IF -> Search -> Split -> Loop -> IF3 -> Create/Update."""
-        wf = build_n8n_workflow(
+        """Test the complete workflow: Schedule -> Code -> Login -> IF -> Search -> Split -> Loop -> IF3 -> Create/Update."""
+        wf = build_enterprise_workflow(
             login_url=f"http://127.0.0.1:{LOGIN_PORT}/auth/token",
             search_url=f"http://127.0.0.1:{SEARCH_PORT}/services/data/v63.0/query",
             create_url=f"http://127.0.0.1:{CREATE_PORT}/services/data/v63.0/sobjects/Contact",
@@ -549,7 +549,7 @@ class TestN8nWorkflowCompatibility:
             assert code_items[0].get("processed") is True, "Code must add processed=True"
             assert code_items[0].get("batch_id") == "batch_001", "Code must add batch_id"
 
-            # Login API returned token (data at top level in n8n format)
+            # Login API returned token
             assert "http_login" in outputs, "Login API must produce output"
             login_items = outputs["http_login"]["main"]
             assert login_items[0].get("access_token") == "mock_token_abc123", "Login must return token"
@@ -559,7 +559,7 @@ class TestN8nWorkflowCompatibility:
             assert len(outputs["if_1"].get("true", [])) > 0, "IF true branch must have items"
             assert len(outputs["if_1"].get("false", [])) == 0, "IF false branch must be empty"
 
-            # Search returned records (data at top level in n8n format)
+            # Search returned records
             assert "http_search" in outputs, "Search must produce output"
             search_items = outputs["http_search"]["main"]
             assert search_items[0].get("totalSize") == 2, "Search must return 2 records"
@@ -756,7 +756,7 @@ class TestN8nWorkflowCompatibility:
 
     def test_queue_and_worker_flow(self, mock_servers):
         """Test the full queue -> worker -> engine -> result flow (direct engine call)."""
-        wf = build_n8n_workflow(
+        wf = build_enterprise_workflow(
             login_url=f"http://127.0.0.1:{LOGIN_PORT}/auth/token",
             search_url=f"http://127.0.0.1:{SEARCH_PORT}/services/data/v63.0/query",
             create_url=f"http://127.0.0.1:{CREATE_PORT}/services/data/v63.0/sobjects/Contact",
@@ -812,7 +812,7 @@ class TestN8nWorkflowCompatibility:
 
         _SearchHandler.do_GET = dynamic_search
         try:
-            wf = build_n8n_workflow(
+            wf = build_enterprise_workflow(
                 login_url=f"http://127.0.0.1:{LOGIN_PORT}/auth/token",
                 search_url=f"http://127.0.0.1:{SEARCH_PORT}/services/data/v63.0/query",
                 create_url=f"http://127.0.0.1:{CREATE_PORT}/services/data/v63.0/sobjects/Contact",

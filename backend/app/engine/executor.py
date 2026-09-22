@@ -619,7 +619,7 @@ async def _run_one(
     # Phase 8: store the resolver on the context so sub-workflow nodes
     # can propagate credential resolution to child executions.
     ctx._credential_resolver = credential_resolver
-    # Build node name→id mapping for n8n-style $('Node Name') expressions
+    # Build node name→id mapping for $('Node Name') expressions
     node_name_map: dict[str, str] = {}
     for nid, gnode in graph.items():
         # Priority: explicit name > settings.label > display_name from registry
@@ -781,7 +781,7 @@ async def _run_one(
     ctx.expression_context = context
     node_instance = node_cls()
 
-    # Per-item execution for multi-item inputs (n8n parity):
+    # Per-item execution for multi-item inputs:
     # When a Split/Loop fans out items, downstream nodes should process
     # each item individually with its own $json context. Self-resolving
     # nodes (IF, LoopWhile) already handle this internally.

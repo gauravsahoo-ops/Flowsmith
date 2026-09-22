@@ -2524,7 +2524,7 @@ button.delete { color: var(--red); }
   z-index: 12; background: #2b1f22; color: #ffb4ae;
   border: 1px solid #a73b31; border-radius: 8px;
   padding: 7px 14px; font-size: 12.5px;
-}/* ---------- modern n8n-style square node cards ---------- */
+}/* ---------- modern square node cards ---------- */
 .rf-node-wrapper {
   display: flex;
   flex-direction: column;
@@ -2822,7 +2822,7 @@ button.delete { color: var(--red); }
   filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
 }
 
-/* ---------- edge actions (n8n-style inline + and delete) ---------- */
+/* ---------- edge actions (inline + and delete) ---------- */
 .edge-action-pill {
   display: inline-flex;
   align-items: center;
@@ -3666,7 +3666,7 @@ button.delete { color: var(--red); }
 .rag-score { font-size: 11px; opacity: 0.8; }
 .rag-excerpt { font-size: 11.5px; margin-top: 2px; }
 
-/* ---------- Node Editor Modal (n8n-style centered overlay) ---------- */
+/* ---------- Node Editor Modal (centered overlay) ---------- */
 
 .node-editor-overlay {
   position: fixed;
@@ -4402,7 +4402,7 @@ button.delete { color: var(--red); }
 .sf-disc-field-item code { cursor: copy; }
 .sf-disc-field-type { opacity: 0.7; }
 
-/* ---------- Salesforce Browser (n8n-style) ---------- */
+/* ---------- Salesforce Browser ---------- */
 .sf-browser { display: flex; flex-direction: column; height: 100%; background: var(--panel); }
 .sf-browser-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
 .sf-browser-title { font-weight: 600; font-size: 13px; }
@@ -5830,7 +5830,7 @@ button[aria-label="More actions"][aria-expanded="true"] {
 /* Tablet & Mobile Screens (<= 768px) */
 @media (max-width: 768px) {
   /* iOS Safari Auto-Zoom Prevention: inputs must have at least 16px font-size */
-  input, select, textarea, .styled-input, .n8n-select, .search-input {
+  input, select, textarea, .styled-input, .fs-select, .search-input {
     font-size: 16px !important;
   }
 
@@ -5974,7 +5974,7 @@ button[aria-label="More actions"][aria-expanded="true"] {
   }
 }
 
-/* ---------- OutputPanel — n8n reference ---------- */
+/* ---------- OutputPanel ---------- */
 .op-container { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .op-header {
   display: flex;
@@ -6364,7 +6364,7 @@ button:not(:disabled):active {
 }
 
 /* ==========================================================================
-   INPUT Panel (n8n Upstream Ancestor Tree)
+   INPUT Panel (Upstream Ancestor Tree)
    ========================================================================== */
 .nem-input-panel {
   display: flex;
@@ -6816,10 +6816,10 @@ button:not(:disabled):active {
 }
 
 /* ============================================================
-   n8n-style Parameters Section, Switch & Cards
+   Parameters Section, Switch & Cards
    ============================================================ */
 
-.n8n-toggle-header {
+.fs-toggle-header {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -6827,7 +6827,7 @@ button:not(:disabled):active {
   user-select: none;
 }
 
-.n8n-switch {
+.fs-switch {
   position: relative;
   width: 34px;
   height: 18px;
@@ -6838,11 +6838,11 @@ button:not(:disabled):active {
   display: inline-block;
 }
 
-.n8n-switch.active {
+.fs-switch.active {
   background: #22c55e;
 }
 
-.n8n-switch-handle {
+.fs-switch-handle {
   position: absolute;
   top: 2px;
   left: 2px;
@@ -6854,42 +6854,42 @@ button:not(:disabled):active {
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.n8n-switch.active .n8n-switch-handle {
+.fs-switch.active .fs-switch-handle {
   transform: translateX(16px);
 }
 
-.n8n-toggle-label {
+.fs-toggle-label {
   font-size: 13px;
   font-weight: 500;
   color: #f1f5f9;
 }
 
-.n8n-field-header {
+.fs-field-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
 }
 
-.n8n-field-title {
+.fs-field-title {
   font-size: 12px;
   font-weight: 500;
   color: #cbd5e1;
 }
 
-.n8n-field-badge-group {
+.fs-field-badge-group {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.n8n-field-dots {
+.fs-field-dots {
   color: #64748b;
   font-size: 12px;
   cursor: pointer;
 }
 
-.n8n-mode-pill-group {
+.fs-mode-pill-group {
   display: inline-flex;
   background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -6897,7 +6897,7 @@ button:not(:disabled):active {
   padding: 1px;
 }
 
-.n8n-mode-pill {
+.fs-mode-pill {
   font-size: 10px;
   font-weight: 500;
   padding: 1px 6px;
@@ -6909,18 +6909,18 @@ button:not(:disabled):active {
   transition: all 0.1s ease;
 }
 
-.n8n-mode-pill.active {
+.fs-mode-pill.active {
   background: #334155;
   color: #ffffff;
   font-weight: 600;
 }
 
-.n8n-select-wrap {
+.fs-select-wrap {
   position: relative;
   width: 100%;
 }
 
-.n8n-select {
+.fs-select {
   width: 100%;
   background: #11141a;
   border: 1px solid #6366f1;
@@ -6933,25 +6933,25 @@ button:not(:disabled):active {
   cursor: pointer;
 }
 
-.n8n-select:focus {
+.fs-select:focus {
   border-color: #818cf8;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
-.n8n-select option {
+.fs-select option {
   background: #181c24;
   color: #f1f5f9;
   padding: 8px 10px;
 }
 
-.n8n-select option:checked,
-.n8n-select option[selected] {
+.fs-select option:checked,
+.fs-select option[selected] {
   background: #232936;
   color: #ff6d2c;
   font-weight: 600;
 }
 
-.n8n-select-arrow {
+.fs-select-arrow {
   position: absolute;
   right: 10px;
   top: 50%;
@@ -6961,7 +6961,7 @@ button:not(:disabled):active {
   font-size: 10px;
 }
 
-.n8n-items-header {
+.fs-items-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6969,13 +6969,13 @@ button:not(:disabled):active {
   margin-bottom: 8px;
 }
 
-.n8n-items-title {
+.fs-items-title {
   font-size: 12px;
   font-weight: 500;
   color: #cbd5e1;
 }
 
-.n8n-items-add-btn {
+.fs-items-add-btn {
   background: none;
   border: none;
   color: #94a3b8;
@@ -6987,12 +6987,12 @@ button:not(:disabled):active {
   line-height: 1;
 }
 
-.n8n-items-add-btn:hover {
+.fs-items-add-btn:hover {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.08);
 }
 
-.n8n-param-card {
+.fs-param-card {
   background: #181c24;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
@@ -7001,11 +7001,11 @@ button:not(:disabled):active {
   transition: border-color 0.15s ease;
 }
 
-.n8n-param-card:hover {
+.fs-param-card:hover {
   border-color: rgba(255, 255, 255, 0.16);
 }
 
-.n8n-param-card-header {
+.fs-param-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7014,7 +7014,7 @@ button:not(:disabled):active {
   user-select: none;
 }
 
-.n8n-param-card-title {
+.fs-param-card-title {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -7023,17 +7023,17 @@ button:not(:disabled):active {
   color: #e2e8f0;
 }
 
-.n8n-param-card-arrow {
+.fs-param-card-arrow {
   font-size: 9px;
   color: #94a3b8;
   transition: transform 0.15s ease;
 }
 
-.n8n-param-card-arrow.open {
+.fs-param-card-arrow.open {
   transform: rotate(90deg);
 }
 
-.n8n-param-card-delete {
+.fs-param-card-delete {
   background: none;
   border: none;
   color: #ef4444;
@@ -7043,24 +7043,24 @@ button:not(:disabled):active {
   opacity: 0.7;
 }
 
-.n8n-param-card-delete:hover {
+.fs-param-card-delete:hover {
   opacity: 1;
 }
 
-.n8n-param-card-body {
+.fs-param-card-body {
   padding: 6px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.n8n-param-field-label {
+.fs-param-field-label {
   font-size: 11px;
   color: #94a3b8;
   margin-bottom: 4px;
 }
 
-.n8n-param-input {
+.fs-param-input {
   width: 100%;
   background: #0f1217;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -7072,13 +7072,13 @@ button:not(:disabled):active {
   box-sizing: border-box;
 }
 
-.n8n-param-input:focus {
+.fs-param-input:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 /* ============================================================
-   n8n-style Docked Bottom Logs Panel
+   Docked Bottom Logs Panel
    ============================================================ */
 
 .logs-dock {
@@ -7625,7 +7625,7 @@ button:not(:disabled):active {
 
 
 /* ==========================================================================
-   Workflow History & Active Timeline Drawer (n8n-style)
+   Workflow History & Active Timeline Drawer
    ========================================================================== */
 
 @keyframes slideInRight {

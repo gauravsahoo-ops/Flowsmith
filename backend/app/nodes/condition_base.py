@@ -1,4 +1,4 @@
-"""Shared condition model + evaluator (n8n-like, Phase 8 extended).
+"""Shared condition model + evaluator.
 
 Supports:
 - Multiple conditions with AND/OR combinator
@@ -580,7 +580,7 @@ def evaluate_conditions(conditions: list[ConditionRow], item: dict[str, Any], co
         else:
             combinators.append("AND")  # First has no combinator, but we treat as AND
 
-    # Apply AND/OR logic left-to-right (no precedence, like n8n)
+    # Apply AND/OR logic left-to-right (no precedence)
     if not results:
         return False
     current = results[0]

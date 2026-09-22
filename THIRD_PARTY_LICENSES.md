@@ -62,5 +62,5 @@ This document provides a formal inventory and license governance audit for all d
 ## 3. Governance Directives
 
 1. **No Strong Copyleft (AGPL / GPL)**: No core engine, node, connector, or API component may introduce AGPL or GPL dependencies.
-2. **Proprietary Independence**: No proprietary asset, connector schema, or code structure from external commercial vendors (e.g. n8n, Zapier, Make) may be copied. All connectors in FlowSmith implement FlowSmith's own `ConnectorSDK` (`app.connectors`).
+2. **Proprietary Independence**: No proprietary asset, connector schema, or code structure from external commercial vendors may be copied. All connectors in FlowSmith implement FlowSmith's own `ConnectorSDK` (`app.connectors`).
 3. **Continuous License Validation**: Every dependency addition must be reviewed against this policy prior to merge.

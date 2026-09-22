@@ -1,9 +1,9 @@
 /// <reference path="./global.d.ts" />
 /**
- * E2E test: n8n-style workflow (Schedule Trigger → Code → Login → IF →
+ * E2E test: enterprise workflow (Schedule Trigger → Code → Login → IF →
  * Get Data → Split → Loop → Code → Search → IF → Create/Update).
  *
- * Proves that the platform can execute a real-world n8n workflow with:
+ * Proves that the platform can execute a real-world complex workflow with:
  * - HTTP Request nodes (login, GET data, search, POST create, PATCH update)
  * - Code nodes (JS transformation)
  * - IF condition branching
@@ -20,7 +20,7 @@ function auth(token: string) {
 }
 
 async function registerAndLogin(page) {
-  const email = `n8n_${Date.now()}@example.com`;
+  const email = `test_${Date.now()}@example.com`;
   await page.request.post(`${API}/api/auth/register`, { data: { email, password: 'P@ssword1' } });
   const lr = await page.request.post(`${API}/api/auth/login`, { data: { email, password: 'P@ssword1' } });
   const { data } = await lr.json();
@@ -102,7 +102,7 @@ async function trace(page, token, executionId) {
   return (await res.json()).data.steps;
 }
 
-test('n8n workflow: trigger → code → login → IF → get data → split → loop → code → search → IF → create/update', async ({ page }) => {
+test('enterprise workflow: trigger → code → login → IF → get data → split → loop → code → search → IF → create/update', async ({ page }) => {
   const { token } = await registerAndLogin(page);
   await gotoApp(page, token);
 

@@ -85,9 +85,9 @@ class TestAutoDetection:
         ct = cipher_encrypt_v2("gcm-secret")
         assert decrypt_text(ct) == "gcm-secret"
 
-    def test_n8n_json_format(self):
-        """decrypt_text handles n8n's { iv, authTag, ciphertext } JSON format."""
-        # First encrypt normally, then reformat as n8n JSON
+    def test_aes_gcm_json_format(self):
+        """decrypt_text handles standard { iv, authTag, ciphertext } JSON format."""
+        # First encrypt normally, then reformat as AES-GCM JSON
         import base64
         import hashlib
         import os
@@ -97,14 +97,14 @@ class TestAutoDetection:
         key = _derive_aes_256_key(_current_key())
         aesgcm = AESGCM(key)
         nonce = os.urandom(12)
-        plaintext = "n8n-migrated-secret"
+        plaintext = "migrated-secret"
         ct_with_tag = aesgcm.encrypt(nonce, plaintext.encode(), None)
         ciphertext = ct_with_tag[:-16]
         tag = ct_with_tag[-16:]
 
-        n8n_json = json.dumps({
+        gcm_json = json.dumps({
             "iv": base64.b64encode(nonce).decode(),
             "authTag": base64.b64encode(tag).decode(),
             "ciphertext": base64.b64encode(ciphertext).decode(),
         })
-        assert decrypt_text(n8n_json) == plaintext
+        assert decrypt_text(gcm_json) == plaintext

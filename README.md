@@ -11,7 +11,7 @@
 [![Vite](https://img.shields.io/badge/vite-8-646cff)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/license-BSL--1.1-blue)](./LICENSE)
 
-**Flowsmith** is an ultra-premium, self-hosted, source-available workflow automation and orchestration suite engineered to deliver n8n- and Zapier-class capability with complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, and 45+ first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
+**Flowsmith** is an ultra-premium, self-hosted, source-available workflow automation and orchestration suite engineered to deliver enterprise-grade visual orchestration with complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, and 45+ first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
 
 ---
 
@@ -21,7 +21,7 @@
 
 ### Core Purpose & Target Audience
 - **Target Audience**: DevOps engineers, enterprise architects, backend developers, automation specialists, and IT teams requiring secure on-premise or private-cloud orchestration.
-- **Problem It Solves**: Eliminates exorbitant per-task SaaS subscription fees (Zapier, Workato, Make) while eliminating compliance risks associated with transmitting sensitive enterprise credentials and customer records to third-party multi-tenant clouds.
+- **Problem It Solves**: Eliminates exorbitant per-task SaaS subscription fees and execution quotas while eliminating compliance risks associated with transmitting sensitive enterprise credentials and customer records to third-party multi-tenant clouds.
 - **Enterprise Grade**: Full OAuth2 + PKCE support, Fernet (AES-128-CBC) encrypted credential vault at rest, SSRF prevention, multi-tenant organization workspaces, audit logging, and custom white-label branding.
 
 ---
@@ -58,7 +58,7 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 - **Interactive Login & Auth Showcase**: Ambient background glowing orbs with breathing animations, an interactive live pipeline preview displaying real-time execution stats (`14ms`, `AES-128 Fernet`, `Async SSE`), show/hide password toggle, and SSO connectivity.
 - **Fluid Micro-Animations**: Smooth card hover lifts (`translateY(-3px)`), button shimmer states, and pulsing live indicators (`● Active`, `● Encrypted`, `● Success`).
 - **Tactile Visual Canvas**: 78px beveled glass node cards with category-colored glows (Triggers: Amber, Connectors: Blue, Logic: Indigo/Purple, AI: Cyan), custom input/output port handles, and instant node context menus.
-- **Clamped 3-Panel Node Editor Modal**: n8n-style centered modal with safe viewport containment (`max-width: 1480px; max-height: 920px`) and 16px overlay padding, preventing edge clipping and guaranteeing persistent visibility of modal action controls (`✨ AI Auto-Repair`, `▶ Previous`, `▶ Execute Step`, and `✕ Close`).
+- **Clamped 3-Panel Node Editor Modal**: Precision centered modal with safe viewport containment (`max-width: 1480px; max-height: 920px`) and 16px overlay padding, preventing edge clipping and guaranteeing persistent visibility of modal action controls (`✨ AI Auto-Repair`, `▶ Previous`, `▶ Execute Step`, and `✕ Close`).
 - **Responsive Panel Switcher**: Below `1150px`, the 3-panel layout automatically adapts into clean single-panel tab views (`Input`, `Parameters`, `Output`) with real-time status badges, allowing comfortable node editing on laptops, tablets, and split-screen windows without content squishing.
 - **Full DAG Ancestor Inspection**: The Input Panel traverses the execution graph backwards, presenting upstream ancestor outputs as collapsible cards with auto-expanded direct parents, schema/table/JSON views, visual expression copy helpers, and zero-overlap card accordions.
 - **Full Android & iOS Mobile Optimization**:
@@ -344,7 +344,7 @@ Flowsmith/
 │   │   ├── config.py           # Typed environment configurations (Pydantic Settings)
 │   │   ├── db.py               # SQLAlchemy engine, session maker, connection pool
 │   │   ├── runner.py           # In-process asynchronous task execution manager
-│   │   ├── importexport.py     # Native & n8n workflow import/export converter
+│   │   ├── importexport.py     # Workflow import/export and cross-platform converter
 │   │   ├── api/                # 30 REST API modules (170+ endpoints)
 │   │   │   ├── auth.py         # Login, register, JWT token refresh, password resets
 │   │   │   ├── workflows.py    # Workflow CRUD, active toggling, imports/exports
@@ -532,7 +532,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `GET /api/workflows/{id}/versions` — List immutable version snapshots
 - `POST /api/workflows/{id}/rollback` — Rollback to a specific snapshot
 - `GET /api/workflows/{id}/export` — Export workflow JSON
-- `POST /api/workflows/import` — Import workflow (Flowsmith native or n8n JSON format)
+- `POST /api/workflows/import` — Import workflow (Flowsmith native or standard workflow JSON format)
 - `POST /api/workflows/{id}/preview-expression` — Live evaluate visual expressions against upstream node context
 
 ### Executions & Live Traces

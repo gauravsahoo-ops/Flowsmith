@@ -55,8 +55,8 @@ _TERNARY_RE = re.compile(
 _ARITH_RE = re.compile(
     r"^(.+?)\s*([+\-*/%])\s*(.+)$"
 )
-# n8n-style: $('Node Name').item.json.field or $('Node Name').first.json.field
-_N8N_NODE_RE = re.compile(r"\$\(\s*['\"](.+?)['\"]\s*\)\s*\.\s*(?:item|first)\s*\.")
+# Named node reference: $('Node Name').item.json.field or $('Node Name').first.json.field
+_NAMED_NODE_RE = re.compile(r"\$\(\s*['\"](.+?)['\"]\s*\)\s*\.\s*(?:item|first)\s*\.")
 
 _ARITH_OPS = {
     "+": operator.add,
@@ -281,7 +281,7 @@ def build_context(
 
     Args:
         node_name_map: Optional mapping of display_name -> node_id for
-                       n8n-style ``$('Node Name')`` expressions.
+                       named ``$('Node Name')`` expressions.
     """
     first = input_items[0] if input_items else {}
     node_ctx: dict[str, Any] = {}
@@ -316,13 +316,13 @@ def _edit_distance(a: str, b: str) -> int:
     return prev[-1]
 
 
-def _convert_n8n_expressions(expr: str, context: dict[str, Any]) -> str:
-    """Convert n8n-style $('Node Name').item.json.field to $node.id.json.field."""
+def _convert_named_node_expressions(expr: str, context: dict[str, Any]) -> str:
+    """Convert named node $('Node Name').item.json.field to $node.id.json.field."""
     name_map = context.get("_node_name_map", {})
     if not name_map:
         return expr
 
-    def _replace_n8n(m: re.Match) -> str:
+    def _replace_named(m: re.Match) -> str:
         node_name = m.group(1)
         # 1. Exact match
         node_id = name_map.get(node_name) or name_map.get(node_name.lower())
@@ -349,7 +349,7 @@ def _convert_n8n_expressions(expr: str, context: dict[str, Any]) -> str:
         # Fallback: try the name as-is (might be a node ID already)
         return f"$node.{node_name}."
 
-    return _N8N_NODE_RE.sub(_replace_n8n, expr)
+    return _NAMED_NODE_RE.sub(_replace_named, expr)
 
 
 def resolve(value: Any, context: dict[str, Any]) -> Any:
@@ -357,9 +357,9 @@ def resolve(value: Any, context: dict[str, Any]) -> Any:
     if isinstance(value, str):
         if not _EXPR_RE.search(value):
             return value
-        # Convert n8n-style $('Node Name').item.json.field to $node.id.json.field
-        value = _convert_n8n_expressions(value, context)
-        # Strip leading '=' used in n8n-style assignment expressions (e.g. "={{$json.x}}")
+        # Convert $('Node Name').item.json.field to $node.id.json.field
+        value = _convert_named_node_expressions(value, context)
+        # Strip leading '=' used in assignment expressions (e.g. "={{$json.x}}")
         stripped = value
         if value.lstrip().startswith("={"):
             stripped = value.lstrip()[1:]

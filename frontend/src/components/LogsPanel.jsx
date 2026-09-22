@@ -1,4 +1,4 @@
-// LogsPanel (n8n-style docked bottom execution logs panel)
+// LogsPanel: docked bottom execution logs panel
 // Displays live execution logs, node status, duration, item counts,
 // Input/Output data inspection with Schema / Table / JSON segmented views,
 // syncs selection with the canvas on click, and can pop out into the full console.

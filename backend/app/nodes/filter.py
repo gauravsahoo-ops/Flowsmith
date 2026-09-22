@@ -1,4 +1,4 @@
-"""Filter node — keeps only items matching condition(s) (Phase 43 / n8n parity).
+"""Filter node — keeps only items matching condition(s).
 
 Keeps only items matching the conditions; non-matching items are dropped
 so downstream nodes receive a filtered stream.

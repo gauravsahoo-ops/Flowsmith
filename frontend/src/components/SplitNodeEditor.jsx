@@ -287,7 +287,7 @@ export default function SplitNodeEditor({ node, onParamsChange, mapping, onPrevi
               +
             </button>
 
-            {/* n8n style popup menu */}
+            {/* Options popup menu */}
             {optionsMenuOpen && (
               <div
                 style={{

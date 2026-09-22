@@ -1,4 +1,4 @@
-"""Code validation endpoint for Code node (n8n-like Check Code)."""
+"""Code validation endpoint for Code node."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException

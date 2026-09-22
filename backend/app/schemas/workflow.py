@@ -23,7 +23,7 @@ class WorkflowNode(BaseModel):
 
     `parameters` are passed to the node; `settings` hold engine-level
     options such as `continue_on_error` and `timeout_seconds`.
-    `credentials` maps credential type -> credential id (n8n-style
+    `credentials` maps credential type -> credential id (named
     references, spec 12).
     """
 
@@ -36,7 +36,7 @@ class WorkflowNode(BaseModel):
     parameters: dict = Field(default_factory=dict)
     settings: dict = Field(default_factory=dict)
     credentials: dict[str, str] = Field(default_factory=dict)
-    name: str = Field(default="", description="Display name for n8n-style $('Name') expressions.")
+    name: str = Field(default="", description="Display name for $('Name') expressions.")
     pinned_data: Any = Field(default=None, description="Pinned mock output data (bypasses execution).")
 
 

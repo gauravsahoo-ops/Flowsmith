@@ -492,7 +492,7 @@ async def test_14_expression_resolution_in_body():
         node = HTTPRequestNode()
         result = await node.run(ctx, params, [item])
         # Mock handler echoes request body in response's "body" field
-        # With n8n format, response data is at top level
+        # Response data is at top level
         echoed_body = result.output_items[0]["body"]
         assert echoed_body["user"] == "Bob"
         assert echoed_body["role"] == "admin"

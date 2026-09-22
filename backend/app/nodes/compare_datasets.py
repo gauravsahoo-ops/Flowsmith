@@ -28,7 +28,7 @@ class MatchFieldPair(BaseModel):
 class CompareDatasetsParams(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    # n8n-parity fields
+    # Dataset comparison fields
     fieldsToMatch: list[MatchFieldPair | dict[str, Any]] = Field(
         default_factory=list,
         description="List of field pairs to match items between Input A and Input B.",

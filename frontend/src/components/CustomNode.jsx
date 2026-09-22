@@ -212,7 +212,7 @@ function CustomNode({ id, data, selected }) {
     (status === 'success' || status === 'failed' || status === 'skipped' || status === 'error' || running) &&
     (preview.outputCount != null || preview.error || preview.durationMs != null || status === 'skipped')
 
-  // Derive dynamic subtitle (matching n8n style)
+  // Derive dynamic subtitle (matching node configuration)
   let subtitle = ''
   let fullSubtitle = ''
   const nodeType = data.node.type

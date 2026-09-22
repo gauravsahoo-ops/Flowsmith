@@ -1,4 +1,4 @@
-"""IF / Condition node — n8n-like with multi-conditions, AND/OR, convertTypes."""
+"""IF / Condition node with multi-conditions, AND/OR logic, and convertTypes."""
 
 from __future__ import annotations
 

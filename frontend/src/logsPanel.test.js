@@ -53,7 +53,7 @@ describe('Logs feature utils and data structures', () => {
     expect(fmtItems(null, null)).toBe('')
   })
 
-  it('unrolls n8n json wrapper items cleanly', () => {
+  it('unrolls json wrapper items cleanly', () => {
     expect(unrollItems(null)).toEqual([])
     expect(unrollItems([{ json: { foo: 'bar' } }])).toEqual([{ foo: 'bar' }])
     expect(unrollItems({ main: [{ json: { id: 10 } }] })).toEqual([{ id: 10 }])

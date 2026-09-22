@@ -1,4 +1,4 @@
-// NodeEditorModal: n8n-style centered node editor with three-panel layout.
+// NodeEditorModal: centered node editor with three-panel layout.
 // Left: INPUT — upstream data (JSON/Table/Schema)
 // Center: PARAMETERS — node configuration form (JsonForm)
 // Right: OUTPUT — execution results (JSON/Table/Schema)
@@ -491,7 +491,7 @@ export default function NodeEditorModal() {
 
         {/* Three-panel body */}
         <div className="nem-body">
-          {/* INPUT panel — n8n multi-node upstream tree */}
+          {/* INPUT panel — multi-node upstream tree */}
           <div className={`nem-panel nem-input ${activeTab === 'input' ? 'mobile-active' : ''}`}>
             <InputPanel
               currentNodeId={selectedId}
@@ -884,7 +884,7 @@ export default function NodeEditorModal() {
             </div>
           </div>
 
-          {/* OUTPUT panel — n8n reference */}
+          {/* OUTPUT panel — execution results */}
           <div className={`nem-panel nem-output ${activeTab === 'output' ? 'mobile-active' : ''}`}>
             <OutputPanel
               data={outputData}

@@ -656,15 +656,6 @@ export default function FilterNodeEditor({
         {/* Version Footer */}
         <div className="filter-version-footer">
           <span>Filter node version 2.3 (Latest)</span>
-          <a
-            href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="filter-version-link"
-          >
-            <span>Docs</span>
-            <span>↗</span>
-          </a>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 // Visual Expression Autocomplete & Live Evaluation Modal/Drawer
-// Provides clean-room n8n-style variable tree autocomplete, pipe helpers,
+// Provides visual variable tree autocomplete, pipe helpers,
 // and real-time live preview evaluation against upstream node context.
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'

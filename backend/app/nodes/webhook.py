@@ -1,7 +1,7 @@
 """Webhook trigger node (spec 7, node #3, section 32).
 
 A public URL starts the workflow. The node receives the raw HTTP
-payload as trigger items and normalizes it into n8n-style items:
+payload as trigger items and normalizes it into standard items:
 
     {"body": <payload>, "headers": {...}, "query": {...}, "params": {...}}
 

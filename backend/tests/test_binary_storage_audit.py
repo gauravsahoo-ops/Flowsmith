@@ -15,7 +15,7 @@ def test_format_file_size():
     assert format_file_size(2 * 1024 * 1024 * 1024) == "2.0 GB"
 
 def test_prepare_and_get_binary_data():
-    sample_bytes = b"Hello Flowsmith Binary Storage with n8n parity!"
+    sample_bytes = b"Hello Flowsmith Enterprise Binary Storage!"
     meta = prepare_binary_data(sample_bytes, file_name="greeting.txt", mime_type="text/plain")
 
     assert meta["fileName"] == "greeting.txt"

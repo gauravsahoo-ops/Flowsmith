@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 def _coerce_record_id(value) -> str:
     """Normalise a record_id that may arrive as a string, dict, or list.
 
-    n8n-style expressions like {{ $(Node).item.json.records }} resolve to
+    Expressions like {{ $(Node).item.json.records }} resolve to
     the raw SOQL records array (list of dicts with an Id key). We auto-extract
     the first element and log a warning so existing workflows keep working.
     """

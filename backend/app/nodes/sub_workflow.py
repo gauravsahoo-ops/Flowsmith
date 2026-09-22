@@ -73,7 +73,7 @@ class SubWorkflowNode(BaseNode[SubWorkflowParams]):
     node_type = "sub_workflow"
     display_name = "Execute Sub-workflow"
     version = 1
-    description = "Helpers for calling other n8n workflows. Used for designing modular, microservice-like workflows."
+    description = "Helpers for calling other workflows. Used for designing modular, microservice-like workflows."
     category = "Flow"
     icon = "sub_workflow"
     parameters_schema = SubWorkflowParams

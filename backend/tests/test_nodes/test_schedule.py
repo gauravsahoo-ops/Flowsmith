@@ -23,13 +23,13 @@ async def _run(params: dict, items: list[dict] | None = None):
     return await node.run(ctx, p, items or [])
 
 
-# ── n8n-compatible output fields ──
+# ── Standard output fields ──
 
-async def test_valid_cron_produces_n8n_output():
+async def test_valid_cron_produces_standard_output():
     result = await _run({"cron": "*/5 * * * *"})
     assert result.output_items is not None
     item = result.output_items[0]
-    # n8n-compatible fields
+    # Standard schedule fields
     assert "timestamp" in item
     assert "Readable date" in item
     assert "Readable time" in item
@@ -68,7 +68,7 @@ async def test_empty_cron_rejected():
         ScheduleTriggerParams.model_validate({"cron": ""})
 
 
-# ── Rules-based format: output has n8n fields ──
+# ── Rules-based format: output has standard fields ──
 
 async def test_rules_seconds_output():
     result = await _run({"rules": [{"id": "r1", "interval": "seconds", "value": 5, "timezone": "UTC"}]})
@@ -193,8 +193,8 @@ def test_trigger_rule_to_cron_custom():
 
 # ── Output field values ──
 
-async def test_output_fields_match_n8n():
-    """Verify all n8n-compatible fields are present and correctly typed."""
+async def test_output_fields_match_standard_spec():
+    """Verify all standard fields are present and correctly typed."""
     result = await _run({"rules": [{"interval": "minutes", "value": 5, "timezone": "Asia/Kolkata"}]})
     item = result.output_items[0]
     assert isinstance(item["timestamp"], str)
