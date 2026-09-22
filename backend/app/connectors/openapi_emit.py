@@ -97,7 +97,7 @@ def emit_provider(key: str, api: ApiSpec) -> str:
     ]
     if auth.kind == "api_key_header":
         lines += [
-            f"    token = str((creds or {{}}).get('api_key') or '').strip()",
+            "    token = str((creds or {}).get('api_key') or '').strip()",
             "    if not token:",
             "        return {}, {}",
             f"    return {{{_py_str(auth.name)}: token}}, {{}}",
@@ -241,7 +241,7 @@ def emit_definition(key: str, display_name: str, api: ApiSpec, category: str = "
         f"        credential_require={require},",
         "        retryable=retryable,",
         "        idempotency=idempotency,",
-        f"        node_types=[CONNECTOR_KEY],",
+        "        node_types=[CONNECTOR_KEY],",
         "    )",
         "",
         "",
@@ -435,10 +435,15 @@ def discover_generated(directory: str) -> list[tuple[Any, Any]]:
             stem = connector_file.stem  # gen_<key>_connector
             key = stem[len("gen_"): -len("_connector")]
             try:
-                provider_mod = importlib.import_module(f"gen_{key}_provider")
-                definition_mod = importlib.import_module(f"gen_{key}_definition")
-                connector_mod = importlib.import_module(f"gen_{key}_connector")
-            except ImportError as exc:
+                try:
+                    provider_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_provider")
+                    definition_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_definition")
+                    connector_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_connector")
+                except (ImportError, ModuleNotFoundError):
+                    provider_mod = importlib.import_module(f"gen_{key}_provider")
+                    definition_mod = importlib.import_module(f"gen_{key}_definition")
+                    connector_mod = importlib.import_module(f"gen_{key}_connector")
+            except Exception as exc:
                 log.warning("generated connector %s skipped (import): %s", key, exc)
                 continue
             builders = [

@@ -1,4 +1,4 @@
-"""Workflow import/export tests (native round-trip + n8n JSON)."""
+"""Workflow import/export tests (native round-trip + external JSON)."""
 
 from __future__ import annotations
 
@@ -9,14 +9,14 @@ def _setup(client):
     return auth_headers(register(client)["token"])
 
 
-def _n8n_doc(name="n8n Import"):
+def _external_doc(name="External Import"):
     return {
         "name": name,
         "nodes": [
             {
                 "id": "11111111-1111-1111-1111-111111111111",
                 "name": "When clicking",
-                "type": "n8n-nodes-base.manualTrigger",
+                "type": "manualTrigger",
                 "typeVersion": 1,
                 "position": [0, 0],
                 "parameters": {},
@@ -24,7 +24,7 @@ def _n8n_doc(name="n8n Import"):
             {
                 "id": "22222222-2222-2222-2222-222222222222",
                 "name": "Set",
-                "type": "n8n-nodes-base.set",
+                "type": "set",
                 "typeVersion": 3.4,
                 "position": [240, 0],
                 "parameters": {
@@ -36,7 +36,7 @@ def _n8n_doc(name="n8n Import"):
             {
                 "id": "33333333-3333-3333-3333-333333333333",
                 "name": "If",
-                "type": "n8n-nodes-base.if",
+                "type": "if",
                 "typeVersion": 2,
                 "position": [480, 0],
                 "parameters": {
@@ -108,12 +108,12 @@ def test_import_conflicting_id_gets_fresh_id(client):
     assert resp.json()["meta"]["source_id"] == "wf_1"
 
 
-def test_import_n8n_document_converts(client):
+def test_import_external_document_converts(client):
     headers = _setup(client)
-    resp = client.post("/api/workflows/import", json=_n8n_doc(), headers=headers)
+    resp = client.post("/api/workflows/import", json=_external_doc(), headers=headers)
     assert resp.status_code == 201, resp.text
     wf = resp.json()["data"]
-    assert wf["name"] == "n8n Import"
+    assert wf["name"] == "External Import"
     assert wf["id"].startswith("wf_import_")
 
     types = {n["id"]: n["type"] for n in wf["nodes"]}
@@ -133,18 +133,18 @@ def test_import_n8n_document_converts(client):
     assert edge_map.get("n1") == "n2"
     assert edge_map.get("n2") == "n3"
     true_edge = [c for c in conns if c["source"] == "n3" and c["sourceHandle"] == "true"]
-    assert len(true_edge) == 0  # dangling n8n branch (unknown target) dropped
+    assert len(true_edge) == 0  # dangling branch (unknown target) dropped
     assert not any(c["source"] == "n3" for c in conns)
 
 
-def test_import_n8n_unknown_node_type_rejected(client):
+def test_import_external_unknown_node_type_rejected(client):
     headers = _setup(client)
-    doc = _n8n_doc()
+    doc = _external_doc()
     doc["nodes"].append(
         {
             "id": "99999999-9999-9999-9999-999999999999",
             "name": "Fancy",
-            "type": "n8n-nodes-base.slack",
+            "type": "external.unsupportedType",
             "typeVersion": 2,
             "position": [900, 0],
             "parameters": {},
@@ -152,7 +152,7 @@ def test_import_n8n_unknown_node_type_rejected(client):
     )
     resp = client.post("/api/workflows/import", json=doc, headers=headers)
     assert resp.status_code == 422
-    assert "n8n-nodes-base.slack" in resp.json()["detail"]
+    assert "external.unsupportedType" in resp.json()["detail"]
 
 
 def test_import_garbage_rejected(client):

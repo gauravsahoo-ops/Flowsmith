@@ -1,4 +1,4 @@
-"""Universal HTTP Request node — n8n-grade HTTP client.
+"""Universal HTTP Request node — enterprise HTTP client.
 
 Covers: GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS · headers · query ·
 {path} params · JSON (fields/raw) / form / multipart / raw bodies ·
@@ -20,7 +20,7 @@ import os
 import shlex
 import time
 from typing import Any, Literal
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse, quote, unquote
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import logging
 import httpx
@@ -291,10 +291,13 @@ class HTTPRequestParams(BaseModel):
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] = "GET"
     url: str = Field(min_length=1, description="Target URL; supports {placeholder} path params and {{ expressions }}.")
 
-    # Toggles — n8n-style dynamic sections
-    sendQuery: bool = Field(default=False, description="Whether to send query parameters.")
-    sendHeaders: bool = Field(default=False, description="Whether to send custom headers.")
-    sendBody: bool = Field(default=False, description="Whether to send a request body.")
+    # Toggles — dynamic configuration sections
+    sendQuery: bool = Field(default=False, description="Whether to include query parameters.")
+    sendHeaders: bool = Field(default=False, description="Whether to include custom headers.")
+    sendBody: bool = Field(default=False, description="Whether to include a request body.")
+    specifyHeaders: str = Field(default="keypair", description="Deprecated toggle compat.")
+    specifyBody: str = Field(default="keypair", description="Deprecated toggle compat.")
+    specifyQuery: str = Field(default="keypair", description="Deprecated toggle compat.")
 
     # Path params (legacy)
     path_params: dict[str, Any] = Field(default_factory=dict, description="{placeholder} substitution values.")
@@ -316,15 +319,15 @@ class HTTPRequestParams(BaseModel):
     bodyParameters: list[BodyParam] | None = Field(default=None, description="Body fields as list for UI (JSON fields mode).")
     # Raw body content when jsonBodyMode=raw or bodyContentType=raw
     rawBody: str | None = Field(default=None, description="Raw body content (JSON string, XML, text).")
-    # Query parameters: fields vs JSON mode (n8n-like)
+    # Query parameters: fields vs JSON mode
     queryMode: Literal["fields", "json"] = Field(default="fields", description="How query parameters are specified: fields or JSON.")
     queryJson: str | None = Field(default=None, description="JSON object for query parameters when queryMode==json.")
-    # Headers: fields vs JSON mode (n8n-like)
+    # Headers: fields vs JSON mode
     headerMode: Literal["fields", "json"] = Field(default="fields", description="How headers are specified: fields or JSON.")
     headerJson: str | None = Field(default=None, description="JSON object for headers when headerMode==json.")
 
     # Auth — new high-level mode + legacy for compat
-    authentication: Literal["none", "predefined", "generic"] = Field(default="none", description="High-level auth mode (n8n-style).")
+    authentication: Literal["none", "predefined", "generic"] = Field(default="none", description="High-level authentication mode.")
     predefinedType: str = Field(default="", description="Predefined credential type id when authentication==predefined (e.g., salesforce-oauth2).")
     # Auth — generic providers (8) plus legacy api_key for compat
     auth_type: Literal["none", "bearer", "basic", "api_key", "oauth2", "header", "query", "digest", "custom", "oauth1"] = "none"
@@ -495,7 +498,7 @@ class HTTPRequestParams(BaseModel):
 
     @model_validator(mode="after")
     def _validate_url_and_body(self) -> "HTTPRequestParams":
-        # High-level authentication validation (n8n-style)
+        # High-level authentication validation
         if self.authentication == "predefined" and not self.predefinedType:
             raise ValueError("Predefined Credential Type is required when Authentication is 'Predefined Credential Type'.")
         if self.authentication == "generic" and self.auth_type in ("none", ""):
@@ -620,16 +623,18 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
     _filter_kwargs = staticmethod(filter_client_kwargs)
 
     async def _do_request(self, ctx, params, url, headers, query, json_body, data, files=None):
-        # Build kwargs for client.request
         kwargs: dict[str, Any] = {
             "headers": headers or None,
             "params": query or None,
             "json": json_body,
-            "data": data,
             "timeout": params.timeout_seconds,
             "follow_redirects": params.follow_redirects,
             "max_response_bytes": params.max_response_bytes,
         }
+        if isinstance(data, (str, bytes)):
+            kwargs["content"] = data
+        elif data is not None:
+            kwargs["data"] = data
         if files is not None:
             kwargs["files"] = files
         # Handle SSL and redirect limits via client options if supported
@@ -713,7 +718,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                         raise NodeExecutionError("Header name must not be empty.", code="BAD_REQUEST", node_id=self.node_type, retryable=False)
                 headers = {k.strip(): v if v is not None else "" for k, v in (params.headers or {}).items() if k.strip()}
         else:
-            # sendHeaders is False: do not send custom headers (strict n8n behavior)
+            # sendHeaders is False: do not send custom headers
             # But for backward compat, if headers is non-empty and sendHeaders was not explicitly set to False, allow
             if params.headers and "sendHeaders" not in params.model_fields_set:
                 # Legacy: headers present but toggle not explicitly set, treat as enabled
@@ -1284,8 +1289,10 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             try:
                 req = {"method": p.method, "url": self._build_url(p) if p.url and "{{" not in p.url else p.url, "headers": headers, "query": query, "body": p.body}
                 updated = prov.prepareRequest(req, cred)
-                headers.clear(); headers.update(updated.get("headers") or {})
-                query.clear(); query.update(updated.get("query") or {})
+                headers.clear()
+                headers.update(updated.get("headers") or {})
+                query.clear()
+                query.update(updated.get("query") or {})
             except ValueError as e:
                 raise NodeExecutionError(str(e), code="BAD_REQUEST", node_id=self.node_type, retryable=False) from e
         elif p.auth_type == "custom":
@@ -1424,7 +1431,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 else:
                     body = response.text if response.text else ""
 
-        # n8n-compatible: response data at top level, metadata alongside
+        # Response data at top level, metadata alongside
         # If body is a dict, merge it at top level so {{ $json.field }} works directly
         _META_KEYS = {"status", "statusCode", "statusMessage", "headers", "responseTime", "request", "responseTimeMs"}
         if isinstance(body, dict):

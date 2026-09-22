@@ -1,16 +1,16 @@
 /// <reference path="./global.d.ts" />
 /**
- * E2E test: n8n-style workflow (Schedule Trigger → Code → Login → IF →
+ * E2E test: enterprise workflow (Schedule Trigger → Code → Login → IF →
  * Get Data → Split → Loop → Code → Search → IF → Create/Update).
  *
- * Proves that the platform can execute a real-world n8n workflow with:
+ * Proves that the platform can execute a real-world complex workflow with:
  * - HTTP Request nodes (login, GET data, search, POST create, PATCH update)
  * - Code nodes (JS transformation)
  * - IF condition branching
  * - Split + Loop Over Items
  * - Create/Update branching based on search result
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const API = 'http://localhost:8000';
 const STUB = 'http://127.0.0.1:8182';
@@ -19,17 +19,17 @@ function auth(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-async function registerAndLogin(page) {
-  const email = `n8n_${Date.now()}@example.com`;
+async function registerAndLogin(page: Page) {
+  const email = `test_${Date.now()}@example.com`;
   await page.request.post(`${API}/api/auth/register`, { data: { email, password: 'P@ssword1' } });
   const lr = await page.request.post(`${API}/api/auth/login`, { data: { email, password: 'P@ssword1' } });
   const { data } = await lr.json();
-  return { email, token: data.token };
+  return { email, token: data.token as string };
 }
 
-async function gotoApp(page, token) {
+async function gotoApp(page: Page, token: string) {
   await page.goto('http://localhost:5173');
-  await page.evaluate((t) => localStorage.setItem('mat_token', t), token);
+  await page.evaluate((t: string) => localStorage.setItem('mat_token', t), token);
   await page.reload();
   await page.waitForLoadState('networkidle');
   try {
@@ -46,38 +46,41 @@ async function gotoApp(page, token) {
   }
 }
 
-async function addNode(page, type, x, y) {
+async function addNode(page: Page, type: string, x: number, y: number): Promise<string> {
   return page.evaluate(
-    ({ type, x, y }) => {
+    ({ type, x, y }: { type: string; x: number; y: number }) => {
       window.__wfStore.getState().addNode(type, { x, y });
-      const all = window.__wfStore.getState().nodes.filter((n) => n.data?.node?.type === type);
-      return all[all.length - 1].data.node.id;
+      const all = window.__wfStore.getState().nodes.filter((n: any) => n.data?.node?.type === type);
+      const last = all[all.length - 1];
+      return (last?.data?.node?.id ?? '') as string;
     },
     { type, x, y },
   );
 }
 
-async function setParams(page, nodeId, params) {
+async function setParams(page: Page, nodeId: string, params: Record<string, any>) {
   await page.evaluate(
-    ({ nodeId, params }) => {
+    ({ nodeId, params }: { nodeId: string; params: Record<string, any> }) => {
       const store = window.__wfStore.getState();
-      const n = store.nodes.find((n) => n.data?.node?.id === nodeId);
-      store.updateNode(n.id, { parameters: params });
+      const n = store.nodes.find((item: any) => item.data?.node?.id === nodeId);
+      if (n) {
+        store.updateNode(n.id, { parameters: params });
+      }
     },
     { nodeId, params },
   );
 }
 
-async function connect(page, sourceId, targetId, sourceHandle = 'main', targetHandle = 'main') {
+async function connect(page: Page, sourceId: string, targetId: string, sourceHandle = 'main', targetHandle = 'main') {
   await page.evaluate(
-    ({ sourceId, targetId, sourceHandle, targetHandle }) => {
+    ({ sourceId, targetId, sourceHandle, targetHandle }: { sourceId: string; targetId: string; sourceHandle: string; targetHandle: string }) => {
       window.__wfStore.getState().onConnect({ source: sourceId, target: targetId, sourceHandle, targetHandle });
     },
     { sourceId, targetId, sourceHandle, targetHandle },
   );
 }
 
-async function saveWorkflow(page) {
+async function saveWorkflow(page: Page) {
   await page.waitForTimeout(2000);
   await page.evaluate(() => window.__wfStore.getState().save());
   await page.waitForFunction(
@@ -89,20 +92,20 @@ async function saveWorkflow(page) {
   );
 }
 
-async function latestExecutionId(page, token, workflowId) {
+async function latestExecutionId(page: Page, token: string, workflowId: string) {
   const res = await page.request.get(`${API}/api/executions?workflow_id=${workflowId}&pageSize=20`, { headers: auth(token) });
   const list = (await res.json()).data;
-  const found = list.find((e) => e.workflow_id === workflowId && e.status === 'success');
+  const found = list.find((e: any) => e.workflow_id === workflowId && e.status === 'success');
   expect(found, 'a successful execution exists').toBeTruthy();
   return found.id;
 }
 
-async function trace(page, token, executionId) {
+async function trace(page: Page, token: string, executionId: string) {
   const res = await page.request.get(`${API}/api/executions/${executionId}/trace`, { headers: auth(token) });
   return (await res.json()).data.steps;
 }
 
-test('n8n workflow: trigger → code → login → IF → get data → split → loop → code → search → IF → create/update', async ({ page }) => {
+test('enterprise workflow: trigger → code → login → IF → get data → split → loop → code → search → IF → create/update', async ({ page }) => {
   const { token } = await registerAndLogin(page);
   await gotoApp(page, token);
 
@@ -227,12 +230,12 @@ test('n8n workflow: trigger → code → login → IF → get data → split →
   await expect(page.locator('.topbar .run-status.status-success')).toHaveText('success', { timeout: 60000 });
 
   // ── Verify trace ────────────────────────────────────────────
-  const wfId = await page.evaluate(() => window.__wfStore.getState().workflow.id);
+  const wfId = await page.evaluate(() => (window.__wfStore?.getState()?.workflow?.id ?? '') as string);
   const executionId = await latestExecutionId(page, token, wfId);
   const steps = await trace(page, token, executionId);
 
   // All 12 nodes should have executed (no skips for this topology)
-  const executedTypes = steps.filter((s) => s.status === 'success').map((s) => s.node_type);
+  const executedTypes = steps.filter((s: any) => s.status === 'success').map((s: any) => s.node_type);
   expect(executedTypes).toContain('manual_trigger');
   expect(executedTypes).toContain('code');
   expect(executedTypes).toContain('http_request');
@@ -241,11 +244,11 @@ test('n8n workflow: trigger → code → login → IF → get data → split →
   expect(executedTypes).toContain('loop_over_items');
 
   // The search node should have returned found: false (new emails)
-  const searchStep = steps.find((s) => s.node_type === 'http_request' && s.outputs?.main?.[0]?.body?.found !== undefined);
+  const searchStep = steps.find((s: any) => s.node_type === 'http_request' && s.outputs?.main?.[0]?.body?.found !== undefined);
   expect(searchStep).toBeTruthy();
   expect(searchStep.outputs.main[0].body.found).toBe(false);
 
   // The IF2 should have routed to the create (false branch = not found)
-  const createStep = steps.find((s) => s.node_type === 'http_request' && s.outputs?.main?.[0]?.body?.success === true && s.outputs?.main?.[0]?.body?.id?.startsWith('rec_'));
+  const createStep = steps.find((s: any) => s.node_type === 'http_request' && s.outputs?.main?.[0]?.body?.success === true && s.outputs?.main?.[0]?.body?.id?.startsWith('rec_'));
   expect(createStep).toBeTruthy();
 });

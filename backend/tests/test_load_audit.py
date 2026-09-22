@@ -380,8 +380,11 @@ async def test_load_queue_stress_100():
     processed = 0
     wall_start = time.perf_counter()
 
+    claim_timeout = 60.0
     async with httpx.AsyncClient() as client:
         while processed < 100:
+            if time.perf_counter() - wall_start > claim_timeout:
+                break
             claimed = queue.claim()
             if claimed is None:
                 await asyncio.sleep(0.01)

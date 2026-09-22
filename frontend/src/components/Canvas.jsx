@@ -136,7 +136,7 @@ function EdgeContextMenu({ x, y, edgeId, onClose }) {
       style={{ left: x, top: y }}
       onClick={(e) => e.stopPropagation()}
     >
-      <button className="ctx-danger" onClick={deleteEdge}>
+      <button type="button" className="ctx-danger" onClick={deleteEdge}>
         <span className="ctx-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6" />
@@ -482,14 +482,6 @@ function CanvasInner() {
 
       <CanvasToolbar />
       {flash && <div className="canvas-flash">{flash}</div>}
-      {isEmpty && (
-        <div className="canvas-empty">
-          <div className="canvas-empty-icon">🗂️</div>
-          <h3>Workflow is empty</h3>
-          <p>Drag a node from the left palette to start building your workflow.</p>
-          <p className="hint">A workflow must contain at least one node.</p>
-        </div>
-      )}
       <ReactFlow
         nodes={decoratedNodes}
         edges={displayEdges}
@@ -523,7 +515,7 @@ function CanvasInner() {
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={22} size={1.4} />
-        {nodes.length === 0 && (
+        {isEmpty && (
           <div className="canvas-empty-state">
             <div className="canvas-empty-card">
               <FlowsmithBrandMark size={42} variant="badge" glow />

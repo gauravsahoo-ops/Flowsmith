@@ -6,14 +6,14 @@ from fastapi.testclient import TestClient
 from app.main import CSRFMiddleware
 
 # Create test app with strict allowed origins
-test_app = FastAPI()
-test_app.add_middleware(CSRFMiddleware, allowed_origins=["http://localhost:8000"])
+csrf_app = FastAPI()
+csrf_app.add_middleware(CSRFMiddleware, allowed_origins=["http://localhost:8000"])
 
-@test_app.post("/test-action")
+@csrf_app.post("/test-action")
 def dummy_action():
     return {"ok": True}
 
-client = TestClient(test_app, raise_server_exceptions=False)
+client = TestClient(csrf_app, raise_server_exceptions=False)
 
 
 def test_csrf_blocks_unauthorized_external_origin():

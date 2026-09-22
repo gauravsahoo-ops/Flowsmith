@@ -26,14 +26,11 @@ from app.audit import (
     WORKFLOW_DEACTIVATE,
     WORKFLOW_DELETE,
     WORKFLOW_SHARE,
-    WORKFLOW_UNSHARE,
     WORKFLOW_UPDATE,
     log_event,
 )
 from app.api.access import (
-    PERMISSION_EDIT,
     PERMISSION_VIEW,
-    SHARE_PERMISSIONS,
     accessible_ids,
     batch_permissions,
     get_permission,
@@ -210,7 +207,7 @@ def import_workflow(
     body: dict, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
     """Import a workflow from the export envelope, a native document, or
-    an n8n JSON export (best-effort conversion of supported node types).
+    a standard workflow JSON export (best-effort conversion of supported node types).
 
     A fresh workflow id is generated when the source id is missing or
     already taken, so re-importing never clobbers an existing workflow.
@@ -525,7 +522,7 @@ def preview_expression(
     uf = _uf_impl(db, rec.data or {}, body.node_id)
     node_ctx: dict[str, Any] = {}
     json_first: dict[str, Any] | None = None
-    # Build node name→id map for n8n-style $('Node Name') expressions
+    # Build node name→id map for $('Node Name') expressions
     node_name_map: dict[str, str] = {}
     for n in (rec.data or {}).get("nodes") or []:
         nid = n.get("id", "")

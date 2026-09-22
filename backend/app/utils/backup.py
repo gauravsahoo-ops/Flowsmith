@@ -23,7 +23,6 @@ import logging
 import os
 import shutil
 import subprocess
-import sys
 import urllib.parse
 from datetime import UTC, datetime, timedelta
 from pathlib import Path

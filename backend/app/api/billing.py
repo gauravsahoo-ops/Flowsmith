@@ -9,7 +9,6 @@ secret unset).
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
@@ -17,7 +16,6 @@ from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
 from app.api.common import ok
-from app.audit import log_event
 from app.billing import (
     StripeError,
     create_checkout_session,

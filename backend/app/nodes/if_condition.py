@@ -1,4 +1,4 @@
-"""IF / Condition node — n8n-like with multi-conditions, AND/OR, convertTypes."""
+"""IF / Condition node with multi-conditions, AND/OR logic, and convertTypes."""
 
 from __future__ import annotations
 
@@ -219,7 +219,6 @@ class IfConditionNode(BaseNode[IfConditionParams]):
                 ))
 
             # Evaluate
-            from app.nodes.condition_base import evaluate_conditions
             try:
                 is_true = evaluate_conditions(resolved_conds, item, convert_types=params.convertTypes)
             except Exception as e:

@@ -1,8 +1,8 @@
-"""Credential encryption service with multi-key rotation and n8n-parity cipher.encryptV2 (AES-256-GCM).
+"""Credential encryption service with multi-key rotation and AES-256-GCM cipher (cipher.encryptV2).
 
 Credential data is encrypted at rest using:
 - v1 (Fernet / AES-128-CBC + HMAC-SHA256): Default backwards-compatible token.
-- v2 (AES-256-GCM): Authenticated Galois/Counter Mode cipher matching n8n cipher.encryptV2.
+- v2 (AES-256-GCM): Authenticated Galois/Counter Mode cipher.
 
 Key rotation: CREDENTIALS_ENCRYPTION_KEY accepts a comma-separated list of keys.
 """
@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import re
-from typing import Any
 
 from cryptography.exceptions import InvalidTag
 from cryptography.fernet import Fernet, InvalidToken
@@ -62,7 +61,7 @@ def encrypt_text(plaintext: str) -> bytes:
 
 
 def cipher_encrypt_v2(plaintext: str) -> bytes:
-    """n8n-parity cipher.encryptV2: AES-256-GCM authenticated encryption.
+    """AES-256-GCM authenticated encryption.
 
     Formats output as: v2:{nonce_b64}:{tag_b64}:{ciphertext_b64}
     """
@@ -80,7 +79,7 @@ def cipher_encrypt_v2(plaintext: str) -> bytes:
 
 
 def cipher_decrypt_v2(stored: bytes | str) -> str:
-    """Decrypt an AES-256-GCM v2 token or n8n JSON object with iv/authTag/ciphertext."""
+    """Decrypt an AES-256-GCM v2 token or JSON object with iv/authTag/ciphertext."""
     raw_str = stored.decode("utf-8", errors="replace") if isinstance(stored, bytes) else str(stored)
     raw_str = raw_str.strip()
 
@@ -99,14 +98,14 @@ def cipher_decrypt_v2(stored: bytes | str) -> str:
         except Exception as exc:
             raise CredentialDecryptionError(f"Malformed base64 in v2 cipher token: {exc}") from exc
     elif raw_str.startswith("{") and "ciphertext" in raw_str:
-        # n8n direct export format: { "iv": "...", "authTag": "...", "ciphertext": "..." }
+        # Direct JSON export format: { "iv": "...", "authTag": "...", "ciphertext": "..." }
         try:
             parsed = json.loads(raw_str)
             iv_bytes = base64.b64decode(parsed.get("iv", ""))
             tag_bytes = base64.b64decode(parsed.get("authTag", ""))
             ct_bytes = base64.b64decode(parsed.get("ciphertext", ""))
         except Exception as exc:
-            raise CredentialDecryptionError(f"Invalid n8n v2 json cipher format: {exc}") from exc
+            raise CredentialDecryptionError(f"Invalid v2 json cipher format: {exc}") from exc
     else:
         raise CredentialDecryptionError("Not a recognized v2 cipher format.")
 
@@ -142,7 +141,7 @@ def decrypt_text(stored: bytes | str) -> str:
     """Decrypt stored ciphertext back to plaintext.
 
     Automatically detects:
-    - v2 tokens (v2:... or n8n JSON cipher) -> AES-256-GCM
+    - v2 tokens (v2:... or JSON cipher) -> AES-256-GCM
     - v1 tokens (k0:... or legacy Fernet) -> Fernet AES-128-CBC
     """
     if isinstance(stored, str):
@@ -171,7 +170,7 @@ def decrypt_text(stored: bytes | str) -> str:
 
 
 class CipherService:
-    """Cipher service providing n8n-compatible API (cipher.encryptV2, cipher.decryptV2)."""
+    """Cipher service providing unified encryption API (cipher.encryptV2, cipher.decryptV2)."""
 
     encrypt = staticmethod(encrypt_text)
     decrypt = staticmethod(decrypt_text)
@@ -179,5 +178,5 @@ class CipherService:
     decryptV2 = staticmethod(cipher_decrypt_v2)
 
 
-# Singleton export matching n8n's cipher module
+# Singleton export of cipher module
 cipher = CipherService()

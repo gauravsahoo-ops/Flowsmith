@@ -1,4 +1,4 @@
-"""Loop Over Items — visual alias for Loop (n8n parity)."""
+"""Loop Over Items — visual alias for Loop."""
 from __future__ import annotations
 
 from app.nodes.loop import LoopOverItemsNode

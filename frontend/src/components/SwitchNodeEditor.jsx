@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import MappingField from './MappingField'
-import { OPERATOR_CATEGORIES, CATEGORY_OPERATORS } from './FilterNodeEditor'
+import { OPERATOR_CATEGORIES, CATEGORY_OPERATORS } from '../utils/filterOperators'
 import './SwitchNodeEditor.css'
 
 const MODES = [

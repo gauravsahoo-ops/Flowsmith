@@ -1,4 +1,4 @@
-"""Reference workflow E2E — reproduces the attached n8n screenshot pattern:
+"""Reference workflow E2E — multi-step orchestration pattern:
 
 Schedule/Manual → Code (prepare) → HTTP Login → IF → HTTP Get Data → Split → Loop Over Items → Code (per item) → Salesforce Search → IF → Create / Update
 

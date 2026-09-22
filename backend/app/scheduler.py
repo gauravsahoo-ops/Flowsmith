@@ -273,7 +273,7 @@ class Scheduler:
                         "cron": rule.cron,
                         "timezone": rule.timezone,
                         "workflow_id": rule.workflow_id,
-                        # n8n-compatible human-readable fields
+                        # Standard human-readable fields
                         "Readable date": fire_at.strftime("%B ") + (
                             f"{fire_at.day}{'th' if 11 <= fire_at.day <= 13 else {1:'st',2:'nd',3:'rd'}.get(fire_at.day % 10, 'th')}"
                         ) + fire_at.strftime(f" %Y, {fire_at.hour % 12 or 12}:{fire_at.minute:02d}:{fire_at.second:02d} {'am' if fire_at.hour < 12 else 'pm'}"),
@@ -328,7 +328,7 @@ class Scheduler:
             "cron": rule.cron,
             "timezone": rule.timezone,
             "workflow_id": rule.workflow_id,
-            # n8n-compatible human-readable fields
+            # Standard human-readable fields
             "Readable date": next_fire.strftime("%B ") + (
                 f"{next_fire.day}{'th' if 11 <= next_fire.day <= 13 else {1:'st',2:'nd',3:'rd'}.get(next_fire.day % 10, 'th')}"
             ) + next_fire.strftime(f" %Y, {next_fire.hour % 12 or 12}:{next_fire.minute:02d}:{next_fire.second:02d} {'am' if next_fire.hour < 12 else 'pm'}"),

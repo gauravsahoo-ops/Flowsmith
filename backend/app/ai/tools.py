@@ -52,7 +52,7 @@ def _database_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
     if not sql:
         raise ValueError("'sql' is required.")
     stripped = sql.lstrip()
-    if not stripped[:20].upper().split()[0] in ("SELECT", "EXPLAIN", "PRAGMA", "WITH"):
+    if stripped[:20].upper().split()[0] not in ("SELECT", "EXPLAIN", "PRAGMA", "WITH"):
         raise ValueError("Only read-only SQL is allowed (SELECT/EXPLAIN/PRAGMA/WITH).")
     creds = ctx.credentials.get("database")
     if not creds or not creds.get("dsn"):
@@ -73,7 +73,6 @@ def _database_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
 
 # The HTTP tool performs its own request (mirrors the http_request node):
 async def _http_tool_async(ctx: NodeContext, args: dict[str, Any]) -> Any:
-    import httpx
 
     url = args.get("url")
     if not url:

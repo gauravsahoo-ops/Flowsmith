@@ -43,7 +43,7 @@ async function main() {
   console.log('After delete all attempt, nodes:', afterCount);
   console.log('Error:', error);
   // Check canvas still has nodes or shows empty state
-  const canvasEmpty = await page.locator('.canvas-empty').count();
+  const canvasEmpty = await page.locator('.canvas-empty-state').count();
   console.log('Canvas empty overlay:', canvasEmpty);
   const banner = await page.locator('.banner, .banner-inline').first().textContent().catch(()=> 'no banner');
   console.log('Banner:', banner.slice(0,200));

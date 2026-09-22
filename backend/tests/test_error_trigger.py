@@ -56,14 +56,14 @@ async def test_error_trigger_passes_live_error_context():
     assert setter_out[0]["handled"] is True
 
 
-def test_error_trigger_n8n_import():
-    n8n_data = {
-        "name": "N8N Error Handler",
+def test_error_trigger_external_import():
+    data = {
+        "name": "External Error Handler",
         "nodes": [
             {
                 "id": "node_1",
                 "name": "Error Trigger",
-                "type": "n8n-nodes-base.errorTrigger",
+                "type": "errorTrigger",
                 "typeVersion": 1,
                 "position": [250, 300],
                 "parameters": {},
@@ -71,6 +71,6 @@ def test_error_trigger_n8n_import():
         ],
         "connections": {},
     }
-    imported = parse_import(n8n_data)
+    imported = parse_import(data)
     assert len(imported["nodes"]) == 1
     assert imported["nodes"][0]["type"] == "error_trigger"

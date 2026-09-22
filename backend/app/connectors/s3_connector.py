@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import base64
 import logging
-from typing import Any, Dict, List, Optional
-import httpx
+from typing import Any, Dict, List
 
 from app.connectors import (
     ConnectorSDK,
     ConnectorCategory,
     ConnectorHealthCheck,
-    ConnectorError,
     ConnectorErrorCode,
     make_connector_error,
 )

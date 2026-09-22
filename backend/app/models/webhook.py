@@ -1,8 +1,7 @@
 """Trigger registration models (spec 32: webhooks table, 33: schedules).
 
 Triggers snapshot the workflow JSON and version at activation time, so
-a webhook/schedule fires the exact version the user activated (like
-n8n). `sync` in app/triggers/registry.py keeps these tables in line
+a webhook/schedule fires the exact version the user activated. `sync` in app/triggers/registry.py keeps these tables in line
 with the active workflows.
 """
 

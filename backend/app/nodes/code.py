@@ -1,4 +1,4 @@
-"""Code node — n8n-like JavaScript/Python execution.
+"""Code node — high-performance JavaScript/Python execution engine.
 
 Supports:
 - Mode: Run Once for All Items / Run Once for Each Item
@@ -17,10 +17,7 @@ Execution:
 from __future__ import annotations
 
 import ast
-import asyncio
 import logging
-import textwrap
-import time
 from typing import Any, List
 
 from pydantic import BaseModel, Field, model_validator
@@ -45,7 +42,7 @@ def _safe_print(*args: Any, **kwargs: Any) -> None:
 
 class CodeParams(BaseModel):
     code: str = Field(default="for (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\nreturn $input.all();", description="JavaScript code to execute.")
-    jsCode: str | None = Field(default=None, description="Alias for code (n8n import compat).")
+    jsCode: str | None = Field(default=None, description="Alias for code (import compatibility).")
     language: str = Field(default="javascript", description="javascript or python")
     mode: str = Field(default="runOnceForAllItems", description="Run Once for All Items or Run Once for Each Item")
 
@@ -95,7 +92,7 @@ _SAFE_BUILTINS = {
 class InputWrapper:
     """$input API for Code node."""
     def __init__(self, items: List[dict[str, Any]], current_idx: int = 0):
-        # Normalize items to {json: ...} shape as in n8n
+        # Normalize items to {json: ...} standard shape
         normalized = []
         for it in items:
             if isinstance(it, dict) and "json" in it and len(it) == 1:

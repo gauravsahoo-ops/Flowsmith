@@ -8,7 +8,7 @@ Single source: ScheduleTriggerParams.rules
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Literal
 
 from croniter import croniter
@@ -152,7 +152,7 @@ class ScheduleTriggerNode(BaseNode[ScheduleTriggerParams]):
         tz = rule.timezone
         now = datetime.now(ZoneInfo(tz))
 
-        # n8n-compatible human-readable output fields
+        # Standard human-readable output fields
         ordinal = lambda d: (
             f"{d}{'th' if 11 <= d <= 13 else {1:'st',2:'nd',3:'rd'}.get(d % 10, 'th')}"
         )

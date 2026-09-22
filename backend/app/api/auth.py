@@ -219,7 +219,6 @@ def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session =
 def reset_password(body: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)) -> dict:
     """Consume a single-use token and set the new password."""
     import hashlib
-    import secrets
     from datetime import UTC, datetime
 
     new_password = body.new_password.strip()

@@ -244,9 +244,9 @@ function QueryParamRow({ index, name, value, onNameChange, onValueChange, onRemo
   const [collapsed, setCollapsed] = useState(false)
   const displayName = name ? name : `Parameter ${index + 1}`
   return (
-    <div className="n8n-param-card">
-      <div className="n8n-param-card-header" onClick={() => setCollapsed(v => !v)}>
-        <span className="n8n-param-card-title">
+    <div className="fs-param-card">
+      <div className="fs-param-card-header" onClick={() => setCollapsed(v => !v)}>
+        <span className="fs-param-card-title">
           <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', display: 'inline-block', width: 14, lineHeight: 1 }}>
             {collapsed ? '›' : '⌄'}
           </span>
@@ -254,7 +254,7 @@ function QueryParamRow({ index, name, value, onNameChange, onValueChange, onRemo
         </span>
         <button
           type="button"
-          className="n8n-param-card-delete"
+          className="fs-param-card-delete"
           onClick={(e) => {
             e.stopPropagation()
             onRemove()
@@ -265,7 +265,7 @@ function QueryParamRow({ index, name, value, onNameChange, onValueChange, onRemo
         </button>
       </div>
       {!collapsed && (
-        <div className="n8n-param-card-body">
+        <div className="fs-param-card-body">
           <div>
             {mapping ? (
               <MappingField
@@ -278,9 +278,9 @@ function QueryParamRow({ index, name, value, onNameChange, onValueChange, onRemo
               />
             ) : (
               <div>
-                <div className="n8n-param-field-label">Name</div>
+                <div className="fs-param-field-label">Name</div>
                 <input
-                  className="n8n-param-input"
+                  className="fs-param-input"
                   value={name}
                   onChange={(e) => onNameChange(e.target.value)}
                   onBlur={(e) => onNameChange(e.target.value.trim())}
@@ -301,9 +301,9 @@ function QueryParamRow({ index, name, value, onNameChange, onValueChange, onRemo
               />
             ) : (
               <div>
-                <div className="n8n-param-field-label">Value</div>
+                <div className="fs-param-field-label">Value</div>
                 <input
-                  className="n8n-param-input"
+                  className="fs-param-input"
                   value={value}
                   onChange={(e) => onValueChange(e.target.value)}
                   placeholder="value"
@@ -321,9 +321,9 @@ function HeaderRow({ index, name, value, onNameChange, onValueChange, onRemove, 
   const [collapsed, setCollapsed] = useState(false)
   const displayName = name ? name : `Header ${index + 1}`
   return (
-    <div className="n8n-param-card">
-      <div className="n8n-param-card-header" onClick={() => setCollapsed(v => !v)}>
-        <span className="n8n-param-card-title">
+    <div className="fs-param-card">
+      <div className="fs-param-card-header" onClick={() => setCollapsed(v => !v)}>
+        <span className="fs-param-card-title">
           <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', display: 'inline-block', width: 14, lineHeight: 1 }}>
             {collapsed ? '›' : '⌄'}
           </span>
@@ -332,7 +332,7 @@ function HeaderRow({ index, name, value, onNameChange, onValueChange, onRemove, 
         </span>
         <button
           type="button"
-          className="n8n-param-card-delete"
+          className="fs-param-card-delete"
           onClick={(e) => {
             e.stopPropagation()
             onRemove()
@@ -343,14 +343,14 @@ function HeaderRow({ index, name, value, onNameChange, onValueChange, onRemove, 
         </button>
       </div>
       {!collapsed && (
-        <div className="n8n-param-card-body">
+        <div className="fs-param-card-body">
           <div>
             {mapping ? (
               <MappingField schema={{ title: 'Name', description: 'Header name, e.g., Accept or Authorization' }} value={name} onChange={onNameChange} path={`header_${index}_name`} mapping={mapping} onPreview={onPreview} />
             ) : (
               <div>
-                <div className="n8n-param-field-label">Name</div>
-                <input className="n8n-param-input" value={name} onChange={(e) => onNameChange(e.target.value)} onBlur={(e) => onNameChange(e.target.value.trim())} placeholder="Accept" />
+                <div className="fs-param-field-label">Name</div>
+                <input className="fs-param-input" value={name} onChange={(e) => onNameChange(e.target.value)} onBlur={(e) => onNameChange(e.target.value.trim())} placeholder="Accept" />
               </div>
             )}
           </div>
@@ -359,8 +359,8 @@ function HeaderRow({ index, name, value, onNameChange, onValueChange, onRemove, 
               <MappingField schema={{ title: 'Value', description: 'e.g., application/json or Bearer {{$json.token}}' }} value={value} onChange={onValueChange} path={`header_${index}_value`} mapping={mapping} onPreview={onPreview} />
             ) : (
               <div>
-                <div className="n8n-param-field-label">Value</div>
-                <input className="n8n-param-input" value={value} onChange={(e) => onValueChange(e.target.value)} placeholder="application/json" />
+                <div className="fs-param-field-label">Value</div>
+                <input className="fs-param-input" value={value} onChange={(e) => onValueChange(e.target.value)} placeholder="application/json" />
               </div>
             )}
           </div>
@@ -374,14 +374,14 @@ function ToggleSection({ label, checked, onChange, children, hint }) {
   return (
     <div className="cfg-section open" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', marginBottom: 12, background: checked ? 'var(--panel-2)' : 'transparent' }}>
       <div
-        className="n8n-toggle-header"
+        className="fs-toggle-header"
         onClick={() => onChange(!checked)}
         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, userSelect: 'none' }}
       >
-        <div className={`n8n-switch ${checked ? 'active' : ''}`}>
-          <div className="n8n-switch-handle" />
+        <div className={`fs-switch ${checked ? 'active' : ''}`}>
+          <div className="fs-switch-handle" />
         </div>
-        <span className="n8n-toggle-label">{label}</span>
+        <span className="fs-toggle-label">{label}</span>
       </div>
       {hint && <p className="hint" style={{ margin: '4px 0 8px 44px' }}>{hint}</p>}
       {checked && <div style={{ marginTop: 10 }}>{children}</div>}
@@ -708,21 +708,21 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* Specify Query Parameters Header */}
-          <div className="n8n-field-header">
-            <span className="n8n-field-title">Specify Query Parameters</span>
-            <div className="n8n-field-badge-group">
-              <span className="n8n-field-dots" title="Options">⋮</span>
-              <div className="n8n-mode-pill-group">
+          <div className="fs-field-header">
+            <span className="fs-field-title">Specify Query Parameters</span>
+            <div className="fs-field-badge-group">
+              <span className="fs-field-dots" title="Options">⋮</span>
+              <div className="fs-mode-pill-group">
                 <button
                   type="button"
-                  className={`n8n-mode-pill ${(params.queryMode || 'fields') === 'fields' ? 'active' : ''}`}
+                  className={`fs-mode-pill ${(params.queryMode || 'fields') === 'fields' ? 'active' : ''}`}
                   onClick={() => patch({ queryMode: 'fields' })}
                 >
                   Fixed
                 </button>
                 <button
                   type="button"
-                  className={`n8n-mode-pill ${(params.queryMode || 'fields') === 'json' ? 'active' : ''}`}
+                  className={`fs-mode-pill ${(params.queryMode || 'fields') === 'json' ? 'active' : ''}`}
                   onClick={() => patch({ queryMode: 'json' })}
                 >
                   Expression
@@ -731,25 +731,25 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
             </div>
           </div>
 
-          <div className="n8n-select-wrap">
+          <div className="fs-select-wrap">
             <select
-              className="n8n-select"
+              className="fs-select"
               value={params.queryMode || 'fields'}
               onChange={(e) => patch({ queryMode: e.target.value })}
             >
               <option value="fields">Using Fields Below</option>
               <option value="json">Using JSON</option>
             </select>
-            <span className="n8n-select-arrow">▾</span>
+            <span className="fs-select-arrow">▾</span>
           </div>
 
           {(params.queryMode || 'fields') === 'fields' ? (
             <div>
-              <div className="n8n-items-header">
-                <span className="n8n-items-title">Query Parameters</span>
+              <div className="fs-items-header">
+                <span className="fs-items-title">Query Parameters</span>
                 <button
                   type="button"
-                  className="n8n-items-add-btn"
+                  className="fs-items-add-btn"
                   onClick={() => handleQueryChange([...queryList, { name: '', value: '' }])}
                   title="Add query parameter"
                 >
@@ -820,21 +820,21 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
         hint="Custom HTTP headers"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div className="n8n-field-header">
-            <span className="n8n-field-title">Specify Headers</span>
-            <div className="n8n-field-badge-group">
-              <span className="n8n-field-dots" title="Options">⋮</span>
-              <div className="n8n-mode-pill-group">
+          <div className="fs-field-header">
+            <span className="fs-field-title">Specify Headers</span>
+            <div className="fs-field-badge-group">
+              <span className="fs-field-dots" title="Options">⋮</span>
+              <div className="fs-mode-pill-group">
                 <button
                   type="button"
-                  className={`n8n-mode-pill ${(params.headerMode || 'fields') === 'fields' ? 'active' : ''}`}
+                  className={`fs-mode-pill ${(params.headerMode || 'fields') === 'fields' ? 'active' : ''}`}
                   onClick={() => patch({ headerMode: 'fields' })}
                 >
                   Fixed
                 </button>
                 <button
                   type="button"
-                  className={`n8n-mode-pill ${(params.headerMode || 'fields') === 'json' ? 'active' : ''}`}
+                  className={`fs-mode-pill ${(params.headerMode || 'fields') === 'json' ? 'active' : ''}`}
                   onClick={() => patch({ headerMode: 'json' })}
                 >
                   Expression
@@ -843,25 +843,25 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
             </div>
           </div>
 
-          <div className="n8n-select-wrap">
+          <div className="fs-select-wrap">
             <select
-              className="n8n-select"
+              className="fs-select"
               value={params.headerMode || 'fields'}
               onChange={(e) => patch({ headerMode: e.target.value })}
             >
               <option value="fields">Using Fields Below</option>
               <option value="json">Using JSON</option>
             </select>
-            <span className="n8n-select-arrow">▾</span>
+            <span className="fs-select-arrow">▾</span>
           </div>
 
           {(params.headerMode || 'fields') === 'fields' ? (
             <div>
-              <div className="n8n-items-header">
-                <span className="n8n-items-title">Headers</span>
+              <div className="fs-items-header">
+                <span className="fs-items-title">Headers</span>
                 <button
                   type="button"
-                  className="n8n-items-add-btn"
+                  className="fs-items-add-btn"
                   onClick={() => handleHeaderChange([...headerList, { name: '', value: '' }])}
                   title="Add header"
                 >

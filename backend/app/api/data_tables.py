@@ -9,11 +9,11 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, select, asc, desc, or_, cast, String
+from sqlalchemy import func, select, or_
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
-from app.api.common import ok, page_params
+from app.api.common import ok
 from app.api.workspaces import _require_ws_member
 from app.audit import log_event
 from app.db import get_db

@@ -276,7 +276,7 @@ _raw_names = [
 "Motorhead API",
 "Multiple Headers Auth",
 "Mux MCP OAuth2",
-"n8n API",
+"Custom Webhook API",
 "NASA API",
 "Netlify API",
 "Netscaler ADC API",

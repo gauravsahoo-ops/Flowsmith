@@ -53,3 +53,8 @@ pytest-asyncio>=0.23
 pytest-xdist>=3.5
 respx>=0.21
 fakeredis>=2.23
+
+# lint & security audit
+ruff>=0.8.0
+pip-audit>=2.7.0
+

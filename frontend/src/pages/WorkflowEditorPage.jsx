@@ -1,4 +1,4 @@
-import React, { useEffect, useState, isValidElement } from 'react'
+import React, { Component, useEffect, useState, isValidElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ReactFlowProvider } from '@xyflow/react'
 import TopBar from '../components/TopBar'
@@ -12,6 +12,46 @@ import PageHeader from '../components/shared/PageHeader'
 import LogsPanel from '../components/LogsPanel'
 import WorkflowHistoryDrawer from '../components/WorkflowHistoryDrawer'
 import { setToken } from '../api'
+
+class CanvasErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+  componentDidCatch(error, info) {
+    console.error('Canvas render error contained:', error, info)
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center', background: 'var(--bg, #0b0e14)', color: 'var(--text, #f8fafc)' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: 24 }}>
+            ⚠
+          </div>
+          <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600 }}>Canvas Render Interrupted</h3>
+          <p style={{ margin: '0 0 16px', color: 'var(--muted, #8492a6)', maxWidth: 460, fontSize: 13, lineHeight: 1.5 }}>
+            A node or edge failed to render properly. Your workflow data is safe.
+          </p>
+          <div style={{ padding: '8px 14px', borderRadius: 6, background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#fca5a5', fontFamily: 'monospace', fontSize: 12, marginBottom: 16, maxWidth: 500, overflowX: 'auto' }}>
+            {this.state.error?.message || String(this.state.error)}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="primary" onClick={() => this.setState({ error: null })}>
+              Retry Canvas
+            </button>
+            <button type="button" className="ghost" onClick={() => window.location.reload()}>
+              Reload Editor
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 export default function WorkflowEditorPage() {
   const { id } = useParams()
@@ -60,6 +100,7 @@ export default function WorkflowEditorPage() {
     }
     setLocalError(null)
     load(id).catch(e => setLocalError(e.message))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   // Also ensure canvas is visible even if store still loading
@@ -138,7 +179,9 @@ export default function WorkflowEditorPage() {
         <div className="main" style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden', position: 'relative', display: 'flex' }}>
           <ReactFlowProvider>
             <div className="canvas-wrapper">
-              <Canvas />
+              <CanvasErrorBoundary>
+                <Canvas />
+              </CanvasErrorBoundary>
               <LogsPanel onOpenDebugger={() => handleSetDebuggerOpen(true)} />
             </div>
             <WorkflowHistoryDrawer />

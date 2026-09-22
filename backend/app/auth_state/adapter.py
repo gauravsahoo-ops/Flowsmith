@@ -10,7 +10,7 @@ provider keys fall back to `oauth2` when the bundle carries its own
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from app.credentials.oauth_manager import OAuthManager

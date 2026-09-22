@@ -1,7 +1,7 @@
-"""Code validation endpoint for Code node (n8n-like Check Code)."""
+"""Code validation endpoint for Code node."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.api.auth import get_current_user

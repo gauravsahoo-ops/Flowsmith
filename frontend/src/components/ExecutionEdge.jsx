@@ -1,4 +1,4 @@
-// ExecutionEdge (Phase 12 + n8n Edge Actions): connection wire with live run
+// ExecutionEdge: connection wire with live run
 // highlighting and interactive inline [+] node insertion and [🗑] delete buttons.
 
 import { memo, useState, useRef, useEffect, useMemo } from 'react'

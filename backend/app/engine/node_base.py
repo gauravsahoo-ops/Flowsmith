@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from app.engine.errors import NodeExecutionError
 
+
 IDEMPOTENT = "idempotent"
 CONDITIONALLY_IDEMPOTENT = "conditionally_idempotent"
 NON_IDEMPOTENT = "non-idempotent"

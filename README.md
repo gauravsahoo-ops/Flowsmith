@@ -3,15 +3,15 @@
 > **Designed, architected, and engineered from the ground up by [Gaurav](https://github.com/gauravsahoo-ops) as an original work.**
 
 [![CI](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml)
-[![Backend Tests](https://img.shields.io/badge/backend%20tests-1700%2B%20passing-brightgreen)](#backend-testing-1700-tests)
-[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-277%20passing-brightgreen)](#frontend-testing-277-vitest-tests--e2e-specs)
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-1800%2B%20passing-brightgreen)](#backend-testing-1800-tests)
+[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-285%20passing-brightgreen)](#frontend-testing-285-vitest-tests--e2e-specs)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/react-19-61dafb)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/vite-8-646cff)](https://vitejs.dev/)
-[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+[![License](https://img.shields.io/badge/license-BSL--1.1-blue)](./LICENSE)
 
-**Flowsmith** is an ultra-premium, self-hosted, open-source workflow automation and orchestration suite engineered to deliver n8n- and Zapier-class capability with complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, and 45+ first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
+**Flowsmith** is an ultra-premium, self-hosted, source-available workflow automation and orchestration suite engineered to deliver enterprise-grade visual orchestration with complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, and 45+ first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
 
 ---
 
@@ -21,7 +21,7 @@
 
 ### Core Purpose & Target Audience
 - **Target Audience**: DevOps engineers, enterprise architects, backend developers, automation specialists, and IT teams requiring secure on-premise or private-cloud orchestration.
-- **Problem It Solves**: Eliminates exorbitant per-task SaaS subscription fees (Zapier, Workato, Make) while eliminating compliance risks associated with transmitting sensitive enterprise credentials and customer records to third-party multi-tenant clouds.
+- **Problem It Solves**: Eliminates exorbitant per-task SaaS subscription fees and execution quotas while eliminating compliance risks associated with transmitting sensitive enterprise credentials and customer records to third-party multi-tenant clouds.
 - **Enterprise Grade**: Full OAuth2 + PKCE support, Fernet (AES-128-CBC) encrypted credential vault at rest, SSRF prevention, multi-tenant organization workspaces, audit logging, and custom white-label branding.
 
 ---
@@ -58,7 +58,7 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 - **Interactive Login & Auth Showcase**: Ambient background glowing orbs with breathing animations, an interactive live pipeline preview displaying real-time execution stats (`14ms`, `AES-128 Fernet`, `Async SSE`), show/hide password toggle, and SSO connectivity.
 - **Fluid Micro-Animations**: Smooth card hover lifts (`translateY(-3px)`), button shimmer states, and pulsing live indicators (`● Active`, `● Encrypted`, `● Success`).
 - **Tactile Visual Canvas**: 78px beveled glass node cards with category-colored glows (Triggers: Amber, Connectors: Blue, Logic: Indigo/Purple, AI: Cyan), custom input/output port handles, and instant node context menus.
-- **Clamped 3-Panel Node Editor Modal**: n8n-style centered modal with safe viewport containment (`max-width: 1480px; max-height: 920px`) and 16px overlay padding, preventing edge clipping and guaranteeing persistent visibility of modal action controls (`✨ AI Auto-Repair`, `▶ Previous`, `▶ Execute Step`, and `✕ Close`).
+- **Clamped 3-Panel Node Editor Modal**: Precision centered modal with safe viewport containment (`max-width: 1480px; max-height: 920px`) and 16px overlay padding, preventing edge clipping and guaranteeing persistent visibility of modal action controls (`✨ AI Auto-Repair`, `▶ Previous`, `▶ Execute Step`, and `✕ Close`).
 - **Responsive Panel Switcher**: Below `1150px`, the 3-panel layout automatically adapts into clean single-panel tab views (`Input`, `Parameters`, `Output`) with real-time status badges, allowing comfortable node editing on laptops, tablets, and split-screen windows without content squishing.
 - **Full DAG Ancestor Inspection**: The Input Panel traverses the execution graph backwards, presenting upstream ancestor outputs as collapsible cards with auto-expanded direct parents, schema/table/JSON views, visual expression copy helpers, and zero-overlap card accordions.
 - **Full Android & iOS Mobile Optimization**:
@@ -83,7 +83,7 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 │  └── Client Customization: White-labeling engine, logo upload, color presets, CSS theme │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Backend API & Orchestration (FastAPI + SQLAlchemy 2.0 + Pydantic v2)           :8000  │
-│  ├── REST API: 30 modular routers with 160+ endpoints (OpenAPI / Swagger documentation)│
+│  ├── REST API: 30 modular routers with 170+ endpoints (OpenAPI / Swagger documentation)│
 │  ├── Real-time Streams: WebSocket execution event broadcasting and log streaming       │
 │  ├── Workflow Engine: Cycle detection, DAG topological resolution, branch merging      │
 │  ├── Expression Evaluator: Sandboxed interpolation ({{ $json.* }}, $node, $cred, $env) │
@@ -199,7 +199,7 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 | **Database ORM** | **SQLAlchemy 2.0** | Modern `mapped_column` type-safe object-relational mapping and database abstraction. |
 | **Schema Validation** | **Pydantic v2** | High-speed data serialization, strict payload validation, and typed workflow contracts. |
 | **Primary Database** | **PostgreSQL 16 + pgvector**| ACID-compliant transactional persistence + vector database for RAG document embeddings. |
-| **Database Migrations**| **Alembic** | Automated version-controlled database schema evolution (12 revision scripts). |
+| **Database Migrations**| **Alembic** | Automated version-controlled database schema evolution (14 revision scripts). |
 | **Security & Cryptography** | **Cryptography (Fernet)** | AES-128-CBC encryption for customer credentials, tokens, and secrets at rest. |
 | **Authentication** | **PyJWT + Passlib (PBKDF2)** | Stateless JSON Web Token authentication with secure salt password hashing. |
 | **HTTP Client** | **HTTPX (Async)** | Non-blocking HTTP client powering the `http_request` node with custom SSRF security filters. |
@@ -207,7 +207,7 @@ Flowsmith is designed from the ground up to captivate users and provide a fricti
 | **Cron Scheduling** | **croniter** | Standard Unix 5-field cron parsing powering scheduled background automation triggers. |
 | **Caching & Pub/Sub**| **Redis 7 (Optional)** | Low-latency job queue, real-time event distribution, and external message caching. |
 | **Background Queue** | **Flowsmith Queue Worker** | Dedicated background daemon process (`app.queue.worker`) for parallel execution consumption. |
-| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1700+ backend tests, 281 frontend unit tests (13 test suites), and end-to-end browser specs. |
+| **Testing Frameworks** | **Pytest + Vitest + Playwright** | 1800+ backend tests, 285 frontend unit tests (12 test suites), and end-to-end browser specs. |
 | **Monitoring** | **Prometheus + Grafana** | Built-in `/api/metrics` instrumentation endpoint and pre-packaged visual Grafana dashboard. |
 | **Containerization** | **Docker & Docker Compose** | Multi-stage production container packaging (Node 22 + Python 3.12) with multi-service orchestrator. |
 
@@ -344,8 +344,8 @@ Flowsmith/
 │   │   ├── config.py           # Typed environment configurations (Pydantic Settings)
 │   │   ├── db.py               # SQLAlchemy engine, session maker, connection pool
 │   │   ├── runner.py           # In-process asynchronous task execution manager
-│   │   ├── importexport.py     # Native & n8n workflow import/export converter
-│   │   ├── api/                # 30 REST API modules (160+ endpoints)
+│   │   ├── importexport.py     # Workflow import/export and cross-platform converter
+│   │   ├── api/                # 30 REST API modules (170+ endpoints)
 │   │   │   ├── auth.py         # Login, register, JWT token refresh, password resets
 │   │   │   ├── workflows.py    # Workflow CRUD, active toggling, imports/exports
 │   │   │   ├── executions.py   # Execution history, traces, manual execution & retry
@@ -366,9 +366,9 @@ Flowsmith/
 │   │   ├── connectors/         # 45+ first-party enterprise connectors (+ OpenAPI catalog)
 │   │   ├── providers/          # Low-level external integration clients
 │   │   ├── queue/              # Asynchronous job queue & worker processes
-│   │   ├── models/             # 19 SQLAlchemy ORM model files (29 tables)
+│   │   ├── models/             # 20 SQLAlchemy ORM model files (30 relational tables)
 │   │   └── security/           # Safe HTTP clients, SSRF filters, Fernet encryption
-│   ├── tests/                  # 1700+ automated backend pytest tests
+│   ├── tests/                  # 1800+ automated backend pytest tests
 │   ├── alembic/                # Database migrations (schema evolution)
 │   └── requirements.txt        # Backend dependencies
 ├── frontend/
@@ -383,7 +383,7 @@ Flowsmith/
 │   │   ├── stores/             # Zustand state management (workflowStore, executionStore, etc.)
 │   │   ├── api.js              # Comprehensive REST client with interceptors
 │   │   └── index.css           # Master design system with glassmorphic tokens & animations
-│   ├── tests/                  # Frontend unit tests (Vitest: 281 passing across 13 suites) & E2E specs (Playwright)
+│   ├── tests/                  # Frontend unit tests (Vitest: 285 passing across 12 suites) & E2E specs (Playwright)
 │   ├── package.json            # Node.js dependencies and scripts
 │   └── vite.config.js          # Vite configuration
 ├── deploy/                     # Production configs (Prometheus, Grafana, setup scripts)
@@ -532,7 +532,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 - `GET /api/workflows/{id}/versions` — List immutable version snapshots
 - `POST /api/workflows/{id}/rollback` — Rollback to a specific snapshot
 - `GET /api/workflows/{id}/export` — Export workflow JSON
-- `POST /api/workflows/import` — Import workflow (Flowsmith native or n8n JSON format)
+- `POST /api/workflows/import` — Import workflow (Flowsmith native or standard workflow JSON format)
 - `POST /api/workflows/{id}/preview-expression` — Live evaluate visual expressions against upstream node context
 
 ### Executions & Live Traces
@@ -578,7 +578,7 @@ Flowsmith exposes a comprehensive RESTful API documented automatically with Swag
 
 ## Database Schema
 
-Flowsmith stores relational metadata in **29 normalized PostgreSQL tables** managed by Alembic (12 revision scripts; verified by `backend/scripts/check_schema_parity.py`):
+Flowsmith stores relational metadata in **30 normalized PostgreSQL tables** managed by Alembic (14 revision scripts; verified by `backend/scripts/check_schema_parity.py`):
 
 | Table Name | Description |
 |---|---|
@@ -597,6 +597,7 @@ Flowsmith stores relational metadata in **29 normalized PostgreSQL tables** mana
 | `workflow_shares` | Explicit read/write sharing permissions across users. |
 | `subscriptions` | Stripe subscription and billing plan records. |
 | `audit_events` | Immutable security log tracking all mutations and administrative actions. |
+| `branding_settings` | Dynamic client white-labeling, brand identity, logos, color themes, and custom CSS injection. |
 | `webhooks` | Registered public webhook trigger paths. |
 | `schedule_triggers` | Cron schedule trigger rules and last-fired records. |
 | `webhook_deliveries`| History of inbound webhook HTTP requests and payloads. |
@@ -616,7 +617,7 @@ Flowsmith stores relational metadata in **29 normalized PostgreSQL tables** mana
 
 Flowsmith maintains a rigorous test suite spanning unit, integration, and security tests:
 
-### Backend Testing (1700+ Tests)
+### Backend Testing (1800+ Tests)
 
 ```bash
 cd backend
@@ -635,22 +636,22 @@ pytest tests/test_api/test_credential_auto_reconnect.py -q  # OAuth auto-reconne
 pytest tests/test_security/ -q                     # SSRF, auth, and encryption audits
 ```
 
-### Frontend Testing (281 Vitest Tests & E2E Specs)
+### Frontend Testing (285 Vitest Tests & E2E Specs)
 
 ```bash
 cd frontend
 
-# Run Vitest unit tests (100% passing across 13 test suites)
+# Run Vitest unit tests (100% passing across 12 test suites, 285 tests)
 npx vitest run
 
 # Run Playwright end-to-end browser tests
 npx playwright install chromium
 npm test
 
-# Run code linter (Oxlint: 0 errors)
+# Run code linter (Oxlint: 0 warnings, 0 errors across 143 files)
 npm run lint
 
-# Validate production build bundle (~270ms build time)
+# Validate production build bundle (~340ms build time)
 npm run build
 ```
 
@@ -733,10 +734,10 @@ Automated GitHub Actions pipelines validate every commit:
 
 **Flowsmith was designed, architected, and developed from scratch by [Gaurav](https://github.com/gauravsahoo-ops)** — every layer, from the visual DAG canvas and workflow execution engine to the OAuth framework, credential vault, AI subsystem, and deployment stack, is original work.
 
-Please retain this attribution when self-hosting or redistributing, as required by the [MIT License](./LICENSE).
+Please retain this attribution when self-hosting or redistributing, as required by the [Business Source License 1.1 (BSL 1.1)](./LICENSE).
 
 ---
 
 ## License
 
-Flowsmith is open-source software licensed under the [MIT License](./LICENSE).
+Flowsmith is source-available software licensed under the [Business Source License 1.1 (BSL 1.1)](./LICENSE). It is free for internal business, development, and personal use, and automatically converts to the permissive MIT License on January 1, 2030. Commercial licensing is required only for providing Flowsmith as a competing hosted or managed cloud SaaS to third parties.

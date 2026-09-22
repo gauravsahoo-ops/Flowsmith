@@ -1,7 +1,7 @@
 """NoOp node (Flow).
 
 Passes input items through unchanged. Useful as a placeholder, a
-visual anchor for wiring, or a no-op branch terminator (n8n parity).
+visual anchor for wiring, or a no-op branch terminator.
 """
 
 from __future__ import annotations

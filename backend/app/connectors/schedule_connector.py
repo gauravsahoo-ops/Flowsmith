@@ -8,33 +8,17 @@ manageable through the Connector Framework.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from app.connectors import (
     ConnectorSDK,
-    ConnectorError,
     ConnectorHealthCheck,
-    ConnectorCategory,
-    ConnectorStatus,
-    OP_SEARCH,
-    OP_GET,
-    OP_CREATE,
-    OP_UPDATE,
-    OP_DELETE,
-    OP_EXECUTE,
-    OP_HEALTH_CHECK,
     ConnectorErrorCode,
     make_connector_error,
-    ConnectorDefinitionV1,
-    ConnectorOperationV1,
-    ConnectorTriggerV1,
-    CredentialTypeV1,
-    ConnectorLifecycle,
 )
 from app.connectors.operations import ConnectorOperations
-from app.connectors.registry import ConnectorRegistry
 
 logger = logging.getLogger(__name__)
 

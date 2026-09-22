@@ -1,4 +1,4 @@
-"""Binary Data Service (spec parity with n8n BinaryDataService).
+"""Binary Data Service for unified binary storage and metadata calculation.
 
 Provides unified binary storage, metadata calculation, and buffer access.
 Coordinates with Flowsmith's ObjectStore (local filesystem or S3/MinIO)
@@ -37,7 +37,7 @@ def prepare_binary_data(
     workspace_id: str | None = None,
     user_id: int | None = None,
 ) -> dict[str, Any]:
-    """Store raw binary bytes in the ObjectStore and return an n8n-compatible IBinaryData metadata dictionary.
+    """Store raw binary bytes in the ObjectStore and return an IBinaryData metadata dictionary.
 
     Returns dict shape:
     {
@@ -95,7 +95,7 @@ def prepare_binary_data(
         # Fallback in stateless / mock test environments without active DB session
         pass
 
-    # 4. Generate base64 data for inline preview if under 1MB (n8n preview fallback)
+    # 4. Generate base64 data for inline preview if under 1MB
     b64_data = ""
     if num_bytes <= 1024 * 1024:
         b64_data = base64.b64encode(data).decode("ascii")

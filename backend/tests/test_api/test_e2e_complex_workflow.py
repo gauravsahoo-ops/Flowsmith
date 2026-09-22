@@ -1,6 +1,6 @@
-"""End-to-end test: N8N workflow compatibility.
+"""End-to-end test: multi-step enterprise workflow.
 
-Reproduces the n8n workflow:
+Reproduces the complex workflow:
 Schedule Trigger → Code → Login API → IF → Get Extracted Data → Split →
 Loop Over Items → Run for Each Item → Search Custom Object → IF → Create/Update
 
@@ -27,13 +27,13 @@ def _uid() -> str:
 
 
 def _wf_id() -> str:
-    return f"wf_n8n_{_uid()}"
+    return f"wf_ent_{_uid()}"
 
 
 # ── Workflow builders ─────────────────────────────────────────────────
 
-def build_n8n_equivalent_workflow(wf_id: str | None = None) -> dict:
-    """Build the full n8n-equivalent workflow JSON.
+def build_enterprise_equivalent_workflow(wf_id: str | None = None) -> dict:
+    """Build the full enterprise equivalent workflow JSON.
 
     Nodes:
       1. manual_trigger (entry point for test)
@@ -42,7 +42,7 @@ def build_n8n_equivalent_workflow(wf_id: str | None = None) -> dict:
       4. if_condition (branch on response status)
       5. set_data (Get Extracted Data — extract JSON from response)
       6. split (Split — fan out items)
-      7. loop_over_items (Loop Over Items — alias of split for n8n parity)
+      7. loop_over_items (Loop Over Items — iteration)
       8. http_request (Run for Each Item — GET per item)
       9. set_data (Search Custom Object — simulate search result)
      10. if_condition (IF3 — branch on search result)
@@ -52,7 +52,7 @@ def build_n8n_equivalent_workflow(wf_id: str | None = None) -> dict:
     wid = wf_id or _wf_id()
     return {
         "id": wid,
-        "name": "N8N Equivalent Workflow",
+        "name": "Enterprise Equivalent Workflow",
         "nodes": [
             {
                 "id": "trigger",
@@ -210,20 +210,20 @@ def build_n8n_equivalent_workflow(wf_id: str | None = None) -> dict:
 
 # ── Tests ─────────────────────────────────────────────────────────────
 
-class TestN8NWorkflowCompatibility:
-    """End-to-end test suite for n8n workflow compatibility."""
+class TestEnterpriseWorkflowCompatibility:
+    """End-to-end test suite for enterprise workflow compatibility."""
 
     def test_workflow_creation_and_persistence(self, client):
         """Test 1: Workflow creation and persistence."""
         from tests.test_api.conftest import auth_headers, register
 
         reg = register(client)
-        wf = build_n8n_equivalent_workflow()
+        wf = build_enterprise_equivalent_workflow()
         resp = client.post("/api/workflows", json=wf, headers=auth_headers(reg["token"]))
         assert resp.status_code == 201
         data = resp.json()["data"]
         assert data["id"] == wf["id"]
-        assert data["name"] == "N8N Equivalent Workflow"
+        assert data["name"] == "Enterprise Equivalent Workflow"
         assert len(data["nodes"]) == 11
 
         # Verify persistence
@@ -236,7 +236,7 @@ class TestN8NWorkflowCompatibility:
         from tests.test_api.conftest import auth_headers, register
 
         reg = register(client)
-        wf = build_n8n_equivalent_workflow()
+        wf = build_enterprise_equivalent_workflow()
         client.post("/api/workflows", json=wf, headers=auth_headers(reg["token"]))
 
         # Validate the workflow graph
@@ -510,7 +510,7 @@ class TestN8NWorkflowCompatibility:
         from app.security.safe_http_client import SafeHTTPClient
 
         reg = register(client)
-        wf = build_n8n_equivalent_workflow()
+        wf = build_enterprise_equivalent_workflow()
         client.post("/api/workflows", json=wf, headers=auth_headers(reg["token"]))
 
         wf_obj = WF.model_validate(wf)
@@ -552,7 +552,7 @@ class TestN8NWorkflowCompatibility:
         from tests.test_api.conftest import auth_headers, register
 
         reg = register(client)
-        wf = build_n8n_equivalent_workflow()
+        wf = build_enterprise_equivalent_workflow()
         resp = client.post("/api/workflows", json=wf, headers=auth_headers(reg["token"]))
         assert resp.status_code == 201
 
@@ -860,7 +860,7 @@ class TestN8NWorkflowCompatibility:
         from tests.test_api.conftest import auth_headers, register
 
         reg = register(client)
-        wf = build_n8n_equivalent_workflow()
+        wf = build_enterprise_equivalent_workflow()
 
         # Add a schedule trigger node
         wf["nodes"].append({

@@ -1,4 +1,59 @@
-MIT License
+Business Source License 1.1
+
+Parameters
+
+Licensor:                     Gaurav Sahoo (gauravsahoo-ops)
+Licensed Work:                Flowsmith (including all backend, frontend, connectors, canvas, engine, and documentation)
+Additional Use Grant:         You may make use of the Licensed Work (including without limitation
+                              running, copying, modifying, and internally deploying the Licensed Work)
+                              for non-production, personal, and internal business purposes.
+                              You may NOT provide the Licensed Work to third parties as a hosted or
+                              managed workflow automation service, SaaS platform, or cloud offering,
+                              where customers or external third parties are provided access to workflow
+                              execution, orchestration, or canvas functionality, without obtaining a
+                              prior commercial license from the Licensor.
+Change Date:                  2030-01-01
+Change License:               MIT License (as set forth in Exhibit A)
+
+================================================================================
+
+Notice
+
+The Business Source License 1.1 (the "License") grants you rights to the
+Licensed Work, provided that you comply with the terms below.
+
+1. Grant of License. The Licensor hereby grants you the right to copy,
+modify, create derivative works, redistribute, and make non-production
+use of the Licensed Work. The Licensor also grants you the rights to
+make Additional Use of the Licensed Work as set forth in the Parameters
+above.
+
+2. Change License. On the Change Date, or the fourth anniversary of the
+first public release of the Licensed Work, whichever is earlier, this
+License shall convert to the Change License (the MIT License) set forth
+in Exhibit A, and the terms of this License shall cease to apply.
+
+3. Notices. The Licensor requires that all copies, modifications, and
+derivative works of the Licensed Work retain the copyright notices,
+attribution, trademark notices, and this License.
+
+4. Intellectual Property. The Licensor reserves all rights not expressly
+granted to you in this License.
+
+5. Termination. This License and your rights under it will terminate,
+automatically, if you fail to comply with any of its terms.
+
+6. Disclaimer of Warranty. THE LICENSED WORK IS PROVIDED "AS IS",
+WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE LICENSOR BE LIABLE
+FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE LICENSED WORK OR THE USE OR OTHER DEALINGS IN THE
+LICENSED WORK.
+
+================================================================================
+
+Exhibit A: Change License (MIT License)
 
 Copyright (c) 2026 Gaurav Sahoo (gauravsahoo-ops) — original developer of Flowsmith.
 

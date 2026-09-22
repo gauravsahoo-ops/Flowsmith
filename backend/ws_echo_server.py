@@ -15,8 +15,11 @@ async def echo(websocket):
         pass
 
 async def main():
-    async with websockets.serve(echo, "localhost", 8765):
-        await asyncio.sleep(60)
+    import os, sys
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("WS_ECHO_PORT", 8765))
+    async with websockets.serve(echo, "127.0.0.1", port):
+        while True:
+            await asyncio.sleep(3600)
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -56,7 +56,6 @@ def test_chat_round_trip_reply(client):
     resp = client.post(
         f"/api/webhooks/{CHAT_PATH}",
         json={"message": "hello", "session_id": "s1", "history": []},
-        timeout=120,
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]

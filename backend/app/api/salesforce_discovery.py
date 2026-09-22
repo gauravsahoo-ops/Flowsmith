@@ -133,7 +133,7 @@ async def _resolve_creds(user: User, db: Session, credential_id: str | None = No
         resolved = resolve_credentials(db, user.id, {"salesforce": rec.id})
     except CredentialError as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": exc.code, "message": exc.message},
         ) from exc
     return resolved["salesforce"]
@@ -199,7 +199,7 @@ async def describe_object_schema(
     """Field discovery: rich field metadata for one object."""
     if not _OBJECT_NAME_RE.fullmatch(object_name):
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"code": "INVALID_OBJECT_NAME",
                     "message": "Object name must be a valid Salesforce API name."},
         )

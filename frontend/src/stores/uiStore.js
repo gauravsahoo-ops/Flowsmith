@@ -6,7 +6,7 @@ export const useUiStore = create((set) => ({
   selectedNodeId: null,
   selectNode: (id) => set({ selectedNodeId: id }),
 
-  // Node editor modal (n8n-style centered overlay)
+  // Node editor modal (centered overlay)
   nodeEditorOpen: false,
   nodeEditorTab: 'parameters', // 'input' | 'parameters' | 'output'
   openNodeEditor: (nodeId, tab = 'parameters') =>
@@ -24,7 +24,7 @@ export const useUiStore = create((set) => ({
   openSidebar: () => set({ sidebarOpen: true, historyDrawerOpen: false }),
   closeSidebar: () => set({ sidebarOpen: false }),
 
-  // Workflow History Drawer (n8n-style slide-out panel)
+  // Workflow History Drawer (slide-out panel)
   historyDrawerOpen: false,
   historyTab: 'versions', // 'versions' | 'timeline'
   openHistoryDrawer: (tab = 'versions') => set({ historyDrawerOpen: true, historyTab: tab, sidebarOpen: false }),

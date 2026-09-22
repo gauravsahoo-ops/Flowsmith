@@ -45,7 +45,7 @@ export default defineConfig({
       timeout: 30000,
     },
     {
-      command: 'node tests/e2e/n8n-stub-server.mjs',
+      command: 'node tests/e2e/enterprise-stub-server.mjs',
       url: 'http://127.0.0.1:8182/api/health',
       reuseExistingServer: true,
       timeout: 30000,

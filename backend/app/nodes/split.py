@@ -1,4 +1,4 @@
-"""Split node — matches n8n Split Out (Item Lists).
+"""Split node — Split Out items from list.
 
 Splits an array into individual items for downstream per-item processing.
 Supports:

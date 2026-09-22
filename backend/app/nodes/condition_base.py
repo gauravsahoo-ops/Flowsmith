@@ -1,4 +1,4 @@
-"""Shared condition model + evaluator (n8n-like, Phase 8 extended).
+"""Shared condition model + evaluator.
 
 Supports:
 - Multiple conditions with AND/OR combinator
@@ -310,7 +310,7 @@ def _compare_array(left: Any, operator: str, right: Any, convert_types: bool) ->
     if not isinstance(left, (list, tuple)):
         if _is_empty(left):
             return operator in ("does not contain", "is empty")
-        raise NodeExecutionError(f"Left value is not an array", code="INVALID_CONDITION", retryable=False)
+        raise NodeExecutionError("Left value is not an array", code="INVALID_CONDITION", retryable=False)
     if operator == "contains":
         return right in left or str(right) in [str(x) for x in left]
     if operator == "does not contain":
@@ -356,7 +356,7 @@ def _compare_date(left: Any, operator: str, right: Any, convert_types: bool) -> 
             raise NodeExecutionError(f"Cannot convert '{left}' or '{right}' to date", code="INVALID_CONDITION", retryable=False)
     else:
         if ld is None or rd is None:
-            raise NodeExecutionError(f"Left or right value is not a valid date (convert types is OFF)", code="INVALID_CONDITION", retryable=False)
+            raise NodeExecutionError("Left or right value is not a valid date (convert types is OFF)", code="INVALID_CONDITION", retryable=False)
     if operator == "is equal to":
         return ld == rd
     if operator == "is not equal to":
@@ -580,7 +580,7 @@ def evaluate_conditions(conditions: list[ConditionRow], item: dict[str, Any], co
         else:
             combinators.append("AND")  # First has no combinator, but we treat as AND
 
-    # Apply AND/OR logic left-to-right (no precedence, like n8n)
+    # Apply AND/OR logic left-to-right (no precedence)
     if not results:
         return False
     current = results[0]

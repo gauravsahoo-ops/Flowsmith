@@ -1,4 +1,4 @@
-"""Workflow import/export (native + n8n JSON interchange).
+"""Workflow import/export (native + external JSON interchange).
 
 ``build_export`` wraps a workflow document in a self-describing envelope
 (``format: opencode-workflow``) so round-trips are unambiguous.
@@ -8,14 +8,12 @@ document (dict) ready for the normal ``validate_workflow_payload`` path:
 
 1. The export envelope (``{"format": "opencode-workflow", "workflow": {...}}``)
 2. A bare native document (``nodes`` is a list, ``connections`` a list)
-3. An n8n workflow export (``connections`` is a dict keyed by source
-   node, positions are ``[x, y]`` arrays, node types are
-   ``n8n-nodes-base.*``).
+3. An external workflow export (``connections`` is a dict keyed by source
+   node, positions are ``[x, y]`` arrays).
 
-n8n conversion is best-effort for the node types this platform ships
-(n8n has hundreds); unknown node types are rejected with a readable
-error listing exactly what was not understood. Credentials referenced
-by n8n nodes are deliberately dropped (they are per-user here).
+Conversion is best-effort for the node types this platform ships;
+unknown node types are rejected with a readable error listing exactly
+what was not understood.
 """
 
 from __future__ import annotations
@@ -50,33 +48,33 @@ def parse_import(payload: Any) -> dict[str, Any]:
     inner: dict[str, Any] = wrapped if isinstance(wrapped, dict) else payload
     connections = inner.get("connections")
     if isinstance(connections, dict):
-        return _from_n8n(inner)
+        return _from_external(inner)
     if not isinstance(inner.get("nodes"), list):
         raise WorkflowImportError(
             "Unrecognized workflow document: expected a 'nodes' array "
-            "(native, opencode-workflow envelope, or n8n export)."
+            "(native, opencode-workflow envelope, or standard export)."
         )
     return inner
 
 
 # ----------------------------------------------------------------------
-# n8n -> native conversion
+# External -> native conversion
 # ----------------------------------------------------------------------
 
 
-def _n8n_schedule_params(p: dict[str, Any]) -> dict[str, Any]:
+def _external_schedule_params(p: dict[str, Any]) -> dict[str, Any]:
     rule = p.get("rule") or {}
     cron = p.get("cron") or rule.get("cronExpression")
     if not cron:
         raise WorkflowImportError(
-            "n8n scheduleTrigger: no cron expression found "
+            "scheduleTrigger: no cron expression found "
             "(expected parameters.rule.cronExpression)."
         )
     tz = p.get("timezone") or rule.get("timezone") or "UTC"
     return {"cron": cron, "timezone": tz}
 
 
-def _n8n_set_params(p: dict[str, Any]) -> dict[str, Any]:
+def _external_set_params(p: dict[str, Any]) -> dict[str, Any]:
     fields: dict[str, Any] = {}
     for item in p.get("assignments") or []:
         if isinstance(item, dict) and item.get("name"):
@@ -98,16 +96,16 @@ _IF_OPERATOR_MAP = {
 }
 
 
-def _n8n_if_params(p: dict[str, Any]) -> dict[str, Any]:
+def _compat_if_params(p: dict[str, Any]) -> dict[str, Any]:
     conditions = (p.get("conditions") or {}).get("conditions") or []
     if not conditions:
-        raise WorkflowImportError("n8n if node: no conditions found.")
+        raise WorkflowImportError("if node: no conditions found.")
     first = conditions[0]
     op = str(first.get("operator", "string:equals"))
     suffix = op.split(":")[-1]
     native_op = _IF_OPERATOR_MAP.get(suffix)
     if native_op is None:
-        raise WorkflowImportError(f"n8n if node: unsupported operator '{op}'.")
+        raise WorkflowImportError(f"if node: unsupported operator '{op}'.")
     return {
         "condition": {
             "left": first.get("leftValue"),
@@ -117,11 +115,11 @@ def _n8n_if_params(p: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _n8n_http_params(p: dict[str, Any]) -> dict[str, Any]:
+def _compat_http_params(p: dict[str, Any]) -> dict[str, Any]:
     method = str(p.get("method", "GET")).upper()
     url = p.get("url")
     if not url:
-        raise WorkflowImportError("n8n httpRequest: no url found.")
+        raise WorkflowImportError("httpRequest: no url found.")
     headers: dict[str, str] = {}
     if p.get("sendHeaders"):
         for item in (p.get("headerParameters") or {}).get("parameters") or []:
@@ -134,14 +132,14 @@ def _n8n_http_params(p: dict[str, Any]) -> dict[str, Any]:
     return params
 
 
-def _n8n_webhook_params(p: dict[str, Any]) -> dict[str, Any]:
+def _compat_webhook_params(p: dict[str, Any]) -> dict[str, Any]:
     path = p.get("path")
     if not path:
-        raise WorkflowImportError("n8n webhook: no path found.")
+        raise WorkflowImportError("webhook: no path found.")
     return {"path": str(path), "method": str(p.get("httpMethod", "POST")).upper()}
 
 
-def _n8n_salesforce_params(p: dict[str, Any]) -> dict[str, Any]:
+def _compat_salesforce_params(p: dict[str, Any]) -> dict[str, Any]:
     params: dict[str, Any] = dict(p)
     resource = params.pop("resource", None)
     operation = params.pop("operation", None)
@@ -152,23 +150,15 @@ def _n8n_salesforce_params(p: dict[str, Any]) -> dict[str, Any]:
     return params
 
 
-_N8N_TYPE_MAP: dict[str, tuple[str, Callable[[dict[str, Any]], dict[str, Any]]]] = {
-    "n8n-nodes-base.manualTrigger": ("manual_trigger", lambda p: {}),
+_COMPAT_TYPE_MAP: dict[str, tuple[str, Callable[[dict[str, Any]], dict[str, Any]]]] = {
     "manualTrigger": ("manual_trigger", lambda p: {}),
-    "n8n-nodes-base.errorTrigger": ("error_trigger", lambda p: {}),
     "errorTrigger": ("error_trigger", lambda p: {}),
-    "n8n-nodes-base.scheduleTrigger": ("schedule", _n8n_schedule_params),
-    "scheduleTrigger": ("schedule", _n8n_schedule_params),
-    "n8n-nodes-base.set": ("set_data", _n8n_set_params),
-    "set": ("set_data", _n8n_set_params),
-    "n8n-nodes-base.if": ("if_condition", _n8n_if_params),
-    "if": ("if_condition", _n8n_if_params),
-    "n8n-nodes-base.httpRequest": ("http_request", _n8n_http_params),
-    "httpRequest": ("http_request", _n8n_http_params),
-    "n8n-nodes-base.webhook": ("webhook", _n8n_webhook_params),
-    "webhook": ("webhook", _n8n_webhook_params),
-    "n8n-nodes-base.salesforce": ("salesforce", _n8n_salesforce_params),
-    "salesforce": ("salesforce", _n8n_salesforce_params),
+    "scheduleTrigger": ("schedule", _external_schedule_params),
+    "set": ("set_data", _external_set_params),
+    "if": ("if_condition", _compat_if_params),
+    "httpRequest": ("http_request", _compat_http_params),
+    "webhook": ("webhook", _compat_webhook_params),
+    "salesforce": ("salesforce", _compat_salesforce_params),
 }
 
 
@@ -211,28 +201,30 @@ _KNOWN_NATIVE_TYPES = {
 }
 
 
-def _from_n8n(payload: dict[str, Any]) -> dict[str, Any]:
-    """Convert an n8n workflow export or template to the native document shape."""
+def _from_external(payload: dict[str, Any]) -> dict[str, Any]:
+    """Convert an external workflow export or template to the native document shape."""
     unknown: list[str] = []
     nodes: list[dict[str, Any]] = []
     id_map: dict[str, str] = {}
 
     for i, n in enumerate(payload.get("nodes") or []):
-        n8n_type = n.get("type")
-        mapped = _N8N_TYPE_MAP.get(n8n_type)
+        raw_type = str(n.get("type", ""))
+        short_type = raw_type.split(".")[-1] if "." in raw_type else raw_type
+        mapped = _COMPAT_TYPE_MAP.get(raw_type) or _COMPAT_TYPE_MAP.get(short_type)
         if mapped is not None:
             native_type, params_fn = mapped
             try:
                 native_params = params_fn(n.get("parameters") or {})
             except WorkflowImportError as exc:
                 raise WorkflowImportError(
-                    f"n8n node '{n.get('name', n8n_type)}' ({n8n_type}): {exc}"
+                    f"node '{n.get('name', raw_type)}' ({raw_type}): {exc}"
                 ) from exc
-        elif n8n_type in _KNOWN_NATIVE_TYPES:
-            native_type = "schedule" if n8n_type == "schedule_trigger" else str(n8n_type)
+        elif raw_type in _KNOWN_NATIVE_TYPES or short_type in _KNOWN_NATIVE_TYPES:
+            matched = raw_type if raw_type in _KNOWN_NATIVE_TYPES else short_type
+            native_type = "schedule" if matched == "schedule_trigger" else matched
             native_params = n.get("parameters") or {}
         else:
-            unknown.append(str(n8n_type))
+            unknown.append(raw_type)
             continue
 
         new_id = f"n{i + 1}"
@@ -259,7 +251,7 @@ def _from_n8n(payload: dict[str, Any]) -> dict[str, Any]:
 
     if unknown:
         raise WorkflowImportError(
-            "Unsupported n8n node type(s): "
+            "Unsupported node type(s): "
             + ", ".join(sorted(set(unknown)))
             + ". Supported: manualTrigger, scheduleTrigger, set, if, "
             "httpRequest, webhook, salesforce."

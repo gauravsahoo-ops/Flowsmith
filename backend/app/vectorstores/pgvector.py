@@ -32,12 +32,10 @@ import json
 import logging
 import math
 import sqlite3
-import uuid
 from typing import Any
 
 from sqlalchemy import text
 
-from app.config import get_settings
 from app.vectorstores import VectorStore, register_store
 
 logger = logging.getLogger("vectorstores.pgvector")

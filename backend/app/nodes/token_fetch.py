@@ -17,7 +17,6 @@ from pydantic import BaseModel, Field
 from app.auth_state.adapter import (
     canonical_provider,
     is_expired,
-    mask_token,
     normalize_expires_at,
     refresh_bundle,
 )

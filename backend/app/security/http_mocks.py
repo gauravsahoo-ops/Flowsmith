@@ -17,7 +17,6 @@ from __future__ import annotations
 import re
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from fnmatch import fnmatchcase
 from typing import Any
 
 from app.connectors import ConnectorErrorCode, make_connector_error

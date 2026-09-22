@@ -208,7 +208,7 @@ export default function ExecutionInspector({ onClose }) {
             <h2>Console</h2>
           </div>
           <div className="inspector-actions">
-            <button className="ghost" onClick={onClose || clear} title="Close Console">
+            <button type="button" className="ghost" onClick={onClose || clear} title="Close Console">
               ✕
             </button>
           </div>

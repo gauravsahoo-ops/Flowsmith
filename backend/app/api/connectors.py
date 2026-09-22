@@ -25,17 +25,6 @@ from pydantic import BaseModel
 from app.api.auth import get_current_user
 from app.api.common import ok
 from app.models import User
-from app.connectors import (
-    ConnectorSDK,
-    ConnectorDefinitionV1,
-    ConnectorOperationV1,
-    ConnectorTriggerV1,
-    CredentialTypeV1,
-    ConnectorCategory,
-    ConnectorLifecycle,
-    make_connector_error,
-    ConnectorErrorCode,
-)
 from app.connectors.registry import ConnectorRegistry
 from app.connectors import get_registry as _get_registry
 

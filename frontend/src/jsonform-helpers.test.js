@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatToInput, getDefaultForSchema, resolveRef } from './components/JsonForm.jsx'
+import { formatToInput, getDefaultForSchema, resolveRef } from './utils/jsonFormHelpers'
 
 describe('formatToInput', () => {
   it('returns "text" for undefined/null format', () => {

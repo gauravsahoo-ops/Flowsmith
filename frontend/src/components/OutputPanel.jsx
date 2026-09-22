@@ -10,7 +10,7 @@ import './OutputPanel.css'
 function unwrapItem(item) {
   if (item == null) return item
   if (typeof item !== 'object') return { value: item }
-  // n8n standard: unwrap { json: { ... } }
+  // Standard: unwrap { json: { ... } }
   if (item.json && typeof item.json === 'object' && !Array.isArray(item.json)) {
     return item.json
   }
@@ -256,7 +256,7 @@ export default function OutputPanel({
 
   return (
     <div className="op-container">
-      {/* Top Header matching n8n Header */}
+      {/* Top Header */}
       <div className="nem-input-header">
         <div className="nem-input-title-group">
           <span className="nem-input-title">OUTPUT</span>
@@ -701,7 +701,7 @@ export default function OutputPanel({
   )
 }
 
-// Hierarchical n8n-style Schema Tree view for Output
+// Hierarchical Schema Tree view for Output
 function OutputSchemaTree({ item, nodeLabel, onCopy, filter }) {
   if (!item || typeof item !== 'object' || Object.keys(item).length === 0) {
     return <p className="hint" style={{ padding: '8px 12px' }}>No fields found in output payload.</p>

@@ -3,13 +3,13 @@
 Flow (spec 32): validate path → validate method → validate payload size
 → create execution → queue → 202. Every hit gets a delivery record.
 Spec 8.4: if the workflow already has a running execution the hit is
-accepted but skipped (like n8n). An optional Idempotency-Key header
+accepted but skipped. An optional Idempotency-Key header
 makes retries return the original delivery instead of re-queuing.
 
 Synchronous responses: ``POST /api/webhooks/{path}?respond=true`` waits
 (up to ``wait_seconds``, default 30, max 120) for the execution to finish
 and returns the output of the workflow's ``respond_to_webhook`` node with
-its status code (n8n "Respond to Webhook" parity). Without that node, on
+its status code. Without that node, on
 execution failure, or on timeout, the caller gets the normal 202 envelope
 (with ``timed_out: true`` on timeout) and the execution id for polling.
 """
@@ -43,7 +43,6 @@ MAX_WEBHOOK_BODY = 5 * 1024 * 1024  # spec: 5 MB
 _settings = get_settings()
 # Shared Redis budget when REDIS_URL is configured (multi-replica safe);
 # per-process sliding window otherwise (audit phase 13).
-from app.security.ratelimit import get_webhook_limiter
 
 _limiter = get_webhook_limiter(
     capacity=_settings.webhook_rate_limit,
@@ -257,8 +256,6 @@ def list_deliveries(
     pageSize: int = 50,
 ) -> dict:
     """Authenticated endpoint to list webhook deliveries with pagination."""
-    from app.api.access import accessible_ids
-    from app.models import User
     page, size = page_params(page=page, pageSize=pageSize)
     stmt = select(WebhookDelivery)
     count_stmt = select(func.count()).select_from(WebhookDelivery)

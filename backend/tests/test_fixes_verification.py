@@ -128,7 +128,7 @@ async def test_fix1_json_response_normal():
         result = await node.run(ctx, params, [{}])
 
     item = result.output_items[0]
-    # JSON responses are now at the top level (n8n-compatible)
+    # JSON responses are now at the top level
     assert item["key"] == "value"
     assert item["count"] == 42
     assert item["status"] == 200

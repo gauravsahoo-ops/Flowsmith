@@ -11,7 +11,7 @@ import logging
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.api.auth import get_current_user
@@ -19,7 +19,7 @@ from app.api.common import ok
 from app.db import get_db
 from app.models import Execution, User, WorkflowRecord
 from app.api.access import accessible_ids, get_permission, PERMISSION_VIEW
-from app.utils.backup import create_backup, list_backups, restore_backup
+from app.utils.backup import create_backup, list_backups
 
 logger = logging.getLogger(__name__)
 

@@ -47,7 +47,6 @@ class DataTableNode(BaseNode[DataTableParams]):
         from sqlalchemy import select
         from app.db import get_session
         from app.models.data_table import DataTable, DataTableColumn, DataTableRow
-        from app.models.organization import Workspace
         from sqlalchemy.orm.attributes import flag_modified
 
         # Need to run DB operations synchronously (SQLAlchemy sync)

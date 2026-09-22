@@ -9,7 +9,6 @@ from app.connectors import (
     ConnectorDefinitionV1,
     ConnectorLifecycle,
     ConnectorOperationV1,
-    CredentialTypeV1,
 )
 
 
