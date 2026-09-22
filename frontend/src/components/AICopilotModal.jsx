@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { api } from '../api'
 import { toReactFlow, toWorkflowJson } from '../mappers'
@@ -51,6 +51,26 @@ export default function AICopilotModal({ isOpen, onClose, nodes: propNodes, edge
   const [error, setError] = useState(null)
   const [recentPrompts, setRecentPrompts] = useState(loadCopilotHistory)
   const [iterateExisting, setIterateExisting] = useState(currentNodes.length > 0)
+  const [llmConfigured, setLlmConfigured] = useState(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    let active = true
+    if (typeof api.aiStatus === 'function') {
+      api.aiStatus()
+        .then((res) => {
+          if (!active) return
+          const configured = Boolean(res?.configured ?? res?.data?.configured)
+          setLlmConfigured(configured)
+        })
+        .catch(() => {
+          if (active) setLlmConfigured(false)
+        })
+    }
+    return () => {
+      active = false
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -81,8 +101,12 @@ export default function AICopilotModal({ isOpen, onClose, nodes: propNodes, edge
           const rf = toReactFlow(wf)
           generatedNodes = rf.nodes || []
           generatedEdges = rf.edges || []
+          setLlmConfigured(true)
         }
       } catch (backendErr) {
+        if (backendErr?.status === 422 || backendErr?.message?.toLowerCase()?.includes('credential')) {
+          setLlmConfigured(false)
+        }
         console.warn('Backend LLM generation fallback:', backendErr)
       }
 
@@ -468,12 +492,24 @@ export default function AICopilotModal({ isOpen, onClose, nodes: propNodes, edge
         <div className="ai-copilot-header modal-header">
           <div className="title-with-badge">
             <span className="copilot-badge">✨ AI Copilot</span>
+            {llmConfigured === true && (
+              <span className="ai-live-model-badge">✨ Live LLM Planner</span>
+            )}
             <h3>Prompt to Workflow Generator</h3>
           </div>
           <button className="ai-copilot-close-btn ghost ghost--icon" type="button" onClick={onClose} title="Close">✕</button>
         </div>
 
         <div className="ai-copilot-body modal-body">
+          {llmConfigured === false && (
+            <div className="ai-chat-llm-warning" style={{ marginBottom: '14px' }}>
+              <span className="warning-icon">💡</span>
+              <div className="warning-text">
+                <strong>Offline Template Mode:</strong> No LLM key detected. Common templates (Stripe, Slack, Postgres, RAG) generate instantly for free. Add an API key (OpenAI, Gemini, Claude, Groq, DeepSeek) in <a href="/credentials">Credentials</a> or run local Ollama to generate any custom workflow.
+              </div>
+            </div>
+          )}
+
           <p className="ai-copilot-description description-text">
             Describe the workflow automation you want to create in plain language.
             Flowsmith will assemble, configure, and connect the nodes on your canvas automatically.
