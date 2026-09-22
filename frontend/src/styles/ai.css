@@ -574,7 +574,19 @@
   outline: none !important;
   outline-offset: 0 !important;
   box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ai-chat-textarea::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ai-chat-textarea::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
 }
 
 .ai-chat-textarea,
@@ -595,6 +607,9 @@
 .ai-chat-textarea::placeholder {
   color: #6e6e7f;
   opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ai-chat-drawer button.ai-chat-send-btn {

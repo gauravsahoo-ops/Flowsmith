@@ -869,7 +869,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
               ref={textareaRef}
               className="ai-chat-textarea"
               rows={1}
-              placeholder="Ask agent or test workflow tools, command canvas, inspect health..."
+              placeholder="Ask agent or test workflow tools..."
               value={input}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
