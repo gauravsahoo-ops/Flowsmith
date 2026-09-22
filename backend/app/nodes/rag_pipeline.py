@@ -114,21 +114,9 @@ def _embed_list(model: Any, texts: list[str]) -> list[list[float]]:
 
 
 def _chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
-    """Split text into overlapping chunks."""
-    if len(text) <= chunk_size:
-        return [text]
-
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = min(start + chunk_size, len(text))
-        chunks.append(text[start:end])
-        if end == len(text):
-            break
-        start = end - overlap
-        if start < 0:
-            start = 0
-    return chunks
+    """Split text into overlapping chunks using RecursiveTextSplitter."""
+    from app.ai.rag import RecursiveTextSplitter
+    return RecursiveTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap).split_text(text)
 
 
 async def _load_source_text(source_type: str, source: str, ctx: Any | None = None) -> str:

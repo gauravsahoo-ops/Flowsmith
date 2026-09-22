@@ -164,10 +164,10 @@ class Settings(BaseSettings):
     # client id/secret/redirect URI stay server-side and are never sent
     # to the frontend. SALESFORCE_REDIRECT_URI must EXACTLY match the
     # Callback URL registered in the Connected App.
-    salesforce_client_id: str = "3MVG97L7PWbPq6UzeixCsscpT5gtAB.fUQbF.I8eQfR_bFSR00nPPioDD8SP6lzDkwL7ejLvrgfLSBgM4ZkUs"
-    salesforce_client_secret: str = "67AA7F50BE823ACC3F0DF49709C5B07F4A29579555358C8F6C0BE31989086E03"
+    salesforce_client_id: str = ""
+    salesforce_client_secret: str = ""
     salesforce_redirect_uri: str = ""
-    salesforce_login_url: str = "https://orgfarm-a3163db0ee-dev-ed.develop.my.salesforce.com"
+    salesforce_login_url: str = "https://login.salesforce.com"
     salesforce_api_version: str = "v63.0"
     salesforce_scopes: str = "refresh_token full api"
     oauth_state_ttl_seconds: int = 600  # authorize-state validity window

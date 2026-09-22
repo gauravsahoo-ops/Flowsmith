@@ -245,7 +245,14 @@ export default function CredentialsPage() {
 
   async function handleCreate(e) {
     e.preventDefault()
-    if (!form.name.trim() || !form.type) return
+    if (!form.name.trim()) {
+      setError('Please enter a name for this credential before saving.')
+      return
+    }
+    if (!form.type) {
+      setError('Please select a credential type.')
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -508,12 +515,33 @@ export default function CredentialsPage() {
         )}
 
         <form onSubmit={handleCreate} className="cred-form">
-          <label>Name<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="My credential" /></label>
+          <label>
+            Name
+            <input
+              value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })}
+              required
+              placeholder="e.g. My LLM Credential"
+            />
+            {form.type && !form.name.trim() && (
+              <span style={{ color: 'var(--amber, #f59e0b)', fontSize: 11, display: 'block', marginTop: 3 }}>
+                ⚠️ Name is required — please enter a name above to enable saving.
+              </span>
+            )}
+          </label>
           <div>
             <label style={{ display: 'block', marginBottom: 4 }}>Type</label>
             <SearchableSelect
               value={form.type}
-              onChange={val => setForm({ ...form, type: val, data: defaultsFromSchema(types.find(t => t.type === val)?.parameters_schema) })}
+              onChange={val => {
+                const selectedType = types.find(t => t.type === val)
+                setForm(prev => ({
+                  ...prev,
+                  type: val,
+                  name: prev.name.trim() ? prev.name : (selectedType?.name ? `${selectedType.name} Credential` : ''),
+                  data: defaultsFromSchema(selectedType?.parameters_schema),
+                }))
+              }}
               options={types.map(t => ({
                 value: t.type,
                 label: `${t.name} (${t.type})`,
@@ -530,7 +558,18 @@ export default function CredentialsPage() {
           {schema && !isOAuthType && Object.entries(schema.properties || {}).map(([key, prop]) => {
             const isConnStr = ['dsn','uri','connection_string','connectionString'].includes(key) || (prop.description && prop.description.toLowerCase().includes('connection string'))
             return (
-            <label key={key}>{prop.title || key}{prop.description && <span className="muted"> — {prop.description}</span>}
+            <label key={key}>
+              {prop.title || key}
+              {prop.description && (
+                <span className="muted">
+                  {' — '}{prop.description}
+                  {key === 'base_url' && form.type === 'llm' && (
+                    <span style={{ display: 'block', marginTop: 2, color: '#38bdf8' }}>
+                      💡 Tip for OpenRouter: Use <code>https://openrouter.ai/api/v1</code>
+                    </span>
+                  )}
+                </span>
+              )}
               {prop.type === 'boolean' ? (
                 <input type="checkbox" checked={Boolean(form.data[key])} onChange={e => setForm({ ...form, data: { ...form.data, [key]: e.target.checked } })} />
               ) : (
@@ -544,7 +583,16 @@ export default function CredentialsPage() {
             </label>
             )
           })}
-          {!isOAuthType && <button className="primary" type="submit" disabled={busy || !form.name.trim() || !form.type}>{busy ? 'Saving…' : 'Save credential'}</button>}
+          {!isOAuthType && (
+            <button
+              className="primary"
+              type="submit"
+              disabled={busy || !form.type}
+              title={!form.name.trim() ? 'Please enter a name for this credential' : ''}
+            >
+              {busy ? 'Saving…' : 'Save credential'}
+            </button>
+          )}
         </form>
       </section>
 

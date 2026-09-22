@@ -782,3 +782,7 @@ def reset_safe_http_client() -> None:
             _default_client = None
     else:
         _default_client = None
+
+
+# Alias for backward compatibility / concise import
+get_safe_client = get_safe_http_client

@@ -105,6 +105,8 @@ def build_connector_entries() -> list[dict[str, Any]]:
 
 _catalog_cache: dict[str, Any] | None = None
 _catalog_cache_ts: float = 0.0
+_prompt_cache: str | None = None
+_prompt_cache_ts: float = 0.0
 
 
 def build_planner_catalog() -> dict[str, Any]:
@@ -124,9 +126,16 @@ def render_system_prompt(catalog: dict[str, Any] | None = None) -> str:
 
     Rules section pins the anti-invention contract and the response shape.
     """
-    catalog = catalog or build_planner_catalog()
-    payload = json.dumps(catalog, ensure_ascii=False, sort_keys=True)
-    return (
+    global _prompt_cache, _prompt_cache_ts
+    import time
+    if catalog is None:
+        now = time.monotonic()
+        if _prompt_cache is not None and now - _prompt_cache_ts < 60:
+            return _prompt_cache
+
+    actual_catalog = catalog or build_planner_catalog()
+    payload = json.dumps(actual_catalog, ensure_ascii=False, sort_keys=True)
+    rendered = (
         "You generate workflows for a workflow automation platform.\n"
         "Respond with ONLY a JSON object (no markdown fences, no commentary):\n"
         '{"name": "short name", '
@@ -149,3 +158,7 @@ def render_system_prompt(catalog: dict[str, Any] | None = None) -> str:
         "- Never invent credentials, connection strings or secrets.\n\n"
         f"AVAILABLE NODES AND CONNECTORS:\n{payload}"
     )
+    if catalog is None:
+        _prompt_cache = rendered
+        _prompt_cache_ts = time.monotonic()
+    return rendered

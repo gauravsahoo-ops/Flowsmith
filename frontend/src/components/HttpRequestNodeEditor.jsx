@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import MappingField from './MappingField'
 import SearchableSelect from './SearchableSelect'
+import { getToken } from '../api'
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 const AUTHENTICATION_OPTIONS = [
@@ -417,7 +418,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
   const [predefinedList, setPredefinedList] = useState([])
   const [urlError, setUrlError] = useState(null)
   useEffect(() => {
-    fetch('/api/credentials/predefined', { headers: { Authorization: `Bearer ${localStorage.getItem('mat_token')}` }}).then(r => r.ok ? r.json().then(j => setPredefinedList(j.data || [])) : null).catch(()=>{})
+    fetch('/api/credentials/predefined', { headers: { Authorization: `Bearer ${getToken()}` }}).then(r => r.ok ? r.json().then(j => setPredefinedList(j.data || [])) : null).catch(()=>{})
   }, [])
   useEffect(() => {
     if (!url || url.includes('{{')) { setUrlError(null); return }

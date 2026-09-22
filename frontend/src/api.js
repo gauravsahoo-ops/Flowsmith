@@ -35,7 +35,7 @@ async function request(method, path, body, opts) {
 }
 
 async function requestEnvelope(method, path, body, opts = {}) {
-  const { timeout = DEFAULT_TIMEOUT_MS } = opts
+  const { timeout = DEFAULT_TIMEOUT_MS, signal: userSignal } = opts
   const headers = { 'Content-Type': 'application/json' }
   const token = getToken()
   if (token) {
@@ -45,6 +45,13 @@ async function requestEnvelope(method, path, body, opts = {}) {
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeout)
+  if (userSignal) {
+    if (userSignal.aborted) {
+      controller.abort()
+    } else {
+      userSignal.addEventListener('abort', () => controller.abort(), { once: true })
+    }
+  }
 
   let resp
   try {
@@ -56,6 +63,9 @@ async function requestEnvelope(method, path, body, opts = {}) {
     })
   } catch (err) {
     if (err.name === 'AbortError') {
+      if (userSignal?.aborted) {
+        throw new ApiError(0, 'Request cancelled by user')
+      }
       throw new ApiError(0, `Request timed out after ${timeout / 1000}s`)
     }
     throw new ApiError(0, 'Cannot reach the server. Is the backend running?')
@@ -215,7 +225,18 @@ export const api = {
     request('POST', `/auth/${provider}/connect`, loginUrl ? { login_url: loginUrl } : {}),
   aiStatus: () => request('GET', '/ai/status'),
   explain: (executionId) => request('POST', '/ai/explain', { execution_id: executionId }),
-  generateWorkflow: (prompt) => request('POST', '/ai/generate-workflow', { prompt }),
+  generateWorkflow: (prompt, opts = {}) =>
+    request('POST', '/ai/generate-workflow', {
+      prompt,
+      existing_workflow: opts.existingWorkflow,
+      history: opts.history,
+      credential_id: opts.credentialId,
+    }),
+  getAiMemory: (sessionId, workflowId = null) =>
+    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
+  clearAiMemory: (sessionId, workflowId = null) =>
+    request('DELETE', `/ai/memory/${encodeURIComponent(sessionId)}${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
+  chatWithAgent: (payload, opts) => request('POST', '/ai/chat', payload, opts),
   // Phase 16: AI assistant surfaces (read-only suggestions).
   suggestMapping: (payload) => request('POST', '/ai/suggest-mapping', payload),
   suggestExpression: (payload) => request('POST', '/ai/suggest-expression', payload),

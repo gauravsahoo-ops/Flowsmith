@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { getToken } from '../api'
 import './BinaryDataViewModal.css'
 
 export default function BinaryDataViewModal({ binaryEntry, onClose }) {
@@ -6,7 +7,7 @@ export default function BinaryDataViewModal({ binaryEntry, onClose }) {
   if (!binaryEntry) return null
   const { fileName, mimeType, fileSize, bytes, id, data, fileExtension } = binaryEntry
 
-  const token = localStorage.getItem('token') || ''
+  const token = getToken() || ''
   const viewUrl = id ? `/api/files/${id}/view${token ? `?token=${encodeURIComponent(token)}` : ''}` : null
   const downloadUrl = id ? `/api/files/${id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}` : null
 

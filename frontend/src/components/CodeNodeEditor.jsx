@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import ErrorState from './shared/ErrorState'
+import { getToken } from '../api'
 
 const MODE_OPTIONS = [
   { value: 'runOnceForAllItems', label: 'Run Once for All Items' },
@@ -125,7 +126,7 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
     try {
       const res = await fetch('/api/nodes/code/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('mat_token')}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ code: localCode, language }),
       })
       const j = await res.json()

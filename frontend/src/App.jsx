@@ -121,7 +121,7 @@ function handleOAuthPopup() {
     if (window.opener) {
       window.opener.postMessage(
         { source: legacyOk || legacyFail ? 'salesforce-oauth' : 'oauth', ok, error, provider },
-        '*',
+        window.location.origin,
       )
       const clean = window.location.pathname
       window.history.replaceState({}, '', clean)

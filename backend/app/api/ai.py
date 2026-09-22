@@ -12,20 +12,28 @@ reality before it is shown.
 from __future__ import annotations
 
 import json
+import logging
+from typing import Any
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.ai.client import LLMError, chat_completion
 from app.ai.generation import GenerationError, generate_workflow_spec
+from app.ai.memory import get_memory_manager
 from app.api.access import get_permission
 from app.api.auth import get_current_user
 from app.api.common import ok
 from app.audit import AI_ASSIST, AI_GENERATE, log_event
 from app.credentials import service as credential_service
 from app.db import get_db
+from app.engine.errors import NodeExecutionError
+from app.engine.node_base import NodeContext
 from app.models import Execution, User
+from app.nodes.ai_agent import AIAgentNode, AgentParams
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -38,6 +46,19 @@ class ExplainRequest(BaseModel):
 class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=3, max_length=4000)
     credential_id: str | None = None
+    existing_workflow: dict | None = None
+    history: list[dict] | None = None
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=10000)
+    session_id: str = "default"
+    workflow_id: str | None = None
+    credential_id: str | None = None
+    model: str | None = None
+    tools: list[str] | None = None
+    instructions: str | None = None
+    memory_type: str = "window"
 
 
 class SuggestMappingRequest(BaseModel):
@@ -169,6 +190,8 @@ async def generate_workflow(
             available_credentials=available_credentials,
             chat=chat_completion,
             llm=llm,
+            existing_workflow=body.existing_workflow,
+            history=body.history,
         )
     except GenerationError as exc:
         raise HTTPException(
@@ -186,6 +209,96 @@ async def generate_workflow(
         "attempts": result["attempts"],
         # Approval contract: the candidate is a preview only.
         "created": False,
+    })
+
+
+@router.get("/memory/{session_id}")
+async def get_ai_memory(
+    session_id: str,
+    workflow_id: str | None = None,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Inspect active conversation memory for a given session."""
+    manager = get_memory_manager()
+    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    info = await manager.get_session_info(key)
+    if not info.get("exists") and not workflow_id:
+        default_info = await manager.get_session_info(f"default_{session_id}")
+        if default_info.get("exists"):
+            return ok(default_info)
+    return ok(info)
+
+
+@router.delete("/memory/{session_id}")
+async def clear_ai_memory(
+    session_id: str,
+    workflow_id: str | None = None,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Clear active conversation memory for a given session."""
+    manager = get_memory_manager()
+    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    await manager.clear_session(key)
+    if not workflow_id:
+        await manager.clear_session(f"default_{session_id}")
+    return ok({"cleared": True, "session_id": session_id})
+
+
+@router.post("/chat")
+async def chat_with_agent(
+    body: ChatRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Live interactive chat with Flowsmith's autonomous AI Agent and LLM."""
+    llm = _pick_llm(db, user, body.credential_id)
+
+    param_kwargs: dict[str, Any] = {
+        "input": body.message,
+        "session_id": body.session_id,
+        "memory_type": body.memory_type,
+    }
+    if body.model:
+        param_kwargs["model"] = body.model
+    if body.tools is not None:
+        param_kwargs["tools"] = body.tools
+    if body.instructions:
+        param_kwargs["instructions"] = body.instructions
+
+    params = AgentParams(**param_kwargs)
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        ctx = NodeContext(
+            execution_id=f"chat_{uuid.uuid4().hex[:8]}",
+            workflow_id=body.workflow_id or "",
+            node_id="ai_chat",
+            logger=logging.getLogger("ai.chat"),
+            http_client=client,
+            credentials={"llm": llm},
+            user_id=user.id,
+        )
+        try:
+            res = await AIAgentNode().run(ctx, params, [{"input": body.message}])
+        except NodeExecutionError as exc:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
+        except Exception as exc:
+            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Agent error: {exc}")
+
+    output_item = (res.output_items or [{}])[0]
+    log_event(
+        db,
+        AI_ASSIST,
+        target_type="ai",
+        user_id=user.id,
+        detail={"session_id": body.session_id, "prompt": body.message[:100]},
+    )
+
+    return ok({
+        "response": output_item.get("final_answer") or output_item.get("output") or "",
+        "trace": output_item.get("trace") or [],
+        "tools_used": output_item.get("tools_used") or [],
+        "session_id": body.session_id,
+        "model": llm.get("model") or body.model or "default",
     })
 
 

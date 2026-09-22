@@ -5,6 +5,7 @@ import ErrorState from './shared/ErrorState'
 import { TableView } from './DataViewer'
 import BinaryDataViewModal from './BinaryDataViewModal'
 import { useWorkflowStore } from '../stores/workflowStore'
+import { getToken } from '../api'
 import './OutputPanel.css'
 
 function unwrapItem(item) {
@@ -645,7 +646,7 @@ export default function OutputPanel({
                           type="button"
                           className="op-btn small ghost"
                           onClick={() => {
-                            const token = localStorage.getItem('token') || ''
+                            const token = getToken() || ''
                             const url = bin.id
                               ? `/api/files/${bin.id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`
                               : `data:${bin.mimeType || 'application/octet-stream'};base64,${bin.data}`

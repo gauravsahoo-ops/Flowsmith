@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
+import { getToken } from '../api'
 
 const CURATED_LABELS = {
   create: { label: 'Create', hint: 'Create a record' },
@@ -32,7 +33,7 @@ export default function SalesforceBrowser({ onClose }) {
   useEffect(() => {
     let alive = true
     setLoading(true)
-    const headers = { Authorization: `Bearer ${localStorage.getItem('mat_token')}` }
+    const headers = { Authorization: `Bearer ${getToken()}` }
     Promise.all([
       fetch('/api/connectors/salesforce', { headers }).then(r => r.json()).then(j => j.data).catch(() => null),
       fetch('/api/connectors/salesforce/resources', { headers }).then(r => r.json()).then(j => j.data).catch(() => null),

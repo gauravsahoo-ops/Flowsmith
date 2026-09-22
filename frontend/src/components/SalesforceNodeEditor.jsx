@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import SalesforceAdditionalFields from './SalesforceAdditionalFields'
 import SearchableSelect from './SearchableSelect'
+import { getToken } from '../api'
 
 const RESOURCE_OPTIONS = [
   { value: 'Account', label: 'Account', desc: 'Represents an individual account, which is an organization or person involved with your business (such as customers, competitors, and partners)' },
@@ -48,7 +49,7 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
-    const headers = { Authorization: `Bearer ${localStorage.getItem('mat_token')}` }
+    const headers = { Authorization: `Bearer ${getToken()}` }
     fetch('/api/connectors/salesforce/resources', { headers }).then(r => r.json()).then(j => {
       if (j.data?.resources) setMatrix(j.data.resources)
     }).catch(() => {})

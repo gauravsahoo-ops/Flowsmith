@@ -11,6 +11,8 @@ import { useExecutionStore } from '../stores/executionStore'
 import PageHeader from '../components/shared/PageHeader'
 import LogsPanel from '../components/LogsPanel'
 import WorkflowHistoryDrawer from '../components/WorkflowHistoryDrawer'
+import AIChatDrawer from '../components/AIChatDrawer'
+import AICopilotModal from '../components/AICopilotModal'
 import { setToken } from '../api'
 
 class CanvasErrorBoundary extends Component {
@@ -70,6 +72,8 @@ export default function WorkflowEditorPage() {
   const hasExecution = useExecutionStore(s => !!s.executionId)
   const [localError, setLocalError] = useState(null)
   const [debuggerOpen, setDebuggerOpen] = useState(false)
+  const [aiChatOpen, setAiChatOpen] = useState(false)
+  const [aiCopilotOpen, setAiCopilotOpen] = useState(false)
 
   const handleSetDebuggerOpen = (val) => {
     setDebuggerOpen((prev) => {
@@ -77,6 +81,7 @@ export default function WorkflowEditorPage() {
       if (next) {
         closeSidebar()
         closeHistoryDrawer()
+        setAiChatOpen(false)
       }
       return next
     })
@@ -84,6 +89,7 @@ export default function WorkflowEditorPage() {
 
   const handleToggleSidebar = () => {
     if (debuggerOpen) setDebuggerOpen(false)
+    if (aiChatOpen) setAiChatOpen(false)
     toggleSidebar()
   }
 
@@ -139,6 +145,7 @@ export default function WorkflowEditorPage() {
           onLogout={() => { setToken(null); window.location.reload() }}
           onOpenHistory={() => {
             if (debuggerOpen) setDebuggerOpen(false)
+            if (aiChatOpen) setAiChatOpen(false)
             useUiStore.getState().toggleHistoryDrawer()
           }}
           onOpenApprovals={() => navigate('/approvals')}
@@ -146,7 +153,14 @@ export default function WorkflowEditorPage() {
           onOpenEnv={() => navigate('/variables')}
           onOpenTests={() => navigate('/settings')}
           onOpenRag={() => navigate('/knowledge')}
+          onOpenAIChat={() => {
+            if (debuggerOpen) setDebuggerOpen(false)
+            closeHistoryDrawer()
+            setAiChatOpen(true)
+          }}
+          onOpenAICopilot={() => setAiCopilotOpen(true)}
         />
+        <AICopilotModal isOpen={aiCopilotOpen} onClose={() => setAiCopilotOpen(false)} />
         {activeError && (
           <div
             className="banner-inline err"
@@ -188,7 +202,7 @@ export default function WorkflowEditorPage() {
             <div className={`nodes-palette-wrap ${sidebarOpen ? 'is-open' : 'is-closed'}`}>
               <Sidebar onOpenCredentials={() => navigate('/credentials')} />
             </div>
-            {!debuggerOpen && !historyDrawerOpen && (
+            {!debuggerOpen && !historyDrawerOpen && !aiChatOpen && (
               <button
                 type="button"
                 className={`sidebar-unhide-btn ${sidebarOpen ? 'is-hidden' : ''}`}
@@ -211,6 +225,9 @@ export default function WorkflowEditorPage() {
                 <ExecutionInspector onClose={() => setDebuggerOpen(false)} />
               </div>
             </>
+          )}
+          {aiChatOpen && (
+            <AIChatDrawer isOpen={aiChatOpen} onClose={() => setAiChatOpen(false)} />
           )}
         </div>
       </div>

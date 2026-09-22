@@ -114,13 +114,13 @@ def store_names() -> list[str]:
     return sorted(_STORES)
 
 
-def get_vector_store() -> VectorStore:
-    """Instantiate the configured backend (Settings.vector_store)."""
-    name = get_settings().vector_store
-    cls = _STORES.get(name)
+def get_vector_store(name: str | None = None) -> VectorStore:
+    """Instantiate the configured backend (Settings.vector_store or explicit name)."""
+    backend_name = name or get_settings().vector_store
+    cls = _STORES.get(backend_name)
     if cls is None:
         raise ValueError(
-            f"Unknown vector store '{name}' (available: {', '.join(store_names() or ['<none>'])})"
+            f"Unknown vector store '{backend_name}' (available: {', '.join(store_names() or ['<none>'])})"
         )
     return cls()
 
