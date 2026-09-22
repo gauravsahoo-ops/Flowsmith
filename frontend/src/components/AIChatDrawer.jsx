@@ -63,7 +63,7 @@ export default function AIChatDrawer({ isOpen, onClose }) {
       let responsePayload = null
       if (workflow?.id && targetNode) {
         try {
-          const res = await api.runStep(workflow.id, targetNode.id, [{ prompt: text, input: text, session_id: sessionId }])
+          const res = await api.runStep(workflow.id, targetNode.id, [{ prompt: text, input: text, session_id: sessionId, ...targetParams }])
           responsePayload = res?.output_items?.[0] || res?.items?.[0] || res
         } catch (err) {
           console.warn('runStep failed, falling back to direct prompt evaluation:', err)

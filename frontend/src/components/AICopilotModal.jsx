@@ -14,7 +14,6 @@ export default function AICopilotModal({ isOpen, onClose }) {
   const [error, setError] = useState(null)
   const addNode = useWorkflowStore((s) => s.addNode)
   const addEdge = useWorkflowStore((s) => s.addEdge)
-  const workflow = useWorkflowStore((s) => s.workflow)
 
   if (!isOpen) return null
 
