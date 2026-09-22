@@ -10,6 +10,7 @@ Features:
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 import logging
 import math
@@ -143,6 +144,27 @@ class EmbeddingService:
             api_key=api_key,
             base_url=base_url,
         )
+
+    async def get_embeddings(
+        self,
+        texts: list[str],
+        *,
+        provider: str = "openai",
+        model: str = "text-embedding-3-small",
+        api_key: str = "",
+        base_url: str = "",
+    ) -> list[list[float]]:
+        tasks = [
+            self.get_embedding(
+                t,
+                provider=provider,
+                model=model,
+                api_key=api_key,
+                base_url=base_url,
+            )
+            for t in texts
+        ]
+        return await asyncio.gather(*tasks)
 
     async def _get_openai_embedding(
         self,

@@ -106,8 +106,7 @@ async def _vector_search_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
         # Resolve query embedding via EmbeddingService
         from app.ai.rag import EmbeddingService
         embedder = EmbeddingService()
-        embeddings = await embedder.get_embeddings([query])
-        query_embedding = embeddings[0] if embeddings else []
+        query_embedding = await embedder.get_embedding(query)
 
         if not query_embedding:
             return {"warning": "Could not generate query embedding."}
