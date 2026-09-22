@@ -222,8 +222,11 @@ export const api = {
       history: opts.history,
       credential_id: opts.credentialId,
     }),
-  getAiMemory: (sessionId) => request('GET', `/ai/memory/${encodeURIComponent(sessionId)}`),
-  clearAiMemory: (sessionId) => request('DELETE', `/ai/memory/${encodeURIComponent(sessionId)}`),
+  getAiMemory: (sessionId, workflowId = null) =>
+    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
+  clearAiMemory: (sessionId, workflowId = null) =>
+    request('DELETE', `/ai/memory/${encodeURIComponent(sessionId)}${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
+  chatWithAgent: (payload) => request('POST', '/ai/chat', payload),
   // Phase 16: AI assistant surfaces (read-only suggestions).
   suggestMapping: (payload) => request('POST', '/ai/suggest-mapping', payload),
   suggestExpression: (payload) => request('POST', '/ai/suggest-expression', payload),

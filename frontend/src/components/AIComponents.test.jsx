@@ -126,5 +126,12 @@ describe('AI Components Suite', () => {
       expect(html).toContain('Agent Alpha')
       expect(html).toContain('Agent Beta')
     })
+
+    it('has api.chatWithAgent and api.getAiMemory defined', async () => {
+      const { api } = await import('../api.js')
+      expect(typeof api.chatWithAgent).toBe('function')
+      expect(typeof api.getAiMemory).toBe('function')
+      expect(typeof api.clearAiMemory).toBe('function')
+    })
   })
 })

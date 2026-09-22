@@ -86,8 +86,29 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [expandedTraceIndex, setExpandedTraceIndex] = useState(null)
   const [copiedSession, setCopiedSession] = useState(false)
+  const [llmConfigured, setLlmConfigured] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
+
+  // Check if user has an active LLM credential configured
+  useEffect(() => {
+    if (!isOpen) return
+    let active = true
+    if (typeof api.aiStatus === 'function') {
+      api.aiStatus()
+        .then((res) => {
+          if (!active) return
+          const configured = Boolean(res?.configured ?? res?.data?.configured)
+          setLlmConfigured(configured)
+        })
+        .catch(() => {
+          if (active) setLlmConfigured(false)
+        })
+    }
+    return () => {
+      active = false
+    }
+  }, [isOpen])
 
   // Find all AI nodes in the current workflow safely
   const aiNodes = useMemo(() => {
@@ -188,6 +209,44 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
       const configuredTools = Array.isArray(targetParams.tools)
         ? targetParams.tools
         : ['current_time', 'calculator', 'http_request', 'database_query']
+
+      // 1. Attempt live AI Agent execution via backend /api/ai/chat
+      if (typeof api.chatWithAgent === 'function') {
+        try {
+          const chatPayload = {
+            message: text,
+            session_id: sessionId,
+            workflow_id: workflow?.id || null,
+            model: targetParams?.model || null,
+            tools: configuredTools,
+            instructions: targetParams?.instructions || null,
+            memory_type: targetParams?.memory_type || 'window',
+          }
+          const res = await api.chatWithAgent(chatPayload)
+          const data = res?.data || res
+          if (data && (data.response !== undefined || data.output !== undefined)) {
+            setLlmConfigured(true)
+            setMessages([
+              ...newMessages,
+              {
+                role: 'assistant',
+                content: data.response || data.output || 'Done.',
+                trace: Array.isArray(data.trace) ? data.trace : [],
+                tools_used: Array.isArray(data.tools_used) ? data.tools_used : [],
+                model: data.model,
+                isLiveLlm: true,
+              },
+            ])
+            setLoading(false)
+            return
+          }
+        } catch (err) {
+          if (err?.status === 422 || err?.message?.toLowerCase()?.includes('credential')) {
+            setLlmConfigured(false)
+          }
+          console.warn('Live LLM turn skipped, falling back to local runner:', err?.message || err)
+        }
+      }
 
       // Realistic thinking delay so interactive agent feel is authentic
       await new Promise((resolve) => setTimeout(resolve, 380))
@@ -437,7 +496,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
     } finally {
       setLoading(false)
     }
-  }, [input, loading, messages, nodes, selectedNodeId, sessionId, workflow?.name])
+  }, [input, loading, messages, nodes, selectedNodeId, sessionId, workflow?.id, workflow?.name])
 
   const handleSend = (e) => {
     e?.preventDefault()
@@ -455,7 +514,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
     const oldSessionId = sessionId
     const newId = `session_${Math.random().toString(36).slice(2, 9)}`
     try {
-      await api.clearAiMemory(oldSessionId)
+      await api.clearAiMemory(oldSessionId, workflow?.id || null)
     } catch {}
     setSessionId(newId)
     const fresh = [
@@ -546,6 +605,15 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
 
         {/* Messages Body */}
         <div className="ai-chat-drawer-body">
+          {llmConfigured === false && (
+            <div className="ai-chat-llm-warning">
+              <span className="warning-icon">💡</span>
+              <div className="warning-text">
+                <strong>Offline Sandbox Mode:</strong> No LLM API key detected. Add an API key (OpenAI, Claude, Gemini, DeepSeek, Groq) in <a href="/credentials">Credentials</a> or run local Ollama for real AI reasoning.
+              </div>
+            </div>
+          )}
+
           {messages.map((m, idx) => (
             <div key={idx} className={`ai-message-row ${m.role === 'user' ? 'user' : 'assistant'}`}>
               <div className="ai-message-avatar">
@@ -607,6 +675,11 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
                 )}
 
                 <div className="ai-message-bubble">
+                  {m.isLiveLlm && (
+                    <div style={{ marginBottom: '6px' }}>
+                      <span className="ai-live-model-badge">✨ Live LLM ({m.model || 'Connected'})</span>
+                    </div>
+                  )}
                   <div className="ai-message-text">{m.content}</div>
 
                   {m.tools_used && m.tools_used.length > 0 && (

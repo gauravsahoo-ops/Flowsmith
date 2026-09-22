@@ -24,6 +24,7 @@ class FakeLLM:
 
         self.response = lambda: {"content": "{}", "tool_calls": []}
         monkeypatch.setattr("app.api.ai.chat_completion", fake_chat)
+        monkeypatch.setattr("app.nodes.ai_agent.chat_completion", fake_chat)
 
 
 @pytest.fixture
@@ -246,3 +247,41 @@ def test_generate_workflow_with_history_and_existing_workflow(client, fake_llm):
     user_msgs = [m["content"] for m in messages if m["role"] == "user"]
     assert any("Create a manual trigger workflow" in u for u in user_msgs)
     assert any("EXISTING WORKFLOW STATE TO MODIFY OR EXTEND" in u for u in user_msgs)
+
+
+def test_ai_chat_without_llm_credential_raises_422(client):
+    """Calling /api/ai/chat without configured LLM credentials returns 422."""
+    reg = register(client, "no_llm_chat@example.com")
+    resp = client.post(
+        "/api/ai/chat",
+        json={"message": "Hello from drawer!"},
+        headers=auth_headers(reg["token"]),
+    )
+    assert resp.status_code == 422
+    assert "credential" in resp.text.lower()
+
+
+def test_ai_chat_with_llm_credential_and_memory(client, fake_llm):
+    """Calling /api/ai/chat with an LLM executes the agent and stores turns in memory."""
+    reg = _register_with_llm(client, "llm_chat_user@x.com")
+    fake_llm.response = lambda: {"content": "Hello! I am Flowsmith AI Agent.", "tool_calls": []}
+
+    payload = {
+        "message": "Hi there, who are you?",
+        "session_id": "drawer_sess_42",
+        "memory_type": "window",
+    }
+    headers = auth_headers(reg["token"])
+    resp = client.post("/api/ai/chat", json=payload, headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["response"] == "Hello! I am Flowsmith AI Agent."
+    assert data["session_id"] == "drawer_sess_42"
+
+    # Verify session memory now records this conversation
+    mem_resp = client.get("/api/ai/memory/drawer_sess_42", headers=headers)
+    assert mem_resp.status_code == 200
+    mem_data = mem_resp.json()["data"]
+    assert mem_data["turns"] == 2
+    assert mem_data["messages"][0]["content"] == "Hi there, who are you?"
+    assert mem_data["messages"][1]["content"] == "Hello! I am Flowsmith AI Agent."

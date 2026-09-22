@@ -122,7 +122,7 @@ class AIAgentNode(BaseNode[AgentParams]):
         session_key = (
             f"{ctx.workflow_id}_{params.session_id}"
             if getattr(ctx, "workflow_id", None)
-            else (f"{ctx.execution_id}_{params.session_id}" if getattr(ctx, "execution_id", None) else params.session_id)
+            else params.session_id
         )
 
         if params.memory_type == "window":
