@@ -542,14 +542,42 @@ export default function CredentialsPage() {
               Flowsmith supports connecting <strong>multiple accounts</strong> (e.g. multiple Salesforce orgs or users). Each account is encrypted and isolated.
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0 12px' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', userSelect: 'none' }}>
+            <div style={{ margin: '10px 0 14px', padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <label
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  margin: 0,
+                  color: 'inherit',
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={forceLoginPrompt}
                   onChange={e => setForceLoginPrompt(e.target.checked)}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    minWidth: 16,
+                    margin: 0,
+                    accentColor: 'var(--accent, #6366f1)',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
                 />
-                <span>Prompt for login / switch user (forces login prompt so you can log into a different account)</span>
+                <span style={{ lineHeight: 1.4 }}>
+                  <strong style={{ display: 'block', color: 'var(--text, #f1f5f9)' }}>
+                    Force login screen / switch account
+                  </strong>
+                  <span className="muted" style={{ display: 'block', fontSize: 11, marginTop: 2, color: 'var(--muted, #94a3b8)' }}>
+                    When checked, Salesforce displays a fresh sign-in dialog so you can log into a different account instead of reusing your browser's existing session.
+                  </span>
+                </span>
               </label>
             </div>
 
