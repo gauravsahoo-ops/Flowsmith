@@ -76,13 +76,34 @@ def _fail_redirect(frontend_url: str, spec, reason: str) -> RedirectResponse:
     )
 
 
-def _resolve_login_url(spec, body: ConnectRequest | None) -> str:
+def _resolve_login_url(spec, body: ConnectRequest | None, db: Session | None = None, user_id: int | None = None) -> str:
     if not spec.uses_login_url:
         return ""
+    if body and body.login_url:
+        return body.login_url.rstrip("/")
+    if db is not None:
+        try:
+            import json
+            from sqlalchemy import select
+            from app.models.credential import Credential
+            from app.security.crypto import decrypt_text
+
+            query = select(Credential).where(Credential.type == spec.credential_type)
+            if user_id:
+                query = query.where(Credential.user_id == user_id)
+            for rec in db.scalars(query.order_by(Credential.created_at.desc())).all():
+                try:
+                    d = json.loads(decrypt_text(rec.data))
+                    db_url = (d.get("login_url") or d.get("instance_url") or "").strip()
+                    if db_url and "orgfarm" in db_url:
+                        return db_url.rstrip("/")
+                except Exception:
+                    continue
+        except Exception:
+            pass
     settings = get_settings()
     return (
-        (body.login_url if body else None)
-        or settings.salesforce_login_url
+        settings.salesforce_login_url
         or "https://login.salesforce.com"
     ).rstrip("/")
 
@@ -102,8 +123,8 @@ def connect_provider(
     spec = get_provider(provider)
     assert spec.authorize_url is not None, f"provider {provider} misconfigured"
     purge_stale_states(db)
-    client_id, _client_secret, redirect_uri = spec.server_config(get_settings())
-    login_url = _resolve_login_url(spec, body)
+    client_id, _client_secret, redirect_uri = spec.server_config(get_settings(), db=db, user_id=user.id)
+    login_url = _resolve_login_url(spec, body, db=db, user_id=user.id)
 
     verifier, challenge = ("", "")
     if spec.supports_pkce:
@@ -169,7 +190,7 @@ async def provider_callback(
     row.used = True
     db.commit()
 
-    client_id, client_secret, redirect_uri = spec.server_config(settings)
+    client_id, client_secret, redirect_uri = spec.server_config(settings, db=db, user_id=user.id)
     login_url = (row.login_url or "").rstrip("/")
 
     assert spec.token_request is not None and spec.token_headers is not None, f'provider {provider} misconfigured'

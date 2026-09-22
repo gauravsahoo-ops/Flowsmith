@@ -52,8 +52,18 @@ class OAuthProviderSpec:
     supports_pkce: bool = True
     uses_login_url: bool = False  # Salesforce lets users pick their org base
 
-    def server_config(self, settings: Settings) -> tuple[str, str, str]:
-        """(client_id, client_secret, redirect_uri) or HTTP 422."""
+    def server_config(
+        self,
+        settings: Settings,
+        db: Any = None,
+        user_id: int | None = None,
+    ) -> tuple[str, str, str]:
+        """(client_id, client_secret, redirect_uri) or HTTP 422.
+
+        Resolves client credentials from Settings (env vars) first, and falls
+        back to encrypted database credentials so credentials stay encrypted in
+        the database only without requiring plain text secrets in config files.
+        """
         prefix = self.config_prefix or self.key
         cid = getattr(settings, f"{prefix}_client_id", "")
         csecret = getattr(settings, f"{prefix}_client_secret", "")
@@ -65,6 +75,38 @@ class OAuthProviderSpec:
                 redirect = f"{base}/api/auth/{self.key}/callback"
             else:
                 redirect = f"https://flowsmith.dev.idslogic.net/api/auth/{self.key}/callback"
+
+        # Fallback to encrypted database credentials when env vars are unset
+        if (not cid or not csecret) and db is not None:
+            try:
+                import json
+                from sqlalchemy import select
+                from app.models.credential import Credential
+                from app.security.crypto import decrypt_text
+
+                query = select(Credential).where(Credential.type == self.credential_type)
+                candidates = []
+                if user_id:
+                    candidates = list(
+                        db.scalars(query.where(Credential.user_id == user_id).order_by(Credential.created_at.desc())).all()
+                    )
+                if not candidates:
+                    candidates = list(db.scalars(query.order_by(Credential.created_at.desc())).all())
+
+                for cand in candidates:
+                    try:
+                        data = json.loads(decrypt_text(cand.data))
+                        cand_cid = (data.get("client_id") or "").strip()
+                        cand_sec = (data.get("client_secret") or "").strip()
+                        if cand_cid and cand_sec:
+                            cid = cid or cand_cid
+                            csecret = csecret or cand_sec
+                            break
+                    except Exception:
+                        continue
+            except Exception as exc:
+                logger.debug("Could not resolve credentials from database: %s", exc)
+
         if not cid or not csecret:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,

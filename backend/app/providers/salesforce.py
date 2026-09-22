@@ -127,11 +127,22 @@ class SalesforceProviderClient:
 
         'Connect Salesforce' credentials store no client id/secret (they are
         server configuration, never sent to the frontend); the token request
-        needs them, so the server's settings are merged in at call time.
+        needs them, so the server's settings or encrypted DB credentials are
+        merged in at call time.
         """
         settings = get_settings()
         client_id = (creds.get("client_id") or "").strip() or settings.salesforce_client_id
         client_secret = (creds.get("client_secret") or "").strip() or settings.salesforce_client_secret
+        if not client_id or not client_secret:
+            try:
+                from app.db import get_session
+                from app.oauth_providers import SALESFORCE
+                with get_session() as db:
+                    cid, sec, _ = SALESFORCE.server_config(settings, db=db)
+                    client_id = client_id or cid
+                    client_secret = client_secret or sec
+            except Exception:
+                pass
         return {
             **creds,
             "client_id": client_id,
