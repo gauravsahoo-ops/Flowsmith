@@ -107,7 +107,7 @@ export default function CredentialsPage() {
       if (res && res.ok === false && res.message) {
         setNotice(res.message)
       }
-      handleOAuth(c.type, c.type === 'salesforce' ? (c.data?.instance_url || c.data?.login_url || sfLoginUrl || undefined) : undefined)
+      handleOAuth(c.type, res?.login_url || (c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined))
     } catch (err) {
       if (err && err.status === 404) {
         setError('Credential not found. Refreshing list…')
