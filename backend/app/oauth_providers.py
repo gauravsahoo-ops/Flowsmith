@@ -172,8 +172,9 @@ def _sf_authorize_url(
         "code_challenge": challenge,
         "code_challenge_method": "S256",
     }
-    if prompt:
-        params["prompt"] = prompt
+    effective_prompt = (prompt or "").strip() or "login"
+    if effective_prompt:
+        params["prompt"] = effective_prompt
     return (
         f"{login_url.rstrip('/')}/services/oauth2/authorize?"
         + urlencode(params)

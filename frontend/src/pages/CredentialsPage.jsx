@@ -45,7 +45,7 @@ export default function CredentialsPage() {
   const [showSfAdvanced, setShowSfAdvanced] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [logoutTarget, setLogoutTarget] = useState(null)
-  const [forceLoginPrompt, setForceLoginPrompt] = useState(false)
+  const [forceLoginPrompt, setForceLoginPrompt] = useState(true)
   const [loading, setLoading] = useState(true)
   const [providers, setProviders] = useState([])
   const [predefined, setPredefined] = useState([])
@@ -124,7 +124,10 @@ export default function CredentialsPage() {
   async function handleOAuth(provider, loginUrl, prompt, extra = {}) {
     setOauthBusy(provider); setError(null); setNotice(null); setFallbackUrl('')
     try {
-      const { authorizeUrl } = await connectOAuth(provider, loginUrl, prompt, extra)
+      const effectivePrompt = prompt !== undefined
+        ? prompt
+        : (forceLoginPrompt ? (provider === 'salesforce' ? 'login' : 'select_account') : (provider === 'salesforce' ? 'login' : undefined))
+      const { authorizeUrl } = await connectOAuth(provider, loginUrl, effectivePrompt, extra)
       if (!authorizeUrl) throw new Error('Failed to get authorization URL')
       setFallbackUrl(authorizeUrl)
       const w = window.open(authorizeUrl, `oauth-${provider}`, 'width=520,height=640')
@@ -838,9 +841,26 @@ export default function CredentialsPage() {
         variant="danger"
         onCancel={() => setLogoutTarget(null)}
         onConfirm={async () => {
+          const target = logoutTarget
           try {
-            const res = await logout(logoutTarget.id)
-            setNotice(res?.message || `Logged out and revoked ${logoutTarget.name}.`)
+            const res = await logout(target.id)
+            setNotice(
+              <span>
+                {res?.message || `Logged out and revoked ${target.name}.`}
+                {res?.logout_url && (
+                  <span style={{ marginLeft: 8 }}>
+                    · <a
+                        href={res.logout_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: '#60a5fa', textDecoration: 'underline', fontWeight: 600 }}
+                      >
+                        Sign out of {target.type === 'salesforce' ? 'Salesforce' : 'provider'} browser session ↗
+                      </a>
+                  </span>
+                )}
+              </span>
+            )
             await load()
           } catch (e) {
             setError(e.message || 'Logout failed.')

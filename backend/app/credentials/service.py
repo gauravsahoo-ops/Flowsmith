@@ -92,6 +92,13 @@ async def logout_for_user(db: Session, user_id: int, credential_id: str) -> dict
             except Exception as exc:
                 logger.warning("Revocation failed during logout for %s: %s", credential_id, exc)
 
+    logout_url = ""
+    if cred_type == "salesforce":
+        base = (decrypted.get("instance_url") or decrypted.get("login_url") or "https://login.salesforce.com").rstrip("/")
+        logout_url = f"{base}/secur/logout.jsp"
+    elif "google" in cred_type:
+        logout_url = "https://accounts.google.com/Logout"
+
     db.delete(rec)
     db.commit()
 
@@ -101,6 +108,7 @@ async def logout_for_user(db: Session, user_id: int, credential_id: str) -> dict
         "type": cred_type,
         "provider": provider_key,
         "revoked": bool(revoked),
+        "logout_url": logout_url,
         "message": f"Credential '{cred_name}' logged out and revoked completely.",
     }
 
