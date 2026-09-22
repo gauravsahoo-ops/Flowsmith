@@ -129,6 +129,14 @@ def _parse_candidate(content: str) -> dict[str, Any] | None:
             return None
     if not isinstance(parsed, dict) or not isinstance(parsed.get("nodes"), list):
         return None
+    for idx, node in enumerate(parsed["nodes"]):
+        if isinstance(node, dict):
+            if "position" not in node or not isinstance(node["position"], dict):
+                node["position"] = {"x": 80 + (idx * 280), "y": 160}
+            if "parameters" not in node or not isinstance(node["parameters"], dict):
+                node["parameters"] = {}
+            if "settings" not in node or not isinstance(node["settings"], dict):
+                node["settings"] = {}
     if not parsed.get("id"):
         parsed["id"] = f"wf_{uuid.uuid4().hex[:12]}"
     parsed.setdefault("name", "Generated workflow")

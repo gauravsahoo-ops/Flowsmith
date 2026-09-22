@@ -48,6 +48,8 @@ describe('AI Components Suite', () => {
         })
       )
       expect(html).toContain('Extend current canvas')
+      expect(html).toContain('Ctrl')
+      expect(html).toContain('Enter')
     })
   })
 
@@ -59,7 +61,7 @@ describe('AI Components Suite', () => {
       expect(html).toBe('')
     })
 
-    it('renders drawer header and controls with memory badge when open', () => {
+    it('renders drawer header, copy button, and controls with memory badge when open', () => {
       const html = renderToStaticMarkup(
         React.createElement(AIChatDrawer, {
           isOpen: true,
@@ -74,6 +76,7 @@ describe('AI Components Suite', () => {
       expect(html).toContain('Remember that our project budget is $45,000')
       expect(html).toContain('Stateful Memory')
       expect(html).toContain('agent-avatar')
+      expect(html).toContain('ai-copy-btn')
     })
 
     it('renders active AI node tag when single AI node present', () => {

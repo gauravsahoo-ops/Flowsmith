@@ -87,9 +87,11 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [expandedTraceIndex, setExpandedTraceIndex] = useState(null)
   const [copiedSession, setCopiedSession] = useState(false)
+  const [copiedMsgIdx, setCopiedMsgIdx] = useState(null)
   const [llmConfigured, setLlmConfigured] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
+  const abortControllerRef = useRef(null)
 
   // Check if user has an active LLM credential configured
   useEffect(() => {
@@ -166,6 +168,22 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
     }).catch(() => {})
   }
 
+  const handleCopyMessage = (content, idx) => {
+    if (!content) return
+    navigator.clipboard?.writeText(content).then(() => {
+      setCopiedMsgIdx(idx)
+      setTimeout(() => setCopiedMsgIdx(null), 2000)
+    }).catch(() => {})
+  }
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setLoading(false)
+  }
+
   // Safe math expression parser supporting arithmetic operators
   const evaluateMath = (text) => {
     const mathMatch = text.match(/(?:compute|calculate|what is)?\s*([0-9\s+\-*/%().^]+[0-9)])/i)
@@ -197,6 +215,9 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
       textareaRef.current.style.height = '44px'
     }
     setLoading(true)
+
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     try {
       const allPlatformTools = [
@@ -244,7 +265,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
             instructions: targetParams?.instructions || null,
             memory_type: targetParams?.memory_type || 'window',
           }
-          const res = await api.chatWithAgent(chatPayload)
+          const res = await api.chatWithAgent(chatPayload, { signal: controller.signal })
           const data = res?.data || res
           if (data && (data.response !== undefined || data.output !== undefined)) {
             setLlmConfigured(true)
@@ -612,6 +633,16 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
         },
       ])
     } catch (err) {
+      if (err?.name === 'AbortError' || err?.message?.includes('cancelled')) {
+        setMessages([
+          ...newMessages,
+          {
+            role: 'assistant',
+            content: '⏹ Execution stopped by user.',
+          },
+        ])
+        return
+      }
       setMessages([
         ...newMessages,
         {
@@ -621,6 +652,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
         },
       ])
     } finally {
+      abortControllerRef.current = null
       setLoading(false)
     }
   }, [input, loading, messages, nodes, selectedNodeId, sessionId, workflow?.id, workflow?.name])
@@ -631,7 +663,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (!e.shiftKey || e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       sendMessageText()
     }
@@ -802,11 +834,23 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
                 )}
 
                 <div className="ai-message-bubble">
-                  {m.isLiveLlm && (
-                    <div style={{ marginBottom: '6px' }}>
+                  <div className="ai-message-bubble-header">
+                    {m.isLiveLlm ? (
                       <span className="ai-live-model-badge">✨ Live LLM ({m.model || 'Connected'})</span>
-                    </div>
-                  )}
+                    ) : (
+                      <span />
+                    )}
+                    {m.role === 'assistant' && (
+                      <button
+                        type="button"
+                        className={`ai-copy-btn ${copiedMsgIdx === idx ? 'copied' : ''}`}
+                        onClick={() => handleCopyMessage(m.content, idx)}
+                        title="Copy message content"
+                      >
+                        {copiedMsgIdx === idx ? '✓ Copied' : '📋 Copy'}
+                      </button>
+                    )}
+                  </div>
                   <div className="ai-message-text">{m.content}</div>
 
                   {m.tools_used && m.tools_used.length > 0 && (
@@ -875,24 +919,30 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
               onKeyDown={handleKeyDown}
               disabled={loading}
             />
-            <button
-              className="ai-chat-send-btn"
-              type="submit"
-              disabled={!input.trim() || loading}
-              title="Send (Enter)"
-            >
-              {loading ? (
-                <span className="ai-send-loading">…</span>
-              ) : (
-                <>
-                  <span>Send</span>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
-                </>
-              )}
-            </button>
+            {loading ? (
+              <button
+                type="button"
+                className="ai-chat-stop-btn"
+                onClick={handleStop}
+                title="Stop agent execution"
+              >
+                <span>⏹</span>
+                <span>Stop</span>
+              </button>
+            ) : (
+              <button
+                className="ai-chat-send-btn"
+                type="submit"
+                disabled={!input.trim() || loading}
+                title="Send (Enter)"
+              >
+                <span>Send</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
+            )}
           </div>
           <div className="ai-chat-footer-hints">
             <span>

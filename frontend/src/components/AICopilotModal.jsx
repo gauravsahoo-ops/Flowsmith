@@ -10,6 +10,13 @@ const EXAMPLE_PROMPTS = [
   'RAG knowledge base pipeline querying pgvector and answering user support question',
 ]
 
+const GENERATION_PHASES = [
+  'Analyzing automation intent...',
+  'Selecting connectors & parameters from live catalog...',
+  'Validating graph connections and expressions...',
+  'Arranging canvas layout and wiring nodes...',
+]
+
 const COPILOT_HISTORY_KEY = 'flowsmith_copilot_prompt_history'
 
 function loadCopilotHistory() {
@@ -52,6 +59,18 @@ export default function AICopilotModal({ isOpen, onClose, nodes: propNodes, edge
   const [recentPrompts, setRecentPrompts] = useState(loadCopilotHistory)
   const [iterateExisting, setIterateExisting] = useState(currentNodes.length > 0)
   const [llmConfigured, setLlmConfigured] = useState(null)
+  const [generationPhase, setGenerationPhase] = useState(0)
+
+  useEffect(() => {
+    if (!generating) {
+      setGenerationPhase(0)
+      return
+    }
+    const timer = setInterval(() => {
+      setGenerationPhase((p) => Math.min(p + 1, GENERATION_PHASES.length - 1))
+    }, 650)
+    return () => clearInterval(timer)
+  }, [generating])
 
   useEffect(() => {
     if (!isOpen) return
@@ -466,11 +485,30 @@ export default function AICopilotModal({ isOpen, onClose, nodes: propNodes, edge
         }
       }
 
-      // 3. Save prompt to memory
+      // 3. Apply auto-layout to neatly arrange nodes without overlap
+      if (generatedNodes.length > 0) {
+        try {
+          const { autoLayout } = await import('../utils/autoLayout')
+          const layoutMap = autoLayout(generatedNodes, generatedEdges, 'LR')
+          const startYOffset = (iterateExisting && currentNodes.length > 0)
+            ? Math.max(...currentNodes.map((n) => n.position?.y || 0)) + 200
+            : 0
+          generatedNodes = generatedNodes.map((n) => {
+            const pos = layoutMap.get(n.id)
+            return pos
+              ? { ...n, position: { x: pos.x + 80, y: pos.y + 120 + startYOffset } }
+              : n
+          })
+        } catch (layoutErr) {
+          console.warn('AutoLayout error in Copilot:', layoutErr)
+        }
+      }
+
+      // 4. Save prompt to memory
       const updatedHistory = saveCopilotHistory(text)
       setRecentPrompts(updatedHistory)
 
-      // 4. Add nodes and edges to the workflow store atomically
+      // 5. Add nodes and edges to the workflow store atomically
       useWorkflowStore.getState().pushHistory()
       useWorkflowStore.setState((state) => ({
         nodes: [...(state.nodes || []), ...generatedNodes],
@@ -521,8 +559,32 @@ export default function AICopilotModal({ isOpen, onClose, nodes: propNodes, edge
             placeholder="e.g. When a new customer signs up in Postgres, summarize their company using Claude 3.5 Sonnet, search our pgvector docs, and send an alert to Slack..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault()
+                handleGenerate()
+              }
+            }}
             disabled={generating}
           />
+          <div className="copilot-shortcut-hint">
+            <span>Tip: Press <kbd className="ai-chat-hint-kbd">Ctrl</kbd> + <kbd className="ai-chat-hint-kbd">Enter</kbd> to generate</span>
+          </div>
+
+          {generating && (
+            <div className="copilot-generating-card">
+              <div className="copilot-spinner-row">
+                <div className="ai-spin-bubble" />
+                <span className="copilot-phase-label">{GENERATION_PHASES[generationPhase]}</span>
+              </div>
+              <div className="copilot-progress-track">
+                <div
+                  className="copilot-progress-fill"
+                  style={{ width: `${((generationPhase + 1) / GENERATION_PHASES.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {currentNodes.length > 0 && (
             <label className="copilot-extend-checkbox-wrap">

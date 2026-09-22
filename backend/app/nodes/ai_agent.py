@@ -10,6 +10,7 @@ Supports:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -216,8 +217,8 @@ class AIAgentNode(BaseNode[AgentParams]):
                 execution_trace.append(step_trace)
                 break
 
-            # Execute tool calls
-            for tc in tool_calls:
+            # Execute tool calls concurrently using asyncio.gather for speed
+            async def _run_single_tool(tc: dict[str, Any]) -> tuple[dict[str, Any], str, dict[str, Any], str, float]:
                 fn = tc.get("function") or {}
                 t_name = fn.get("name", "")
                 t_args_raw = fn.get("arguments") or "{}"
@@ -227,9 +228,8 @@ class AIAgentNode(BaseNode[AgentParams]):
                     except Exception:
                         t_args = {"raw": t_args_raw}
                 else:
-                    t_args = t_args_raw
+                    t_args = t_args_raw if isinstance(t_args_raw, dict) else {"raw": t_args_raw}
 
-                tools_used_set.add(t_name)
                 tool_start = time.monotonic()
                 try:
                     tool_output = await run_tool(ctx, t_name, t_args)
@@ -237,6 +237,12 @@ class AIAgentNode(BaseNode[AgentParams]):
                     tool_output = f"Tool '{t_name}' execution error: {t_err}"
 
                 tool_duration = round((time.monotonic() - tool_start) * 1000, 2)
+                return tc, t_name, t_args, tool_output, tool_duration
+
+            tool_results = await asyncio.gather(*[_run_single_tool(tc) for tc in tool_calls])
+
+            for tc, t_name, t_args, tool_output, tool_duration in tool_results:
+                tools_used_set.add(t_name)
                 step_trace["tool_calls"].append({
                     "name": t_name,
                     "arguments": t_args,
@@ -244,12 +250,13 @@ class AIAgentNode(BaseNode[AgentParams]):
                     "duration_ms": tool_duration,
                 })
 
-                # Feed tool result back to the LLM
+                # Compact tool output fed back to LLM context to prevent token explosion
+                llm_content = tool_output if len(tool_output) <= 1500 else tool_output[:1500] + "... (truncated)"
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tc.get("id", ""),
                     "name": t_name,
-                    "content": tool_output,
+                    "content": llm_content,
                 })
 
             execution_trace.append(step_trace)

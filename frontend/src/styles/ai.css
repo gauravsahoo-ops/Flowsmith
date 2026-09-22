@@ -992,3 +992,120 @@
   margin-left: 6px;
 }
 
+/* AI Message Bubble Header & Copy Action */
+.ai-message-bubble-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ai-copy-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted, #9494a3);
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.ai-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.ai-copy-btn.copied {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30d158;
+  border-color: rgba(48, 209, 88, 0.35);
+}
+
+/* AI Chat Stop Button */
+.ai-chat-stop-btn {
+  background: rgba(255, 69, 58, 0.14);
+  border: 1px solid rgba(255, 69, 58, 0.4);
+  color: #ff453a;
+  border-radius: 8px;
+  padding: 0 14px;
+  height: 40px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ai-chat-stop-btn:hover {
+  background: rgba(255, 69, 58, 0.25);
+  border-color: #ff453a;
+  color: #fff;
+}
+
+/* Copilot Progressive Generation Card */
+.copilot-generating-card {
+  margin: 10px 0 14px;
+  padding: 12px 14px;
+  background: rgba(255, 159, 10, 0.06);
+  border: 1px solid rgba(255, 159, 10, 0.22);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  animation: aiDrawerFadeIn 0.2s ease-out;
+}
+
+.copilot-spinner-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-spin-bubble {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 159, 10, 0.3);
+  border-top-color: #ff9f0a;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.copilot-phase-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #ffb340;
+}
+
+.copilot-progress-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.copilot-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff9f0a, #ffd60a);
+  border-radius: 2px;
+  transition: width 0.4s ease-out;
+}
+
+.copilot-shortcut-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted, #9494a3);
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+
