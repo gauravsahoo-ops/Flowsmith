@@ -21,17 +21,28 @@ from app.nodes.websocket import WebSocketNode, WebSocketParams
 # Fixtures
 # ---------------------------------------------------------------------------
 
+def _get_free_port() -> int:
+    import socket
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+WS_PORT = _get_free_port()
+WS_URL = f"ws://127.0.0.1:{WS_PORT}"
+
 @pytest.fixture(scope="module", autouse=True)
 def echo_server():
     """Start a local WebSocket echo server in a background process."""
     backend_dir = Path(__file__).resolve().parents[1]
     proc = subprocess.Popen(
-        [sys.executable, "ws_echo_server.py"],
+        [sys.executable, "ws_echo_server.py", str(WS_PORT)],
         cwd=str(backend_dir),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    time.sleep(2)  # let the server bind
+    time.sleep(1.5)  # let the server bind
     yield proc
     try:
         proc.kill()
@@ -67,7 +78,7 @@ async def run_ws(params: WebSocketParams) -> dict:
 async def test_echo_server_connect_and_send():
     """1. Connect → send 'hello' → receive echo response."""
     result = await run_ws(WebSocketParams(
-        url="ws://localhost:8765",
+        url=WS_URL,
         message="hello",
         wait_for_response=True,
     ))
@@ -83,7 +94,7 @@ async def test_echo_server_connect_and_send():
 async def test_fire_and_forget():
     """2. Send message without waiting → verify sent=True."""
     result = await run_ws(WebSocketParams(
-        url="ws://localhost:8765",
+        url=WS_URL,
         message="fire-and-forget",
         wait_for_response=False,
     ))
@@ -97,7 +108,7 @@ async def test_fire_and_forget():
 async def test_wait_for_response():
     """3. Send message → wait for response → verify content."""
     result = await run_ws(WebSocketParams(
-        url="ws://localhost:8765",
+        url=WS_URL,
         message="ping",
         wait_for_response=True,
     ))
@@ -158,7 +169,7 @@ async def test_json_message():
     """6. Send JSON string → verify echo server returns it."""
     payload = json.dumps({"key": "value", "num": 42})
     result = await run_ws(WebSocketParams(
-        url="ws://localhost:8765",
+        url=WS_URL,
         message=payload,
         wait_for_response=True,
     ))
@@ -172,7 +183,7 @@ async def test_json_message():
 async def test_binary_message():
     """7. Send binary data → verify handling."""
     result = await run_ws(WebSocketParams(
-        url="ws://localhost:8765",
+        url=WS_URL,
         message="deadbeef",
         message_type="binary",
         wait_for_response=True,

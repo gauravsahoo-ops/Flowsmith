@@ -15,6 +15,13 @@ import pytest
 
 from app.connectors import ConnectorError, ConnectorErrorCode, get_registry, register_builtin_connectors
 
+try:
+    import pymongo
+except ImportError:
+    pymongo = None
+
+pytestmark = pytest.mark.skipif(pymongo is None, reason="pymongo is not installed")
+
 CREDS = {"uri": "mongodb://user:pass@localhost:27017"}
 
 

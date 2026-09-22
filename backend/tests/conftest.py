@@ -137,7 +137,7 @@ def _clean_db(_pg_harness):
     cleanup_engine = _pg_harness["cleanup_engine"]
     tables = ", ".join(f'"{t.name}"' for t in Base.metadata.tables.values())
 
-    max_retries = 5
+    max_retries = 10
     for attempt in range(max_retries):
         try:
             with cleanup_engine.begin() as conn:
@@ -145,8 +145,8 @@ def _clean_db(_pg_harness):
             break
         except Exception as exc:
             exc_str = str(exc).lower()
-            if any(term in exc_str for term in ("deadlock", "lock timeout", "locknotavailable")) and attempt < max_retries - 1:
-                time.sleep(0.2 * (2 ** attempt))
+            if any(term in exc_str for term in ("deadlock", "lock timeout", "locknotavailable", "canceling statement due to lock timeout")) and attempt < max_retries - 1:
+                time.sleep(0.15 * (1.5 ** attempt))
                 continue
             raise
     yield

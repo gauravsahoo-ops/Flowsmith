@@ -623,16 +623,18 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
     _filter_kwargs = staticmethod(filter_client_kwargs)
 
     async def _do_request(self, ctx, params, url, headers, query, json_body, data, files=None):
-        # Build kwargs for client.request
         kwargs: dict[str, Any] = {
             "headers": headers or None,
             "params": query or None,
             "json": json_body,
-            "data": data,
             "timeout": params.timeout_seconds,
             "follow_redirects": params.follow_redirects,
             "max_response_bytes": params.max_response_bytes,
         }
+        if isinstance(data, (str, bytes)):
+            kwargs["content"] = data
+        elif data is not None:
+            kwargs["data"] = data
         if files is not None:
             kwargs["files"] = files
         # Handle SSL and redirect limits via client options if supported
