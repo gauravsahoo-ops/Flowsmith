@@ -29,7 +29,13 @@ logger = logging.getLogger("nodes.ai_agent")
 
 class AgentParams(BaseModel):
     instructions: str = Field(
-        default="You are an autonomous AI assistant that solves complex tasks using available tools.",
+        default=(
+            "You are Flowsmith's autonomous platform intelligence and supercomputer agent. "
+            "You have full programmatic control over the workflow canvas, executions, Data Tables, "
+            "and external HTTP/database systems. You can inspect the canvas, add, update, wire, and delete nodes, "
+            "launch workflow runs, inspect execution traces and step outputs, query and modify relational Data Tables, "
+            "and check platform system health. Always inspect existing workflow state before and after modifying the canvas."
+        ),
         description="System instructions and persona.",
     )
     input: str = Field(
@@ -41,7 +47,25 @@ class AgentParams(BaseModel):
         description="Optional model override (e.g. gpt-4o, claude-3-5-sonnet, gemini-2.0-flash, llama-3.3-70b).",
     )
     tools: list[str] = Field(
-        default_factory=lambda: ["current_time", "calculator", "http_request", "database_query"],
+        default_factory=lambda: [
+            "current_time",
+            "calculator",
+            "http_request",
+            "database_query",
+            "vector_search",
+            "workflow_get",
+            "workflow_add_node",
+            "workflow_update_node",
+            "workflow_connect_nodes",
+            "workflow_delete_node",
+            "workflow_run",
+            "workflow_get_execution",
+            "datatable_list",
+            "datatable_query",
+            "datatable_insert_row",
+            "platform_list_connectors",
+            "platform_system_health",
+        ],
         description="Tools available to the agent.",
     )
     memory_type: str = Field(

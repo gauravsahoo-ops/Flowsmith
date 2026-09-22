@@ -416,3 +416,188 @@ async def test_ai_agent_memory_persistence_across_executions():
     user_prompts = [m.get("content") for m in captured_messages if m.get("role") == "user"]
     assert "My favorite framework is FastAPI." in user_prompts
     assert "What framework did I mention?" in user_prompts
+
+
+# ---------------------------------------------------------------------------
+# 7. Platform Supercomputer Tools Tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_platform_list_connectors_tool():
+    """Verify platform_list_connectors discovers all registered Flowsmith nodes."""
+    ctx = _make_ctx()
+    result = await run_tool(ctx, "platform_list_connectors", {})
+    data = json.loads(result)
+    assert "total" in data
+    assert data["total"] >= 20
+    assert "connectors" in data
+    connector_types = [c["type"] for c in data["connectors"]]
+    assert "ai_agent" in connector_types or "llm" in connector_types
+    assert "http_request" in connector_types
+
+
+@pytest.mark.asyncio
+async def test_platform_system_health_tool():
+    """Verify platform_system_health reports status and diagnostics."""
+    ctx = _make_ctx()
+    with patch("app.db.SessionLocal") as mock_session_cls, \
+         patch("redis.asyncio.from_url") as mock_redis_cls:
+        mock_session = MagicMock()
+        mock_session_cls.return_value = mock_session
+
+        mock_redis = AsyncMock()
+        mock_redis.ping = AsyncMock(return_value=True)
+        mock_redis.aclose = AsyncMock()
+        mock_redis_cls.return_value = mock_redis
+
+        result = await run_tool(ctx, "platform_system_health", {})
+        data = json.loads(result)
+        assert data["status"] in ("healthy", "degraded")
+        assert data["database"] in ("connected", "error")
+        assert "environment" in data
+
+
+@pytest.mark.asyncio
+async def test_workflow_canvas_tools():
+    """Verify workflow_get, workflow_add_node, workflow_update_node, workflow_connect_nodes, and workflow_delete_node."""
+    mock_wf = MagicMock()
+    mock_wf.id = "wf_canvas_test"
+    mock_wf.name = "Canvas Workflow"
+    mock_wf.version = 1
+    mock_wf.data = {
+        "nodes": [
+            {"id": "node_1", "type": "manual_trigger", "name": "Start", "parameters": {}, "position": {"x": 100, "y": 100}}
+        ],
+        "edges": [],
+    }
+
+    with patch("app.db.SessionLocal") as mock_session_cls:
+        mock_session = MagicMock()
+        mock_session_cls.return_value.__enter__.return_value = mock_session
+        mock_session.get.return_value = mock_wf
+
+        ctx = _make_ctx()
+        ctx.workflow_id = "wf_canvas_test"
+
+        # 1. workflow_get
+        res_get = await run_tool(ctx, "workflow_get", {"workflow_id": "wf_canvas_test"})
+        data_get = json.loads(res_get)
+        assert data_get["workflow_id"] == "wf_canvas_test"
+        assert len(data_get["nodes"]) == 1
+        assert data_get["nodes"][0]["id"] == "node_1"
+
+        # 2. workflow_add_node
+        res_add = await run_tool(
+            ctx,
+            "workflow_add_node",
+            {
+                "workflow_id": "wf_canvas_test",
+                "node_type": "http_request",
+                "name": "Fetch Orders",
+                "parameters": {"url": "https://api.example.com/orders", "method": "GET"},
+                "position": {"x": 300, "y": 100},
+            },
+        )
+        data_add = json.loads(res_add)
+        assert data_add["success"] is True
+        node_id_2 = data_add["node_id"]
+        assert len(mock_wf.data["nodes"]) == 2
+        assert mock_wf.version == 2
+
+        # 3. workflow_connect_nodes
+        res_conn = await run_tool(
+            ctx,
+            "workflow_connect_nodes",
+            {
+                "workflow_id": "wf_canvas_test",
+                "source_node_id": "node_1",
+                "target_node_id": node_id_2,
+            },
+        )
+        data_conn = json.loads(res_conn)
+        assert data_conn["success"] is True
+        assert len(mock_wf.data["edges"]) == 1
+        assert mock_wf.data["edges"][0]["source"] == "node_1"
+        assert mock_wf.data["edges"][0]["target"] == node_id_2
+
+        # 4. workflow_update_node
+        res_upd = await run_tool(
+            ctx,
+            "workflow_update_node",
+            {
+                "workflow_id": "wf_canvas_test",
+                "node_id": node_id_2,
+                "parameters": {"url": "https://api.example.com/v2/orders"},
+            },
+        )
+        data_upd = json.loads(res_upd)
+        assert data_upd["success"] is True
+        assert mock_wf.data["nodes"][1]["parameters"]["url"] == "https://api.example.com/v2/orders"
+
+        # 5. workflow_delete_node
+        res_del = await run_tool(
+            ctx,
+            "workflow_delete_node",
+            {
+                "workflow_id": "wf_canvas_test",
+                "node_id": node_id_2,
+            },
+        )
+        data_del = json.loads(res_del)
+        assert data_del["success"] is True
+        assert len(mock_wf.data["nodes"]) == 1
+        assert len(mock_wf.data["edges"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_datatable_tools():
+    """Verify datatable_list, datatable_query, and datatable_insert_row."""
+    mock_col = MagicMock()
+    mock_col.name = "name"
+    mock_col.type = "string"
+
+    mock_table = MagicMock()
+    mock_table.id = "tbl_1"
+    mock_table.name = "CustomerLeads"
+    mock_table.description = "Leads from marketing"
+    mock_table.columns = [mock_col]
+    mock_table.rows = []
+
+    mock_row = MagicMock()
+    mock_row.id = "row_1"
+    mock_row.data = {"name": "Alice", "email": "alice@example.com"}
+
+    with patch("app.db.SessionLocal") as mock_session_cls:
+        mock_session = MagicMock()
+        mock_session_cls.return_value.__enter__.return_value = mock_session
+
+        # 1. datatable_list
+        mock_session.scalars().all.return_value = [mock_table]
+
+        ctx = _make_ctx()
+        res_list = await run_tool(ctx, "datatable_list", {})
+        data_list = json.loads(res_list)
+        assert "tables" in data_list
+        assert len(data_list["tables"]) == 1
+        assert data_list["tables"][0]["name"] == "CustomerLeads"
+
+        # 2. datatable_query
+        mock_session.get.return_value = mock_table
+        mock_session.scalars().all.return_value = [mock_row]
+
+        res_query = await run_tool(ctx, "datatable_query", {"table_id": "tbl_1"})
+        data_query = json.loads(res_query)
+        assert data_query["total_rows"] == 1
+        assert data_query["rows"][0]["name"] == "Alice"
+
+        # 3. datatable_insert_row
+        res_insert = await run_tool(
+            ctx,
+            "datatable_insert_row",
+            {"table_id": "tbl_1", "row_data": {"name": "Bob", "email": "bob@example.com"}},
+        )
+        data_insert = json.loads(res_insert)
+        assert data_insert["success"] is True
+        assert "row" in data_insert
+
+
