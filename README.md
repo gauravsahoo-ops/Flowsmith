@@ -9,9 +9,9 @@
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/react-19-61dafb)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/vite-8-646cff)](https://vitejs.dev/)
-[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+[![License](https://img.shields.io/badge/license-BSL--1.1-blue)](./LICENSE)
 
-**Flowsmith** is an ultra-premium, self-hosted, open-source workflow automation and orchestration suite engineered to deliver n8n- and Zapier-class capability with complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, and 45+ first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
+**Flowsmith** is an ultra-premium, self-hosted, source-available workflow automation and orchestration suite engineered to deliver n8n- and Zapier-class capability with complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, and 45+ first-party connectors (including deep Salesforce OAuth2 CRM synchronization).
 
 ---
 
@@ -734,10 +734,10 @@ Automated GitHub Actions pipelines validate every commit:
 
 **Flowsmith was designed, architected, and developed from scratch by [Gaurav](https://github.com/gauravsahoo-ops)** — every layer, from the visual DAG canvas and workflow execution engine to the OAuth framework, credential vault, AI subsystem, and deployment stack, is original work.
 
-Please retain this attribution when self-hosting or redistributing, as required by the [MIT License](./LICENSE).
+Please retain this attribution when self-hosting or redistributing, as required by the [Business Source License 1.1 (BSL 1.1)](./LICENSE).
 
 ---
 
 ## License
 
-Flowsmith is open-source software licensed under the [MIT License](./LICENSE).
+Flowsmith is source-available software licensed under the [Business Source License 1.1 (BSL 1.1)](./LICENSE). It is free for internal business, development, and personal use, and automatically converts to the permissive MIT License on January 1, 2030. Commercial licensing is required only for providing Flowsmith as a competing hosted or managed cloud SaaS to third parties.
