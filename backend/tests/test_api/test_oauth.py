@@ -612,3 +612,69 @@ def test_credential_total_logout_revokes_token_with_provider(client, _configure_
     assert len(creds_after) == 0
 
 
+def test_connect_uses_database_credential_when_env_empty(client, monkeypatch):
+    """When server .env has no Salesforce keys, resolve from encrypted DB credential."""
+    from app.api import oauth as oauth_mod
+
+    empty = Settings(
+        salesforce_client_id="",
+        salesforce_client_secret="",
+        salesforce_redirect_uri="",
+        public_url="https://flowsmith.dev.idslogic.net",
+    )
+    monkeypatch.setattr(oauth_mod, "get_settings", lambda: empty)
+
+    headers = _setup(client)
+    # Save a credential in database with client_id and client_secret
+    save_resp = client.post(
+        "/api/credentials",
+        json={
+            "name": "Salesforce Connected App",
+            "type": "salesforce",
+            "data": {
+                "client_id": "DB_CID_789",
+                "client_secret": "DB_SEC_999",
+                "instance_url": "https://login.salesforce.com",
+                "refresh_token": "init_token",
+                "oauth": True,
+            },
+        },
+        headers=headers,
+    )
+    assert save_resp.status_code == 201, save_resp.text
+
+    # Connect should now succeed by reading from database!
+    resp = client.post("/api/auth/salesforce/connect", json={}, headers=headers)
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert "client_id=DB_CID_789" in data["authorize_url"]
+    assert "redirect_uri=" in data["authorize_url"]
+
+
+def test_connect_uses_request_body_client_credentials(client, monkeypatch):
+    """Client ID and secret passed directly in connect request body override empty server env."""
+    from app.api import oauth as oauth_mod
+
+    empty = Settings(
+        salesforce_client_id="",
+        salesforce_client_secret="",
+        salesforce_redirect_uri="",
+        public_url="https://flowsmith.dev.idslogic.net",
+    )
+    monkeypatch.setattr(oauth_mod, "get_settings", lambda: empty)
+
+    headers = _setup(client)
+    resp = client.post(
+        "/api/auth/salesforce/connect",
+        json={
+            "client_id": "OVERRIDE_CID_123",
+            "client_secret": "OVERRIDE_SEC_456",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert "client_id=OVERRIDE_CID_123" in data["authorize_url"]
+
+
+

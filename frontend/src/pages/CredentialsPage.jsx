@@ -38,6 +38,10 @@ export default function CredentialsPage() {
   const [oauthBusy, setOauthBusy] = useState('')
   const [fallbackUrl, setFallbackUrl] = useState('')
   const [sfLoginUrl, setSfLoginUrl] = useState('')
+  const [sfClientId, setSfClientId] = useState('')
+  const [sfClientSecret, setSfClientSecret] = useState('')
+  const [showManualForm, setShowManualForm] = useState(false)
+  const [savingAppConfig, setSavingAppConfig] = useState(false)
   const [showSfAdvanced, setShowSfAdvanced] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [logoutTarget, setLogoutTarget] = useState(null)
@@ -117,10 +121,10 @@ export default function CredentialsPage() {
     }
   }
 
-  async function handleOAuth(provider, loginUrl, prompt) {
+  async function handleOAuth(provider, loginUrl, prompt, extra = {}) {
     setOauthBusy(provider); setError(null); setNotice(null); setFallbackUrl('')
     try {
-      const { authorizeUrl } = await connectOAuth(provider, loginUrl, prompt)
+      const { authorizeUrl } = await connectOAuth(provider, loginUrl, prompt, extra)
       if (!authorizeUrl) throw new Error('Failed to get authorization URL')
       setFallbackUrl(authorizeUrl)
       const w = window.open(authorizeUrl, `oauth-${provider}`, 'width=520,height=640')
@@ -631,7 +635,8 @@ export default function CredentialsPage() {
                 onClick={() => handleOAuth(
                   form.type,
                   form.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined,
-                  forceLoginPrompt ? (form.type === 'salesforce' ? 'login' : 'select_account') : undefined
+                  forceLoginPrompt ? (form.type === 'salesforce' ? 'login' : 'select_account') : undefined,
+                  form.type === 'salesforce' && sfClientId ? { clientId: sfClientId.trim(), clientSecret: sfClientSecret.trim() } : {}
                 )}
                 disabled={!!oauthBusy || !form.type}
               >
@@ -639,14 +644,83 @@ export default function CredentialsPage() {
               </button>
               {form.type === 'salesforce' && (
                 <button type="button" className="ghost" onClick={() => setShowSfAdvanced(v => !v)}>
-                  {showSfAdvanced ? 'Hide custom URL' : 'Use a custom org login URL'}
+                  {showSfAdvanced ? 'Hide advanced settings' : '⚙️ Custom org URL / Connected App credentials'}
                 </button>
               )}
             </div>
 
             {form.type === 'salesforce' && showSfAdvanced && (
-              <div style={{ marginTop: 8 }}>
-                <input value={sfLoginUrl} onChange={e => setSfLoginUrl(e.target.value)} placeholder="https://login.salesforce.com, https://test.salesforce.com or custom domain" />
+              <div style={{ marginTop: 12, padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>
+                  Advanced Salesforce Settings (Stored Encrypted in Database)
+                </div>
+                <label style={{ display: 'block', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12 }}>Custom Org Login URL (Optional)</span>
+                  <input
+                    value={sfLoginUrl}
+                    onChange={e => setSfLoginUrl(e.target.value)}
+                    placeholder="https://login.salesforce.com, https://test.salesforce.com, or custom my.salesforce.com domain"
+                    style={{ marginTop: 4 }}
+                  />
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginTop: 8 }}>
+                  <label style={{ margin: 0 }}>
+                    <span style={{ fontSize: 12 }}>Consumer Key (Client ID)</span>
+                    <input
+                      value={sfClientId}
+                      onChange={e => setSfClientId(e.target.value)}
+                      placeholder="e.g. 3MVG9..."
+                      style={{ marginTop: 4 }}
+                    />
+                  </label>
+                  <label style={{ margin: 0 }}>
+                    <span style={{ fontSize: 12 }}>Consumer Secret (Client Secret)</span>
+                    <input
+                      type="password"
+                      value={sfClientSecret}
+                      onChange={e => setSfClientSecret(e.target.value)}
+                      placeholder="Client Secret"
+                      style={{ marginTop: 4 }}
+                    />
+                  </label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    style={{ background: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)', color: '#60a5fa' }}
+                    disabled={savingAppConfig || !sfClientId.trim() || !sfClientSecret.trim()}
+                    onClick={async () => {
+                      if (!sfClientId.trim() || !sfClientSecret.trim()) return
+                      setSavingAppConfig(true)
+                      setError(null)
+                      try {
+                        await create({
+                          name: 'Salesforce Connected App',
+                          type: 'salesforce',
+                          data: {
+                            client_id: sfClientId.trim(),
+                            client_secret: sfClientSecret.trim(),
+                            login_url: sfLoginUrl.trim() || 'https://login.salesforce.com',
+                            instance_url: sfLoginUrl.trim() || 'https://login.salesforce.com',
+                            refresh_token: 'init_app_config',
+                            oauth: true,
+                          },
+                        })
+                        setNotice('Salesforce Connected App saved to database (encrypted at rest). You can now connect accounts!')
+                      } catch (err) {
+                        setError(err.message || 'Failed to save configuration.')
+                      } finally {
+                        setSavingAppConfig(false)
+                      }
+                    }}
+                  >
+                    {savingAppConfig ? 'Saving…' : '🔒 Save Connected App to Database (Encrypted)'}
+                  </button>
+                  <span className="hint" style={{ fontSize: 11 }}>
+                    Saves keys encrypted in database so you never need server .env files.
+                  </span>
+                </div>
               </div>
             )}
             {fallbackUrl && (
@@ -656,6 +730,19 @@ export default function CredentialsPage() {
                 <button type="button" className="ghost small" onClick={() => navigator.clipboard.writeText(fallbackUrl)} style={{ marginLeft: 6 }}>Copy</button>
               </div>
             )}
+          </div>
+        )}
+
+        {isOAuthType && (
+          <div style={{ margin: '14px 0 6px' }}>
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => setShowManualForm(v => !v)}
+              style={{ fontSize: 12, opacity: 0.85 }}
+            >
+              {showManualForm ? 'Hide manual credential form' : '⚙️ Or configure manual credentials (username/password or custom tokens)'}
+            </button>
           </div>
         )}
 
@@ -700,7 +787,7 @@ export default function CredentialsPage() {
               <div className="banner-inline err" style={{ marginTop: 6 }}>Authentication provider not implemented yet — execution will be blocked.</div>
             )}
           </div>
-          {schema && !isOAuthType && Object.entries(schema.properties || {}).map(([key, prop]) => {
+          {schema && (!isOAuthType || showManualForm) && Object.entries(schema.properties || {}).map(([key, prop]) => {
             const isConnStr = ['dsn','uri','connection_string','connectionString'].includes(key) || (prop.description && prop.description.toLowerCase().includes('connection string'))
             return (
             <label key={key}>
@@ -728,7 +815,7 @@ export default function CredentialsPage() {
             </label>
             )
           })}
-          {!isOAuthType && (
+          {(!isOAuthType || showManualForm) && (
             <button
               className="primary"
               type="submit"

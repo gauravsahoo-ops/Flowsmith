@@ -57,17 +57,20 @@ class OAuthProviderSpec:
         settings: Settings,
         db: Any = None,
         user_id: int | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        redirect_uri: str | None = None,
     ) -> tuple[str, str, str]:
         """(client_id, client_secret, redirect_uri) or HTTP 422.
 
-        Resolves client credentials from Settings (env vars) first, and falls
-        back to encrypted database credentials so credentials stay encrypted in
+        Resolves client credentials from explicit arguments first, Settings (env vars) second,
+        and falls back to encrypted database credentials so credentials stay encrypted in
         the database only without requiring plain text secrets in config files.
         """
         prefix = self.config_prefix or self.key
-        cid = getattr(settings, f"{prefix}_client_id", "")
-        csecret = getattr(settings, f"{prefix}_client_secret", "")
-        redirect = getattr(settings, f"{prefix}_redirect_uri", "")
+        cid = (client_id or "").strip() or getattr(settings, f"{prefix}_client_id", "")
+        csecret = (client_secret or "").strip() or getattr(settings, f"{prefix}_client_secret", "")
+        redirect = (redirect_uri or "").strip() or getattr(settings, f"{prefix}_redirect_uri", "")
         if not redirect:
             # Derive from the public URL when not pinned explicitly.
             base = (getattr(settings, "public_url", "") or "").rstrip("/")
@@ -98,9 +101,12 @@ class OAuthProviderSpec:
                         data = json.loads(decrypt_text(cand.data))
                         cand_cid = (data.get("client_id") or "").strip()
                         cand_sec = (data.get("client_secret") or "").strip()
+                        cand_red = (data.get("redirect_uri") or "").strip()
                         if cand_cid and cand_sec:
                             cid = cid or cand_cid
                             csecret = csecret or cand_sec
+                            if cand_red and not getattr(settings, f"{prefix}_redirect_uri", ""):
+                                redirect = cand_red
                             break
                     except Exception:
                         continue
@@ -133,14 +139,34 @@ class OAuthProviderSpec:
     revoke_token: Callable[..., Any] | None = None  # async (http_client, settings, credential_data) -> bool
 
 
-def _sf_authorize_url(settings: Settings, *, state: str, challenge: str, login_url: str, prompt: str = "") -> str:
+def _sf_authorize_url(
+    settings: Settings,
+    *,
+    state: str,
+    challenge: str,
+    login_url: str,
+    prompt: str = "",
+    client_id: str = "",
+    redirect_uri: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
+) -> str:
     from urllib.parse import urlencode
 
-    cid, _secret, redirect_uri = SALESFORCE.server_config(settings)
+    cid = client_id
+    r_uri = redirect_uri
+    if not cid or not r_uri:
+        resolved_cid, _secret, resolved_r_uri = SALESFORCE.server_config(
+            settings, db=db, user_id=user_id, client_id=client_id, redirect_uri=redirect_uri
+        )
+        cid = cid or resolved_cid
+        r_uri = r_uri or resolved_r_uri
+
     params = {
         "response_type": "code",
         "client_id": cid,
-        "redirect_uri": redirect_uri,
+        "redirect_uri": r_uri,
         "scope": SALESFORCE.scopes(settings),
         "state": state,
         "code_challenge": challenge,
@@ -155,22 +181,37 @@ def _sf_authorize_url(settings: Settings, *, state: str, challenge: str, login_u
 
 
 def _sf_token_request(
-    settings: Settings, *, code: str, verifier: str, redirect_uri: str, login_url: str
+    settings: Settings,
+    *,
+    code: str,
+    verifier: str,
+    redirect_uri: str,
+    login_url: str,
+    client_id: str = "",
+    client_secret: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
 ) -> tuple[str, str]:
     from urllib.parse import urlencode
 
-    cid, csec = getattr(settings, "salesforce_client_id", ""), getattr(settings, "salesforce_client_secret", "")
+    cid = (client_id or "").strip() or getattr(settings, "salesforce_client_id", "")
+    csec = (client_secret or "").strip() or getattr(settings, "salesforce_client_secret", "")
     if not cid or not csec:
         try:
-            cid, csec, _ = SALESFORCE.server_config(settings)
+            cid_sc, csec_sc, _ = SALESFORCE.server_config(
+                settings, db=db, user_id=user_id, client_id=client_id, client_secret=client_secret
+            )
+            cid = cid or cid_sc
+            csec = csec or csec_sc
         except Exception:
             pass
 
     body = urlencode({
         "grant_type": "authorization_code",
         "code": code,
-        "client_id": cid or settings.salesforce_client_id,
-        "client_secret": csec or settings.salesforce_client_secret,
+        "client_id": cid or getattr(settings, "salesforce_client_id", ""),
+        "client_secret": csec or getattr(settings, "salesforce_client_secret", ""),
         "redirect_uri": redirect_uri,
         "code_verifier": verifier or "",
     })
@@ -178,11 +219,6 @@ def _sf_token_request(
 
 
 def _sf_token_headers() -> dict[str, str]:
-    # The body is a PRE-ENCODED form string, so httpx will not set a
-    # content type for us — without this header Salesforce answers
-    # unsupported_grant_type. Accept-Encoding identity: Salesforce (F5
-    # edge) can return a corrupt gzip body, and authorization codes are
-    # single-use so the exchange must never need a retry.
     return {
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept-Encoding": "identity",
@@ -190,13 +226,13 @@ def _sf_token_headers() -> dict[str, str]:
 
 
 async def _sf_identity_label(http_client: Any, settings: Settings, token_payload: dict[str, Any]) -> str:
-    """Best-effort identity lookup; cosmetic only."""
-    access_token = token_payload.get("access_token") or ""
-    identity_url = token_payload.get("id") or ""
-    if not access_token or not identity_url:
+    identity_url = token_payload.get("id")
+    access_token = token_payload.get("access_token")
+    if not identity_url or not access_token:
         return ""
     try:
-        ident = await http_client.get(
+        ident = await http_client.request(
+            "GET",
             identity_url,
             headers={"Authorization": f"Bearer {access_token}", "Accept-Encoding": "identity"},
             timeout=15.0,
@@ -208,7 +244,13 @@ async def _sf_identity_label(http_client: Any, settings: Settings, token_payload
     return ""
 
 
-def _sf_credential_data(settings: Settings, token_payload: dict[str, Any], login_url: str, label: str = "") -> dict[str, Any]:
+def _sf_credential_data(
+    settings: Settings,
+    token_payload: dict[str, Any],
+    login_url: str,
+    label: str = "",
+    **kwargs: Any,
+) -> dict[str, Any]:
     import time
     expires_in = token_payload.get("expires_in") or 7200
     try:
@@ -299,15 +341,35 @@ SALESFORCE = OAuthProviderSpec(
 HUBSPOT_AUTHORIZE_BASE = "https://app.hubspot.com/oauth/authorize"
 
 
-def _hs_authorize_url(settings: Settings, *, state: str, challenge: str, login_url: str) -> str:
+def _hs_authorize_url(
+    settings: Settings,
+    *,
+    state: str,
+    challenge: str,
+    login_url: str,
+    prompt: str = "",
+    client_id: str = "",
+    redirect_uri: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
+) -> str:
     from urllib.parse import urlencode
 
-    cid, _secret, redirect_uri = HUBSPOT.server_config(settings)
+    cid = client_id
+    r_uri = redirect_uri
+    if not cid or not r_uri:
+        resolved_cid, _secret, resolved_r_uri = HUBSPOT.server_config(
+            settings, db=db, user_id=user_id, client_id=client_id, redirect_uri=redirect_uri
+        )
+        cid = cid or resolved_cid
+        r_uri = r_uri or resolved_r_uri
+
     return (
         f"{HUBSPOT_AUTHORIZE_BASE}?"
         + urlencode({
             "client_id": cid,
-            "redirect_uri": redirect_uri,
+            "redirect_uri": r_uri,
             "scope": HUBSPOT.scopes(settings),
             "state": state,
         })
@@ -315,16 +377,38 @@ def _hs_authorize_url(settings: Settings, *, state: str, challenge: str, login_u
 
 
 def _hs_token_request(
-    settings: Settings, *, code: str, verifier: str, redirect_uri: str, login_url: str
+    settings: Settings,
+    *,
+    code: str,
+    verifier: str,
+    redirect_uri: str,
+    login_url: str,
+    client_id: str = "",
+    client_secret: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
 ) -> tuple[str, str]:
     from urllib.parse import urlencode
+
+    cid = (client_id or "").strip() or settings.hubspot_client_id
+    csec = (client_secret or "").strip() or settings.hubspot_client_secret
+    if not cid or not csec:
+        try:
+            cid_sc, csec_sc, _ = HUBSPOT.server_config(
+                settings, db=db, user_id=user_id, client_id=client_id, client_secret=client_secret
+            )
+            cid = cid or cid_sc
+            csec = csec or csec_sc
+        except Exception:
+            pass
 
     body = urlencode({
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": redirect_uri,
-        "client_id": settings.hubspot_client_id,
-        "client_secret": settings.hubspot_client_secret,
+        "client_id": cid,
+        "client_secret": csec,
     })
     return "https://api.hubapi.com/oauth/v1/token", body
 
@@ -401,17 +485,29 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
     refresh tokens with the wrong scopes.
     """
 
-    def _authorize(settings: Settings, *, state: str, challenge: str, login_url: str, prompt: str = "") -> str:
+    def _authorize(
+        settings: Settings,
+        *,
+        state: str,
+        challenge: str,
+        login_url: str,
+        prompt: str = "",
+        client_id: str = "",
+        redirect_uri: str = "",
+        db: Any = None,
+        user_id: int | None = None,
+        **kwargs: Any,
+    ) -> str:
         from urllib.parse import urlencode
 
-        cid = getattr(settings, f"{config_prefix}_client_id", "")
+        cid = (client_id or "").strip() or getattr(settings, f"{config_prefix}_client_id", "")
         csecret = getattr(settings, f"{config_prefix}_client_secret", "")
-        redirect_uri = getattr(settings, f"{config_prefix}_redirect_uri", "")
-        if not redirect_uri:
+        r_uri = (redirect_uri or "").strip() or getattr(settings, f"{config_prefix}_redirect_uri", "")
+        if not r_uri:
             base = (getattr(settings, "public_url", "") or "").rstrip("/")
             if base:
-                redirect_uri = f"{base}/api/auth/{provider_key}/callback"
-        if not cid or not csecret or not redirect_uri:
+                r_uri = f"{base}/api/auth/{provider_key}/callback"
+        if not cid or not csecret or not r_uri:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 f"{display_name} OAuth is not configured on the server.",
@@ -420,7 +516,7 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
             f"{GOOGLE_AUTHORIZE_BASE}?"
             + urlencode({
                 "client_id": cid,
-                "redirect_uri": redirect_uri,
+                "redirect_uri": r_uri,
                 "response_type": "code",
                 "scope": getattr(settings, scopes_setting, ""),
                 "state": state,
@@ -436,16 +532,26 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
 
 def _google_token_request_factory(config_prefix: str):
     def _token_request(
-        settings: Settings, *, code: str, verifier: str, redirect_uri: str, login_url: str
+        settings: Settings,
+        *,
+        code: str,
+        verifier: str,
+        redirect_uri: str,
+        login_url: str,
+        client_id: str = "",
+        client_secret: str = "",
+        **kwargs: Any,
     ) -> tuple[str, str]:
         from urllib.parse import urlencode
 
+        cid = (client_id or "").strip() or getattr(settings, f"{config_prefix}_client_id", "")
+        csec = (client_secret or "").strip() or getattr(settings, f"{config_prefix}_client_secret", "")
         body = urlencode({
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": redirect_uri,
-            "client_id": getattr(settings, f"{config_prefix}_client_id", ""),
-            "client_secret": getattr(settings, f"{config_prefix}_client_secret", ""),
+            "client_id": cid,
+            "client_secret": csec,
         })
         return GOOGLE_TOKEN_URL, body
 

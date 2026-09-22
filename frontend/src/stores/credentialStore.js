@@ -40,8 +40,8 @@ export const useCredentialStore = create((set, get) => ({
   },
 
   // Generic OAuth connect: provider is 'salesforce' | 'hubspot' | 'google_*'.
-  async connectOAuth(provider, loginUrl, prompt) {
-    const { authorize_url, state } = await api.connectOAuth(provider, loginUrl, prompt)
+  async connectOAuth(provider, loginUrl, prompt, extra = {}) {
+    const { authorize_url, state } = await api.connectOAuth(provider, loginUrl, prompt, extra)
     return { authorizeUrl: authorize_url, state }
   },
 }))

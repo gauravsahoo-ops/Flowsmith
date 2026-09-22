@@ -66,6 +66,14 @@ class ConnectRequest(BaseModel):
         default=None,
         description="OAuth prompt parameter (e.g. 'login' to force account selection / re-login).",
     )
+    client_id: str | None = Field(
+        default=None,
+        description="Optional client ID override (from manual configuration or UI).",
+    )
+    client_secret: str | None = Field(
+        default=None,
+        description="Optional client secret override (from manual configuration or UI).",
+    )
 
 
 def _audit_names(provider_key: str) -> tuple[str, str]:
@@ -127,7 +135,11 @@ def connect_provider(
     spec = get_provider(provider)
     assert spec.authorize_url is not None, f"provider {provider} misconfigured"
     purge_stale_states(db)
-    client_id, _client_secret, redirect_uri = spec.server_config(get_settings(), db=db, user_id=user.id)
+    body_cid = (body.client_id or "").strip() if body else ""
+    body_sec = (body.client_secret or "").strip() if body else ""
+    client_id, _client_secret, redirect_uri = spec.server_config(
+        get_settings(), db=db, user_id=user.id, client_id=body_cid, client_secret=body_sec
+    )
     login_url = _resolve_login_url(spec, body, db=db, user_id=user.id)
 
     verifier, challenge = ("", "")
@@ -143,12 +155,25 @@ def connect_provider(
     prompt = (body.prompt or "").strip() if body else ""
     try:
         authorize_url = spec.authorize_url(
-            get_settings(), state=state, challenge=challenge, login_url=login_url, prompt=prompt
+            get_settings(),
+            state=state,
+            challenge=challenge,
+            login_url=login_url,
+            prompt=prompt,
+            client_id=client_id,
+            redirect_uri=redirect_uri,
+            db=db,
+            user_id=user.id,
         )
     except TypeError:
-        authorize_url = spec.authorize_url(
-            get_settings(), state=state, challenge=challenge, login_url=login_url
-        )
+        try:
+            authorize_url = spec.authorize_url(
+                get_settings(), state=state, challenge=challenge, login_url=login_url, prompt=prompt
+            )
+        except TypeError:
+            authorize_url = spec.authorize_url(
+                get_settings(), state=state, challenge=challenge, login_url=login_url
+            )
     return ok({"authorize_url": authorize_url, "state": state})
 
 
@@ -204,9 +229,22 @@ async def provider_callback(
     login_url = (row.login_url or "").rstrip("/")
 
     assert spec.token_request is not None and spec.token_headers is not None, f'provider {provider} misconfigured'
-    url, body = spec.token_request(
-        settings, code=code, verifier=row.code_verifier or "", redirect_uri=redirect_uri, login_url=login_url
-    )
+    try:
+        url, body = spec.token_request(
+            settings,
+            code=code,
+            verifier=row.code_verifier or "",
+            redirect_uri=redirect_uri,
+            login_url=login_url,
+            client_id=client_id,
+            client_secret=client_secret,
+            db=db,
+            user_id=user.id,
+        )
+    except TypeError:
+        url, body = spec.token_request(
+            settings, code=code, verifier=row.code_verifier or "", redirect_uri=redirect_uri, login_url=login_url
+        )
     try:
         async with get_safe_http_client() as client:
             response = await client.request(
@@ -256,7 +294,12 @@ async def provider_callback(
             host = ""
 
     assert spec.credential_data is not None, f"provider {provider} misconfigured"
-    data = spec.credential_data(settings, payload, login_url, label)
+    try:
+        data = spec.credential_data(
+            settings, payload, login_url, label, client_id=client_id, client_secret=client_secret
+        )
+    except TypeError:
+        data = spec.credential_data(settings, payload, login_url, label)
     name = f"{spec.display_name} ({label or host or data.get('hub_id') or 'connected'})"
 
     # Multi-account support: match by account identity (username/org/hub_id)

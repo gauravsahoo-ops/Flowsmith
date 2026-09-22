@@ -225,10 +225,12 @@ export const api = {
       'GET',
       `/connectors/salesforce/schema/${encodeURIComponent(objectName)}${refresh ? '?refresh=true' : ''}`,
     ),
-  connectOAuth: (provider, loginUrl, prompt) =>
+  connectOAuth: (provider, loginUrl, prompt, extra = {}) =>
     request('POST', `/auth/${provider}/connect`, {
       ...(loginUrl ? { login_url: loginUrl } : {}),
       ...(prompt ? { prompt } : {}),
+      ...(extra.clientId ? { client_id: extra.clientId } : {}),
+      ...(extra.clientSecret ? { client_secret: extra.clientSecret } : {}),
     }),
   aiStatus: () => request('GET', '/ai/status'),
   explain: (executionId) => request('POST', '/ai/explain', { execution_id: executionId }),
