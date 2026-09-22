@@ -44,8 +44,10 @@ async def generate_workflow_spec(
     chat: ChatFn,
     llm: dict[str, Any],
     max_attempts: int = MAX_ATTEMPTS,
+    existing_workflow: dict[str, Any] | None = None,
+    history: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
-    """Generate + validate one workflow candidate.
+    """Generate + validate one workflow candidate with optional memory and iteration context.
 
     Returns {"workflow": dict, "validation": {...}, "attempts": int}.
     Raises GenerationError (carrying the last validation report) when no
@@ -54,8 +56,23 @@ async def generate_workflow_spec(
     system = render_system_prompt()
     messages: list[dict[str, str]] = [
         {"role": "system", "content": system},
-        {"role": "user", "content": f"USER REQUEST: {prompt}"},
     ]
+
+    # Incorporate Copilot conversation history (turns)
+    if history:
+        for turn in history[-6:]:
+            if isinstance(turn, dict) and turn.get("role") in ("user", "assistant") and turn.get("content"):
+                messages.append({"role": turn["role"], "content": str(turn["content"])})
+
+    user_prompt = f"USER REQUEST: {prompt}"
+    if existing_workflow and isinstance(existing_workflow, dict) and existing_workflow.get("nodes"):
+        user_prompt += (
+            f"\n\nEXISTING WORKFLOW STATE TO MODIFY OR EXTEND:\n"
+            f"{json.dumps(existing_workflow, ensure_ascii=False)}\n"
+            f"Preserve existing valid nodes and wiring where applicable, modifying or adding nodes as requested."
+        )
+
+    messages.append({"role": "user", "content": user_prompt})
 
     last_workflow: dict[str, Any] | None = None
     last_validation: dict[str, Any] = {"ok": False, "errors": [], "warnings": []}

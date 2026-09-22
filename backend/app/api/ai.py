@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.client import LLMError, chat_completion
 from app.ai.generation import GenerationError, generate_workflow_spec
+from app.ai.memory import get_memory_manager
 from app.api.access import get_permission
 from app.api.auth import get_current_user
 from app.api.common import ok
@@ -38,6 +39,8 @@ class ExplainRequest(BaseModel):
 class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=3, max_length=4000)
     credential_id: str | None = None
+    existing_workflow: dict | None = None
+    history: list[dict] | None = None
 
 
 class SuggestMappingRequest(BaseModel):
@@ -169,6 +172,8 @@ async def generate_workflow(
             available_credentials=available_credentials,
             chat=chat_completion,
             llm=llm,
+            existing_workflow=body.existing_workflow,
+            history=body.history,
         )
     except GenerationError as exc:
         raise HTTPException(
@@ -187,6 +192,28 @@ async def generate_workflow(
         # Approval contract: the candidate is a preview only.
         "created": False,
     })
+
+
+@router.get("/memory/{session_id}")
+async def get_ai_memory(
+    session_id: str,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Inspect active conversation memory for a given session."""
+    manager = get_memory_manager()
+    info = await manager.get_session_info(session_id)
+    return ok(info)
+
+
+@router.delete("/memory/{session_id}")
+async def clear_ai_memory(
+    session_id: str,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Clear active conversation memory for a given session."""
+    manager = get_memory_manager()
+    await manager.clear_session(session_id)
+    return ok({"cleared": True, "session_id": session_id})
 
 
 # ----------------------------------------------------------------------

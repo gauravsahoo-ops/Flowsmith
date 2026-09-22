@@ -108,6 +108,10 @@ class SummaryBufferMemory:
         result.extend([m.to_dict() for m in self.recent_messages])
         return result
 
+    def clear(self) -> None:
+        self.summary = ""
+        self.recent_messages.clear()
+
 
 class EpisodicVectorMemory:
     """Semantic episodic memory stored in PostgreSQL + pgvector or local store.
@@ -200,6 +204,9 @@ class EpisodicVectorMemory:
         scored.sort(key=lambda x: x[0], reverse=True)
         return [text for score, text in scored[:top_k] if score > 0]
 
+    def clear(self) -> None:
+        self._in_memory_records.clear()
+
 
 class SessionMemoryManager:
     """Manages active memories across user sessions."""
@@ -231,6 +238,33 @@ class SessionMemoryManager:
         async with self._lock:
             self._sessions.pop(session_id, None)
             self._vector_memories.pop(session_id, None)
+
+    async def get_session_info(self, session_id: str) -> dict[str, Any]:
+        """Inspect memory state and turns for an active session."""
+        async with self._lock:
+            info: dict[str, Any] = {
+                "session_id": session_id,
+                "exists": False,
+                "turns": 0,
+                "type": None,
+                "messages": [],
+            }
+            if session_id in self._sessions:
+                s = self._sessions[session_id]
+                info["exists"] = True
+                if isinstance(s, WorkingMemory):
+                    info["type"] = "window"
+                    info["turns"] = len(s.messages)
+                    info["messages"] = s.get_messages()
+                elif isinstance(s, SummaryBufferMemory):
+                    info["type"] = "summary"
+                    info["turns"] = len(s.recent_messages)
+                    info["summary"] = s.summary
+                    info["messages"] = s.get_messages()
+            if session_id in self._vector_memories:
+                v = self._vector_memories[session_id]
+                info["episodic_records"] = len(v._in_memory_records)
+            return info
 
 
 # Global singleton manager

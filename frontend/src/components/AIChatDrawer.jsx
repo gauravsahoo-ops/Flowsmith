@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
+import { api } from '../api'
 
 const SUGGESTIONS = [
   'What tools are available in this agent?',
   'Check current time and compute 125 * 8',
+  'Remember that our project budget is $45,000',
   'Test workflow step and summarize response',
 ]
 
@@ -31,16 +33,56 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
   const storeNodes = useWorkflowStore((s) => s.nodes)
   const workflow = propWorkflow ?? storeWorkflow
   const nodes = propNodes ?? storeNodes
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: 'Hello! I am your AI Agent test runner. Ask me anything or instruct me to run tasks with your workflow tools.',
-      trace: [],
-    },
-  ])
+
+  const storageKey = useMemo(() => {
+    return `flowsmith_agent_chat_${workflow?.id || 'default'}`
+  }, [workflow?.id])
+
+  const [messages, setMessages] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = localStorage.getItem(`flowsmith_agent_chat_${workflow?.id || 'default'}`)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed?.messages) && parsed.messages.length > 0) {
+            return parsed.messages
+          }
+        }
+      }
+    } catch {}
+    return [
+      {
+        role: 'assistant',
+        content: 'Hello! I am your AI Agent test runner. Ask me anything, declare facts to remember, or instruct me to run tasks with your workflow tools.',
+        trace: [],
+      },
+    ]
+  })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sessionId, setSessionId] = useState(`session_${Math.random().toString(36).slice(2, 9)}`)
+  const [sessionId, setSessionId] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = localStorage.getItem(`flowsmith_agent_chat_${workflow?.id || 'default'}`)
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (typeof parsed?.sessionId === 'string' && parsed.sessionId) {
+            return parsed.sessionId
+          }
+        }
+      }
+    } catch {}
+    return `session_${Math.random().toString(36).slice(2, 9)}`
+  })
+
+  // Sync chat memory to localStorage
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(storageKey, JSON.stringify({ messages, sessionId }))
+      }
+    } catch {}
+  }, [messages, sessionId, storageKey])
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [expandedTraceIndex, setExpandedTraceIndex] = useState(null)
   const [copiedSession, setCopiedSession] = useState(false)
@@ -167,6 +209,8 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
         const toolDescriptions = {
           current_time: '⏱️ current_time — Fetches live UTC timestamp and formatted date',
           calculator: '🧮 calculator — Evaluates arithmetic formulas and math calculations',
+          memory_recall: '🧠 memory_recall — Recalls stored facts and context across dialogue turns',
+          memory_store: '💾 memory_store — Stores key-value facts and preferences in session buffer',
           http_request: '🌐 http_request — Sends HTTP GET/POST requests to external APIs',
           database_query: '🗄️ database_query — Runs read-only SQL queries on connected databases',
           vector_search: '🔍 vector_search — Semantic similarity search over document collections',
@@ -177,18 +221,116 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
           .join('\n')
 
         trace.push({
-          iteration: 1,
+          iteration: iteration++,
           thought: 'User inquired about available agent capabilities. Inspecting active tools schema...',
           tool_calls: [],
           duration_ms: 11.2,
         })
 
         responseParts.push(
-          `This agent is configured with ${configuredTools.length} tools:\n\n${toolsList}\n\nYou can ask to evaluate mathematical formulas, request current time, or test workflow step execution!`
+          `This agent is configured with ${configuredTools.length} tools and Tri-Tier Session Memory:\n\n${toolsList}\n\nYou can ask to remember facts, evaluate mathematical formulas, request current time, or test workflow step execution!`
         )
       }
 
-      // 2. Time lookup
+      // 2. Memory: Check for explicit fact declaration to remember
+      const rememberMatch = text.match(/(?:remember(?: that)?|note that|my name is|i am|set (?:\w+) to|our (?:\w+) is)\s+(.+)/i)
+      const isNameDeclaration = text.match(/(?:my name is|i am|call me)\s+([A-Za-z0-9_-]+)/i)
+      if (rememberMatch) {
+        toolsUsed.push('memory_store')
+        trace.push({
+          iteration: iteration++,
+          thought: `Committing user-declared context to session memory buffer [${sessionId}]...`,
+          tool_calls: [
+            {
+              name: 'memory_store',
+              arguments: { session_id: sessionId, fact: rememberMatch[1].trim() },
+              output: 'Saved to working memory buffer',
+              duration_ms: 7.2,
+            },
+          ],
+          duration_ms: 11.5,
+        })
+        const greeting = isNameDeclaration ? `Nice to meet you, ${isNameDeclaration[1]}!` : 'Got it!'
+        responseParts.push(`${greeting} I have committed this to my active conversation memory (\`${sessionId}\`). You can ask me to recall it anytime!`)
+      }
+
+      // 3. Memory: Recall user name or stored facts
+      const priorUserTurns = messages.filter((m) => m.role === 'user')
+      const priorHistoryText = priorUserTurns.map((m) => m.content).join('\n')
+      const isNameQuery = lower.includes('what is my name') || lower.includes('who am i') || lower.includes("what's my name")
+      if (isNameQuery) {
+        toolsUsed.push('memory_recall')
+        const nameMatch = priorHistoryText.match(/(?:my name is|i am|call me)\s+([A-Za-z0-9_-]+)/i)
+        if (nameMatch) {
+          trace.push({
+            iteration: iteration++,
+            thought: `Querying active session memory for user identity...`,
+            tool_calls: [
+              {
+                name: 'memory_recall',
+                arguments: { query: 'user_name', session_id: sessionId },
+                output: nameMatch[1],
+                duration_ms: 6.4,
+              },
+            ],
+            duration_ms: 9.8,
+          })
+          responseParts.push(`Based on our conversation memory, your name is **${nameMatch[1]}**.`)
+        } else {
+          trace.push({
+            iteration: iteration++,
+            thought: `Queried session memory buffer for user identity. No prior record found.`,
+            tool_calls: [
+              {
+                name: 'memory_recall',
+                arguments: { query: 'user_name', session_id: sessionId },
+                output: null,
+                duration_ms: 5.0,
+              },
+            ],
+            duration_ms: 8.2,
+          })
+          responseParts.push(`I don't have your name in my memory yet! Tell me "My name is [Name]" and I will remember it.`)
+        }
+      }
+
+      // 4. Memory: Conversation history / transcript inspection
+      const isMemoryInspection =
+        lower.includes('what did i say') ||
+        lower.includes('what did i ask') ||
+        lower.includes('what do you remember') ||
+        lower.includes('summarize conversation') ||
+        lower.includes('what was my last')
+      if (isMemoryInspection && !isNameQuery) {
+        toolsUsed.push('memory_recall')
+        const userCount = priorUserTurns.length
+        trace.push({
+          iteration: iteration++,
+          thought: `Retrieving active session working memory transcript (${userCount} turn(s))...`,
+          tool_calls: [
+            {
+              name: 'memory_recall',
+              arguments: { session_id: sessionId, turns_count: userCount },
+              output: { user_turns: userCount },
+              duration_ms: 7.9,
+            },
+          ],
+          duration_ms: 12.0,
+        })
+        if (userCount > 0) {
+          const recentList = priorUserTurns
+            .slice(-3)
+            .map((t, idx) => `${idx + 1}. "${t.content}"`)
+            .join('\n')
+          responseParts.push(
+            `Working memory for session \`${sessionId}\` contains ${userCount} turn(s). Recent dialogue:\n\n${recentList}`
+          )
+        } else {
+          responseParts.push(`This is the beginning of our session (\`${sessionId}\`). No previous turns recorded yet.`)
+        }
+      }
+
+      // 5. Time lookup
       const isTimeQuery =
         lower.includes('time') ||
         lower.includes('date') ||
@@ -216,7 +358,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
         responseParts.push(`The current UTC time is ${iso} (${utcStr}).`)
       }
 
-      // 3. Math evaluation
+      // 6. Math evaluation
       const math = evaluateMath(text)
       if (math) {
         toolsUsed.push('calculator')
@@ -239,7 +381,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
         responseParts.push(`Calculated: ${math.expr} = ${formattedVal}.`)
       }
 
-      // 4. Workflow / step test
+      // 7. Workflow / step test
       const isWorkflowQuery =
         lower.includes('workflow') ||
         lower.includes('canvas') ||
@@ -261,7 +403,7 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
         )
       }
 
-      // 5. General fallback if no specific rule matched
+      // 8. General fallback if no specific rule matched
       if (responseParts.length === 0) {
         trace.push({
           iteration: iteration++,
@@ -309,16 +451,26 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
     }
   }
 
-  const handleResetSession = () => {
+  const handleResetSession = async () => {
+    const oldSessionId = sessionId
     const newId = `session_${Math.random().toString(36).slice(2, 9)}`
+    try {
+      await api.clearAiMemory(oldSessionId)
+    } catch {}
     setSessionId(newId)
-    setMessages([
+    const fresh = [
       {
         role: 'assistant',
         content: `Memory cleared! New session started (${newId}).`,
         trace: [],
       },
-    ])
+    ]
+    setMessages(fresh)
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(storageKey, JSON.stringify({ messages: fresh, sessionId: newId }))
+      }
+    } catch {}
   }
 
   if (!isOpen) return null
@@ -333,6 +485,9 @@ export default function AIChatDrawer({ isOpen, onClose, nodes: propNodes, workfl
         <div className="ai-chat-drawer-header">
           <div className="ai-chat-drawer-title-wrap">
             <span className="ai-chat-badge">AI Agent Tester</span>
+            <span className="ai-memory-badge" title="Active conversation working memory buffer">
+              🧠 {messages.filter((m) => m.role === 'user').length} turn(s)
+            </span>
             <button
               type="button"
               className="ai-chat-session-tag"

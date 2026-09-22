@@ -215,7 +215,15 @@ export const api = {
     request('POST', `/auth/${provider}/connect`, loginUrl ? { login_url: loginUrl } : {}),
   aiStatus: () => request('GET', '/ai/status'),
   explain: (executionId) => request('POST', '/ai/explain', { execution_id: executionId }),
-  generateWorkflow: (prompt) => request('POST', '/ai/generate-workflow', { prompt }),
+  generateWorkflow: (prompt, opts = {}) =>
+    request('POST', '/ai/generate-workflow', {
+      prompt,
+      existing_workflow: opts.existingWorkflow,
+      history: opts.history,
+      credential_id: opts.credentialId,
+    }),
+  getAiMemory: (sessionId) => request('GET', `/ai/memory/${encodeURIComponent(sessionId)}`),
+  clearAiMemory: (sessionId) => request('DELETE', `/ai/memory/${encodeURIComponent(sessionId)}`),
   // Phase 16: AI assistant surfaces (read-only suggestions).
   suggestMapping: (payload) => request('POST', '/ai/suggest-mapping', payload),
   suggestExpression: (payload) => request('POST', '/ai/suggest-expression', payload),

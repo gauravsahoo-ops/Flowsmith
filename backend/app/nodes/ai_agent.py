@@ -119,7 +119,11 @@ class AIAgentNode(BaseNode[AgentParams]):
 
         # Handle Tri-Tier Memory
         mem_manager = get_memory_manager()
-        session_key = f"{ctx.execution_id}_{params.session_id}"
+        session_key = (
+            f"{ctx.workflow_id}_{params.session_id}"
+            if getattr(ctx, "workflow_id", None)
+            else (f"{ctx.execution_id}_{params.session_id}" if getattr(ctx, "execution_id", None) else params.session_id)
+        )
 
         if params.memory_type == "window":
             working_mem = await mem_manager.get_working_memory(session_key)

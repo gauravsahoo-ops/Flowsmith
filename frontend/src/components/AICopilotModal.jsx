@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { api } from '../api'
-import { toReactFlow } from '../mappers'
+import { toReactFlow, toWorkflowJson } from '../mappers'
 
 const EXAMPLE_PROMPTS = [
   'Stripe payment webhook to Slack notification with AI summary',
@@ -10,10 +10,47 @@ const EXAMPLE_PROMPTS = [
   'RAG knowledge base pipeline querying pgvector and answering user support question',
 ]
 
-export default function AICopilotModal({ isOpen, onClose }) {
+const COPILOT_HISTORY_KEY = 'flowsmith_copilot_prompt_history'
+
+function loadCopilotHistory() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = localStorage.getItem(COPILOT_HISTORY_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) return parsed.slice(0, 5)
+      }
+    }
+  } catch {}
+  return []
+}
+
+function saveCopilotHistory(promptText) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage && promptText) {
+      const existing = loadCopilotHistory()
+      const updated = [promptText, ...existing.filter((p) => p !== promptText)].slice(0, 5)
+      localStorage.setItem(COPILOT_HISTORY_KEY, JSON.stringify(updated))
+      return updated
+    }
+  } catch {}
+  return []
+}
+
+export default function AICopilotModal({ isOpen, onClose, nodes: propNodes, edges: propEdges, workflow: propWorkflow }) {
+  const storeNodes = useWorkflowStore((s) => s.nodes) || []
+  const storeEdges = useWorkflowStore((s) => s.edges) || []
+  const storeWorkflow = useWorkflowStore((s) => s.workflow)
+
+  const currentNodes = propNodes ?? storeNodes
+  const currentEdges = propEdges ?? storeEdges
+  const workflow = propWorkflow ?? storeWorkflow
+
   const [prompt, setPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState(null)
+  const [recentPrompts, setRecentPrompts] = useState(loadCopilotHistory)
+  const [iterateExisting, setIterateExisting] = useState(currentNodes.length > 0)
 
   if (!isOpen) return null
 
@@ -30,7 +67,15 @@ export default function AICopilotModal({ isOpen, onClose }) {
 
       // 1. Try real LLM workflow generation via backend API
       try {
-        const res = await api.generateWorkflow(text)
+        const existingWf = iterateExisting && currentNodes.length > 0
+          ? toWorkflowJson(workflow, currentNodes, currentEdges)
+          : null
+        const historyTurns = recentPrompts.map((p) => ({ role: 'user', content: p }))
+
+        const res = await api.generateWorkflow(text, {
+          existingWorkflow: existingWf,
+          history: historyTurns,
+        })
         const wf = res?.data?.workflow || res?.workflow
         if (wf && Array.isArray(wf.nodes) && wf.nodes.length > 0) {
           const rf = toReactFlow(wf)
@@ -382,7 +427,26 @@ export default function AICopilotModal({ isOpen, onClose }) {
         }
       }
 
-      // 3. Add nodes and edges to the workflow store atomically
+      // If extending existing workflow, connect leaf node of current canvas to first new node
+      if (iterateExisting && currentNodes.length > 0 && generatedNodes.length > 0) {
+        const sourcesWithOutgoing = new Set(currentEdges.map((e) => e.source))
+        const leafNode = currentNodes.find((n) => !sourcesWithOutgoing.has(n.id)) || currentNodes[currentNodes.length - 1]
+        if (leafNode) {
+          generatedEdges.unshift({
+            id: `e_${leafNode.id}_${generatedNodes[0].id}`,
+            source: leafNode.id,
+            sourceHandle: 'main',
+            target: generatedNodes[0].id,
+            targetHandle: 'main',
+          })
+        }
+      }
+
+      // 3. Save prompt to memory
+      const updatedHistory = saveCopilotHistory(text)
+      setRecentPrompts(updatedHistory)
+
+      // 4. Add nodes and edges to the workflow store atomically
       useWorkflowStore.getState().pushHistory()
       useWorkflowStore.setState((state) => ({
         nodes: [...(state.nodes || []), ...generatedNodes],
@@ -423,6 +487,58 @@ export default function AICopilotModal({ isOpen, onClose }) {
             onChange={(e) => setPrompt(e.target.value)}
             disabled={generating}
           />
+
+          {currentNodes.length > 0 && (
+            <label className="copilot-extend-checkbox-wrap">
+              <input
+                type="checkbox"
+                checked={iterateExisting}
+                onChange={(e) => setIterateExisting(e.target.checked)}
+                disabled={generating}
+              />
+              <span>
+                <strong>Extend current canvas</strong> (wire new nodes into {currentNodes.length} existing node{currentNodes.length === 1 ? '' : 's'})
+              </span>
+            </label>
+          )}
+
+          {recentPrompts.length > 0 && (
+            <div className="recent-prompts-wrap">
+              <div className="recent-prompts-header">
+                <span className="chips-label">🕒 Recent Prompts:</span>
+                <button
+                  type="button"
+                  className="clear-history-btn"
+                  onClick={() => {
+                    try {
+                      if (typeof window !== 'undefined' && window.localStorage) {
+                        localStorage.removeItem(COPILOT_HISTORY_KEY)
+                      }
+                    } catch {}
+                    setRecentPrompts([])
+                  }}
+                  title="Clear prompt history"
+                >
+                  Clear History
+                </button>
+              </div>
+              <div className="recent-prompts-list">
+                {recentPrompts.map((rp, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className="recent-prompt-chip"
+                    onClick={() => setPrompt(rp)}
+                    disabled={generating}
+                    title={rp}
+                  >
+                    <span>💬</span>
+                    <span className="recent-prompt-text">{rp}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="example-chips-wrap">
             <span className="chips-label">Try an example:</span>

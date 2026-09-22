@@ -162,3 +162,87 @@ def test_provider_unreachable_is_502(client, monkeypatch):
     monkeypatch.setattr("app.api.ai.chat_completion", boom)
     resp = client.post("/api/ai/generate-workflow", json={"prompt": "make a simple workflow"}, headers=auth_headers(reg["token"]))
     assert resp.status_code == 502
+
+
+def test_ai_memory_inspect_and_clear(client):
+    """Verify GET /api/ai/memory/{session_id} and DELETE /api/ai/memory/{session_id}."""
+    from app.ai.memory import get_memory_manager
+    reg = register(client, "mem_user@x.com")
+    headers = auth_headers(reg["token"])
+
+    # Initially non-existent session
+    resp = client.get("/api/ai/memory/session_test_99", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["data"]["exists"] is False
+
+    # Seed messages into memory manager
+    manager = get_memory_manager()
+    import asyncio
+    loop = asyncio.new_event_loop()
+    try:
+        mem = loop.run_until_complete(manager.get_working_memory("session_test_99"))
+        mem.add_message("user", "Hello agent!")
+        mem.add_message("assistant", "Hello! How can I help?")
+    finally:
+        loop.close()
+
+    # Verify inspection reflects populated memory
+    resp = client.get("/api/ai/memory/session_test_99", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["exists"] is True
+    assert data["turns"] == 2
+    assert data["type"] == "window"
+    assert len(data["messages"]) == 2
+
+    # Clear memory
+    del_resp = client.delete("/api/ai/memory/session_test_99", headers=headers)
+    assert del_resp.status_code == 200
+    assert del_resp.json()["data"]["cleared"] is True
+
+    # Verify cleared
+    resp_after = client.get("/api/ai/memory/session_test_99", headers=headers)
+    assert resp_after.status_code == 200
+    assert resp_after.json()["data"]["exists"] is False
+
+
+def test_generate_workflow_with_history_and_existing_workflow(client, fake_llm):
+    """Verify Copilot incorporates conversation history and existing canvas state."""
+    import json
+    reg = _register_with_llm(client, "copilot_mem@x.com")
+    ok_wf = {
+        "name": "Extended Flow",
+        "nodes": [
+            {"id": "node_1", "type": "manual_trigger", "parameters": {}},
+            {"id": "node_2", "type": "slack", "parameters": {"channel": "#general", "text": "Hi"}},
+        ],
+        "connections": [{"source": "node_1", "target": "node_2"}],
+        "settings": {},
+    }
+    fake_llm.response = lambda: {"content": json.dumps(ok_wf), "tool_calls": []}
+
+    payload = {
+        "prompt": "Now add a Slack notification to the existing workflow",
+        "history": [
+            {"role": "user", "content": "Create a manual trigger workflow"},
+            {"role": "assistant", "content": "I generated a workflow with a manual trigger."},
+        ],
+        "existing_workflow": {
+            "nodes": [{"id": "node_1", "type": "manual_trigger"}],
+        },
+    }
+
+    resp = client.post("/api/ai/generate-workflow", json=payload, headers=auth_headers(reg["token"]))
+    assert resp.status_code == 200
+    res_data = resp.json()["data"]
+    assert res_data["workflow"]["name"] == "Extended Flow"
+
+    # Verify that the fake_llm received messages containing the history and existing workflow
+    last_call = fake_llm.calls[-1]
+    messages = last_call[1]
+    history_roles = [m["role"] for m in messages]
+    assert "user" in history_roles
+    assert "assistant" in history_roles
+    user_msgs = [m["content"] for m in messages if m["role"] == "user"]
+    assert any("Create a manual trigger workflow" in u for u in user_msgs)
+    assert any("EXISTING WORKFLOW STATE TO MODIFY OR EXTEND" in u for u in user_msgs)

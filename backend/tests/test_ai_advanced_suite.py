@@ -366,3 +366,53 @@ async def test_ai_agent_node_execution():
         assert item["iterations"] == 2
         assert len(item["trace"]) == 2
         assert item["session_id"] == "test_session"
+
+
+@pytest.mark.asyncio
+async def test_ai_agent_memory_persistence_across_executions():
+    """Verify that AIAgentNode retains conversation history across different executions for the same session_id."""
+    node = AIAgentNode()
+    cred = {"llm": {"provider": "openai", "api_key": "test", "model": "gpt-4o"}}
+
+    ctx1 = _make_ctx(execution_id="exec_alpha_01", credentials=cred)
+    params1 = AgentParams(
+        instructions="You are a helpful assistant.",
+        input="My favorite framework is FastAPI.",
+        memory_type="window",
+        session_id="session_fastapi",
+        max_iterations=1,
+    )
+
+    async def mock_chat1(*args, **kwargs):
+        return {"role": "assistant", "content": "Got it! You love FastAPI."}
+
+    with patch("app.nodes.ai_agent.chat_completion", side_effect=mock_chat1):
+        res1 = await node.run(ctx1, params1, [])
+        assert res1.output_items[0]["final_answer"] == "Got it! You love FastAPI."
+
+    # Execution 2 with completely different execution_id, same workflow_id and session_id
+    ctx2 = _make_ctx(execution_id="exec_beta_99", credentials=cred)
+    params2 = AgentParams(
+        instructions="You are a helpful assistant.",
+        input="What framework did I mention?",
+        memory_type="window",
+        session_id="session_fastapi",
+        max_iterations=1,
+    )
+
+    captured_messages = []
+
+    async def mock_chat2(*args, **kwargs):
+        nonlocal captured_messages
+        messages = kwargs.get("messages") or args[1]
+        captured_messages = list(messages)
+        return {"role": "assistant", "content": "You mentioned FastAPI."}
+
+    with patch("app.nodes.ai_agent.chat_completion", side_effect=mock_chat2):
+        res2 = await node.run(ctx2, params2, [])
+        assert res2.output_items[0]["final_answer"] == "You mentioned FastAPI."
+
+    # Verify that captured messages in execution 2 contain execution 1's history
+    user_prompts = [m.get("content") for m in captured_messages if m.get("role") == "user"]
+    assert "My favorite framework is FastAPI." in user_prompts
+    assert "What framework did I mention?" in user_prompts
