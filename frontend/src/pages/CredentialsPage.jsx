@@ -45,7 +45,6 @@ export default function CredentialsPage() {
   const [showSfAdvanced, setShowSfAdvanced] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [logoutTarget, setLogoutTarget] = useState(null)
-  const [forceLoginPrompt, setForceLoginPrompt] = useState(true)
   const [loading, setLoading] = useState(true)
   const [providers, setProviders] = useState([])
   const [predefined, setPredefined] = useState([])
@@ -124,10 +123,7 @@ export default function CredentialsPage() {
   async function handleOAuth(provider, loginUrl, prompt, extra = {}) {
     setOauthBusy(provider); setError(null); setNotice(null); setFallbackUrl('')
     try {
-      const effectivePrompt = prompt !== undefined
-        ? prompt
-        : (forceLoginPrompt ? (provider === 'salesforce' ? 'login' : 'select_account') : (provider === 'salesforce' ? 'login' : undefined))
-      const { authorizeUrl } = await connectOAuth(provider, loginUrl, effectivePrompt, extra)
+      const { authorizeUrl } = await connectOAuth(provider, loginUrl, prompt, extra)
       if (!authorizeUrl) throw new Error('Failed to get authorization URL')
       setFallbackUrl(authorizeUrl)
       const w = window.open(authorizeUrl, `oauth-${provider}`, 'width=520,height=640')
@@ -592,53 +588,14 @@ export default function CredentialsPage() {
               Flowsmith supports connecting <strong>multiple accounts</strong> (e.g. multiple Salesforce orgs or users). Each account is encrypted and isolated.
             </p>
 
-            <div style={{ margin: '10px 0 14px', padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              <label
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 10,
-                  fontSize: 12,
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  margin: 0,
-                  color: 'inherit',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={forceLoginPrompt}
-                  onChange={e => setForceLoginPrompt(e.target.checked)}
-                  style={{
-                    width: 16,
-                    height: 16,
-                    minWidth: 16,
-                    margin: 0,
-                    accentColor: 'var(--accent, #6366f1)',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ lineHeight: 1.4 }}>
-                  <strong style={{ display: 'block', color: 'var(--text, #f1f5f9)' }}>
-                    Force login screen / switch account
-                  </strong>
-                  <span className="muted" style={{ display: 'block', fontSize: 11, marginTop: 2, color: 'var(--muted, #94a3b8)' }}>
-                    When checked, Salesforce displays a fresh sign-in dialog so you can log into a different account instead of reusing your browser's existing session.
-                  </span>
-                </span>
-              </label>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
               <button
                 className="primary"
                 type="button"
                 onClick={() => handleOAuth(
                   form.type,
                   form.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined,
-                  forceLoginPrompt ? (form.type === 'salesforce' ? 'login' : 'select_account') : undefined,
+                  undefined,
                   form.type === 'salesforce' && sfClientId ? { clientId: sfClientId.trim(), clientSecret: sfClientSecret.trim() } : {}
                 )}
                 disabled={!!oauthBusy || !form.type}
