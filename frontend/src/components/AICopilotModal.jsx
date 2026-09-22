@@ -203,18 +203,18 @@ export default function AICopilotModal({ isOpen, onClose }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card ai-copilot-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className="ai-copilot-overlay modal-backdrop" onClick={onClose}>
+      <div className="ai-copilot-modal modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="ai-copilot-header modal-header">
           <div className="title-with-badge">
             <span className="copilot-badge">✨ AI Copilot</span>
             <h3>Prompt to Workflow Generator</h3>
           </div>
-          <button className="ghost ghost--icon" onClick={onClose}>✕</button>
+          <button className="ai-copilot-close-btn ghost ghost--icon" type="button" onClick={onClose} title="Close">✕</button>
         </div>
 
-        <div className="modal-body">
-          <p className="description-text">
+        <div className="ai-copilot-body modal-body">
+          <p className="ai-copilot-description description-text">
             Describe the workflow automation you want to create in plain language.
             Flowsmith will assemble, configure, and connect the nodes on your canvas automatically.
           </p>
@@ -247,10 +247,11 @@ export default function AICopilotModal({ isOpen, onClose }) {
           {error && <div className="banner-inline err" style={{ marginTop: 12 }}>{error}</div>}
         </div>
 
-        <div className="modal-footer">
-          <button className="ghost" onClick={onClose} disabled={generating}>Cancel</button>
+        <div className="ai-copilot-footer modal-footer">
+          <button className="ghost" type="button" onClick={onClose} disabled={generating}>Cancel</button>
           <button
             className="primary"
+            type="button"
             onClick={handleGenerate}
             disabled={!prompt.trim() || generating}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
