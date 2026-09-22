@@ -20,6 +20,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 import secrets
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -32,6 +33,8 @@ from app.config import Settings, get_settings
 from app.credentials import service as credential_service
 from app.models import OAuthState, User
 from app.security.crypto import decrypt_text
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
