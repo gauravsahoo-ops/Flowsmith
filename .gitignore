@@ -62,6 +62,3 @@ DEPLOYMENT_REQUIREMENTS.md
 start.bat
 stop.bat
 restart.bat
-
-# Legacy competitor test stubs
-frontend/tests/e2e/n8n-*.spec.ts

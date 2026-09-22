@@ -63,7 +63,7 @@ def test_error_trigger_external_import():
             {
                 "id": "node_1",
                 "name": "Error Trigger",
-                "type": "n8n-nodes-base.errorTrigger",
+                "type": "errorTrigger",
                 "typeVersion": 1,
                 "position": [250, 300],
                 "parameters": {},

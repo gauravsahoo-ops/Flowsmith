@@ -16,7 +16,7 @@ def _external_doc(name="External Import"):
             {
                 "id": "11111111-1111-1111-1111-111111111111",
                 "name": "When clicking",
-                "type": "n8n-nodes-base.manualTrigger",
+                "type": "manualTrigger",
                 "typeVersion": 1,
                 "position": [0, 0],
                 "parameters": {},
@@ -24,7 +24,7 @@ def _external_doc(name="External Import"):
             {
                 "id": "22222222-2222-2222-2222-222222222222",
                 "name": "Set",
-                "type": "n8n-nodes-base.set",
+                "type": "set",
                 "typeVersion": 3.4,
                 "position": [240, 0],
                 "parameters": {
@@ -36,7 +36,7 @@ def _external_doc(name="External Import"):
             {
                 "id": "33333333-3333-3333-3333-333333333333",
                 "name": "If",
-                "type": "n8n-nodes-base.if",
+                "type": "if",
                 "typeVersion": 2,
                 "position": [480, 0],
                 "parameters": {
@@ -144,7 +144,7 @@ def test_import_external_unknown_node_type_rejected(client):
         {
             "id": "99999999-9999-9999-9999-999999999999",
             "name": "Fancy",
-            "type": "n8n-nodes-base.slack",
+            "type": "external.unsupportedType",
             "typeVersion": 2,
             "position": [900, 0],
             "parameters": {},
@@ -152,7 +152,7 @@ def test_import_external_unknown_node_type_rejected(client):
     )
     resp = client.post("/api/workflows/import", json=doc, headers=headers)
     assert resp.status_code == 422
-    assert "n8n-nodes-base.slack" in resp.json()["detail"]
+    assert "external.unsupportedType" in resp.json()["detail"]
 
 
 def test_import_garbage_rejected(client):

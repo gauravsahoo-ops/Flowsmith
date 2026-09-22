@@ -151,21 +151,13 @@ def _compat_salesforce_params(p: dict[str, Any]) -> dict[str, Any]:
 
 
 _COMPAT_TYPE_MAP: dict[str, tuple[str, Callable[[dict[str, Any]], dict[str, Any]]]] = {
-    "n8n-nodes-base.manualTrigger": ("manual_trigger", lambda p: {}),
     "manualTrigger": ("manual_trigger", lambda p: {}),
-    "n8n-nodes-base.errorTrigger": ("error_trigger", lambda p: {}),
     "errorTrigger": ("error_trigger", lambda p: {}),
-    "n8n-nodes-base.scheduleTrigger": ("schedule", _external_schedule_params),
     "scheduleTrigger": ("schedule", _external_schedule_params),
-    "n8n-nodes-base.set": ("set_data", _external_set_params),
     "set": ("set_data", _external_set_params),
-    "n8n-nodes-base.if": ("if_condition", _compat_if_params),
     "if": ("if_condition", _compat_if_params),
-    "n8n-nodes-base.httpRequest": ("http_request", _compat_http_params),
     "httpRequest": ("http_request", _compat_http_params),
-    "n8n-nodes-base.webhook": ("webhook", _compat_webhook_params),
     "webhook": ("webhook", _compat_webhook_params),
-    "n8n-nodes-base.salesforce": ("salesforce", _compat_salesforce_params),
     "salesforce": ("salesforce", _compat_salesforce_params),
 }
 
@@ -216,8 +208,9 @@ def _from_external(payload: dict[str, Any]) -> dict[str, Any]:
     id_map: dict[str, str] = {}
 
     for i, n in enumerate(payload.get("nodes") or []):
-        raw_type = n.get("type")
-        mapped = _COMPAT_TYPE_MAP.get(raw_type)
+        raw_type = str(n.get("type", ""))
+        short_type = raw_type.split(".")[-1] if "." in raw_type else raw_type
+        mapped = _COMPAT_TYPE_MAP.get(raw_type) or _COMPAT_TYPE_MAP.get(short_type)
         if mapped is not None:
             native_type, params_fn = mapped
             try:
@@ -226,11 +219,12 @@ def _from_external(payload: dict[str, Any]) -> dict[str, Any]:
                 raise WorkflowImportError(
                     f"node '{n.get('name', raw_type)}' ({raw_type}): {exc}"
                 ) from exc
-        elif raw_type in _KNOWN_NATIVE_TYPES:
-            native_type = "schedule" if raw_type == "schedule_trigger" else str(raw_type)
+        elif raw_type in _KNOWN_NATIVE_TYPES or short_type in _KNOWN_NATIVE_TYPES:
+            matched = raw_type if raw_type in _KNOWN_NATIVE_TYPES else short_type
+            native_type = "schedule" if matched == "schedule_trigger" else matched
             native_params = n.get("parameters") or {}
         else:
-            unknown.append(str(raw_type))
+            unknown.append(raw_type)
             continue
 
         new_id = f"n{i + 1}"
