@@ -74,13 +74,9 @@ export default function Sidebar({ onOpenCredentials }) {
   const sidebarRef = useRef(null)
   const catalog = useWorkflowStore((s) => s.catalog)
   const nodes = useWorkflowStore((s) => s.nodes)
-  const generateWorkflow = useWorkflowStore((s) => s.generateWorkflow)
   const selectNode = useUiStore((s) => s.selectNode)
   const closeSidebar = useUiStore((s) => s.closeSidebar)
   const { fitView } = useReactFlow()
-  const [prompt, setPrompt] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
   const [query, setQuery] = useState('')
   const [salesforceOpen, setSalesforceOpen] = useState(false)
   const [subWorkflowOpen, setSubWorkflowOpen] = useState(false)
@@ -173,24 +169,7 @@ export default function Sidebar({ onOpenCredentials }) {
     fitView({ nodes: [{ id: target.id }], duration: 350, maxZoom: 1.4, padding: 6 })
   }
 
-  async function onGenerate() {
-    if (!prompt.trim() || busy) return
-    setBusy(true)
-    setError(null)
-    try {
-      await generateWorkflow(prompt.trim())
-      setPrompt('')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const searching = Boolean(query.trim())
-  const generated = useWorkflowStore((s) => s.generated)
-  const approveGenerated = useWorkflowStore((s) => s.approveGenerated)
-  const [approving, setApproving] = useState(false)
 
 
   const flowPopularTypes = new Set(['filter', 'if_condition', 'if', 'loop_over_items', 'split_out', 'split', 'merge'])
@@ -621,81 +600,6 @@ export default function Sidebar({ onOpenCredentials }) {
         </div>
       )}
 
-      {!selectedCategory && (
-        <div className="node-group ai-generate">
-          <h3>✨ AI assistant</h3>
-        {!generated && (
-          <>
-            <textarea
-              className="gen-input"
-              rows={3}
-              placeholder="Describe a workflow… e.g. ‘poll the weather API every 10 minutes and log it’"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-            />
-            <button className="ghost gen-button" disabled={busy || !prompt.trim()} onClick={onGenerate}>
-              {busy ? 'Generating…' : '🤖 Generate workflow'}
-            </button>
-            {error && <p className="banner-inline err">{error}</p>}
-            <p className="hint">Generates a preview you can review before anything is saved. Requires an llm credential.</p>
-          </>
-        )}
-
-        {generated && (
-          <div className="gen-preview">
-            <div className="gen-preview-head">
-              <strong>{generated.workflow.name}</strong>
-              <span className={`gen-verdict ${generated.validation.ok ? 'ok' : 'err'}`}>
-                {generated.validation.ok ? '✓ valid' : '✗ invalid'}
-              </span>
-            </div>
-            <ul className="gen-nodes">
-              {generated.workflow.nodes.map((n) => (
-                <li key={n.id}>
-                  <code>{n.type}</code>
-                  {n.parameters?.operation ? ` · ${n.parameters.operation}` : ''}
-                </li>
-              ))}
-            </ul>
-            {generated.validation.errors.map((e, i) => (
-              <p key={`e${i}`} className="banner-inline err">
-                {e.code}: {e.message}
-              </p>
-            ))}
-            {generated.validation.warnings.map((w, i) => (
-              <p key={`w${i}`} className="banner-inline info">
-                ⚠ {w.message}
-              </p>
-            ))}
-            <p className="hint">
-              Nothing is saved yet. Creating adds it as an inactive draft — activation stays manual.
-            </p>
-            <div className="gen-actions">
-              <button
-                className="primary"
-                disabled={approving || !generated.validation.ok}
-                onClick={async () => {
-                  setApproving(true)
-                  setError(null)
-                  try {
-                    await approveGenerated()
-                    setPrompt('')
-                  } catch (err) {
-                    setError(err.message)
-                  } finally {
-                    setApproving(false)
-                  }
-                }}
-                title="Create the workflow as an inactive draft"
-              >
-                {approving ? 'Creating…' : '✓ Create workflow'}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-      )}
       {!selectedCategory && (
         <button className="ghost creds-button" onClick={onOpenCredentials}>
           🔑 Credentials
