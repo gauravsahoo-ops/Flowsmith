@@ -41,3 +41,7 @@
 
 /* 13. Page-level Theme Polish & Advanced Widgets */
 @import './styles/pages-polish.css';
+
+/* 14. AI Agent Chat Drawer & Copilot */
+@import './styles/ai.css';
+

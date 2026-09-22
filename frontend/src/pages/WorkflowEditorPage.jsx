@@ -11,6 +11,8 @@ import { useExecutionStore } from '../stores/executionStore'
 import PageHeader from '../components/shared/PageHeader'
 import LogsPanel from '../components/LogsPanel'
 import WorkflowHistoryDrawer from '../components/WorkflowHistoryDrawer'
+import AIChatDrawer from '../components/AIChatDrawer'
+import AICopilotModal from '../components/AICopilotModal'
 import { setToken } from '../api'
 
 class CanvasErrorBoundary extends Component {
@@ -70,6 +72,8 @@ export default function WorkflowEditorPage() {
   const hasExecution = useExecutionStore(s => !!s.executionId)
   const [localError, setLocalError] = useState(null)
   const [debuggerOpen, setDebuggerOpen] = useState(false)
+  const [aiChatOpen, setAiChatOpen] = useState(false)
+  const [aiCopilotOpen, setAiCopilotOpen] = useState(false)
 
   const handleSetDebuggerOpen = (val) => {
     setDebuggerOpen((prev) => {
@@ -146,7 +150,11 @@ export default function WorkflowEditorPage() {
           onOpenEnv={() => navigate('/variables')}
           onOpenTests={() => navigate('/settings')}
           onOpenRag={() => navigate('/knowledge')}
+          onOpenAIChat={() => setAiChatOpen(true)}
+          onOpenAICopilot={() => setAiCopilotOpen(true)}
         />
+        <AIChatDrawer isOpen={aiChatOpen} onClose={() => setAiChatOpen(false)} />
+        <AICopilotModal isOpen={aiCopilotOpen} onClose={() => setAiCopilotOpen(false)} />
         {activeError && (
           <div
             className="banner-inline err"

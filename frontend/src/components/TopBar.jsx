@@ -27,6 +27,8 @@ export default function TopBar({
   onOpenEnv,
   onOpenTests,
   onOpenRag,
+  onOpenAIChat,
+  onOpenAICopilot,
 }) {
   const workflow = useWorkflowStore((s) => s.workflow)
   const saving = useWorkflowStore((s) => s.saving)
@@ -348,6 +350,24 @@ export default function TopBar({
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
+        </button>
+        <button
+          className="ghost ghost--quiet"
+          onClick={onOpenAICopilot}
+          title="AI Copilot: Generate workflow with AI"
+          aria-label="AI Copilot"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#bf5af2', fontWeight: 600 }}
+        >
+          <span>✨ Copilot</span>
+        </button>
+        <button
+          className="ghost ghost--quiet"
+          onClick={onOpenAIChat}
+          title="AI Agent Chat & Tool Tester"
+          aria-label="AI Chat Test"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#ff9f0a', fontWeight: 600 }}
+        >
+          <span>🤖 AI Chat</span>
         </button>
 
         {running ? (
