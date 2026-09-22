@@ -81,6 +81,7 @@ export default function WorkflowEditorPage() {
       if (next) {
         closeSidebar()
         closeHistoryDrawer()
+        setAiChatOpen(false)
       }
       return next
     })
@@ -88,6 +89,7 @@ export default function WorkflowEditorPage() {
 
   const handleToggleSidebar = () => {
     if (debuggerOpen) setDebuggerOpen(false)
+    if (aiChatOpen) setAiChatOpen(false)
     toggleSidebar()
   }
 
@@ -143,6 +145,7 @@ export default function WorkflowEditorPage() {
           onLogout={() => { setToken(null); window.location.reload() }}
           onOpenHistory={() => {
             if (debuggerOpen) setDebuggerOpen(false)
+            if (aiChatOpen) setAiChatOpen(false)
             useUiStore.getState().toggleHistoryDrawer()
           }}
           onOpenApprovals={() => navigate('/approvals')}
@@ -150,10 +153,13 @@ export default function WorkflowEditorPage() {
           onOpenEnv={() => navigate('/variables')}
           onOpenTests={() => navigate('/settings')}
           onOpenRag={() => navigate('/knowledge')}
-          onOpenAIChat={() => setAiChatOpen(true)}
+          onOpenAIChat={() => {
+            if (debuggerOpen) setDebuggerOpen(false)
+            closeHistoryDrawer()
+            setAiChatOpen(true)
+          }}
           onOpenAICopilot={() => setAiCopilotOpen(true)}
         />
-        <AIChatDrawer isOpen={aiChatOpen} onClose={() => setAiChatOpen(false)} />
         <AICopilotModal isOpen={aiCopilotOpen} onClose={() => setAiCopilotOpen(false)} />
         {activeError && (
           <div
@@ -196,7 +202,7 @@ export default function WorkflowEditorPage() {
             <div className={`nodes-palette-wrap ${sidebarOpen ? 'is-open' : 'is-closed'}`}>
               <Sidebar onOpenCredentials={() => navigate('/credentials')} />
             </div>
-            {!debuggerOpen && !historyDrawerOpen && (
+            {!debuggerOpen && !historyDrawerOpen && !aiChatOpen && (
               <button
                 type="button"
                 className={`sidebar-unhide-btn ${sidebarOpen ? 'is-hidden' : ''}`}
@@ -220,6 +226,7 @@ export default function WorkflowEditorPage() {
               </div>
             </>
           )}
+          <AIChatDrawer isOpen={aiChatOpen} onClose={() => setAiChatOpen(false)} />
         </div>
       </div>
     </div>

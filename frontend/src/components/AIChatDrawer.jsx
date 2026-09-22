@@ -1,6 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { api } from '../api'
+
+const SUGGESTIONS = [
+  'What tools are available in this agent?',
+  'Check current time and compute 125 * 8',
+  'Test workflow step and summarize response',
+]
 
 export default function AIChatDrawer({ isOpen, onClose }) {
   const workflow = useWorkflowStore((s) => s.workflow)
@@ -17,7 +23,9 @@ export default function AIChatDrawer({ isOpen, onClose }) {
   const [sessionId, setSessionId] = useState(`session_${Math.random().toString(36).slice(2, 9)}`)
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [expandedTraceIndex, setExpandedTraceIndex] = useState(null)
+  const [copiedSession, setCopiedSession] = useState(false)
   const messagesEndRef = useRef(null)
+  const textareaRef = useRef(null)
 
   // Find all AI nodes in the current workflow
   const aiNodes = (nodes || []).filter((n) => {
@@ -31,22 +39,56 @@ export default function AIChatDrawer({ isOpen, onClose }) {
     }
   }, [aiNodes, selectedNodeId])
 
+  // Scroll to bottom on new messages or open
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages, isOpen])
+  }, [messages, isOpen, loading])
 
-  if (!isOpen) return null
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose?.()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
-  const handleSend = async (e) => {
-    e?.preventDefault()
-    const text = input.trim()
+  // Focus textarea when opened
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => textareaRef.current?.focus(), 100)
+    }
+  }, [isOpen])
+
+  // Adjust textarea height dynamically
+  const handleTextareaChange = (e) => {
+    setInput(e.target.value)
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`
+    }
+  }
+
+  const handleCopySession = () => {
+    navigator.clipboard?.writeText(sessionId).then(() => {
+      setCopiedSession(true)
+      setTimeout(() => setCopiedSession(false), 2000)
+    }).catch(() => {})
+  }
+
+  const sendMessageText = useCallback(async (textToSend) => {
+    const text = (textToSend ?? input).trim()
     if (!text || loading) return
 
     const newMessages = [...messages, { role: 'user', content: text }]
     setMessages(newMessages)
     setInput('')
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
     setLoading(true)
 
     try {
@@ -79,19 +121,19 @@ export default function AIChatDrawer({ isOpen, onClose }) {
           trace: [
             {
               iteration: 1,
-              thought: 'Checking task requirements and current time...',
+              thought: 'Analyzing user request and available workflow tools...',
               tool_calls: [
                 {
                   name: 'current_time',
                   arguments: {},
                   output: new Date().toISOString(),
-                  duration_ms: 14.2,
+                  duration_ms: 12.4,
                 },
               ],
             },
             {
               iteration: 2,
-              thought: 'Calculating response and assembling result.',
+              thought: 'Evaluating result and formatting final response.',
               tool_calls: [],
             },
           ],
@@ -120,6 +162,18 @@ export default function AIChatDrawer({ isOpen, onClose }) {
     } finally {
       setLoading(false)
     }
+  }, [input, loading, messages, nodes, selectedNodeId, sessionId, workflow?.id])
+
+  const handleSend = (e) => {
+    e?.preventDefault()
+    sendMessageText()
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessageText()
+    }
   }
 
   const handleResetSession = () => {
@@ -134,24 +188,36 @@ export default function AIChatDrawer({ isOpen, onClose }) {
     ])
   }
 
+  if (!isOpen) return null
+
+  const selectedNodeObj = nodes.find((n) => n.id === selectedNodeId)
+
   return (
-    <div className="ai-chat-drawer-overlay">
-      <div className="ai-chat-drawer">
+    <div className="ai-chat-drawer-overlay" onClick={onClose}>
+      <div className="ai-chat-drawer" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="AI Agent Tester">
         {/* Header */}
         <div className="ai-chat-drawer-header">
           <div className="ai-chat-drawer-title-wrap">
             <span className="ai-chat-badge">AI Agent Tester</span>
-            <div className="ai-chat-session-tag" title="Persistent Memory Session">
+            <button
+              type="button"
+              className="ai-chat-session-tag"
+              onClick={handleCopySession}
+              title={`Click to copy Session ID: ${sessionId}`}
+            >
               <span className="dot" />
-              {sessionId}
-            </div>
+              <span className="session-text">{sessionId}</span>
+              {copiedSession && <span className="copied-pill">Copied!</span>}
+            </button>
           </div>
+
           <div className="ai-chat-drawer-actions">
-            {aiNodes.length > 1 && (
+            {aiNodes.length > 1 ? (
               <select
                 className="ai-chat-node-select"
                 value={selectedNodeId}
                 onChange={(e) => setSelectedNodeId(e.target.value)}
+                title="Active AI Agent Node"
               >
                 {aiNodes.map((n) => (
                   <option key={n.id} value={n.id}>
@@ -159,15 +225,31 @@ export default function AIChatDrawer({ isOpen, onClose }) {
                   </option>
                 ))}
               </select>
-            )}
+            ) : selectedNodeObj ? (
+              <span className="ai-node-pill" title="Target Node">
+                ⚡ {selectedNodeObj.data?.node?.name || 'AI Agent'}
+              </span>
+            ) : null}
+
             <button
-              className="ghost ghost--sm"
+              type="button"
+              className="ghost ghost--sm ai-reset-btn"
               onClick={handleResetSession}
               title="Reset conversation memory"
             >
-              Reset Memory
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              <span>Reset Memory</span>
             </button>
-            <button className="ghost ghost--icon" onClick={onClose} title="Close">
+            <button
+              type="button"
+              className="ghost ghost--icon ai-close-btn"
+              onClick={onClose}
+              title="Close (Esc)"
+              aria-label="Close drawer"
+            >
               ✕
             </button>
           </div>
@@ -177,16 +259,30 @@ export default function AIChatDrawer({ isOpen, onClose }) {
         <div className="ai-chat-drawer-body">
           {messages.map((m, idx) => (
             <div key={idx} className={`ai-message-row ${m.role === 'user' ? 'user' : 'assistant'}`}>
-              <div className="ai-message-bubble">
+              <div className="ai-message-avatar">
+                {m.role === 'user' ? (
+                  <div className="user-avatar" title="You">👤</div>
+                ) : (
+                  <div className="agent-avatar" title="AI Agent">🤖</div>
+                )}
+              </div>
+
+              <div className="ai-message-content">
                 {/* Tool Tracing Callouts for Assistant */}
                 {m.trace && m.trace.length > 0 && (
                   <div className="ai-trace-container">
                     <button
+                      type="button"
                       className="ai-trace-toggle-btn"
                       onClick={() => setExpandedTraceIndex(expandedTraceIndex === idx ? null : idx)}
+                      aria-expanded={expandedTraceIndex === idx}
                     >
-                      <span>⚡ Agent Reasoning & Tools ({m.trace.length} turns)</span>
-                      <span>{expandedTraceIndex === idx ? '▲' : '▼'}</span>
+                      <span className="ai-trace-toggle-label">
+                        <span className="trace-icon">⚡</span>
+                        <span>Agent Reasoning & Tools</span>
+                        <span className="trace-steps-badge">({m.trace.length} {m.trace.length === 1 ? 'step' : 'steps'})</span>
+                      </span>
+                      <span className="trace-chevron">{expandedTraceIndex === idx ? '▲' : '▼'}</span>
                     </button>
 
                     {expandedTraceIndex === idx && (
@@ -205,11 +301,11 @@ export default function AIChatDrawer({ isOpen, onClose }) {
                                   {tc.duration_ms && <span className="tool-dur">{tc.duration_ms}ms</span>}
                                 </div>
                                 <div className="ai-tool-args">
-                                  <strong>Args:</strong> {JSON.stringify(tc.arguments)}
+                                  <strong>Args:</strong> {typeof tc.arguments === 'object' ? JSON.stringify(tc.arguments) : String(tc.arguments)}
                                 </div>
                                 {tc.output && (
                                   <div className="ai-tool-output">
-                                    <strong>Result:</strong> {String(tc.output)}
+                                    <strong>Result:</strong> {typeof tc.output === 'object' ? JSON.stringify(tc.output) : String(tc.output)}
                                   </div>
                                 )}
                               </div>
@@ -221,27 +317,56 @@ export default function AIChatDrawer({ isOpen, onClose }) {
                   </div>
                 )}
 
-                <div className="ai-message-text">{m.content}</div>
+                <div className="ai-message-bubble">
+                  <div className="ai-message-text">{m.content}</div>
 
-                {m.tools_used && m.tools_used.length > 0 && (
-                  <div className="ai-tools-used-row">
-                    <span className="label">Tools used:</span>
-                    {m.tools_used.map((t) => (
-                      <span key={t} className="tool-chip">{t}</span>
-                    ))}
-                  </div>
-                )}
+                  {m.tools_used && m.tools_used.length > 0 && (
+                    <div className="ai-tools-used-row">
+                      <span className="label">Tools used:</span>
+                      {m.tools_used.map((t) => (
+                        <span key={t} className="tool-chip">
+                          <span className="tool-chip-icon">🔧</span> {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
 
+          {/* Quick Suggestions when starting */}
+          {messages.length === 1 && !loading && (
+            <div className="ai-suggestions-box">
+              <span className="ai-suggestions-label">Try asking:</span>
+              <div className="ai-suggestions-list">
+                {SUGGESTIONS.map((prompt, pIdx) => (
+                  <button
+                    key={pIdx}
+                    type="button"
+                    className="ai-suggestion-chip"
+                    onClick={() => sendMessageText(prompt)}
+                  >
+                    <span>💬</span>
+                    <span>{prompt}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {loading && (
             <div className="ai-message-row assistant">
-              <div className="ai-message-bubble ai-loading-bubble">
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-                <span className="typing-dot" />
-                <span style={{ marginLeft: 8, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Agent is thinking & executing tools…</span>
+              <div className="ai-message-avatar">
+                <div className="agent-avatar is-thinking">🤖</div>
+              </div>
+              <div className="ai-message-content">
+                <div className="ai-message-bubble ai-loading-bubble">
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                  <span className="loading-label">Agent is thinking & executing tools…</span>
+                </div>
               </div>
             </div>
           )}
@@ -250,17 +375,40 @@ export default function AIChatDrawer({ isOpen, onClose }) {
 
         {/* Input Bar */}
         <form className="ai-chat-drawer-footer" onSubmit={handleSend}>
-          <input
-            className="ai-chat-input"
-            type="text"
-            placeholder="Ask agent or test workflow tools (e.g. 'What is the current time and 125 * 8?')..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={loading}
-          />
-          <button className="primary primary--sm" type="submit" disabled={!input.trim() || loading}>
-            {loading ? 'Running…' : 'Send'}
-          </button>
+          <div className="ai-chat-input-row">
+            <textarea
+              ref={textareaRef}
+              className="ai-chat-textarea"
+              rows={1}
+              placeholder="Ask agent or test workflow tools (e.g. 'What is the current time and 125 * 8?')..."
+              value={input}
+              onChange={handleTextareaChange}
+              onKeyDown={handleKeyDown}
+              disabled={loading}
+            />
+            <button
+              className="primary ai-chat-send-btn"
+              type="submit"
+              disabled={!input.trim() || loading}
+              title="Send (Enter)"
+            >
+              {loading ? (
+                <span className="ai-send-loading">…</span>
+              ) : (
+                <>
+                  <span>Send</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </>
+              )}
+            </button>
+          </div>
+          <div className="ai-chat-footer-hints">
+            <span>Press <strong>Enter</strong> to send, <strong>Shift + Enter</strong> for new line</span>
+            <span className="ai-memory-badge">Stateful Memory</span>
+          </div>
         </form>
       </div>
     </div>
