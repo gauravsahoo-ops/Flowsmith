@@ -30,7 +30,7 @@ from urllib.parse import quote, urlparse
 
 from app.credentials.service import create_for_user
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
