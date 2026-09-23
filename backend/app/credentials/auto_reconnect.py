@@ -157,8 +157,9 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
     if not can_auto_reconnect(rec.type, data):
         return {
             "ok": False,
-            "message": f"Credential '{rec.name}' ({rec.type}) does not support automatic background reconnection.",
+            "message": f"Credential '{rec.name}' ({rec.type}) requires re-authorization.",
             "interactive_required": True,
+            "login_url": data.get("login_url") or data.get("instance_url") or "",
         }
 
     try:

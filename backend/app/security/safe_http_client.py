@@ -525,7 +525,15 @@ class SafeHTTPClient:
             # Salesforce (F5 edge) can send `Content-Encoding: gzip` over a
             # malformed/uncompressed body; httpx then fails with
             # "Error -3 while decompressing data: incorrect header check".
-            # Retry once asking for an identity (uncompressed) response.
+            # Non-idempotent requests (POST, PATCH) cannot be safely re-requested
+            # because the server has already executed the mutation (e.g. creating duplicate records).
+            # Only retry safe/idempotent methods (GET, HEAD, OPTIONS).
+            if method.upper() not in ("GET", "HEAD", "OPTIONS"):
+                raise make_connector_error(
+                    ConnectorErrorCode.UNAVAILABLE,
+                    f"HTTP {method} request failed: response body could not be decoded.",
+                    retryable=False,
+                ) from exc
             accept_enc = next(
                 (v for k, v in request_headers.items() if k.lower() == "accept-encoding"),
                 "",

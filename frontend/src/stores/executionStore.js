@@ -74,6 +74,17 @@ export const useExecutionStore = create((set, get) => ({
   historyLoading: false,
   historyError: null,
 
+  clearNodeError(nodeId) {
+    if (!nodeId) return
+    const statuses = { ...(get().nodeStatuses || {}) }
+    delete statuses[nodeId]
+    const preview = { ...(get().runPreview || {}) }
+    if (preview[nodeId]) {
+      preview[nodeId] = { ...preview[nodeId], status: null, error: null, note: null }
+    }
+    set({ nodeStatuses: statuses, runPreview: preview, error: null })
+  },
+
   async fetchHistory({ workflowId, page = 1 } = {}) {
     set({ historyLoading: true, historyError: null })
     try {

@@ -194,7 +194,7 @@ function CanvasInner() {
   const [dragOver, setDragOver] = useState(false)
   const [flash, setFlash] = useState(null)
   const [edgeMenu, setEdgeMenu] = useState(null)
-  const { getNodes, screenToFlowPosition, fitView, zoomIn, zoomOut } = useReactFlow()
+  const { getNodes, screenToFlowPosition, fitView, zoomIn, zoomOut, setViewport } = useReactFlow()
   const workflow = useWorkflowStore((s) => s.workflow)
   const nodeStatuses = useExecutionStore((s) => s.nodeStatuses)
   const running = useExecutionStore((s) => s.running)
@@ -209,19 +209,28 @@ function CanvasInner() {
 
   // Automatically fit view as soon as all nodes are initialized & measured in DOM
   useEffect(() => {
-    if (!workflow?.id || nodes.length === 0) return
+    if (!workflow?.id) return
+    if (nodes.length === 0) {
+      if (fittedWorkflowId.current !== workflow.id) {
+        fittedWorkflowId.current = workflow.id
+        if (typeof setViewport === 'function') {
+          setViewport({ x: 0, y: 0, zoom: 1 })
+        }
+      }
+      return
+    }
     if (nodesInitialized && fittedWorkflowId.current !== workflow.id) {
       fittedWorkflowId.current = workflow.id
-      // Immediate frame fit plus smooth 250ms animation settle
+      // Immediate frame fit plus smooth 250ms animation settle, capped at 100% zoom (maxZoom: 1)
       requestAnimationFrame(() => {
-        fitView({ padding: 0.2, duration: 250 })
+        fitView({ padding: 0.2, duration: 250, maxZoom: 1 })
       })
       const timer = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 0 })
+        fitView({ padding: 0.2, duration: 0, maxZoom: 1 })
       }, 200)
       return () => clearTimeout(timer)
     }
-  }, [nodesInitialized, workflow?.id, nodes.length, fitView])
+  }, [nodesInitialized, workflow?.id, nodes.length, fitView, setViewport])
 
   const previewGraph = useMemo(() => {
     if (!previewVersion?.data) return null
@@ -323,7 +332,7 @@ function CanvasInner() {
         }
       } else if (mod && (e.key === '0')) {
         e.preventDefault()
-        fitView({ duration: 300, padding: 0.15 })
+        fitView({ duration: 300, padding: 0.15, maxZoom: 1 })
       } else if (mod && e.key === '=') {
         e.preventDefault()
         zoomIn()
@@ -506,12 +515,19 @@ function CanvasInner() {
         zoomOnPinch={true}
         preventScrolling={true}
         deleteKeyCode={['Backspace', 'Delete']}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         minZoom={0.1}
-        maxZoom={2.5}
+        maxZoom={2.0}
         elevateEdgesOnSelect
-        fitView
-        fitViewOptions={{ padding: 0.2, includeHiddenNodes: true }}
-        onInit={(instance) => setTimeout(() => instance.fitView({ padding: 0.2 }), 50)}
+        fitView={nodes.length > 0}
+        fitViewOptions={{ padding: 0.2, includeHiddenNodes: true, maxZoom: 1 }}
+        onInit={(instance) => {
+          if (nodes.length > 0) {
+            setTimeout(() => instance.fitView({ padding: 0.2, maxZoom: 1 }), 50)
+          } else {
+            instance.setViewport({ x: 0, y: 0, zoom: 1 })
+          }
+        }}
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={22} size={1.4} />

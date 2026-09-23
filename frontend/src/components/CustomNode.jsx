@@ -228,9 +228,30 @@ function CustomNode({ id, data, selected }) {
     const cleanUrl = u.replace(/^https?:\/\//, '')
     subtitle = cleanUrl ? `${m}: ${cleanUrl.slice(0, 24)}${cleanUrl.length > 24 ? '…' : ''}` : m
   } else if (nodeType === 'salesforce') {
-    const op = params.operation || 'query'
-    const obj = params.object_name || ''
-    subtitle = obj ? `${op}: ${obj}` : op
+    const rawOp = params.operation || 'query'
+    const OP_LABELS = {
+      create: 'Create',
+      create_record: 'Create',
+      add_note: 'Add Note',
+      update: 'Update',
+      upsert: 'Create or Update',
+      delete: 'Delete',
+      get: 'Get',
+      query: 'Get Many',
+      get_many: 'Get Many',
+      describe: 'Get Summary',
+      search: 'Search',
+      list: 'List Objects',
+      bulk: 'Bulk',
+      custom_api_call: 'Custom API',
+      flow_invoke: 'Invoke Flow',
+    }
+    const op = OP_LABELS[rawOp] || rawOp.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    let obj = params.object_name || params.resource || ''
+    if (obj.toLowerCase() === 'record') {
+      obj = 'Account'
+    }
+    subtitle = (obj && !op.toLowerCase().includes(obj.toLowerCase())) ? `${op}: ${obj}` : op
     fullSubtitle = subtitle
   } else if (nodeType === 'code') {
     subtitle = params.mode === 'runOnceForAllItems' ? 'Run once' : 'Run for each'

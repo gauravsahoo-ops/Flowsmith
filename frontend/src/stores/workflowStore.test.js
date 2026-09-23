@@ -225,7 +225,7 @@ describe('deleteWorkflow', () => {
 
     expect(mockApi.createWorkflow).toHaveBeenCalled()
     expect(useWorkflowStore.getState().workflow).toBe(fresh)
-    expect(useWorkflowStore.getState().nodes.map((n) => n.data.node.type)).toEqual(['manual_trigger'])
+    expect(useWorkflowStore.getState().nodes).toEqual([])
   })
 
   it('propagates API errors and leaves the current workflow intact', async () => {

@@ -241,7 +241,7 @@ export default function NodeEditorModal() {
   }, [visible, closing, handleClose])
 
   // Execute single step — always use current workflow params (save first), never retry success
-  const handleExecuteStep = useCallback(async () => {
+  const handleExecuteStep = useCallback(async (options = {}) => {
     if (!workflow?.id || !selectedId) return
     setExecuting(true)
     setExecError(null)
@@ -251,9 +251,9 @@ export default function NodeEditorModal() {
       // Ensure latest Resource/Object/Operation/SOQL is saved before execution
       try { await useWorkflowStore.getState().save() } catch {}
       let result
-      // Only retry if previous execution actually failed this node; otherwise start fresh runNode
+      // If forceFresh is requested (e.g. after parameter repair) or no prior execution, run fresh runNode
       const isFailed = status === 'failed' || status === 'error'
-      if (executionId && isFailed) {
+      if (!options?.forceFresh && executionId && isFailed) {
         result = await api.retry(executionId, selectedId)
       } else {
         result = await api.runNode(workflow.id, selectedId)
@@ -354,20 +354,6 @@ export default function NodeEditorModal() {
             )}
           </div>
           <div className="nem-actions">
-            {effectiveError && (
-              <Button
-                variant="secondary"
-                onClick={() => setShowAutoRepair((prev) => !prev)}
-                title="Autonomous AI node diagnosis and self-healing"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%)',
-                  borderColor: 'rgba(168, 85, 247, 0.4)',
-                  color: '#d8b4fe',
-                }}
-              >
-                ✨ AI Auto-Repair
-              </Button>
-            )}
             <Button
               variant="ghost"
               onClick={handleExecutePrevious}
@@ -425,7 +411,7 @@ export default function NodeEditorModal() {
           </button>
         </nav>
 
-        {effectiveError && (
+        {effectiveError && !showAutoRepair && (
           <ErrorState
             icon="⚠️"
             title="Execution failed"
@@ -440,7 +426,7 @@ export default function NodeEditorModal() {
                   color: '#fff',
                 }}
               >
-                ✨ AI Auto-Repair
+                ⚡ Flowsmith AI Self-Healing Diagnostic
               </Button>
             }
           />
@@ -456,6 +442,7 @@ export default function NodeEditorModal() {
               updateNode(node.id, { parameters: suggestedParams })
               setShowAutoRepair(false)
               setExecError(null)
+              useExecutionStore.getState().clearNodeError?.(node.id)
               try {
                 await useWorkflowStore.getState().save()
               } catch (e) {
@@ -463,8 +450,8 @@ export default function NodeEditorModal() {
               }
               if (retest) {
                 setTimeout(() => {
-                  handleExecuteStep()
-                }, 100)
+                  handleExecuteStep({ forceFresh: true })
+                }, 150)
               }
             }}
           />

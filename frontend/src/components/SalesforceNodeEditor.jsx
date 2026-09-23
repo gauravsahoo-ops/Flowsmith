@@ -43,10 +43,24 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
   paramsRef.current = params
   const rawOperation = params.operation || ''
   const objectName = params.object_name || ''
-  const resource = params.resource || (['Account','Contact','Lead','Opportunity','Case','Task'].includes(objectName) ? objectName : objectName ? 'CustomObject' : 'Account')
+  const rawResource = params.resource
+  const resource = (!rawResource || rawResource === 'Record' || rawResource === 'Other')
+    ? (['Account','Contact','Lead','Opportunity','Case','Task'].includes(objectName) && objectName !== 'Record' ? objectName : (objectName && objectName !== 'Record') ? 'CustomObject' : 'Account')
+    : rawResource
 
   const [matrix, setMatrix] = useState(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Auto-heal legacy nodes that had 'Record' as resource or object_name
+  useEffect(() => {
+    if (params.resource === 'Record' || params.object_name === 'Record') {
+      onParamsChange({
+        ...paramsRef.current,
+        resource: params.resource === 'Record' ? 'Account' : params.resource,
+        object_name: params.object_name === 'Record' ? 'Account' : params.object_name,
+      })
+    }
+  }, [params.resource, params.object_name, onParamsChange])
 
   useEffect(() => {
     const headers = { Authorization: `Bearer ${getToken()}` }
@@ -57,7 +71,6 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
 
   // Valid backend ops for current resource (single source)
   const validBackendOps = useMemo(() => {
-    if (matrix && matrix[resource]) return matrix[resource]
     if (matrix && matrix[resource]) return matrix[resource]
     // Fallback: curated 9 + search for Search resource, flow for Flow
     if (resource === 'Search') return ['search','query']

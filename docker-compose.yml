@@ -92,6 +92,13 @@ services:
       SALESFORCE_LOGIN_URL: ${SALESFORCE_LOGIN_URL:-https://login.salesforce.com}
       SALESFORCE_API_VERSION: ${SALESFORCE_API_VERSION:-v63.0}
       SALESFORCE_SCOPES: ${SALESFORCE_SCOPES:-refresh_token full api}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
@@ -147,6 +154,13 @@ services:
       SALESFORCE_LOGIN_URL: ${SALESFORCE_LOGIN_URL:-https://login.salesforce.com}
       SALESFORCE_API_VERSION: ${SALESFORCE_API_VERSION:-v63.0}
       SALESFORCE_SCOPES: ${SALESFORCE_SCOPES:-refresh_token full api}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
     command: ["python", "-m", "app.queue.worker"]
     volumes:
       - mat-app-data:/app/backend/data

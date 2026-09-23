@@ -261,6 +261,9 @@ copy .env.example .env       # On Windows
 # Generate the two mandatory secrets and put them in backend/.env:
 #   JWT_SECRET (e.g. openssl rand -hex 32)
 #   CREDENTIALS_ENCRYPTION_KEY (python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+#
+# (Optional) Configure SMTP in .env to enable password self-service resets:
+#   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM
 
 # Apply database migrations
 alembic upgrade head
@@ -694,18 +697,58 @@ cd ../backend
 python -m app.serve
 ```
 
+### 3. Configuration & Environment Variables
+
+| Variable | Default / Example | Required | Description |
+|---|---|:---:|---|
+| `JWT_SECRET` | `openssl rand -hex 32` | **Yes** | Cryptographic secret for signing user session tokens. |
+| `CREDENTIALS_ENCRYPTION_KEY` | `Fernet.generate_key()` | **Yes** | Key for encrypting stored credentials at rest (supports multi-key rotation). |
+| `DATABASE_URL` | `postgresql://automate:automate@postgres:5432/automate` | **Yes** | PostgreSQL connection string (PostgreSQL 16 with pgvector). |
+| `REDIS_URL` | `redis://redis:6379/0` | Dev only | Redis connection string for the job queue and caching. |
+| `REDIS_PASSWORD` | *(empty in dev)* | Prod | Password for Redis authentication in production. |
+| `PUBLIC_URL` | `https://yourdomain.com` | Prod | Public-facing base URL of the Flowsmith web application. |
+| `APP_ENV` | `development` / `production` | **Yes** | Runtime mode; enforces strict security checks when set to `production`. |
+| `CORS_ORIGINS` | `https://yourdomain.com` | Prod | Allowed CORS origins (comma-separated; wildcards prohibited in production). |
+| `SMTP_HOST` | `smtp.office365.com` | Optional | Outbound SMTP server host for system password resets and alerts. |
+| `SMTP_PORT` | `587` | Optional | SMTP port (e.g. `587` for STARTTLS, `465` for SSL, `25` for relay). |
+| `SMTP_USER` | `noreply@yourdomain.com` | Optional | SMTP username / service account email address. |
+| `SMTP_PASSWORD` | `your_smtp_password` | Optional | SMTP password or app-specific password. |
+| `MAIL_FROM` | `"Flowsmith <noreply@yourdomain.com>"` | Optional | Sender address displayed in outgoing system emails. |
+| `SMTP_USE_TLS` | `false` | Optional | Enable implicit TLS/SSL (standard for port 465). |
+| `SMTP_STARTTLS` | `true` | Optional | Upgrade connection with STARTTLS (standard for port 587). |
+| `SALESFORCE_CLIENT_ID` | *(OAuth Connected App)* | Optional | Salesforce OAuth Client ID for CRM integration. |
+| `SALESFORCE_CLIENT_SECRET` | *(OAuth Connected App)* | Optional | Salesforce OAuth Client Secret. |
+
+---
+
+### 4. SMTP & Mail Delivery Setup
+
+Flowsmith supports enterprise email delivery through two complementary channels:
+
+1. **System & Security Emails (Platform-Level)**:
+   - Configured via environment variables (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`).
+   - Powers self-service user password resets (`/api/auth/forgot-password`), security audit alerts, and critical system health notifications.
+   - Compatible with Microsoft 365, Google Workspace, AWS SES, SendGrid, Brevo, and internal unauthenticated SMTP relays.
+
+2. **Workflow Transactional Emails (`Send Email` Node)**:
+   - Configured directly by users in the web interface under **Credentials -> + Add Credential -> SMTP**.
+   - Supports arbitrary sender addresses, custom ports, STARTTLS/SSL, and automatic retry on MTA backoff.
+   - All credentials entered in the UI are immediately encrypted at rest using AES-128 Fernet before database commit.
+
 ---
 
 ## Security & Compliance
 
 Flowsmith is built from the ground up for strict enterprise environments:
 
-- **Credential Encryption at Rest**: All external tokens, passwords, and private keys are encrypted using Fernet (AES-128-CBC) with HMAC-SHA256 integrity verification.
-- **Multi-Key Keyring & Rotation**: Secrets support multi-key rotation with zero downtime via the credential keyring (`CREDENTIALS_ENCRYPTION_KEY` accepts a comma-separated key list with the newest key first).
+- **100% Credential Encryption at Rest**: All sensitive credential secrets, API keys, OAuth tokens, and passwords stored in PostgreSQL (`credentials.data` of type `bytea`) are encrypted at rest using Fernet (AES-128-CBC with HMAC-SHA256) or AES-256-GCM. Plaintext secrets are never persisted to disk.
+- **Zero-Leak API Architecture**: The REST API (`GET /api/credentials`) strictly returns safe metadata (`{id, name, type}`). Decrypted secrets are never returned in HTTP responses or exposed to the client browser.
+- **Deferred Worker Decryption**: Secrets are decrypted strictly in worker memory immediately prior to node execution, and isolated per execution lifecycle.
+- **Multi-Key Keyring & Rotation**: Secrets support zero-downtime multi-key rotation via the credential keyring (`CREDENTIALS_ENCRYPTION_KEY` accepts a comma-separated list of keys, decrypting with candidate keys and re-encrypting with the newest primary key).
 - **SSRF Attack Mitigation**: The `SafeHTTPClient` inspects destination IPs and rejects queries to loopback, link-local, private LAN, or cloud metadata endpoints (`169.254.169.254`).
 - **High-Entropy Trigger Validation**: Webhook endpoints enforce 24+ character high-entropy tokens to prevent brute-force discovery.
-- **Sensitive Key Redaction**: Credentials and authorization headers are scrubbed from execution logs, error messages, and database traces before storage.
-- **Production Secret Guard**: The application halts on startup if default insecure secrets are detected when `APP_ENV=production`.
+- **Sensitive Key Redaction**: Credentials, authorization headers, and bearer tokens are automatically scrubbed from execution logs, error messages, and database traces before storage.
+- **Production Secret Guard**: The application halts on startup if default insecure secrets or wildcard CORS origins are detected when `APP_ENV=production`.
 
 ---
 
