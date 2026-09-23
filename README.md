@@ -46,6 +46,7 @@
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
+- [User Manual (Beginner's Guide)](./USER_MANUAL.md)
 - [How to Use Flowsmith](#how-to-use-flowsmith)
 - [Project Structure](#project-structure)
 - [Built-in Node Types](#built-in-node-types)
