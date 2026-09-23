@@ -783,14 +783,18 @@ def pkce_pair() -> tuple[str, str]:
 
 def purge_stale_states(db: Session) -> None:
     """Opportunistically delete expired, unused authorize states."""
-    from datetime import UTC, datetime, timedelta
+    try:
+        from datetime import UTC, datetime, timedelta
 
-    ttl = get_settings().oauth_state_ttl_seconds
-    cutoff = datetime.now(UTC) - timedelta(seconds=ttl)
-    stale = db.scalars(select(OAuthState).where(OAuthState.created_at < cutoff)).all()
-    for row in stale:
-        db.delete(row)
-    db.commit()
+        ttl = get_settings().oauth_state_ttl_seconds
+        cutoff = datetime.now(UTC) - timedelta(seconds=ttl)
+        stale = db.scalars(select(OAuthState).where(OAuthState.created_at < cutoff)).all()
+        for row in stale:
+            db.delete(row)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.debug("purge_stale_states failed: %s", exc)
 
 
 def get_existing_oauth_credential(

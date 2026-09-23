@@ -154,17 +154,35 @@ def connect_provider(
         verifier, challenge = pkce_pair()
 
     state = token_urlsafe(32)
-    db.add(
-        OAuthState(
-            state=state,
-            user_id=user.id,
-            login_url=login_url,
-            code_verifier=verifier,
-            client_id=client_id,
-            client_secret=_client_secret,
-        )
+    oauth_row = OAuthState(
+        state=state,
+        user_id=user.id,
+        login_url=login_url,
+        code_verifier=verifier,
+        client_id=client_id,
+        client_secret=_client_secret,
     )
-    db.commit()
+    db.add(oauth_row)
+    try:
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Failed to store OAuthState, attempting self-healing migration: %s", exc)
+        from sqlalchemy import text
+        try:
+            if db.bind and db.bind.dialect.name == "postgresql":
+                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_id VARCHAR(255)"))
+                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_secret VARCHAR(255)"))
+            db.commit()
+            db.add(oauth_row)
+            db.commit()
+        except Exception as retry_exc:
+            db.rollback()
+            logger.error("Could not self-heal oauth_states schema: %s", retry_exc)
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                f"Failed to record OAuth session state: {retry_exc}",
+            )
 
     prompt = (body.prompt or "").strip() if body else ""
     try:
