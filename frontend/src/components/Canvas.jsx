@@ -7,9 +7,10 @@ import {
   useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useWorkflowStore } from '../stores/workflowStore'
+import { useWorkflowStore, isDirty, confirmDiscard } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
+import { api } from '../api'
 import CustomNode from './CustomNode'
 import CommentNode from './CommentNode'
 import GroupNode from './GroupNode'
@@ -274,6 +275,30 @@ function CanvasInner() {
     (e) => {
       e.preventDefault()
       setDragOver(false)
+
+      const files = e.dataTransfer?.files
+      if (files && files.length > 0) {
+        const file = files[0]
+        if (file.name.endsWith('.json') || file.type === 'application/json') {
+          (async () => {
+            try {
+              if (typeof isDirty === 'function' && isDirty() && typeof confirmDiscard === 'function' && !confirmDiscard()) {
+                return
+              }
+              const text = await file.text()
+              const doc = JSON.parse(text)
+              const imported = await api.importWorkflow(doc)
+              if (imported?.id) {
+                window.location.href = `/workflows/${imported.id}`
+              }
+            } catch (err) {
+              alert(`Import failed: ${err.message || 'Invalid workflow file'}`)
+            }
+          })()
+          return
+        }
+      }
+
       const type = draggedNodeType(e)
       if (!type) return
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })

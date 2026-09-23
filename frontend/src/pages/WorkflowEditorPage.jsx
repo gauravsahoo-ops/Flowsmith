@@ -137,6 +137,9 @@ export default function WorkflowEditorPage() {
             if (isDirty() && !confirmDiscard()) return
             navigate('/workflows')
           }}
+          onImportWorkflow={(imported) => {
+            navigate(`/workflows/${imported.id}`)
+          }}
           debuggerOpen={debuggerOpen}
           setDebuggerOpen={handleSetDebuggerOpen}
           hasExecution={hasExecution}
