@@ -149,6 +149,7 @@ export default function TopBar({
     }
   }
 
+
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
   useEffect(() => {
@@ -252,7 +253,6 @@ export default function TopBar({
       </div>
 
       <div className="topbar-center">
-        {deleteError && <span className="err" title={deleteError}>{deleteError}</span>}
         {ioError && <span className="err" title={ioError}>{ioError}</span>}
         {runStatus && runStatus !== 'running' && (
           <span className={`run-status status-${runStatus}`}>
