@@ -305,7 +305,7 @@ export default function WorkflowsPage() {
     setBusy(true)
     try {
       const id = `wf_${Math.random().toString(36).slice(2, 10)}`
-      const wf = await api.createWorkflow({ id, name: 'My Workflow', nodes: [{ id, type: 'manual_trigger', position: { x: 0, y: 0 }, parameters: {}, settings: {} }], connections: [], settings: {} })
+      const wf = await api.createWorkflow({ id, name: 'My Workflow', nodes: [], connections: [], settings: {} })
       await load()
       navigate(`/workflows/${wf.id}`)
     } catch (e) { setError(e.message) }

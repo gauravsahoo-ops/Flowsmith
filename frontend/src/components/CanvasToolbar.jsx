@@ -74,7 +74,7 @@ export default function CanvasToolbar() {
           dragging: false,
         })),
       )
-      setTimeout(() => fitView({ duration: 400, padding: 0.15 }), 60)
+      setTimeout(() => fitView({ duration: 400, padding: 0.15, maxZoom: 1 }), 60)
     })
   }
 
@@ -156,7 +156,7 @@ export default function CanvasToolbar() {
         </span>
       </ToolButton>
       <span className="tool-sep" />
-      <ToolButton title="Zoom to fit (Ctrl+0)" onClick={() => fitView({ duration: 300, padding: 0.15 })}>
+      <ToolButton title="Zoom to fit (Ctrl+0)" onClick={() => fitView({ duration: 300, padding: 0.15, maxZoom: 1 })}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />

@@ -68,7 +68,7 @@ export default function CommandPalette({ open, onClose }) {
         title: '⤢ Zoom to fit',
         hint: 'Ctrl+0',
         enabled: true,
-        perform: () => fitView({ duration: 300, padding: 0.15 }),
+        perform: () => fitView({ duration: 300, padding: 0.15, maxZoom: 1 }),
       },
       {
         id: 'cmd-comment',
@@ -118,7 +118,7 @@ export default function CommandPalette({ open, onClose }) {
                 dragging: false,
               })),
             )
-            setTimeout(() => fitView({ duration: 400, padding: 0.15 }), 60)
+            setTimeout(() => fitView({ duration: 400, padding: 0.15, maxZoom: 1 }), 60)
           })
         },
       },

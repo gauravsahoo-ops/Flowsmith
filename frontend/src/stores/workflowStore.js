@@ -196,17 +196,16 @@ export const useWorkflowStore = create((set, get) => ({
 
   async createNew(name) {
     const id = crypto.randomUUID()
-    const node = { id, type: 'manual_trigger', position: { x: 0, y: 0 }, parameters: {}, settings: {} }
     const wf = await api.createWorkflow({
       id,
       name,
-      nodes: [node],
+      nodes: [],
       connections: [],
       settings: {},
     })
     set({
       workflow: wf,
-      nodes: [{ id, type: 'custom', position: node.position, data: { node } }],
+      nodes: [],
       edges: [],
       comments: [],
       groups: [],
