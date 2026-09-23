@@ -678,30 +678,41 @@ export default function SmithDrawer({
       <div className="ai-chat-drawer" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="ai-chat-drawer-header">
-          <div className="ai-chat-header-left">
-            <div className="agent-avatar" style={{ background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+            <div className="agent-avatar" style={{ flexShrink: 0, background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)' }}>
               ⚡
             </div>
-            <div className="agent-info">
-              <div className="agent-title-row">
-                <span className="agent-name">Smith</span>
-                <span className="ai-agent-tag">AI Copilot & AI Agent Tester</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.01em' }}>Smith</span>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.28)', color: '#38bdf8', whiteSpace: 'nowrap' }}>
+                  AI Copilot &bull; AI Agent Tester
+                </span>
                 {llmConfigured !== null && (
                   <span
-                    className={`ai-llm-badge ${llmConfigured ? 'ai-llm-badge-ready' : 'ai-llm-badge-unconfigured'}`}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      background: llmConfigured ? 'rgba(48, 209, 88, 0.15)' : 'rgba(255, 159, 10, 0.15)',
+                      border: llmConfigured ? '1px solid rgba(48, 209, 88, 0.35)' : '1px solid rgba(255, 159, 10, 0.35)',
+                      color: llmConfigured ? '#30d158' : '#ff9f0a',
+                      whiteSpace: 'nowrap',
+                    }}
                     title={
                       llmConfigured
                         ? 'LLM credentials detected and active'
                         : 'No LLM credentials configured. Running in local simulation mode.'
                     }
                   >
-                    {llmConfigured ? 'Ready' : 'Simulation'}
+                    {llmConfigured ? '● Ready' : '● Simulation'}
                   </span>
                 )}
               </div>
-              <div className="agent-session-info">
-                <span className="ai-session-label">Session:</span>
-                <code className="ai-session-code" title="Active conversation session ID">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8' }}>
+                <span>Session:</span>
+                <code style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1px 5px', borderRadius: 4, color: '#cbd5e1', fontFamily: 'monospace' }}>
                   {sessionId.slice(0, 14)}…
                 </code>
                 <button
@@ -710,18 +721,20 @@ export default function SmithDrawer({
                   onClick={handleCopySession}
                   title="Copy full session ID"
                   aria-label="Copy session ID"
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px' }}
                 >
                   {copiedSession ? '✓' : '⧉'}
                 </button>
               </div>
             </div>
           </div>
-          <div className="ai-chat-header-actions">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button
               type="button"
-              className="ai-reset-memory-btn"
+              className="ai-reset-btn"
               onClick={handleClearMemory}
               title="Reset conversation memory"
+              style={{ padding: '5px 9px', fontSize: 11, borderRadius: 6, cursor: 'pointer', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#cbd5e1' }}
             >
               Reset Memory
             </button>
@@ -998,30 +1011,36 @@ export default function SmithDrawer({
             </div>
 
             {/* Chat Input Bar */}
-            <div className="ai-chat-input-area">
-              <textarea
-                ref={textareaRef}
-                className="ai-chat-textarea"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    handleSendMessage()
-                  }
-                }}
-                placeholder="Ask agent or test workflow tools (Enter to send, Shift+Enter for newline)…"
-                rows={2}
-                disabled={loading}
-              />
-              <button
-                type="button"
-                className="ai-chat-send-btn"
-                onClick={() => handleSendMessage()}
-                disabled={loading || !input.trim()}
-              >
-                Send
-              </button>
+            <div className="ai-chat-drawer-footer">
+              <div className="ai-chat-input-row">
+                <textarea
+                  ref={textareaRef}
+                  className="ai-chat-textarea"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSendMessage()
+                    }
+                  }}
+                  placeholder="Ask agent or test workflow tools (Enter to send, Shift+Enter for newline)…"
+                  rows={2}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="ai-chat-send-btn"
+                  onClick={() => handleSendMessage()}
+                  disabled={loading || !input.trim()}
+                >
+                  Send
+                </button>
+              </div>
+              <div className="ai-chat-footer-hints">
+                <span>Press <span className="ai-chat-hint-kbd">Enter</span> to send, <span className="ai-chat-hint-kbd">Shift+Enter</span> for newline</span>
+                <span className="ai-memory-badge">Stateful Memory</span>
+              </div>
             </div>
           </>
         ) : (
@@ -1072,17 +1091,8 @@ export default function SmithDrawer({
                   resize: 'vertical',
                 }}
               />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontSize: '12px',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                  }}
-                >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <label className="copilot-extend-checkbox-wrap">
                   <input
                     type="checkbox"
                     checked={iterateExisting}
