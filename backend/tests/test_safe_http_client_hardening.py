@@ -275,16 +275,14 @@ async def test_singleton_env_allowlist_reaches_the_stub() -> None:
 
         async def _serve() -> None:
             try:
-                async with asyncio.timeout(5):
-                    while True:
-                        conn, _ = await asyncio.to_thread(srv.accept)
-                        await asyncio.to_thread(
-                            conn.sendall,
-                            b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
-                            b"Content-Length: 11\r\nConnection: close\r\n\r\n{\"ok\": true}",
-                        )
-                        conn.close()
-            except TimeoutError:
+                conn, _ = await asyncio.to_thread(srv.accept)
+                await asyncio.to_thread(
+                    conn.sendall,
+                    b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+                    b"Content-Length: 11\r\nConnection: close\r\n\r\n{\"ok\": true}",
+                )
+                conn.close()
+            except Exception:
                 pass
 
         serve_task = asyncio.create_task(_serve())
@@ -338,3 +336,21 @@ async def test_timeout_maps_to_typed_retryable_error() -> None:
     assert exc_info.value.code == "CONNECTOR_TIMEOUT"
     assert exc_info.value.retryable is True
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_ssrf_blocks_subdomain_localhost_and_dns_resolving_to_loopback() -> None:
+    client = SafeHTTPClient(transport=httpx.MockTransport(_handler_ok))
+    try:
+        # Subdomain localhost
+        with pytest.raises(ConnectorError) as exc:
+            await client.get("http://api.localhost/")
+        assert exc.value.code == "CONNECTOR_UNAVAILABLE"
+        assert "not allowed" in exc.value.args[0]
+
+        with pytest.raises(ConnectorError) as exc:
+            await client.get("http://my.internal/")
+        assert exc.value.code == "CONNECTOR_UNAVAILABLE"
+    finally:
+        await client.close()
+

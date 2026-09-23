@@ -1,6 +1,4 @@
-import { useState, useCallback } from 'react'
 import MappingField from './MappingField'
-import Button from './shared/Button'
 
 const TYPE_OPTIONS = [
   { value: 'string', label: 'String' },
@@ -24,22 +22,22 @@ export default function SetVariableNodeEditor({
     ? rawVars
     : (params.key ? [{ key: params.key, value: params.value, type: params.type || 'string' }] : [{ key: '', value: '', type: 'string' }])
 
-  const setScope = useCallback((newScope) => {
+  const setScope = (newScope) => {
     onParamsChange({ ...params, scope: newScope })
-  }, [params, onParamsChange])
+  }
 
-  const handleVariableChange = useCallback((index, field, val) => {
+  const handleVariableChange = (index, field, val) => {
     const updated = [...variables]
     updated[index] = { ...updated[index], [field]: val }
     onParamsChange({ ...params, variables: updated, key: undefined, value: undefined })
-  }, [variables, params, onParamsChange])
+  }
 
-  const handleAddVariable = useCallback(() => {
+  const handleAddVariable = () => {
     const updated = [...variables, { key: '', value: '', type: 'string' }]
     onParamsChange({ ...params, variables: updated, key: undefined, value: undefined })
-  }, [variables, params, onParamsChange])
+  }
 
-  const handleRemoveVariable = useCallback((index) => {
+  const handleRemoveVariable = (index) => {
     const updated = variables.filter((_, i) => i !== index)
     onParamsChange({
       ...params,
@@ -47,7 +45,7 @@ export default function SetVariableNodeEditor({
       key: undefined,
       value: undefined,
     })
-  }, [variables, params, onParamsChange])
+  }
 
   return (
     <div className="set-variable-editor" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>

@@ -44,16 +44,14 @@ def pg_session():
     from app.models import User
 
     session = get_session()
-    if session.get(User, 1) is None:
-        session.add(User(id=1, email="pg-demo@example.com", password_hash="not-used"))
-        session.commit()
-
     # Use TRUNCATE CASCADE (not DELETE) to avoid FK violations.
     tables = ", ".join(f'"{t.name}"' for t in Base.metadata.tables.values())
     session.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
     session.commit()
+    session.close()
 
     # Re-create the user needed by these tests.
+    session = get_session()
     session.add(User(id=1, email="pg-demo@example.com", password_hash="not-used"))
     session.commit()
 
@@ -90,7 +88,7 @@ def test_postgres_credential_roundtrip(pg_session) -> None:
 
     blob = encrypt_text('{"access_token": "secret-token-123", "refresh_token": "rt-456"}')
     assert b"secret-token-123" not in blob
-    assert blob.startswith(b"k0:gAAAA")  # Fernet at rest
+    assert blob.startswith(b"v2:k0:") or blob.startswith(b"k0:gAAAA")  # AES-256-GCM v2 or Fernet at rest
 
     cred = Credential(
         id="pg_cred_1",

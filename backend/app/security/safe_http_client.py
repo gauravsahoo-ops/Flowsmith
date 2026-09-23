@@ -26,6 +26,7 @@ import ipaddress
 import logging
 import os
 import re
+import socket
 from typing import Any
 from urllib.parse import urlparse
 
@@ -95,8 +96,9 @@ def _env_allowed_ports() -> frozenset[int] | None:
 
 # localhost and loopback (literal IPs and hostname forms)
 _LOOPBACK_PATTERNS = re.compile(
-    r"^(localhost|ip6-localhost|ip6-loopback|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|fe80::[\d:a-f]{0,39}|"
-    r"fc[\da-f]{4}|::ffff:0:0:/?|255\.255\.255\.255|0\.0\.0\.0)$",
+    r"^(.*\.localhost|localhost|.*\.local|.*\.internal|.*\.lan|.*\.home\.arpa|ip6-localhost|ip6-loopback|"
+    r"127\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|fe80::[\d:a-f]{0,39}|fc[\da-f]{4}|::ffff:0:0:/?|"
+    r"255\.255\.255\.255|0\.0\.0\.0)$",
     re.IGNORECASE,
 )
 
@@ -338,12 +340,31 @@ class SafeHTTPClient:
                 retryable=False,
             )
         host = (request.url.host or "").strip("[]")
-        if host and host.lower() not in self.allowed_hosts and _is_blocked_host(host):
-            raise make_connector_error(
-                ConnectorErrorCode.UNAVAILABLE,
-                f"Request blocked by SSRF policy: host '{host}' is not allowed.",
-                retryable=False,
-            )
+        if host and host.lower() not in self.allowed_hosts:
+            if _is_blocked_host(host):
+                raise make_connector_error(
+                    ConnectorErrorCode.UNAVAILABLE,
+                    f"Request blocked by SSRF policy: host '{host}' is not allowed.",
+                    retryable=False,
+                )
+            if not _parse_literal_ip(host):
+                try:
+                    loop = asyncio.get_running_loop()
+                    addr_infos = await loop.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+                    for _, _, _, _, sockaddr in addr_infos:
+                        ip_str = sockaddr[0]
+                        resolved_ip = _parse_literal_ip(ip_str)
+                        if resolved_ip and (
+                            (isinstance(resolved_ip, ipaddress.IPv4Address) and _ipv4_blocked(resolved_ip))
+                            or (isinstance(resolved_ip, ipaddress.IPv6Address) and _ipv6_blocked(resolved_ip))
+                        ):
+                            raise make_connector_error(
+                                ConnectorErrorCode.UNAVAILABLE,
+                                f"Request blocked by SSRF policy: host '{host}' resolves to restricted IP '{ip_str}'.",
+                                retryable=False,
+                            )
+                except (OSError, socket.gaierror):
+                    pass
 
     async def close(self) -> None:
         """Close the shared client connection pool."""

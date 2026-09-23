@@ -94,6 +94,8 @@ def _insert_rows(
 ) -> dict[str, Any]:
     if not rows:
         raise ValueError("insert_rows needs at least one row.")
+    if not table or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table):
+        raise ValueError(f"Invalid table identifier: {table!r}")
     keys = list(rows[0].keys())
     for k in keys:
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", k):
