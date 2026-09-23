@@ -409,7 +409,8 @@ export const useWorkflowStore = create((set, get) => ({
     let parameters = rawParams
     if (type === 'salesforce') {
       const p = { ...rawParams }
-      if (!p.resource) p.resource = 'Account'
+      if (!p.resource || p.resource === 'Record' || p.resource === 'Other') p.resource = 'Account'
+      if (p.object_name === 'Record') p.object_name = 'Account'
       if (!p.operation || p.operation === 'execute' || p.operation === '') {
         // Curated default for Account
         p.operation = 'create'

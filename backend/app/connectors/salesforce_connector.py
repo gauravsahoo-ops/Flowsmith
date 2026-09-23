@@ -287,6 +287,12 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
         except ImportError:
             RESOURCE_OPERATION_MATRIX = {}
         resource = (params.resource or payload.get("resource") or "").strip()
+        # Normalize legacy 'Record' placeholder to Account
+        if resource.lower() == "record":
+            resource = "Account"
+            params.resource = "Account"
+        if (params.object_name or "").lower() == "record":
+            params.object_name = "Account"
         # Default resource inference from object_name if not set (legacy nodes)
         if not resource:
             # Infer: if object_name is flow-like, treat as Flow; if custom_api_url set, CustomApiCall; else Account/CustomObject
@@ -454,6 +460,8 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
         input for a write operation.
         """
         object_name = (payload or {}).get("object_name")
+        if object_name == "Record":
+            object_name = "Account"
         if not object_name or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(object_name)):
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,

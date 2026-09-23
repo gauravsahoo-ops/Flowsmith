@@ -43,7 +43,6 @@ export default function SalesforceBrowser({ onClose }) {
       if (connRes?.triggers) setTriggersData(connRes.triggers)
       if (resMatrix?.resources) {
         setMatrix(resMatrix.resources)
-        if (resMatrix.labels) setLabels(resMatrix.labels)
         // expand first few resources by default
         const first = Object.keys(resMatrix.resources)[0]
         if (first) setExpandedCats(new Set([`${first} Actions`]))
@@ -129,13 +128,15 @@ export default function SalesforceBrowser({ onClose }) {
       return groups
     }
     if (!opsData) return {}
-    // Fallback: generic grouping
-    const CATEGORY_MAP = { search: 'Record', get: 'Record', create: 'Record', update: 'Record', upsert: 'Record', delete: 'Record', query: 'Query', describe: 'Discovery', list: 'Discovery', bulk: 'Bulk', custom_api_call: 'Custom', flow_invoke: 'Flow' }
+    // Fallback: generic grouping (clean Account defaults, avoid duplicate 'Record' labels)
+    const CATEGORY_MAP = { search: 'Search', get: 'Account', create: 'Account', update: 'Account', upsert: 'Account', delete: 'Account', query: 'Query', describe: 'Discovery', list: 'Discovery', bulk: 'Bulk', custom_api_call: 'Custom', flow_invoke: 'Flow' }
     const groups = {}
     for (const [key, op] of Object.entries(opsData)) {
       const cat = CATEGORY_MAP[key] || 'Other'
       const label = `${cat} Actions`
-      ;(groups[label] ||= []).push({ key, display_name: op.display_name || key, description: op.description || '', backendOp: key })
+      const display = CURATED_LABELS[key]?.label || op.display_name || key
+      const desc = CURATED_LABELS[key]?.hint || op.description || ''
+      ;(groups[label] ||= []).push({ key, display_name: display, description: desc, backendOp: key })
     }
     if (!search.trim()) return groups
     const q = search.trim().toLowerCase()
@@ -171,7 +172,6 @@ export default function SalesforceBrowser({ onClose }) {
     const updateNode = useWorkflowStore.getState().updateNode
     // op is {key, display_name, backendOp} where key is backend id or alias
     // Derive resource from category: "Account Actions" → "Account"
-    // Find which category this op belongs to to get resource
     let resource = 'Account'
     for (const [cat, list] of Object.entries(filteredOpsGroups)) {
       if (list.includes(op)) {
@@ -179,14 +179,18 @@ export default function SalesforceBrowser({ onClose }) {
         break
       }
     }
+    if (!resource || resource === 'Record' || resource === 'Other' || resource === 'Query' || resource === 'Discovery' || resource === 'Bulk') {
+      resource = 'Account'
+    }
     const id = addNode('salesforce', { x: 300 + Math.random()*100, y: 200 + Math.random()*100 })
     if (id) {
       let backendOp = op.backendOp || op.key
       // Map curated aliases to backend
       if (backendOp === 'add_note') backendOp = 'create'
-      // For CustomApiCall resource, operation is custom_api_call regardless of label
-      // For Flow, operation is flow_invoke
-      const params = { operation: op.key, resource, object_name: resource === 'CustomObject' ? '' : resource === 'CustomApiCall' ? '' : resource === 'Search' ? '' : resource, backendOp }
+      const targetObj = (resource === 'CustomObject' || resource === 'CustomApiCall' || resource === 'Search' || resource === 'Flow')
+        ? ''
+        : resource
+      const params = { operation: op.key, resource, object_name: targetObj, backendOp }
       // Special handling per curated operation
       if (op.key === 'add_note') {
         params.operation = 'add_note'
