@@ -15,13 +15,26 @@ export function toReactFlow(workflow) {
     position: n.position || { x: 0, y: 0 },
     data: { node: n },
   }))
+  // Node type index to validate/correct handles on branching nodes
+  const nodeTypeMap = new Map((workflow.nodes || []).map((n) => [n.id, n.type]))
+
   // Preserve all connections (cycles and duplicate wires are allowed).
   // Edges need unique ids for React Flow; suffix duplicates with an index.
   const counts = new Map()
   const edges = []
   for (const c of workflow.connections || []) {
-    const shandle = c.sourceHandle ?? 'main'
+    let shandle = c.sourceHandle ?? 'main'
     const thandle = c.targetHandle ?? 'main'
+
+    const srcType = nodeTypeMap.get(c.source)
+    if ((srcType === 'if_condition' || srcType === 'if') && shandle === 'main') {
+      shandle = 'true'
+    } else if ((srcType === 'loop' || srcType === 'loop_over_items') && shandle === 'main') {
+      shandle = 'loop'
+    } else if (srcType === 'switch' && shandle === 'main') {
+      shandle = 'route_0'
+    }
+
     const baseKey = `${c.source}|${shandle}|${c.target}|${thandle}`
     const n = (counts.get(baseKey) || 0)
     counts.set(baseKey, n + 1)

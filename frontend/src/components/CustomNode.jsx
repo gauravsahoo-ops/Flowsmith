@@ -192,9 +192,12 @@ function CustomNode({ id, data, selected }) {
 
   const isLoop = data.node.type === 'loop' || data.node.type === 'loop_over_items'
   const isSwitch = data.node.type === 'switch'
+  const isIf = data.node.type === 'if_condition' || data.node.type === 'if'
   const inputHandles = meta?.input_handles?.length ? meta.input_handles : ['main']
   const outputHandles = isLoop
     ? ['done', 'loop']
+    : isIf
+    ? (meta?.output_handles?.length ? meta.output_handles : ['true', 'false'])
     : isSwitch
     ? (Array.isArray(params.rules) && params.rules.length > 0
         ? [

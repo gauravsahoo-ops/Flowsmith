@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
+import { useBrandingStore } from '../stores/brandingStore'
+import FlowsmithBrandMark from './FlowsmithBrandMark'
 import { toWorkflowJson, withDecorations } from '../mappers'
 import { api } from '../api'
 import WorkflowDocModal from './WorkflowDocModal'
@@ -52,6 +54,12 @@ export default function TopBar({
   const [downloading, setDownloading] = useState(false)
   const [docModalOpen, setDocModalOpen] = useState(false)
   const fileRef = useRef(null)
+
+  // Branding store for default/custom logo
+  const appName = useBrandingStore((s) => s.appName) || 'Flowsmith'
+  const logoUrl = useBrandingStore((s) => s.logoUrl)
+  const logoData = useBrandingStore((s) => s.logoData)
+  const logoSrc = logoData || logoUrl
 
   async function listWorkflows() {
     setWorkflows(await api.listWorkflows())
@@ -343,9 +351,17 @@ export default function TopBar({
           onClick={onOpenSmith || onOpenAIChat || onOpenAICopilot}
           title="Smith — AI Copilot & Automation Assistant"
           aria-label="Smith AI Assistant"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#38bdf8', fontWeight: 600 }}
         >
-          <span>⚡ Smith</span>
+          {logoSrc ? (
+            <img
+              src={logoSrc}
+              alt={appName}
+              style={{ width: 16, height: 16, objectFit: 'contain', borderRadius: 3, flexShrink: 0 }}
+            />
+          ) : (
+            <FlowsmithBrandMark size={16} variant="badge" />
+          )}
+          <span>Smith</span>
         </button>
 
         {running ? (

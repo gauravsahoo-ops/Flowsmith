@@ -66,33 +66,28 @@ def _mark_deliveries(db: Session, execution_id: str, status_value: str) -> None:
 async def _watch_cancel(execution_id: str, cancel_event: asyncio.Event) -> None:
     """Poll the DB for the durable cancel flag; flip the local event.
 
-    Uses a single long-lived session with expire_on_access=False and
-    explicit refresh() to avoid opening a new connection every 250ms
-    per running execution under concurrent load.
+    Queries only Execution.status and releases the connection back to the pool
+    between polling ticks so concurrent executions never exhaust connection limits.
     """
+    from sqlalchemy import select
     from app.models import Execution
 
-    db = get_session()
-    try:
-        rec = db.get(Execution, execution_id)
-        while not cancel_event.is_set():
-            try:
-                if rec is not None:
-                    db.refresh(rec)
-                else:
-                    rec = db.get(Execution, execution_id)
-                if rec is not None and rec.status in ("cancelling", "cancelled"):
+    while not cancel_event.is_set():
+        try:
+            with get_session() as db:
+                status = db.scalar(
+                    select(Execution.status).where(Execution.id == execution_id)
+                )
+                if status in ("cancelling", "cancelled"):
                     cancel_event.set()
                     break
-            except Exception:
-                logger.exception("cancel watch failed for %s", execution_id)
-                break
-            try:
-                await asyncio.wait_for(cancel_event.wait(), timeout=CANCEL_POLL_S)
-            except asyncio.TimeoutError:
-                pass
-    finally:
-        db.close()
+        except Exception:
+            logger.exception("cancel watch failed for %s", execution_id)
+            break
+        try:
+            await asyncio.wait_for(cancel_event.wait(), timeout=CANCEL_POLL_S)
+        except asyncio.TimeoutError:
+            pass
 
 
 def _node_error_codes(trace: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
