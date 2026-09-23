@@ -47,7 +47,6 @@ export default function TopBar({
   const run = useExecutionStore((s) => s.run)
   const cancel = useExecutionStore((s) => s.cancel)
   const [workflows, setWorkflows] = useState([])
-  const [deleteError, setDeleteError] = useState(null)
   const [ioError, setIoError] = useState(null)
   const [downloading, setDownloading] = useState(false)
   const [docModalOpen, setDocModalOpen] = useState(false)
@@ -147,19 +146,6 @@ export default function TopBar({
       await useWorkflowStore.getState().load(imported.id)
     } catch (err) {
       setIoError(err.message)
-    }
-  }
-
-  async function handleDelete() {
-    const wf = workflow
-    if (!wf?.id) return
-    if (!window.confirm(`Delete workflow "${wf.name}"? This cannot be undone.`)) return
-    setDeleteError(null)
-    try {
-      if (useWorkflowStore.getState().isDirty?.()) await useWorkflowStore.getState().save()
-      await useWorkflowStore.getState().deleteWorkflow(wf.id)
-    } catch (err) {
-      setDeleteError(err.message)
     }
   }
 
@@ -485,8 +471,6 @@ export default function TopBar({
               <div className="ctx-sep" />
               <button role="menuitem" onClick={() => { setMenuOpen(false); toggleHistoryDrawer(); }}>Workflow History</button>
               <button role="menuitem" onClick={() => { setMenuOpen(false); if (onOpenHistory && !historyDrawerOpen) onOpenHistory(); else window.open('/executions', '_blank'); }}>Execution Logs</button>
-              <div className="ctx-sep" />
-              <button role="menuitem" className="ctx-danger" onClick={() => { setMenuOpen(false); handleDelete(); }} disabled={!workflow?.id}>Delete Workflow</button>
             </div>
           )}
         </div>
