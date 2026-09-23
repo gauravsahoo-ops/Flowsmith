@@ -100,35 +100,6 @@ export default function CredentialsPage() {
   const secretFields = new Set(types.find(t => t.type === form.type)?.secret_fields || [])
   const isOAuthType = ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(form.type)
 
-  async function openCredentialConfig(c, prompt = '') {
-    setConfigModal({
-      open: true,
-      mode: 'credential',
-      credential: c,
-      provider: c.type,
-      clientId: '',
-      clientSecret: '',
-      loginUrl: '',
-      hasSecret: false,
-      saving: false,
-      error: null,
-      notice: null,
-      prompt,
-    })
-    setShowSecret(false)
-    try {
-      const cfg = await api.getOAuthConfig(c.type)
-      if (cfg) {
-        setConfigModal(prev => ({
-          ...prev,
-          clientId: cfg.client_id || '',
-          loginUrl: cfg.login_url || '',
-          hasSecret: Boolean(cfg.has_secret),
-        }))
-      }
-    } catch {}
-  }
-
   async function openProviderConfig(provider, prompt = '') {
     setConfigModal({
       open: true,
@@ -485,7 +456,26 @@ export default function CredentialsPage() {
               )}
             </span>
           </div>
-          <button className="ghost small" onClick={() => setTestResult(null)} aria-label="Dismiss">✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!testResult.ok && credentials.some(x => x.id === testResult.id && ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(x.type)) && (
+              <button
+                type="button"
+                className="primary small"
+                onClick={() => {
+                  const cred = credentials.find(x => x.id === testResult.id)
+                  if (cred) handleReconnect(cred)
+                }}
+                disabled={reconnectingId === testResult.id}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '4px 10px', background: '#f59e0b', borderColor: '#d97706', color: '#000', fontWeight: 600 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                </svg>
+                <span>{reconnectingId === testResult.id ? 'Reconnecting…' : 'Reconnect Now'}</span>
+              </button>
+            )}
+            <button className="ghost small" onClick={() => setTestResult(null)} aria-label="Dismiss">✕</button>
+          </div>
         </div>
       )}
 
@@ -552,10 +542,31 @@ export default function CredentialsPage() {
                     </span>
                   </td>
                   <td>
-                    <span className="status-pill status-success" title="Encrypted at rest with Fernet 256-bit AES">
-                      <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-                      <span>Encrypted (Fernet)</span>
-                    </span>
+                    {c.expired ? (
+                      <span
+                        className="status-pill status-warning"
+                        title="Session expired or token revoked — click Reconnect to renew"
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          borderColor: 'rgba(245, 158, 11, 0.3)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
+                        <span style={{ color: '#f59e0b', fontWeight: 600 }}>Session Expired</span>
+                      </span>
+                    ) : (
+                      <span
+                        className="status-pill status-success"
+                        title="Active connection encrypted at rest with AES-256 / Fernet"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+                        <span style={{ color: '#34d399' }}>Connected</span>
+                      </span>
+                    )}
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -596,11 +607,16 @@ export default function CredentialsPage() {
                       {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                         <button
                           type="button"
-                          className="ghost small"
+                          className={c.expired ? 'primary small' : 'ghost small'}
                           onClick={() => handleReconnect(c)}
                           disabled={reconnectingId === c.id}
-                          title="Auto-reconnect or renew token"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                          title={c.expired ? 'Session expired — click Reconnect to re-authenticate or refresh token' : 'Auto-reconnect or renew token'}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            ...(c.expired ? { background: '#f59e0b', borderColor: '#d97706', color: '#000', fontWeight: 600 } : {})
+                          }}
                         >
                           {reconnectingId === c.id ? (
                             <>
@@ -615,21 +631,6 @@ export default function CredentialsPage() {
                               <span>Reconnect</span>
                             </>
                           )}
-                        </button>
-                      )}
-                      {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
-                        <button
-                          type="button"
-                          className="ghost small"
-                          onClick={() => openCredentialConfig(c)}
-                          title="Configure custom Client ID / Secret for this credential"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                          </svg>
-                          <span>App Config</span>
                         </button>
                       )}
 

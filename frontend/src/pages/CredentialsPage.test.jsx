@@ -120,4 +120,49 @@ describe('CredentialsPage & Reconnection Suite', () => {
       client_secret: 'TEST_SECRET_123',
     })
   })
+
+  it('renders Connected status pill and no App Config button in table row for active credential', () => {
+    useCredentialStore.setState({
+      credentials: [
+        {
+          id: 'cred_dcb',
+          name: 'Salesforce (gaurav.sahoo@idslogic.com)',
+          type: 'salesforce',
+          expired: false,
+        },
+      ],
+      types: [
+        { type: 'salesforce', name: 'Salesforce', implemented: true },
+      ],
+      loaded: true,
+    })
+    const html = renderToStaticMarkup(React.createElement(CredentialsPage))
+    expect(html).toContain('Connected')
+    expect(html).not.toContain('Session Expired')
+    expect(html).not.toContain('App Config')
+    expect(html).toContain('Reconnect')
+    expect(html).toContain('Logout')
+  })
+
+  it('renders Session Expired status pill and highlighted reconnect button when credential has expired session', () => {
+    useCredentialStore.setState({
+      credentials: [
+        {
+          id: 'cred_exp',
+          name: 'Salesforce (expired@test.com)',
+          type: 'salesforce',
+          expired: true,
+        },
+      ],
+      types: [
+        { type: 'salesforce', name: 'Salesforce', implemented: true },
+      ],
+      loaded: true,
+    })
+    const html = renderToStaticMarkup(React.createElement(CredentialsPage))
+    expect(html).toContain('Session Expired')
+    expect(html).not.toContain('App Config')
+    expect(html).toContain('primary small')
+    expect(html).toContain('Reconnect')
+  })
 })
