@@ -27,6 +27,7 @@ export default function TopBar({
   onOpenEnv,
   onOpenTests,
   onOpenRag,
+  onOpenSmith,
   onOpenAIChat,
   onOpenAICopilot,
 }) {
@@ -338,22 +339,13 @@ export default function TopBar({
           </svg>
         </button>
         <button
-          className="ghost ghost--quiet"
-          onClick={onOpenAICopilot}
-          title="AI Copilot: Generate workflow with AI"
-          aria-label="AI Copilot"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#bf5af2', fontWeight: 600 }}
+          className="ghost ghost--quiet topbar-smith-btn"
+          onClick={onOpenSmith || onOpenAIChat || onOpenAICopilot}
+          title="Smith — AI Copilot & Automation Assistant"
+          aria-label="Smith AI Assistant"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#38bdf8', fontWeight: 600 }}
         >
-          <span>✨ Copilot</span>
-        </button>
-        <button
-          className="ghost ghost--quiet"
-          onClick={onOpenAIChat}
-          title="AI Agent Chat & Tool Tester"
-          aria-label="AI Chat Test"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#ff9f0a', fontWeight: 600 }}
-        >
-          <span>🤖 AI Chat</span>
+          <span>⚡ Smith</span>
         </button>
 
         {running ? (
