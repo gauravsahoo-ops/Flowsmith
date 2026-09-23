@@ -15,7 +15,7 @@ import SettingsPage from './pages/SettingsPage'
 import HelpPage from './pages/HelpPage'
 import MonitoringPage from './pages/MonitoringPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
-import { getToken, setToken } from './api'
+import { api, getToken, setToken } from './api'
 
 // Heavy routes split out so /login doesn't pay for ReactFlow + Monaco.
 const WorkflowEditorPage = lazy(() => import('./pages/WorkflowEditorPage'))

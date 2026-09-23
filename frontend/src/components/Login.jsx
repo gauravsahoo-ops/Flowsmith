@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, getToken, setToken } from '../api'
+import { api, setToken } from '../api'
 import { useBrandingStore } from '../stores/brandingStore'
 import FlowsmithBrandMark from './FlowsmithBrandMark'
 
