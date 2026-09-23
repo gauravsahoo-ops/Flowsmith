@@ -647,7 +647,18 @@ function SchemaFieldRow({
     <div className="nem-schema-field-wrap">
       {matches && (
         <div
-          className="nem-schema-row"
+          className="nem-schema-row draggable-variable"
+          draggable={true}
+          onDragStart={(e) => {
+            e.stopPropagation()
+            e.dataTransfer.setData('text/plain', expr)
+            e.dataTransfer.setData('application/flowsmith-variable', JSON.stringify({ expr, path, key: keyName }))
+            e.dataTransfer.effectAllowed = 'copy'
+            e.currentTarget.classList.add('is-dragging')
+          }}
+          onDragEnd={(e) => {
+            e.currentTarget.classList.remove('is-dragging')
+          }}
           style={{ paddingLeft: `${depth * 14 + 6}px` }}
           onClick={(e) => {
             if (isObj && (e.target.closest('.nem-schema-expand-btn') || !e.target.closest('.nem-schema-copy-hint'))) {
@@ -656,8 +667,11 @@ function SchemaFieldRow({
               onCopy(expr)
             }
           }}
-          title={`Click to copy: ${expr}`}
+          title={`Drag into parameter input or click to copy: ${expr}`}
         >
+          <span className="nem-schema-drag-handle" title="Drag variable into parameter fields">
+            ⋮⋮
+          </span>
           {isObj ? (
             <span
               className={`nem-schema-expand-btn ${expanded ? 'is-open' : ''}`}

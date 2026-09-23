@@ -10,7 +10,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 16px;
+  padding: clamp(8px, 2vh, 16px);
   box-sizing: border-box;
   animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -36,9 +36,9 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   width: 100%;
-  max-width: 1480px;
+  max-width: min(1480px, calc(100vw - 24px));
   height: 100%;
-  max-height: 920px;
+  max-height: min(920px, calc(100vh - 36px));
   display: flex;
   flex-direction: column;
   overflow: hidden;

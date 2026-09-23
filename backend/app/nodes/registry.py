@@ -120,6 +120,7 @@ def _load_builtin_nodes() -> None:
         schedule,
         send_email,
         set_data,
+        set_variable,
         slack,
         split,
         ssh,

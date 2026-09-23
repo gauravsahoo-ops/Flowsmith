@@ -221,12 +221,13 @@ function CanvasInner() {
     }
     if (nodesInitialized && fittedWorkflowId.current !== workflow.id) {
       fittedWorkflowId.current = workflow.id
+      const safeMaxZoom = nodes.length <= 2 ? 0.85 : 1.0
       // Immediate frame fit plus smooth 250ms animation settle, capped at 100% zoom (maxZoom: 1)
       requestAnimationFrame(() => {
-        fitView({ padding: 0.2, duration: 250, maxZoom: 1 })
+        fitView({ padding: 0.25, duration: 250, maxZoom: safeMaxZoom })
       })
       const timer = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 0, maxZoom: 1 })
+        fitView({ padding: 0.25, duration: 0, maxZoom: safeMaxZoom })
       }, 200)
       return () => clearTimeout(timer)
     }
@@ -517,13 +518,14 @@ function CanvasInner() {
         deleteKeyCode={['Backspace', 'Delete']}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         minZoom={0.1}
-        maxZoom={2.0}
+        maxZoom={1.5}
         elevateEdgesOnSelect
         fitView={nodes.length > 0}
-        fitViewOptions={{ padding: 0.2, includeHiddenNodes: true, maxZoom: 1 }}
+        fitViewOptions={{ padding: 0.25, includeHiddenNodes: true, maxZoom: nodes.length <= 2 ? 0.85 : 1.0 }}
         onInit={(instance) => {
+          const safeMaxZoom = nodes.length <= 2 ? 0.85 : 1.0
           if (nodes.length > 0) {
-            setTimeout(() => instance.fitView({ padding: 0.2, maxZoom: 1 }), 50)
+            setTimeout(() => instance.fitView({ padding: 0.25, maxZoom: safeMaxZoom }), 50)
           } else {
             instance.setViewport({ x: 0, y: 0, zoom: 1 })
           }

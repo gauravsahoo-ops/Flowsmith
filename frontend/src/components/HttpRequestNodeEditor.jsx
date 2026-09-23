@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import MappingField from './MappingField'
 import SearchableSelect from './SearchableSelect'
+import QuickAddCredentialModal from './QuickAddCredentialModal'
 import { getToken } from '../api'
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
@@ -411,9 +412,29 @@ function ToggleSection({ label, checked, onChange, children, hint }) {
   )
 }
 
-export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, onPreview, credentials, credentialTypes, onCredentialChange }) {
+export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, onPreview, credentials, credentialTypes, onCredentialChange, inputData }) {
   const params = node.parameters || {}
   const [curlOpen, setCurlOpen] = useState(false)
+  const [quickCredOpen, setQuickCredOpen] = useState(false)
+  const [quickCredType, setQuickCredType] = useState('bearer_auth')
+
+  const detectedTokenPath = useMemo(() => {
+    // 1. Check mapping
+    const match = (mapping || []).find((f) => {
+      const p = (f.path || '').toLowerCase()
+      return p === 'access_token' || p === 'token' || p.endsWith('.access_token') || p.endsWith('.token') || p === 'id_token'
+    })
+    if (match) return match.path
+    // 2. Check inputData
+    if (inputData && typeof inputData === 'object') {
+      const target = inputData.json || inputData
+      for (const k of ['access_token', 'token', 'id_token', 'apiKey', 'api_key']) {
+        if (target[k]) return k
+      }
+    }
+    return null
+  }, [mapping, inputData])
+
   const [optionsList, setOptionsList] = useState(() => {
     const o = []
     if (params.timeout_seconds !== undefined && params.timeout_seconds !== 30) o.push('timeout')
@@ -566,6 +587,59 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
         )}
         {urlError ? <span className="field-error" style={{ color: 'var(--red)', fontSize: 11 }}>{urlError}</span> : <span className="hint">Supports Fixed value or Expression {'{{ $json.url }}'} — validated before queue.</span>}
       </label>
+
+      {/* Smart Upstream Token Detected Banner */}
+      {detectedTokenPath && (
+        <div
+          style={{
+            margin: '4px 0 10px',
+            padding: '10px 14px',
+            borderRadius: 8,
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%)',
+            border: '1px solid rgba(168, 85, 247, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 18 }}>⚡</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#e0e7ff' }}>
+                Upstream Token Detected
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                Found token field <code>{detectedTokenPath}</code> from previous step.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="primary primary--sm"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              border: 'none',
+              whiteSpace: 'nowrap',
+              padding: '6px 14px',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: '#fff',
+              borderRadius: 6,
+            }}
+            onClick={() => {
+              patch({
+                authentication: 'bearer',
+                auth_type: 'bearer',
+                auth_token: `{{ $json.${detectedTokenPath} }}`,
+              })
+            }}
+          >
+            Use as Bearer Token
+          </button>
+        </div>
+      )}
 
       {/* Authentication */}
       <label>
@@ -740,6 +814,11 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
                         disabledReason: (credentialTypes || []).find(t => t.type === c.type)?.implemented === false ? 'Not implemented' : undefined
                       }))
                     ]}
+                    actionLabel="+ Add New Credential"
+                    onAction={() => {
+                      setQuickCredType(credType || matchTypes[0] || 'bearer_auth')
+                      setQuickCredOpen(true)
+                    }}
                     placeholder={`Select ${credType} credential`}
                   />
                 </label>
@@ -766,11 +845,22 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
               })}
             </select>
           </label>
-          {/* Inline fields for generic auth types */}
+          {/* Inline fields for generic auth types with expression mapping support */}
           {authType === 'bearer' && (
             <label>
-              <span>Token <span className="hint">(or use credential)</span></span>
-              <input type="password" value={params.auth_token || ''} onChange={(e) => patch({ auth_token: e.target.value })} placeholder="eyJ..." />
+              <span>Token <span className="hint">(paste token or expression {'{{ $json.token }}'})</span></span>
+              {mapping ? (
+                <MappingField
+                  schema={{ title: '', description: 'Paste bearer token or use expression {{ $json.token }}' }}
+                  value={params.auth_token || ''}
+                  onChange={(v) => patch({ auth_token: v })}
+                  path="auth_token"
+                  mapping={mapping}
+                  onPreview={onPreview}
+                />
+              ) : (
+                <input type="password" value={params.auth_token || ''} onChange={(e) => patch({ auth_token: e.target.value })} placeholder="eyJ... or {{ $json.access_token }}" />
+              )}
             </label>
           )}
           {authType === 'basic' && (
@@ -782,13 +872,39 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {authType === 'header' && (
             <>
               <label><span>Header Name <span className="required-badge">*</span></span><input value={params.api_key_name || 'X-API-Key'} onChange={(e) => patch({ api_key_name: e.target.value })} placeholder="X-API-Key" /></label>
-              <label><span>Header Value</span><input type="password" value={params.auth_token || ''} onChange={(e) => patch({ auth_token: e.target.value })} placeholder="value" /></label>
+              <label><span>Header Value</span>
+                {mapping ? (
+                  <MappingField
+                    schema={{ title: '', description: 'Header value or expression {{ $json.token }}' }}
+                    value={params.auth_token || ''}
+                    onChange={(v) => patch({ auth_token: v })}
+                    path="auth_token"
+                    mapping={mapping}
+                    onPreview={onPreview}
+                  />
+                ) : (
+                  <input type="password" value={params.auth_token || ''} onChange={(e) => patch({ auth_token: e.target.value })} placeholder="value or {{ $json.token }}" />
+                )}
+              </label>
             </>
           )}
           {authType === 'query' && (
             <>
               <label><span>Parameter Name <span className="required-badge">*</span></span><input value={params.api_key_name || 'api_key'} onChange={(e) => patch({ api_key_name: e.target.value })} placeholder="api_key" /></label>
-              <label><span>Parameter Value</span><input type="password" value={params.auth_token || ''} onChange={(e) => patch({ auth_token: e.target.value })} placeholder="value" /></label>
+              <label><span>Parameter Value</span>
+                {mapping ? (
+                  <MappingField
+                    schema={{ title: '', description: 'Parameter value or expression {{ $json.token }}' }}
+                    value={params.auth_token || ''}
+                    onChange={(v) => patch({ auth_token: v })}
+                    path="auth_token"
+                    mapping={mapping}
+                    onPreview={onPreview}
+                  />
+                ) : (
+                  <input type="password" value={params.auth_token || ''} onChange={(e) => patch({ auth_token: e.target.value })} placeholder="value or {{ $json.token }}" />
+                )}
+              </label>
             </>
           )}
           {authType === 'digest' && (
@@ -804,7 +920,18 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {authType === 'oauth2' && (
             <label>
               <span>Access Token <span className="hint">(or credential)</span></span>
-              <input type="password" value={params.auth_token || ''} onChange={(e) => patch({ auth_token: e.target.value })} placeholder="oauth token" />
+              {mapping ? (
+                <MappingField
+                  schema={{ title: '', description: 'OAuth2 token or expression {{ $json.access_token }}' }}
+                  value={params.auth_token || ''}
+                  onChange={(v) => patch({ auth_token: v })}
+                  path="auth_token"
+                  mapping={mapping}
+                  onPreview={onPreview}
+                />
+              ) : (
+                <input type="password" value={params.auth_token || ''} onChange={(e) => patch({ auth_token: e.target.value })} placeholder="oauth token" />
+              )}
             </label>
           )}
           {authType === 'oauth1' && (
@@ -842,6 +969,11 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
                         return { value: c.id, label: `${c.name} (${c.type})`, disabled: tm && tm.implemented === false, disabledReason: tm && tm.implemented === false ? 'Not implemented' : undefined }
                       })
                     ]}
+                    actionLabel="+ Add New Credential"
+                    onAction={() => {
+                      setQuickCredType(relevant[0] || 'bearer_auth')
+                      setQuickCredOpen(true)
+                    }}
                     placeholder="Select credential"
                   />
                 </label>
@@ -1145,6 +1277,130 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           )}
         </div>
       </ToggleSection>
+
+      {/* Lifecycle Hooks (Cyclr Style: on_init, on_success, on_error) */}
+      <ToggleSection
+        label="Method Lifecycle Hooks (on_init, on_success, on_error)"
+        checked={Boolean(params.on_init_headers || params.on_success_expression || (params.on_error_action && params.on_error_action !== 'fail'))}
+        onChange={(v) => {
+          if (!v) {
+            patch({
+              on_init_headers: null,
+              on_success_expression: null,
+              on_error_action: 'fail',
+              on_error_fallback: null,
+            })
+          } else {
+            patch({
+              on_error_action: 'fail',
+            })
+          }
+        }}
+        hint="Execute custom logic on init (pre-request), on success (post-response transform), and on error (fallback handling)."
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* on_init pre-request hook */}
+          <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <span style={{ fontSize: 13 }}>⚡</span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>on_init (Pre-Request Transform)</span>
+            </div>
+            <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Inject dynamic headers or compute timestamps before sending.</p>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>Dynamic Pre-Request Headers (JSON)</span>
+              <textarea
+                rows={3}
+                value={typeof params.on_init_headers === 'object' && params.on_init_headers !== null ? JSON.stringify(params.on_init_headers, null, 2) : (params.on_init_headers || '')}
+                onChange={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value)
+                    patch({ on_init_headers: parsed })
+                  } catch {
+                    patch({ on_init_headers: e.target.value })
+                  }
+                }}
+                placeholder={'{\n  "X-Timestamp": "{{ $now }}",\n  "X-Trace-Id": "req_123"\n}'}
+                style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }}
+              />
+            </label>
+          </div>
+
+          {/* on_success post-response hook */}
+          <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <span style={{ fontSize: 13 }}>✨</span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>on_success (Post-Response Transform)</span>
+            </div>
+            <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Unwrap, filter, or project response data (e.g. <code>{'{{ $response.body.data }}'}</code>).</p>
+            {mapping ? (
+              <MappingField
+                schema={{ title: '', description: '{{ $response.body.data }} or {{ $json.records }}' }}
+                value={params.on_success_expression || ''}
+                onChange={(v) => patch({ on_success_expression: v })}
+                path="on_success_expression"
+                mapping={mapping}
+                onPreview={onPreview}
+              />
+            ) : (
+              <input
+                value={params.on_success_expression || ''}
+                onChange={(e) => patch({ on_success_expression: e.target.value })}
+                placeholder="{{ $response.body.data }}"
+              />
+            )}
+          </div>
+
+          {/* on_error hook */}
+          <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <span style={{ fontSize: 13 }}>🛡️</span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>on_error (Error & Fallback Handling)</span>
+            </div>
+            <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Behavior when HTTP call fails (status &gt;= 400 or network error).</p>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>Error Action</span>
+              <select
+                value={params.on_error_action || 'fail'}
+                onChange={(e) => patch({ on_error_action: e.target.value })}
+              >
+                <option value="fail">Fail step and stop workflow (Default)</option>
+                <option value="fallback_data">Return fallback data and continue</option>
+                <option value="continue">Emit error payload and continue</option>
+              </select>
+            </label>
+            {params.on_error_action === 'fallback_data' && (
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Fallback Data (JSON)</span>
+                <textarea
+                  rows={3}
+                  value={typeof params.on_error_fallback === 'object' && params.on_error_fallback !== null ? JSON.stringify(params.on_error_fallback, null, 2) : (params.on_error_fallback || '')}
+                  onChange={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value)
+                      patch({ on_error_fallback: parsed })
+                    } catch {
+                      patch({ on_error_fallback: e.target.value })
+                    }
+                  }}
+                  placeholder={'{\n  "status": "fallback",\n  "data": []\n}'}
+                  style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }}
+                />
+              </label>
+            )}
+          </div>
+        </div>
+      </ToggleSection>
+
+      <QuickAddCredentialModal
+        open={quickCredOpen}
+        onClose={() => setQuickCredOpen(false)}
+        defaultType={quickCredType}
+        onCreated={(created) => {
+          if (created && created.id) {
+            onCredentialChange(created.type, created.id)
+          }
+        }}
+      />
 
       {/* Options */}
       <div className="cfg-section open" style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', background: 'var(--panel-2)' }}>

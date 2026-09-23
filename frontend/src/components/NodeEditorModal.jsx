@@ -39,6 +39,7 @@ const ExecuteWorkflowTriggerEditor = lazy(() => import('./ExecuteWorkflowTrigger
 const TokenManagerNodeEditor = lazy(() => import('./TokenManagerNodeEditor'))
 const TokenFetchNodeEditor = lazy(() => import('./TokenFetchNodeEditor'))
 const TokenStoreNodeEditor = lazy(() => import('./TokenStoreNodeEditor'))
+const SetVariableNodeEditor = lazy(() => import('./SetVariableNodeEditor'))
 const DataTableDiscovery = lazy(() => import('./DataTableDiscovery'))
 import {
   IDEMPOTENCY_LABEL,
@@ -188,7 +189,9 @@ export default function NodeEditorModal() {
 
   const status = nodeStatuses[selectedId]
   const preview = runPreview[selectedId]
-  const rawError = execError || preview?.error || (status === 'failed' || status === 'error' ? (preview?.note || 'Execution failed') : null)
+  const stepTrace = trace.find((s) => s.node_id === selectedId)
+  const stepErr = stepTrace?.error
+  const rawError = execError || stepErr || preview?.error || (status === 'failed' || status === 'error' ? (preview?.note || 'Execution failed') : null)
   const effectiveError = typeof rawError === 'object' && rawError !== null && !isValidElement(rawError)
     ? (rawError.message || (rawError.code ? `${rawError.code}: ${JSON.stringify(rawError.details || rawError)}` : JSON.stringify(rawError)))
     : rawError
@@ -416,6 +419,7 @@ export default function NodeEditorModal() {
             icon="⚠️"
             title="Execution failed"
             description={effectiveError}
+            details={typeof rawError === 'object' && rawError !== null ? (rawError.details || rawError) : undefined}
             action={
               <Button
                 variant="primary"
@@ -434,15 +438,19 @@ export default function NodeEditorModal() {
 
         {showAutoRepair && effectiveError && (
           <NodeAutoRepair
-            workflowId={workflow.id}
-            node={node}
-            errorMessage={effectiveError}
+            workflowId={workflow?.id}
+            node={node ? { ...node, id: node.id || selectedId } : null}
+            errorMessage={
+              typeof rawError === 'object' && rawError?.details?.body
+                ? `${effectiveError} — Response: ${typeof rawError.details.body === 'object' ? JSON.stringify(rawError.details.body) : rawError.details.body}`
+                : effectiveError
+            }
             onClose={() => setShowAutoRepair(false)}
             onApplyFix={async (suggestedParams, retest) => {
-              updateNode(node.id, { parameters: suggestedParams })
+              updateNode(selectedId, { parameters: suggestedParams })
               setShowAutoRepair(false)
               setExecError(null)
-              useExecutionStore.getState().clearNodeError?.(node.id)
+              useExecutionStore.getState().clearNodeError?.(selectedId)
               try {
                 await useWorkflowStore.getState().save()
               } catch (e) {
@@ -567,10 +575,18 @@ export default function NodeEditorModal() {
                       node={node}
                       onParamsChange={handleParamsChange}
                       mapping={mapping}
+                      inputData={_upstreamData}
                       onPreview={previewExpression}
                       credentials={credentials}
                       credentialTypes={credentialTypes}
                       onCredentialChange={setCredential}
+                    />
+                  ) : node.type === 'set_variable' ? (
+                    <SetVariableNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
                     />
                   ) : (node.type === 'split' || node.type === 'item_lists') ? (
                     <SplitNodeEditor
@@ -878,24 +894,11 @@ export default function NodeEditorModal() {
               data={outputData}
               status={status}
               executing={executing}
-              error={
-                execError ||
-                ((status === 'error' || status === 'failed')
-                  ? (() => {
-                      const stepErr = trace.find((s) => s.node_id === selectedId)?.error
-                      if (stepErr) {
-                        return typeof stepErr === 'object' ? (stepErr.message || JSON.stringify(stepErr)) : String(stepErr)
-                      }
-                      if (preview?.error) {
-                        return typeof preview.error === 'object' ? (preview.error.message || JSON.stringify(preview.error)) : String(preview.error)
-                      }
-                      return preview?.note || 'Execution failed'
-                    })()
-                  : null)
-              }
+              error={rawError}
               nodeId={selectedId}
               nodeLabel={node?.settings?.label || node?.name || node?.data?.label || meta?.display_name || node?.type}
               onExecuteStep={handleExecuteStep}
+              onAutoRepair={() => setShowAutoRepair(true)}
             />
           </div>
         </div>

@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 
-export default function SearchableSelect({ value, onChange, options, placeholder = 'Select…', disabled = false, clearable = true, loading = false }) {
+export default function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder = 'Select…',
+  disabled = false,
+  clearable = true,
+  loading = false,
+  actionLabel = null,
+  onAction = null,
+}) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [focusIdx, setFocusIdx] = useState(0)
@@ -219,6 +229,41 @@ export default function SearchableSelect({ value, onChange, options, placeholder
             )}
           </div>
           {filtered.length > 7 && <div style={{ padding: '4px 8px', borderTop: '1px solid var(--border)', color: 'var(--muted)', fontSize: 10, textAlign: 'center' }}>{filtered.length} options — scroll or type to filter</div>}
+          {actionLabel && onAction && (
+            <div
+              role="button"
+              tabIndex={0}
+              style={{
+                padding: '9px 12px',
+                borderTop: '1px solid var(--border)',
+                background: 'rgba(99, 102, 241, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                color: 'var(--accent, #818cf8)',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                setOpen(false)
+                onAction()
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.18)'
+                e.currentTarget.style.color = '#a5b4fc'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.08)'
+                e.currentTarget.style.color = 'var(--accent, #818cf8)'
+              }}
+            >
+              <span style={{ fontSize: 14 }}>➕</span>
+              <span>{actionLabel}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
