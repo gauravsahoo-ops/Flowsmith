@@ -439,7 +439,11 @@ async def repair_node_failure(
     cause = "Execution failure"
     summary = "Suggested fixes based on error analysis."
 
-    if "invalid url" in err_lower or "missing schema" in err_lower or "scheme" in err_lower:
+    if "url is required" in err_lower or ("url" in err_lower and "required" in err_lower) or (node_type == "http_request" and not suggested.get("url")):
+        suggested["url"] = "https://httpbin.org/get"
+        cause = "The HTTP Request node requires a destination URL to send requests."
+        summary = "Configured valid default URL (https://httpbin.org/get)."
+    elif "invalid url" in err_lower or "missing schema" in err_lower or "scheme" in err_lower:
         if "url" in suggested and not str(suggested["url"]).startswith("http"):
             suggested["url"] = f"https://{suggested['url']}"
             cause = "Malformed URL missing http:// or https:// protocol prefix."

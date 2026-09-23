@@ -110,3 +110,26 @@ describe('load', () => {
     expect(s.error.code).toBe('LOAD_FAILED')
   })
 })
+
+describe('clearNodeError', () => {
+  it('clears failed node status and reset preview error', () => {
+    useExecutionStore.setState({
+      nodeStatuses: { node_1: 'failed', node_2: 'success' },
+      runPreview: {
+        node_1: { status: 'failed', error: 'URL required', note: 'Error occurred' },
+        node_2: { status: 'success', outputCount: 1 },
+      },
+      error: 'Some execution error',
+    })
+
+    useExecutionStore.getState().clearNodeError('node_1')
+
+    const s = useExecutionStore.getState()
+    expect(s.nodeStatuses['node_1']).toBeUndefined()
+    expect(s.nodeStatuses['node_2']).toBe('success')
+    expect(s.runPreview['node_1'].error).toBeNull()
+    expect(s.runPreview['node_1'].status).toBeNull()
+    expect(s.runPreview['node_1'].note).toBeNull()
+    expect(s.error).toBeNull()
+  })
+})
