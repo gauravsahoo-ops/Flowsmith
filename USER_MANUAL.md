@@ -36,7 +36,7 @@
     - [Console Drawer & Execution Traces](#153-console-drawer--execution-traces)
     - [Version History & 1-Click Rollback](#154-version-history--1-click-rollback)
 16. [Custom Connectors & OpenAPI / cURL Importer](#16-custom-connectors--openapi--curl-importer)
-17. [White-Labeling & Company Branding (`/settings/branding`)](#17-white-labeling--company-branding-settingsbranding)
+17. [White-Labeling & Brand Change (Make It Your Own Platform)](#17-white-labeling--brand-change-make-it-your-own-platform)
 18. [Keyboard Shortcuts & Canvas Navigation](#18-keyboard-shortcuts--canvas-navigation)
 19. [A to Z Complete Glossary (Every Tech Term Defined)](#19-a-to-z-complete-glossary-every-tech-term-defined)
 20. [Frequently Asked Questions & Troubleshooting (FAQ)](#20-frequently-asked-questions--troubleshooting-faq)
@@ -378,17 +378,62 @@ Need to connect to an API that doesn't have a pre-built card?
 
 ---
 
-## 17. White-Labeling & Company Branding (`/settings/branding`)
+## 17. White-Labeling & Brand Change (Make It Your Own Platform)
 
-You can completely customize Flowsmith to match your company's brand identity:
+Flowsmith has a built-in **100% White-Labeling Engine**. If you want your team, clients, or partners to see **your company's logo, brand colors, custom name, and support links** instead of Flowsmith, you can rebrand the entire platform in just 2 minutes!
 
-1. Click **Settings** ➔ **Branding** in the navigation.
-2. Customize:
-   - **Company Name & Tagline**: Displayed across the top bar and login page.
-   - **Brand Logo & Favicon**: Upload your company's official logo.
-   - **Color Palette**: Choose primary accent colors or dark/light themes.
-   - **Custom CSS**: Inject custom CSS rules for typography and custom corporate styling.
-3. Changes apply instantly across the entire application for all team members.
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        BRANDING & WHITE-LABELING SETTINGS                              │
+├─────────────────────────────────────────┬──────────────────────────────────────────────┤
+│  Customization Form                     │  Live Preview Window                         │
+│  ├── Company Name: [ Acme Corp        ] │  ┌────────────────────────────────────────┐  │
+│  ├── Tagline:      [ Enterprise Ops   ] │  │ [Acme Logo] Acme Corp                  │  │
+│  ├── Logo:         [📁 Upload Image   ] │  │ ⚡ Workflows  📊 Data Tables            │  │
+│  ├── Brand Color:  [🔵 Indigo / Hex   ] │  │ Button: [ Save Lead ] (Acme Blue)      │  │
+│  ├── Support Email:[ it@acme.com      ] │  └────────────────────────────────────────┘  │
+│  └── Copyright:    [ © 2026 Acme Corp ] │  Real-time preview updates as you type!      │
+└─────────────────────────────────────────┴──────────────────────────────────────────────┘
+```
+
+### What You Can Customize:
+
+1. **Software / Company Name**:
+   - Replaces "Flowsmith" everywhere: in the left sidebar, the top bar, browser window titles, and the login page.
+   - *Example*: Name it `"Acme Automations"` or `"Nexus Ops"`.
+2. **Tagline / Subtitle**:
+   - Customizes the slogan displayed beneath your logo on the login page.
+   - *Example*: `"Internal Enterprise Automation Suite"`.
+3. **Company Logo**:
+   - **Upload an Image**: Click **"📁 Upload Logo Image"** and choose any PNG, SVG, JPG, or WebP image from your computer (max 2MB).
+   - **Or Paste a URL**: Enter any direct web link to your logo (`https://mycompany.com/logo.png`).
+   - Your custom logo immediately appears in the navigation bar, sidebar, and login page.
+4. **Brand Accent Color**:
+   - Choose from pre-configured one-click color swatches (Indigo, Cyan, Emerald, Rose, Amber, Purple), or click the color picker to enter your exact corporate hex code (e.g. `#0ea5e9` or `#10b981`).
+   - All primary buttons, active toggles, icons, and focus rings will immediately adapt to your brand color.
+5. **Documentation & Runbook URL**:
+   - Replaces the default help links with your company's internal wiki, Notion, or Confluence guide (e.g. `https://wiki.yourcompany.com`).
+6. **Support & Helpdesk Email**:
+   - Displays your internal support email (e.g. `helpdesk@yourcompany.com`) so your team knows who to contact.
+7. **Footer Copyright Notice**:
+   - Custom copyright text displayed at the bottom of the platform (e.g. `© 2026 Your Company Inc. All rights reserved.`).
+8. **Custom CSS Overrides (Advanced)**:
+   - For complete design control, you can paste custom CSS rules to adjust fonts, background patterns, or specific interface styles.
+
+---
+
+### Step-by-Step: How to Change Your Brand
+
+1. Click the **Settings** gear icon (`⚙️`) in the left navigation bar.
+2. Scroll down to the **"Branding & White-Labeling"** section.
+3. Fill in your **Company Name**, **Tagline**, and upload your **Logo**.
+4. Pick your **Brand Color**.
+5. Look at the **Live Brand Preview** box on the right—it updates in real time so you can see exactly how your brand will look!
+6. Click the blue button: **"✓ Save Branding"**.
+7. **Done!** The changes take effect instantly across the entire application for all logged-in users.
+
+> ↺ **Want to switch back?**  
+> If you ever want to revert to the original Flowsmith look, simply click **"↺ Reset to Defaults"** at any time.
 
 ---
 
