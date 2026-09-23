@@ -39,7 +39,10 @@ def to_meta(rec: Credential) -> dict[str, str]:
 
 def list_for_user(db: Session, user_id: int) -> list[dict[str, str]]:
     recs = db.scalars(
-        select(Credential).where(Credential.user_id == user_id).order_by(Credential.created_at.desc())
+        select(Credential).where(
+            Credential.user_id == user_id,
+            ~Credential.type.endswith("_oauth_config"),
+        ).order_by(Credential.created_at.desc())
     ).all()
     return [to_meta(r) for r in recs]
 
