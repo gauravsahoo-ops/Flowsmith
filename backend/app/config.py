@@ -213,6 +213,8 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     mail_from: str = ""
+    smtp_use_tls: bool = False
+    smtp_starttls: bool = True
 
     # Billing / SaaS (Phase 34). With STRIPE_SECRET_KEY unset the app runs
     # in self-host mode: plan data exists, checkout/webhooks are disabled.

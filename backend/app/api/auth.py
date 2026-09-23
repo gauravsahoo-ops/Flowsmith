@@ -154,11 +154,22 @@ def _send_reset_email(to: str, link: str) -> bool:
         msg["From"] = settings.mail_from
         msg["To"] = to
         msg.set_content(f"Reset your password within 30 minutes:\n\n{link}")
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-            server.starttls()
-            if settings.smtp_user and settings.smtp_password:
-                server.login(settings.smtp_user, settings.smtp_password)
-            server.send_message(msg)
+        use_ssl = bool(settings.smtp_use_tls or settings.smtp_port == 465)
+        if use_ssl:
+            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=15) as server:
+                if settings.smtp_user and settings.smtp_password:
+                    server.login(settings.smtp_user, settings.smtp_password)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
+                if settings.smtp_starttls and settings.smtp_port != 25:
+                    try:
+                        server.starttls()
+                    except Exception:
+                        pass
+                if settings.smtp_user and settings.smtp_password:
+                    server.login(settings.smtp_user, settings.smtp_password)
+                server.send_message(msg)
         return True
     except Exception as exc:  # pragma: no cover - depends on external MTA
         logger.error("reset email failed for %s: %s", to, exc)
