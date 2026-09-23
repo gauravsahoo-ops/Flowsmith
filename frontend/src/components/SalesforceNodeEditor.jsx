@@ -42,6 +42,7 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
   const paramsRef = useRef(params)
   paramsRef.current = params
   const rawOperation = params.operation || ''
+  const objectName = params.object_name || ''
   const rawResource = params.resource
   const resource = (!rawResource || rawResource === 'Record' || rawResource === 'Other')
     ? (['Account','Contact','Lead','Opportunity','Case','Task'].includes(objectName) && objectName !== 'Record' ? objectName : (objectName && objectName !== 'Record') ? 'CustomObject' : 'Account')
