@@ -1244,6 +1244,8 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             token = p.auth_token.strip()
             if not token and cred_fallback and cred_fallback.get("api_key"):
                 token = str(cred_fallback.get("api_key", "")).strip()
+            if token.lower().startswith("bearer "):
+                token = token[7:].strip()
             if not token:
                 raise NodeExecutionError("auth_type=bearer requires auth_token (or HTTP credential).", code="BAD_REQUEST", node_id=self.node_type, retryable=False)
             headers.setdefault("Authorization", f"Bearer {token}")

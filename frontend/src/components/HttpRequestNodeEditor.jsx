@@ -5,9 +5,12 @@ import { getToken } from '../api'
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 const AUTHENTICATION_OPTIONS = [
-  { value: 'none', label: 'None' },
-  { value: 'predefined', label: 'Predefined Credential Type' },
-  { value: 'generic', label: 'Generic Credential Type' },
+  { value: 'none', label: 'None (No Authentication)' },
+  { value: 'bearer', label: 'Bearer Token (Direct Authorization Header)' },
+  { value: 'header', label: 'Custom Header / API Key (Authorization)' },
+  { value: 'basic', label: 'Basic Auth (Direct)' },
+  { value: 'predefined', label: 'Predefined Credential Type (Saved)' },
+  { value: 'generic', label: 'Generic Credential Type (Saved)' },
 ]
 const GENERIC_AUTH_OPTIONS = [
   { value: 'basic', label: 'Basic Auth' },
@@ -320,16 +323,22 @@ function QueryParamRow({ index, name, value, onNameChange, onValueChange, onRemo
 
 function HeaderRow({ index, name, value, onNameChange, onValueChange, onRemove, mapping, onPreview }) {
   const [collapsed, setCollapsed] = useState(false)
+  const isAuth = (name || '').trim().toLowerCase() === 'authorization'
   const displayName = name ? name : `Header ${index + 1}`
   return (
-    <div className="fs-param-card">
+    <div className="fs-param-card" style={isAuth ? { borderColor: 'rgba(56, 189, 248, 0.4)', background: '#111722' } : undefined}>
       <div className="fs-param-card-header" onClick={() => setCollapsed(v => !v)}>
         <span className="fs-param-card-title">
           <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', display: 'inline-block', width: 14, lineHeight: 1 }}>
             {collapsed ? '›' : '⌄'}
           </span>
+          {isAuth && (
+            <span style={{ fontSize: 10.5, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8', padding: '1px 6px', borderRadius: 3, fontWeight: 600, marginRight: 4 }}>
+              🔑 Auth
+            </span>
+          )}
           <span style={{ fontWeight: 600, color: '#f8fafc' }}>{displayName}</span>
-          {value && <span style={{ fontWeight: 400, color: 'var(--muted)', marginLeft: 4, fontSize: 11 }}>→ {String(value).slice(0, 20)}</span>}
+          {value && <span style={{ fontWeight: 400, color: 'var(--muted)', marginLeft: 4, fontSize: 11 }}>→ {String(value).slice(0, 24)}</span>}
         </span>
         <button
           type="button"
@@ -347,21 +356,33 @@ function HeaderRow({ index, name, value, onNameChange, onValueChange, onRemove, 
         <div className="fs-param-card-body">
           <div>
             {mapping ? (
-              <MappingField schema={{ title: 'Name', description: 'Header name, e.g., Accept or Authorization' }} value={name} onChange={onNameChange} path={`header_${index}_name`} mapping={mapping} onPreview={onPreview} />
+              <MappingField schema={{ title: 'Header Name', description: 'Header name, e.g. Authorization or Accept' }} value={name} onChange={onNameChange} path={`header_${index}_name`} mapping={mapping} onPreview={onPreview} />
             ) : (
               <div>
-                <div className="fs-param-field-label">Name</div>
-                <input className="fs-param-input" value={name} onChange={(e) => onNameChange(e.target.value)} onBlur={(e) => onNameChange(e.target.value.trim())} placeholder="Accept" />
+                <div className="fs-param-field-label">Header Name</div>
+                <input
+                  className="fs-param-input"
+                  value={name}
+                  onChange={(e) => onNameChange(e.target.value)}
+                  onBlur={(e) => onNameChange(e.target.value.trim())}
+                  placeholder="Authorization"
+                  list="fs-header-datalist"
+                />
               </div>
             )}
           </div>
           <div>
             {mapping ? (
-              <MappingField schema={{ title: 'Value', description: 'e.g., application/json or Bearer {{$json.token}}' }} value={value} onChange={onValueChange} path={`header_${index}_value`} mapping={mapping} onPreview={onPreview} />
+              <MappingField schema={{ title: 'Header Value', description: isAuth ? 'Bearer <token> or expression {{ $json.token }}' : 'application/json or expression' }} value={value} onChange={onValueChange} path={`header_${index}_value`} mapping={mapping} onPreview={onPreview} />
             ) : (
               <div>
-                <div className="fs-param-field-label">Value</div>
-                <input className="fs-param-input" value={value} onChange={(e) => onValueChange(e.target.value)} placeholder="application/json" />
+                <div className="fs-param-field-label">Header Value</div>
+                <input
+                  className="fs-param-input"
+                  value={value}
+                  onChange={(e) => onValueChange(e.target.value)}
+                  placeholder={isAuth ? 'Bearer <token>' : 'application/json'}
+                />
               </div>
             )}
           </div>
@@ -406,9 +427,40 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
 
   const method = params.method || 'GET'
   const url = params.url || ''
-  const authentication = params.authentication || (params.predefinedType ? 'predefined' : (params.auth_type && params.auth_type !== 'none' ? 'generic' : 'none'))
   const authType = params.auth_type || 'none'
   const predefinedType = params.predefinedType || ''
+
+  const authSelection = useMemo(() => {
+    if (params.authentication === 'predefined' || params.predefinedType) return 'predefined'
+    const hasCred = Object.values(node?.credentials || {}).some(Boolean)
+    if (params.authentication === 'generic') {
+      if (params.auth_type === 'bearer' && !hasCred) return 'bearer'
+      if (params.auth_type === 'header' && !hasCred) return 'header'
+      if (params.auth_type === 'basic' && !hasCred) return 'basic'
+      return 'generic'
+    }
+    if (params.auth_type === 'bearer') return 'bearer'
+    if (params.auth_type === 'header') return 'header'
+    if (params.auth_type === 'basic') return 'basic'
+    return 'none'
+  }, [params.authentication, params.auth_type, params.predefinedType, node?.credentials])
+
+  function handleAuthSelectionChange(v) {
+    if (v === 'none') {
+      patch({ authentication: 'none', auth_type: 'none', predefinedType: '', auth_token: '' })
+    } else if (v === 'bearer') {
+      patch({ authentication: 'generic', auth_type: 'bearer', predefinedType: '' })
+    } else if (v === 'header') {
+      patch({ authentication: 'generic', auth_type: 'header', api_key_name: params.api_key_name || 'Authorization', predefinedType: '' })
+    } else if (v === 'basic') {
+      patch({ authentication: 'generic', auth_type: 'basic', predefinedType: '' })
+    } else if (v === 'predefined') {
+      patch({ authentication: 'predefined', auth_type: 'none' })
+    } else if (v === 'generic') {
+      patch({ authentication: 'generic', auth_type: params.auth_type && params.auth_type !== 'none' ? params.auth_type : 'bearer' })
+    }
+  }
+
   const sendQuery = Boolean(params.sendQuery)
   const sendHeaders = Boolean(params.sendHeaders)
   const sendBody = Boolean(params.sendBody)
@@ -515,20 +567,122 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
         {urlError ? <span className="field-error" style={{ color: 'var(--red)', fontSize: 11 }}>{urlError}</span> : <span className="hint">Supports Fixed value or Expression {'{{ $json.url }}'} — validated before queue.</span>}
       </label>
 
-      {/* Authentication — exactly 3 options per spec */}
+      {/* Authentication */}
       <label>
-        <span>Authentication</span>
-        <select value={authentication} onChange={(e) => {
-          const v = e.target.value
-          if (v === 'none') patch({ authentication: 'none', predefinedType: '', auth_type: 'none' })
-          else if (v === 'predefined') patch({ authentication: 'predefined', auth_type: 'none' })
-          else if (v === 'generic') patch({ authentication: 'generic', auth_type: 'bearer' })
-        }}>
+        <span style={{ fontWeight: 600 }}>Authentication</span>
+        <select value={authSelection} onChange={(e) => handleAuthSelectionChange(e.target.value)}>
           {AUTHENTICATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </label>
 
-      {authentication === 'predefined' && (
+      {/* Direct Bearer Token UI */}
+      {authSelection === 'bearer' && (
+        <div className="fs-auth-direct-card">
+          <div className="fs-auth-header-badge">
+            <span style={{ fontSize: 13 }}>🔑</span>
+            <span>Sends direct header: <code>Authorization: Bearer &lt;token&gt;</code></span>
+          </div>
+          <label>
+            <span style={{ fontWeight: 600 }}>Bearer Token <span className="required-badge">*</span></span>
+            {mapping ? (
+              <MappingField
+                schema={{ title: '', description: 'Paste bearer token or use expression {{ $json.token }}' }}
+                value={params.auth_token || ''}
+                onChange={(v) => patch({ auth_token: v })}
+                path="auth_token"
+                mapping={mapping}
+                onPreview={onPreview}
+              />
+            ) : (
+              <input
+                type="password"
+                value={params.auth_token || ''}
+                onChange={(e) => patch({ auth_token: e.target.value })}
+                placeholder="eyJhbGciOi..."
+                className="fs-param-input"
+              />
+            )}
+            <span className="hint">Prefix <code>Bearer </code> is included automatically. Dynamic expressions like <code>{'{{ $json.token }}'}</code> are supported.</span>
+          </label>
+        </div>
+      )}
+
+      {/* Direct Custom Header / API Key UI */}
+      {authSelection === 'header' && (
+        <div className="fs-auth-direct-card">
+          <div className="fs-auth-header-badge">
+            <span style={{ fontSize: 13 }}>🛡️</span>
+            <span>Sends custom header: <code>{params.api_key_name || 'Authorization'}: &lt;value&gt;</code></span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
+            <label>
+              <span>Header Name <span className="required-badge">*</span></span>
+              <input
+                value={params.api_key_name || 'Authorization'}
+                onChange={(e) => patch({ api_key_name: e.target.value })}
+                placeholder="Authorization"
+                list="fs-header-datalist"
+                className="fs-param-input"
+              />
+            </label>
+            <label>
+              <span>Header Value <span className="required-badge">*</span></span>
+              {mapping ? (
+                <MappingField
+                  schema={{ title: '', description: 'Bearer <token>, ApiKey <key>, or {{$json.token}}' }}
+                  value={params.auth_token || ''}
+                  onChange={(v) => patch({ auth_token: v })}
+                  path="auth_token"
+                  mapping={mapping}
+                  onPreview={onPreview}
+                />
+              ) : (
+                <input
+                  type="password"
+                  value={params.auth_token || ''}
+                  onChange={(e) => patch({ auth_token: e.target.value })}
+                  placeholder="Bearer eyJ... or token_xyz"
+                  className="fs-param-input"
+                />
+              )}
+            </label>
+          </div>
+          <span className="hint">Sends <code>{params.api_key_name || 'Authorization'}: {params.auth_token ? (params.auth_token.length > 25 ? params.auth_token.slice(0, 25) + '...' : params.auth_token) : '<value>'}</code></span>
+        </div>
+      )}
+
+      {/* Direct Basic Auth UI */}
+      {authSelection === 'basic' && (
+        <div className="fs-auth-direct-card">
+          <div className="fs-auth-header-badge">
+            <span style={{ fontSize: 13 }}>🔒</span>
+            <span>Sends direct header: <code>Authorization: Basic &lt;base64(username:password)&gt;</code></span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <label>
+              <span>Username <span className="required-badge">*</span></span>
+              <input
+                value={params.auth_username || ''}
+                onChange={(e) => patch({ auth_username: e.target.value })}
+                placeholder="username or client_id"
+                className="fs-param-input"
+              />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                value={params.auth_password || ''}
+                onChange={(e) => patch({ auth_password: e.target.value })}
+                placeholder="password or client_secret"
+                className="fs-param-input"
+              />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {authSelection === 'predefined' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
           <label>
             <span>Credential Type <span className="required-badge">*</span></span>
@@ -568,13 +722,11 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
                   <SearchableSelect
                     value={currentId}
                     onChange={(v) => {
-                      // Clear previous predefined credential if any
                       if (currentId) {
                         onCredentialChange(credType, '')
                         if (credType !== matchTypes[0]) onCredentialChange(matchTypes[0], '')
                       }
                       if (!v) return
-                      // Store under the credential's actual type
                       const selCred = available.find(c => c.id === v)
                       const storeType = selCred ? selCred.type : credType
                       onCredentialChange(storeType, v)
@@ -600,7 +752,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
         </div>
       )}
 
-      {authentication === 'generic' && (
+      {authSelection === 'generic' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
           <label>
             <span>Generic Auth Type <span className="required-badge">*</span></span>
@@ -708,40 +860,22 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
         onChange={(v) => patch({ sendQuery: v, ...(v ? {} : { query: {}, queryParameters: [], queryJson: '', queryMode: 'fields' }) })}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Specify Query Parameters Header */}
-          <div className="fs-field-header">
-            <span className="fs-field-title">Specify Query Parameters</span>
-            <div className="fs-field-badge-group">
-              <span className="fs-field-dots" title="Options">⋮</span>
-              <div className="fs-mode-pill-group">
-                <button
-                  type="button"
-                  className={`fs-mode-pill ${(params.queryMode || 'fields') === 'fields' ? 'active' : ''}`}
-                  onClick={() => patch({ queryMode: 'fields' })}
-                >
-                  Fixed
-                </button>
-                <button
-                  type="button"
-                  className={`fs-mode-pill ${(params.queryMode || 'fields') === 'json' ? 'active' : ''}`}
-                  onClick={() => patch({ queryMode: 'json' })}
-                >
-                  Expression
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="fs-select-wrap">
-            <select
-              className="fs-select"
-              value={params.queryMode || 'fields'}
-              onChange={(e) => patch({ queryMode: e.target.value })}
+          {/* Query Parameters Mode Switcher */}
+          <div className="fs-segmented-control">
+            <button
+              type="button"
+              className={`fs-segmented-btn ${(params.queryMode || 'fields') === 'fields' ? 'active' : ''}`}
+              onClick={() => patch({ queryMode: 'fields' })}
             >
-              <option value="fields">Using Fields Below</option>
-              <option value="json">Using JSON</option>
-            </select>
-            <span className="fs-select-arrow">▾</span>
+              <span>📋</span> Key-Value Parameters ({queryList.length})
+            </button>
+            <button
+              type="button"
+              className={`fs-segmented-btn ${(params.queryMode || 'fields') === 'json' ? 'active' : ''}`}
+              onClick={() => patch({ queryMode: 'json' })}
+            >
+              <span>📝</span> Query JSON / Expression
+            </button>
           </div>
 
           {(params.queryMode || 'fields') === 'fields' ? (
@@ -821,39 +955,63 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
         hint="Custom HTTP headers"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div className="fs-field-header">
-            <span className="fs-field-title">Specify Headers</span>
-            <div className="fs-field-badge-group">
-              <span className="fs-field-dots" title="Options">⋮</span>
-              <div className="fs-mode-pill-group">
-                <button
-                  type="button"
-                  className={`fs-mode-pill ${(params.headerMode || 'fields') === 'fields' ? 'active' : ''}`}
-                  onClick={() => patch({ headerMode: 'fields' })}
-                >
-                  Fixed
-                </button>
-                <button
-                  type="button"
-                  className={`fs-mode-pill ${(params.headerMode || 'fields') === 'json' ? 'active' : ''}`}
-                  onClick={() => patch({ headerMode: 'json' })}
-                >
-                  Expression
-                </button>
-              </div>
-            </div>
+          {/* Quick Presets Bar */}
+          <div className="fs-quick-presets">
+            <span className="fs-preset-label">Quick Add:</span>
+            <button
+              type="button"
+              className="fs-preset-chip auth"
+              onClick={() => {
+                const existingIdx = headerList.findIndex(h => (h.name || '').trim().toLowerCase() === 'authorization')
+                if (existingIdx >= 0) return
+                handleHeaderChange([...headerList, { name: 'Authorization', value: 'Bearer ' }])
+              }}
+              title="Add direct Authorization header"
+            >
+              🔑 + Authorization Header
+            </button>
+            <button
+              type="button"
+              className="fs-preset-chip"
+              onClick={() => {
+                if (!headerList.some(h => (h.name || '').trim().toLowerCase() === 'content-type')) {
+                  handleHeaderChange([...headerList, { name: 'Content-Type', value: 'application/json' }])
+                }
+              }}
+              title="Add Content-Type: application/json"
+            >
+              + Content-Type: JSON
+            </button>
+            <button
+              type="button"
+              className="fs-preset-chip"
+              onClick={() => {
+                if (!headerList.some(h => (h.name || '').trim().toLowerCase() === 'accept')) {
+                  handleHeaderChange([...headerList, { name: 'Accept', value: 'application/json' }])
+                }
+              }}
+              title="Add Accept: application/json"
+            >
+              + Accept: JSON
+            </button>
           </div>
 
-          <div className="fs-select-wrap">
-            <select
-              className="fs-select"
-              value={params.headerMode || 'fields'}
-              onChange={(e) => patch({ headerMode: e.target.value })}
+          {/* Headers Mode Switcher */}
+          <div className="fs-segmented-control">
+            <button
+              type="button"
+              className={`fs-segmented-btn ${(params.headerMode || 'fields') === 'fields' ? 'active' : ''}`}
+              onClick={() => patch({ headerMode: 'fields' })}
             >
-              <option value="fields">Using Fields Below</option>
-              <option value="json">Using JSON</option>
-            </select>
-            <span className="fs-select-arrow">▾</span>
+              <span>📋</span> Key-Value Headers ({headerList.length})
+            </button>
+            <button
+              type="button"
+              className={`fs-segmented-btn ${(params.headerMode || 'fields') === 'json' ? 'active' : ''}`}
+              onClick={() => patch({ headerMode: 'json' })}
+            >
+              <span>📝</span> Headers JSON / Expression
+            </button>
           </div>
 
           {(params.headerMode || 'fields') === 'fields' ? (
@@ -891,7 +1049,22 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
                   onPreview={onPreview}
                 />
               ))}
-              <button type="button" className="ghost" onClick={() => handleHeaderChange([...headerList, { name: '', value: '' }])} style={{ marginTop: 8, fontSize: 12 }}>+ Add Header</button>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button type="button" className="ghost" onClick={() => handleHeaderChange([...headerList, { name: '', value: '' }])} style={{ fontSize: 12 }}>+ Add Header</button>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    const existingIdx = headerList.findIndex(h => (h.name || '').trim().toLowerCase() === 'authorization')
+                    if (existingIdx < 0) {
+                      handleHeaderChange([...headerList, { name: 'Authorization', value: 'Bearer ' }])
+                    }
+                  }}
+                  style={{ fontSize: 12, color: '#38bdf8' }}
+                >
+                  🔑 + Add Authorization
+                </button>
+              </div>
             </div>
           ) : (
             <div>
@@ -1033,6 +1206,16 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           )}
         </div>
       </div>
+
+      <datalist id="fs-header-datalist">
+        <option value="Authorization" />
+        <option value="Content-Type" />
+        <option value="Accept" />
+        <option value="User-Agent" />
+        <option value="X-API-Key" />
+        <option value="Origin" />
+        <option value="Referer" />
+      </datalist>
 
       <p className="hint">Credentials are redacted in logs. Use expressions for dynamic values: {'{{ $json.field }}'}</p>
     </div>
