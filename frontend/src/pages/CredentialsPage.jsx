@@ -99,10 +99,8 @@ export default function CredentialsPage() {
         await load()
         return
       }
-      if (res && res.ok === false && res.message) {
-        setNotice(res.message)
-      }
-      handleOAuth(c.type, res?.login_url || (c.type === 'salesforce' ? (sfLoginUrl || undefined) : undefined))
+      const loginUrl = res?.login_url || undefined
+      await handleOAuth(c.type, loginUrl)
     } catch (err) {
       if (err && err.status === 404) {
         setError('Credential not found. Refreshing list…')
