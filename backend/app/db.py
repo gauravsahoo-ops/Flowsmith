@@ -83,7 +83,8 @@ def _migrate_missing_columns() -> None:
             continue
         with engine.begin() as conn:
             for col in missing:
-                ddl = f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" {col.type.compile(engine.dialect)}'
+                if_not_exists = "IF NOT EXISTS " if engine.dialect.name == "postgresql" else ""
+                ddl = f'ALTER TABLE "{table.name}" ADD COLUMN {if_not_exists}"{col.name}" {col.type.compile(engine.dialect)}'
                 conn.execute(text(ddl))
         logger.warning("db: added missing columns %s to %s", [c.name for c in missing], table.name)
 
@@ -132,9 +133,9 @@ def init_db(url: str | None = None) -> None:
     import app.models  # noqa: F401  (register all tables)
 
     if get_settings().app_env == "production":
-        # Deployed schema evolves ONLY through Alembic revisions
-        # (reviewable, downgradable) — never through create_all patching.
+        # Deployed schema evolves through Alembic revisions
         _run_alembic_upgrade()
+        _migrate_missing_columns()
         return
     Base.metadata.create_all(bind=engine)
     _migrate_missing_columns()

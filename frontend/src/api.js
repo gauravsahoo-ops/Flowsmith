@@ -239,6 +239,7 @@ export const api = {
       ...(prompt ? { prompt } : {}),
       ...(extra.clientId ? { client_id: extra.clientId } : {}),
       ...(extra.clientSecret ? { client_secret: extra.clientSecret } : {}),
+      ...(extra.credentialId || extra.credential_id ? { credential_id: extra.credentialId || extra.credential_id } : {}),
     }),
   aiStatus: () => request('GET', '/ai/status'),
   explain: (executionId) => request('POST', '/ai/explain', { execution_id: executionId }),

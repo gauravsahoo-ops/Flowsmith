@@ -68,7 +68,7 @@ describe('CredentialsPage & Reconnection Suite', () => {
     expect(oauthRes.authorize_url).toContain('authorize?state=123')
   })
 
-  it('renders Config button for OAuth credential rows', () => {
+  it('renders Reconnect button for OAuth credential rows without requiring manual config', () => {
     useCredentialStore.setState({
       credentials: [
         {
@@ -87,8 +87,8 @@ describe('CredentialsPage & Reconnection Suite', () => {
     expect(creds.length).toBe(1)
     expect(creds[0].type).toBe('salesforce')
     expect(html).toContain('Credentials')
-    expect(html).toContain('Config')
-    expect(html).toContain('Configure Connected App credentials stored in database')
+    expect(html).toContain('Reconnect')
+    expect(html).not.toContain('<span>Config</span>')
   })
 
   it('saves OAuth Connected App credentials directly to database without env', async () => {

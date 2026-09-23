@@ -75,6 +75,10 @@ class ConnectRequest(BaseModel):
         default=None,
         description="Optional client secret override (from manual configuration or UI).",
     )
+    credential_id: str | None = Field(
+        default=None,
+        description="Optional existing credential ID to inherit client credentials and login URL from.",
+    )
 
 
 def _audit_names(provider_key: str) -> tuple[str, str]:
@@ -144,27 +148,62 @@ def connect_provider(
     purge_stale_states(db)
     body_cid = (body.client_id or "").strip() if body else ""
     body_sec = (body.client_secret or "").strip() if body else ""
+    login_url = ""
+
+    if body and body.credential_id:
+        from app.models.credential import Credential
+        from app.security.crypto import decrypt_text
+        target_cred = db.get(Credential, body.credential_id)
+        if target_cred and target_cred.user_id == user.id:
+            try:
+                c_data = json.loads(decrypt_text(target_cred.data))
+                body_cid = body_cid or (c_data.get("client_id") or "").strip()
+                body_sec = body_sec or (c_data.get("client_secret") or "").strip()
+                if not (body and body.login_url):
+                    login_url = (c_data.get("login_url") or c_data.get("instance_url") or "").strip().rstrip("/")
+            except Exception:
+                pass
+
     client_id, _client_secret, redirect_uri = spec.server_config(
         get_settings(), db=db, user_id=user.id, client_id=body_cid, client_secret=body_sec
     )
-    login_url = _resolve_login_url(spec, body, db=db, user_id=user.id)
+    if not login_url:
+        login_url = _resolve_login_url(spec, body, db=db, user_id=user.id)
 
     verifier, challenge = ("", "")
     if spec.supports_pkce:
         verifier, challenge = pkce_pair()
 
     state = token_urlsafe(32)
-    db.add(
-        OAuthState(
-            state=state,
-            user_id=user.id,
-            login_url=login_url,
-            code_verifier=verifier,
-            client_id=client_id,
-            client_secret=_client_secret,
-        )
+    oauth_row = OAuthState(
+        state=state,
+        user_id=user.id,
+        login_url=login_url,
+        code_verifier=verifier,
+        client_id=client_id,
+        client_secret=_client_secret,
     )
-    db.commit()
+    db.add(oauth_row)
+    try:
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Failed to store OAuthState, attempting self-healing migration: %s", exc)
+        from sqlalchemy import text
+        try:
+            if db.bind and db.bind.dialect.name == "postgresql":
+                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_id VARCHAR(255)"))
+                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_secret VARCHAR(255)"))
+            db.commit()
+            db.add(oauth_row)
+            db.commit()
+        except Exception as retry_exc:
+            db.rollback()
+            logger.error("Could not self-heal oauth_states schema: %s", retry_exc)
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                f"Failed to record OAuth session state: {retry_exc}",
+            )
 
     prompt = (body.prompt or "").strip() if body else ""
     try:
@@ -328,7 +367,17 @@ async def provider_callback(
     existing_rec = get_existing_oauth_credential(db, user, spec.credential_type, account_data=data)
 
     if existing_rec is not None:
-        from app.security.crypto import encrypt_text
+        from app.security.crypto import encrypt_text, decrypt_text
+        try:
+            prev_data = json.loads(decrypt_text(existing_rec.data))
+            if not data.get("client_id") and prev_data.get("client_id"):
+                data["client_id"] = prev_data["client_id"]
+            if not data.get("client_secret") and prev_data.get("client_secret"):
+                data["client_secret"] = prev_data["client_secret"]
+            if not data.get("login_url") and prev_data.get("login_url"):
+                data["login_url"] = prev_data["login_url"]
+        except Exception:
+            pass
         existing_rec.name = name
         existing_rec.data = encrypt_text(json.dumps(data))
         replace_oauth_credential(db, user, spec.credential_type, keep_id=existing_rec.id, account_data=data)
