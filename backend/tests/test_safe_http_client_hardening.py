@@ -354,3 +354,31 @@ async def test_ssrf_blocks_subdomain_localhost_and_dns_resolving_to_loopback() -
     finally:
         await client.close()
 
+
+@pytest.mark.asyncio
+async def test_ssrf_nat64_translation_addresses() -> None:
+    client = SafeHTTPClient(transport=httpx.MockTransport(_handler_ok))
+    try:
+        # Private and loopback NAT64 must be blocked
+        blocked_nat64 = [
+            "http://[64:ff9b::7f00:0001]/",  # 127.0.0.1
+            "http://[64:ff9b::a9fe:a9fe]/",  # 169.254.169.254
+            "http://[64:ff9b::0a00:0001]/",  # 10.0.0.1
+            "http://[64:ff9b::c0a8:0101]/",  # 192.168.1.1
+            "http://[64:ff9b::6440:0001]/",  # 100.64.0.1 (CGNAT)
+        ]
+        for url in blocked_nat64:
+            with pytest.raises(ConnectorError) as exc:
+                await client.get(url)
+            assert exc.value.code == "CONNECTOR_UNAVAILABLE"
+            assert "not allowed" in exc.value.args[0]
+
+        # Public routable NAT64 (e.g. Salesforce 141.163.216.230 -> 64:ff9b::8da3:d8e6) must be permitted
+        resp = await client.get("http://[64:ff9b::8da3:d8e6]/")
+        assert resp.status_code == 200
+        assert resp.json() == {"ok": True}
+    finally:
+        await client.close()
+
+
+

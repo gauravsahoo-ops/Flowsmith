@@ -162,10 +162,18 @@ def _ipv4_blocked(addr: ipaddress.IPv4Address) -> bool:
     return addr in ipaddress.IPv4Network("100.64.0.0/10")
 
 
+_NAT64_PREFIX = ipaddress.IPv6Network("64:ff9b::/96")
+_NAT64_LOCAL_PREFIX = ipaddress.IPv6Network("64:ff9b:1::/48")
+
+
 def _ipv6_blocked(addr: ipaddress.IPv6Address) -> bool:
     mapped = addr.ipv4_mapped
     if mapped is not None:
         return _ipv4_blocked(mapped)
+    if addr in _NAT64_PREFIX or addr in _NAT64_LOCAL_PREFIX:
+        # RFC 6052 & RFC 8215: IPv4 address is embedded in the last 32 bits (bytes 12-15)
+        embedded_v4 = ipaddress.IPv4Address(addr.packed[-4:])
+        return _ipv4_blocked(embedded_v4)
     return (
         addr.is_loopback
         or addr.is_private
@@ -174,6 +182,7 @@ def _ipv6_blocked(addr: ipaddress.IPv6Address) -> bool:
         or addr.is_unspecified
         or addr.is_reserved
     )
+
 
 
 def _is_blocked_host(host: str) -> bool:
