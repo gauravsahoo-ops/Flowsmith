@@ -36,7 +36,20 @@ from app.security.jwt import create_token, decode_token, hash_password, revoke_t
 # Helpers
 # ---------------------------------------------------------------------------
 
-client = TestClient(app, raise_server_exceptions=False)
+class _LazyClient:
+    def __init__(self):
+        self._c = None
+
+    def _client(self):
+        if self._c is None:
+            self._c = TestClient(app, raise_server_exceptions=False)
+        return self._c
+
+    def __getattr__(self, name):
+        return getattr(self._client(), name)
+
+
+client = _LazyClient()
 
 
 def _register(email: str, password: str = "StrongPass1!") -> dict:

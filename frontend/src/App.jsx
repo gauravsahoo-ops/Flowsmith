@@ -139,9 +139,22 @@ export default function App() {
     // Handle OAuth popup callback even when not authed (popup window has no token)
     if (handleOAuthPopup()) return
     function onExpired() {
+      setToken(null)
       setAuthed(false)
     }
     window.addEventListener('auth:expired', onExpired)
+
+    // Validate stored token against the server on startup
+    const token = getToken()
+    if (token) {
+      api.getMe().catch((err) => {
+        if (err.status === 401) {
+          setToken(null)
+          setAuthed(false)
+        }
+      })
+    }
+
     return () => window.removeEventListener('auth:expired', onExpired)
   }, [])
 

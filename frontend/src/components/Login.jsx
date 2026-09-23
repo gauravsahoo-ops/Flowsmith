@@ -105,8 +105,6 @@ export default function Login({ onAuthed }) {
     window.location.href = `/api/auth/sso/${providerId}/login`
   }
 
-  if (getToken()) return null
-
   return (
     <div className="login-screen">
       {/* Background Ambient Glow Orbs */}

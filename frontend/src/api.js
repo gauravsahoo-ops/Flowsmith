@@ -74,15 +74,10 @@ async function requestEnvelope(method, path, body, opts = {}) {
   }
 
   if (resp.status === 401) {
-    // Only clear token and redirect if this 401 came from Flowsmith user auth,
-    // NOT from third-party connectors or external integration errors (e.g. LLMs, Salesforce, HTTP requests).
-    const isExternalService =
-      path.startsWith('/connectors') ||
-      path.startsWith('/executions') ||
-      path.startsWith('/ai') ||
-      path.startsWith('/credentials') ||
-      path.startsWith('/oauth')
-    if (!isExternalService) {
+    // Only suppress auto-logout if this 401 is from testing a 3rd-party credential,
+    // NOT from Flowsmith user auth failing.
+    const isConnectorTest = path.includes('/test') || path.startsWith('/connectors/')
+    if (!isConnectorTest) {
       setToken(null)
       window.dispatchEvent(new Event('auth:expired'))
     }
