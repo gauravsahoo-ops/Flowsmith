@@ -48,21 +48,6 @@ export default function CredentialsPage() {
   const [testingId, setTestingId] = useState(null)
   const [testResult, setTestResult] = useState(null)
   const [reconnectingId, setReconnectingId] = useState(null)
-  const [configModal, setConfigModal] = useState({
-    open: false,
-    mode: 'provider',
-    credential: null,
-    provider: 'salesforce',
-    clientId: '',
-    clientSecret: '',
-    loginUrl: '',
-    hasSecret: false,
-    saving: false,
-    error: null,
-    notice: null,
-    prompt: '',
-  })
-  const [showSecret, setShowSecret] = useState(false)
   const mountedRef = useRef(true)
   const oauthCleanupRef = useRef(null)
 
@@ -98,75 +83,6 @@ export default function CredentialsPage() {
   const schema = types.find(t => t.type === form.type)?.parameters_schema
   const secretFields = new Set(types.find(t => t.type === form.type)?.secret_fields || [])
   const isOAuthType = ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(form.type)
-
-  async function openProviderConfig(provider, prompt = '') {
-    setConfigModal({
-      open: true,
-      mode: 'provider',
-      credential: null,
-      provider,
-      clientId: '',
-      clientSecret: '',
-      loginUrl: '',
-      hasSecret: false,
-      saving: false,
-      error: null,
-      notice: null,
-      prompt,
-    })
-    setShowSecret(false)
-    try {
-      const cfg = await api.getOAuthConfig(provider)
-      if (cfg) {
-        setConfigModal(prev => ({
-          ...prev,
-          clientId: cfg.client_id || '',
-          loginUrl: cfg.login_url || '',
-          hasSecret: Boolean(cfg.has_secret),
-        }))
-      }
-    } catch {}
-  }
-
-  async function handleSaveConfig(andConnect = false) {
-    if (!configModal.clientId.trim()) {
-      setConfigModal(prev => ({ ...prev, error: 'Client ID (Consumer Key) is required.' }))
-      return
-    }
-    if (!configModal.clientSecret.trim() && !configModal.hasSecret) {
-      setConfigModal(prev => ({ ...prev, error: 'Client Secret (Consumer Secret) is required.' }))
-      return
-    }
-    setConfigModal(prev => ({ ...prev, saving: true, error: null, notice: null }))
-    try {
-      const payload = {
-        client_id: configModal.clientId.trim(),
-        client_secret: configModal.clientSecret.trim() || undefined,
-        login_url: configModal.loginUrl.trim() || undefined,
-      }
-      if (configModal.mode === 'credential' && configModal.credential?.id) {
-        await api.updateCredentialConfig(configModal.credential.id, payload)
-      }
-      if (payload.client_secret) {
-        await api.saveOAuthConfig(configModal.provider, payload)
-      }
-      setNotice('Connected App configuration saved to database.')
-      const provider = configModal.provider
-      const loginUrl = configModal.loginUrl.trim() || undefined
-      const cred = configModal.credential
-      setConfigModal(prev => ({ ...prev, open: false, saving: false }))
-      await load()
-      if (andConnect) {
-        if (cred) {
-          await handleReconnect(cred)
-        } else {
-          await handleOAuth(provider, loginUrl)
-        }
-      }
-    } catch (err) {
-      setConfigModal(prev => ({ ...prev, saving: false, error: err.message || 'Failed to save configuration.' }))
-    }
-  }
 
   async function handleReconnect(c) {
     setReconnectingId(c.id)
@@ -805,15 +721,6 @@ export default function CredentialsPage() {
               >
                 {oauthBusy ? 'Connecting…' : (credentials.some(c => c.type === form.type) ? `+ Connect another ${form.type.replace(/_/g, ' ')} account` : `Connect ${form.type.replace(/_/g, ' ')}`)}
               </button>
-              <button
-                type="button"
-                className="ghost small"
-                onClick={() => openProviderConfig(form.type)}
-                title="Configure custom Client ID / Secret for this OAuth provider"
-                style={{ fontSize: 12 }}
-              >
-                ⚙️ Configure OAuth App
-              </button>
             </div>
             {fallbackUrl && (
               <div style={{ marginTop: 8, wordBreak: 'break-all' }}>
@@ -918,158 +825,6 @@ export default function CredentialsPage() {
           }
         }}
       />
-
-      {configModal.open && (
-        <div className="overlay" onClick={() => !configModal.saving && setConfigModal(p => ({ ...p, open: false }))}>
-          <div
-            className="confirm-dialog"
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Configure Connected App"
-            style={{ maxWidth: 540, width: '100%' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <NodeIcon type={configModal.provider} size={22} />
-                <h3 style={{ margin: 0, textTransform: 'capitalize' }}>
-                  {configModal.provider.replace(/_/g, ' ')} Connected App (Database)
-                </h3>
-              </div>
-              <button
-                type="button"
-                className="ghost small"
-                onClick={() => setConfigModal(p => ({ ...p, open: false }))}
-                disabled={configModal.saving}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div
-              style={{
-                fontSize: 12,
-                lineHeight: 1.5,
-                padding: '10px 12px',
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                borderRadius: 6,
-                marginBottom: 14,
-              }}
-            >
-              🔒 <strong>Stored Encrypted in Database:</strong> Credentials are encrypted with Fernet (256-bit AES) and saved directly in PostgreSQL. No server <code>.env</code> file changes or container restarts are needed.
-            </div>
-
-            {configModal.prompt && (
-              <div className="banner-inline err" style={{ marginBottom: 12, fontSize: 12 }}>
-                {configModal.prompt}
-              </div>
-            )}
-            {configModal.error && (
-              <div className="banner-inline err" style={{ marginBottom: 12, fontSize: 12 }}>
-                {configModal.error}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600 }}>
-                <span>Consumer Key (Client ID) <span style={{ color: 'var(--red, #f87171)' }}>*</span></span>
-                <input
-                  type="text"
-                  placeholder="e.g. 3MVG97L7PWbPq6UzeixCsscpT5gtAB..."
-                  value={configModal.clientId}
-                  onChange={e => setConfigModal({ ...configModal, clientId: e.target.value })}
-                  style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
-                  disabled={configModal.saving}
-                />
-              </label>
-
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>
-                    Consumer Secret (Client Secret){' '}
-                    {configModal.hasSecret && <span className="hint" style={{ fontWeight: 400 }}>(Already saved in database)</span>}
-                  </span>
-                  <button
-                    type="button"
-                    className="ghost small"
-                    onClick={() => setShowSecret(v => !v)}
-                    style={{ fontSize: 11, padding: '1px 6px' }}
-                  >
-                    {showSecret ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                <input
-                  type={showSecret ? 'text' : 'password'}
-                  placeholder={configModal.hasSecret ? '•••••••••••••••• (Leave blank to keep existing secret)' : 'Paste Consumer Secret...'}
-                  value={configModal.clientSecret}
-                  onChange={e => setConfigModal({ ...configModal, clientSecret: e.target.value })}
-                  style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
-                  disabled={configModal.saving}
-                />
-              </label>
-
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600 }}>
-                <span>Login URL / Domain (Optional)</span>
-                <input
-                  type="text"
-                  placeholder="https://login.salesforce.com or https://your-domain.my.salesforce.com"
-                  value={configModal.loginUrl}
-                  onChange={e => setConfigModal({ ...configModal, loginUrl: e.target.value })}
-                  style={{ width: '100%', fontSize: 12 }}
-                  disabled={configModal.saving}
-                />
-                <span className="hint" style={{ fontSize: 11 }}>
-                  Leave blank for standard login or enter custom My Domain if your Salesforce org requires it.
-                </span>
-              </label>
-
-              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 10px', borderRadius: 6, fontSize: 11 }}>
-                <span style={{ fontWeight: 600 }}>Salesforce Callback URL:</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                  <code style={{ flex: 1, padding: '4px 6px', background: 'rgba(0,0,0,0.2)', borderRadius: 4, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {`${window.location.origin}/api/auth/salesforce/callback`}
-                  </code>
-                  <button
-                    type="button"
-                    className="ghost small"
-                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/api/auth/salesforce/callback`)}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="confirm-actions" style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => setConfigModal(p => ({ ...p, open: false }))}
-                disabled={configModal.saving}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => handleSaveConfig(false)}
-                disabled={configModal.saving || !configModal.clientId.trim()}
-              >
-                {configModal.saving ? 'Saving…' : 'Save to Database'}
-              </button>
-              <button
-                type="button"
-                className="primary"
-                onClick={() => handleSaveConfig(true)}
-                disabled={configModal.saving || !configModal.clientId.trim()}
-              >
-                {configModal.saving ? 'Saving…' : (configModal.mode === 'credential' ? 'Save & Reconnect' : 'Save & Connect')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
