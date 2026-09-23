@@ -87,7 +87,7 @@ export default function WorkflowEditorPage() {
 
   const handleToggleSidebar = () => {
     if (debuggerOpen) setDebuggerOpen(false)
-    if (aiChatOpen) setAiChatOpen(false)
+    if (smithOpen) setSmithOpen(false)
     toggleSidebar()
   }
 
@@ -143,7 +143,7 @@ export default function WorkflowEditorPage() {
           onLogout={() => { setToken(null); window.location.reload() }}
           onOpenHistory={() => {
             if (debuggerOpen) setDebuggerOpen(false)
-            if (aiChatOpen) setAiChatOpen(false)
+            if (smithOpen) setSmithOpen(false)
             useUiStore.getState().toggleHistoryDrawer()
           }}
           onOpenApprovals={() => navigate('/approvals')}
@@ -198,7 +198,7 @@ export default function WorkflowEditorPage() {
             <div className={`nodes-palette-wrap ${sidebarOpen ? 'is-open' : 'is-closed'}`}>
               <Sidebar onOpenCredentials={() => navigate('/credentials')} />
             </div>
-            {!debuggerOpen && !historyDrawerOpen && !aiChatOpen && (
+            {!debuggerOpen && !historyDrawerOpen && !smithOpen && (
               <button
                 type="button"
                 className={`sidebar-unhide-btn ${sidebarOpen ? 'is-hidden' : ''}`}
