@@ -677,4 +677,82 @@ def test_connect_uses_request_body_client_credentials(client, monkeypatch):
     assert "client_id=OVERRIDE_CID_123" in data["authorize_url"]
 
 
+def test_database_oauth_config_save_and_connect(client, monkeypatch):
+    """Saving OAuth Connected App config in database allows connecting when env has empty keys."""
+    from app.api import oauth as oauth_mod
+
+    empty = Settings(
+        salesforce_client_id="",
+        salesforce_client_secret="",
+        salesforce_redirect_uri="",
+        public_url="https://flowsmith.dev.idslogic.net",
+    )
+    monkeypatch.setattr(oauth_mod, "get_settings", lambda: empty)
+
+    headers = _setup(client)
+
+    # 1. Check initially unconfigured
+    get_res = client.get("/api/credentials/oauth-config/salesforce", headers=headers)
+    assert get_res.status_code == 200
+    assert get_res.json()["data"]["configured"] is False
+
+    # 2. Save Connected App credentials in database
+    save_res = client.post(
+        "/api/credentials/oauth-config/salesforce",
+        json={
+            "client_id": "3MVG9_DB_APP_KEY",
+            "client_secret": "DB_APP_SECRET_999",
+            "login_url": "https://test.salesforce.com",
+        },
+        headers=headers,
+    )
+    assert save_res.status_code == 200, save_res.text
+    assert save_res.json()["data"]["configured"] is True
+
+    # 3. Check now configured in database
+    get_res2 = client.get("/api/credentials/oauth-config/salesforce", headers=headers)
+    assert get_res2.status_code == 200
+    assert get_res2.json()["data"]["configured"] is True
+    assert "3MVG9_DB_APP_KEY" in get_res2.json()["data"]["client_id"]
+
+    # 4. Connect now succeeds without server env!
+    resp = client.post("/api/auth/salesforce/connect", json={}, headers=headers)
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert "client_id=3MVG9_DB_APP_KEY" in data["authorize_url"]
+    assert data["authorize_url"].startswith("https://test.salesforce.com/services/oauth2/authorize?")
+
+
+def test_update_credential_config_patch(client, monkeypatch):
+    """PATCH /api/credentials/{id}/config updates credentials directly in database."""
+    headers = _setup(client)
+    create_res = client.post(
+        "/api/credentials",
+        json={
+            "name": "My Old SF Account",
+            "type": "salesforce",
+            "data": {
+                "instance_url": "https://login.salesforce.com",
+                "refresh_token": "token123",
+                "oauth": True,
+            },
+        },
+        headers=headers,
+    )
+    assert create_res.status_code == 201
+    cred_id = create_res.json()["data"]["id"]
+
+    patch_res = client.patch(
+        f"/api/credentials/{cred_id}/config",
+        json={
+            "client_id": "PATCHED_CID",
+            "client_secret": "PATCHED_SEC",
+            "login_url": "https://patched.my.salesforce.com",
+        },
+        headers=headers,
+    )
+    assert patch_res.status_code == 200, patch_res.text
+    assert patch_res.json()["data"]["id"] == cred_id
+
+
 

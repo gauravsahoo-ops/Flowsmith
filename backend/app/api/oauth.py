@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import UTC, datetime, timedelta
+from secrets import token_urlsafe
 from urllib.parse import quote, urlparse
 
 from app.credentials.service import create_for_user
@@ -100,14 +101,20 @@ def _resolve_login_url(spec, body: ConnectRequest | None, db: Session | None = N
             from app.models.credential import Credential
             from app.security.crypto import decrypt_text
 
-            query = select(Credential).where(Credential.type == spec.credential_type)
+            types_to_check = [
+                spec.credential_type,
+                f"{spec.credential_type}_oauth_config",
+                f"{spec.key}_oauth_config",
+                spec.key,
+            ]
+            query = select(Credential).where(Credential.type.in_(types_to_check))
             if user_id:
                 query = query.where(Credential.user_id == user_id)
             for rec in db.scalars(query.order_by(Credential.created_at.desc())).all():
                 try:
                     d = json.loads(decrypt_text(rec.data))
                     db_url = (d.get("login_url") or d.get("instance_url") or "").strip()
-                    if db_url and "orgfarm" in db_url:
+                    if db_url and db_url.startswith("http"):
                         return db_url.rstrip("/")
                 except Exception:
                     continue
@@ -146,10 +153,17 @@ def connect_provider(
     if spec.supports_pkce:
         verifier, challenge = pkce_pair()
 
-    from secrets import token_urlsafe
-
     state = token_urlsafe(32)
-    db.add(OAuthState(state=state, user_id=user.id, login_url=login_url, code_verifier=verifier))
+    db.add(
+        OAuthState(
+            state=state,
+            user_id=user.id,
+            login_url=login_url,
+            code_verifier=verifier,
+            client_id=client_id,
+            client_secret=_client_secret,
+        )
+    )
     db.commit()
 
     prompt = (body.prompt or "").strip() if body else ""
@@ -225,7 +239,13 @@ async def provider_callback(
     row.used = True
     db.commit()
 
-    client_id, client_secret, redirect_uri = spec.server_config(settings, db=db, user_id=user.id)
+    client_id, client_secret, redirect_uri = spec.server_config(
+        settings,
+        db=db,
+        user_id=user.id,
+        client_id=getattr(row, "client_id", None),
+        client_secret=getattr(row, "client_secret", None),
+    )
     login_url = (row.login_url or "").rstrip("/")
 
     assert spec.token_request is not None and spec.token_headers is not None, f'provider {provider} misconfigured'

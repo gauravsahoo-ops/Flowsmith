@@ -125,6 +125,198 @@ async def reconnect_credential_endpoint(
     return ok(res)
 
 
+class CredentialUpdateConfig(BaseModel):
+    client_id: str | None = None
+    client_secret: str | None = None
+    login_url: str | None = None
+    instance_url: str | None = None
+
+
+class OAuthConfigPayload(BaseModel):
+    client_id: str
+    client_secret: str
+    login_url: str | None = None
+    redirect_uri: str | None = None
+
+
+@router.get("/oauth-config/{provider}")
+def get_oauth_provider_config(
+    provider: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Check if OAuth Connected App credentials exist in database for this provider."""
+    import json
+    from sqlalchemy import select
+    from app.models.credential import Credential
+    from app.security.crypto import decrypt_text
+    from app.oauth_providers import get_provider
+
+    try:
+        spec = get_provider(provider)
+    except Exception:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown OAuth provider: {provider}")
+
+    query = select(Credential).where(
+        Credential.type.in_([
+            f"{provider}_oauth_config",
+            f"{spec.credential_type}_oauth_config",
+            spec.credential_type,
+            provider,
+        ])
+    )
+    candidates = list(
+        db.scalars(query.where(Credential.user_id == user.id).order_by(Credential.created_at.desc())).all()
+    )
+    if not candidates:
+        candidates = list(db.scalars(query.order_by(Credential.created_at.desc())).all())
+
+    for cand in candidates:
+        try:
+            data = json.loads(decrypt_text(cand.data))
+            cid = (data.get("client_id") or "").strip()
+            csec = (data.get("client_secret") or "").strip()
+            if cid and csec:
+                masked_cid = f"{cid[:8]}...{cid[-4:]}" if len(cid) > 12 else cid
+                return ok({
+                    "configured": True,
+                    "client_id": cid,
+                    "client_id_preview": masked_cid,
+                    "has_secret": True,
+                    "login_url": data.get("login_url") or "",
+                    "instance_url": data.get("instance_url") or "",
+                    "source": "database",
+                })
+        except Exception:
+            continue
+
+    return ok({
+        "configured": False,
+        "client_id": "",
+        "client_id_preview": "",
+        "has_secret": False,
+        "login_url": "",
+        "instance_url": "",
+        "source": None,
+    })
+
+
+@router.post("/oauth-config/{provider}")
+def save_oauth_provider_config(
+    provider: str,
+    body: OAuthConfigPayload,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Save or update OAuth Connected App credentials in the database (Fernet-encrypted)."""
+    import json
+    import secrets
+    from sqlalchemy import select
+    from app.models.credential import Credential
+    from app.security.crypto import decrypt_text, encrypt_text
+    from app.oauth_providers import get_provider
+
+    try:
+        spec = get_provider(provider)
+    except Exception:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown OAuth provider: {provider}")
+
+    cid = body.client_id.strip()
+    csec = body.client_secret.strip()
+    if not cid or not csec:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "client_id and client_secret are required.")
+
+    config_type = f"{provider}_oauth_config"
+    existing = db.scalars(
+        select(Credential).where(
+            Credential.type == config_type,
+            Credential.user_id == user.id,
+        )
+    ).first()
+
+    data_payload = {
+        "client_id": cid,
+        "client_secret": csec,
+        "login_url": (body.login_url or "").strip(),
+        "redirect_uri": (body.redirect_uri or "").strip(),
+    }
+
+    if existing:
+        existing.data = encrypt_text(json.dumps(data_payload, ensure_ascii=False))
+        db.commit()
+        db.refresh(existing)
+    else:
+        new_rec = Credential(
+            id=f"cfg_{secrets.token_hex(6)}",
+            user_id=user.id,
+            name=f"{spec.display_name} Connected App (Database Config)",
+            type=config_type,
+            data=encrypt_text(json.dumps(data_payload, ensure_ascii=False)),
+        )
+        db.add(new_rec)
+        db.commit()
+
+    # Backfill any existing credentials of this type that have empty client_id/secret
+    creds_to_update = db.scalars(
+        select(Credential).where(
+            Credential.type == spec.credential_type,
+            Credential.user_id == user.id,
+        )
+    ).all()
+    for c in creds_to_update:
+        try:
+            c_data = json.loads(decrypt_text(c.data))
+            if not c_data.get("client_id") or not c_data.get("client_secret"):
+                c_data["client_id"] = cid
+                c_data["client_secret"] = csec
+                if body.login_url and not c_data.get("login_url"):
+                    c_data["login_url"] = body.login_url.strip()
+                c.data = encrypt_text(json.dumps(c_data, ensure_ascii=False))
+        except Exception:
+            pass
+    db.commit()
+
+    return ok({
+        "configured": True,
+        "message": f"{spec.display_name} Connected App credentials saved securely to database.",
+    })
+
+
+@router.patch("/{credential_id}/config")
+def update_credential_config(
+    credential_id: str,
+    body: CredentialUpdateConfig,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Update connection/OAuth config (client_id, client_secret, login_url) directly in the database."""
+    import json
+    from app.models.credential import Credential
+    from app.security.crypto import decrypt_text, encrypt_text
+
+    rec = db.get(Credential, credential_id)
+    if rec is None or rec.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Credential not found.")
+    try:
+        data = json.loads(decrypt_text(rec.data))
+    except Exception:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Cannot decrypt credential.")
+
+    if body.client_id is not None:
+        data["client_id"] = body.client_id.strip()
+    if body.client_secret is not None:
+        data["client_secret"] = body.client_secret.strip()
+    if body.login_url is not None:
+        data["login_url"] = body.login_url.strip()
+    if body.instance_url is not None:
+        data["instance_url"] = body.instance_url.strip()
+
+    rec.data = encrypt_text(json.dumps(data, ensure_ascii=False))
+    db.commit()
+    db.refresh(rec)
+    return ok({"id": rec.id, "name": rec.name, "type": rec.type, "message": "Credential configuration updated in database."})
+
+
 @router.post("/{credential_id}/test")
 async def test_credential(
     credential_id: str,

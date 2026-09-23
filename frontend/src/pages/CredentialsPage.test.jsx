@@ -23,6 +23,7 @@ describe('CredentialsPage & Reconnection Suite', () => {
       types: [
         { type: 'salesforce', name: 'Salesforce', implemented: true },
       ],
+      loaded: true,
       load: vi.fn().mockResolvedValue([]),
     })
   })
@@ -65,5 +66,58 @@ describe('CredentialsPage & Reconnection Suite', () => {
       'https://custom.my.salesforce.com'
     )
     expect(oauthRes.authorize_url).toContain('authorize?state=123')
+  })
+
+  it('renders Config button for OAuth credential rows', () => {
+    useCredentialStore.setState({
+      credentials: [
+        {
+          id: 'cred_dcb',
+          name: 'Salesforce (gaurav.sahoo@idslogic.com)',
+          type: 'salesforce',
+        },
+      ],
+      types: [
+        { type: 'salesforce', name: 'Salesforce', implemented: true },
+      ],
+      loaded: true,
+    })
+    const creds = useCredentialStore.getState().credentials
+    const html = renderToStaticMarkup(React.createElement(CredentialsPage))
+    expect(creds.length).toBe(1)
+    expect(creds[0].type).toBe('salesforce')
+    expect(html).toContain('Credentials')
+    expect(html).toContain('Config')
+    expect(html).toContain('Configure Connected App credentials stored in database')
+  })
+
+  it('saves OAuth Connected App credentials directly to database without env', async () => {
+    const saveSpy = vi.spyOn(api, 'saveOAuthConfig').mockResolvedValueOnce({
+      configured: true,
+      message: 'Salesforce Connected App credentials saved securely to database.',
+    })
+    const updateSpy = vi.spyOn(api, 'updateCredentialConfig').mockResolvedValueOnce({
+      id: 'cred_dcb',
+      name: 'Salesforce (gaurav.sahoo@idslogic.com)',
+      message: 'Credential configuration updated in database.',
+    })
+
+    await api.updateCredentialConfig('cred_dcb', {
+      client_id: '3MVG9_TEST_KEY',
+      client_secret: 'TEST_SECRET_123',
+    })
+    expect(updateSpy).toHaveBeenCalledWith('cred_dcb', {
+      client_id: '3MVG9_TEST_KEY',
+      client_secret: 'TEST_SECRET_123',
+    })
+
+    await api.saveOAuthConfig('salesforce', {
+      client_id: '3MVG9_TEST_KEY',
+      client_secret: 'TEST_SECRET_123',
+    })
+    expect(saveSpy).toHaveBeenCalledWith('salesforce', {
+      client_id: '3MVG9_TEST_KEY',
+      client_secret: 'TEST_SECRET_123',
+    })
   })
 })

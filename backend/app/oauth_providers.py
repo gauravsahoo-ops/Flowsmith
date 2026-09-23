@@ -90,7 +90,13 @@ class OAuthProviderSpec:
                 from app.models.credential import Credential
                 from app.security.crypto import decrypt_text
 
-                query = select(Credential).where(Credential.type == self.credential_type)
+                types_to_check = [
+                    self.credential_type,
+                    f"{self.credential_type}_oauth_config",
+                    f"{self.key}_oauth_config",
+                    self.key,
+                ]
+                query = select(Credential).where(Credential.type.in_(types_to_check))
                 candidates = []
                 if user_id:
                     candidates = list(
@@ -119,7 +125,7 @@ class OAuthProviderSpec:
         if not cid or not csecret:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
-                f"{self.display_name} OAuth is not configured on the server "
+                f"{self.display_name} OAuth is not configured on the server or in database "
                 f"({self.key.upper()}_CLIENT_ID/{self.key.upper()}_CLIENT_SECRET).",
             )
         if not redirect:
@@ -253,6 +259,8 @@ def _sf_credential_data(
     token_payload: dict[str, Any],
     login_url: str,
     label: str = "",
+    client_id: str = "",
+    client_secret: str = "",
     **kwargs: Any,
 ) -> dict[str, Any]:
     import time
@@ -261,6 +269,11 @@ def _sf_credential_data(
         exp_at = time.time() + float(expires_in)
     except Exception:
         exp_at = time.time() + 7200
+    cid = (client_id or kwargs.get("client_id") or "").strip()
+    csec = (client_secret or kwargs.get("client_secret") or "").strip()
+    if settings.salesforce_client_id:
+        cid = ""
+        csec = ""
     return {
         "instance_url": str(token_payload.get("instance_url", "")).rstrip("/"),
         "login_url": login_url,
@@ -271,8 +284,8 @@ def _sf_credential_data(
         "user_id_url": str(token_payload.get("id", "")).strip(),
         "oauth": True,
         "api_version": settings.salesforce_api_version,
-        "client_id": "",
-        "client_secret": "",
+        "client_id": cid,
+        "client_secret": csec,
     }
 
 
