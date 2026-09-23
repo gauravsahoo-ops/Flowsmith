@@ -1,7 +1,7 @@
-# Flowsmith Complete User Manual (A to Z Guide)
+# Flowsmith Master User Manual (Complete A to Z Guide)
 
 > **Who is this guide for?**  
-> Everyone! Whether you are a **business owner, sales rep, operations manager, IT specialist, or software engineer**, this manual covers everything in Flowsmith from **A to Z** in simple, plain English—with no coding experience required.
+> **Everyone!** Whether you are a **business owner, sales rep, operations manager, IT administrator, or software engineer**, this master manual covers every single feature of Flowsmith from **A to Z** in simple, plain English—with visual diagrams, click-by-click instructions, and real-world examples. **No coding experience is required.**
 
 ---
 
@@ -9,33 +9,33 @@
 
 1. [Flowsmith in 60 Seconds (The Big Picture)](#1-flowsmith-in-60-seconds-the-big-picture)
 2. [Everyday Real-World Examples](#2-everyday-real-world-examples)
-3. [The Flowsmith Interface (Screen Tour)](#3-the-flowsmith-interface-screen-tour)
+3. [The Flowsmith Interface (Complete Screen Tour)](#3-the-flowsmith-interface-complete-screen-tour)
 4. [The 4 Basic Building Blocks (The "Lego" Pieces)](#4-the-4-basic-building-blocks-the-lego-pieces)
 5. [5-Minute Quick Start: Building Your First Automation](#5-5-minute-quick-start-building-your-first-automation)
 6. [Using AI to Build Workflows For You ("From AI ✨")](#6-using-ai-to-build-workflows-for-you-from-ai-)
 7. [The Complete Card Catalog (Every Node Explained)](#7-the-complete-card-catalog-every-node-explained)
-   - [Triggers (Starting Points)](#71-triggers-starting-points)
-   - [App Connectors (Salesforce, Google, Slack, etc.)](#72-app-connectors-salesforce-google-slack-etc)
-   - [Logic & Routing (Decisions, Splits & Merges)](#73-logic--routing-decisions-splits--merges)
-   - [Data Transforms (Calculations, Filtering, Code)](#74-data-transforms-calculations-filtering-code)
-   - [AI & Knowledge (Agents, Summarizers, RAG)](#75-ai--knowledge-agents-summarizers-rag)
+   - [7.1. Triggers (Starting Events)](#71-triggers-starting-events)
+   - [7.2. App Connectors (Salesforce, Google, Slack, Stripe, etc.)](#72-app-connectors-salesforce-google-slack-stripe-etc)
+   - [7.3. Logic & Routing (Decisions, Splits & Merges)](#73-logic--routing-decisions-splits--merges)
+   - [7.4. Data Transforms (Calculations, Filtering, Code, Token Manager)](#74-data-transforms-calculations-filtering-code-token-manager)
+   - [7.5. AI & Knowledge (Autonomous Agents, Summarizers, RAG)](#75-ai--knowledge-autonomous-agents-summarizers-rag)
 8. [Connecting Your Accounts (Credentials & 1-Click OAuth)](#8-connecting-your-accounts-credentials--1-click-oauth)
-   - [1-Click Connecting](#81-1-click-connecting)
-   - [Checking Status (Connected vs. Expired)](#82-checking-status-connected-vs-expired)
-   - [1-Click Reconnect](#83-1-click-reconnect)
-   - [Security Guarantee](#84-security-guarantee)
+   - [8.1. How to Connect an Account (Salesforce, Google, Slack)](#81-how-to-connect-an-account-salesforce-google-slack)
+   - [8.2. Dynamic Session Status (Connected vs. Session Expired)](#82-dynamic-session-status-connected-vs-session-expired)
+   - [8.3. 1-Click Reconnect (Instant Session Renewal)](#83-1-click-reconnect-instant-session-renewal)
+   - [8.4. Enterprise Security & Encryption Guarantee](#84-enterprise-security--encryption-guarantee)
 9. [Passing Information Between Steps (The "Mail Merge" Engine)](#9-passing-information-between-steps-the-mail-merge-engine)
-10. [Environment Variables & Secrets (`/variables`)](#10-environment-variables--secrets-variables)
+10. [Workspace Environment Variables & Encrypted Secrets (`/variables`)](#10-workspace-environment-variables--encrypted-secrets-variables)
 11. [Built-In Relational Data Tables (`/data-tables`)](#11-built-in-relational-data-tables-data-tables)
 12. [Human Approvals & Review Gates (`/approvals`)](#12-human-approvals--review-gates-approvals)
 13. [AI & RAG Knowledge Base (`/knowledge`)](#13-ai--rag-knowledge-base-knowledge)
-14. [Templates, Sharing, Importing & Exporting](#14-templates-sharing-importing--exporting)
+14. [Templates, Sharing, Importing & Exporting (`/templates`)](#14-templates-sharing-importing--exporting-templates)
 15. [Testing, Debugging & Monitoring](#15-testing-debugging--monitoring)
-    - [Testing Single Steps vs. Full Canvas](#151-testing-single-steps-vs-full-canvas)
-    - [Data Pinning (Mocking Data)](#152-data-pinning-mocking-data)
-    - [Console Drawer & Execution Traces](#153-console-drawer--execution-traces)
-    - [Version History & 1-Click Rollback](#154-version-history--1-click-rollback)
-16. [Custom Connectors & OpenAPI / cURL Importer](#16-custom-connectors--openapi--curl-importer)
+    - [15.1. Testing Single Steps vs. Full Canvas](#151-testing-single-steps-vs-full-canvas)
+    - [15.2. Data Pinning (Mocking Data for Risk-Free Testing)](#152-data-pinning-mocking-data-for-risk-free-testing)
+    - [15.3. Console Drawer & Step Execution Logs](#153-console-drawer--step-execution-logs)
+    - [15.4. Version History & 1-Click Rollback](#154-version-history--1-click-rollback)
+16. [Custom Connectors & OpenAPI / cURL Importer (`/connectors`)](#16-custom-connectors--openapi--curl-importer-connectors)
 17. [White-Labeling & Brand Change (Make It Your Own Platform)](#17-white-labeling--brand-change-make-it-your-own-platform)
 18. [Keyboard Shortcuts & Canvas Navigation](#18-keyboard-shortcuts--canvas-navigation)
 19. [A to Z Complete Glossary (Every Tech Term Defined)](#19-a-to-z-complete-glossary-every-tech-term-defined)
@@ -50,47 +50,66 @@ Think of Flowsmith like a **super-smart digital conveyor belt** connecting all o
 Whenever something happens in one app (like a customer submitting a form on your website), Flowsmith automatically picks up that data, checks your business rules, and performs actions across your other apps (like saving the record in Salesforce, notifying your team in Slack, and emailing the customer).
 
 ```
-   [ 🚪 Doorbell rings ]        ──────►     [ 🔍 Check Rule ]      ──────►    [ 🤖 Robot Helper ]
-"A new lead fills out a form"              "Is order > $100?"               "Add to Salesforce & send email"
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                HOW FLOWSMITH WORKS                                     │
+├─────────────────────────┬──────────────────────────────┬───────────────────────────────┤
+│  1. EVENT (Trigger)     │  2. DECISION (Logic)         │  3. ACTION (Integrations)     │
+│  "A customer fills out  │  "Is their budget over       │  "Add to Salesforce, notify   │
+│   a contact form"       │   $5,000?"                   │   Slack, send welcome email"  │
+│                         │                              │                               │
+│  [ 🚪 Webhook Form ] ──►│  [ 🔍 IF Budget > 5000 ] ───►│  [ 🔵 Salesforce Lead ]       │
+│                         │             │ (No)           │  [ 💬 Slack Channel Alert ]   │
+│                         │             ▼                │  [ ✉️ Welcome Email ]         │
+│                         │  [ ✉️ Send Brochure ]        │                               │
+└─────────────────────────┴──────────────────────────────┴───────────────────────────────┘
 ```
 
-- **Visual Canvas**: You build everything by dragging visual cards onto a canvas and connecting them with lines—just like drawing a flowchart.
-- **Zero Coding Required**: Over 95% of workflows can be built purely with point-and-click settings.
-- **Unlimited & Private**: Self-hosted on your own servers with zero per-run fees and 100% encrypted data security.
+### Why Companies Use Flowsmith:
+- **No More Manual Data Entry**: Stop copying and pasting customer emails, order numbers, and ticket notes between tools.
+- **Visual & Intuitive**: Build everything by dragging cards on a canvas and connecting them with wires—just like drawing a flowchart.
+- **Zero Coding Required**: Over 95% of automations can be built purely with point-and-click settings.
+- **100% Private & Secure**: Self-hosted on your own infrastructure with zero per-run fees and military-grade encryption at rest.
 
 ---
 
 ## 2. Everyday Real-World Examples
 
+Here are 3 detailed examples of how organizations use Flowsmith every day:
+
 ### Example 1: Sales Lead Capture & Instant Follow-Up
-- **What happens**: A prospect fills out the "Contact Us" form on your website.
-- **What Flowsmith does**:
-  1. Captures the form submission immediately via a **Webhook**.
-  2. Creates or updates a Lead record inside **Salesforce**.
-  3. Sends an instant notification to `#sales-leads` in **Slack** with a direct link to the Salesforce record.
-  4. Automatically sends a personalized confirmation email to the prospect via **Gmail** or **Outlook**.
+```
+[ Webhook / Form ] ──► [ Filter: Business Email ] ──► [ Salesforce: Create Lead ] ──► [ Slack Alert ] ──► [ Welcome Email ]
+```
+- **Trigger**: A website visitor submits a demo request.
+- **Step 1 (Filter)**: Checks that the email is not a disposable address.
+- **Step 2 (Salesforce)**: Instantly creates a Lead with the prospect's company name and phone.
+- **Step 3 (Slack)**: Posts a message in `#sales-leads`: *"🔥 New Lead from Acme Corp! Value: $25,000"*.
+- **Step 4 (Email)**: Sends a calendar invite to the prospect.
 
-### Example 2: Weekly KPI Report Automation
-- **What happens**: Every Monday morning at 9:00 AM.
-- **What Flowsmith does**:
-  1. A **Schedule** trigger wakes up.
-  2. Queries your **Data Table** or CRM for closed deals and revenue from the past 7 days.
-  3. Formats the data into a clean HTML table.
-  4. Emails the executive summary to leadership and management.
+### Example 2: Weekly Automated KPI Report
+```
+[ Schedule: Mon 9am ] ──► [ Query Data Table ] ──► [ Format HTML Summary ] ──► [ Email to Leadership ]
+```
+- **Trigger**: Every Monday morning at 9:00 AM sharp.
+- **Step 1 (Query)**: Pulls closed-won sales figures and support ticket metrics from the past 7 days.
+- **Step 2 (Format)**: Formats the numbers into a clean summary table.
+- **Step 3 (Email)**: Automatically emails the weekly dashboard report to executives and department heads.
 
-### Example 3: Order Refund with Manager Approval
-- **What happens**: A customer service agent requests a refund over $200.
-- **What Flowsmith does**:
-  1. Hits a **Human Approval** card and safely pauses.
-  2. Sends an approval alert to the manager.
-  3. The manager opens Flowsmith, inspects the customer history, and clicks **"Approve"**.
-  4. Flowsmith automatically wakes up, issues the refund via **Stripe**, updates the CRM, and emails the customer a receipt.
+### Example 3: Customer Refund with Manager Approval Gate
+```
+[ Refund Request ] ──► [ IF Amount > $200 ] ──► [ 🛡️ Human Approval Gate ] ──► [ Stripe Refund ] ──► [ Receipt Email ]
+```
+- **Trigger**: Customer service receives a refund request.
+- **Step 1 (Decision)**: If the refund is under $200, it processes immediately. If it is over $200, it pauses.
+- **Step 2 (Approval)**: The workflow safely freezes. An alert appears on the manager's **Approvals** screen.
+- **Step 3 (Review)**: The manager inspects the customer's history and clicks **"Approve"**.
+- **Step 4 (Fulfillment)**: Flowsmith automatically wakes up, issues the refund in Stripe, updates the accounting records, and sends a confirmation email.
 
 ---
 
-## 3. The Flowsmith Interface (Screen Tour)
+## 3. The Flowsmith Interface (Complete Screen Tour)
 
-When you log in to Flowsmith, you have a sleek, clean interface divided into 3 main areas:
+When you log in to Flowsmith, you are greeted by an uncluttered, modern dashboard:
 
 ```
 ┌─────────────────┬────────────────────────────────────────────────────────────────────────┐
@@ -106,35 +125,47 @@ When you log in to Flowsmith, you have a sleek, clean interface divided into 3 m
 └─────────────────┴────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Left Navigation Bar**:
-   - **Workflows (`⚡`)**: View, create, and organize your automation pipelines.
-   - **Credentials (`🔑`)**: Connect and manage your accounts (Salesforce, Google, Slack, etc.).
-   - **Data Tables (`📊`)**: In-app spreadsheet database for storing records.
-   - **Variables (`🌍`)**: Manage environment variables and encrypted secrets (`{{ $env.KEY }}`).
-   - **Approvals (`🛡️`)**: Review and approve workflows paused for human inspection.
-   - **Knowledge (`📚`)**: Upload PDF, text, and doc files for AI vector search (RAG).
-   - **Templates (`🎨`)**: Pre-built starter workflows ready to clone in one click.
-2. **Top Bar**:
-   - **Workflow Title**: Click to rename your workflow.
-   - **Run (`▶`)**: Click to manually run and test the canvas with sample inputs.
-   - **Active / Inactive Toggle**: Turns your workflow live (green) so triggers run 24/7.
-   - **Console (`📋`)**: Opens the execution history drawer to inspect live step logs and outputs.
-   - **Versions (`🕒`)**: View past save points and rollback anytime.
-3. **The Canvas**:
-   - The central visual whiteboard where you add cards, wire them together, and arrange your business logic.
+### 1. Left Navigation Sidebar
+- **Workflows (`⚡`)**: The home of all your automation pipelines. Create, edit, clone, or organize them.
+- **Credentials (`🔑`)**: Connect third-party tools (Salesforce, Google, Slack, HubSpot) with 1 click.
+- **Data Tables (`📊`)**: In-app spreadsheet database to store, query, and edit records without external SQL databases.
+- **Variables (`🌍`)**: Manage shared workspace variables and encrypted secrets (`{{ $env.KEY }}`).
+- **Approvals (`🛡️`)**: The management review portal for workflows paused awaiting human authorization.
+- **Knowledge (`📚`)**: Upload PDF, Markdown, and text documents for AI vector search (RAG).
+- **Templates (`🎨`)**: Pre-built starter recipes ready to clone into your workspace with 1 click.
+- **Settings (`⚙️`)**: Workspace configuration, user management, and white-label branding.
+
+### 2. Top Bar Controls
+- **Workflow Name**: Click to rename your workflow (e.g. *"Salesforce Lead Sync"*).
+- **Run (`▶`)**: Tests your workflow manually right now using test inputs.
+- **Active / Inactive Switch**: When flipped to **Active** (green), your workflow is live and listening 24/7. When **Inactive**, it only runs when you click "Run".
+- **Console (`📋`)**: Opens the slide-out drawer showing real-time execution logs, per-step timing, and data payloads.
+- **Versions (`🕒`)**: Every save creates an immutable backup. Click here to rollback to any past version.
+
+### 3. Visual Canvas Area
+- Your interactive whiteboard. Click and drag cards, connect them with wires, pan around freely, or click **Auto-Layout** to instantly tidy up the layout.
 
 ---
 
 ## 4. The 4 Basic Building Blocks (The "Lego" Pieces)
 
-Every automation in Flowsmith is made of just 4 simple types of cards (called **Nodes**):
+Every automation in Flowsmith is built using just 4 simple types of cards:
 
-| Card Category | Badge Color | What It Does | Real-World Analogy |
+```
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  🟡 TRIGGER      │    │  🔵 ACTION / APP │    │  🟣 LOGIC        │    │  🔷 AI ASSISTANT │
+│  "When event     │    │  "Do something   │    │  "Make decision  │    │  "Think, analyze │
+│   occurs"        │    │   in an app"     │    │   or branch"     │    │   or summarize"  │
+│  (Doorbell)      │    │  (Worker)        │    │  (Traffic Light) │    │  (Smart Analyst) │
+└──────────────────┘    └──────────────────┘    └──────────────────┘    └──────────────────┘
+```
+
+| Category | Badge Color | What It Does | Real-World Examples |
 |---|---|---|---|
-| **Trigger** | 🟡 **Amber** | **Starts the workflow.** Listens for an event, inbound form, or schedule. | An **alarm clock** or a **doorbell**. |
-| **Connector / Action** | 🔵 **Blue** | **Does work in an app.** (e.g. Salesforce, Slack, Gmail, Sheets, Stripe). | A **postal worker** or helper doing a task. |
-| **Logic & Filter** | 🟣 **Purple** | **Makes decisions.** (IF condition, Switch, Merge, Split into Batches). | A **fork in the road** or traffic light. |
-| **AI Assistant** | 🔷 **Cyan** | **Analyzes and thinks.** Summarizes emails, extracts fields, answers questions. | A **smart assistant** reading a document. |
+| **Trigger** | 🟡 **Amber** | **Starts the workflow.** Waits for an event or a time schedule. | Webhook, Schedule Timer, Salesforce Record Created, Incoming Email. |
+| **Connector / Action** | 🔵 **Blue** | **Does work in an external app.** | Salesforce, Slack, Gmail, Google Sheets, Stripe, Jira, HubSpot. |
+| **Logic & Filter** | 🟣 **Purple** | **Controls the path of data.** Makes choices or splits data. | IF Condition, Switch, Merge, Split In Batches, Wait/Delay. |
+| **AI Assistant** | 🔷 **Cyan** | **Reasons and analyzes.** Reads text, extracts details, or searches docs. | AI Agent, RAG Knowledge Retriever, Sentiment Classifier, Text Summarizer. |
 
 ---
 
@@ -142,89 +173,111 @@ Every automation in Flowsmith is made of just 4 simple types of cards (called **
 
 Let's build a real, working automation in under 5 minutes:
 
-### Step 1: Create a Workflow
-1. Click **Workflows** (`⚡`) in the left navigation.
-2. Click the blue **"＋ Create workflow"** button.
-3. You will see an empty canvas.
+```
+[ Webhook / Form ]  ──────────────────►  [ Salesforce / Action ]
+  (Trigger card)        (Drag line)           (Action card)
+```
 
-### Step 2: Add a Trigger
+### Step 1: Create a Blank Workflow
+1. Click **Workflows** (`⚡`) in the left navigation.
+2. Click the blue button: **"＋ Create workflow"**.
+3. You now have a fresh, blank canvas ready for your cards.
+
+### Step 2: Add Your Trigger
 1. Click the **"＋ Add Node"** button on the left (or press `Ctrl+K`).
 2. Search for **Webhook** and drag it onto the canvas.
-   *(This gives you a unique web URL where external apps or websites can send data).*
+3. This creates a secure, unique URL where external apps or website forms can send data.
 
 ### Step 3: Add an Action Card
-1. Search for **Salesforce** (or **Slack**, or **Email**).
-2. Drag it onto the canvas to the right of the Webhook card.
+1. Open the card menu again (`Ctrl+K`).
+2. Search for **Salesforce** (or **Slack**, or **Email**).
+3. Drag the card onto the canvas to the right of your Webhook card.
 
 ### Step 4: Wire the Cards Together
-1. Notice the small circle (**handle**) on the right side of the Webhook card.
-2. Click and hold that circle, then drag a line to the circle on the left side of the action card.
-3. Release the mouse. You have created an **Edge** (a connection wire)!
+1. Find the small circular dot (**handle**) on the right side of the Webhook card.
+2. Click and hold that dot, then drag a line to the dot on the left side of the Salesforce card.
+3. Release the mouse. You have connected the two steps!
 
-### Step 5: Configure the Action
-1. Double-click the action card. The centered **3-Panel Node Editor** opens:
-   - **Left Panel (Inputs)**: Shows data coming from previous cards.
-   - **Center Panel (Parameters)**: Choose your connected account and action (e.g. *"Create Lead"*).
+### Step 5: Configure Your Action Card
+1. Double-click your Salesforce card. The **3-Panel Node Editor** opens:
+   - **Left Panel (Inputs)**: Displays all data received from previous cards.
+   - **Center Panel (Parameters)**: Select your connected Salesforce account and pick an action (e.g. *"Create Lead"*).
    - **Right Panel (Output)**: Shows the result when tested.
-2. Click **"▶ Execute Step"** to test it.
-3. Click **"✕"** in the top right corner to close the editor.
+2. Click **"▶ Execute Step"** to test it with a sample run.
+3. Click the **"✕"** button in the top right to close the editor.
 
-### Step 6: Save and Turn ON!
+### Step 6: Save and Turn It ON!
 1. Press `Ctrl+S` (or click **"Save"** in the top bar).
-2. Click the switch in the top bar from **"Inactive"** to **"Active"** (it turns green).
-3. **You're live!** Your automation is now listening and running automatically 24/7.
+2. Look at the switch in the top bar that says **"Inactive"**. Click it to switch to **"Active"** (it turns green).
+3. **Congratulations!** Your automation is now live and working 24/7.
 
 ---
 
 ## 6. Using AI to Build Workflows For You ("From AI ✨")
 
-If you don't want to drag cards manually, you can have Flowsmith build the entire workflow for you:
+If you don't want to drag cards manually, you can simply tell Flowsmith what you want in plain English:
 
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              AI WORKFLOW GENERATOR                                     │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  Prompt: [ When a customer submits a contact request, check if their budget is       ] │
+│          [ over $10,000. If yes, add a Lead in Salesforce and notify Slack.          ] │
+│          [ Otherwise, send our standard brochure email.                              ] │
+│                                                                                        │
+│                                              [ ✨ Generate Workflow ]                  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### How to Use the AI Builder:
 1. On the **Workflows** page, click the button that says **"From AI ✨"**.
-2. Type your requirement in everyday English. For example:
-   > *"When a customer submits a contact request, check if their budget is over $10,000. If yes, create a high-priority Lead in Salesforce and alert the sales team on Slack. Otherwise, send them our standard brochure email."*
-3. Click **Generate Workflow**.
-4. In seconds, Flowsmith selects the exact cards needed, positions them on the canvas, sets up the branching logic, and wires them together!
-5. You can then inspect any card, tweak parameters, and activate it immediately.
+2. Type your requirement in normal, conversational English.
+3. Click **"Generate Workflow"**.
+4. In just 3 seconds, Flowsmith's AI will:
+   - Pick the exact cards needed (Webhook, IF Condition, Salesforce, Slack, Email).
+   - Place them on the canvas in the correct order.
+   - Wire the connections and configure the branching rules.
+5. You can inspect any card, make adjustments, and activate it immediately!
 
 ---
 
 ## 7. The Complete Card Catalog (Every Node Explained)
 
-### 7.1. Triggers (Starting Points)
-- **Webhook**: Gives you a unique URL to receive instant data from website forms, Stripe payments, Shopify orders, or external systems. Supports synchronous responses (`respond_to_webhook`).
-- **Schedule**: An automated timer. Run your workflow every 15 minutes, every morning at 8:00 AM, or on specific days using a standard calendar picker or Cron schedule.
-- **Salesforce Trigger**: Fires immediately when an Object (Lead, Contact, Opportunity, Case) is created or updated in Salesforce.
-- **Email Trigger (IMAP)**: Listens to an email inbox and triggers whenever a new email arrives matching your sender or subject filters.
-- **Error Trigger**: Automatically catches errors from other workflows and routes failure alerts to Slack, SMS, or PagerDuty.
+### 7.1. Triggers (Starting Events)
+- **Webhook**: Gives you a unique web URL. External forms, Shopify stores, or Stripe webhooks can send data here instantly. Supports synchronous responses (`respond_to_webhook`).
+- **Schedule**: An automated timer. Run your workflow every 15 minutes, every morning at 8:00 AM, or on specific calendar dates using a visual picker or standard Cron syntax (`0 9 * * 1` = Every Monday at 9 AM).
+- **Salesforce Trigger**: Fires automatically whenever an Object (Lead, Contact, Opportunity, Case) is created or updated in Salesforce.
+- **Email Trigger (IMAP)**: Listens to any corporate inbox (Gmail, Outlook, IMAP) and triggers when a new email arrives matching your sender or subject filters.
+- **Error Trigger**: Listens for failures across your other workflows. If any workflow encounters an error, this card fires automatically to page your engineering team on PagerDuty or alert Slack.
 
-### 7.2. App Connectors (Salesforce, Google, Slack, etc.)
-Flowsmith comes with **45+ native first-party connectors**:
-- **Salesforce**: Search SOQL, Create, Update, Upsert, Get, Delete records across standard and custom objects.
-- **Google Sheets & Docs**: Read spreadsheet rows, append new rows, update cells, or generate Google Docs.
-- **Gmail & Outlook**: Send rich HTML emails, send attachments, search inbox threads.
-- **Slack & Microsoft Teams**: Post formatted messages, adaptive cards, and channel notifications.
-- **HubSpot & Pipedrive**: Manage CRM contacts, companies, deals, and pipeline stages.
+### 7.2. App Connectors (Salesforce, Google, Slack, Stripe, etc.)
+Flowsmith includes **45+ native connectors**:
+- **Salesforce**: Search records with SOQL, Create, Update, Upsert, Get, and Delete records across standard or custom objects.
+- **Google Sheets**: Read rows, append new customer rows, update cells, or clear spreadsheets.
+- **Google Docs**: Create new documents from templates or append text dynamically.
+- **Gmail & Outlook**: Send rich HTML emails, attach documents, search inbox threads.
+- **Slack & Microsoft Teams**: Post formatted messages, adaptive cards, and channel alerts.
+- **HubSpot & Pipedrive**: Create and update CRM contacts, deals, and pipeline stages.
 - **Stripe**: Manage customers, inspect invoices, verify charges, and issue refunds.
-- **Jira, GitHub, GitLab, Bitbucket**: Create issues, manage pull requests, comment on tickets.
-- **Twilio & WhatsApp**: Send SMS notifications or Meta Cloud API WhatsApp template messages.
-- **Airtable & Notion**: Query bases, insert records, create and update workspace pages.
-- **HTTP Request**: The universal connector! Connect to **any external REST API** on the internet with full support for GET, POST, PUT, DELETE, headers, and authentication.
+- **Jira, GitHub, GitLab, Bitbucket**: Create issues, manage pull requests, and comment on tickets.
+- **Twilio & WhatsApp**: Send SMS alerts or Meta Cloud API WhatsApp template messages.
+- **Airtable & Notion**: Query bases, insert records, and create workspace pages.
+- **HTTP Request**: The universal connector! Connect to **any REST API on the internet** with full support for GET, POST, PUT, DELETE, headers, and authentication.
 
 ### 7.3. Logic & Routing (Decisions, Splits & Merges)
-- **IF Condition**: Evaluates boolean rules (`equals`, `contains`, `greater than`, `regex`). Sends items through either the **true** (top) or **false** (bottom) wire.
-- **Switch**: Multi-way routing. Directs data down 4+ different paths based on status, department, or tier.
-- **Merge**: Combines data arriving from two different branches into a unified dataset.
+- **IF Condition**: Evaluates rules (`equals`, `contains`, `greater than`, `regex`). Sends data through either the **true** (top) or **false** (bottom) wire.
+- **Switch**: Multi-way routing. Directs data down 4+ different paths based on category, department, or tier.
+- **Merge**: Combines data arriving from two separate branches into a single unified stream.
 - **Split In Batches**: Takes large lists (e.g. 5,000 records) and processes them in smaller batches (e.g. 50 at a time) to prevent API rate-limit errors.
 - **Wait / Delay**: Pauses execution for a specific duration (e.g. "Wait 2 days before sending follow-up email").
 
-### 7.4. Data Transforms (Calculations, Filtering, Code)
+### 7.4. Data Transforms (Calculations, Filtering, Code, Token Manager)
 - **Set Variables**: Define or overwrite fields on your data items.
 - **Filter**: Drop records that don't match specific criteria (e.g. only keep records where `status == 'active'`).
 - **Code (JavaScript & Python)**: A built-in Monaco (VS Code) editor where you can write custom scripts for complex math, data scrubbing, or custom transformations.
-- **Token Manager**: A smart dual-handle node (`🟢 valid` vs `🟠 login`) that manages access tokens, reuses valid sessions, and prevents redundant login calls.
+- **Token Manager**: A smart card with dual handles (`🟢 valid` vs `🟠 login`) that manages access tokens, reuses valid sessions, and prevents redundant login calls.
 
-### 7.5. AI & Knowledge (Agents, Summarizers, RAG)
+### 7.5. AI & Knowledge (Autonomous Agents, Summarizers, RAG)
 - **AI Agent**: An autonomous reasoning engine that can use external tools (search web, query database, run calculations) to complete tasks.
 - **RAG Knowledge Retriever**: Queries your uploaded company documents and passes relevant excerpts to AI prompts.
 - **Text Summarizer & Classifier**: Classifies incoming customer tickets (e.g. "Billing", "Bug", "Feature Request") or summarizes long email threads.
@@ -235,26 +288,37 @@ Flowsmith comes with **45+ native first-party connectors**:
 
 Flowsmith features a **1-click frictionless OAuth connection experience**:
 
-### 8.1. 1-Click Connecting
-1. In the left navigation, click **Credentials** (`🔑`).
-2. Under **New Credential**, click on the app you want to connect (e.g. **Salesforce** or **Google**).
-3. Click the blue **`[ Connect <App> ]`** button.
-4. A secure popup opens. Simply log into your account and click **Allow / Approve**.
-5. The popup closes automatically, and your account appears in the **Connected Credentials** table!
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              CONNECTED CREDENTIALS TABLE                               │
+├──────────────────────┬─────────────┬──────────────────┬────────────────────────────────┤
+│ Name                 │ Type        │ Status           │ Actions                        │
+├──────────────────────┼─────────────┼──────────────────┼────────────────────────────────┤
+│ Salesforce (Sales)   │ salesforce  │ ● Connected      │ [ Test ]  [ Reconnect ] [ 🗑️ ] │
+│ Google Workspace     │ google      │ ● Session Expired│ [ Test ]  [ Reconnect ] [ 🗑️ ] │
+│ Slack (Alerts Bot)   │ slack       │ ● Connected      │ [ Test ]  [ Reconnect ] [ 🗑️ ] │
+└──────────────────────┴─────────────┴──────────────────┴────────────────────────────────┤
+```
 
-### 8.2. Checking Status (Connected vs. Expired)
-In the Credentials table, each account displays a live status badge:
-- 🟢 **`● Connected`**: Active and healthy. Workflows can use this connection freely.
+### 8.1. How to Connect an Account (Salesforce, Google, Slack)
+1. Click **Credentials** (`🔑`) in the left navigation.
+2. Under **New Credential**, select the app you want to connect (e.g. **Salesforce**).
+3. Click the blue button: **`[ Connect Salesforce ]`**.
+4. A secure popup opens. Simply log into your account and click **Allow / Approve**.
+5. The popup self-closes, and your account appears in the **Connected Credentials** table!
+
+### 8.2. Dynamic Session Status (Connected vs. Session Expired)
+- 🟢 **`● Connected`**: Active and valid. Workflows can use this credential freely.
 - 🟡 **`● Session Expired`**: The service requires a token renewal.
 
-### 8.3. 1-Click Reconnect
-If a connection ever expires:
+### 8.3. 1-Click Reconnect (Instant Session Renewal)
+If a third-party token ever expires:
 1. Click the **`🔄 Reconnect`** button on that row.
-2. Flowsmith automatically renews the session in the background.
-3. If the provider requires re-approval, the popup seamlessly navigates to the login prompt. Click approve, and you're done!
+2. Flowsmith automatically renews the session in the background without asking for login credentials.
+3. If interactive re-approval is required, the popup smoothly navigates directly to the login prompt. Click approve, and you're done!
 
-### 8.4. Security Guarantee
-- All passwords, API tokens, and OAuth keys are **100% encrypted at rest** in PostgreSQL using **AES-256 Fernet** ciphertexts (`k0:...`).
+### 8.4. Enterprise Security & Encryption Guarantee
+- All passwords, API keys, and OAuth tokens are **100% encrypted at rest** in PostgreSQL using **AES-256 Fernet** ciphertexts (`k0:...`).
 - Credentials are never stored in plain text files, never touch `.env`, and cannot be read by anyone over the API.
 
 ---
@@ -278,9 +342,21 @@ Flowsmith uses double curly braces (`{{ ... }}`) to pass information dynamically
 
 ---
 
-## 10. Environment Variables & Secrets (`/variables`)
+## 10. Workspace Environment Variables & Encrypted Secrets (`/variables`)
 
-Use workspace variables for values you want to reuse across multiple workflows (like your company's base URL, support email, or secret API keys):
+Use workspace variables for values you want to reuse across multiple workflows:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                           WORKSPACE ENVIRONMENT VARIABLES                              │
+├─────────────────────┬───────────────────────────┬──────────┬───────────────────────────┤
+│ Variable Name       │ Value                     │ Secret?  │ In Workflows              │
+├─────────────────────┼───────────────────────────┼──────────┼───────────────────────────┤
+│ API_BASE_URL        │ https://api.mycompany.com │ No       │ {{ $env.API_BASE_URL }}   │
+│ STRIPE_SECRET_KEY   │ ••••••••••••••••••••••••• │ Yes 🔒   │ {{ $env.STRIPE_SECRET_KEY}}│
+│ SUPPORT_EMAIL       │ support@mycompany.com     │ No       │ {{ $env.SUPPORT_EMAIL }}  │
+└─────────────────────┴───────────────────────────┴──────────┴───────────────────────────┘
+```
 
 1. Click **Variables** (`🌍`) in the left navigation.
 2. Click **"Add Variable"**.
@@ -294,8 +370,22 @@ Use workspace variables for values you want to reuse across multiple workflows (
 
 Flowsmith has a built-in spreadsheet database so you can store, edit, and query records without spinning up an external database:
 
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        DATA TABLE: "VIP_Prospects" (Spreadsheet View)                  │
+├──────┬──────────────────────┬───────────────────────┬────────────┬─────────────────────┤
+│ ID   │ Company Name         │ Contact Email         │ Deal Value │ Status              │
+├──────┼──────────────────────┼───────────────────────┼────────────┼─────────────────────┤
+│ 1    │ Acme Corporation     │ john@acme.com         │ $45,000    │ Active Lead         │
+│ 2    │ Starlight Logistics  │ sarah@starlight.io    │ $12,500    │ Proposal Sent       │
+│ 3    │ Apex Global          │ alex@apex.com         │ $85,000    │ Closed Won          │
+└──────┴──────────────────────┴───────────────────────┴────────────┴─────────────────────┤
+│ [＋ Add Row]  [ Filter ]  [ Sort ]  [ Export CSV ]                                     │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 1. Click **Data Tables** (`📊`) in the left navigation.
-2. Click **"Create Table"** (e.g. `VIP_Customers`, `Inventory`, `SupportTickets`).
+2. Click **"Create Table"** (e.g. `VIP_Prospects`, `Inventory`, `SupportTickets`).
 3. Define your columns with strict types: `Text`, `Number`, `Boolean`, `Date`, or `JSON`.
 4. Add or edit rows directly in the spreadsheet view, sort by columns, and search instantly.
 5. **In Workflows**: Add the **Data Table** card to search records, insert rows, or update status automatically.
@@ -305,6 +395,17 @@ Flowsmith has a built-in spreadsheet database so you can store, edit, and query 
 ## 12. Human Approvals & Review Gates (`/approvals`)
 
 For high-risk operations (e.g. refunds over $500, bulk customer deletions, production deployments):
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                         PENDING APPROVALS DASHBOARD                                    │
+├──────────────┬────────────────────────────────┬──────────────┬─────────────────────────┤
+│ Workflow     │ Requested Action               │ Initiator    │ Actions                 │
+├──────────────┼────────────────────────────────┼──────────────┼─────────────────────────┤
+│ Refund Flow  │ Refund $450 to customer #88412 │ Support Bot  │ [✓ Approve]  [✕ Reject] │
+│ Deploy Sync  │ Push 1,200 leads to Salesforce │ Marketing    │ [✓ Approve]  [✕ Reject] │
+└──────────────┴────────────────────────────────┴──────────────┴─────────────────────────┘
+```
 
 1. Drag the **Human Approval** card into your workflow right before the critical step.
 2. When a workflow execution reaches this step, it **pauses safely**.
@@ -325,7 +426,7 @@ Empower your automations with your company's private documents:
 
 ---
 
-## 14. Templates, Sharing, Importing & Exporting
+## 14. Templates, Sharing, Importing & Exporting (`/templates`)
 
 ### Templates Gallery (`/templates`)
 - Browse dozens of pre-built starter automations.
@@ -344,12 +445,12 @@ Empower your automations with your company's private documents:
 - **Test a Single Card**: Double-click any card and click **"▶ Execute Step"**. This runs only that specific node using upstream data, letting you test settings instantly without running the entire workflow!
 - **Test the Full Canvas**: Click **"Run"** (`▶`) in the top bar to run every step sequentially from start to finish.
 
-### 15.2. Data Pinning (Mocking Data)
+### 15.2. Data Pinning (Mocking Data for Risk-Free Testing)
 - Don't want to call your real CRM or credit card processor while designing a flow?
 - Click the **📌 Pin** button on any card to lock its output.
 - When pinned, Flowsmith uses that mock data for downstream steps without making real external API calls!
 
-### 15.3. Console Drawer & Execution Traces
+### 15.3. Console Drawer & Step Execution Logs
 - Click **"Console"** (`📋`) in the top bar.
 - Shows every run in chronological order with duration (e.g. `24ms`), status, and node-by-node execution logs.
 - Click **"Retry"** on any failed execution to re-run it from the exact step that failed.
@@ -361,7 +462,7 @@ Empower your automations with your company's private documents:
 
 ---
 
-## 16. Custom Connectors & OpenAPI / cURL Importer
+## 16. Custom Connectors & OpenAPI / cURL Importer (`/connectors`)
 
 Need to connect to an API that doesn't have a pre-built card?
 
