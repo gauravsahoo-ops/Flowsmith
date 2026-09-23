@@ -258,8 +258,9 @@ async def chat_with_agent(
         "session_id": body.session_id,
         "memory_type": body.memory_type,
     }
-    if body.model:
-        param_kwargs["model"] = body.model
+    model_choice = llm.get("model") or body.model
+    if model_choice:
+        param_kwargs["model"] = model_choice
     if body.tools is not None:
         param_kwargs["tools"] = body.tools
     if body.instructions:
@@ -298,7 +299,7 @@ async def chat_with_agent(
         "trace": output_item.get("trace") or [],
         "tools_used": output_item.get("tools_used") or [],
         "session_id": body.session_id,
-        "model": llm.get("model") or body.model or "default",
+        "model": model_choice or "default",
     })
 
 

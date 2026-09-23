@@ -7,6 +7,7 @@ streaming, and structured outputs.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any, AsyncIterator
@@ -122,7 +123,7 @@ async def chat_completion(
             raise LLMError(f"LLM request to '{model}' failed: {exc}", code="LLM_EXECUTION_ERROR") from exc
 
     # Default: Native OpenAI-compatible /chat/completions endpoint
-    # (Covers OpenAI, Ollama, DeepSeek, Groq, LM Studio, vLLM, and unit test doubles)
+    # (Covers OpenAI, Ollama, DeepSeek, Groq, OpenRouter, Mistral, LM Studio, vLLM, and unit test doubles)
     if not base_url:
         if prov_name == "ollama":
             base_url = "http://localhost:11434/v1"
@@ -130,6 +131,10 @@ async def chat_completion(
             base_url = "https://api.deepseek.com/v1"
         elif prov_name == "groq":
             base_url = "https://api.groq.com/openai/v1"
+        elif prov_name in ("openrouter", "open_router"):
+            base_url = "https://openrouter.ai/api/v1"
+        elif prov_name == "mistral":
+            base_url = "https://api.mistral.ai/v1"
         else:
             base_url = "https://api.openai.com/v1"
 
@@ -165,12 +170,28 @@ async def chat_completion(
                     content=json.dumps(payload, ensure_ascii=False),
                 )
             except httpx.HTTPError as exc:
+                last_exc = exc
+                if attempt < retries:
+                    logger.warning("LLM HTTP error on attempt %d: %s; retrying...", attempt + 1, exc)
+                    await asyncio.sleep(delay)
+                    delay *= 2
+                    continue
                 raise LLMError(f"LLM provider unreachable: {exc}", code="LLM_NETWORK_ERROR") from exc
         finally:
             if http_client is None:
                 await client.aclose()
 
         if resp.status_code >= 400:
+            if resp.status_code in (429, 500, 502, 503, 504) and attempt < retries:
+                logger.warning(
+                    "LLM provider returned status %d on attempt %d; retrying in %0.1fs...",
+                    resp.status_code,
+                    attempt + 1,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+                delay *= 2
+                continue
             _raise_provider_error(resp.status_code, resp.text, model)
 
         body = resp.json()
@@ -213,6 +234,20 @@ async def stream_chat_completion(
     api_key = credential.get("api_key") or ""
     base_url = credential.get("base_url") or ""
     timeout_s = float(credential.get("timeout_s") or 60.0)
+
+    if not base_url:
+        if prov_name == "ollama":
+            base_url = "http://localhost:11434/v1"
+        elif prov_name == "deepseek":
+            base_url = "https://api.deepseek.com/v1"
+        elif prov_name == "groq":
+            base_url = "https://api.groq.com/openai/v1"
+        elif prov_name in ("openrouter", "open_router"):
+            base_url = "https://openrouter.ai/api/v1"
+        elif prov_name == "mistral":
+            base_url = "https://api.mistral.ai/v1"
+        else:
+            base_url = "https://api.openai.com/v1"
 
     provider: BaseLLMProvider = get_provider(provider_name=prov_name, model=model)
 

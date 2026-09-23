@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
+import { useBrandingStore } from '../stores/brandingStore'
+import FlowsmithBrandMark from './FlowsmithBrandMark'
 import { toWorkflowJson, withDecorations } from '../mappers'
 import { api } from '../api'
 import WorkflowDocModal from './WorkflowDocModal'
@@ -27,6 +29,7 @@ export default function TopBar({
   onOpenEnv,
   onOpenTests,
   onOpenRag,
+  onOpenSmith,
   onOpenAIChat,
   onOpenAICopilot,
 }) {
@@ -47,11 +50,16 @@ export default function TopBar({
   const run = useExecutionStore((s) => s.run)
   const cancel = useExecutionStore((s) => s.cancel)
   const [workflows, setWorkflows] = useState([])
-  const [deleteError, setDeleteError] = useState(null)
   const [ioError, setIoError] = useState(null)
   const [downloading, setDownloading] = useState(false)
   const [docModalOpen, setDocModalOpen] = useState(false)
   const fileRef = useRef(null)
+
+  // Branding store for default/custom logo
+  const appName = useBrandingStore((s) => s.appName) || 'Flowsmith'
+  const logoUrl = useBrandingStore((s) => s.logoUrl)
+  const logoData = useBrandingStore((s) => s.logoData)
+  const logoSrc = logoData || logoUrl
 
   async function listWorkflows() {
     setWorkflows(await api.listWorkflows())
@@ -150,18 +158,6 @@ export default function TopBar({
     }
   }
 
-  async function handleDelete() {
-    const wf = workflow
-    if (!wf?.id) return
-    if (!window.confirm(`Delete workflow "${wf.name}"? This cannot be undone.`)) return
-    setDeleteError(null)
-    try {
-      if (useWorkflowStore.getState().isDirty?.()) await useWorkflowStore.getState().save()
-      await useWorkflowStore.getState().deleteWorkflow(wf.id)
-    } catch (err) {
-      setDeleteError(err.message)
-    }
-  }
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -266,7 +262,6 @@ export default function TopBar({
       </div>
 
       <div className="topbar-center">
-        {deleteError && <span className="err" title={deleteError}>{deleteError}</span>}
         {ioError && <span className="err" title={ioError}>{ioError}</span>}
         {runStatus && runStatus !== 'running' && (
           <span className={`run-status status-${runStatus}`}>
@@ -352,22 +347,21 @@ export default function TopBar({
           </svg>
         </button>
         <button
-          className="ghost ghost--quiet"
-          onClick={onOpenAICopilot}
-          title="AI Copilot: Generate workflow with AI"
-          aria-label="AI Copilot"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#bf5af2', fontWeight: 600 }}
+          className="ghost ghost--quiet topbar-smith-btn"
+          onClick={onOpenSmith || onOpenAIChat || onOpenAICopilot}
+          title="Smith — AI Copilot & Automation Assistant"
+          aria-label="Smith AI Assistant"
         >
-          <span>✨ Copilot</span>
-        </button>
-        <button
-          className="ghost ghost--quiet"
-          onClick={onOpenAIChat}
-          title="AI Agent Chat & Tool Tester"
-          aria-label="AI Chat Test"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#ff9f0a', fontWeight: 600 }}
-        >
-          <span>🤖 AI Chat</span>
+          {logoSrc ? (
+            <img
+              src={logoSrc}
+              alt={appName}
+              style={{ width: 16, height: 16, objectFit: 'contain', borderRadius: 3, flexShrink: 0 }}
+            />
+          ) : (
+            <FlowsmithBrandMark size={16} variant="badge" />
+          )}
+          <span>Smith</span>
         </button>
 
         {running ? (
@@ -485,8 +479,6 @@ export default function TopBar({
               <div className="ctx-sep" />
               <button role="menuitem" onClick={() => { setMenuOpen(false); toggleHistoryDrawer(); }}>Workflow History</button>
               <button role="menuitem" onClick={() => { setMenuOpen(false); if (onOpenHistory && !historyDrawerOpen) onOpenHistory(); else window.open('/executions', '_blank'); }}>Execution Logs</button>
-              <div className="ctx-sep" />
-              <button role="menuitem" className="ctx-danger" onClick={() => { setMenuOpen(false); handleDelete(); }} disabled={!workflow?.id}>Delete Workflow</button>
             </div>
           )}
         </div>

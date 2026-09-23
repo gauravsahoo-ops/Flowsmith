@@ -526,13 +526,19 @@ class SafeHTTPClient:
             # malformed/uncompressed body; httpx then fails with
             # "Error -3 while decompressing data: incorrect header check".
             # Retry once asking for an identity (uncompressed) response.
-            if request_headers.get("Accept-Encoding", "").lower() == "identity":
+            accept_enc = next(
+                (v for k, v in request_headers.items() if k.lower() == "accept-encoding"),
+                "",
+            )
+            if accept_enc.lower() == "identity":
                 raise make_connector_error(
                     ConnectorErrorCode.UNAVAILABLE,
                     "HTTP request failed: response body could not be decoded.",
                     retryable=True,
                 ) from exc
-            retry_headers = dict(request_headers)
+            retry_headers = {
+                k: v for k, v in request_headers.items() if k.lower() != "accept-encoding"
+            }
             retry_headers["Accept-Encoding"] = "identity"
             logger.info("response decode failed; retrying with Accept-Encoding: identity")
             return await self._request(

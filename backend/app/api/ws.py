@@ -16,12 +16,12 @@ import logging
 from typing import Any
 
 import jwt as pyjwt
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.common import TERMINAL_STATUSES
-from app.db import get_db
+from app.db import get_session
 from app.eventbus import bus
 from app.models import Execution, ExecutionEvent, User
 from app.security.jwt import decode_token
@@ -76,19 +76,21 @@ async def ws_execution_stream(
     execution_id: str,
     websocket: WebSocket,
     token: str | None = None,
-    db: Session = Depends(get_db),
 ) -> None:
-    user = _auth_user(token, db)
-    db.rollback()
-    if user is None:
-        await websocket.close(code=4401)
-        return
+    db = get_session()
+    try:
+        user = _auth_user(token, db)
+        if user is None:
+            await websocket.close(code=4401)
+            return
 
-    rec = db.get(Execution, execution_id)
-    db.rollback()
-    if rec is None or rec.user_id != user.id:
-        await websocket.close(code=4404)
-        return
+        rec = db.get(Execution, execution_id)
+        if rec is None or rec.user_id != user.id:
+            await websocket.close(code=4404)
+            return
+        user_id = user.id
+    finally:
+        db.close()
 
     await websocket.accept()
 
@@ -105,15 +107,16 @@ async def ws_execution_stream(
             # Re-validate user every 60 seconds (WebSocket re-validation)
             now = asyncio.get_event_loop().time()
             if now - last_auth_check >= 60:
-                user = db.get(User, user.id)
-                db.rollback()
-                if user is None or not user.active:
-                    await websocket.send_json({"type": "error", "error": "Session invalidated."})
-                    break
+                with get_session() as poll_db:
+                    u = poll_db.get(User, user_id)
+                    if u is None or not u.active:
+                        await websocket.send_json({"type": "error", "error": "Session invalidated."})
+                        break
                 last_auth_check = now
+
             events: list[dict[str, Any]] = bus.drain(execution_id, bus_after)
-            db_events, db_after = _drain_db_events(db, execution_id, db_after)
-            db.rollback()
+            with get_session() as poll_db:
+                db_events, db_after = _drain_db_events(poll_db, execution_id, db_after)
             if events:
                 bus_after = events[-1]["seq"]
             events.extend(db_events)
@@ -129,9 +132,9 @@ async def ws_execution_stream(
                     # The event fires before the DB commit, so derive the
                     # status from the event; pick the error from the DB when
                     # it has already been persisted.
-                    rec = db.get(Execution, execution_id)
-                    error = rec.error if rec is not None and rec.error is not None else last_error
-                    db.rollback()
+                    with get_session() as poll_db:
+                        rec = poll_db.get(Execution, execution_id)
+                        error = rec.error if rec is not None and rec.error is not None else last_error
                     # Small delay to allow the worker's DB commit (trace,
                     # node_statuses, results) to propagate before the
                     # client fetches the full execution payload.
@@ -148,10 +151,10 @@ async def ws_execution_stream(
             if terminal_sent:
                 break
 
-            rec = db.get(Execution, execution_id)
-            status = rec.status if rec is not None else None
-            error = rec.error if rec is not None else None
-            db.rollback()
+            with get_session() as poll_db:
+                rec = poll_db.get(Execution, execution_id)
+                status = rec.status if rec is not None else None
+                error = rec.error if rec is not None else None
             if status in TERMINAL_STATUSES:
                 for ev in bus.drain(execution_id, bus_after):
                     bus_after = ev["seq"]
@@ -165,4 +168,7 @@ async def ws_execution_stream(
     except WebSocketDisconnect:
         pass
     finally:
-        await websocket.close()
+        try:
+            await websocket.close()
+        except Exception:
+            pass

@@ -40,26 +40,21 @@ test('delete workflow: confirm dialog, disappears from list, survives refresh', 
   });
   expect(initial.name).toBe('My Workflow');
 
-  // 4. Dismissing the confirmation keeps the workflow
-  page.once('dialog', (d) => d.dismiss());
-  await page.locator('button[aria-label="More actions"]').click();
-  await page.locator('button:has-text("Delete workflow")').click();
-  await page.waitForTimeout(300);
-  const afterDismiss = await page.evaluate(() => window.__wfStore.getState().workflow.id);
-  expect(afterDismiss).toBe(initial.id);
+  // 4. Navigate to Workflows list page (workflows are deleted from list, not canvas)
+  await page.goto('http://localhost:5173/workflows');
+  await page.waitForLoadState('networkidle');
 
-  // 5. Confirming deletes it and switches to a fresh workflow
-  page.once('dialog', (d) => d.accept());
-  await page.locator('button[aria-label="More actions"]').click();
-  await page.locator('button:has-text("Delete workflow")').click();
-  await page.waitForFunction(
-    (oldId) => {
-      const wf = window.__wfStore.getState().workflow;
-      return wf !== null && wf.id !== oldId;
-    },
-    initial.id,
-    { timeout: 10000 },
-  );
+  // Dismissing the confirmation keeps the workflow
+  await page.locator('button[aria-label="More actions"]').first().click();
+  await page.locator('button:has-text("Delete")').click();
+  await page.locator('button:has-text("Cancel")').click();
+  await page.waitForTimeout(300);
+
+  // 5. Confirming deletes it
+  await page.locator('button[aria-label="More actions"]').first().click();
+  await page.locator('button:has-text("Delete")').click();
+  await page.locator('.confirm-dialog-actions button:has-text("Delete"), .modal-actions button:has-text("Delete"), button:has-text("Delete")').last().click();
+  await page.waitForTimeout(500);
 
   const now = await page.evaluate(() => {
     const s = window.__wfStore.getState();

@@ -22,7 +22,7 @@ describe('AI Components Suite', () => {
       const html = renderToStaticMarkup(
         React.createElement(AICopilotModal, { isOpen: true, onClose: () => {} })
       )
-      expect(html).toContain('AI Copilot')
+      expect(html).toContain('AI COPILOT')
       expect(html).toContain('Prompt to Workflow Generator')
       expect(html).toContain('Try an example:')
       expect(html).toContain('Generate Workflow')
@@ -68,18 +68,19 @@ describe('AI Components Suite', () => {
           onClose: () => {},
         })
       )
-      expect(html).toContain('AI Agent Tester')
-      expect(html).toContain('turn(s)')
-      expect(html).toContain('Reset Memory')
-      expect(html).toContain('Ask agent or test workflow tools')
-      expect(html).toContain('Send')
-      expect(html).toContain('Remember that our project budget is $45,000')
-      expect(html).toContain('Stateful Memory')
-      expect(html).toContain('agent-avatar')
-      expect(html).toContain('ai-copy-btn')
+      expect(html).toContain('Smith')
+      expect(html).toContain('AI COPILOT')
+      expect(html).toContain('Ready')
+      expect(html).toContain('New Chat')
+      expect(html).toContain('Chat &amp; Tools')
+      expect(html).toContain('Workflow Builder')
+      expect(html).toContain('Debug &amp; Analyze')
+      expect(html).toContain('Use current canvas')
+      expect(html).toContain('Ask Smith anything...')
+      expect(html).toContain('smith-avatar-circle')
     })
 
-    it('renders active AI node tag when single AI node present', () => {
+    it('renders active workflow canvas context when nodes present', () => {
       const mockNodes = [
         {
           id: 'node_ai_1',
@@ -97,10 +98,12 @@ describe('AI Components Suite', () => {
           nodes: mockNodes,
         })
       )
-      expect(html).toContain('Support Analyst')
+      expect(html).toContain('Smith')
+      expect(html).toContain('Use current canvas')
+      expect(html).toContain('Inspect this workflow and list all nodes')
     })
 
-    it('renders node select dropdown when multiple AI nodes present', () => {
+    it('renders diagnostics and smart tools when multi-node workflow loaded', () => {
       const mockNodes = [
         {
           id: 'node_ai_1',
@@ -125,9 +128,9 @@ describe('AI Components Suite', () => {
           nodes: mockNodes,
         })
       )
-      expect(html).toContain('ai-chat-node-select')
-      expect(html).toContain('Agent Alpha')
-      expect(html).toContain('Agent Beta')
+      expect(html).toContain('smith-drawer')
+      expect(html).toContain('/ generate')
+      expect(html).toContain('/ debug')
     })
 
     it('has api.chatWithAgent and api.getAiMemory defined', async () => {

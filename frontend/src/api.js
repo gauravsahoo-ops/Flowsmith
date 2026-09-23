@@ -75,9 +75,14 @@ async function requestEnvelope(method, path, body, opts = {}) {
 
   if (resp.status === 401) {
     // Only clear token and redirect if this 401 came from Flowsmith user auth,
-    // NOT from third-party connectors or external integration errors (e.g. Salesforce, HTTP requests).
-    const isExternalConnector = path.startsWith('/connectors') || path.startsWith('/executions')
-    if (!isExternalConnector) {
+    // NOT from third-party connectors or external integration errors (e.g. LLMs, Salesforce, HTTP requests).
+    const isExternalService =
+      path.startsWith('/connectors') ||
+      path.startsWith('/executions') ||
+      path.startsWith('/ai') ||
+      path.startsWith('/credentials') ||
+      path.startsWith('/oauth')
+    if (!isExternalService) {
       setToken(null)
       window.dispatchEvent(new Event('auth:expired'))
     }
@@ -183,6 +188,7 @@ export const api = {
   listPredefinedCredentials: () => request('GET', '/credentials/predefined'),
   testCredential: (id) => request('POST', `/credentials/${id}/test`),
   reconnectCredential: (id) => request('POST', `/credentials/${id}/reconnect`),
+  logoutCredential: (id) => request('POST', `/credentials/${id}/logout`),
   createCredential: (payload) => request('POST', '/credentials', payload),
   deleteCredential: (id) => request('DELETE', `/credentials/${id}`),
   getHealth: () => request('GET', '/health'),
@@ -210,8 +216,11 @@ export const api = {
   upsertEnvVar: (payload) => request('POST', '/environments', payload),
   deleteEnvVar: (id) => request('DELETE', `/environments/${id}`),
   listOrganizations: () => request('GET', '/organizations?pageSize=100'),
-  salesforceConnect: (loginUrl) =>
-    request('POST', '/auth/salesforce/connect', loginUrl ? { login_url: loginUrl } : {}),
+  salesforceConnect: (loginUrl, prompt) =>
+    request('POST', '/auth/salesforce/connect', {
+      ...(loginUrl ? { login_url: loginUrl } : {}),
+      ...(prompt ? { prompt } : {}),
+    }),
   // Live Salesforce schema/object discovery (Phase 9): dynamic
   // object/field configuration for the generic salesforce node.
   salesforceObjects: (refresh = false) =>
@@ -221,8 +230,13 @@ export const api = {
       'GET',
       `/connectors/salesforce/schema/${encodeURIComponent(objectName)}${refresh ? '?refresh=true' : ''}`,
     ),
-  connectOAuth: (provider, loginUrl) =>
-    request('POST', `/auth/${provider}/connect`, loginUrl ? { login_url: loginUrl } : {}),
+  connectOAuth: (provider, loginUrl, prompt, extra = {}) =>
+    request('POST', `/auth/${provider}/connect`, {
+      ...(loginUrl ? { login_url: loginUrl } : {}),
+      ...(prompt ? { prompt } : {}),
+      ...(extra.clientId ? { client_id: extra.clientId } : {}),
+      ...(extra.clientSecret ? { client_secret: extra.clientSecret } : {}),
+    }),
   aiStatus: () => request('GET', '/ai/status'),
   explain: (executionId) => request('POST', '/ai/explain', { execution_id: executionId }),
   generateWorkflow: (prompt, opts = {}) =>

@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 _ALGO = "pbkdf2_sha256"
 _ITERATIONS = 600_000
 
-# In-memory fallback for token blacklist when Redis is unavailable
-_token_blacklist: set[str] = set()
+# In-memory fallback for token blacklist when Redis is unavailable (bounded to prevent leaks)
+_token_blacklist: dict[str, float] = {}
+_MAX_BLACKLIST_SIZE = 10_000
 
 
 def hash_password(password: str) -> str:
@@ -69,7 +70,13 @@ def _is_token_revoked(jti: str) -> bool:
     except Exception:
         pass
     # Fallback to in-memory blacklist
-    return jti in _token_blacklist
+    now_ts = datetime.now(UTC).timestamp()
+    exp_ts = _token_blacklist.get(jti)
+    if exp_ts is not None:
+        if exp_ts > now_ts:
+            return True
+        _token_blacklist.pop(jti, None)
+    return False
 
 
 def create_token(user_id: int) -> str:
@@ -111,7 +118,16 @@ def revoke_token(jti: str, exp: datetime | None = None) -> None:
             return
     except Exception:
         pass
-    _token_blacklist.add(jti)
+    now_ts = datetime.now(UTC).timestamp()
+    expire_at = exp.timestamp() if exp else now_ts + 3600
+    if len(_token_blacklist) >= _MAX_BLACKLIST_SIZE:
+        expired_keys = [k for k, v in _token_blacklist.items() if v <= now_ts]
+        for k in expired_keys:
+            _token_blacklist.pop(k, None)
+        if len(_token_blacklist) >= _MAX_BLACKLIST_SIZE:
+            for k in list(_token_blacklist.keys())[:1000]:
+                _token_blacklist.pop(k, None)
+    _token_blacklist[jti] = expire_at
 
 
 def get_worker_id() -> str:

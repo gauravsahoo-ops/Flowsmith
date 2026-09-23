@@ -20,6 +20,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 import secrets
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -32,6 +33,8 @@ from app.config import Settings, get_settings
 from app.credentials import service as credential_service
 from app.models import OAuthState, User
 from app.security.crypto import decrypt_text
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -57,17 +60,20 @@ class OAuthProviderSpec:
         settings: Settings,
         db: Any = None,
         user_id: int | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        redirect_uri: str | None = None,
     ) -> tuple[str, str, str]:
         """(client_id, client_secret, redirect_uri) or HTTP 422.
 
-        Resolves client credentials from Settings (env vars) first, and falls
-        back to encrypted database credentials so credentials stay encrypted in
+        Resolves client credentials from explicit arguments first, Settings (env vars) second,
+        and falls back to encrypted database credentials so credentials stay encrypted in
         the database only without requiring plain text secrets in config files.
         """
         prefix = self.config_prefix or self.key
-        cid = getattr(settings, f"{prefix}_client_id", "")
-        csecret = getattr(settings, f"{prefix}_client_secret", "")
-        redirect = getattr(settings, f"{prefix}_redirect_uri", "")
+        cid = (client_id or "").strip() or getattr(settings, f"{prefix}_client_id", "")
+        csecret = (client_secret or "").strip() or getattr(settings, f"{prefix}_client_secret", "")
+        redirect = (redirect_uri or "").strip() or getattr(settings, f"{prefix}_redirect_uri", "")
         if not redirect:
             # Derive from the public URL when not pinned explicitly.
             base = (getattr(settings, "public_url", "") or "").rstrip("/")
@@ -98,9 +104,12 @@ class OAuthProviderSpec:
                         data = json.loads(decrypt_text(cand.data))
                         cand_cid = (data.get("client_id") or "").strip()
                         cand_sec = (data.get("client_secret") or "").strip()
+                        cand_red = (data.get("redirect_uri") or "").strip()
                         if cand_cid and cand_sec:
                             cid = cid or cand_cid
                             csecret = csecret or cand_sec
+                            if cand_red and not getattr(settings, f"{prefix}_redirect_uri", ""):
+                                redirect = cand_red
                             break
                     except Exception:
                         continue
@@ -125,41 +134,88 @@ class OAuthProviderSpec:
         return getattr(settings, self.scopes_setting, "") if self.scopes_setting else ""
 
     # Provider-specific behaviour (set by register_provider).
-    authorize_url: Callable[..., str] | None = None  # (settings, state, challenge, login_url) -> url
+    authorize_url: Callable[..., str] | None = None  # (settings, state, challenge, login_url, prompt) -> url
     token_request: Callable[..., tuple[str, str]] | None = None  # (settings, code, verifier, redirect_uri, login_url) -> (url, body)
     token_headers: Callable[[], dict[str, str]] | None = None  # () -> extra headers
     identity_label: Callable[..., Any] | None = None  # async (http_client, settings, token_payload) -> label
     credential_data: Callable[..., dict[str, Any]] | None = None  # (settings, token_payload, login_url, label) -> blob
+    revoke_token: Callable[..., Any] | None = None  # async (http_client, settings, credential_data) -> bool
 
 
-def _sf_authorize_url(settings: Settings, *, state: str, challenge: str, login_url: str) -> str:
+def _sf_authorize_url(
+    settings: Settings,
+    *,
+    state: str,
+    challenge: str,
+    login_url: str,
+    prompt: str = "",
+    client_id: str = "",
+    redirect_uri: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
+) -> str:
     from urllib.parse import urlencode
 
-    cid, _secret, redirect_uri = SALESFORCE.server_config(settings)
+    cid = client_id
+    r_uri = redirect_uri
+    if not cid or not r_uri:
+        resolved_cid, _secret, resolved_r_uri = SALESFORCE.server_config(
+            settings, db=db, user_id=user_id, client_id=client_id, redirect_uri=redirect_uri
+        )
+        cid = cid or resolved_cid
+        r_uri = r_uri or resolved_r_uri
+
+    params = {
+        "response_type": "code",
+        "client_id": cid,
+        "redirect_uri": r_uri,
+        "scope": SALESFORCE.scopes(settings),
+        "state": state,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+    }
+    effective_prompt = (prompt or "").strip() or "login"
+    if effective_prompt:
+        params["prompt"] = effective_prompt
     return (
         f"{login_url.rstrip('/')}/services/oauth2/authorize?"
-        + urlencode({
-            "response_type": "code",
-            "client_id": cid,
-            "redirect_uri": redirect_uri,
-            "scope": SALESFORCE.scopes(settings),
-            "state": state,
-            "code_challenge": challenge,
-            "code_challenge_method": "S256",
-        })
+        + urlencode(params)
     )
 
 
 def _sf_token_request(
-    settings: Settings, *, code: str, verifier: str, redirect_uri: str, login_url: str
+    settings: Settings,
+    *,
+    code: str,
+    verifier: str,
+    redirect_uri: str,
+    login_url: str,
+    client_id: str = "",
+    client_secret: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
 ) -> tuple[str, str]:
     from urllib.parse import urlencode
+
+    cid = (client_id or "").strip() or getattr(settings, "salesforce_client_id", "")
+    csec = (client_secret or "").strip() or getattr(settings, "salesforce_client_secret", "")
+    if not cid or not csec:
+        try:
+            cid_sc, csec_sc, _ = SALESFORCE.server_config(
+                settings, db=db, user_id=user_id, client_id=client_id, client_secret=client_secret
+            )
+            cid = cid or cid_sc
+            csec = csec or csec_sc
+        except Exception:
+            pass
 
     body = urlencode({
         "grant_type": "authorization_code",
         "code": code,
-        "client_id": settings.salesforce_client_id,
-        "client_secret": settings.salesforce_client_secret,
+        "client_id": cid or getattr(settings, "salesforce_client_id", ""),
+        "client_secret": csec or getattr(settings, "salesforce_client_secret", ""),
         "redirect_uri": redirect_uri,
         "code_verifier": verifier or "",
     })
@@ -167,11 +223,6 @@ def _sf_token_request(
 
 
 def _sf_token_headers() -> dict[str, str]:
-    # The body is a PRE-ENCODED form string, so httpx will not set a
-    # content type for us — without this header Salesforce answers
-    # unsupported_grant_type. Accept-Encoding identity: Salesforce (F5
-    # edge) can return a corrupt gzip body, and authorization codes are
-    # single-use so the exchange must never need a retry.
     return {
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept-Encoding": "identity",
@@ -179,13 +230,13 @@ def _sf_token_headers() -> dict[str, str]:
 
 
 async def _sf_identity_label(http_client: Any, settings: Settings, token_payload: dict[str, Any]) -> str:
-    """Best-effort identity lookup; cosmetic only."""
-    access_token = token_payload.get("access_token") or ""
-    identity_url = token_payload.get("id") or ""
-    if not access_token or not identity_url:
+    identity_url = token_payload.get("id")
+    access_token = token_payload.get("access_token")
+    if not identity_url or not access_token:
         return ""
     try:
-        ident = await http_client.get(
+        ident = await http_client.request(
+            "GET",
             identity_url,
             headers={"Authorization": f"Bearer {access_token}", "Accept-Encoding": "identity"},
             timeout=15.0,
@@ -197,7 +248,13 @@ async def _sf_identity_label(http_client: Any, settings: Settings, token_payload
     return ""
 
 
-def _sf_credential_data(settings: Settings, token_payload: dict[str, Any], login_url: str, label: str = "") -> dict[str, Any]:
+def _sf_credential_data(
+    settings: Settings,
+    token_payload: dict[str, Any],
+    login_url: str,
+    label: str = "",
+    **kwargs: Any,
+) -> dict[str, Any]:
     import time
     expires_in = token_payload.get("expires_in") or 7200
     try:
@@ -211,11 +268,53 @@ def _sf_credential_data(settings: Settings, token_payload: dict[str, Any], login
         "expires_at": exp_at,
         "refresh_token": token_payload["refresh_token"],
         "username": label,
+        "user_id_url": str(token_payload.get("id", "")).strip(),
         "oauth": True,
         "api_version": settings.salesforce_api_version,
         "client_id": "",
         "client_secret": "",
     }
+
+
+async def _sf_revoke_token(http_client: Any, settings: Settings, credential_data: dict[str, Any]) -> bool:
+    """Revoke refresh/access token with Salesforce upstream revocation endpoint."""
+    from urllib.parse import urlencode
+
+    token = credential_data.get("refresh_token") or credential_data.get("access_token") or ""
+    if not token:
+        return True
+
+    candidates = []
+    if credential_data.get("instance_url"):
+        candidates.append(str(credential_data["instance_url"]).rstrip("/"))
+    if credential_data.get("login_url"):
+        candidates.append(str(credential_data["login_url"]).rstrip("/"))
+    if settings.salesforce_login_url:
+        candidates.append(str(settings.salesforce_login_url).rstrip("/"))
+    candidates.append("https://login.salesforce.com")
+
+    urls = list(dict.fromkeys(candidates))
+    success = False
+    for base in urls:
+        revoke_url = f"{base}/services/oauth2/revoke"
+        body = urlencode({"token": token})
+        try:
+            resp = await http_client.request(
+                "POST",
+                revoke_url,
+                data=body,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept-Encoding": "identity",
+                },
+                timeout=15.0,
+            )
+            if resp.status_code in (200, 204):
+                success = True
+                break
+        except Exception:
+            continue
+    return success
 
 
 SALESFORCE = OAuthProviderSpec(
@@ -234,6 +333,7 @@ SALESFORCE = OAuthProviderSpec(
     token_headers=_sf_token_headers,
     identity_label=_sf_identity_label,
     credential_data=_sf_credential_data,
+    revoke_token=_sf_revoke_token,
 )
 
 
@@ -245,15 +345,35 @@ SALESFORCE = OAuthProviderSpec(
 HUBSPOT_AUTHORIZE_BASE = "https://app.hubspot.com/oauth/authorize"
 
 
-def _hs_authorize_url(settings: Settings, *, state: str, challenge: str, login_url: str) -> str:
+def _hs_authorize_url(
+    settings: Settings,
+    *,
+    state: str,
+    challenge: str,
+    login_url: str,
+    prompt: str = "",
+    client_id: str = "",
+    redirect_uri: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
+) -> str:
     from urllib.parse import urlencode
 
-    cid, _secret, redirect_uri = HUBSPOT.server_config(settings)
+    cid = client_id
+    r_uri = redirect_uri
+    if not cid or not r_uri:
+        resolved_cid, _secret, resolved_r_uri = HUBSPOT.server_config(
+            settings, db=db, user_id=user_id, client_id=client_id, redirect_uri=redirect_uri
+        )
+        cid = cid or resolved_cid
+        r_uri = r_uri or resolved_r_uri
+
     return (
         f"{HUBSPOT_AUTHORIZE_BASE}?"
         + urlencode({
             "client_id": cid,
-            "redirect_uri": redirect_uri,
+            "redirect_uri": r_uri,
             "scope": HUBSPOT.scopes(settings),
             "state": state,
         })
@@ -261,16 +381,38 @@ def _hs_authorize_url(settings: Settings, *, state: str, challenge: str, login_u
 
 
 def _hs_token_request(
-    settings: Settings, *, code: str, verifier: str, redirect_uri: str, login_url: str
+    settings: Settings,
+    *,
+    code: str,
+    verifier: str,
+    redirect_uri: str,
+    login_url: str,
+    client_id: str = "",
+    client_secret: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
 ) -> tuple[str, str]:
     from urllib.parse import urlencode
+
+    cid = (client_id or "").strip() or settings.hubspot_client_id
+    csec = (client_secret or "").strip() or settings.hubspot_client_secret
+    if not cid or not csec:
+        try:
+            cid_sc, csec_sc, _ = HUBSPOT.server_config(
+                settings, db=db, user_id=user_id, client_id=client_id, client_secret=client_secret
+            )
+            cid = cid or cid_sc
+            csec = csec or csec_sc
+        except Exception:
+            pass
 
     body = urlencode({
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": redirect_uri,
-        "client_id": settings.hubspot_client_id,
-        "client_secret": settings.hubspot_client_secret,
+        "client_id": cid,
+        "client_secret": csec,
     })
     return "https://api.hubapi.com/oauth/v1/token", body
 
@@ -347,17 +489,29 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
     refresh tokens with the wrong scopes.
     """
 
-    def _authorize(settings: Settings, *, state: str, challenge: str, login_url: str) -> str:
+    def _authorize(
+        settings: Settings,
+        *,
+        state: str,
+        challenge: str,
+        login_url: str,
+        prompt: str = "",
+        client_id: str = "",
+        redirect_uri: str = "",
+        db: Any = None,
+        user_id: int | None = None,
+        **kwargs: Any,
+    ) -> str:
         from urllib.parse import urlencode
 
-        cid = getattr(settings, f"{config_prefix}_client_id", "")
+        cid = (client_id or "").strip() or getattr(settings, f"{config_prefix}_client_id", "")
         csecret = getattr(settings, f"{config_prefix}_client_secret", "")
-        redirect_uri = getattr(settings, f"{config_prefix}_redirect_uri", "")
-        if not redirect_uri:
+        r_uri = (redirect_uri or "").strip() or getattr(settings, f"{config_prefix}_redirect_uri", "")
+        if not r_uri:
             base = (getattr(settings, "public_url", "") or "").rstrip("/")
             if base:
-                redirect_uri = f"{base}/api/auth/{provider_key}/callback"
-        if not cid or not csecret or not redirect_uri:
+                r_uri = f"{base}/api/auth/{provider_key}/callback"
+        if not cid or not csecret or not r_uri:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 f"{display_name} OAuth is not configured on the server.",
@@ -366,14 +520,14 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
             f"{GOOGLE_AUTHORIZE_BASE}?"
             + urlencode({
                 "client_id": cid,
-                "redirect_uri": redirect_uri,
+                "redirect_uri": r_uri,
                 "response_type": "code",
                 "scope": getattr(settings, scopes_setting, ""),
                 "state": state,
                 # Force a refresh token on every connect (Google otherwise
                 # issues one only on first consent).
                 "access_type": "offline",
-                "prompt": "consent",
+                "prompt": prompt if prompt else "consent",
             })
         )
 
@@ -382,16 +536,26 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
 
 def _google_token_request_factory(config_prefix: str):
     def _token_request(
-        settings: Settings, *, code: str, verifier: str, redirect_uri: str, login_url: str
+        settings: Settings,
+        *,
+        code: str,
+        verifier: str,
+        redirect_uri: str,
+        login_url: str,
+        client_id: str = "",
+        client_secret: str = "",
+        **kwargs: Any,
     ) -> tuple[str, str]:
         from urllib.parse import urlencode
 
+        cid = (client_id or "").strip() or getattr(settings, f"{config_prefix}_client_id", "")
+        csec = (client_secret or "").strip() or getattr(settings, f"{config_prefix}_client_secret", "")
         body = urlencode({
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": redirect_uri,
-            "client_id": getattr(settings, f"{config_prefix}_client_id", ""),
-            "client_secret": getattr(settings, f"{config_prefix}_client_secret", ""),
+            "client_id": cid,
+            "client_secret": csec,
         })
         return GOOGLE_TOKEN_URL, body
 
@@ -428,6 +592,29 @@ def _google_credential_data(settings: Settings, token_payload: dict[str, Any], l
     }
 
 
+async def _google_revoke_token(http_client: Any, settings: Settings, credential_data: dict[str, Any]) -> bool:
+    """Revoke refresh/access token with Google upstream revocation endpoint."""
+    from urllib.parse import urlencode
+
+    token = credential_data.get("refresh_token") or credential_data.get("access_token") or ""
+    if not token:
+        return True
+
+    revoke_url = "https://oauth2.googleapis.com/revoke"
+    body = urlencode({"token": token})
+    try:
+        resp = await http_client.request(
+            "POST",
+            revoke_url,
+            data=body,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=15.0,
+        )
+        return resp.status_code in (200, 204)
+    except Exception:
+        return False
+
+
 GOOGLE = OAuthProviderSpec(
     key="google_calendar",
     display_name="Google Calendar",
@@ -445,6 +632,7 @@ GOOGLE = OAuthProviderSpec(
     token_headers=_google_token_headers,
     identity_label=_google_identity_label,
     credential_data=_google_credential_data,
+    revoke_token=_google_revoke_token,
 )
 
 
@@ -470,6 +658,7 @@ GOOGLE_SHEETS = OAuthProviderSpec(
     token_headers=_google_token_headers,
     identity_label=_google_identity_label,
     credential_data=_google_credential_data,
+    revoke_token=_google_revoke_token,
 )
 
 
@@ -494,6 +683,7 @@ GMAIL = OAuthProviderSpec(
     token_headers=_google_token_headers,
     identity_label=_google_identity_label,
     credential_data=_google_credential_data,
+    revoke_token=_google_revoke_token,
 )
 
 
@@ -519,6 +709,7 @@ GOOGLE_DRIVE = OAuthProviderSpec(
     token_headers=_google_token_headers,
     identity_label=_google_identity_label,
     credential_data=_google_credential_data,
+    revoke_token=_google_revoke_token,
 )
 
 
@@ -544,6 +735,7 @@ GOOGLE_DOCS = OAuthProviderSpec(
     token_headers=_google_token_headers,
     identity_label=_google_identity_label,
     credential_data=_google_credential_data,
+    revoke_token=_google_revoke_token,
 )
 
 
@@ -588,29 +780,102 @@ def purge_stale_states(db: Session) -> None:
     db.commit()
 
 
-def get_existing_oauth_credential(db: Session, user: User, cred_type: str) -> credential_service.Credential | None:
-    """Find an existing active OAuth connection for user+type to reuse its ID across reconnects."""
+def get_existing_oauth_credential(
+    db: Session,
+    user: User,
+    cred_type: str,
+    account_data: dict[str, Any] | None = None,
+) -> credential_service.Credential | None:
+    """Find an existing active OAuth connection for user+type.
+
+    If account_data is provided, matches specifically against that account's
+    identity so distinct accounts (e.g. multiple Salesforce accounts or orgs)
+    coexist as separate credentials.
+    """
     previous = db.scalars(
         select(credential_service.Credential).where(
             credential_service.Credential.user_id == user.id,
             credential_service.Credential.type == cred_type,
-        )
+        ).order_by(credential_service.Credential.created_at.desc())
     ).all()
+
+    candidates: list[tuple[credential_service.Credential, dict[str, Any]]] = []
     for rec in previous:
         try:
             raw = rec.data
             blob = decrypt_text(raw if isinstance(raw, bytes) else str(raw).encode())
-            if json.loads(blob).get("oauth"):
-                return rec
+            parsed = json.loads(blob)
+            if parsed.get("oauth"):
+                candidates.append((rec, parsed))
         except Exception:
             continue
+
+    if not candidates:
+        return None
+
+    if not account_data:
+        # Default fallback: return first candidate
+        return candidates[0][0]
+
+    # Account-specific identity matching:
+    acc_id_url = str(account_data.get("user_id_url") or "").strip()
+    acc_user = str(account_data.get("username") or account_data.get("user") or "").strip()
+    acc_inst = str(account_data.get("instance_url") or "").strip().rstrip("/")
+    acc_hub = str(account_data.get("hub_id") or "").strip()
+
+    # 1. Match by canonical identity URL (Salesforce id)
+    if acc_id_url:
+        for rec, data in candidates:
+            if str(data.get("user_id_url") or "").strip() == acc_id_url:
+                return rec
+
+    # 2. Match by username + instance_url
+    if acc_user and acc_inst:
+        for rec, data in candidates:
+            cand_user = str(data.get("username") or data.get("user") or "").strip()
+            cand_inst = str(data.get("instance_url") or "").strip().rstrip("/")
+            if cand_user == acc_user and cand_inst == acc_inst:
+                return rec
+
+    # 3. Match by username / email alone (if set)
+    if acc_user:
+        for rec, data in candidates:
+            cand_user = str(data.get("username") or data.get("user") or "").strip()
+            if cand_user == acc_user:
+                return rec
+
+    # 4. Match by hub_id (HubSpot)
+    if acc_hub:
+        for rec, data in candidates:
+            cand_hub = str(data.get("hub_id") or "").strip()
+            if cand_hub == acc_hub:
+                return rec
+
+    # 5. Match by instance_url alone if no username exists on either side
+    if acc_inst and not acc_user:
+        for rec, data in candidates:
+            cand_user = str(data.get("username") or data.get("user") or "").strip()
+            cand_inst = str(data.get("instance_url") or "").strip().rstrip("/")
+            if not cand_user and cand_inst == acc_inst:
+                return rec
+
+    # No existing record matched this account's identity -> It's a new account!
     return None
 
 
-def replace_oauth_credential(db: Session, user: User, cred_type: str, keep_id: str | None = None) -> None:
-    """Keep a single active OAuth connection per user+type: delete any
-    previous OAuth-created credential of this type (manual ones stay),
-    optionally preserving keep_id."""
+def replace_oauth_credential(
+    db: Session,
+    user: User,
+    cred_type: str,
+    keep_id: str | None = None,
+    account_data: dict[str, Any] | None = None,
+) -> None:
+    """Optionally clean up duplicate credentials of the exact SAME account.
+
+    Distinct accounts (e.g. multiple Salesforce orgs or users) are never deleted.
+    """
+    if not account_data or not keep_id:
+        return
     previous = db.scalars(
         select(credential_service.Credential).where(
             credential_service.Credential.user_id == user.id,
@@ -618,14 +883,19 @@ def replace_oauth_credential(db: Session, user: User, cred_type: str, keep_id: s
         )
     ).all()
     for rec in previous:
-        if keep_id and rec.id == keep_id:
+        if rec.id == keep_id:
             continue
         try:
             raw = rec.data
             blob = decrypt_text(raw if isinstance(raw, bytes) else str(raw).encode())
-            if json.loads(blob).get("oauth"):
+            parsed = json.loads(blob)
+            if not parsed.get("oauth"):
+                continue
+            match = get_existing_oauth_credential(db, user, cred_type, account_data=parsed)
+            if match and match.id == keep_id:
                 db.delete(rec)
         except Exception:
             continue
+
 
 

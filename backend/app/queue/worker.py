@@ -182,10 +182,13 @@ class QueueWorker:
         hb = pathlib.Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tmp"))
         hb.mkdir(parents=True, exist_ok=True)
         hb = hb / "worker_alive"
-        hb.write_text(str(os.getpid()))
+        last_hb_write = time.monotonic()
         while not self._stop.is_set():
             try:
-                hb.write_text(str(os.getpid()))
+                now = time.monotonic()
+                if now - last_hb_write >= 15.0:
+                    hb.write_text(str(os.getpid()))
+                    last_hb_write = now
                 await self.consume_once()
             except asyncio.CancelledError:
                 raise
