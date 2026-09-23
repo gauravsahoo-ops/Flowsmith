@@ -64,10 +64,10 @@ export default function NodeAutoRepair({
   }, [result, node?.parameters])
 
   return (
-    <div className="node-auto-repair-container" role="region" aria-label="AI Auto-Repair Diagnostic">
+    <div className="node-auto-repair-container" role="region" aria-label="Flowsmith AI Self-Healing Diagnostic">
       <div className="nar-header">
         <div className="nar-title">
-          <span>✨</span>
+          <span>⚡</span>
           <span>Flowsmith AI Self-Healing Diagnostic</span>
         </div>
         <button

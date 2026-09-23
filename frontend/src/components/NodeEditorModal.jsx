@@ -354,20 +354,6 @@ export default function NodeEditorModal() {
             )}
           </div>
           <div className="nem-actions">
-            {effectiveError && (
-              <Button
-                variant="secondary"
-                onClick={() => setShowAutoRepair((prev) => !prev)}
-                title="Autonomous AI node diagnosis and self-healing"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%)',
-                  borderColor: 'rgba(168, 85, 247, 0.4)',
-                  color: '#d8b4fe',
-                }}
-              >
-                ✨ AI Auto-Repair
-              </Button>
-            )}
             <Button
               variant="ghost"
               onClick={handleExecutePrevious}
@@ -425,7 +411,7 @@ export default function NodeEditorModal() {
           </button>
         </nav>
 
-        {effectiveError && (
+        {effectiveError && !showAutoRepair && (
           <ErrorState
             icon="⚠️"
             title="Execution failed"
@@ -440,7 +426,7 @@ export default function NodeEditorModal() {
                   color: '#fff',
                 }}
               >
-                ✨ AI Auto-Repair
+                ⚡ Flowsmith AI Self-Healing Diagnostic
               </Button>
             }
           />
