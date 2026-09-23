@@ -39,7 +39,6 @@ export default function CredentialsPage() {
   const [busy, setBusy] = useState(false)
   const [oauthBusy, setOauthBusy] = useState('')
   const [fallbackUrl, setFallbackUrl] = useState('')
-  const [showManualForm, setShowManualForm] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [logoutTarget, setLogoutTarget] = useState(null)
   const [loading, setLoading] = useState(!useCredentialStore.getState().loaded)
@@ -49,21 +48,6 @@ export default function CredentialsPage() {
   const [testingId, setTestingId] = useState(null)
   const [testResult, setTestResult] = useState(null)
   const [reconnectingId, setReconnectingId] = useState(null)
-  const [configModal, setConfigModal] = useState({
-    open: false,
-    mode: 'provider',
-    credential: null,
-    provider: 'salesforce',
-    clientId: '',
-    clientSecret: '',
-    loginUrl: '',
-    hasSecret: false,
-    saving: false,
-    error: null,
-    notice: null,
-    prompt: '',
-  })
-  const [showSecret, setShowSecret] = useState(false)
   const mountedRef = useRef(true)
   const oauthCleanupRef = useRef(null)
 
@@ -99,104 +83,6 @@ export default function CredentialsPage() {
   const schema = types.find(t => t.type === form.type)?.parameters_schema
   const secretFields = new Set(types.find(t => t.type === form.type)?.secret_fields || [])
   const isOAuthType = ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(form.type)
-
-  async function openCredentialConfig(c, prompt = '') {
-    setConfigModal({
-      open: true,
-      mode: 'credential',
-      credential: c,
-      provider: c.type,
-      clientId: '',
-      clientSecret: '',
-      loginUrl: '',
-      hasSecret: false,
-      saving: false,
-      error: null,
-      notice: null,
-      prompt,
-    })
-    setShowSecret(false)
-    try {
-      const cfg = await api.getOAuthConfig(c.type)
-      if (cfg) {
-        setConfigModal(prev => ({
-          ...prev,
-          clientId: cfg.client_id || '',
-          loginUrl: cfg.login_url || '',
-          hasSecret: Boolean(cfg.has_secret),
-        }))
-      }
-    } catch {}
-  }
-
-  async function openProviderConfig(provider, prompt = '') {
-    setConfigModal({
-      open: true,
-      mode: 'provider',
-      credential: null,
-      provider,
-      clientId: '',
-      clientSecret: '',
-      loginUrl: '',
-      hasSecret: false,
-      saving: false,
-      error: null,
-      notice: null,
-      prompt,
-    })
-    setShowSecret(false)
-    try {
-      const cfg = await api.getOAuthConfig(provider)
-      if (cfg) {
-        setConfigModal(prev => ({
-          ...prev,
-          clientId: cfg.client_id || '',
-          loginUrl: cfg.login_url || '',
-          hasSecret: Boolean(cfg.has_secret),
-        }))
-      }
-    } catch {}
-  }
-
-  async function handleSaveConfig(andConnect = false) {
-    if (!configModal.clientId.trim()) {
-      setConfigModal(prev => ({ ...prev, error: 'Client ID (Consumer Key) is required.' }))
-      return
-    }
-    if (!configModal.clientSecret.trim() && !configModal.hasSecret) {
-      setConfigModal(prev => ({ ...prev, error: 'Client Secret (Consumer Secret) is required.' }))
-      return
-    }
-    setConfigModal(prev => ({ ...prev, saving: true, error: null, notice: null }))
-    try {
-      const payload = {
-        client_id: configModal.clientId.trim(),
-        client_secret: configModal.clientSecret.trim() || undefined,
-        login_url: configModal.loginUrl.trim() || undefined,
-      }
-      if (configModal.mode === 'credential' && configModal.credential?.id) {
-        await api.updateCredentialConfig(configModal.credential.id, payload)
-      }
-      if (payload.client_secret) {
-        await api.saveOAuthConfig(configModal.provider, payload)
-      }
-      setNotice('Connected App configuration saved to database.')
-      const provider = configModal.provider
-      const loginUrl = configModal.loginUrl.trim() || undefined
-      const cred = configModal.credential
-      setConfigModal(prev => ({ ...prev, open: false, saving: false }))
-      await load()
-      if (andConnect) {
-        if (cred) {
-          await handleReconnect(cred)
-        } else {
-          await handleOAuth(provider, loginUrl)
-        }
-      }
-    } catch (err) {
-      setConfigModal(prev => ({ ...prev, saving: false, error: err.message || 'Failed to save configuration.' }))
-    }
-  }
 
   async function handleReconnect(c) {
     setReconnectingId(c.id)
@@ -485,7 +371,26 @@ export default function CredentialsPage() {
               )}
             </span>
           </div>
-          <button className="ghost small" onClick={() => setTestResult(null)} aria-label="Dismiss">✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!testResult.ok && credentials.some(x => x.id === testResult.id && ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(x.type)) && (
+              <button
+                type="button"
+                className="primary small"
+                onClick={() => {
+                  const cred = credentials.find(x => x.id === testResult.id)
+                  if (cred) handleReconnect(cred)
+                }}
+                disabled={reconnectingId === testResult.id}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '4px 10px', background: '#f59e0b', borderColor: '#d97706', color: '#000', fontWeight: 600 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                </svg>
+                <span>{reconnectingId === testResult.id ? 'Reconnecting…' : 'Reconnect Now'}</span>
+              </button>
+            )}
+            <button className="ghost small" onClick={() => setTestResult(null)} aria-label="Dismiss">✕</button>
+          </div>
         </div>
       )}
 
@@ -552,10 +457,31 @@ export default function CredentialsPage() {
                     </span>
                   </td>
                   <td>
-                    <span className="status-pill status-success" title="Encrypted at rest with Fernet 256-bit AES">
-                      <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-                      <span>Encrypted (Fernet)</span>
-                    </span>
+                    {c.expired ? (
+                      <span
+                        className="status-pill status-warning"
+                        title="Session expired or token revoked — click Reconnect to renew"
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          borderColor: 'rgba(245, 158, 11, 0.3)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
+                        <span style={{ color: '#f59e0b', fontWeight: 600 }}>Session Expired</span>
+                      </span>
+                    ) : (
+                      <span
+                        className="status-pill status-success"
+                        title="Active connection encrypted at rest with AES-256 / Fernet"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+                        <span style={{ color: '#34d399' }}>Connected</span>
+                      </span>
+                    )}
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -596,11 +522,16 @@ export default function CredentialsPage() {
                       {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                         <button
                           type="button"
-                          className="ghost small"
+                          className={c.expired ? 'primary small' : 'ghost small'}
                           onClick={() => handleReconnect(c)}
                           disabled={reconnectingId === c.id}
-                          title="Auto-reconnect or renew token"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                          title={c.expired ? 'Session expired — click Reconnect to re-authenticate or refresh token' : 'Auto-reconnect or renew token'}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            ...(c.expired ? { background: '#f59e0b', borderColor: '#d97706', color: '#000', fontWeight: 600 } : {})
+                          }}
                         >
                           {reconnectingId === c.id ? (
                             <>
@@ -706,14 +637,46 @@ export default function CredentialsPage() {
       </section>
 
       <section className="card" style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 14, margin: '0 0 8px' }}>New credential</h2>
+        <h2 style={{ fontSize: 14, margin: '0 0 12px' }}>New credential</h2>
 
-        {isOAuthType && (
-          <div className="sf-connect-box" style={{ padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Select Service / Type</label>
+          <SearchableSelect
+            value={form.type}
+            onChange={val => {
+              const selectedType = types.find(t => t.type === val)
+              setForm(prev => ({
+                ...prev,
+                type: val,
+                name: prev.name.trim() ? prev.name : (selectedType?.name ? `${selectedType.name} Credential` : ''),
+                data: defaultsFromSchema(selectedType?.parameters_schema),
+              }))
+            }}
+            options={types.map(t => ({
+              value: t.type,
+              label: `${t.name} (${t.type})`,
+              disabled: t.implemented === false,
+              disabledReason: t.implemented === false ? 'Not implemented' : undefined,
+              hint: t.description || undefined,
+            }))}
+            placeholder="Search or select credential type…"
+          />
+          {form.type && types.find(t => t.type === form.type)?.implemented === false && (
+            <div className="banner-inline err" style={{ marginTop: 6 }}>Authentication provider not implemented yet — execution will be blocked.</div>
+          )}
+        </div>
+
+        {isOAuthType ? (
+          <div className="sf-connect-box" style={{ padding: '18px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-              <strong style={{ textTransform: 'capitalize', fontSize: 14 }}>
-                OAuth Connection ({form.type.replace(/_/g, ' ')})
-              </strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <strong style={{ textTransform: 'capitalize', fontSize: 15 }}>
+                  {form.type.replace(/_/g, ' ')}
+                </strong>
+                <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.25)', fontSize: 11 }}>
+                  OAuth 2.0
+                </span>
+              </div>
               {credentials.filter(c => c.type === form.type).length > 0 && (
                 <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
                   ✓ {credentials.filter(c => c.type === form.type).length} account{credentials.filter(c => c.type === form.type).length > 1 ? 's' : ''} connected
@@ -721,9 +684,13 @@ export default function CredentialsPage() {
               )}
             </div>
 
+            <p className="hint" style={{ margin: '4px 0 12px', fontSize: 13, lineHeight: 1.5 }}>
+              Authenticate securely with {form.type.replace(/_/g, ' ')} using the standard login popup. Flowsmith stores encrypted access tokens and automatically refreshes them.
+            </p>
+
             {credentials.filter(c => c.type === form.type).length > 0 && (
-              <div style={{ margin: '8px 0 12px', padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div className="hint" style={{ fontSize: 12, marginBottom: 6 }}>Active connected accounts (all available to workflows):</div>
+              <div style={{ margin: '8px 0 14px', padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div className="hint" style={{ fontSize: 12, marginBottom: 6 }}>Connected accounts (available to workflows):</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {credentials.filter(c => c.type === form.type).map(acc => (
                     <span key={acc.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', fontSize: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -744,16 +711,13 @@ export default function CredentialsPage() {
               </div>
             )}
 
-            <p className="hint" style={{ margin: '4px 0 10px' }}>
-              Flowsmith supports connecting <strong>multiple accounts</strong> (e.g. multiple Salesforce orgs or users). Each account is encrypted and isolated.
-            </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
               <button
                 className="primary"
                 type="button"
                 onClick={() => handleOAuth(form.type)}
                 disabled={!!oauthBusy || !form.type}
+                style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600 }}
               >
                 {oauthBusy ? 'Connecting…' : (credentials.some(c => c.type === form.type) ? `+ Connect another ${form.type.replace(/_/g, ' ')} account` : `Connect ${form.type.replace(/_/g, ' ')}`)}
               </button>
@@ -766,101 +730,61 @@ export default function CredentialsPage() {
               </div>
             )}
           </div>
-        )}
-
-        {isOAuthType && (
-          <div style={{ margin: '14px 0 6px' }}>
-            <button
-              type="button"
-              className="ghost small"
-              onClick={() => setShowManualForm(v => !v)}
-              style={{ fontSize: 12, opacity: 0.85 }}
-            >
-              {showManualForm ? 'Hide manual credential form' : '⚙️ Or configure manual credentials (username/password or custom tokens)'}
-            </button>
-          </div>
-        )}
-
-        <form onSubmit={handleCreate} className="cred-form">
-          <label>
-            Name
-            <input
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              required
-              placeholder="e.g. My LLM Credential"
-            />
-            {form.type && !form.name.trim() && (
-              <span style={{ color: 'var(--amber, #f59e0b)', fontSize: 11, display: 'block', marginTop: 3 }}>
-                ⚠️ Name is required — please enter a name above to enable saving.
-              </span>
-            )}
-          </label>
-          <div>
-            <label style={{ display: 'block', marginBottom: 4 }}>Type</label>
-            <SearchableSelect
-              value={form.type}
-              onChange={val => {
-                const selectedType = types.find(t => t.type === val)
-                setForm(prev => ({
-                  ...prev,
-                  type: val,
-                  name: prev.name.trim() ? prev.name : (selectedType?.name ? `${selectedType.name} Credential` : ''),
-                  data: defaultsFromSchema(selectedType?.parameters_schema),
-                }))
-              }}
-              options={types.map(t => ({
-                value: t.type,
-                label: `${t.name} (${t.type})`,
-                disabled: t.implemented === false,
-                disabledReason: t.implemented === false ? 'Not implemented' : undefined,
-                hint: t.description || undefined,
-              }))}
-              placeholder="Search or select credential type…"
-            />
-            {form.type && types.find(t => t.type === form.type)?.implemented === false && (
-              <div className="banner-inline err" style={{ marginTop: 6 }}>Authentication provider not implemented yet — execution will be blocked.</div>
-            )}
-          </div>
-          {schema && (!isOAuthType || showManualForm) && Object.entries(schema.properties || {}).map(([key, prop]) => {
-            const isConnStr = ['dsn','uri','connection_string','connectionString'].includes(key) || (prop.description && prop.description.toLowerCase().includes('connection string'))
-            return (
-            <label key={key}>
-              {prop.title || key}
-              {prop.description && (
-                <span className="muted">
-                  {' — '}{prop.description}
-                  {key === 'base_url' && form.type === 'llm' && (
-                    <span style={{ display: 'block', marginTop: 2, color: '#38bdf8' }}>
-                      💡 Tip for OpenRouter: Use <code>https://openrouter.ai/api/v1</code>
-                    </span>
-                  )}
+        ) : (
+          <form onSubmit={handleCreate} className="cred-form">
+            <label>
+              Name
+              <input
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                required
+                placeholder="e.g. My Database Connection"
+              />
+              {form.type && !form.name.trim() && (
+                <span style={{ color: 'var(--amber, #f59e0b)', fontSize: 11, display: 'block', marginTop: 3 }}>
+                  ⚠️ Name is required — please enter a name above to enable saving.
                 </span>
               )}
-              {prop.type === 'boolean' ? (
-                <input type="checkbox" checked={Boolean(form.data[key])} onChange={e => setForm({ ...form, data: { ...form.data, [key]: e.target.checked } })} />
-              ) : (
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input style={{ flex: 1 }} type={secretFields.has(key) ? 'password' : prop.type === 'number' || prop.type === 'integer' ? 'number' : 'text'} value={form.data[key] ?? ''} onChange={e => setForm({ ...form, data: { ...form.data, [key]: prop.type === 'number' || prop.type === 'integer' ? Number(e.target.value) : e.target.value } })} />
-                  {isConnStr && form.data[key] && (
-                    <button type="button" className="ghost small" onClick={() => setForm({ ...form, data: { ...form.data, [key]: '' } })} title="Clear connection string">🗑 Clear</button>
-                  )}
-                </div>
-              )}
             </label>
-            )
-          })}
-          {(!isOAuthType || showManualForm) && (
+            {schema && Object.entries(schema.properties || {}).map(([key, prop]) => {
+              const isConnStr = ['dsn','uri','connection_string','connectionString'].includes(key) || (prop.description && prop.description.toLowerCase().includes('connection string'))
+              return (
+              <label key={key}>
+                {prop.title || key}
+                {prop.description && (
+                  <span className="muted">
+                    {' — '}{prop.description}
+                    {key === 'base_url' && form.type === 'llm' && (
+                      <span style={{ display: 'block', marginTop: 2, color: '#38bdf8' }}>
+                        💡 Tip for OpenRouter: Use <code>https://openrouter.ai/api/v1</code>
+                      </span>
+                    )}
+                  </span>
+                )}
+                {prop.type === 'boolean' ? (
+                  <input type="checkbox" checked={Boolean(form.data[key])} onChange={e => setForm({ ...form, data: { ...form.data, [key]: e.target.checked } })} />
+                ) : (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input style={{ flex: 1 }} type={secretFields.has(key) ? 'password' : prop.type === 'number' || prop.type === 'integer' ? 'number' : 'text'} value={form.data[key] ?? ''} onChange={e => setForm({ ...form, data: { ...form.data, [key]: prop.type === 'number' || prop.type === 'integer' ? Number(e.target.value) : e.target.value } })} />
+                    {isConnStr && form.data[key] && (
+                      <button type="button" className="ghost small" onClick={() => setForm({ ...form, data: { ...form.data, [key]: '' } })} title="Clear connection string">🗑 Clear</button>
+                    )}
+                  </div>
+                )}
+              </label>
+              )
+            })}
             <button
               className="primary"
               type="submit"
               disabled={busy || !form.type}
               title={!form.name.trim() ? 'Please enter a name for this credential' : ''}
+              style={{ marginTop: 8 }}
             >
               {busy ? 'Saving…' : 'Save credential'}
             </button>
-          )}
-        </form>
+          </form>
+        )}
       </section>
 
       <ConfirmDialog open={Boolean(deleteTarget)} title={`Delete “${deleteTarget?.name}”?`} description={deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'The connection string will be permanently deleted. Workflows using this connection will fail until updated.' : 'This credential will be disconnected. Workflows referencing it will fail until updated.'} confirmLabel={deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'Delete connection string' : 'Delete'} variant="danger" onCancel={() => setDeleteTarget(null)} onConfirm={async () => { try { await remove(deleteTarget.id); setNotice(deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'Connection string deleted.' : 'Deleted.'); } catch(e){ setError(e.message)} finally{ setDeleteTarget(null) } }} />
@@ -901,158 +825,6 @@ export default function CredentialsPage() {
           }
         }}
       />
-
-      {configModal.open && (
-        <div className="overlay" onClick={() => !configModal.saving && setConfigModal(p => ({ ...p, open: false }))}>
-          <div
-            className="confirm-dialog"
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Configure Connected App"
-            style={{ maxWidth: 540, width: '100%' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <NodeIcon type={configModal.provider} size={22} />
-                <h3 style={{ margin: 0, textTransform: 'capitalize' }}>
-                  {configModal.provider.replace(/_/g, ' ')} Connected App (Database)
-                </h3>
-              </div>
-              <button
-                type="button"
-                className="ghost small"
-                onClick={() => setConfigModal(p => ({ ...p, open: false }))}
-                disabled={configModal.saving}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div
-              style={{
-                fontSize: 12,
-                lineHeight: 1.5,
-                padding: '10px 12px',
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                borderRadius: 6,
-                marginBottom: 14,
-              }}
-            >
-              🔒 <strong>Stored Encrypted in Database:</strong> Credentials are encrypted with Fernet (256-bit AES) and saved directly in PostgreSQL. No server <code>.env</code> file changes or container restarts are needed.
-            </div>
-
-            {configModal.prompt && (
-              <div className="banner-inline err" style={{ marginBottom: 12, fontSize: 12 }}>
-                {configModal.prompt}
-              </div>
-            )}
-            {configModal.error && (
-              <div className="banner-inline err" style={{ marginBottom: 12, fontSize: 12 }}>
-                {configModal.error}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600 }}>
-                <span>Consumer Key (Client ID) <span style={{ color: 'var(--red, #f87171)' }}>*</span></span>
-                <input
-                  type="text"
-                  placeholder="e.g. 3MVG97L7PWbPq6UzeixCsscpT5gtAB..."
-                  value={configModal.clientId}
-                  onChange={e => setConfigModal({ ...configModal, clientId: e.target.value })}
-                  style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
-                  disabled={configModal.saving}
-                />
-              </label>
-
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>
-                    Consumer Secret (Client Secret){' '}
-                    {configModal.hasSecret && <span className="hint" style={{ fontWeight: 400 }}>(Already saved in database)</span>}
-                  </span>
-                  <button
-                    type="button"
-                    className="ghost small"
-                    onClick={() => setShowSecret(v => !v)}
-                    style={{ fontSize: 11, padding: '1px 6px' }}
-                  >
-                    {showSecret ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                <input
-                  type={showSecret ? 'text' : 'password'}
-                  placeholder={configModal.hasSecret ? '•••••••••••••••• (Leave blank to keep existing secret)' : 'Paste Consumer Secret...'}
-                  value={configModal.clientSecret}
-                  onChange={e => setConfigModal({ ...configModal, clientSecret: e.target.value })}
-                  style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
-                  disabled={configModal.saving}
-                />
-              </label>
-
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600 }}>
-                <span>Login URL / Domain (Optional)</span>
-                <input
-                  type="text"
-                  placeholder="https://login.salesforce.com or https://your-domain.my.salesforce.com"
-                  value={configModal.loginUrl}
-                  onChange={e => setConfigModal({ ...configModal, loginUrl: e.target.value })}
-                  style={{ width: '100%', fontSize: 12 }}
-                  disabled={configModal.saving}
-                />
-                <span className="hint" style={{ fontSize: 11 }}>
-                  Leave blank for standard login or enter custom My Domain if your Salesforce org requires it.
-                </span>
-              </label>
-
-              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 10px', borderRadius: 6, fontSize: 11 }}>
-                <span style={{ fontWeight: 600 }}>Salesforce Callback URL:</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                  <code style={{ flex: 1, padding: '4px 6px', background: 'rgba(0,0,0,0.2)', borderRadius: 4, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {`${window.location.origin}/api/auth/salesforce/callback`}
-                  </code>
-                  <button
-                    type="button"
-                    className="ghost small"
-                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/api/auth/salesforce/callback`)}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="confirm-actions" style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => setConfigModal(p => ({ ...p, open: false }))}
-                disabled={configModal.saving}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => handleSaveConfig(false)}
-                disabled={configModal.saving || !configModal.clientId.trim()}
-              >
-                {configModal.saving ? 'Saving…' : 'Save to Database'}
-              </button>
-              <button
-                type="button"
-                className="primary"
-                onClick={() => handleSaveConfig(true)}
-                disabled={configModal.saving || !configModal.clientId.trim()}
-              >
-                {configModal.saving ? 'Saving…' : (configModal.mode === 'credential' ? 'Save & Reconnect' : 'Save & Connect')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

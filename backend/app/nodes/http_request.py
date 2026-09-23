@@ -354,6 +354,11 @@ class HTTPRequestParams(BaseModel):
     # Automatic token persistence (optional for Login API nodes)
     auto_store_token: bool = Field(default=False, description="Automatically persist returned access_token/refresh_token in workflow credential store.")
     auto_store_provider: str = Field(default="salesforce", description="Provider name when auto-storing credentials.")
+    # Method hooks (Cyclr-style lifecycle operations)
+    on_init_headers: dict[str, str] | None = Field(default=None, description="Pre-request dynamic headers (evaluated before sending).")
+    on_success_expression: str | None = Field(default=None, description="Post-response transformation expression evaluated on success (e.g. {{ $response.body.data }}).")
+    on_error_action: Literal["fail", "continue", "fallback_data"] = Field(default="fail", description="Action when request fails (>= 400).")
+    on_error_fallback: Any = Field(default=None, description="Fallback JSON/value when on_error_action==fallback_data.")
 
     @model_validator(mode="before")
     @classmethod
@@ -758,7 +763,13 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 query = {}
 
         # Handle credentials-based auth augmentation (OAuth2 etc) via ctx.credentials
-        await self._apply_auth(params, headers, query, ctx)
+        await self._apply_auth(params, headers, query, ctx, single_item=single_item)
+
+        # Apply on_init_headers hook if configured (Cyclr-style pre-request hook)
+        if params.on_init_headers and isinstance(params.on_init_headers, dict):
+            for hk, hv in params.on_init_headers.items():
+                if hk and str(hk).strip():
+                    headers[str(hk).strip()] = str(hv) if hv is not None else ""
 
         data = None
         json_body = None
@@ -1039,24 +1050,70 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
 
         # Handle HTTP error status codes — don't auto-succeed on 4xx/5xx
         if response.status_code >= 400:
+            # Check on_error hook (Cyclr-style method lifecycle)
+            if params.on_error_action == "fallback_data":
+                fb = params.on_error_fallback
+                if fb is None:
+                    fb = {"error": True, "statusCode": response.status_code, "body": item.get("body")}
+                elif isinstance(fb, str):
+                    try:
+                        fb = json.loads(fb)
+                    except Exception:
+                        pass
+                return NodeResult(output_items=[fb if isinstance(fb, dict) else {"data": fb}])
+            if params.on_error_action == "continue":
+                return NodeResult(output_items=[{"statusCode": response.status_code, "headers": dict(response.headers), "body": item.get("body"), "error": True}])
+
+            resp_body = item.get("body") if item.get("body") is not None else getattr(response, "text", "")
+            safe_headers = {k: v for k, v in dict(response.headers).items() if k.lower() not in ("authorization", "cookie", "set-cookie")}
+            body_summary = resp_body if isinstance(resp_body, str) else json.dumps(resp_body)[:400]
+
             if response.status_code == 401:
                 raise NodeExecutionError(
-                    "Authentication failed. Please reconnect the account or check the authentication configuration.",
+                    f"Authentication failed (HTTP 401 Unauthorized): {body_summary or 'Please verify your token or credential configuration.'}",
                     code="AUTH_UNAUTHORIZED",
                     node_id=self.node_type,
                     retryable=False,
-                    details={"statusCode": 401},
+                    details={
+                        "statusCode": 401,
+                        "url": str(getattr(response, "url", url) or url),
+                        "method": params.method,
+                        "headers": safe_headers,
+                        "body": resp_body,
+                    },
                 )
-            # Check continue_on_error from node settings (spec 8.3) — if allowed, emit error item but don't fail
-            # The engine handles continue_on_error at executor level; here we just prepare error details
-            # We still raise NodeExecutionError so engine can apply continue_on_error logic
             raise NodeExecutionError(
-                f"HTTP {response.status_code} {response.reason_phrase or ''}: {item.get('body') if isinstance(item.get('body'), str) else json.dumps(item.get('body', ''))[:500]}",
+                f"HTTP {response.status_code} {response.reason_phrase or ''}: {body_summary}",
                 code=f"HTTP_{response.status_code}",
                 node_id=self.node_type,
                 retryable=response.status_code in (429, 500, 502, 503, 504),
-                details={"statusCode": response.status_code, "headers": dict(response.headers), "body": item.get("body")},
+                details={
+                    "statusCode": response.status_code,
+                    "url": str(getattr(response, "url", url) or url),
+                    "method": params.method,
+                    "headers": safe_headers,
+                    "body": resp_body,
+                },
             )
+
+        # On success (< 400): check on_success_expression hook
+        if params.on_success_expression and params.on_success_expression.strip():
+            hook_ctx = {"$response": item, "$json": item.get("body") if isinstance(item.get("body"), dict) else item}
+            try:
+                expr_str = params.on_success_expression.strip()
+                if expr_str.startswith("{{") and expr_str.endswith("}}"):
+                    expr_inner = expr_str[2:-2].strip()
+                    resolved_output = expressions._eval_expr(expr_inner, hook_ctx)
+                else:
+                    resolved_output = expressions.resolve(expr_str, hook_ctx)
+                if isinstance(resolved_output, list):
+                    return NodeResult(output_items=[x if isinstance(x, dict) else {"value": x} for x in resolved_output])
+                elif isinstance(resolved_output, dict):
+                    return NodeResult(output_items=[resolved_output])
+                elif resolved_output is not None:
+                    return NodeResult(output_items=[{"data": resolved_output}])
+            except Exception as ex:
+                logger.warning("on_success_expression resolution failed: %s", ex)
 
         return NodeResult(output_items=[item])
 
@@ -1080,7 +1137,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 code="BAD_REQUEST", node_id=self.node_type, retryable=False,
             )
 
-    async def _apply_auth(self, p: HTTPRequestParams, headers: dict[str, str], query: dict[str, Any], ctx: NodeContext | None = None) -> None:
+    async def _apply_auth(self, p: HTTPRequestParams, headers: dict[str, str], query: dict[str, Any], ctx: NodeContext | None = None, single_item: dict[str, Any] | None = None) -> None:
         # New architecture: resolve via CredentialResolver → AuthProviderRegistry → HttpAuthBuilder
         # The worker already resolved credentials into ctx.credentials = {type: decrypted_data}
         # We delegate to provider if a credential is present; otherwise fallback to inline legacy.
@@ -1244,10 +1301,19 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             token = p.auth_token.strip()
             if not token and cred_fallback and cred_fallback.get("api_key"):
                 token = str(cred_fallback.get("api_key", "")).strip()
+            # Automatic fallback: if token is empty, check upstream item (prevents authentication dropping between steps)
+            if not token and single_item and isinstance(single_item, dict):
+                token = str(
+                    single_item.get("access_token")
+                    or single_item.get("token")
+                    or single_item.get("id_token")
+                    or (single_item.get("json") and isinstance(single_item["json"], dict) and (single_item["json"].get("access_token") or single_item["json"].get("token")))
+                    or ""
+                ).strip()
             if token.lower().startswith("bearer "):
                 token = token[7:].strip()
             if not token:
-                raise NodeExecutionError("auth_type=bearer requires auth_token (or HTTP credential).", code="BAD_REQUEST", node_id=self.node_type, retryable=False)
+                raise NodeExecutionError("auth_type=bearer requires auth_token (or HTTP credential, or upstream access_token).", code="BAD_REQUEST", node_id=self.node_type, retryable=False)
             headers.setdefault("Authorization", f"Bearer {token}")
         elif p.auth_type == "basic":
             username = p.auth_username

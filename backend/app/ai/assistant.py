@@ -451,9 +451,33 @@ async def repair_node_failure(
     elif "json" in err_lower and "decode" in err_lower:
         cause = "Invalid JSON syntax in request body or payload."
         summary = "Ensure payload is well-formed JSON or valid expression."
-    elif "401" in err_lower or "unauthorized" in err_lower:
-        cause = "Authentication failure or missing credential."
-        summary = "Check authentication headers or select a valid credential."
+    elif "401" in err_lower or "unauthorized" in err_lower or "authentication failed" in err_lower:
+        cause = "External API rejected authentication (HTTP 401 Unauthorized)."
+        if node_type == "http_request":
+            # Check if upstream output provided a token
+            token_field = None
+            if upstream_sample and isinstance(upstream_sample, dict):
+                sample_dict = upstream_sample.get("json", upstream_sample) if isinstance(upstream_sample.get("json"), dict) else upstream_sample
+                for tf in ("access_token", "token", "id_token", "apiKey", "api_key", "bearer_token"):
+                    if sample_dict.get(tf):
+                        token_field = tf
+                        break
+            if token_field:
+                suggested["authentication"] = "bearer"
+                suggested["auth_type"] = "bearer"
+                suggested["auth_token"] = f"{{{{ $json.{token_field} }}}}"
+                cause = f"Request returned HTTP 401 Unauthorized because credentials were missing. An upstream access token was detected in field '{token_field}'."
+                summary = f"Configured Bearer authentication bound to upstream token: {{{{ $json.{token_field} }}}}."
+            elif not suggested.get("auth_token") and suggested.get("auth_type") in ("bearer", "none"):
+                suggested["authentication"] = "bearer"
+                suggested["auth_type"] = "bearer"
+                suggested["auth_token"] = "{{ $json.access_token }}"
+                cause = "Missing or unconfigured authorization token in request headers."
+                summary = "Configured Bearer token binding: {{ $json.access_token }}."
+            else:
+                summary = "Check authentication token expiration or select an active credential."
+        else:
+            summary = "Check authentication headers or select a valid credential."
 
     if chat is not None and llm is not None:
         try:

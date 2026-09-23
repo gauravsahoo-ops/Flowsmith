@@ -55,7 +55,7 @@ def _test_db_url() -> str:
     )
 
 
-TEST_DB_URL = os.environ.get("DATABASE_URL") or _test_db_url()
+TEST_DB_URL = os.environ.get("TEST_DATABASE_URL") or os.environ.get("TEST_DB_URL") or _test_db_url()
 
 
 def _ensure_database(url: str) -> None:
@@ -96,7 +96,7 @@ def _pg_harness():
     # repo root (wrong rootdir → main DB resolved).
     test_db = make_url(TEST_DB_URL).database
     app_db = make_url(_cfg().database_url).database
-    if os.environ.get("DATABASE_URL") is None and test_db == app_db:
+    if os.environ.get("ALLOW_TEST_ON_MAIN_DB") != "1" and test_db == app_db:
         raise RuntimeError(
             f"Refusing to run tests against the application database '{app_db}'. "
             "The harness must target a *_test database."

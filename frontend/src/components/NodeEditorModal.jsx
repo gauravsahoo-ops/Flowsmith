@@ -39,6 +39,7 @@ const ExecuteWorkflowTriggerEditor = lazy(() => import('./ExecuteWorkflowTrigger
 const TokenManagerNodeEditor = lazy(() => import('./TokenManagerNodeEditor'))
 const TokenFetchNodeEditor = lazy(() => import('./TokenFetchNodeEditor'))
 const TokenStoreNodeEditor = lazy(() => import('./TokenStoreNodeEditor'))
+const SetVariableNodeEditor = lazy(() => import('./SetVariableNodeEditor'))
 const DataTableDiscovery = lazy(() => import('./DataTableDiscovery'))
 import {
   IDEMPOTENCY_LABEL,
@@ -188,7 +189,9 @@ export default function NodeEditorModal() {
 
   const status = nodeStatuses[selectedId]
   const preview = runPreview[selectedId]
-  const rawError = execError || preview?.error || (status === 'failed' || status === 'error' ? (preview?.note || 'Execution failed') : null)
+  const stepTrace = trace.find((s) => s.node_id === selectedId)
+  const stepErr = stepTrace?.error
+  const rawError = execError || stepErr || preview?.error || (status === 'failed' || status === 'error' ? (preview?.note || 'Execution failed') : null)
   const effectiveError = typeof rawError === 'object' && rawError !== null && !isValidElement(rawError)
     ? (rawError.message || (rawError.code ? `${rawError.code}: ${JSON.stringify(rawError.details || rawError)}` : JSON.stringify(rawError)))
     : rawError
@@ -416,6 +419,7 @@ export default function NodeEditorModal() {
             icon="⚠️"
             title="Execution failed"
             description={effectiveError}
+            details={typeof rawError === 'object' && rawError !== null ? (rawError.details || rawError) : undefined}
             action={
               <Button
                 variant="primary"
@@ -434,15 +438,19 @@ export default function NodeEditorModal() {
 
         {showAutoRepair && effectiveError && (
           <NodeAutoRepair
-            workflowId={workflow.id}
-            node={node}
-            errorMessage={effectiveError}
+            workflowId={workflow?.id}
+            node={node ? { ...node, id: node.id || selectedId } : null}
+            errorMessage={
+              typeof rawError === 'object' && rawError?.details?.body
+                ? `${effectiveError} — Response: ${typeof rawError.details.body === 'object' ? JSON.stringify(rawError.details.body) : rawError.details.body}`
+                : effectiveError
+            }
             onClose={() => setShowAutoRepair(false)}
             onApplyFix={async (suggestedParams, retest) => {
-              updateNode(node.id, { parameters: suggestedParams })
+              updateNode(selectedId, { parameters: suggestedParams })
               setShowAutoRepair(false)
               setExecError(null)
-              useExecutionStore.getState().clearNodeError?.(node.id)
+              useExecutionStore.getState().clearNodeError?.(selectedId)
               try {
                 await useWorkflowStore.getState().save()
               } catch (e) {
@@ -567,10 +575,18 @@ export default function NodeEditorModal() {
                       node={node}
                       onParamsChange={handleParamsChange}
                       mapping={mapping}
+                      inputData={_upstreamData}
                       onPreview={previewExpression}
                       credentials={credentials}
                       credentialTypes={credentialTypes}
                       onCredentialChange={setCredential}
+                    />
+                  ) : node.type === 'set_variable' ? (
+                    <SetVariableNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
                     />
                   ) : (node.type === 'split' || node.type === 'item_lists') ? (
                     <SplitNodeEditor
@@ -747,10 +763,6 @@ export default function NodeEditorModal() {
                           </>
                         )}
                       </CollapsibleSection>
-
-                      <CollapsibleSection title="AI assist" defaultOpen={false}>
-                        <AiConfigAssist node={node} updateNode={updateNode} />
-                      </CollapsibleSection>
                     </>
 
                   <div className="panel-actions">
@@ -878,24 +890,11 @@ export default function NodeEditorModal() {
               data={outputData}
               status={status}
               executing={executing}
-              error={
-                execError ||
-                ((status === 'error' || status === 'failed')
-                  ? (() => {
-                      const stepErr = trace.find((s) => s.node_id === selectedId)?.error
-                      if (stepErr) {
-                        return typeof stepErr === 'object' ? (stepErr.message || JSON.stringify(stepErr)) : String(stepErr)
-                      }
-                      if (preview?.error) {
-                        return typeof preview.error === 'object' ? (preview.error.message || JSON.stringify(preview.error)) : String(preview.error)
-                      }
-                      return preview?.note || 'Execution failed'
-                    })()
-                  : null)
-              }
+              error={rawError}
               nodeId={selectedId}
               nodeLabel={node?.settings?.label || node?.name || node?.data?.label || meta?.display_name || node?.type}
               onExecuteStep={handleExecuteStep}
+              onAutoRepair={() => setShowAutoRepair(true)}
             />
           </div>
         </div>
@@ -921,99 +920,3 @@ export default function NodeEditorModal() {
   )
 }
 
-// AI Config Assist
-function AiConfigAssist({ node, updateNode }) {
-  const [intent, setIntent] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
-  const [suggestion, setSuggestion] = useState(null)
-  const [applying, setApplying] = useState(false)
-
-  async function suggest() {
-    if (!intent.trim() || busy) return
-    setBusy(true)
-    setError(null)
-    setSuggestion(null)
-    try {
-      const operation = node.parameters?.operation || null
-      const data = await api.suggestNodeConfig({
-        node_type: node.type,
-        operation,
-        intent: intent.trim(),
-      })
-      setSuggestion({
-        text: JSON.stringify(data.parameters ?? {}, null, 2),
-        ok: Boolean(data.ok),
-        issues: data.issues || [],
-        explanation: data.explanation || '',
-      })
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  function apply() {
-    if (!suggestion) return
-    let parsed
-    try {
-      parsed = JSON.parse(suggestion.text)
-    } catch (err) {
-      setError(`Invalid JSON: ${err.message}`)
-      return
-    }
-    setApplying(true)
-    try {
-      updateNode(node.id, { parameters: parsed })
-      setSuggestion(null)
-      setIntent('')
-    } finally {
-      setApplying(false)
-    }
-  }
-
-  return (
-    <div className="ai-assist">
-      <label>
-        What should this node do?
-        <textarea
-          rows={2}
-          value={intent}
-          onChange={(e) => setIntent(e.target.value)}
-          onKeyDown={(e) => e.stopPropagation()}
-          placeholder="e.g. search for the lead by email and return its id"
-        />
-      </label>
-      <button className="ghost" disabled={busy || !intent.trim()} onClick={suggest}>
-        {busy ? 'Thinking…' : 'Suggest parameters'}
-      </button>
-      {error && <p className="banner-inline err">{error}</p>}
-      {suggestion && (
-        <div className="ai-suggestion">
-          <span className={`gen-verdict ${suggestion.ok ? 'ok' : 'err'}`}>
-            {suggestion.ok ? 'validated' : 'has issues'}
-          </span>
-          {suggestion.explanation && <p className="hint">{suggestion.explanation}</p>}
-          {suggestion.issues.map((i, idx) => (
-            <p key={idx} className={`banner-inline ${i.severity === 'error' ? 'err' : 'info'}`}>
-              {i.code}: {i.message}
-            </p>
-          ))}
-          <textarea
-            className="ai-json"
-            rows={8}
-            spellCheck="false"
-            value={suggestion.text}
-            onChange={(e) => setSuggestion({ ...suggestion, text: e.target.value })}
-          />
-          <p className="hint">Edit freely — applying is a normal edit; save the workflow to persist.</p>
-          <div className="ai-actions">
-            <button className="primary" disabled={applying} onClick={apply}>Apply</button>
-            <button className="ghost" onClick={() => setSuggestion(null)}>Discard</button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}

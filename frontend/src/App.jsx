@@ -15,7 +15,7 @@ import SettingsPage from './pages/SettingsPage'
 import HelpPage from './pages/HelpPage'
 import MonitoringPage from './pages/MonitoringPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
-import { getToken, setToken } from './api'
+import { api, getToken, setToken } from './api'
 
 // Heavy routes split out so /login doesn't pay for ReactFlow + Monaco.
 const WorkflowEditorPage = lazy(() => import('./pages/WorkflowEditorPage'))
@@ -139,9 +139,22 @@ export default function App() {
     // Handle OAuth popup callback even when not authed (popup window has no token)
     if (handleOAuthPopup()) return
     function onExpired() {
+      setToken(null)
       setAuthed(false)
     }
     window.addEventListener('auth:expired', onExpired)
+
+    // Validate stored token against the server on startup
+    const token = getToken()
+    if (token) {
+      api.getMe().catch((err) => {
+        if (err.status === 401) {
+          setToken(null)
+          setAuthed(false)
+        }
+      })
+    }
+
     return () => window.removeEventListener('auth:expired', onExpired)
   }, [])
 

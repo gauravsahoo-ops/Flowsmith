@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useWorkflowStore } from '../stores/workflowStore'
+import { useWorkflowStore, isDirty, confirmDiscard } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
 import { useBrandingStore } from '../stores/brandingStore'
@@ -19,6 +19,7 @@ const STATUS_LABEL = {
 
 export default function TopBar({
   onBack,
+  onImportWorkflow,
   debuggerOpen,
   setDebuggerOpen,
   hasExecution,
@@ -150,13 +151,26 @@ export default function TopBar({
   async function handleImportFile(file) {
     setIoError(null)
     try {
-      const doc = JSON.parse(await file.text())
+      if (typeof isDirty === 'function' && isDirty() && typeof confirmDiscard === 'function' && !confirmDiscard()) {
+        return
+      }
+      const text = await file.text()
+      const doc = JSON.parse(text)
       const imported = await api.importWorkflow(doc)
-      await useWorkflowStore.getState().load(imported.id)
+      if (imported?.id) {
+        if (onImportWorkflow) {
+          onImportWorkflow(imported)
+        } else {
+          window.location.href = `/workflows/${imported.id}`
+        }
+      }
     } catch (err) {
-      setIoError(err.message)
+      const msg = err.message || 'Failed to import workflow'
+      setIoError(msg)
+      alert(`Import failed: ${msg}`)
     }
   }
+
 
 
   const [menuOpen, setMenuOpen] = useState(false)

@@ -98,6 +98,216 @@ function extractOutputData(data) {
   }
 }
 
+function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
+  const [activeTab, setActiveTab] = useState('body')
+  const [copied, setCopied] = useState(false)
+
+  const isObj = typeof error === 'object' && error !== null
+  const message = isObj ? (error.message || 'Execution failed') : (error || 'Unknown error')
+  const details = isObj ? error.details : null
+  const statusCode = details?.statusCode || details?.status
+  const method = details?.method
+  const url = details?.url
+  const headers = details?.headers
+  const rawBody = details?.body
+
+  let formattedBody = null
+  if (rawBody !== undefined && rawBody !== null) {
+    if (typeof rawBody === 'object') {
+      try {
+        formattedBody = JSON.stringify(rawBody, null, 2)
+      } catch {
+        formattedBody = String(rawBody)
+      }
+    } else if (typeof rawBody === 'string') {
+      try {
+        const parsed = JSON.parse(rawBody)
+        formattedBody = JSON.stringify(parsed, null, 2)
+      } catch {
+        formattedBody = rawBody
+      }
+    } else {
+      formattedBody = String(rawBody)
+    }
+  }
+
+  const handleCopyBody = () => {
+    if (!formattedBody) return
+    navigator.clipboard?.writeText(formattedBody)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (!statusCode && !formattedBody && !url) {
+    return (
+      <div className="op-error-container">
+        <ErrorState
+          title="Execution Failed"
+          description={message}
+          details={details || (isObj ? error : undefined)}
+          action={
+            onAutoRepair && (
+              <button
+                type="button"
+                className="op-btn-repair"
+                onClick={onAutoRepair}
+              >
+                ⚡ Flowsmith AI Self-Healing Diagnostic
+              </button>
+            )
+          }
+          secondaryAction={
+            onExecuteStep && (
+              <button
+                type="button"
+                className="op-btn-retest"
+                onClick={onExecuteStep}
+                disabled={executing}
+              >
+                🔄 Re-test Step
+              </button>
+            )
+          }
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="op-error-inspector" role="alert">
+      {/* Alert Header */}
+      <div className="op-error-banner">
+        <div className="op-error-banner-top">
+          <div className="op-error-title-row">
+            <span className="op-error-badge-status">
+              {statusCode ? `HTTP ${statusCode}` : 'ERROR'}
+            </span>
+            <span className="op-error-main-msg">{message}</span>
+          </div>
+          <div className="op-error-banner-actions">
+            {onAutoRepair && (
+              <button
+                type="button"
+                className="op-btn-repair"
+                onClick={onAutoRepair}
+                title="Diagnose root cause and automatically propose fix"
+              >
+                ⚡ AI Auto-Repair
+              </button>
+            )}
+            {onExecuteStep && (
+              <button
+                type="button"
+                className="op-btn-retest"
+                onClick={onExecuteStep}
+                disabled={executing}
+              >
+                🔄 Re-test
+              </button>
+            )}
+          </div>
+        </div>
+
+        {url && (
+          <div className="op-error-url-row">
+            {method && <span className="op-error-method-pill">{method}</span>}
+            <span className="op-error-url-text" title={url}>{url}</span>
+            <button
+              type="button"
+              className="op-error-copy-btn"
+              onClick={() => {
+                navigator.clipboard?.writeText(url)
+              }}
+              title="Copy request URL"
+            >
+              📋
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="op-error-tabs">
+        {formattedBody !== null && (
+          <button
+            type="button"
+            className={`op-error-tab ${activeTab === 'body' ? 'active' : ''}`}
+            onClick={() => setActiveTab('body')}
+          >
+            Server Response Body
+          </button>
+        )}
+        {headers && (
+          <button
+            type="button"
+            className={`op-error-tab ${activeTab === 'request' ? 'active' : ''}`}
+            onClick={() => setActiveTab('request')}
+          >
+            Request Headers
+          </button>
+        )}
+        <button
+          type="button"
+          className={`op-error-tab ${activeTab === 'trace' ? 'active' : ''}`}
+          onClick={() => setActiveTab('trace')}
+        >
+          Technical Details
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      <div className="op-error-tab-content">
+        {activeTab === 'body' && formattedBody !== null && (
+          <div className="op-error-body-view">
+            <div className="op-error-body-toolbar">
+              <span className="op-error-body-meta">
+                {formattedBody.startsWith('{') || formattedBody.startsWith('[') ? 'application/json' : 'text/plain'} • {formattedBody.length} chars
+              </span>
+              <button
+                type="button"
+                className="op-error-copy-btn-action"
+                onClick={handleCopyBody}
+              >
+                {copied ? '✓ Copied' : '📋 Copy Response Body'}
+              </button>
+            </div>
+            <pre className="op-error-pre">{formattedBody}</pre>
+          </div>
+        )}
+
+        {activeTab === 'request' && headers && (
+          <div className="op-error-headers-view">
+            <table className="op-error-table">
+              <thead>
+                <tr>
+                  <th>Header</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(headers).map(([k, v]) => (
+                  <tr key={k}>
+                    <td className="op-error-header-key">{k}</td>
+                    <td className="op-error-header-val">{String(v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'trace' && (
+          <div className="op-error-trace-view">
+            <pre className="op-error-pre">
+              {JSON.stringify(isObj ? error : { error }, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function OutputPanel({
   data,
   status,
@@ -106,8 +316,9 @@ export default function OutputPanel({
   nodeId,
   nodeLabel,
   onExecuteStep,
+  onAutoRepair,
 }) {
-  const [view, setView] = useState(() => sessionStorage.getItem(`op_view_${nodeId}`) || 'schema')
+  const [view, setView] = useState(() => (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`op_view_${nodeId}`) : null) || 'schema')
   const [showSearch, setShowSearch] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedBranch, setSelectedBranch] = useState(null)
@@ -119,7 +330,7 @@ export default function OutputPanel({
   const updateNode = useWorkflowStore((s) => s.updateNode)
   const [localPinned, setLocalPinned] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem(`op_pinned_${nodeId}`) || 'null')
+      return JSON.parse((typeof localStorage !== 'undefined' ? localStorage.getItem(`op_pinned_${nodeId}`) : null) || 'null')
     } catch {
       return null
     }
@@ -153,7 +364,7 @@ export default function OutputPanel({
 
   useEffect(() => {
     if (nodeId !== prevNodeId.current) {
-      const saved = sessionStorage.getItem(`op_view_${nodeId}`)
+      const saved = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`op_view_${nodeId}`) : null
       if (saved) setView(saved)
       else setView('schema')
       prevNodeId.current = nodeId
@@ -165,7 +376,9 @@ export default function OutputPanel({
   }, [nodeId])
 
   useEffect(() => {
-    sessionStorage.setItem(`op_view_${nodeId}`, view)
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(`op_view_${nodeId}`, view)
+    }
   }, [view, nodeId])
 
   // Extract structured branch items from raw data (or pinned data)
@@ -232,12 +445,12 @@ export default function OutputPanel({
 
   const handlePin = useCallback(() => {
     if (pinned) {
-      localStorage.removeItem(`op_pinned_${nodeId}`)
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(`op_pinned_${nodeId}`)
       updateNode(nodeId, { pinned_data: null })
       setLocalPinned(null)
     } else {
       const toPin = branchItems.length === 1 ? branchItems[0] : branchItems
-      localStorage.setItem(`op_pinned_${nodeId}`, JSON.stringify(toPin))
+      if (typeof localStorage !== 'undefined') localStorage.setItem(`op_pinned_${nodeId}`, JSON.stringify(toPin))
       updateNode(nodeId, { pinned_data: toPin })
       setLocalPinned(toPin)
     }
@@ -246,7 +459,7 @@ export default function OutputPanel({
   const handleEditSave = () => {
     try {
       const parsed = JSON.parse(editedText)
-      localStorage.setItem(`op_pinned_${nodeId}`, JSON.stringify(parsed))
+      if (typeof localStorage !== 'undefined') localStorage.setItem(`op_pinned_${nodeId}`, JSON.stringify(parsed))
       updateNode(nodeId, { pinned_data: parsed })
       setLocalPinned(parsed)
       setIsEditing(false)
@@ -520,14 +733,11 @@ export default function OutputPanel({
         )}
 
         {!executing && isError && (
-          <ErrorState
-            title="Execution Failed"
-            description={
-              typeof error === 'object' && error !== null
-                ? (error.message || (error.code ? `${error.code}: ${JSON.stringify(error.details || error)}` : JSON.stringify(error)))
-                : (error || 'Unknown error')
-            }
-            details={typeof error === 'object' && error !== null ? (error.details || error) : undefined}
+          <ErrorInspector
+            error={error}
+            onAutoRepair={onAutoRepair}
+            onExecuteStep={onExecuteStep}
+            executing={executing}
           />
         )}
 
@@ -684,7 +894,7 @@ export default function OutputPanel({
           <button
             className="ghost op-clear"
             onClick={() => {
-              localStorage.removeItem(`op_pinned_${nodeId}`)
+              if (typeof localStorage !== 'undefined') localStorage.removeItem(`op_pinned_${nodeId}`)
               setPinned(null)
             }}
             title="Clear output and unpin"

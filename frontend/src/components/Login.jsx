@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, getToken, setToken } from '../api'
+import { api, setToken } from '../api'
 import { useBrandingStore } from '../stores/brandingStore'
 import FlowsmithBrandMark from './FlowsmithBrandMark'
 
@@ -104,8 +104,6 @@ export default function Login({ onAuthed }) {
   function handleSsoLogin(providerId) {
     window.location.href = `/api/auth/sso/${providerId}/login`
   }
-
-  if (getToken()) return null
 
   return (
     <div className="login-screen">

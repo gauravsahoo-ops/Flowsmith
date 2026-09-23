@@ -7,9 +7,10 @@ import {
   useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useWorkflowStore } from '../stores/workflowStore'
+import { useWorkflowStore, isDirty, confirmDiscard } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
+import { api } from '../api'
 import CustomNode from './CustomNode'
 import CommentNode from './CommentNode'
 import GroupNode from './GroupNode'
@@ -221,12 +222,13 @@ function CanvasInner() {
     }
     if (nodesInitialized && fittedWorkflowId.current !== workflow.id) {
       fittedWorkflowId.current = workflow.id
+      const safeMaxZoom = nodes.length <= 2 ? 0.85 : 1.0
       // Immediate frame fit plus smooth 250ms animation settle, capped at 100% zoom (maxZoom: 1)
       requestAnimationFrame(() => {
-        fitView({ padding: 0.2, duration: 250, maxZoom: 1 })
+        fitView({ padding: 0.25, duration: 250, maxZoom: safeMaxZoom })
       })
       const timer = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 0, maxZoom: 1 })
+        fitView({ padding: 0.25, duration: 0, maxZoom: safeMaxZoom })
       }, 200)
       return () => clearTimeout(timer)
     }
@@ -273,6 +275,30 @@ function CanvasInner() {
     (e) => {
       e.preventDefault()
       setDragOver(false)
+
+      const files = e.dataTransfer?.files
+      if (files && files.length > 0) {
+        const file = files[0]
+        if (file.name.endsWith('.json') || file.type === 'application/json') {
+          (async () => {
+            try {
+              if (typeof isDirty === 'function' && isDirty() && typeof confirmDiscard === 'function' && !confirmDiscard()) {
+                return
+              }
+              const text = await file.text()
+              const doc = JSON.parse(text)
+              const imported = await api.importWorkflow(doc)
+              if (imported?.id) {
+                window.location.href = `/workflows/${imported.id}`
+              }
+            } catch (err) {
+              alert(`Import failed: ${err.message || 'Invalid workflow file'}`)
+            }
+          })()
+          return
+        }
+      }
+
       const type = draggedNodeType(e)
       if (!type) return
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
@@ -517,13 +543,14 @@ function CanvasInner() {
         deleteKeyCode={['Backspace', 'Delete']}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         minZoom={0.1}
-        maxZoom={2.0}
+        maxZoom={1.5}
         elevateEdgesOnSelect
         fitView={nodes.length > 0}
-        fitViewOptions={{ padding: 0.2, includeHiddenNodes: true, maxZoom: 1 }}
+        fitViewOptions={{ padding: 0.25, includeHiddenNodes: true, maxZoom: nodes.length <= 2 ? 0.85 : 1.0 }}
         onInit={(instance) => {
+          const safeMaxZoom = nodes.length <= 2 ? 0.85 : 1.0
           if (nodes.length > 0) {
-            setTimeout(() => instance.fitView({ padding: 0.2, maxZoom: 1 }), 50)
+            setTimeout(() => instance.fitView({ padding: 0.25, maxZoom: safeMaxZoom }), 50)
           } else {
             instance.setViewport({ x: 0, y: 0, zoom: 1 })
           }

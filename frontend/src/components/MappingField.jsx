@@ -11,6 +11,7 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState('')
   const [preview, setPreview] = useState(null)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const timer = useRef(null)
   useEffect(() => {
@@ -46,6 +47,47 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
     setOpen(false)
   }
 
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+    if (!isDragOver) setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const varData = e.dataTransfer.getData('application/flowsmith-variable')
+    const textData = e.dataTransfer.getData('text/plain')
+    let exprToInsert = ''
+    if (varData) {
+      try {
+        const parsed = JSON.parse(varData)
+        exprToInsert = parsed.expr || ''
+      } catch {}
+    }
+    if (!exprToInsert && textData) {
+      exprToInsert = textData
+    }
+    if (exprToInsert) {
+      const currentVal = value ?? ''
+      const inputEl = e.target
+      let nextVal = ''
+      if (inputEl && typeof inputEl.selectionStart === 'number') {
+        const start = inputEl.selectionStart
+        const end = inputEl.selectionEnd
+        nextVal = currentVal.substring(0, start) + exprToInsert + currentVal.substring(end)
+      } else {
+        nextVal = insertMapping(currentVal, exprToInsert)
+      }
+      onChange(nextVal)
+    }
+  }
+
   const Input = schema?.format === 'textarea' ? 'textarea' : 'input'
 
   return (
@@ -62,6 +104,10 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
             as={Input}
             value={value ?? ''}
             onChange={(e) => onChange(e.target.value || undefined)}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={isDragOver ? 'is-drag-target' : ''}
             placeholder={schema?.description}
             style={{ flex: 1, minWidth: 0, width: '100%' }}
           />

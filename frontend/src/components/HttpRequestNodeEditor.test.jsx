@@ -101,4 +101,50 @@ describe('HttpRequestNodeEditor Suite', () => {
     expect(html).toContain('Key-Value Headers')
     expect(html).toContain('Headers JSON / Expression')
   })
+
+  it('renders upstream token detection banner when token exists in mapping or inputData', () => {
+    const node = {
+      id: 'http_5',
+      type: 'http_request',
+      parameters: {
+        method: 'GET',
+        url: 'https://api.example.com/protected',
+      },
+    }
+    const html = renderToStaticMarkup(
+      React.createElement(HttpRequestNodeEditor, {
+        node,
+        onParamsChange: () => {},
+        inputData: { access_token: 'test_token_123' },
+      })
+    )
+    expect(html).toContain('Upstream Token Detected')
+    expect(html).toContain('Use as Bearer Token')
+  })
+
+  it('renders method lifecycle hooks (on_init, on_success, on_error)', () => {
+    const node = {
+      id: 'http_6',
+      type: 'http_request',
+      parameters: {
+        method: 'POST',
+        url: 'https://api.example.com/submit',
+        on_init_headers: { 'X-Trace-Id': 'trace_1' },
+        on_success_expression: '{{ $response.body.items }}',
+        on_error_action: 'fallback_data',
+        on_error_fallback: { status: 'fallback' },
+      },
+    }
+    const html = renderToStaticMarkup(
+      React.createElement(HttpRequestNodeEditor, {
+        node,
+        onParamsChange: () => {},
+      })
+    )
+    expect(html).toContain('Method Lifecycle Hooks')
+    expect(html).toContain('on_init (Pre-Request Transform)')
+    expect(html).toContain('on_success (Post-Response Transform)')
+    expect(html).toContain('on_error (Error &amp; Fallback Handling)')
+    expect(html).toContain('Return fallback data and continue')
+  })
 })
