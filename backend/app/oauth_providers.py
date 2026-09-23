@@ -269,11 +269,8 @@ def _sf_credential_data(
         exp_at = time.time() + float(expires_in)
     except Exception:
         exp_at = time.time() + 7200
-    cid = (client_id or kwargs.get("client_id") or "").strip()
-    csec = (client_secret or kwargs.get("client_secret") or "").strip()
-    if settings.salesforce_client_id:
-        cid = ""
-        csec = ""
+    cid = (client_id or kwargs.get("client_id") or getattr(settings, "salesforce_client_id", "") or "").strip()
+    csec = (client_secret or kwargs.get("client_secret") or getattr(settings, "salesforce_client_secret", "") or "").strip()
     return {
         "instance_url": str(token_payload.get("instance_url", "")).rstrip("/"),
         "login_url": login_url,

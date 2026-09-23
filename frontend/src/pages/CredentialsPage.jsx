@@ -202,44 +202,90 @@ export default function CredentialsPage() {
     setReconnectingId(c.id)
     setError(null)
     setNotice(null)
+    setFallbackUrl('')
+
+    // Open popup immediately on user click gesture to prevent browser popup blockers
+    let popup = null
+    try {
+      popup = window.open('about:blank', `oauth-${c.type}`, 'width=560,height=680')
+      if (popup && popup.document) {
+        popup.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Reconnecting ${c.name || 'Account'}…</title>
+              <style>
+                body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                h3 { margin: 0 0 8px; font-size: 16px; }
+                p { font-size: 13px; color: #94a3b8; margin: 0; }
+              </style>
+            </head>
+            <body>
+              <div class="spinner"></div>
+              <h3>Reconnecting ${c.name || 'Account'}…</h3>
+              <p>Checking active session or preparing authorization…</p>
+            </body>
+          </html>
+        `)
+      }
+    } catch {}
+
     try {
       const res = await api.reconnectCredential(c.id)
       if (res && res.ok && res.refreshed) {
+        if (popup && !popup.closed) {
+          try { popup.close() } catch {}
+        }
         setNotice(res.message || `${c.name} reconnected successfully.`)
         await load()
         return
       }
       if (res && res.ok === false && res.code === 'NOT_FOUND') {
+        if (popup && !popup.closed) {
+          try { popup.close() } catch {}
+        }
         setError('Credential not found. Refreshing list…')
         await load()
         return
       }
       const loginUrl = res?.login_url || undefined
-      await handleOAuth(c.type, loginUrl)
+      // Navigate existing popup window seamlessly to provider authorization
+      await handleOAuth(c.type, loginUrl, 'login', { credential_id: c.id }, popup)
     } catch (err) {
+      if (popup && !popup.closed) {
+        try { popup.close() } catch {}
+      }
       if (err && err.status === 404) {
         setError('Credential not found. Refreshing list…')
         try { await load() } catch {}
         return
       }
       const msg = (err && err.message) || ''
-      if (msg.includes('not configured') || err.status === 422) {
-        openCredentialConfig(c, 'Salesforce Connected App credentials are not configured in the database yet. Enter your Consumer Key (Client ID) and Secret below to save them to the database and reconnect.')
-        return
-      }
       setError(msg || 'Reconnect failed.')
     } finally {
       setReconnectingId(null)
     }
   }
 
-  async function handleOAuth(provider, loginUrl, prompt, extra = {}) {
+  async function handleOAuth(provider, loginUrl, prompt, extra = {}, popupWindow = null) {
     setOauthBusy(provider); setError(null); setNotice(null); setFallbackUrl('')
     try {
       const { authorizeUrl } = await connectOAuth(provider, loginUrl, prompt, extra)
       if (!authorizeUrl) throw new Error('Failed to get authorization URL')
       setFallbackUrl(authorizeUrl)
-      const w = window.open(authorizeUrl, `oauth-${provider}`, 'width=520,height=640')
+
+      let w = popupWindow
+      if (w && !w.closed) {
+        try {
+          w.location.href = authorizeUrl
+        } catch {
+          w = window.open(authorizeUrl, `oauth-${provider}`, 'width=560,height=680')
+        }
+      } else {
+        w = window.open(authorizeUrl, `oauth-${provider}`, 'width=560,height=680')
+      }
 
       let handled = false
       const expectedOrigin = window.location.origin
@@ -356,14 +402,7 @@ export default function CredentialsPage() {
     } catch (e) {
       if (mountedRef.current) {
         const msg = e.message || ''
-        if (msg.includes('not configured') || e.status === 422) {
-          openProviderConfig(
-            provider,
-            `${provider.replace(/_/g, ' ').toUpperCase()} Connected App credentials are not configured in the database yet. Enter your Client ID and Client Secret below to save them to the database and connect.`
-          )
-        } else {
-          setError(msg)
-        }
+        setError(msg || 'Authorization failed.')
         setOauthBusy('')
         setFallbackUrl('')
       }
@@ -579,22 +618,6 @@ export default function CredentialsPage() {
                         </button>
                       )}
 
-                      {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
-                        <button
-                          type="button"
-                          className="ghost small"
-                          onClick={() => openCredentialConfig(c)}
-                          title="Configure Connected App credentials stored in database"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                          </svg>
-                          <span>Config</span>
-                        </button>
-                      )}
-
                       {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) ? (
                         <button
                           type="button"
@@ -733,19 +756,6 @@ export default function CredentialsPage() {
                 disabled={!!oauthBusy || !form.type}
               >
                 {oauthBusy ? 'Connecting…' : (credentials.some(c => c.type === form.type) ? `+ Connect another ${form.type.replace(/_/g, ' ')} account` : `Connect ${form.type.replace(/_/g, ' ')}`)}
-              </button>
-              <button
-                className="ghost"
-                type="button"
-                onClick={() => openProviderConfig(form.type)}
-                title="Configure Connected App credentials in database (no server .env needed)"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-                <span>⚙️ Configure {form.type.replace(/_/g, ' ')} App (Database)</span>
               </button>
             </div>
             {fallbackUrl && (
