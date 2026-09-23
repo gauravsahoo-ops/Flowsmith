@@ -33,9 +33,15 @@ export const useCredentialStore = create((set, get) => ({
     set({ credentials: get().credentials.filter((c) => c.id !== id) })
   },
 
-  // Generic OAuth connect (Phase 33): provider is 'hubspot' | 'salesforce'.
-  async connectOAuth(provider, loginUrl) {
-    const { authorize_url, state } = await api.connectOAuth(provider, loginUrl)
+  async logout(id) {
+    const result = await api.logoutCredential(id)
+    set({ credentials: get().credentials.filter((c) => c.id !== id) })
+    return result
+  },
+
+  // Generic OAuth connect: provider is 'salesforce' | 'hubspot' | 'google_*'.
+  async connectOAuth(provider, loginUrl, prompt, extra = {}) {
+    const { authorize_url, state } = await api.connectOAuth(provider, loginUrl, prompt, extra)
     return { authorizeUrl: authorize_url, state }
   },
 }))

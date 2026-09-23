@@ -221,14 +221,37 @@ async def test_credential(
     return ok(res)
 
 
+@router.post("/{credential_id}/logout")
+async def logout_credential(
+    credential_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Total credential logout: revokes active tokens with upstream provider and removes credential."""
+    try:
+        result = await service.logout_for_user(db, user.id, credential_id)
+    except service.CredentialError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
+    log_event(
+        db,
+        "credential.logout",
+        target_type="credential",
+        target_id=credential_id,
+        user_id=user.id,
+        detail={"name": result.get("name"), "type": result.get("type"), "revoked": result.get("revoked")},
+    )
+    return ok(result)
+
+
 @router.delete("/{credential_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_credential(
+async def delete_credential(
     credential_id: str,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
     try:
-        service.delete_for_user(db, user.id, credential_id)
+        await service.logout_for_user(db, user.id, credential_id)
     except service.CredentialError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
     log_event(db, CREDENTIAL_DELETE, target_type="credential", target_id=credential_id, user_id=user.id)
+

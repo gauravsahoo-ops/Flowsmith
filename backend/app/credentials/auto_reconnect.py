@@ -189,6 +189,7 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
             "ok": False,
             "message": f"Automatic reconnection failed: {exc}",
             "interactive_required": True,
+            "login_url": data.get("login_url") or data.get("instance_url") or "",
         }
 
 
