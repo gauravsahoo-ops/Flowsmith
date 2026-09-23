@@ -229,7 +229,10 @@ class SalesforceProviderClient:
                         "POST",
                         f"{login_url}/services/oauth2/token",
                         data=body,
-                        headers={"Content-Type": "application/x-www-form-urlencoded"},
+                        headers={
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "Accept-Encoding": "identity",
+                        },
                         timeout=30.0,
                     )
             except httpx.TimeoutException as exc:
@@ -354,7 +357,10 @@ class SalesforceProviderClient:
         """Run an authenticated request against the Salesforce REST API."""
         token = await self.authenticate(creds)
         url = self._resolve_url(self._org_url(creds), path)
-        auth_headers = {"Authorization": f"Bearer {token}"}
+        auth_headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept-Encoding": "identity",
+        }
         if headers:
             auth_headers.update(headers)
         async with get_safe_http_client() as client:
