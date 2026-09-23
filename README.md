@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml)
 [![Backend Tests](https://img.shields.io/badge/backend%20tests-1800%2B%20passing-brightgreen)](#backend-testing-1800-tests)
-[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-285%2B%20passing-brightgreen)](#frontend-testing-285-vitest-tests--e2e-specs)
+[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-315%20passing-brightgreen)](#frontend-testing-315-vitest-tests--e2e-specs)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/react-19-61dafb)](https://react.dev/)
@@ -33,7 +33,7 @@
 - [Key Features](#key-features)
   - [1. Robust Visual Workflow DAG Engine](#1-robust-visual-workflow-dag-engine)
   - [2. Live Publishing & Lifecycle Control](#2-live-publishing--lifecycle-control)
-  - [3. Seamless Single-Click Reconnect (Zero-Config)](#3-seamless-single-click-reconnect-zero-config)
+  - [3. Frictionless OAuth & Single-Click Reconnect (Zero-Config)](#3-frictionless-oauth--single-click-reconnect-zero-config)
   - [4. Universal Token Management (`Token Manager`)](#4-universal-token-management-token-manager)
   - [5. 100% Encrypted Credential Vault at Rest](#5-100-encrypted-credential-vault-at-rest)
   - [6. Native AI & RAG Subsystem](#6-native-ai--rag-subsystem)
@@ -140,12 +140,13 @@ Flowsmith is designed from the ground up to provide a frictionless, world-class 
 - **Version History & Rollback**: Every save generates an immutable snapshot (`WorkflowVersionRecord`), allowing single-click rollback to any prior release.
 - **Synchronous Webhook Responses**: `POST /api/webhooks/{path}?respond=true` waits for the run and returns the `respond_to_webhook` node's output with its status code (async 202 by default).
 
-### 3. Seamless Single-Click Reconnect (Zero-Config)
-- **Zero Configuration Required**: Users never need to input Consumer Keys (Client IDs), Consumer Secrets, or manage configuration modals.
-- **Immune to Browser Popup Blockers**: Clicking **`Reconnect`** immediately triggers an in-browser popup on the direct user gesture tick displaying a smooth loading screen (*"Reconnecting Account..."*).
-- **Silent Background Renewal**: If the provider's refresh token is still active, Flowsmith automatically renews the session in the background, immediately closes the popup, and surfaces a success notice.
-- **Seamless Interactive Fallback**: If the session expired on Salesforce or another provider, the open popup immediately navigates to the authorization URL, user approves with a single click, and the window self-closes.
-- **Database Credential Inheritance**: The backend resolves `client_id`, `client_secret`, and custom domain URLs directly from the existing encrypted database credential row, eliminating the need to store secrets in plain text `.env` files.
+### 3. Frictionless OAuth & Single-Click Reconnect (Zero-Config)
+- **Frictionless 1-Click Connect**: Users simply choose an OAuth service (Salesforce, Google Sheets, Gmail, HubSpot, etc.) and click `Connect <Service>`. Flowsmith automatically opens the OAuth popup, completes authorization, and encrypts the tokens. No technical modals, no confusing manual username/password forms, and no setup friction for end users.
+- **Dynamic Session Health Status**: The credentials table displays real-time connection status (`● Connected` in green vs. `● Session Expired` in amber) evaluated dynamically by verifying token freshness and expiration windows.
+- **Single-Click Reconnect**: When an account session expires, users simply click **`🔄 Reconnect`**. Flowsmith immediately pre-opens an in-browser popup on the direct click gesture (immune to browser popup blockers) with a smooth progress indicator (*"Reconnecting Account..."*).
+- **Silent Background Renewal**: If the provider's refresh token is still valid, Flowsmith automatically renews the session in the background without prompting for a login, closes the popup, and updates the credential in place.
+- **Seamless Interactive Fallback**: If the session expired or was revoked by Salesforce/Google, the open popup immediately navigates to the authorization URL, the user approves with a single click, and the window self-closes, updating the credential without breaking downstream workflows.
+- **Database Credential Storage**: All client IDs, client secrets, access tokens, and refresh tokens are encrypted at rest with AES-256 Fernet directly inside PostgreSQL. Nothing is stored in plain text or hardcoded.
 
 ### 4. Universal Token Management (`Token Manager`)
 - **Unified Lifecycle Node**: Merges token retrieval, persistence, and auto-refresh into a single node (`token_manager`).
@@ -158,8 +159,9 @@ Flowsmith is designed from the ground up to provide a frictionless, world-class 
 - **Self-Healing 401 Recovery**: Downstream HTTP Request nodes automatically force-refresh expired tokens under lock and retry once with strict infinite-loop prevention.
 
 ### 5. 100% Encrypted Credential Vault at Rest
-- **Strong Encryption**: All secrets, passwords, access tokens, refresh tokens, and OAuth keys stored in the PostgreSQL `credentials` table (`bytea` column) are encrypted at rest using Fernet (AES-128-CBC + HMAC-SHA256) or AES-256-GCM.
-- **Zero-Exposure REST API**: `GET /api/credentials` returns only sanitized metadata (`id`, `name`, `type`). Ciphertexts are never sent over the wire to the frontend.
+- **Strong Encryption**: All secrets, passwords, database connection strings, access tokens, refresh tokens, and OAuth keys stored in the PostgreSQL `credentials` table (`bytea` column) are encrypted at rest using Fernet (AES-128-CBC + HMAC-SHA256) with key versioning (`k0:...`) or AES-256-GCM.
+- **Zero Credentials in `.env` or Code**: User credentials, database connection strings, and OAuth tokens are never stored in `.env` and are never hardcoded. The `.env` file only holds server-level configuration and the master symmetric encryption key (`CREDENTIALS_ENCRYPTION_KEY`).
+- **Zero-Exposure REST API**: `GET /api/credentials` returns only sanitized metadata (`id`, `name`, `type`, `expired`). Ciphertexts are never sent over the wire to the frontend.
 - **Multi-Key Keyring**: Supports seamless rotation using comma-separated encryption keys in `CREDENTIALS_ENCRYPTION_KEY`.
 
 ### 6. Native AI & RAG Subsystem
@@ -660,12 +662,12 @@ pytest tests/test_api/test_templates.py -q                 # Template cloning & 
 pytest tests/test_security/ -q                             # SSRF, auth, and encryption audits
 ```
 
-### Frontend Testing (285+ Vitest Tests & E2E Specs)
+### Frontend Testing (315 Vitest Tests & E2E Specs)
 
 ```bash
 cd frontend
 
-# Run Vitest unit tests (100% passing across all test suites)
+# Run Vitest unit tests (315 passing across 19 test files)
 npx vitest run
 
 # Run specific suite
@@ -675,7 +677,7 @@ npx vitest run src/pages/CredentialsPage.test.jsx
 npx playwright install chromium
 npm test
 
-# Run code linter (Oxlint: 0 warnings, 0 errors)
+# Run code linter (Oxlint: 0 warnings, 0 errors across 131 files)
 npm run lint
 
 # Validate production build bundle
