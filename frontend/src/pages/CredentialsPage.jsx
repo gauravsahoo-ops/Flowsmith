@@ -39,7 +39,6 @@ export default function CredentialsPage() {
   const [busy, setBusy] = useState(false)
   const [oauthBusy, setOauthBusy] = useState('')
   const [fallbackUrl, setFallbackUrl] = useState('')
-  const [showManualForm, setShowManualForm] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [logoutTarget, setLogoutTarget] = useState(null)
   const [loading, setLoading] = useState(!useCredentialStore.getState().loaded)
@@ -722,14 +721,46 @@ export default function CredentialsPage() {
       </section>
 
       <section className="card" style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 14, margin: '0 0 8px' }}>New credential</h2>
+        <h2 style={{ fontSize: 14, margin: '0 0 12px' }}>New credential</h2>
 
-        {isOAuthType && (
-          <div className="sf-connect-box" style={{ padding: '16px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Select Service / Type</label>
+          <SearchableSelect
+            value={form.type}
+            onChange={val => {
+              const selectedType = types.find(t => t.type === val)
+              setForm(prev => ({
+                ...prev,
+                type: val,
+                name: prev.name.trim() ? prev.name : (selectedType?.name ? `${selectedType.name} Credential` : ''),
+                data: defaultsFromSchema(selectedType?.parameters_schema),
+              }))
+            }}
+            options={types.map(t => ({
+              value: t.type,
+              label: `${t.name} (${t.type})`,
+              disabled: t.implemented === false,
+              disabledReason: t.implemented === false ? 'Not implemented' : undefined,
+              hint: t.description || undefined,
+            }))}
+            placeholder="Search or select credential type…"
+          />
+          {form.type && types.find(t => t.type === form.type)?.implemented === false && (
+            <div className="banner-inline err" style={{ marginTop: 6 }}>Authentication provider not implemented yet — execution will be blocked.</div>
+          )}
+        </div>
+
+        {isOAuthType ? (
+          <div className="sf-connect-box" style={{ padding: '18px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-              <strong style={{ textTransform: 'capitalize', fontSize: 14 }}>
-                OAuth Connection ({form.type.replace(/_/g, ' ')})
-              </strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <strong style={{ textTransform: 'capitalize', fontSize: 15 }}>
+                  {form.type.replace(/_/g, ' ')}
+                </strong>
+                <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.25)', fontSize: 11 }}>
+                  OAuth 2.0
+                </span>
+              </div>
               {credentials.filter(c => c.type === form.type).length > 0 && (
                 <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
                   ✓ {credentials.filter(c => c.type === form.type).length} account{credentials.filter(c => c.type === form.type).length > 1 ? 's' : ''} connected
@@ -737,9 +768,13 @@ export default function CredentialsPage() {
               )}
             </div>
 
+            <p className="hint" style={{ margin: '4px 0 12px', fontSize: 13, lineHeight: 1.5 }}>
+              Authenticate securely with {form.type.replace(/_/g, ' ')} using the standard login popup. Flowsmith stores encrypted access tokens and automatically refreshes them.
+            </p>
+
             {credentials.filter(c => c.type === form.type).length > 0 && (
-              <div style={{ margin: '8px 0 12px', padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div className="hint" style={{ fontSize: 12, marginBottom: 6 }}>Active connected accounts (all available to workflows):</div>
+              <div style={{ margin: '8px 0 14px', padding: '10px 12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 6, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div className="hint" style={{ fontSize: 12, marginBottom: 6 }}>Connected accounts (available to workflows):</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {credentials.filter(c => c.type === form.type).map(acc => (
                     <span key={acc.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', fontSize: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -760,16 +795,13 @@ export default function CredentialsPage() {
               </div>
             )}
 
-            <p className="hint" style={{ margin: '4px 0 10px' }}>
-              Flowsmith supports connecting <strong>multiple accounts</strong> (e.g. multiple Salesforce orgs or users). Each account is encrypted and isolated.
-            </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
               <button
                 className="primary"
                 type="button"
                 onClick={() => handleOAuth(form.type)}
                 disabled={!!oauthBusy || !form.type}
+                style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600 }}
               >
                 {oauthBusy ? 'Connecting…' : (credentials.some(c => c.type === form.type) ? `+ Connect another ${form.type.replace(/_/g, ' ')} account` : `Connect ${form.type.replace(/_/g, ' ')}`)}
               </button>
@@ -791,101 +823,61 @@ export default function CredentialsPage() {
               </div>
             )}
           </div>
-        )}
-
-        {isOAuthType && (
-          <div style={{ margin: '14px 0 6px' }}>
-            <button
-              type="button"
-              className="ghost small"
-              onClick={() => setShowManualForm(v => !v)}
-              style={{ fontSize: 12, opacity: 0.85 }}
-            >
-              {showManualForm ? 'Hide manual credential form' : '⚙️ Or configure manual credentials (username/password or custom tokens)'}
-            </button>
-          </div>
-        )}
-
-        <form onSubmit={handleCreate} className="cred-form">
-          <label>
-            Name
-            <input
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              required
-              placeholder="e.g. My LLM Credential"
-            />
-            {form.type && !form.name.trim() && (
-              <span style={{ color: 'var(--amber, #f59e0b)', fontSize: 11, display: 'block', marginTop: 3 }}>
-                ⚠️ Name is required — please enter a name above to enable saving.
-              </span>
-            )}
-          </label>
-          <div>
-            <label style={{ display: 'block', marginBottom: 4 }}>Type</label>
-            <SearchableSelect
-              value={form.type}
-              onChange={val => {
-                const selectedType = types.find(t => t.type === val)
-                setForm(prev => ({
-                  ...prev,
-                  type: val,
-                  name: prev.name.trim() ? prev.name : (selectedType?.name ? `${selectedType.name} Credential` : ''),
-                  data: defaultsFromSchema(selectedType?.parameters_schema),
-                }))
-              }}
-              options={types.map(t => ({
-                value: t.type,
-                label: `${t.name} (${t.type})`,
-                disabled: t.implemented === false,
-                disabledReason: t.implemented === false ? 'Not implemented' : undefined,
-                hint: t.description || undefined,
-              }))}
-              placeholder="Search or select credential type…"
-            />
-            {form.type && types.find(t => t.type === form.type)?.implemented === false && (
-              <div className="banner-inline err" style={{ marginTop: 6 }}>Authentication provider not implemented yet — execution will be blocked.</div>
-            )}
-          </div>
-          {schema && (!isOAuthType || showManualForm) && Object.entries(schema.properties || {}).map(([key, prop]) => {
-            const isConnStr = ['dsn','uri','connection_string','connectionString'].includes(key) || (prop.description && prop.description.toLowerCase().includes('connection string'))
-            return (
-            <label key={key}>
-              {prop.title || key}
-              {prop.description && (
-                <span className="muted">
-                  {' — '}{prop.description}
-                  {key === 'base_url' && form.type === 'llm' && (
-                    <span style={{ display: 'block', marginTop: 2, color: '#38bdf8' }}>
-                      💡 Tip for OpenRouter: Use <code>https://openrouter.ai/api/v1</code>
-                    </span>
-                  )}
+        ) : (
+          <form onSubmit={handleCreate} className="cred-form">
+            <label>
+              Name
+              <input
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                required
+                placeholder="e.g. My Database Connection"
+              />
+              {form.type && !form.name.trim() && (
+                <span style={{ color: 'var(--amber, #f59e0b)', fontSize: 11, display: 'block', marginTop: 3 }}>
+                  ⚠️ Name is required — please enter a name above to enable saving.
                 </span>
               )}
-              {prop.type === 'boolean' ? (
-                <input type="checkbox" checked={Boolean(form.data[key])} onChange={e => setForm({ ...form, data: { ...form.data, [key]: e.target.checked } })} />
-              ) : (
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input style={{ flex: 1 }} type={secretFields.has(key) ? 'password' : prop.type === 'number' || prop.type === 'integer' ? 'number' : 'text'} value={form.data[key] ?? ''} onChange={e => setForm({ ...form, data: { ...form.data, [key]: prop.type === 'number' || prop.type === 'integer' ? Number(e.target.value) : e.target.value } })} />
-                  {isConnStr && form.data[key] && (
-                    <button type="button" className="ghost small" onClick={() => setForm({ ...form, data: { ...form.data, [key]: '' } })} title="Clear connection string">🗑 Clear</button>
-                  )}
-                </div>
-              )}
             </label>
-            )
-          })}
-          {(!isOAuthType || showManualForm) && (
+            {schema && Object.entries(schema.properties || {}).map(([key, prop]) => {
+              const isConnStr = ['dsn','uri','connection_string','connectionString'].includes(key) || (prop.description && prop.description.toLowerCase().includes('connection string'))
+              return (
+              <label key={key}>
+                {prop.title || key}
+                {prop.description && (
+                  <span className="muted">
+                    {' — '}{prop.description}
+                    {key === 'base_url' && form.type === 'llm' && (
+                      <span style={{ display: 'block', marginTop: 2, color: '#38bdf8' }}>
+                        💡 Tip for OpenRouter: Use <code>https://openrouter.ai/api/v1</code>
+                      </span>
+                    )}
+                  </span>
+                )}
+                {prop.type === 'boolean' ? (
+                  <input type="checkbox" checked={Boolean(form.data[key])} onChange={e => setForm({ ...form, data: { ...form.data, [key]: e.target.checked } })} />
+                ) : (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input style={{ flex: 1 }} type={secretFields.has(key) ? 'password' : prop.type === 'number' || prop.type === 'integer' ? 'number' : 'text'} value={form.data[key] ?? ''} onChange={e => setForm({ ...form, data: { ...form.data, [key]: prop.type === 'number' || prop.type === 'integer' ? Number(e.target.value) : e.target.value } })} />
+                    {isConnStr && form.data[key] && (
+                      <button type="button" className="ghost small" onClick={() => setForm({ ...form, data: { ...form.data, [key]: '' } })} title="Clear connection string">🗑 Clear</button>
+                    )}
+                  </div>
+                )}
+              </label>
+              )
+            })}
             <button
               className="primary"
               type="submit"
               disabled={busy || !form.type}
               title={!form.name.trim() ? 'Please enter a name for this credential' : ''}
+              style={{ marginTop: 8 }}
             >
               {busy ? 'Saving…' : 'Save credential'}
             </button>
-          )}
-        </form>
+          </form>
+        )}
       </section>
 
       <ConfirmDialog open={Boolean(deleteTarget)} title={`Delete “${deleteTarget?.name}”?`} description={deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'The connection string will be permanently deleted. Workflows using this connection will fail until updated.' : 'This credential will be disconnected. Workflows referencing it will fail until updated.'} confirmLabel={deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'Delete connection string' : 'Delete'} variant="danger" onCancel={() => setDeleteTarget(null)} onConfirm={async () => { try { await remove(deleteTarget.id); setNotice(deleteTarget && ['database','postgres','mysql','redis','mongodb'].includes(deleteTarget.type) ? 'Connection string deleted.' : 'Deleted.'); } catch(e){ setError(e.message)} finally{ setDeleteTarget(null) } }} />
