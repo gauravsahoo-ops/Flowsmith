@@ -767,7 +767,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
         if params.on_init_headers and isinstance(params.on_init_headers, dict):
             for hk, hv in params.on_init_headers.items():
                 if hk and hk.strip():
-                    headers[hk.strip()] = str(hv) if hv is not None else ""
+                    headers[hk.strip()] = hv if hv is not None else ""
 
         data = None
         json_body = None
