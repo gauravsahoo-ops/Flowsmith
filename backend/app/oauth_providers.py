@@ -71,19 +71,12 @@ class OAuthProviderSpec:
         the database only without requiring plain text secrets in config files.
         """
         prefix = self.config_prefix or self.key
-        cid = (client_id or "").strip() or getattr(settings, f"{prefix}_client_id", "")
-        csecret = (client_secret or "").strip() or getattr(settings, f"{prefix}_client_secret", "")
-        redirect = (redirect_uri or "").strip() or getattr(settings, f"{prefix}_redirect_uri", "")
-        if not redirect:
-            # Derive from the public URL when not pinned explicitly.
-            base = (getattr(settings, "public_url", "") or "").rstrip("/")
-            if base:
-                redirect = f"{base}/api/auth/{self.key}/callback"
-            else:
-                redirect = f"https://flowsmith.dev.idslogic.net/api/auth/{self.key}/callback"
+        cid = (client_id or "").strip()
+        csecret = (client_secret or "").strip()
+        redirect = (redirect_uri or "").strip()
 
-        # Fallback to encrypted database credentials when env vars are unset
-        if (not cid or not csecret) and db is not None:
+        # Prioritize encrypted database credentials so secrets never need to live in plaintext .env
+        if db is not None:
             try:
                 import json
                 from sqlalchemy import select
@@ -91,9 +84,9 @@ class OAuthProviderSpec:
                 from app.security.crypto import decrypt_text
 
                 types_to_check = [
-                    self.credential_type,
                     f"{self.credential_type}_oauth_config",
                     f"{self.key}_oauth_config",
+                    self.credential_type,
                     self.key,
                 ]
                 query = select(Credential).where(Credential.type.in_(types_to_check))
@@ -114,13 +107,25 @@ class OAuthProviderSpec:
                         if cand_cid and cand_sec:
                             cid = cid or cand_cid
                             csecret = csecret or cand_sec
-                            if cand_red and not getattr(settings, f"{prefix}_redirect_uri", ""):
+                            if cand_red and not redirect:
                                 redirect = cand_red
                             break
                     except Exception:
                         continue
             except Exception as exc:
                 logger.debug("Could not resolve credentials from database: %s", exc)
+
+        cid = cid or getattr(settings, f"{prefix}_client_id", "")
+        csecret = csecret or getattr(settings, f"{prefix}_client_secret", "")
+        redirect = redirect or getattr(settings, f"{prefix}_redirect_uri", "")
+
+        if not redirect:
+            # Derive from the public URL when not pinned explicitly.
+            base = (getattr(settings, "public_url", "") or "").rstrip("/")
+            if base:
+                redirect = f"{base}/api/auth/{self.key}/callback"
+            else:
+                redirect = f"https://flowsmith.dev.idslogic.net/api/auth/{self.key}/callback"
 
         if not cid or not csecret:
             raise HTTPException(
@@ -269,8 +274,11 @@ def _sf_credential_data(
         exp_at = time.time() + float(expires_in)
     except Exception:
         exp_at = time.time() + 7200
-    cid = (client_id or kwargs.get("client_id") or getattr(settings, "salesforce_client_id", "") or "").strip()
-    csec = (client_secret or kwargs.get("client_secret") or getattr(settings, "salesforce_client_secret", "") or "").strip()
+    cid = (client_id or kwargs.get("client_id") or "").strip()
+    csec = (client_secret or kwargs.get("client_secret") or "").strip()
+    if getattr(settings, "salesforce_client_id", ""):
+        cid = ""
+        csec = ""
     return {
         "instance_url": str(token_payload.get("instance_url", "")).rstrip("/"),
         "login_url": login_url,
@@ -300,7 +308,7 @@ async def _sf_revoke_token(http_client: Any, settings: Settings, credential_data
     if credential_data.get("login_url"):
         candidates.append(str(credential_data["login_url"]).rstrip("/"))
     if settings.salesforce_login_url:
-        candidates.append(str(settings.salesforce_login_url).rstrip("/"))
+        candidates.append(settings.salesforce_login_url.rstrip("/"))
     candidates.append("https://login.salesforce.com")
 
     urls = list(dict.fromkeys(candidates))
