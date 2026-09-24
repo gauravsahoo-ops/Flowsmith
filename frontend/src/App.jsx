@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import Login from './components/Login'
 import AppShell from './layout/AppShell'
 import OverviewPage from './pages/OverviewPage'
@@ -32,7 +32,7 @@ function NotFound() {
     <div className="page">
       <h1>Not found</h1>
       <p className="hint">The page you requested does not exist.</p>
-      <a href="/overview" className="ghost">Go to Overview</a>
+      <Link to="/overview" className="ghost">Go to Overview</Link>
     </div>
   )
 }
@@ -65,7 +65,7 @@ class ErrorBoundary extends Component {
           </div>
           <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
             <button className="primary" onClick={() => { this.setState({ error: null }); window.location.reload() }}>Reload</button>
-            <a href="/overview" className="ghost">Go to Overview</a>
+            <Link to="/overview" className="ghost">Go to Overview</Link>
           </div>
         </div>
       )
@@ -147,12 +147,22 @@ export default function App() {
     // Validate stored token against the server on startup
     const token = getToken()
     if (token) {
-      api.getMe().catch((err) => {
-        if (err.status === 401) {
-          setToken(null)
-          setAuthed(false)
-        }
-      })
+      api.getMe()
+        .then((data) => {
+          const u = data?.data || data
+          if (u && (u.email || u.name)) {
+            try {
+              localStorage.setItem('flowsmith_user', JSON.stringify(u))
+              window.dispatchEvent(new CustomEvent('flowsmith_user_updated', { detail: u }))
+            } catch {}
+          }
+        })
+        .catch((err) => {
+          if (err.status === 401) {
+            setToken(null)
+            setAuthed(false)
+          }
+        })
     }
 
     return () => window.removeEventListener('auth:expired', onExpired)

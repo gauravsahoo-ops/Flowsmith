@@ -288,6 +288,10 @@ def run_drill(base_dsn: str | None = None, *, work_dir=None) -> dict[str, Any]:
             "backup": {"file": str(backup_path), "size_mb": size_mb},
         })
         return report
+    except Exception as exc:
+        report["ok"] = False
+        report["error"] = str(exc)
+        return report
     finally:
         try:
             _drop_db(admin, source_db)

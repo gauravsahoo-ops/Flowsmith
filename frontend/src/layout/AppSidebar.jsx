@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useBrandingStore } from '../stores/brandingStore'
 import FlowsmithBrandMark from '../components/FlowsmithBrandMark'
+import { getDynamicUser } from '../utils/userProfile'
 
 function NavIcon({ name, size = 18 }) {
   switch (name) {
@@ -182,6 +184,13 @@ export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, 
   const logoUrl = useBrandingStore((s) => s.logoUrl)
   const logoData = useBrandingStore((s) => s.logoData)
   const logoSrc = logoData || logoUrl
+  const [user, setUser] = useState(() => getDynamicUser())
+
+  useEffect(() => {
+    const onUserUpdate = () => setUser(getDynamicUser())
+    window.addEventListener('flowsmith_user_updated', onUserUpdate)
+    return () => window.removeEventListener('flowsmith_user_updated', onUserUpdate)
+  }, [])
 
   const content = (
     <>
@@ -245,6 +254,22 @@ export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, 
           </div>
         ))}
       </nav>
+
+      {/* Dynamic Authenticated User Footer */}
+      <div className={`app-sidebar-user-footer ${collapsed && !isMobile ? 'is-collapsed' : ''}`}>
+        <div className="sidebar-user-card" title={`${user.name} (${user.email})`}>
+          <div className="sidebar-user-avatar">
+            <span className="sidebar-avatar-initials">{user.initials}</span>
+            <span className="sidebar-avatar-beacon" aria-hidden="true" />
+          </div>
+          {(!collapsed || isMobile) && (
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">{user.name}</span>
+              <span className="sidebar-user-email">{user.email}</span>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   )
 

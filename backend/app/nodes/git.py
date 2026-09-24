@@ -26,10 +26,15 @@ class GitParams(BaseModel):
 
 
 async def _git(repo_path: str, *args: str, timeout: float = 30.0) -> str:
-    proc = await asyncio.create_subprocess_exec(
-        "git", "-C", repo_path or ".", *args,
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git", "-C", repo_path or ".", *args,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        from app.engine.errors import NodeExecutionError
+
+        raise NodeExecutionError("Git CLI is not installed on system.", code="GIT_NOT_FOUND", node_id="", retryable=False)
     try:
         out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except asyncio.TimeoutError:

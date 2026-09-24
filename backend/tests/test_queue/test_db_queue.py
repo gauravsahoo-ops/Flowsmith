@@ -147,7 +147,14 @@ def test_failed_job_is_terminal(db_queue):
 
 
 def test_factory_selects_db_by_default(tmp_path, monkeypatch):
+    from app.config import get_settings
     from app.queue import reset_queue
 
+    monkeypatch.delenv("QUEUE_BACKEND", raising=False)
+    get_settings.cache_clear()
     reset_queue()
-    assert get_queue().name == "db"
+    try:
+        assert get_queue().name == "db"
+    finally:
+        get_settings.cache_clear()
+        reset_queue()

@@ -117,14 +117,22 @@ function RecentWorkflows({ workflows, loading }) {
   return (
     <div className="overview-cards">
       {workflows.slice(0, 6).map(w => (
-        <button key={w.id} className="overview-card" onClick={() => navigate(`/workflows/${w.id}`)} type="button">
+        <div
+          key={w.id}
+          className="overview-card"
+          onClick={() => navigate(`/workflows/${w.id}`)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(ev) => { if (ev.key === 'Enter') navigate(`/workflows/${w.id}`) }}
+        >
           <div className="overview-card-head">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
               <span className="overview-card-icon" style={{
-                width: 24, height: 24, borderRadius: 6,
+                width: 26, height: 26, borderRadius: 7,
                 background: w.active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.12)',
                 display: 'inline-grid', placeItems: 'center',
-                color: w.active ? '#34d399' : '#818cf8', flexShrink: 0
+                color: w.active ? '#34d399' : '#818cf8', flexShrink: 0,
+                boxShadow: w.active ? '0 0 10px rgba(16, 185, 129, 0.25)' : 'none'
               }}>
                 <Icon name="workflows" size={13} color="currentColor" />
               </span>
@@ -142,16 +150,38 @@ function RecentWorkflows({ workflows, loading }) {
               {w.active ? 'Active' : 'Inactive'}
             </span>
           </div>
-          <div className="hint" style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', marginTop: 4 }}>
-            {w.id.slice(0, 8)} · v{w.version} · {new Date(w.updated_at).toLocaleDateString()}
+          <div className="hint" style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', marginTop: 4, color: '#64748b' }}>
+            {w.id.slice(0, 8)} · v{w.version} · {w.updated_at ? new Date(w.updated_at).toLocaleDateString() : '—'}
           </div>
-          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className="hint" style={{ color: '#94a3b8', fontSize: 11.5 }}>
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{
+              fontSize: 11, padding: '2px 8px', borderRadius: 99,
+              background: 'rgba(255, 255, 255, 0.04)', color: '#94a3b8',
+              border: '1px solid rgba(255, 255, 255, 0.06)'
+            }}>
               {(w.data?.nodes?.length ?? w.node_count ?? 0)} nodes · {(w.data?.connections?.length ?? 0)} links
             </span>
-            <span className="overview-card-arrow">→</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                type="button"
+                className="ghost ghost--sm"
+                title="Run workflow"
+                style={{ padding: '3px 7px', fontSize: 11, color: '#10b981' }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  api.run(w.id).then(() => {
+                    navigate('/executions')
+                  }).catch(() => {
+                    navigate(`/workflows/${w.id}`)
+                  })
+                }}
+              >
+                ▶ Run
+              </button>
+              <span className="overview-card-arrow">→</span>
+            </div>
           </div>
-        </button>
+        </div>
       ))}
     </div>
   )
@@ -185,20 +215,37 @@ function RecentExecutions({ executions, loading }) {
             <th>Status</th>
             <th>Started</th>
             <th>Duration</th>
+            <th style={{ textAlign: 'right' }}>Action</th>
           </tr>
         </thead>
         <tbody>
           {executions.slice(0, 5).map(e => (
             <tr key={e.id} className="clickable" onClick={() => navigate(`/executions/${e.id}`)} tabIndex={0} onKeyDown={ev => { if (ev.key === 'Enter') navigate(`/executions/${e.id}`)}}>
-              <td style={{ fontWeight: 600, color: '#f8fafc' }}>{e.workflow_name || e.workflow_id.slice(0,8)}</td>
+              <td style={{ fontWeight: 600, color: '#f8fafc' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: '#818cf8', fontSize: 12 }}>⚡</span>
+                  <span>{e.workflow_name || (e.workflow_id ? e.workflow_id.slice(0, 8) : e.id.slice(0, 8))}</span>
+                </div>
+              </td>
               <td>
                 <span className={`status-pill status-${e.status}`}>
                   <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
                   {e.status}
                 </span>
               </td>
-              <td className="muted">{fmt(e.started_at)}</td>
-              <td className="muted">{dur(e.started_at, e.finished_at)}</td>
+              <td style={{ color: '#94a3b8', fontSize: 12.5 }}>{fmt(e.started_at)}</td>
+              <td>
+                <span style={{
+                  fontFamily: 'JetBrains Mono, monospace', fontSize: 11.5,
+                  padding: '2px 7px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)',
+                  color: '#cbd5e1'
+                }}>
+                  {dur(e.started_at, e.finished_at) || '—'}
+                </span>
+              </td>
+              <td style={{ textAlign: 'right' }}>
+                <span style={{ color: '#6366f1', fontSize: 12, fontWeight: 500 }}>Inspect →</span>
+              </td>
             </tr>
           ))}
         </tbody>

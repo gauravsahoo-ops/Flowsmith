@@ -9,6 +9,7 @@ import os
 # (execution status at 20 req/s) and would trip the per-user rate limiter.
 # The middleware itself has dedicated tests that enable and exercise it.
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+os.environ["QUEUE_EMBEDDED_CONSUMER"] = "true"
 
 from typing import Any
 
@@ -17,6 +18,7 @@ import pytest
 from sqlalchemy import text
 
 from app.config import get_settings
+get_settings.cache_clear()
 from app.db import Base, init_db
 from app.engine.errors import NodeCancelledError
 from app.engine.node_base import BaseNode, EmptyParams, NodeContext, NodeResult
@@ -55,7 +57,28 @@ def _test_db_url() -> str:
     )
 
 
+def _test_redis_url() -> str:
+    """Dedicated Redis DB for tests (db 15 by default).
+
+    Prevents external workers (connected to production db 0) from claiming
+    test jobs from the shared Redis instance.
+    """
+    base = os.environ.get("REDIS_URL") or get_settings().redis_url or ""
+    if not base:
+        return ""
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "").strip()
+    db_num = "14" if worker else "15"
+    if "/" in base:
+        prefix = base.rsplit("/", 1)[0]
+        return f"{prefix}/{db_num}"
+    return f"{base.rstrip('/')}/{db_num}"
+
+
 TEST_DB_URL = os.environ.get("TEST_DATABASE_URL") or os.environ.get("TEST_DB_URL") or _test_db_url()
+_isolated_redis = _test_redis_url()
+if _isolated_redis:
+    os.environ["REDIS_URL"] = _isolated_redis
+    get_settings.cache_clear()
 
 
 def _ensure_database(url: str) -> None:
@@ -149,6 +172,15 @@ def _clean_db(_pg_harness):
                 time.sleep(0.15 * (1.5 ** attempt))
                 continue
             raise
+
+    if _isolated_redis:
+        try:
+            import redis
+            _rc = redis.from_url(_isolated_redis)
+            _rc.flushdb()
+            _rc.close()
+        except Exception:
+            pass
     yield
 
 

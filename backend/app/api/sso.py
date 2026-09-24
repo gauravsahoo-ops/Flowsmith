@@ -226,7 +226,7 @@ async def sso_callback(
     log_event(db, LOGIN, target_type="user", target_id=str(user.id), user_id=user.id)
 
     # Issue Flowsmith JWT
-    jwt_token = create_token(user.id)
+    jwt_token = create_token(user.id, email=user.email)
 
     # Redirect to frontend root with token in fragment or query for secure pickup
     redirect_url = f"/?sso_token={jwt_token}"

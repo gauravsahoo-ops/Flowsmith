@@ -252,16 +252,30 @@
 .history-time, .history-duration { color: var(--muted); font-size: 11px; }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 7.5px;
+  height: 7.5px;
   border-radius: 50%;
   display: inline-block;
+  flex-shrink: 0;
 }
 
-.dot.status-success { background: var(--green); }
-.dot.status-failed { background: var(--red); }
-.dot.status-cancelled { background: var(--amber); }
-.dot.status-running { background: var(--accent); animation: pulse 1s infinite; }
+.dot.status-success {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+.dot.status-failed {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+.dot.status-cancelled {
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
+}
+.dot.status-running {
+  background: #6366f1;
+  box-shadow: 0 0 10px #6366f1;
+  animation: beaconPulse 1.4s infinite ease-in-out;
+}
 
 .status-label.status-success {
   background: rgba(16, 185, 129, 0.12);
@@ -282,6 +296,7 @@
   background: rgba(99, 102, 241, 0.12);
   color: #818cf8;
   border: 1px solid rgba(99, 102, 241, 0.3);
+  animation: beaconPulse 2s infinite ease-in-out;
 }
 .status-label.status-queued,
 .status-label.status-waiting_approval {
