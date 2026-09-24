@@ -464,7 +464,7 @@ def evaluate_condition(left: Any, operator: str, right: Any, convert_types: bool
         rd = _to_date(right)
         if ld is not None and rd is not None and (isinstance(left, str) or isinstance(right, str) or isinstance(left, datetime) or isinstance(right, datetime)):
             # Only use date if original values look date-like
-            if isinstance(left, str) and isinstance(right, str) and "-" in str(left) and "-" in str(right):
+            if isinstance(left, str) and isinstance(right, str) and "-" in left and "-" in right:
                 return _compare_date(left, op, right, convert_types)
             if isinstance(left, datetime) or isinstance(right, datetime):
                 return _compare_date(left, op, right, convert_types)
