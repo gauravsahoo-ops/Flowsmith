@@ -291,6 +291,21 @@ export default function OverviewPage() {
     return () => { alive = false }
   }, [])
 
+  // Auto-poll recent executions if any are active
+  useEffect(() => {
+    const hasActive = executions.some(e => ['running', 'queued', 'waiting_approval'].includes(e.status))
+    if (!hasActive) return
+
+    const timer = setInterval(() => {
+      api.listExecutions({ pageSize: 10 }).then(r => {
+        const data = r?.data ?? r
+        if (Array.isArray(data)) setExecutions(data)
+      }).catch(() => {})
+    }, 2500)
+
+    return () => clearInterval(timer)
+  }, [executions])
+
   const activeCount = workflows.filter(w => w.active).length
   const failedRecent = executions.filter(e => e.status === 'failed').length
 

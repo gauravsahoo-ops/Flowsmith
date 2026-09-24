@@ -26,6 +26,22 @@ export default function ExecutionDetailPage() {
     return () => { alive = false }
   }, [id])
 
+  // Live auto-poll while running or queued
+  useEffect(() => {
+    if (!data) return
+    const isActive = ['running', 'queued', 'waiting_approval'].includes(data.status)
+    if (!isActive) return
+
+    const timer = setInterval(() => {
+      api.getExecution(id).then(d => {
+        setData(d)
+        if (d.trace?.length && !selected) setSelected(d.trace[0].node_id)
+      }).catch(() => {})
+    }, 2000)
+
+    return () => clearInterval(timer)
+  }, [id, data?.status, selected])
+
   async function handleRetry() {
     try { const { execution_id } = await api.retry(id); navigate(`/executions/${execution_id}`) } catch(e){ setError(e.message) }
   }
