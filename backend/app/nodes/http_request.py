@@ -766,8 +766,8 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
         # Apply on_init_headers hook if configured (Cyclr-style pre-request hook)
         if params.on_init_headers and isinstance(params.on_init_headers, dict):
             for hk, hv in params.on_init_headers.items():
-                if hk and str(hk).strip():
-                    headers[str(hk).strip()] = str(hv) if hv is not None else ""
+                if hk and hk.strip():
+                    headers[hk.strip()] = hv if hv is not None else ""
 
         data = None
         json_body = None
