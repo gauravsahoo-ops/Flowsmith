@@ -5,6 +5,8 @@ import GlobalSearch from '../components/shared/GlobalSearch'
 import { useWorkflowStore, isDirty } from '../stores/workflowStore'
 import { useCredentialStore } from '../stores/credentialStore'
 import { useBrandingStore } from '../stores/brandingStore'
+import { getDynamicUser, syncUserProfile } from '../utils/userProfile'
+import { api } from '../api'
 
 export default function AppShell({ onLogout }) {
   const location = useLocation()
@@ -16,6 +18,13 @@ export default function AppShell({ onLogout }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 900 : false)
   const [searchOpen, setSearchOpen] = useState(false)
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
+  const [user, setUser] = useState(() => getDynamicUser())
+
+  useEffect(() => {
+    const onUserUpdate = () => setUser(getDynamicUser())
+    window.addEventListener('flowsmith_user_updated', onUserUpdate)
+    return () => window.removeEventListener('flowsmith_user_updated', onUserUpdate)
+  }, [])
 
   // Global shortcut for search (Ctrl+K or Cmd+K)
   useEffect(() => {
@@ -57,6 +66,7 @@ export default function AppShell({ onLogout }) {
     useBrandingStore.getState().init().catch(() => {})
     useWorkflowStore.getState().init().catch(() => {})
     useCredentialStore.getState().load().catch(() => {})
+    syncUserProfile(api).catch(() => {})
 
     const handler = (e) => {
       if (isDirty && isDirty()) {
@@ -126,11 +136,14 @@ export default function AppShell({ onLogout }) {
                 <span>Workflows</span>
               </button>
             )}
-            <div className="app-topbar-user-badge" title="Gaurav Sahoo · Administrator">
+            <div className="app-topbar-user-badge" title={`${user.name} (${user.email})`}>
               <span className="user-avatar-dot" />
-              <span className="user-avatar-text">GS</span>
+              <span className="user-avatar-text">{user.initials}</span>
             </div>
-            <button className="ghost ghost--sm app-topbar-logout" onClick={onLogout} title="Log out">
+            <button className="ghost ghost--sm app-topbar-logout" onClick={() => {
+              try { localStorage.removeItem('flowsmith_user') } catch {}
+              onLogout?.()
+            }} title="Log out">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />

@@ -35,6 +35,7 @@
     - [15.2. Data Pinning (Mocking Data for Risk-Free Testing)](#152-data-pinning-mocking-data-for-risk-free-testing)
     - [15.3. Console Drawer & Step Execution Logs](#153-console-drawer--step-execution-logs)
     - [15.4. Version History & 1-Click Rollback](#154-version-history--1-click-rollback)
+    - [15.5. System Health, Telemetry & Disaster Recovery](#155-system-health-telemetry--disaster-recovery)
 16. [Custom Connectors & OpenAPI / cURL Importer (`/connectors`)](#16-custom-connectors--openapi--curl-importer-connectors)
 17. [White-Labeling & Brand Change (Make It Your Own Platform)](#17-white-labeling--brand-change-make-it-your-own-platform)
 18. [Keyboard Shortcuts & Canvas Navigation](#18-keyboard-shortcuts--canvas-navigation)
@@ -134,16 +135,32 @@ When you log in to Flowsmith, you are greeted by an uncluttered, modern dashboar
 - **Knowledge (`📚`)**: Upload PDF, Markdown, and text documents for AI vector search (RAG).
 - **Templates (`🎨`)**: Pre-built starter recipes ready to clone into your workspace with 1 click.
 - **Settings (`⚙️`)**: Workspace configuration, user management, and white-label branding.
+- **User Profile Pill**: Positioned at the bottom of the sidebar displaying your authenticated name, email address, initials avatar, and a live green status beacon (`● Online`).
 
 ### 2. Top Bar Controls
 - **Workflow Name**: Click to rename your workflow (e.g. *"Salesforce Lead Sync"*).
+- **Command Palette (`Ctrl + K` / `⌘K`)**: Instant search button to quickly summon any card or run quick actions without leaving the keyboard.
 - **Run (`▶`)**: Tests your workflow manually right now using test inputs.
 - **Active / Inactive Switch**: When flipped to **Active** (green), your workflow is live and listening 24/7. When **Inactive**, it only runs when you click "Run".
 - **Console (`📋`)**: Opens the slide-out drawer showing real-time execution logs, per-step timing, and data payloads.
 - **Versions (`🕒`)**: Every save creates an immutable backup. Click here to rollback to any past version.
 
-### 3. Visual Canvas Area
-- Your interactive whiteboard. Click and drag cards, connect them with wires, pan around freely, or click **Auto-Layout** to instantly tidy up the layout.
+### 3. Visual Canvas & Floating Studio Dock
+- **Interactive Whiteboard**: Click and drag cards, connect them with wires, pan around freely with spacebar drag, or pinch-to-zoom on laptops and tablets.
+- **Floating Studio Dock (Bottom-Left Toolbar)**:
+  - **Undo / Redo (`↶ / ↷`)**: Revert or replay recent canvas modifications.
+  - **Auto-Layout (`⚡`)**: Automatically repositions all cards into a clean, readable diagram.
+  - **Add Sticky Note (`📝`)**: Drop colorful annotation notes onto the canvas to explain logic to teammates.
+  - **Frame / Group (`🖼️`)**: Visually boundary-box related steps together.
+  - **Fit View (`⛶`) & MiniMap (`🗺️`)**: Instantly re-center the canvas or toggle the bottom-right bird's-eye map.
+  - **Zoom Controls (`+ / -`)**: Precision zoom in or out.
+
+### 4. Clamped 3-Panel & Responsive 1-Panel Node Editor
+- Double-clicking any card opens the centered **Node Editor Modal**:
+  - **Left Panel (Inputs)**: Inspect upstream ancestor data, preview incoming JSON, and copy expression tags with 1 click.
+  - **Center Panel (Parameters)**: Configure the node's settings, credentials, field mappings, and options.
+  - **Right Panel (Output)**: View output payloads generated from test executions.
+- **Adaptive Screen Responsiveness**: On laptops, tablets, or split-screen windows (below `1150px`), the editor automatically switches into streamlined single-panel tabs (`Input`, `Parameters`, `Output`), guaranteeing zero clipping and persistent action buttons (`✨ AI Auto-Repair`, `▶ Execute Step`, and `✕ Close`).
 
 ---
 
@@ -460,6 +477,14 @@ Empower your automations with your company's private documents:
 - Click **"Versions"** in the top bar to view past save points.
 - Made a mistake? Click **"Rollback"** to restore any previous version with a single click.
 
+### 15.5. System Health, Telemetry & Disaster Recovery
+- **Live Readiness & Status Probe (`/api/readyz`)**:
+  - Point your monitoring tools or load balancers to `http://localhost:8000/api/readyz`.
+  - Returns real-time health checks for PostgreSQL and Redis (`status: ready`, `postgres: ok`, `redis: ok`).
+- **Disaster Recovery Drills**:
+  - Flowsmith includes automated backup streaming (`.sql.gz`) and recovery simulation via `app.dr.run_drill()`.
+  - Restores verify data integrity and encryption key pairing (`CREDENTIALS_ENCRYPTION_KEY`) so your business data is always safe, encrypted, and recoverable.
+
 ---
 
 ## 16. Custom Connectors & OpenAPI / cURL Importer (`/connectors`)
@@ -542,13 +567,17 @@ Flowsmith has a built-in **100% White-Labeling Engine**. If you want your team, 
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl + K` / `Cmd + K` | **Command Palette**: Quickly search and add any card onto the canvas. |
-| `Ctrl + S` / `Cmd + S` | **Save**: Save your workflow and create an immutable backup version. |
+| `Ctrl + K` / `Cmd + K` | **Command Palette**: Quickly search and add any card onto the canvas without leaving the keyboard. |
+| `Ctrl + S` / `Cmd + S` | **Save**: Save your workflow and create an immutable backup version snapshot. |
+| `Ctrl + Z` / `Cmd + Z` | **Undo**: Revert your last canvas modification. |
+| `Ctrl + Y` / `Cmd + Shift + Z` | **Redo**: Reapply your undone canvas modification. |
 | `Ctrl + D` / `Cmd + D` | **Duplicate**: Make an instant copy of the selected card. |
 | `Delete` / `Backspace` | **Delete**: Remove the selected card or connection wire. |
+| `Esc` | **Dismiss / Close**: Close any open modal, dialog, or the Command Palette. |
+| `Shift + Click` | **Multi-Select**: Select multiple cards together to drag or group them as a frame. |
 | `Space + Click & Drag` | **Pan**: Move smoothly across your canvas whiteboard. |
-| `Mouse Wheel` | **Zoom**: Zoom in for fine details or zoom out for the big picture. |
-| **Auto-Layout Button** | Click in the bottom-left canvas toolbar to neatly align all cards automatically. |
+| `Mouse Wheel` / `Pinch` | **Zoom**: Zoom in for fine details or zoom out for the big picture. |
+| `Auto-Layout` | Click `⚡` in the Floating Studio Dock to neatly align all cards automatically. |
 
 ---
 

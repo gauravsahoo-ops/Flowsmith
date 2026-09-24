@@ -636,9 +636,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             "follow_redirects": params.follow_redirects,
             "max_response_bytes": params.max_response_bytes,
         }
-        if isinstance(data, (str, bytes)):
-            kwargs["content"] = data
-        elif data is not None:
+        if data is not None:
             kwargs["data"] = data
         if files is not None:
             kwargs["files"] = files

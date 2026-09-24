@@ -3,8 +3,9 @@ import { useWorkflowStore } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useBrandingStore } from '../stores/brandingStore'
 import FlowsmithBrandMark from './FlowsmithBrandMark'
-import { api, getToken } from '../api'
+import { api } from '../api'
 import { toReactFlow, toWorkflowJson } from '../mappers'
+import { getDynamicUser } from '../utils/userProfile'
 
 const EXAMPLE_PROMPTS = [
   'Stripe payment webhook to Slack notification with AI summary',
@@ -23,19 +24,7 @@ const GENERATION_PHASES = [
 const COPILOT_HISTORY_KEY = 'flowsmith_copilot_prompt_history'
 
 function getUserDisplayName() {
-  try {
-    const token = getToken?.() || (typeof window !== 'undefined' && localStorage.getItem('mat_token'))
-    if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      if (payload?.name) return payload.name
-      if (payload?.first_name) return payload.first_name
-      if (payload?.email) {
-        const username = payload.email.split('@')[0]
-        return username.charAt(0).toUpperCase() + username.slice(1)
-      }
-    }
-  } catch {}
-  return 'Gaurav'
+  return getDynamicUser().name
 }
 
 function loadCopilotHistory() {

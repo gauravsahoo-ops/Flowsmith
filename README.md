@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml)
 [![Backend Tests](https://img.shields.io/badge/backend%20tests-1800%2B%20passing-brightgreen)](#backend-testing-1800-tests)
-[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-315%20passing-brightgreen)](#frontend-testing-315-vitest-tests--e2e-specs)
+[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-318%20passing-brightgreen)](#frontend-testing-318-vitest-tests--e2e-specs)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/react-19-61dafb)](https://react.dev/)
@@ -655,31 +655,41 @@ pytest -q
 pytest -m "not timing" -q
 
 # Test specific subsystems
+pytest tests/test_api/test_executions.py -q                # Workflow execution DAG, cancellation & status
+pytest tests/test_security_audit.py -q                     # Full enterprise security & access audit
+pytest tests/test_redis_live_audit.py -q                   # Live Redis job queue lifecycle & backoff
 pytest tests/test_api/test_oauth.py -q                     # Generic OAuth & single-click reconnect
 pytest tests/test_api/test_credential_auto_reconnect.py -q # OAuth auto-reconnect & renewal sweep
 pytest tests/test_api/test_token_manager.py -q             # Universal Token Manager & dual handles
 pytest tests/test_api/test_workflows.py -q                 # Workflow CRUD & active toggle
 pytest tests/test_api/test_templates.py -q                 # Template cloning & import
 pytest tests/test_security/ -q                             # SSRF, auth, and encryption audits
+
+# Note: Automated test runs utilize dedicated isolated databases (automate_test)
+# and isolated Redis instances (db 15), preventing collision with production workers.
 ```
 
-### Frontend Testing (315 Vitest Tests & E2E Specs)
+### Frontend Testing (318 Vitest Tests & E2E Specs)
 
 ```bash
 cd frontend
 
-# Run Vitest unit tests (315 passing across 19 test files)
+# Run Vitest unit tests (318 passing across 20 test files)
 npx vitest run
 
 # Run specific suite
+npx vitest run src/utils/userProfile.test.js
 npx vitest run src/pages/CredentialsPage.test.jsx
 
 # Run Playwright end-to-end browser tests
 npx playwright install chromium
 npm test
 
-# Run code linter (Oxlint: 0 warnings, 0 errors across 131 files)
-npm run lint
+# Run code linter (Oxlint: 0 warnings, 0 errors across 133 files)
+npx oxlint --deny-warnings src
+
+# TypeScript type validation
+npx tsc --noEmit
 
 # Validate production build bundle
 npm run build

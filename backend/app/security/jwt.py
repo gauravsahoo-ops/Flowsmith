@@ -79,7 +79,7 @@ def _is_token_revoked(jti: str) -> bool:
     return False
 
 
-def create_token(user_id: int) -> str:
+def create_token(user_id: int, email: str | None = None) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
     jti = secrets.token_urlsafe(16)
@@ -89,6 +89,8 @@ def create_token(user_id: int) -> str:
         "exp": now + timedelta(minutes=settings.jwt_expires_minutes),
         "jti": jti,
     }
+    if email:
+        payload["email"] = email
     return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.jwt_algorithm)  # type: ignore[possibly-unbound]
 
 

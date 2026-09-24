@@ -83,6 +83,12 @@ export default function Login({ onAuthed }) {
           ? await api.login(email, password)
           : await api.register(email, password)
       setToken(result.token)
+      if (result.user) {
+        try {
+          localStorage.setItem('flowsmith_user', JSON.stringify(result.user))
+          window.dispatchEvent(new Event('flowsmith_user_updated'))
+        } catch {}
+      }
       onAuthed(result)
     } catch (err) {
       setError(err.message)

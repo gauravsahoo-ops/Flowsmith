@@ -1,9 +1,12 @@
 """Tests for the Git node (read-only inspection of the repo itself)."""
 
+import shutil
 import pytest
 import httpx
 from app.nodes.git import GitNode, GitParams
 from app.engine.node_base import NodeContext
+
+_has_git = shutil.which("git") is not None
 
 
 def _make_ctx():
@@ -15,6 +18,7 @@ def _make_ctx():
     )
 
 
+@pytest.mark.skipif(not _has_git, reason="git CLI not installed in environment")
 @pytest.mark.asyncio
 async def test_git_branches_lists_current():
     node = GitNode()
@@ -24,6 +28,7 @@ async def test_git_branches_lists_current():
     assert result.output_items[0]["current"]
 
 
+@pytest.mark.skipif(not _has_git, reason="git CLI not installed in environment")
 @pytest.mark.asyncio
 async def test_git_log_returns_commits():
     node = GitNode()
@@ -34,6 +39,7 @@ async def test_git_log_returns_commits():
     assert set(commits[0]) == {"hash", "author", "date", "subject"}
 
 
+@pytest.mark.skipif(not _has_git, reason="git CLI not installed in environment")
 @pytest.mark.asyncio
 async def test_git_status_shape():
     node = GitNode()

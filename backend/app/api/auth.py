@@ -81,7 +81,7 @@ def _validate_password_complexity(password: str) -> None:
 
 def _auth_payload(user: User) -> dict:
     return {
-        "token": create_token(user.id),
+        "token": create_token(user.id, email=user.email),
         "user": {"id": user.id, "email": user.email, "role": user.role},
     }
 
