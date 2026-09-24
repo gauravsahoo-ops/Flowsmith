@@ -8,6 +8,9 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import WorkspaceTabs from '../components/shared/WorkspaceTabs'
 import { NodeIcon } from '../components/NodeIcons'
 import SearchableSelect from '../components/SearchableSelect'
+import SalesforceOAuthModal from '../components/SalesforceOAuthModal'
+import HubSpotOAuthModal from '../components/HubSpotOAuthModal'
+import GoogleOAuthModal from '../components/GoogleOAuthModal'
 
 function defaultsFromSchema(schema) {
   const out = {}
@@ -48,6 +51,14 @@ export default function CredentialsPage() {
   const [testingId, setTestingId] = useState(null)
   const [testResult, setTestResult] = useState(null)
   const [reconnectingId, setReconnectingId] = useState(null)
+  const [sfModalOpen, setSfModalOpen] = useState(false)
+  const [sfModalData, setSfModalData] = useState(null)
+  const [hsModalOpen, setHsModalOpen] = useState(false)
+  const [hsModalData, setHsModalData] = useState(null)
+  const [googleModalOpen, setGoogleModalOpen] = useState(false)
+  const [googleModalData, setGoogleModalData] = useState(null)
+  const [googleModalService, setGoogleModalService] = useState('google_calendar')
+
   const mountedRef = useRef(true)
   const oauthCleanupRef = useRef(null)
 
@@ -549,6 +560,82 @@ export default function CredentialsPage() {
                         </button>
                       )}
 
+                      {c.type === 'salesforce' && (
+                        <button
+                          type="button"
+                          className="ghost small"
+                          onClick={() => {
+                            setSfModalData(c)
+                            setSfModalOpen(true)
+                          }}
+                          title="Open Salesforce OAuth2 settings (Client ID, Secret, Redirect URL, Domains)"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            color: '#38bdf8',
+                            borderColor: 'rgba(56, 189, 248, 0.25)',
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                          </svg>
+                          <span>Settings</span>
+                        </button>
+                      )}
+
+                      {c.type === 'hubspot' && (
+                        <button
+                          type="button"
+                          className="ghost small"
+                          onClick={() => {
+                            setHsModalData(c)
+                            setHsModalOpen(true)
+                          }}
+                          title="Open HubSpot OAuth / App settings (Client ID, Secret, Private Token)"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            color: '#ff7a59',
+                            borderColor: 'rgba(255, 122, 89, 0.25)',
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                          </svg>
+                          <span>Settings</span>
+                        </button>
+                      )}
+
+                      {(c.type.startsWith('google_') || c.type === 'gmail') && (
+                        <button
+                          type="button"
+                          className="ghost small"
+                          onClick={() => {
+                            setGoogleModalService(c.type)
+                            setGoogleModalData(c)
+                            setGoogleModalOpen(true)
+                          }}
+                          title="Open Google Cloud OAuth2 settings (Client ID, Secret, Redirect URIs)"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            color: '#60a5fa',
+                            borderColor: 'rgba(96, 165, 250, 0.25)',
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                          </svg>
+                          <span>Settings</span>
+                        </button>
+                      )}
+
                       {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) ? (
                         <button
                           type="button"
@@ -666,7 +753,316 @@ export default function CredentialsPage() {
           )}
         </div>
 
-        {isOAuthType ? (
+        {form.type === 'salesforce' ? (
+          <div className="card" style={{ padding: '20px', background: 'var(--panel-2)', borderRadius: 12, border: '1px solid var(--border-strong)', marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(0, 161, 224, 0.12)', border: '1px solid rgba(0, 161, 224, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <NodeIcon type="salesforce" size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
+                    Salesforce CRM
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    OAuth 2.0 Web Server Flow with PKCE
+                  </div>
+                </div>
+              </div>
+              <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', borderColor: 'rgba(99, 102, 241, 0.3)', fontSize: 11 }}>
+                Connected App
+              </span>
+            </div>
+
+            <p className="hint" style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.5 }}>
+              Authenticate securely with Salesforce. You can connect using Flowsmith's pre-configured authorization or configure a custom Connected App with your own Consumer Key and Secret.
+            </p>
+
+            {credentials.filter(c => c.type === 'salesforce').length > 0 && (
+              <div style={{ margin: '0 0 16px', padding: '12px 14px', background: 'var(--panel)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div className="hint" style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-secondary)' }}>
+                  Connected Salesforce accounts:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {credentials.filter(c => c.type === 'salesforce').map(acc => (
+                    <span
+                      key={acc.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        background: 'var(--panel-2)',
+                        fontSize: 12,
+                        border: '1px solid var(--border-strong)',
+                        color: 'var(--text)'
+                      }}
+                    >
+                      <span className="dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }} />
+                      <strong>{acc.name}</strong>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#38bdf8' }}
+                        onClick={() => {
+                          setSfModalData(acc)
+                          setSfModalOpen(true)
+                        }}
+                        title="Configure Connected App settings"
+                      >
+                        ⚙️ Settings
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171' }}
+                        onClick={() => setLogoutTarget(acc)}
+                        title="Logout and revoke access"
+                      >
+                        🚪 Logout
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  setSfModalData(null)
+                  setSfModalOpen(true)
+                }}
+                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600 }}
+              >
+                ⚙️ Configure Connected App / Connect
+              </button>
+              {credentials.some(c => c.type === 'salesforce') && (
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    setSfModalData(null)
+                    setSfModalOpen(true)
+                  }}
+                  style={{ padding: '9px 16px', fontSize: 13 }}
+                >
+                  + Connect Another Account
+                </button>
+              )}
+            </div>
+          </div>
+        ) : form.type === 'hubspot' ? (
+          <div className="card" style={{ padding: '20px', background: 'var(--panel-2)', borderRadius: 12, border: '1px solid var(--border-strong)', marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(255, 122, 89, 0.12)', border: '1px solid rgba(255, 122, 89, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <NodeIcon type="hubspot" size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
+                    HubSpot CRM
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    OAuth 2.0 Web Server Flow &amp; Private App Tokens
+                  </div>
+                </div>
+              </div>
+              <span className="badge" style={{ background: 'rgba(255, 122, 89, 0.15)', color: '#ff7a59', borderColor: 'rgba(255, 122, 89, 0.3)', fontSize: 11 }}>
+                CRM Integration
+              </span>
+            </div>
+
+            <p className="hint" style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.5 }}>
+              Authenticate securely with HubSpot. Connect via standard OAuth 2.0 using a custom HubSpot Developer App, or connect directly using a Private App Access Token.
+            </p>
+
+            {credentials.filter(c => c.type === 'hubspot').length > 0 && (
+              <div style={{ margin: '0 0 16px', padding: '12px 14px', background: 'var(--panel)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div className="hint" style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-secondary)' }}>
+                  Connected HubSpot accounts:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {credentials.filter(c => c.type === 'hubspot').map(acc => (
+                    <span
+                      key={acc.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        background: 'var(--panel-2)',
+                        fontSize: 12,
+                        border: '1px solid var(--border-strong)',
+                        color: 'var(--text)'
+                      }}
+                    >
+                      <span className="dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }} />
+                      <strong>{acc.name}</strong>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#ff7a59' }}
+                        onClick={() => {
+                          setHsModalData(acc)
+                          setHsModalOpen(true)
+                        }}
+                        title="Configure HubSpot App / Token settings"
+                      >
+                        ⚙️ Settings
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171' }}
+                        onClick={() => setLogoutTarget(acc)}
+                        title="Logout and revoke access"
+                      >
+                        🚪 Logout
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  setHsModalData(null)
+                  setHsModalOpen(true)
+                }}
+                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#ff7a59', borderColor: '#ff7a59' }}
+              >
+                ⚙️ Configure HubSpot App / Connect
+              </button>
+              {credentials.some(c => c.type === 'hubspot') && (
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    setHsModalData(null)
+                    setHsModalOpen(true)
+                  }}
+                  style={{ padding: '9px 16px', fontSize: 13 }}
+                >
+                  + Connect Another Account
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (form.type.startsWith('google_') || form.type === 'gmail') ? (
+          <div className="card" style={{ padding: '20px', background: 'var(--panel-2)', borderRadius: 12, border: '1px solid var(--border-strong)', marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(66, 133, 244, 0.12)', border: '1px solid rgba(66, 133, 244, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <NodeIcon type={form.type} size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>
+                    {form.type.replace(/_/g, ' ')}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    Google Cloud Platform OAuth 2.0 (Offline Access)
+                  </div>
+                </div>
+              </div>
+              <span className="badge" style={{ background: 'rgba(66, 133, 244, 0.15)', color: '#60a5fa', borderColor: 'rgba(66, 133, 244, 0.3)', fontSize: 11 }}>
+                Google Workspace
+              </span>
+            </div>
+
+            <p className="hint" style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.5 }}>
+              Connect your Google account securely. Flowsmith uses your Google Cloud OAuth Client ID &amp; Secret to request offline refresh tokens for automated workflow runs.
+            </p>
+
+            {credentials.filter(c => c.type === form.type).length > 0 && (
+              <div style={{ margin: '0 0 16px', padding: '12px 14px', background: 'var(--panel)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div className="hint" style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-secondary)' }}>
+                  Connected accounts:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {credentials.filter(c => c.type === form.type).map(acc => (
+                    <span
+                      key={acc.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        background: 'var(--panel-2)',
+                        fontSize: 12,
+                        border: '1px solid var(--border-strong)',
+                        color: 'var(--text)'
+                      }}
+                    >
+                      <span className="dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }} />
+                      <strong>{acc.name}</strong>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#60a5fa' }}
+                        onClick={() => {
+                          setGoogleModalService(form.type)
+                          setGoogleModalData(acc)
+                          setGoogleModalOpen(true)
+                        }}
+                        title="Configure Google App settings"
+                      >
+                        ⚙️ Settings
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171' }}
+                        onClick={() => setLogoutTarget(acc)}
+                        title="Logout and revoke access"
+                      >
+                        🚪 Logout
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  setGoogleModalService(form.type)
+                  setGoogleModalData(null)
+                  setGoogleModalOpen(true)
+                }}
+                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#3b82f6', borderColor: '#3b82f6' }}
+              >
+                ⚙️ Configure Google App / Connect
+              </button>
+              {credentials.some(c => c.type === form.type) && (
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    setGoogleModalService(form.type)
+                    setGoogleModalData(null)
+                    setGoogleModalOpen(true)
+                  }}
+                  style={{ padding: '9px 16px', fontSize: 13 }}
+                >
+                  + Connect Another Account
+                </button>
+              )}
+            </div>
+          </div>
+        ) : isOAuthType ? (
           <div className="sf-connect-box" style={{ padding: '18px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -822,6 +1218,126 @@ export default function CredentialsPage() {
             setError(e.message || 'Logout failed.')
           } finally {
             setLogoutTarget(null)
+          }
+        }}
+      />
+
+      <SalesforceOAuthModal
+        isOpen={sfModalOpen}
+        onClose={() => {
+          setSfModalOpen(false)
+          setSfModalData(null)
+        }}
+        initialData={sfModalData}
+        onConnected={async () => {
+          await load()
+          setNotice('Salesforce account connected successfully.')
+        }}
+        onSave={async (saved) => {
+          try {
+            if (sfModalData?.id) {
+              await api.updateCredentialConfig(sfModalData.id, {
+                name: saved?.name,
+                client_id: saved?.data?.client_id,
+                client_secret: saved?.data?.client_secret,
+                login_url: saved?.data?.login_url,
+              })
+              setNotice('Salesforce credential updated.')
+            } else if (saved?.data?.client_id && saved?.data?.client_secret) {
+              await api.saveOAuthConfig('salesforce', {
+                client_id: saved.data.client_id,
+                client_secret: saved.data.client_secret,
+                login_url: saved.data.login_url,
+              })
+              setNotice('Salesforce Connected App saved.')
+            }
+            await load()
+          } catch (err) {
+            setError(err?.message || 'Failed to save Salesforce configuration.')
+          }
+        }}
+      />
+
+      <HubSpotOAuthModal
+        isOpen={hsModalOpen}
+        onClose={() => {
+          setHsModalOpen(false)
+          setHsModalData(null)
+        }}
+        initialData={hsModalData}
+        onConnected={async () => {
+          await load()
+          setNotice('HubSpot account connected successfully.')
+        }}
+        onSave={async (saved) => {
+          try {
+            if (saved?.data?.private_token) {
+              if (hsModalData?.id) {
+                await api.updateCredentialConfig(hsModalData.id, {
+                  name: saved?.name,
+                  private_token: saved.data.private_token,
+                })
+                setNotice('HubSpot credential updated.')
+              } else {
+                await api.createCredential({
+                  name: saved.name,
+                  type: 'hubspot',
+                  data: { private_token: saved.data.private_token },
+                })
+                setNotice('HubSpot Private App credential created.')
+              }
+            } else if (hsModalData?.id) {
+              await api.updateCredentialConfig(hsModalData.id, {
+                name: saved?.name,
+                client_id: saved?.data?.client_id,
+                client_secret: saved?.data?.client_secret,
+              })
+              setNotice('HubSpot credential updated.')
+            } else if (saved?.data?.client_id && saved?.data?.client_secret) {
+              await api.saveOAuthConfig('hubspot', {
+                client_id: saved.data.client_id,
+                client_secret: saved.data.client_secret,
+              })
+              setNotice('HubSpot Developer App saved.')
+            }
+            await load()
+          } catch (err) {
+            setError(err?.message || 'Failed to save HubSpot configuration.')
+          }
+        }}
+      />
+
+      <GoogleOAuthModal
+        isOpen={googleModalOpen}
+        serviceType={googleModalService}
+        onClose={() => {
+          setGoogleModalOpen(false)
+          setGoogleModalData(null)
+        }}
+        initialData={googleModalData}
+        onConnected={async () => {
+          await load()
+          setNotice('Google account connected successfully.')
+        }}
+        onSave={async (saved) => {
+          try {
+            if (googleModalData?.id) {
+              await api.updateCredentialConfig(googleModalData.id, {
+                name: saved?.name,
+                client_id: saved?.data?.client_id,
+                client_secret: saved?.data?.client_secret,
+              })
+              setNotice('Google credential updated.')
+            } else if (saved?.data?.client_id && saved?.data?.client_secret) {
+              await api.saveOAuthConfig(googleModalService || 'google', {
+                client_id: saved.data.client_id,
+                client_secret: saved.data.client_secret,
+              })
+              setNotice('Google Cloud App saved for all Google services.')
+            }
+            await load()
+          } catch (err) {
+            setError(err?.message || 'Failed to save Google configuration.')
           }
         }}
       />

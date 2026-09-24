@@ -259,7 +259,7 @@ export default function NodeEditorModal() {
       if (!options?.forceFresh && executionId && isFailed) {
         result = await api.retry(executionId, selectedId)
       } else {
-        result = await api.runNode(workflow.id, selectedId)
+        result = await api.runNode(workflow.id, selectedId, executionId)
       }
       if (result?.execution_id) {
         await useExecutionStore.getState().load(result.execution_id)

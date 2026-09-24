@@ -83,11 +83,14 @@ class OAuthProviderSpec:
                 from app.models.credential import Credential
                 from app.security.crypto import decrypt_text
 
+                prefix = self.config_prefix or self.key
                 types_to_check = [
                     f"{self.credential_type}_oauth_config",
                     f"{self.key}_oauth_config",
+                    f"{prefix}_oauth_config",
                     self.credential_type,
                     self.key,
+                    prefix,
                 ]
                 query = select(Credential).where(Credential.type.in_(types_to_check))
                 candidates = []
@@ -276,7 +279,8 @@ def _sf_credential_data(
         exp_at = time.time() + 7200
     cid = (client_id or kwargs.get("client_id") or "").strip()
     csec = (client_secret or kwargs.get("client_secret") or "").strip()
-    if getattr(settings, "salesforce_client_id", ""):
+    has_custom = kwargs.get("has_custom_credentials", False)
+    if not has_custom:
         cid = ""
         csec = ""
     return {
@@ -522,17 +526,35 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
     ) -> str:
         from urllib.parse import urlencode
 
-        cid = (client_id or "").strip() or getattr(settings, f"{config_prefix}_client_id", "")
-        csecret = getattr(settings, f"{config_prefix}_client_secret", "")
-        r_uri = (redirect_uri or "").strip() or getattr(settings, f"{config_prefix}_redirect_uri", "")
+        cid = (client_id or "").strip()
+        r_uri = (redirect_uri or "").strip()
+        csecret = ""
+        if not cid or not r_uri:
+            try:
+                spec = get_provider(provider_key)
+                sc_cid, sc_sec, sc_r_uri = spec.server_config(
+                    settings, db=db, user_id=user_id, client_id=client_id, redirect_uri=redirect_uri
+                )
+                cid = cid or sc_cid
+                csecret = sc_sec
+                r_uri = r_uri or sc_r_uri
+            except Exception:
+                pass
+
+        cid = cid or getattr(settings, f"{config_prefix}_client_id", "")
+        csecret = csecret or getattr(settings, f"{config_prefix}_client_secret", "")
         if not r_uri:
-            base = (getattr(settings, "public_url", "") or "").rstrip("/")
-            if base:
-                r_uri = f"{base}/api/auth/{provider_key}/callback"
-        if not cid or not csecret or not r_uri:
+            r_uri = getattr(settings, f"{config_prefix}_redirect_uri", "")
+            if not r_uri:
+                base = (getattr(settings, "public_url", "") or "").rstrip("/")
+                if base:
+                    r_uri = f"{base}/api/auth/{provider_key}/callback"
+                else:
+                    r_uri = f"https://flowsmith.dev.idslogic.net/api/auth/{provider_key}/callback"
+        if not cid or not r_uri:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
-                f"{display_name} OAuth is not configured on the server.",
+                f"{display_name} OAuth is not configured on the server or in database.",
             )
         return (
             f"{GOOGLE_AUTHORIZE_BASE}?"
@@ -552,7 +574,7 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
     return _authorize
 
 
-def _google_token_request_factory(config_prefix: str):
+def _google_token_request_factory(config_prefix: str, provider_key: str = "google"):
     def _token_request(
         settings: Settings,
         *,
@@ -562,12 +584,26 @@ def _google_token_request_factory(config_prefix: str):
         login_url: str,
         client_id: str = "",
         client_secret: str = "",
+        db: Any = None,
+        user_id: int | None = None,
         **kwargs: Any,
     ) -> tuple[str, str]:
         from urllib.parse import urlencode
 
-        cid = (client_id or "").strip() or getattr(settings, f"{config_prefix}_client_id", "")
-        csec = (client_secret or "").strip() or getattr(settings, f"{config_prefix}_client_secret", "")
+        cid = (client_id or "").strip()
+        csec = (client_secret or "").strip()
+        if not cid or not csec:
+            try:
+                spec = get_provider(provider_key)
+                sc_cid, sc_sec, _ = spec.server_config(
+                    settings, db=db, user_id=user_id, client_id=client_id, client_secret=client_secret
+                )
+                cid = cid or sc_cid
+                csec = csec or sc_sec
+            except Exception:
+                pass
+        cid = cid or getattr(settings, f"{config_prefix}_client_id", "")
+        csec = csec or getattr(settings, f"{config_prefix}_client_secret", "")
         body = urlencode({
             "grant_type": "authorization_code",
             "code": code,
@@ -761,6 +797,7 @@ PROVIDERS: dict[str, OAuthProviderSpec] = {
     SALESFORCE.key: SALESFORCE,
     HUBSPOT.key: HUBSPOT,
     GOOGLE.key: GOOGLE,
+    "google": GOOGLE,
     GOOGLE_SHEETS.key: GOOGLE_SHEETS,
     GMAIL.key: GMAIL,
     GOOGLE_DRIVE.key: GOOGLE_DRIVE,

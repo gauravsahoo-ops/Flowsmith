@@ -1,0 +1,482 @@
+/* =========================================================================
+   Flowsmith Obsidian Glass - Google Cloud App & OAuth 2.0 Modal
+   Aligns with Flowsmith Design System tokens, typography, and dark palette
+   ========================================================================= */
+
+.goog-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 11, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: googFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes googFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes googModalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.goog-modal-window {
+  background: var(--panel, #111522);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.16));
+  border-radius: 16px;
+  box-shadow: var(--shadow-popover, 0 20px 48px rgba(0, 0, 0, 0.85));
+  width: 700px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--text, #f8fafc);
+  animation: googModalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Header */
+.goog-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--panel-2, #181e30);
+}
+
+.goog-header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.goog-brand-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(66, 133, 244, 0.12);
+  border: 1px solid rgba(66, 133, 244, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+}
+
+.goog-header-meta h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text, #f8fafc);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goog-badge-flow {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: rgba(66, 133, 244, 0.15);
+  border: 1px solid rgba(66, 133, 244, 0.3);
+  color: #60a5fa;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.goog-header-meta p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted, #64748b);
+}
+
+.goog-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim, #94a3b8);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.goog-close-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text, #f8fafc);
+}
+
+/* Tabs */
+.goog-modal-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+.goog-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim, #94a3b8);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.goog-tab-btn:hover {
+  color: var(--text, #f8fafc);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.goog-tab-btn.active {
+  color: var(--text, #f8fafc);
+  background: var(--panel-2, #181e30);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.16));
+}
+
+/* Body */
+.goog-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.goog-alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.goog-alert.error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.goog-alert.notice {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+}
+
+.goog-active-account-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 10px;
+}
+
+.goog-account-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.goog-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.goog-account-label {
+  font-size: 11px;
+  color: var(--muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.goog-account-user {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #f8fafc);
+}
+
+.goog-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.goog-form-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+.goog-form-hint {
+  font-size: 11px;
+  color: var(--muted, #64748b);
+}
+
+.goog-input-wrap {
+  display: flex;
+  position: relative;
+  align-items: center;
+}
+
+.goog-input {
+  width: 100%;
+  background: var(--bg, #0b0e17);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text, #f8fafc);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.goog-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.goog-input.mono {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 12px;
+}
+
+.goog-input-btn {
+  position: absolute;
+  right: 6px;
+  background: var(--panel-2, #181e30);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  color: var(--text-dim, #94a3b8);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.goog-input-btn:hover {
+  color: var(--text, #f8fafc);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.goog-input-btn.copied {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+/* Callbacks box */
+.goog-callbacks-box {
+  background: var(--panel-2, #181e30);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.goog-callbacks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.goog-callbacks-header h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #f8fafc);
+}
+
+.goog-callbacks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.goog-callback-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg, #0b0e17);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+}
+
+.goog-callback-name {
+  font-size: 12px;
+  color: var(--text-secondary, #cbd5e1);
+  font-weight: 500;
+}
+
+.goog-callback-url {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--muted, #64748b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 380px;
+}
+
+/* Guide */
+.goog-guide-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.goog-step-card {
+  background: var(--panel-2, #181e30);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goog-step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.goog-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.goog-step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #f8fafc);
+}
+
+.goog-step-body {
+  font-size: 13px;
+  color: var(--text-secondary, #cbd5e1);
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 32px;
+}
+
+/* Footer */
+.goog-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--panel-2, #181e30);
+}
+
+.goog-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goog-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.goog-btn-connect {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+.goog-btn-connect:hover:not(:disabled) {
+  background: #2563eb;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+.goog-btn-connect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.goog-btn-save {
+  background: var(--panel, #111522);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.16));
+  color: var(--text, #f8fafc);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.goog-btn-save:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.goog-btn-cancel {
+  background: transparent;
+  border: none;
+  color: var(--text-dim, #94a3b8);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px 14px;
+}
+
+.goog-btn-cancel:hover {
+  color: var(--text, #f8fafc);
+}

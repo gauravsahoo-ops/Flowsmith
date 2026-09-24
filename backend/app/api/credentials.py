@@ -126,10 +126,12 @@ async def reconnect_credential_endpoint(
 
 
 class CredentialUpdateConfig(BaseModel):
+    name: str | None = None
     client_id: str | None = None
     client_secret: str | None = None
     login_url: str | None = None
     instance_url: str | None = None
+    private_token: str | None = None
 
 
 class OAuthConfigPayload(BaseModel):
@@ -157,13 +159,17 @@ def get_oauth_provider_config(
     except Exception:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown OAuth provider: {provider}")
 
+    prefix = spec.config_prefix or spec.key
+    types_to_check = [
+        f"{provider}_oauth_config",
+        f"{spec.credential_type}_oauth_config",
+        f"{prefix}_oauth_config",
+        spec.credential_type,
+        provider,
+        prefix,
+    ]
     query = select(Credential).where(
-        Credential.type.in_([
-            f"{provider}_oauth_config",
-            f"{spec.credential_type}_oauth_config",
-            spec.credential_type,
-            provider,
-        ])
+        Credential.type.in_(types_to_check)
     )
     candidates = list(
         db.scalars(query.where(Credential.user_id == user.id).order_by(Credential.created_at.desc())).all()
@@ -178,6 +184,13 @@ def get_oauth_provider_config(
             csec = (data.get("client_secret") or "").strip()
             if cid and csec:
                 masked_cid = f"{cid[:8]}...{cid[-4:]}" if len(cid) > 12 else cid
+                r_uri = (data.get("redirect_uri") or "").strip()
+                if not r_uri:
+                    try:
+                        from app.config import get_settings
+                        _, _, r_uri = spec.server_config(get_settings(), db=db, user_id=user.id, client_id=cid, client_secret=csec)
+                    except Exception:
+                        pass
                 return ok({
                     "configured": True,
                     "client_id": cid,
@@ -185,18 +198,46 @@ def get_oauth_provider_config(
                     "has_secret": True,
                     "login_url": data.get("login_url") or "",
                     "instance_url": data.get("instance_url") or "",
+                    "redirect_uri": r_uri,
                     "source": "database",
                 })
         except Exception:
             continue
+
+    # Fallback to server configuration (Settings / .env)
+    from app.config import get_settings
+    settings = get_settings()
+    prefix = spec.config_prefix or spec.key
+    s_cid = getattr(settings, f"{prefix}_client_id", "") or ""
+    s_sec = getattr(settings, f"{prefix}_client_secret", "") or ""
+    s_login = getattr(settings, f"{prefix}_login_url", "") or ""
+    s_redirect = getattr(settings, f"{prefix}_redirect_uri", "") or ""
+    if not s_redirect:
+        base = (getattr(settings, "public_url", "") or "").rstrip("/")
+        if base:
+            s_redirect = f"{base}/api/auth/{spec.key}/callback"
+        else:
+            s_redirect = f"https://flowsmith.dev.idslogic.net/api/auth/{spec.key}/callback"
+
+    if s_cid:
+        masked_cid = f"{s_cid[:8]}...{s_cid[-4:]}" if len(s_cid) > 12 else s_cid
+        return ok({
+            "configured": True,
+            "client_id": s_cid,
+            "client_id_preview": masked_cid,
+            "has_secret": bool(s_sec),
+            "login_url": s_login,
+            "redirect_uri": s_redirect,
+            "source": "environment",
+        })
 
     return ok({
         "configured": False,
         "client_id": "",
         "client_id_preview": "",
         "has_secret": False,
-        "login_url": "",
-        "instance_url": "",
+        "login_url": s_login,
+        "redirect_uri": s_redirect,
         "source": None,
     })
 
@@ -227,6 +268,9 @@ def save_oauth_provider_config(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "client_id and client_secret are required.")
 
     config_type = f"{provider}_oauth_config"
+    if provider.startswith("google_") or provider == "google":
+        config_type = "google_oauth_config"
+
     existing = db.scalars(
         select(Credential).where(
             Credential.type == config_type,
@@ -257,9 +301,18 @@ def save_oauth_provider_config(
         db.commit()
 
     # Backfill any existing credentials of this type that have empty client_id/secret
+    cred_types_to_update = [spec.credential_type]
+    if provider.startswith("google_") or provider == "google":
+        cred_types_to_update = [
+            "google_calendar",
+            "google_sheets",
+            "gmail",
+            "google_drive",
+            "google_docs",
+        ]
     creds_to_update = db.scalars(
         select(Credential).where(
-            Credential.type == spec.credential_type,
+            Credential.type.in_(cred_types_to_update),
             Credential.user_id == user.id,
         )
     ).all()
@@ -302,6 +355,8 @@ def update_credential_config(
     except Exception:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Cannot decrypt credential.")
 
+    if body.name is not None and body.name.strip():
+        rec.name = body.name.strip()
     if body.client_id is not None:
         data["client_id"] = body.client_id.strip()
     if body.client_secret is not None:
@@ -310,6 +365,8 @@ def update_credential_config(
         data["login_url"] = body.login_url.strip()
     if body.instance_url is not None:
         data["instance_url"] = body.instance_url.strip()
+    if body.private_token is not None:
+        data["private_token"] = body.private_token.strip()
 
     rec.data = encrypt_text(json.dumps(data, ensure_ascii=False))
     db.commit()
