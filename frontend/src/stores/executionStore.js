@@ -299,6 +299,8 @@ export const useExecutionStore = create((set, get) => ({
         finishedAt: data.finished_at,
         version: data.workflow_version,
         nodeStatuses: data.node_statuses || {},
+        results: data.results || null,
+        approval: data.results?.approval || null,
       })
     } catch {
       // the poll fallback keeps retrying
@@ -329,6 +331,7 @@ export const useExecutionStore = create((set, get) => ({
         error: data.error,
         pauseState: data.pause_state || null,
         approval: data.results?.approval || null,
+        results: data.results || null,
       })
       if (data.status === 'running' || data.status === 'cancelling' || data.status === 'queued') {
         get().schedulePoll(id)

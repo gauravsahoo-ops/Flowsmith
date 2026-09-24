@@ -102,6 +102,7 @@ async def ws_execution_stream(
     db_after = 0   # watermark: durable events
     last_error: dict | None = None
     last_auth_check = asyncio.get_event_loop().time()
+    idle_ticks = 0
     try:
         while True:
             # Re-validate user every 60 seconds (WebSocket re-validation)
@@ -117,6 +118,10 @@ async def ws_execution_stream(
             events: list[dict[str, Any]] = bus.drain(execution_id, bus_after)
             with get_session() as poll_db:
                 db_events, db_after = _drain_db_events(poll_db, execution_id, db_after)
+                rec = poll_db.get(Execution, execution_id)
+                exec_status = rec.status if rec is not None else None
+                exec_error = rec.error if rec is not None else None
+
             if events:
                 bus_after = events[-1]["seq"]
             events.extend(db_events)
@@ -129,15 +134,8 @@ async def ws_execution_stream(
                     last_error = ev.get("error")
                 status = TERMINAL_STATUS.get(ev.get("event", ""))
                 if status is not None:
-                    # The event fires before the DB commit, so derive the
-                    # status from the event; pick the error from the DB when
-                    # it has already been persisted.
-                    with get_session() as poll_db:
-                        rec = poll_db.get(Execution, execution_id)
-                        error = rec.error if rec is not None and rec.error is not None else last_error
-                    # Small delay to allow the worker's DB commit (trace,
-                    # node_statuses, results) to propagate before the
-                    # client fetches the full execution payload.
+                    # Small delay to allow the worker's DB commit to propagate
+                    error = exec_error if exec_error is not None else last_error
                     await asyncio.sleep(0.3)
                     terminal: dict[str, Any] = {
                         "type": "execution.terminal",
@@ -151,20 +149,21 @@ async def ws_execution_stream(
             if terminal_sent:
                 break
 
-            with get_session() as poll_db:
-                rec = poll_db.get(Execution, execution_id)
-                status = rec.status if rec is not None else None
-                error = rec.error if rec is not None else None
-            if status in TERMINAL_STATUSES:
+            if exec_status in TERMINAL_STATUSES:
                 for ev in bus.drain(execution_id, bus_after):
                     bus_after = ev["seq"]
                     await websocket.send_json(ev)
                 await websocket.send_json(
-                    {"type": "execution.terminal", "status": status, "error": error}
+                    {"type": "execution.terminal", "status": exec_status, "error": exec_error}
                 )
                 break
 
-            await asyncio.sleep(DRAIN_INTERVAL_S)
+            if events:
+                idle_ticks = 0
+                await asyncio.sleep(DRAIN_INTERVAL_S)
+            else:
+                idle_ticks += 1
+                await asyncio.sleep(min(0.20, DRAIN_INTERVAL_S + (idle_ticks * 0.02)))
     except WebSocketDisconnect:
         pass
     finally:

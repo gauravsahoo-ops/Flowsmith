@@ -4,20 +4,20 @@ import Login from './components/Login'
 import AppShell from './layout/AppShell'
 import OverviewPage from './pages/OverviewPage'
 import WorkflowsPage from './pages/WorkflowsPage'
-import CredentialsPage from './pages/CredentialsPage'
-import ExecutionsPage from './pages/ExecutionsPage'
-import TemplatesPage from './pages/TemplatesPage'
-import VariablesPage from './pages/VariablesPage'
-import DataTablesPage from './pages/DataTablesPage'
-import ApprovalsPage from './pages/ApprovalsPage'
-import SharedPage from './pages/SharedPage'
-import SettingsPage from './pages/SettingsPage'
-import HelpPage from './pages/HelpPage'
-import MonitoringPage from './pages/MonitoringPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
 import { api, getToken, setToken } from './api'
 
-// Heavy routes split out so /login doesn't pay for ReactFlow + Monaco.
+// Route code-splitting: heavy and secondary pages are lazy-loaded to keep the initial bundle light
+const CredentialsPage = lazy(() => import('./pages/CredentialsPage'))
+const ExecutionsPage = lazy(() => import('./pages/ExecutionsPage'))
+const TemplatesPage = lazy(() => import('./pages/TemplatesPage'))
+const VariablesPage = lazy(() => import('./pages/VariablesPage'))
+const DataTablesPage = lazy(() => import('./pages/DataTablesPage'))
+const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage'))
+const SharedPage = lazy(() => import('./pages/SharedPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const HelpPage = lazy(() => import('./pages/HelpPage'))
+const MonitoringPage = lazy(() => import('./pages/MonitoringPage'))
 const WorkflowEditorPage = lazy(() => import('./pages/WorkflowEditorPage'))
 const ExecutionDetailPage = lazy(() => import('./pages/ExecutionDetailPage'))
 const DataTableEditorPage = lazy(() => import('./pages/DataTableEditorPage'))

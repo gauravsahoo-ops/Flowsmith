@@ -19,7 +19,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.api.access import accessible_ids, get_permission, get_workflow
 from app.api.auth import get_current_user
@@ -247,7 +247,16 @@ def list_executions(
     ids = accessible_ids(db, user)
     if not ids:
         return ok([], {"page": page, "pageSize": size, "total": 0})
-    stmt = select(Execution).where(Execution.workflow_id.in_(ids))
+    stmt = (
+        select(Execution)
+        .options(
+            defer(Execution.trace),
+            defer(Execution.results),
+            defer(Execution.workflow_data),
+            defer(Execution.node_statuses),
+        )
+        .where(Execution.workflow_id.in_(ids))
+    )
     count_stmt = select(func.count()).select_from(Execution).where(Execution.workflow_id.in_(ids))
     if workflow_id:
         stmt = stmt.where(Execution.workflow_id == workflow_id)
@@ -556,8 +565,9 @@ def resume_execution(
 
 
 class RunNodeRequest(BaseModel):
-    """Execute a single node with seeded upstream data (standalone, no prior execution needed)."""
+    """Execute a single node with seeded upstream data (standalone or referencing prior run)."""
     node_id: str
+    source_execution_id: str | None = None
 
 
 class RunToNodeRequest(BaseModel):
@@ -574,8 +584,8 @@ async def run_single_node(
 ) -> dict:
     """Execute a single node in isolation.
 
-    Seeds dummy upstream data so the target node runs with whatever
-    expression inputs it references.  Useful for step-by-step debugging.
+    Reuses persisted upstream data from the latest (or specified) execution so
+    the target node runs with real inputs. Useful for step-by-step debugging.
     """
     rec = get_workflow(db, workflow_id, user, require_edit=True)
     from app.billing.service import enforce_plan_limit
@@ -584,6 +594,23 @@ async def run_single_node(
     workflow_nodes = {n.get("id") for n in (rec.data or {}).get("nodes", [])}
     if body.node_id not in workflow_nodes:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown node '{body.node_id}'.")
+
+    source_exec_id = body.source_execution_id
+    source_rec = None
+    if source_exec_id:
+        source_rec = db.get(Execution, source_exec_id)
+    if source_rec is None:
+        source_rec = db.execute(
+            select(Execution)
+            .where(Execution.workflow_id == workflow_id)
+            .order_by(Execution.started_at.desc(), Execution.id.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if source_rec:
+            source_exec_id = source_rec.id
+
+    trigger_items = (source_rec.trigger_data if source_rec and source_rec.trigger_data else None) or [{}]
+
     try:
         execution_id = start_execution(
             db,
@@ -592,14 +619,17 @@ async def run_single_node(
             version=rec.version,
             workflow_data=rec.data,
             trigger="manual",
-            trigger_items=[{}],
+            trigger_items=trigger_items,
             workspace_id=rec.workspace_id,
-            extra_payload={"_run_node": body.node_id},
+            extra_payload={
+                "_run_node": body.node_id,
+                "_source_execution": source_exec_id,
+            },
         )
     except WorkflowValidationError as ve:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=ve.to_dict())
     log_event(db, EXECUTION_RUN, target_type="workflow", target_id=workflow_id, user_id=user.id,
-              detail={"execution_id": execution_id, "run_node": body.node_id})
+              detail={"execution_id": execution_id, "run_node": body.node_id, "source_execution": source_exec_id})
     return ok({"execution_id": execution_id})
 
 

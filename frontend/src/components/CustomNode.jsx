@@ -66,7 +66,8 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
     try {
       try { await useWorkflowStore.getState().save() } catch {}
       const { api } = await import('../api')
-      const res = await api.runNode(workflowId, nodeId)
+      const currentExecId = useExecutionStore.getState().executionId
+      const res = await api.runNode(workflowId, nodeId, currentExecId)
       if (res?.execution_id) {
         await loadExecution(res.execution_id)
       }

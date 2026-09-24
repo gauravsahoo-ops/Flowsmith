@@ -132,8 +132,11 @@ export const api = {
   shareWorkflow: (workflowId, body) => request('POST', `/workflows/${workflowId}/shares`, body),
   unshareWorkflow: (workflowId, userId) => request('DELETE', `/workflows/${workflowId}/shares/${userId}`),
   run: (id) => request('POST', `/workflows/${id}/run`, {}),
-  runNode: (workflowId, nodeId) =>
-    request('POST', `/workflows/${workflowId}/run-node`, { node_id: nodeId }),
+  runNode: (workflowId, nodeId, sourceExecutionId = null) =>
+    request('POST', `/workflows/${workflowId}/run-node`, {
+      node_id: nodeId,
+      ...(sourceExecutionId ? { source_execution_id: sourceExecutionId } : {}),
+    }),
   runToNode: (workflowId, nodeId) =>
     request('POST', `/workflows/${workflowId}/run-to-node`, { node_id: nodeId }),
   // Phase 14: first-class workflow tests (mock runs, PASS/FAIL/DIFF).
@@ -232,9 +235,11 @@ export const api = {
     request('POST', `/auth/${provider}/connect`, {
       ...(loginUrl ? { login_url: loginUrl } : {}),
       ...(prompt ? { prompt } : {}),
-      ...(extra.clientId ? { client_id: extra.clientId } : {}),
-      ...(extra.clientSecret ? { client_secret: extra.clientSecret } : {}),
+      ...(extra.clientId || extra.client_id ? { client_id: extra.clientId || extra.client_id } : {}),
+      ...(extra.clientSecret || extra.client_secret ? { client_secret: extra.clientSecret || extra.client_secret } : {}),
       ...(extra.credentialId || extra.credential_id ? { credential_id: extra.credentialId || extra.credential_id } : {}),
+      ...(extra.name ? { name: extra.name } : {}),
+      ...(extra.allowedDomains || extra.allowed_domains ? { allowed_domains: extra.allowedDomains || extra.allowed_domains } : {}),
     }),
   aiStatus: () => request('GET', '/ai/status'),
   explain: (executionId) => request('POST', '/ai/explain', { execution_id: executionId }),

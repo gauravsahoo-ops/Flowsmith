@@ -87,6 +87,7 @@ class SalesforceCredential(BaseModel):
         description="True when the connection was created by the 'Connect Salesforce' OAuth flow (client id/secret come from server config).",
     )
     api_version: str = Field(default="v63.0", min_length=1, description="REST API version, e.g. v63.0.")
+    allowed_domains: str = Field(default="", description="Allowed HTTP request domains policy.")
 
     @model_validator(mode="after")
     def _require_auth_method(self) -> "SalesforceCredential":

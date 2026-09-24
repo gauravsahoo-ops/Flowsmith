@@ -316,3 +316,54 @@ def test_run_to_node_without_auth_rejected(client):
     """run-to-node without token returns 401."""
     client.post("/api/workflows", json=WF_MULTI)
     assert client.post("/api/workflows/wf_multi/run-to-node", json={"node_id": "code"}).status_code == 401
+
+
+def test_run_node_reuses_upstream_output_and_trace(client):
+    """When running a specific node, it preserves and shows the input from the previous node
+    and the input of the currently running node."""
+    headers = _setup(client)
+    wf_chain = {
+        "id": "wf_chain_test",
+        "name": "Chain Test",
+        "nodes": [
+            {"id": "node1", "type": "code", "parameters": {"code": "return [{'order_id': 42, 'customer': 'Alice'}]", "language": "python"}},
+            {"id": "node2", "type": "code", "parameters": {"code": "return [{'doubled': items[0]['order_id'] * 2}]", "language": "python"}},
+        ],
+        "connections": [
+            {"source": "node1", "target": "node2"},
+        ],
+        "settings": {},
+    }
+    client.post("/api/workflows", json=wf_chain, headers=headers)
+
+    # 1. Run node1 first so it produces output
+    r1 = client.post("/api/workflows/wf_chain_test/run-node", json={"node_id": "node1"}, headers=headers)
+    assert r1.status_code == 202
+    exec1_id = r1.json()["data"]["execution_id"]
+    data1 = _poll(client, exec1_id, headers)
+    assert data1["status"] == "success"
+    assert "node1" in data1["results"]["outputs"]
+
+    # 2. Run node2 via run-node with source_execution_id
+    r2 = client.post("/api/workflows/wf_chain_test/run-node", json={"node_id": "node2", "source_execution_id": exec1_id}, headers=headers)
+    assert r2.status_code == 202
+    exec2_id = r2.json()["data"]["execution_id"]
+    data2 = _poll(client, exec2_id, headers)
+    assert data2["status"] == "success"
+
+    # Verify node1's output is preserved in the execution results
+    assert "node1" in data2["results"]["outputs"]
+    assert data2["results"]["outputs"]["node1"]["main"][0]["order_id"] == 42
+
+    # Verify node2's output doubled order_id
+    assert "node2" in data2["results"]["outputs"]
+    assert data2["results"]["outputs"]["node2"]["main"][0]["doubled"] == 84
+
+    # Verify trace contains node1 and node2, and node2's inputs show node1's real output
+    step1 = next((s for s in data2["trace"] if s["node_id"] == "node1"), None)
+    step2 = next((s for s in data2["trace"] if s["node_id"] == "node2"), None)
+    assert step1 is not None, "Previous node must be preserved in trace"
+    assert step2 is not None, "Running node must be in trace"
+    assert step2["inputs"][0]["order_id"] == 42, "Running node inputs must show previous node output"
+    assert data2["node_statuses"]["node1"] == "success"
+    assert data2["node_statuses"]["node2"] == "success"

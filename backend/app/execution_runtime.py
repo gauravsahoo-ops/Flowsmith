@@ -223,6 +223,14 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 if retry_from_node and retry_source_id != execution_id
                 else rec
             )
+            run_source_id = (job.payload or {}).get("_source_execution")
+            run_source_rec = (
+                db.get(ExecutionModel, run_source_id)
+                if run_node and run_source_id and run_source_id != execution_id
+                else None
+            )
+            upstream: set[str] = set()
+            doomed: set[str] = set()
             initial_results: dict[str, dict[str, list[dict[str, Any]]]] | None = None
             storage_seed: dict[str, Any] | None = None
             if decision is not None:
@@ -264,27 +272,38 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 rec.error = None
                 db.commit()
             elif run_node:
-                # Single-node execution: seed ALL other nodes as empty
-                # so only the target node runs.  Upstream parents get a
-                # single empty item so the target receives input; other
-                # nodes get empty arrays so they produce no downstream flow.
+                # Single-node execution:
+                # 1. If upstream nodes have cached outputs in run_source_rec,
+                #    seed those actual outputs so the target runs on real data.
+                # 2. If an upstream node has no cached output, provide a fallback
+                #    empty item so the target still has an input item to test with.
+                # 3. Downstream nodes are seeded with empty arrays (skipped).
                 from app.engine.graph import descendant_ids
 
                 all_nodes = {n.get("id") for n in (job.workflow_data or {}).get("nodes", [])}
                 connections = (job.workflow_data or {}).get("connections", [])
-                # Find all upstream ancestors of the target (parents, grandparents, etc.)
                 upstream = _ancestor_ids(connections, run_node)
+                source_outputs = (
+                    ((run_source_rec.results if run_source_rec else None) or {}).get("outputs") or {}
+                )
+
                 initial_results = {}
                 for nid in all_nodes:
                     if nid == run_node:
                         continue
-                    if nid in upstream:
-                        # Upstream parents: provide a single empty item
-                        # so the target node has at least one input.
+                    if nid in source_outputs:
+                        raw = source_outputs[nid]
+                        if isinstance(raw, dict):
+                            initial_results[nid] = raw
+                        elif isinstance(raw, list):
+                            initial_results[nid] = {"main": raw}
+                        else:
+                            initial_results[nid] = {"main": [raw]}
+                    elif nid in upstream:
                         initial_results[nid] = {"main": [{}]}
                     else:
-                        # Non-upstream, non-target: empty output (skipped flow)
                         initial_results[nid] = {"main": []}
+
                 db.expire(rec)
                 rec.status = "running"
                 rec.error = None
@@ -404,7 +423,7 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             if rec is not None:
                 rec.status = result.status
                 rec.finished_at = datetime.now(UTC)
-                stored: dict[str, Any] = {"outputs": result.results}
+                stored: dict[str, Any] = {"outputs": dict(result.results or {})}
                 # Surface the human decision with the run record (Phase 36).
                 if decision is not None:
                     stored["approval"] = {
@@ -416,9 +435,50 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 # Phase 14: PASS/FAIL/DIFF test report.
                 if getattr(result, "test_report", None) is not None:
                     stored["tests"] = result.test_report
+
+                source_rec_for_merge = run_source_rec if run_node else (retry_source_rec if retry_from_node else None)
+                if source_rec_for_merge and source_rec_for_merge.id != rec.id:
+                    # Merge prior outputs
+                    prior_outputs = (source_rec_for_merge.results or {}).get("outputs", {})
+                    merged_outputs = dict(prior_outputs)
+                    merged_outputs.update(result.results or {})
+                    stored["outputs"] = merged_outputs
+
+                    # Determine which upstream nodes to inherit traces and statuses from
+                    target_upstream = upstream if run_node else {
+                        n.get("id")
+                        for n in (job.workflow_data or {}).get("nodes", [])
+                        if n.get("id") not in (doomed if retry_from_node else set())
+                    }
+
+                    # Merge trace
+                    prior_trace = [
+                        s for s in (source_rec_for_merge.trace or [])
+                        if s.get("node_id") in target_upstream
+                    ]
+                    new_node_ids = {s.get("node_id") for s in result.trace}
+                    merged_trace = [s for s in prior_trace if s.get("node_id") not in new_node_ids] + result.trace
+                    merged_trace.sort(key=lambda s: s.get("started_at") or "")
+                    rec.trace = merged_trace
+
+                    # Merge node statuses
+                    prior_statuses = {
+                        nid: st for nid, st in (source_rec_for_merge.node_statuses or {}).items()
+                        if nid in target_upstream
+                    }
+                    merged_statuses = dict(prior_statuses)
+                    merged_statuses.update(_node_statuses(result.events))
+                    rec.node_statuses = merged_statuses
+                else:
+                    rec.node_statuses = _node_statuses(result.events)
+                    rec.trace = result.trace
+                if run_node:
+                    prior_outputs = (run_source_rec.results or {}).get("outputs", {}) if run_source_rec else {}
+                    for uid in upstream:
+                        if uid not in prior_outputs and uid in stored.get("outputs", {}):
+                            del stored["outputs"][uid]
+
                 rec.results = stored
-                rec.node_statuses = _node_statuses(result.events)
-                rec.trace = result.trace
                 rec.error = result.error.to_dict() if result.error else None
                 rec.pause_state = None
                 db.commit()

@@ -79,6 +79,14 @@ class ConnectRequest(BaseModel):
         default=None,
         description="Optional existing credential ID to inherit client credentials and login URL from.",
     )
+    name: str | None = Field(
+        default=None,
+        description="Optional custom credential name (e.g. 'Salesforce account 2').",
+    )
+    allowed_domains: str | None = Field(
+        default=None,
+        description="Allowed HTTP request domains policy (e.g. 'all', 'specific', 'none').",
+    )
 
 
 def _audit_names(provider_key: str) -> tuple[str, str]:
@@ -174,14 +182,21 @@ def connect_provider(
     if spec.supports_pkce:
         verifier, challenge = pkce_pair()
 
+    enc_sec = None
+    if body_sec:
+        from app.security.crypto import encrypt_text
+        enc_sec = encrypt_text(body_sec).decode("utf-8")
+
     state = token_urlsafe(32)
     oauth_row = OAuthState(
         state=state,
         user_id=user.id,
         login_url=login_url,
         code_verifier=verifier,
-        client_id=client_id,
-        client_secret=_client_secret,
+        client_id=body_cid or None,
+        client_secret=enc_sec,
+        name=body.name.strip() if (body and body.name and body.name.strip()) else None,
+        allowed_domains=body.allowed_domains.strip() if (body and body.allowed_domains and body.allowed_domains.strip()) else None,
     )
     db.add(oauth_row)
     try:
@@ -193,7 +208,9 @@ def connect_provider(
         try:
             if db.bind and db.bind.dialect.name == "postgresql":
                 db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_id VARCHAR(255)"))
-                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_secret VARCHAR(255)"))
+                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_secret VARCHAR(512)"))
+                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS name VARCHAR(255)"))
+                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS allowed_domains VARCHAR(512)"))
             db.commit()
             db.add(oauth_row)
             db.commit()
@@ -278,12 +295,21 @@ async def provider_callback(
     row.used = True
     db.commit()
 
+    raw_secret = getattr(row, "client_secret", None)
+    decrypted_secret = None
+    if raw_secret:
+        try:
+            from app.security.crypto import decrypt_text
+            decrypted_secret = decrypt_text(raw_secret)
+        except Exception:
+            decrypted_secret = raw_secret
+
     client_id, client_secret, redirect_uri = spec.server_config(
         settings,
         db=db,
         user_id=user.id,
         client_id=getattr(row, "client_id", None),
-        client_secret=getattr(row, "client_secret", None),
+        client_secret=decrypted_secret,
     )
     login_url = (row.login_url or "").rstrip("/")
 
@@ -353,13 +379,25 @@ async def provider_callback(
             host = ""
 
     assert spec.credential_data is not None, f"provider {provider} misconfigured"
+    has_custom = bool(getattr(row, "client_id", None))
     try:
         data = spec.credential_data(
-            settings, payload, login_url, label, client_id=client_id, client_secret=client_secret
+            settings,
+            payload,
+            login_url,
+            label,
+            client_id=client_id,
+            client_secret=client_secret,
+            has_custom_credentials=has_custom,
         )
     except TypeError:
         data = spec.credential_data(settings, payload, login_url, label)
-    name = f"{spec.display_name} ({label or host or data.get('hub_id') or 'connected'})"
+
+    if getattr(row, "allowed_domains", None):
+        data["allowed_domains"] = row.allowed_domains
+
+    custom_name = getattr(row, "name", None)
+    name = custom_name or f"{spec.display_name} ({label or host or data.get('hub_id') or 'connected'})"
 
     # Multi-account support: match by account identity (username/org/hub_id)
     # Reconnecting the same account updates its tokens; connecting a distinct account

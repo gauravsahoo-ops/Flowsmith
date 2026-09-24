@@ -755,4 +755,61 @@ def test_update_credential_config_patch(client, monkeypatch):
     assert patch_res.json()["data"]["id"] == cred_id
 
 
+def test_connect_and_callback_with_custom_client_credentials(client):
+    """Connecting with custom client_id/secret preserves them in credential data."""
+    headers = _setup(client)
+    resp = client.post(
+        "/api/auth/salesforce/connect",
+        json={
+            "client_id": "CUSTOM_APP_KEY",
+            "client_secret": "CUSTOM_APP_SECRET",
+            "name": "Custom Salesforce Account",
+            "allowed_domains": "api.salesforce.com",
+            "login_url": "https://login.salesforce.com",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    connect_data = resp.json()["data"]
+    assert "client_id=CUSTOM_APP_KEY" in connect_data["authorize_url"]
+    state = connect_data["state"]
+
+    patcher, fake = _patch_client([
+        _json_response(200, TOKEN_PAYLOAD),
+        _json_response(200, {"username": "custom_user@example.com"}),
+    ])
+    try:
+        cb_resp = client.get(f"/api/auth/salesforce/callback?code=custom_good1&state={state}")
+    finally:
+        patcher.stop()
+
+    assert cb_resp.status_code == 302
+    assert "ok=1" in cb_resp.headers["location"]
+
+    # Verify custom credentials were used in the token exchange
+    method, url, kwargs = fake.calls[0]
+    assert method == "POST"
+    assert "client_id=CUSTOM_APP_KEY" in kwargs["data"]
+    assert "client_secret=CUSTOM_APP_SECRET" in kwargs["data"]
+
+    # Verify credential was created with custom name and stored custom client credentials
+    creds = client.get("/api/credentials", headers=headers).json()["data"]
+    matching = [c for c in creds if c["name"] == "Custom Salesforce Account"]
+    assert len(matching) == 1
+    cred_id = matching[0]["id"]
+
+    db = get_session()
+    try:
+        rec = db.get(Credential, cred_id)
+        assert rec is not None
+        plain = json.loads(decrypt_text(rec.data))
+        assert plain["client_id"] == "CUSTOM_APP_KEY"
+        assert plain["client_secret"] == "CUSTOM_APP_SECRET"
+        assert plain["allowed_domains"] == "api.salesforce.com"
+        assert plain["username"] == "custom_user@example.com"
+    finally:
+        db.close()
+
+
+
 
