@@ -29,17 +29,33 @@ export default function ExecutionsPage() {
 
   const page = Number(params.get('page') || 1)
 
-  const load = useCallback(async (p = page) => {
-    setLoading(true); setError(null)
+  const load = useCallback(async (p = page, silent = false) => {
+    if (!silent) setLoading(true)
+    setError(null)
     try {
       const { data, meta: m } = await api.listExecutions({ workflowId: workflowId || undefined, status: status || undefined, page: p, pageSize: 25 })
       setExecs(data || []); if (m) setMeta(m)
-    } catch (e) { setError(e.message) }
-    finally { setLoading(false) }
+    } catch (e) {
+      if (!silent) setError(e.message)
+    } finally {
+      if (!silent) setLoading(false)
+    }
   }, [workflowId, status, page])
 
   useEffect(() => { load() }, [load])
   useEffect(() => { api.listWorkflows().then(d => setWorkflows(Array.isArray(d) ? d : [])).catch(()=>{}) }, [])
+
+  // Auto-poll every 2s while any execution is running or queued
+  useEffect(() => {
+    const hasActive = execs.some(e => ['running', 'queued', 'waiting_approval'].includes(e.status))
+    if (!hasActive) return
+
+    const timer = setInterval(() => {
+      load(page, true)
+    }, 2000)
+
+    return () => clearInterval(timer)
+  }, [execs, load, page])
 
   function updateFilters(nextStatus, nextWf, nextPage = 1) {
     const q = new URLSearchParams()
