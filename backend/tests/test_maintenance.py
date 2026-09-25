@@ -1,4 +1,4 @@
-﻿"""Retention pruning tests (Phase 11): prune() and the admin endpoint."""
+"""Retention pruning tests (Phase 11): prune() and the admin endpoint."""
 
 from __future__ import annotations
 

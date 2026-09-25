@@ -491,11 +491,12 @@ export default function InputPanel({
                             <button
                               type="button"
                               className="ghost small"
-                              onClick={onExecutePrevious}
+                              onClick={() => onExecutePrevious(up.id)}
                               disabled={executing}
                               style={{ marginTop: 6 }}
+                              title="Execute this upstream node to capture live test data"
                             >
-                              {executing ? 'Executing…' : '▶ Execute Previous Nodes'}
+                              {executing ? 'Executing…' : '▶ Execute Previous Node'}
                             </button>
                           )}
                         </div>

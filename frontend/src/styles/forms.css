@@ -47,9 +47,10 @@
   box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2);
 }
 
-/* Object/Array fields */
+/* Object/Array/Map fields */
 .object-field,
-.array-field {
+.array-field,
+.map-field {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px 12px;
@@ -57,7 +58,8 @@
   background: var(--panel-2);
 }
 .object-field legend,
-.array-field legend {
+.array-field legend,
+.map-field legend {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -66,9 +68,11 @@
   color: var(--text);
   padding: 4px 0;
   cursor: pointer;
+  width: 100%;
 }
 .object-field legend button.toggle,
-.array-field legend button.toggle {
+.array-field legend button.toggle,
+.map-field legend button.toggle {
   background: none;
   border: none;
   color: var(--muted);
@@ -76,15 +80,140 @@
   cursor: pointer;
   padding: 0 4px;
 }
-.array-field legend button.add-btn {
-  margin-left: auto;
+.array-field legend button.add-btn,
+.map-field legend button.add-btn {
   background: var(--accent);
   color: white;
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 2px 8px;
   font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.array-field legend button.add-btn:hover,
+.map-field legend button.add-btn:hover {
+  opacity: 0.9;
+}
+.map-legend-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.map-mode-toggle {
+  display: inline-flex;
+  background: var(--panel, #1a1e28);
+  border: 1px solid var(--border, #2a3040);
+  border-radius: 4px;
+  padding: 1px;
+}
+.map-mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted, #8b949e);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.map-mode-btn.active {
+  background: var(--panel-2, #212631);
+  color: var(--text, #f0f6fc);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.map-body {
+  margin-top: 8px;
+}
+.map-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border, #2a3040);
+  border-radius: 4px;
+}
+.map-empty-hint {
+  font-size: 11px;
+  color: var(--muted, #8b949e);
+}
+.btn-add-field {
+  background: var(--panel, #1a1e28);
+  border: 1px solid var(--border, #2a3040);
+  color: var(--text, #f0f6fc);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-add-field:hover {
+  border-color: var(--accent, #6366f1);
+  color: var(--accent, #6366f1);
+}
+.map-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.map-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.map-key {
+  flex: 1;
+  max-width: 40%;
+  font-size: 11px;
+  font-family: monospace;
+}
+.map-val {
+  flex: 2;
+  font-size: 11px;
+}
+.map-row .remove-btn {
+  background: transparent;
+  color: var(--muted, #8b949e);
+  border: none;
+  padding: 4px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+.map-row .remove-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--red, #ef4444);
+}
+.map-json-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.map-json-textarea {
+  width: 100%;
+  font-family: var(--font-mono, 'JetBrains Mono', 'Fira Code', monospace);
+  font-size: 11px;
+  line-height: 1.45;
+  background: var(--panel, #11141c);
+  border: 1px solid var(--border, #2a3040);
+  border-radius: 4px;
+  color: var(--text, #f0f6fc);
+  padding: 8px 10px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.map-json-textarea:focus {
+  border-color: var(--accent, #6366f1);
+  outline: none;
+}
+.map-json-error {
+  font-size: 11px;
+  color: var(--red, #ef4444);
 }
 .object-fields,
 .array-items {

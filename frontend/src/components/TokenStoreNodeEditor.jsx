@@ -11,6 +11,7 @@ const PROVIDER_PRESETS = [
   'slack',
   'microsoft',
   'hubspot',
+  'dynamics_crm',
   'oauth2',
   'custom',
 ]

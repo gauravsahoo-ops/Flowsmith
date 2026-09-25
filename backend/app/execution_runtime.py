@@ -451,15 +451,18 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                         if n.get("id") not in (doomed if retry_from_node else set())
                     }
 
-                    # Merge trace
-                    prior_trace = [
-                        s for s in (source_rec_for_merge.trace or [])
-                        if s.get("node_id") in target_upstream
-                    ]
-                    new_node_ids = {s.get("node_id") for s in result.trace}
-                    merged_trace = [s for s in prior_trace if s.get("node_id") not in new_node_ids] + result.trace
-                    merged_trace.sort(key=lambda s: s.get("started_at") or "")
-                    rec.trace = merged_trace
+                    # Merge trace: only for run_node single-node runs; retry trace reflects only steps run in this execution
+                    if run_node:
+                        prior_trace = [
+                            s for s in (source_rec_for_merge.trace or [])
+                            if s.get("node_id") in target_upstream
+                        ]
+                        new_node_ids = {s.get("node_id") for s in result.trace}
+                        merged_trace = [s for s in prior_trace if s.get("node_id") not in new_node_ids] + result.trace
+                        merged_trace.sort(key=lambda s: s.get("started_at") or "")
+                        rec.trace = merged_trace
+                    else:
+                        rec.trace = result.trace
 
                     # Merge node statuses
                     prior_statuses = {

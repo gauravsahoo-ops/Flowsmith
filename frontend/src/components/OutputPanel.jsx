@@ -4,6 +4,7 @@ import Status from './shared/Status'
 import ErrorState from './shared/ErrorState'
 import { TableView } from './DataViewer'
 import BinaryDataViewModal from './BinaryDataViewModal'
+import NodeAutoRepair from './NodeAutoRepair'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { getToken } from '../api'
 import './OutputPanel.css'
@@ -105,7 +106,8 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
   const isObj = typeof error === 'object' && error !== null
   const message = isObj ? (error.message || 'Execution failed') : (error || 'Unknown error')
   const details = isObj ? error.details : null
-  const statusCode = details?.statusCode || details?.status
+  const codeMatch = String(message).match(/(?:HTTP\s*|\[)(\d{3})(?:\]|\b)/i)
+  const statusCode = details?.statusCode || details?.status || (codeMatch ? parseInt(codeMatch[1], 10) : null)
   const method = details?.method
   const url = details?.url
   const headers = details?.headers
@@ -315,10 +317,14 @@ export default function OutputPanel({
   error,
   nodeId,
   nodeLabel,
+  workflowId,
+  node,
+  initialView = null,
   onExecuteStep,
   onAutoRepair,
 }) {
-  const [view, setView] = useState(() => (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`op_view_${nodeId}`) : null) || 'schema')
+  const [view, setView] = useState(() => initialView || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`op_view_${nodeId}`) : null) || 'schema')
+  const [showDiagnostic, setShowDiagnostic] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedBranch, setSelectedBranch] = useState(null)
@@ -368,6 +374,7 @@ export default function OutputPanel({
       if (saved) setView(saved)
       else setView('schema')
       prevNodeId.current = nodeId
+      setShowDiagnostic(false)
       setSearch('')
       setShowSearch(false)
       setSelectedBranch(null)
@@ -423,9 +430,29 @@ export default function OutputPanel({
 
   const totalItemsCount = branchItems.length
   const isEmpty = !extracted.hasData && !executing && !error && !pinned
-  const isError = !!error || status === 'error'
+  const isError = !!error || status === 'error' || status === 'failed'
   const isSuccess = status === 'success' && !executing && !isError
   const execStatus = executing ? 'running' : isError ? 'failed' : isSuccess ? 'success' : 'idle'
+
+  const errorTableData = useMemo(() => {
+    if (!error) return []
+    const isObj = typeof error === 'object' && error !== null
+    const msg = isObj ? (error.message || 'Execution failed') : String(error)
+    const d = isObj ? (error.details || {}) : {}
+    return [
+      {
+        field: 'Status',
+        value: d.statusCode || d.status || (isObj && error.code ? error.code : 'Execution Failed'),
+      },
+      { field: 'Error Message', value: msg },
+      ...(d.url ? [{ field: 'Target URL', value: d.url }] : []),
+      ...(d.method ? [{ field: 'HTTP Method', value: d.method }] : []),
+      ...(isObj && error.code ? [{ field: 'Error Code', value: error.code }] : []),
+      ...(nodeLabel ? [{ field: 'Node', value: `${nodeLabel} (${nodeId})` }] : []),
+      ...(d.body ? [{ field: 'Response Body', value: typeof d.body === 'object' ? JSON.stringify(d.body, null, 2) : String(d.body) }] : []),
+      ...(isObj && error.retryable !== undefined ? [{ field: 'Retryable', value: String(error.retryable) }] : []),
+    ]
+  }, [error, nodeId, nodeLabel])
 
 
 
@@ -733,12 +760,79 @@ export default function OutputPanel({
         )}
 
         {!executing && isError && (
-          <ErrorInspector
-            error={error}
-            onAutoRepair={onAutoRepair}
-            onExecuteStep={onExecuteStep}
-            executing={executing}
-          />
+          <div className="op-error-container" style={{ width: '100%' }}>
+            {showDiagnostic && (
+              <NodeAutoRepair
+                workflowId={workflowId}
+                node={node ? { ...node, id: node.id || nodeId } : { id: nodeId }}
+                errorMessage={typeof error === 'object' ? (error.message || JSON.stringify(error)) : String(error)}
+                onClose={() => setShowDiagnostic(false)}
+                onApplyFix={async (suggestedParams, retest) => {
+                  updateNode(nodeId, { parameters: suggestedParams })
+                  setShowDiagnostic(false)
+                  if (retest && onExecuteStep) {
+                    setTimeout(() => onExecuteStep({ forceFresh: true }), 150)
+                  }
+                }}
+              />
+            )}
+
+            {!showDiagnostic && view === 'json' && (
+              <div className="op-error-view-json" style={{ padding: '12px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span className="hint" style={{ color: '#f87171', fontWeight: 600 }}>
+                    Error Output JSON ({typeof error === 'object' && error?.code ? error.code : 'ERROR'})
+                  </span>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(JSON.stringify(typeof error === 'object' ? error : { error: String(error) }, null, 2))
+                      setCopiedSnippet('Error JSON copied')
+                      setTimeout(() => setCopiedSnippet(null), 2000)
+                    }}
+                  >
+                    {copiedSnippet === 'Error JSON copied' ? '✓ Copied' : '📋 Copy Error JSON'}
+                  </button>
+                </div>
+                <JsonTree value={typeof error === 'object' && error !== null ? error : { error: String(error) }} defaultExpandDepth={3} />
+              </div>
+            )}
+
+            {!showDiagnostic && view === 'table' && (
+              <div className="op-error-view-table" style={{ padding: '12px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span className="hint" style={{ color: '#f87171', fontWeight: 600 }}>
+                    Structured Error Fields
+                  </span>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(JSON.stringify(errorTableData, null, 2))
+                      setCopiedSnippet('Table copied')
+                      setTimeout(() => setCopiedSnippet(null), 2000)
+                    }}
+                  >
+                    {copiedSnippet === 'Table copied' ? '✓ Copied' : '📋 Copy Table'}
+                  </button>
+                </div>
+                <TableView data={errorTableData} />
+              </div>
+            )}
+
+            {!showDiagnostic && (view === 'schema' || (view !== 'json' && view !== 'table')) && (
+              <ErrorInspector
+                error={error}
+                onAutoRepair={() => {
+                  setShowDiagnostic(true)
+                  onAutoRepair?.()
+                }}
+                onExecuteStep={onExecuteStep}
+                executing={executing}
+              />
+            )}
+          </div>
         )}
 
         {!executing && !isError && isEmpty && (

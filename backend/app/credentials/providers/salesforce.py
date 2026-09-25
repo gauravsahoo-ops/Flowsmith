@@ -46,3 +46,17 @@ class SalesforceAuthProvider(AuthProvider):
             if out.get(k):
                 out[k] = "••••••••"
         return out
+
+    async def testConnection(self, cred: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            self.validateCredential(cred)
+            from app.connectors import get_registry
+            sf_conn = get_registry().get("salesforce")
+            if sf_conn and hasattr(sf_conn, "test_connection"):
+                res = await sf_conn.test_connection(cred)
+                return res
+            if cred.get("access_token") or cred.get("refresh_token"):
+                return {"ok": True, "message": "Salesforce OAuth credentials present."}
+            return {"ok": True, "message": "Salesforce credentials configured."}
+        except Exception as e:
+            return {"ok": False, "message": str(e)}

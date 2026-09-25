@@ -20,7 +20,17 @@ export default function NodeAutoRepair({
       if (!workflowId || !node?.id) return
       setLoading(true)
       setRepairError(null)
+
+      const errLower = (errorMessage || '').toLowerCase()
+      const isAuthError = errLower.includes('401') || errLower.includes('unauthorized') || errLower.includes('authentication failed')
+
       try {
+        // Auto-save workflow first so the node exists in the DB
+        try {
+          const { useWorkflowStore } = await import('../stores/workflowStore')
+          await useWorkflowStore.getState().save()
+        } catch {}
+
         const res = await api.autoFixNode({
           workflow_id: workflowId,
           node_id: node.id,
@@ -30,7 +40,17 @@ export default function NodeAutoRepair({
         setResult(res)
       } catch (err) {
         if (!alive) return
-        setRepairError(err.message || 'Failed to analyze node failure.')
+        // Smart fallback diagnosis if server AI endpoint is unavailable or 404
+        if (isAuthError) {
+          setResult({
+            root_cause: `Authentication rejected (HTTP 401 Unauthorized): ${errorMessage || 'Invalid or expired credentials'}.`,
+            changes_summary: 'Verify your credential configuration: select an active credential from the Credential section or reconnect your account in the Credentials page.',
+            suggested_parameters: node.parameters || {},
+            is_auth: true,
+          })
+        } else {
+          setRepairError(err.message || 'Failed to analyze node failure.')
+        }
       } finally {
         if (alive) setLoading(false)
       }
@@ -39,7 +59,7 @@ export default function NodeAutoRepair({
     return () => {
       alive = false
     }
-  }, [workflowId, node?.id, errorMessage])
+  }, [workflowId, node?.id, errorMessage, node?.parameters])
 
   const diffs = useMemo(() => {
     if (!result?.suggested_parameters || !node?.parameters) return []
@@ -141,20 +161,43 @@ export default function NodeAutoRepair({
           </div>
 
           <div className="nar-actions">
-            <Button
-              className="nar-btn-primary"
-              onClick={() => onApplyFix(result.suggested_parameters, true)}
-              title="Save repaired configuration and immediately re-test step"
-            >
-              ✨ Apply Fix & Re-test
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => onApplyFix(result.suggested_parameters, false)}
-              title="Apply fix without re-testing"
-            >
-              Apply Fix Only
-            </Button>
+            {result.is_auth ? (
+              <>
+                <a
+                  href="/credentials"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn secondary"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 12px', background: 'rgba(99,102,241,0.2)', border: '1px solid #6366f1', color: '#c7d2fe', borderRadius: 6 }}
+                >
+                  🔑 Open Credentials Page
+                </a>
+                <Button
+                  className="nar-btn-primary"
+                  onClick={() => onApplyFix(result.suggested_parameters, true)}
+                  title="Save repaired configuration and immediately re-test step"
+                >
+                  🔄 Re-test Step
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  className="nar-btn-primary"
+                  onClick={() => onApplyFix(result.suggested_parameters, true)}
+                  title="Save repaired configuration and immediately re-test step"
+                >
+                  ✨ Apply Fix & Re-test
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => onApplyFix(result.suggested_parameters, false)}
+                  title="Apply fix without re-testing"
+                >
+                  Apply Fix Only
+                </Button>
+              </>
+            )}
             <Button variant="ghost" onClick={onClose}>
               Dismiss
             </Button>

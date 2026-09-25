@@ -3,7 +3,7 @@
 Runs against the live running platform at http://127.0.0.1:8000
 Tests every subsystem end-to-end through the real API.
 
-Usage: python tests/test_production_validation.py
+Usage: python backend/scripts/production_validation.py
 """
 
 from __future__ import annotations

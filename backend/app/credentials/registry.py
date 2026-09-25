@@ -142,6 +142,58 @@ class HubSpotCredential(BaseModel):
         return self
 
 
+class DynamicsCrmCredential(BaseModel):
+    """Microsoft Dynamics 365 (Dataverse) connection.
+
+    Two authentication methods:
+    1. OAuth2 ('Connect Microsoft Dynamics 365'):
+       User authorizes via Azure Entra ID; the refresh token is stored encrypted
+       and access tokens are minted server-side on demand.
+    2. Server-to-Server (Client Credentials):
+       Azure App Registration service principal with client_id, client_secret,
+       and tenant_id.
+    """
+    instance_url: str = Field(
+        default="",
+        description="Microsoft Dynamics 365 org URL, e.g. https://myorg.crm.dynamics.com",
+    )
+    auth_type: str = Field(
+        default="oauth2",
+        description="Authentication type: 'oauth2' or 'client_credentials'.",
+    )
+    tenant_id: str = Field(
+        default="common",
+        description="Azure AD / Entra ID Tenant ID (or 'common', 'organizations').",
+    )
+    client_id: str = Field(default="", description="Azure App Registration Application (client) ID.")
+    client_secret: str = Field(default="", description="Azure App Registration Client Secret.")
+    refresh_token: str = Field(default="", description="OAuth2 refresh token.")
+    access_token: str = Field(default="", description="OAuth2 access token.")
+    expires_at: float | None = Field(default=None, description="Access token expiry timestamp.")
+    user: str = Field(default="", description="Authorizing user email / username (display label).")
+    username: str = Field(default="", description="User display name.")
+    user_id: str = Field(default="", description="Dataverse User ID (GUID).")
+    organization_id: str = Field(default="", description="Dataverse Organization ID (GUID).")
+    oauth: bool = Field(default=False, description="True when created via OAuth flow.")
+
+    @model_validator(mode="after")
+    def _validate_dynamics_auth(self) -> "DynamicsCrmCredential":
+        if not self.instance_url.strip():
+            raise ValueError("Microsoft Dynamics 365 credential requires an instance_url (e.g. https://org.crm.dynamics.com).")
+        if self.auth_type == "client_credentials":
+            if not self.client_id.strip() or not self.client_secret.strip():
+                raise ValueError("Client Credentials authentication requires client_id and client_secret.")
+        elif self.oauth:
+            if not self.refresh_token.strip() and not self.access_token.strip():
+                raise ValueError("OAuth authentication requires a refresh_token or access_token.")
+        else:
+            has_refresh = bool(self.refresh_token.strip())
+            has_s2s = bool(self.client_id.strip() and self.client_secret.strip())
+            if not has_refresh and not has_s2s:
+                raise ValueError("Dynamics 365 credential needs either OAuth tokens or client_id/client_secret.")
+        return self
+
+
 class GoogleCalendarCredential(BaseModel):
     """Google Calendar connection (Phase 37).
 
@@ -581,6 +633,7 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "llm": LLMCredential,
     "salesforce": SalesforceCredential,
     "hubspot": HubSpotCredential,
+    "dynamics_crm": DynamicsCrmCredential,
     "google_calendar": GoogleCalendarCredential,
     "google_sheets": GoogleSheetsCredential,
     "telegram": TelegramCredential,
@@ -656,6 +709,7 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "llm": frozenset({"api_key"}),
     "salesforce": frozenset({"client_secret", "password", "refresh_token"}),
     "hubspot": frozenset({"refresh_token", "private_token"}),
+    "dynamics_crm": frozenset({"client_secret", "refresh_token", "access_token"}),
     "google_calendar": frozenset({"refresh_token"}),
     "google_sheets": frozenset({"refresh_token"}),
     "telegram": frozenset({"bot_token"}),
@@ -729,6 +783,7 @@ TYPE_META: dict[str, dict[str, str]] = {
     "llm": {"name": "LLM", "description": "OpenAI-compatible model endpoint for the AI nodes."},
     "salesforce": {"name": "Salesforce", "description": "Salesforce org connection (OAuth2 password or refresh-token grant)."},
     "hubspot": {"name": "HubSpot", "description": "HubSpot CRM connection (Connect HubSpot OAuth or private-app token)."},
+    "dynamics_crm": {"name": "Microsoft Dynamics 365", "description": "Microsoft Dynamics 365 CRM (Dataverse) connection."},
     "google_calendar": {"name": "Google Calendar", "description": "Google Calendar events (Connect Google Calendar OAuth)."},
     "google_sheets": {"name": "Google Sheets", "description": "Google Sheets rows (Connect Google Sheets OAuth)."},
     "telegram": {"name": "Telegram", "description": "Telegram bot token for the Telegram node."},
@@ -814,8 +869,9 @@ CREDENTIAL_PROVIDER: dict[str, str] = {
     "aws_assume_role": "aws_assume_role",
     # Legacy http maps to header/bearer depending on auth_type — resolved at runtime
     "http": "header",
-    "salesforce": "oauth2",
+    "salesforce": "salesforce",
     "hubspot": "oauth2",
+    "dynamics_crm": "oauth2",
     "google_calendar": "oauth2",
     "google_sheets": "oauth2",
     "gmail": "oauth2",
@@ -847,6 +903,7 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "llm": True,
     "salesforce": True,
     "hubspot": True,
+    "dynamics_crm": True,
     "google_calendar": True,
     "google_sheets": True,
     "telegram": True,
@@ -922,8 +979,8 @@ def list_types() -> list[dict[str, Any]]:
             "parameters_schema": schema.model_json_schema(),
             "provider": CREDENTIAL_PROVIDER.get(t, ""),
             "implemented": CREDENTIAL_IMPLEMENTED.get(t, True),
-            "supportsOAuth": t in ("oauth2", "oauth1", "salesforce", "hubspot", "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs"),
-            "supportsRefresh": t in ("oauth2", "salesforce", "hubspot", "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs"),
+            "supportsOAuth": t in ("oauth2", "oauth1", "salesforce", "hubspot", "dynamics_crm", "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs"),
+            "supportsRefresh": t in ("oauth2", "salesforce", "hubspot", "dynamics_crm", "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs"),
             "supportsTest": CREDENTIAL_IMPLEMENTED.get(t, True),
         }
         for t, schema in CREDENTIAL_TYPES.items()

@@ -204,6 +204,14 @@ class Settings(BaseSettings):
         "openid email https://www.googleapis.com/auth/documents"
     )
 
+    # Microsoft Dynamics 365 CRM (Dataverse)
+    dynamics_crm_client_id: str = ""
+    dynamics_crm_client_secret: str = ""
+    dynamics_crm_redirect_uri: str = ""
+    dynamics_crm_tenant_id: str = "common"
+    dynamics_crm_instance_url: str = ""
+    dynamics_crm_scopes: str = "offline_access https://admin.services.crm.dynamics.com/user_impersonation"
+
     # Password self-service reset (Phase 42). SMTP is optional: when
     # unset (or APP_ENV != production) the reset link is surfaced in the
     # API response / server log so local users can complete the flow.

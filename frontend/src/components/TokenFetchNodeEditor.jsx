@@ -10,6 +10,7 @@ const PROVIDER_OPTIONS = [
   { value: 'slack', label: 'Slack' },
   { value: 'microsoft', label: 'Microsoft' },
   { value: 'hubspot', label: 'HubSpot' },
+  { value: 'dynamics_crm', label: 'Microsoft Dynamics 365' },
   { value: 'oauth2', label: 'Custom OAuth2' },
   { value: 'custom', label: 'Custom API' },
 ]

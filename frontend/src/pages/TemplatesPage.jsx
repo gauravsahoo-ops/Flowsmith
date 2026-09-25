@@ -9,6 +9,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 const CATEGORY_COLORS = {
   notifications: '#38bdf8',
   salesforce: '#00a1e0',
+  dynamics_crm: '#0078d4',
   automation: '#10b981',
   approvals: '#f59e0b',
   ai: '#a855f7',
@@ -267,6 +268,7 @@ export default function TemplatesPage() {
                   <option value="general">General</option>
                   <option value="notifications">Notifications</option>
                   <option value="salesforce">Salesforce</option>
+                  <option value="dynamics_crm">Microsoft Dynamics 365</option>
                   <option value="automation">Automation</option>
                   <option value="approvals">Approvals</option>
                   <option value="ai">AI / RAG</option>

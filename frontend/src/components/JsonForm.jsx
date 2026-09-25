@@ -115,7 +115,7 @@ function ObjectField({ schema, value, onChange, path, rootSchema, errors }) {
   const entries = Object.entries(properties)
   const [expanded, setExpanded] = useState(true)
 
-  if (!entries.length && schema.additionalProperties) {
+  if (!entries.length) {
     return (
       <MapField schema={schema} value={value} onChange={onChange} path={path} rootSchema={rootSchema} />
     )
@@ -156,82 +156,215 @@ function ObjectField({ schema, value, onChange, path, rootSchema, errors }) {
 }
 
 function MapField({ schema, value, onChange, path }) {
-  const valueType = schema.additionalProperties?.type || 'string'
-  const entries = Object.entries(value || {})
   const [expanded, setExpanded] = useState(true)
+  const isStringVal = typeof value === 'string'
+  const [mode, setMode] = useState(isStringVal ? 'json' : 'fields')
+  const [rawJson, setRawJson] = useState(() => {
+    if (value === undefined || value === null) return ''
+    if (typeof value === 'string') return value
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return ''
+    }
+  })
+  const [jsonError, setJsonError] = useState(null)
 
-  const update = (key, val) => {
-    onChange({ ...(value || {}), [key]: val })
+  const entries = useMemo(() => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return Object.entries(value)
+    }
+    return []
+  }, [value])
+
+  const handleFieldUpdate = (key, val) => {
+    const current = (value && typeof value === 'object' && !Array.isArray(value)) ? { ...value } : {}
+    current[key] = val
+    onChange(current)
+    try {
+      setRawJson(JSON.stringify(current, null, 2))
+      setJsonError(null)
+    } catch {}
   }
 
-  const remove = (key) => {
-    const next = { ...(value || {}) }
-    delete next[key]
-    onChange(next)
+  const handleKeyRename = (oldKey, newKey) => {
+    const current = (value && typeof value === 'object' && !Array.isArray(value)) ? { ...value } : {}
+    const val = current[oldKey]
+    delete current[oldKey]
+    current[newKey] = val
+    onChange(current)
+    try {
+      setRawJson(JSON.stringify(current, null, 2))
+      setJsonError(null)
+    } catch {}
   }
 
-  const addRow = () => {
-    const key = `key${entries.length + 1}`
-    onChange({ ...(value || {}), [key]: '' })
+  const handleRemove = (key) => {
+    const current = (value && typeof value === 'object' && !Array.isArray(value)) ? { ...value } : {}
+    delete current[key]
+    onChange(current)
+    try {
+      setRawJson(JSON.stringify(current, null, 2))
+      setJsonError(null)
+    } catch {}
+  }
+
+  const handleAddField = () => {
+    const current = (value && typeof value === 'object' && !Array.isArray(value)) ? { ...value } : {}
+    let base = 'field'
+    let counter = entries.length + 1
+    while (`${base}_${counter}` in current) {
+      counter++
+    }
+    const newKey = `${base}_${counter}`
+    current[newKey] = ''
+    onChange(current)
+    try {
+      setRawJson(JSON.stringify(current, null, 2))
+      setJsonError(null)
+    } catch {}
+  }
+
+  const handleJsonChange = (e) => {
+    const text = e.target.value
+    setRawJson(text)
+    if (!text.trim()) {
+      setJsonError(null)
+      onChange({})
+      return
+    }
+    if (text.trim().startsWith('{{') && text.trim().endsWith('}}')) {
+      setJsonError(null)
+      onChange(text.trim())
+      return
+    }
+    try {
+      const parsed = JSON.parse(text)
+      setJsonError(null)
+      onChange(parsed)
+    } catch {
+      setJsonError('Invalid JSON format')
+    }
+  }
+
+  const switchMode = (newMode) => {
+    if (newMode === 'fields') {
+      if (rawJson.trim()) {
+        try {
+          const parsed = JSON.parse(rawJson)
+          if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+            onChange(parsed)
+            setJsonError(null)
+            setMode('fields')
+            return
+          }
+        } catch {
+          setJsonError('Cannot convert text to fields. Fix JSON or stay in JSON mode.')
+          return
+        }
+      } else {
+        onChange({})
+        setJsonError(null)
+        setMode('fields')
+        return
+      }
+    } else {
+      if (value && typeof value === 'object') {
+        setRawJson(JSON.stringify(value, null, 2))
+      }
+      setMode('json')
+    }
   }
 
   return (
     <fieldset className="map-field">
       <legend>
         <button type="button" onClick={() => setExpanded(!expanded)} className="toggle">
-          {expanded ? '▼' : '▶'} {path}
+          {expanded ? '▼' : '▶'}
         </button>
-        {schema.title && <span>{schema.title}</span>}
-        <button type="button" className="add-btn" onClick={addRow}>+ Add</button>
+        <span>{schema.title || path}</span>
+        <div className="map-legend-actions">
+          <div className="map-mode-toggle">
+            <button
+              type="button"
+              className={`map-mode-btn ${mode === 'fields' ? 'active' : ''}`}
+              onClick={() => switchMode('fields')}
+              title="Key-Value fields view"
+            >
+              Fields
+            </button>
+            <button
+              type="button"
+              className={`map-mode-btn ${mode === 'json' ? 'active' : ''}`}
+              onClick={() => switchMode('json')}
+              title="Raw JSON code view"
+            >
+              JSON
+            </button>
+          </div>
+          {mode === 'fields' && (
+            <button type="button" className="add-btn" onClick={handleAddField}>
+              + Add Field
+            </button>
+          )}
+        </div>
       </legend>
       {schema.description && <p className="hint">{schema.description}</p>}
       {expanded && (
-        <div className="map-rows">
-          {entries.map(([key, val]) => (
-            <div key={key} className="map-row">
-              <input
-                className="map-key"
-                value={key}
-                onChange={(e) => {
-                  const next = { ...(value || {}) }
-                  delete next[key]
-                  next[e.target.value || key] = val
-                  onChange(next)
-                }}
+        <div className="map-body">
+          {mode === 'fields' ? (
+            entries.length === 0 ? (
+              <div className="map-empty-state">
+                <span className="map-empty-hint">No fields added yet.</span>
+                <button type="button" className="btn-add-field" onClick={handleAddField}>
+                  + Add Field
+                </button>
+              </div>
+            ) : (
+              <div className="map-rows">
+                {entries.map(([key, val], idx) => (
+                  <div key={key || idx} className="map-row">
+                    <input
+                      className="map-key"
+                      placeholder="Column name (e.g. firstname)"
+                      value={key}
+                      onChange={(e) => handleKeyRename(key, e.target.value)}
+                    />
+                    <input
+                      className="map-val"
+                      placeholder="Value or {{ expr }}"
+                      value={typeof val === 'object' ? JSON.stringify(val) : (val ?? '')}
+                      onChange={(e) => handleFieldUpdate(key, e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="remove-btn"
+                      title="Remove field"
+                      onClick={() => handleRemove(key)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="map-json-editor">
+              <textarea
+                className="map-json-textarea"
+                rows={6}
+                value={rawJson}
+                onChange={handleJsonChange}
+                placeholder={'{\n  "firstname": "John",\n  "lastname": "Doe",\n  "emailaddress1": "john@example.com"\n}'}
+                spellCheck={false}
               />
-              <MapValueInput
-                type={valueType}
-                value={val}
-                onChange={(v) => update(key, v)}
-              />
-              <button type="button" className="remove-btn" onClick={() => remove(key)}>✕</button>
+              {jsonError && <span className="map-json-error">⚠️ {jsonError}</span>}
             </div>
-          ))}
+          )}
         </div>
       )}
     </fieldset>
   )
-}
-
-function MapValueInput({ type, value, onChange }) {
-  if (type === 'boolean') {
-    return (
-      <select value={String(value)} onChange={(e) => onChange(e.target.value === 'true')}>
-        <option value="false">false</option>
-        <option value="true">true</option>
-      </select>
-    )
-  }
-  if (type === 'number' || type === 'integer') {
-    return (
-      <input
-        type="number"
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-      />
-    )
-  }
-  return <input type="text" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
 }
 
 function ArrayField({ schema, value, onChange, path, rootSchema, errors }) {

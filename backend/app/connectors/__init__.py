@@ -582,6 +582,8 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.google_sheets_definition import build_google_sheets_definition
     from app.connectors.hubspot_connector import HubSpotConnector
     from app.connectors.hubspot_definition import build_hubspot_definition
+    from app.connectors.dynamics_crm_connector import DynamicsCrmConnector
+    from app.connectors.dynamics_crm_definition import build_dynamics_crm_definition
     from app.connectors.http_connector import HTTPConnector
     from app.connectors.jira_connector import JiraConnector
     from app.connectors.jira_definition import build_jira_definition
@@ -629,6 +631,7 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (HTTPConnector(), None),
         (SalesforceConnector(), build_salesforce_definition),
         (HubSpotConnector(), build_hubspot_definition),
+        (DynamicsCrmConnector(), build_dynamics_crm_definition),
         (GoogleCalendarConnector(), build_google_calendar_definition),
         (GoogleSheetsConnector(), build_google_sheets_definition),
         (GmailConnector(), build_gmail_definition),

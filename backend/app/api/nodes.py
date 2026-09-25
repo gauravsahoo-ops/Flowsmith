@@ -113,7 +113,11 @@ def _connector_catalog_entries() -> list[dict]:
                 # metadata so the UI can show accurate badges instead of
                 # a flattened value.
                 operations_meta = {
-                    op_key: {"idempotency": op.idempotency, "retryable": op.retryable}
+                    op_key: {
+                        "idempotency": op.idempotency,
+                        "retryable": op.retryable,
+                        "properties": list(((op.input_schema or {}).get("properties") or {}).keys()),
+                    }
                     for op_key, op in definition.operations.items()
                 }
                 idems = {op.idempotency for op in definition.operations.values()}

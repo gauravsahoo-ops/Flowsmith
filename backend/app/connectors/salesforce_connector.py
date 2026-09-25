@@ -181,6 +181,28 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
         self._provider.reset()
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify Salesforce connection by authenticating and testing the REST API."""
+        from app.security.safe_http_client import get_safe_http_client
+
+        try:
+            token = await self._provider.authenticate(creds, force=True)
+            if not token:
+                return {"ok": False, "message": "Failed to obtain Salesforce access token."}
+            inst = self._provider._instance_url or creds.get("instance_url") or "https://login.salesforce.com"
+            async with get_safe_http_client() as client:
+                res = await client.request(
+                    "GET",
+                    f"{inst.rstrip('/')}/services/data/{self._provider.api_version}/",
+                    headers={"Authorization": f"Bearer {token}", "Accept-Encoding": "identity"},
+                    timeout=15.0,
+                )
+                if res.status_code in (200, 204):
+                    return {"ok": True, "message": "Successfully connected to Salesforce."}
+                return {"ok": False, "message": f"Salesforce returned status {res.status_code}: {res.text[:200]}"}
+        except Exception as exc:
+            return {"ok": False, "message": f"Salesforce connection test failed: {exc}"}
+
     # ------------------------------------------------------------------
     # Operations
     # ------------------------------------------------------------------
