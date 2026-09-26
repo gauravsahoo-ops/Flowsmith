@@ -23,6 +23,7 @@ import ExpressionHelper from './ExpressionHelper'
 import NodeAutoRepair from './NodeAutoRepair'
 
 const SalesforceNodeEditor = lazy(() => import('./SalesforceNodeEditor'))
+const DynamicsCrmNodeEditor = lazy(() => import('./DynamicsCrmNodeEditor'))
 const ScheduleTriggerEditor = lazy(() => import('./ScheduleTriggerEditor'))
 const WebhookNodeEditor = lazy(() => import('./WebhookNodeEditor'))
 const HttpRequestNodeEditor = lazy(() => import('./HttpRequestNodeEditor'))
@@ -95,6 +96,16 @@ export default function NodeEditorModal() {
   )
   const schema = meta?.parameters_schema
   const credTypes = meta?.credential_types || []
+
+  // Dynamic parameter filtering: for connector nodes with defined operations,
+  // hide fields that don't belong to the currently selected operation.
+  const currentOp = node?.parameters?.operation || schema?.properties?.operation?.default
+  const opMeta = meta?.operations?.[currentOp]
+  const operationHiddenKeys = useMemo(() => {
+    if (!opMeta?.properties || !schema?.properties) return []
+    const allowed = new Set([...opMeta.properties, 'operation'])
+    return Object.keys(schema.properties).filter((k) => !allowed.has(k))
+  }, [opMeta, schema])
 
   const incomingEdges = useMemo(() => edges?.filter((e) => e.target === selectedId) || [], [edges, selectedId])
   const upstreamNode = useMemo(() => {
@@ -243,50 +254,47 @@ export default function NodeEditorModal() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [visible, closing, handleClose])
 
-  // Execute single step — always use current workflow params (save first), never retry success
-  const handleExecuteStep = useCallback(async (options = {}) => {
+  // Execute single step — always use current workflow params (save first), run node fresh
+  const handleExecuteStep = useCallback(async (_options = {}) => {
     if (!workflow?.id || !selectedId) return
     setExecuting(true)
     setExecError(null)
-    // Clear stale output immediately — prevents showing old Account data while Recruitment__c runs
+    // Clear stale output immediately
     setOutputData(null)
     try {
-      // Ensure latest Resource/Object/Operation/SOQL is saved before execution
+      // Ensure latest parameters and credentials are saved before execution
       try { await useWorkflowStore.getState().save() } catch {}
-      let result
-      // If forceFresh is requested (e.g. after parameter repair) or no prior execution, run fresh runNode
-      const isFailed = status === 'failed' || status === 'error'
-      if (!options?.forceFresh && executionId && isFailed) {
-        result = await api.retry(executionId, selectedId)
-      } else {
-        result = await api.runNode(workflow.id, selectedId, executionId)
-      }
+      const result = await api.runNode(workflow.id, selectedId, executionId)
       if (result?.execution_id) {
         await useExecutionStore.getState().load(result.execution_id)
       }
     } catch (err) {
-      setExecError(err.message)
+      setExecError(err.message || String(err))
     } finally {
       setExecuting(false)
     }
-  }, [workflow?.id, selectedId, executionId, status])
+  }, [workflow?.id, selectedId, executionId])
 
-  // Execute all nodes up to this one
-  const handleExecutePrevious = useCallback(async () => {
+  // Execute all nodes up to this one (or up to specified upstream node)
+  const handleExecutePrevious = useCallback(async (targetNodeId) => {
     if (!workflow?.id || !selectedId) return
     setExecuting(true)
     setExecError(null)
     try {
-      const result = await api.runToNode(workflow.id, selectedId)
+      try { await useWorkflowStore.getState().save() } catch {}
+      const target = (typeof targetNodeId === 'string' && targetNodeId)
+        ? targetNodeId
+        : (upstreamNode?.id || selectedId)
+      const result = await api.runToNode(workflow.id, target)
       if (result?.execution_id) {
         await useExecutionStore.getState().load(result.execution_id)
       }
     } catch (err) {
-      setExecError(err.message)
+      setExecError(err.message || String(err))
     } finally {
       setExecuting(false)
     }
-  }, [workflow?.id, selectedId])
+  }, [workflow?.id, selectedId, upstreamNode])
 
   if (!visible && !nodeEditorOpen) return null
   if (!flowNode || !node) return null
@@ -539,6 +547,15 @@ export default function NodeEditorModal() {
                       mapping={mapping}
                       onPreview={previewExpression}
                     />
+                  ) : node.type === 'dynamics_crm' ? (
+                    <DynamicsCrmNodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      credentials={credentials}
+                      onCredentialChange={setCredential}
+                      mapping={mapping}
+                      onPreview={previewExpression}
+                    />
                   ) : node.type === 'code' ? (
                     <CodeNodeEditor
                       node={node}
@@ -669,6 +686,7 @@ export default function NodeEditorModal() {
                           onChange={handleParamsChange}
                           mapping={mapping}
                           onPreview={previewExpression}
+                          hiddenKeys={operationHiddenKeys}
                         />
                       ) : (
                         <div className="nem-empty">
@@ -727,13 +745,29 @@ export default function NodeEditorModal() {
                         </label>
                       </CollapsibleSection>
 
-                      <CollapsibleSection title="Credential" defaultOpen={false} badge={credTypes.length || ''}>
+                      <CollapsibleSection title="Credential" defaultOpen={credTypes.length > 0} badge={credTypes.length || ''}>
                         {credTypes.length === 0 ? (
                           <p className="hint">This node needs no credentials.</p>
                         ) : (
                           <>
                             {credTypes.map((type) => {
-                              const options = credentials.filter((c) => c.type === type)
+                              const isMatch = (cType, targetType) => {
+                                if (cType === targetType) return true
+                                if (targetType === 'salesforce') {
+                                  return cType === 'salesforce' || cType === 'salesforce-oauth2' || cType?.includes('salesforce')
+                                }
+                                if (targetType === 'dynamics_crm') {
+                                  return cType === 'dynamics_crm' || cType?.includes('dynamics')
+                                }
+                                if (targetType === 'hubspot') {
+                                  return cType === 'hubspot' || cType?.includes('hubspot')
+                                }
+                                if (targetType === 'google') {
+                                  return cType?.startsWith('google_') || cType === 'gmail'
+                                }
+                                return false
+                              }
+                              const options = credentials.filter((c) => isMatch(c.type, type))
                               const value = node.credentials?.[type] || ''
                               const isConnStrType = ['database','postgres','mysql','redis','mongodb'].includes(type)
                               const selectedName = options.find(o => o.id === value)?.name || ''
@@ -741,13 +775,34 @@ export default function NodeEditorModal() {
                                 <div key={type} style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
                                   <label>
                                     {type} {isConnStrType && <span className="hint" style={{ fontWeight: 400 }}>(connection string)</span>}
-                                    <select value={value} onChange={(e) => setCredential(type, e.target.value)}>
+                                    <select
+                                      value={value}
+                                      onChange={(e) => {
+                                        setCredential(type, e.target.value)
+                                        setExecError(null)
+                                      }}
+                                    >
                                       <option value="">None</option>
                                       {options.map((c) => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                        <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
                                       ))}
                                     </select>
                                   </label>
+                                  {options.length === 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                                      <span className="hint" style={{ color: '#fbbf24', fontSize: 11 }}>
+                                        No {type} credentials found in vault.
+                                      </span>
+                                      <a
+                                        href="/credentials"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{ fontSize: 11, color: '#818cf8', textDecoration: 'underline' }}
+                                      >
+                                        + Open Credentials
+                                      </a>
+                                    </div>
+                                  )}
                                   {isConnStrType && value && (
                                     <button type="button" className="ghost small" style={{ alignSelf: 'flex-start', color: 'var(--red)', fontSize: 11 }} onClick={async () => {
                                       if (!window.confirm(`Delete connection string “${selectedName}”? This will remove the credential permanently.`)) return
@@ -893,6 +948,8 @@ export default function NodeEditorModal() {
               error={rawError}
               nodeId={selectedId}
               nodeLabel={node?.settings?.label || node?.name || node?.data?.label || meta?.display_name || node?.type}
+              workflowId={workflow?.id}
+              node={node ? { ...node, id: node.id || selectedId } : null}
               onExecuteStep={handleExecuteStep}
               onAutoRepair={() => setShowAutoRepair(true)}
             />

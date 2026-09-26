@@ -793,9 +793,241 @@ GOOGLE_DOCS = OAuthProviderSpec(
 )
 
 
+# ----------------------------------------------------------------------
+# Microsoft Dynamics 365 CRM (Dataverse)
+# Authenticates via Microsoft Entra ID (Azure AD) OAuth 2.0 endpoints.
+# Supports multi-tenant (common) and single-tenant endpoints,
+# PKCE verification, and instance_url binding.
+# ----------------------------------------------------------------------
+
+def _dynamics_normalize_urls(login_url: str, settings: Settings) -> tuple[str, str]:
+    """Extract (tenant_id, instance_url) from user-supplied login_url or settings."""
+    tenant = (getattr(settings, "dynamics_crm_tenant_id", "") or "common").strip()
+    instance_url = (getattr(settings, "dynamics_crm_instance_url", "") or "").strip().rstrip("/")
+
+    url = (login_url or "").strip()
+    if url:
+        if "login.microsoftonline.com" in url:
+            parts = url.rstrip("/").split("/")
+            if len(parts) >= 4 and parts[3] and parts[3] != "oauth2":
+                tenant = parts[3]
+        elif url.startswith("http://") or url.startswith("https://"):
+            instance_url = url.rstrip("/")
+        elif "." in url:
+            instance_url = f"https://{url.rstrip('/')}"
+        else:
+            tenant = url
+
+    return tenant, instance_url
+
+
+def _dynamics_authorize_url(
+    settings: Settings,
+    *,
+    state: str,
+    challenge: str,
+    login_url: str,
+    prompt: str = "",
+    client_id: str = "",
+    redirect_uri: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
+) -> str:
+    from urllib.parse import urlencode
+
+    cid = client_id
+    r_uri = redirect_uri
+    if not cid or not r_uri:
+        resolved_cid, _secret, resolved_r_uri = DYNAMICS_CRM.server_config(
+            settings, db=db, user_id=user_id, client_id=client_id, redirect_uri=redirect_uri
+        )
+        cid = cid or resolved_cid
+        r_uri = r_uri or resolved_r_uri
+
+    tenant, instance_url = _dynamics_normalize_urls(login_url, settings)
+
+    if instance_url:
+        scope = f"{instance_url}/.default offline_access"
+    else:
+        scope = DYNAMICS_CRM.scopes(settings)
+
+    params = {
+        "client_id": cid,
+        "response_type": "code",
+        "redirect_uri": r_uri,
+        "response_mode": "query",
+        "scope": scope,
+        "state": state,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+    }
+    if prompt:
+        params["prompt"] = prompt
+
+    auth_endpoint = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
+    return f"{auth_endpoint}?{urlencode(params)}"
+
+
+def _dynamics_token_request(
+    settings: Settings,
+    *,
+    code: str,
+    verifier: str,
+    redirect_uri: str,
+    login_url: str,
+    client_id: str = "",
+    client_secret: str = "",
+    db: Any = None,
+    user_id: int | None = None,
+    **kwargs: Any,
+) -> tuple[str, str]:
+    from urllib.parse import urlencode
+
+    cid = (client_id or "").strip() or getattr(settings, "dynamics_crm_client_id", "")
+    csec = (client_secret or "").strip() or getattr(settings, "dynamics_crm_client_secret", "")
+    if not cid or not csec:
+        try:
+            cid_sc, csec_sc, _ = DYNAMICS_CRM.server_config(
+                settings, db=db, user_id=user_id, client_id=client_id, client_secret=client_secret
+            )
+            cid = cid or cid_sc
+            csec = csec or csec_sc
+        except Exception:
+            pass
+
+    tenant, _ = _dynamics_normalize_urls(login_url, settings)
+    token_url = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
+
+    body_params = {
+        "client_id": cid,
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": redirect_uri,
+        "code_verifier": verifier or "",
+    }
+    if csec:
+        body_params["client_secret"] = csec
+
+    return token_url, urlencode(body_params)
+
+
+def _dynamics_token_headers() -> dict[str, str]:
+    return {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept-Encoding": "identity",
+    }
+
+
+async def _dynamics_identity_label(http_client: Any, settings: Settings, token_payload: dict[str, Any]) -> str:
+    access_token = token_payload.get("access_token") or ""
+    if not access_token:
+        return ""
+
+    instance_url = str(token_payload.get("instance_url") or getattr(settings, "dynamics_crm_instance_url", "")).rstrip("/")
+    if instance_url:
+        try:
+            resp = await http_client.request(
+                "GET",
+                f"{instance_url}/api/data/v9.2/WhoAmI",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/json",
+                    "OData-Version": "4.0",
+                },
+                timeout=15.0,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                return str(data.get("UserId") or data.get("BusinessUnitId") or "").strip()
+        except Exception:
+            pass
+
+    try:
+        resp = await http_client.request(
+            "GET",
+            "https://graph.microsoft.com/v1.0/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10.0,
+        )
+        if resp.status_code == 200:
+            user_data = resp.json()
+            return str(user_data.get("userPrincipalName") or user_data.get("displayName") or "").strip()
+    except Exception:
+        pass
+
+    return ""
+
+
+def _dynamics_credential_data(
+    settings: Settings,
+    token_payload: dict[str, Any],
+    login_url: str,
+    label: str = "",
+    client_id: str = "",
+    client_secret: str = "",
+    **kwargs: Any,
+) -> dict[str, Any]:
+    import time
+
+    tenant, instance_url = _dynamics_normalize_urls(login_url, settings)
+    cid = (client_id or kwargs.get("client_id") or "").strip()
+    csec = (client_secret or kwargs.get("client_secret") or "").strip()
+    has_custom = kwargs.get("has_custom_credentials", False)
+    if not has_custom:
+        cid = ""
+        csec = ""
+
+    expires_in = token_payload.get("expires_in") or 3600
+    try:
+        exp_at = time.time() + float(expires_in)
+    except Exception:
+        exp_at = time.time() + 3600
+
+    return {
+        "instance_url": instance_url or str(token_payload.get("instance_url", "")).rstrip("/"),
+        "auth_type": "oauth2",
+        "tenant_id": tenant,
+        "access_token": token_payload.get("access_token", ""),
+        "refresh_token": token_payload.get("refresh_token", ""),
+        "expires_at": exp_at,
+        "username": label,
+        "user": label,
+        "oauth": True,
+        "client_id": cid,
+        "client_secret": csec,
+    }
+
+
+async def _dynamics_revoke_token(http_client: Any, settings: Settings, credential_data: dict[str, Any]) -> bool:
+    return True
+
+
+DYNAMICS_CRM = OAuthProviderSpec(
+    key="dynamics_crm",
+    display_name="Microsoft Dynamics 365",
+    credential_type="dynamics_crm",
+    audit_connected="dynamics_crm.connected",
+    audit_failed="dynamics_crm.connect_failed",
+    marker_ok="dynamics_crm_connected",
+    marker_failed="dynamics_crm_connect_failed",
+    scopes_setting="dynamics_crm_scopes",
+    config_prefix="dynamics_crm",
+    supports_pkce=True,
+    uses_login_url=True,
+    authorize_url=_dynamics_authorize_url,
+    token_request=_dynamics_token_request,
+    token_headers=_dynamics_token_headers,
+    identity_label=_dynamics_identity_label,
+    credential_data=_dynamics_credential_data,
+    revoke_token=_dynamics_revoke_token,
+)
+
+
 PROVIDERS: dict[str, OAuthProviderSpec] = {
     SALESFORCE.key: SALESFORCE,
     HUBSPOT.key: HUBSPOT,
+    DYNAMICS_CRM.key: DYNAMICS_CRM,
     GOOGLE.key: GOOGLE,
     "google": GOOGLE,
     GOOGLE_SHEETS.key: GOOGLE_SHEETS,

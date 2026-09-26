@@ -100,6 +100,17 @@ export function NodeIcon({ type, icon, size = 34, color }) {
     )
   }
 
+  // Microsoft Dynamics 365 (Official CRM / Dataverse Mark)
+  if (matches('dynamics_crm', 'dynamics', 'dataverse')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3h6.8c.4 0 .8.2 1.1.5l6.1 6.1c.6.6.6 1.6 0 2.2l-6.1 6.1c-.6.6-1.6.6-2.2 0L4.5 11.2a1.5 1.5 0 0 1-.5-1.1V4.5z" fill="#0078D4" />
+        <path d="M12.3 3.5l6.8 6.8c.6.6.6 1.6 0 2.2l-6.8 6.8" stroke="#50E6FF" strokeWidth="1.8" strokeLinecap="round" opacity="0.9" />
+        <circle cx="9" cy="8" r="1.8" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
   // Jira (Official Dual-Diamond Flow)
   if (matches('jira')) {
     return (

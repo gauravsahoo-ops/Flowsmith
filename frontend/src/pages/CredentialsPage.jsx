@@ -11,6 +11,7 @@ import SearchableSelect from '../components/SearchableSelect'
 import SalesforceOAuthModal from '../components/SalesforceOAuthModal'
 import HubSpotOAuthModal from '../components/HubSpotOAuthModal'
 import GoogleOAuthModal from '../components/GoogleOAuthModal'
+import DynamicsCrmOAuthModal from '../components/DynamicsCrmOAuthModal'
 
 function defaultsFromSchema(schema) {
   const out = {}
@@ -55,6 +56,8 @@ export default function CredentialsPage() {
   const [sfModalData, setSfModalData] = useState(null)
   const [hsModalOpen, setHsModalOpen] = useState(false)
   const [hsModalData, setHsModalData] = useState(null)
+  const [dynModalOpen, setDynModalOpen] = useState(false)
+  const [dynModalData, setDynModalData] = useState(null)
   const [googleModalOpen, setGoogleModalOpen] = useState(false)
   const [googleModalData, setGoogleModalData] = useState(null)
   const [googleModalService, setGoogleModalService] = useState('google_calendar')
@@ -93,7 +96,7 @@ export default function CredentialsPage() {
 
   const schema = types.find(t => t.type === form.type)?.parameters_schema
   const secretFields = new Set(types.find(t => t.type === form.type)?.secret_fields || [])
-  const isOAuthType = ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(form.type)
+  const isOAuthType = ['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(form.type)
 
   async function handleReconnect(c) {
     setReconnectingId(c.id)
@@ -383,7 +386,7 @@ export default function CredentialsPage() {
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {!testResult.ok && credentials.some(x => x.id === testResult.id && ['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(x.type)) && (
+            {!testResult.ok && credentials.some(x => x.id === testResult.id && ['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(x.type)) && (
               <button
                 type="button"
                 className="primary small"
@@ -432,6 +435,7 @@ export default function CredentialsPage() {
                         background: `${{
                           salesforce: '#00a1e0',
                           hubspot: '#ff7a59',
+                          dynamics_crm: '#0078d4',
                           google_sheets: '#0f9d58',
                           google_drive: '#4285f4',
                           google_calendar: '#4285f4',
@@ -447,6 +451,7 @@ export default function CredentialsPage() {
                         color: {
                           salesforce: '#38bdf8',
                           hubspot: '#fb923c',
+                          dynamics_crm: '#38bdf8',
                           google_sheets: '#34d399',
                           google_drive: '#60a5fa',
                           google_calendar: '#60a5fa',
@@ -530,7 +535,7 @@ export default function CredentialsPage() {
                         )}
                       </button>
 
-                      {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
+                      {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                         <button
                           type="button"
                           className={c.expired ? 'primary small' : 'ghost small'}
@@ -610,6 +615,31 @@ export default function CredentialsPage() {
                         </button>
                       )}
 
+                      {c.type === 'dynamics_crm' && (
+                        <button
+                          type="button"
+                          className="ghost small"
+                          onClick={() => {
+                            setDynModalData(c)
+                            setDynModalOpen(true)
+                          }}
+                          title="Open Microsoft Dynamics 365 OAuth / Service Principal settings"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            color: '#0078d4',
+                            borderColor: 'rgba(0, 120, 212, 0.25)',
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                          </svg>
+                          <span>Settings</span>
+                        </button>
+                      )}
+
                       {(c.type.startsWith('google_') || c.type === 'gmail') && (
                         <button
                           type="button"
@@ -636,7 +666,7 @@ export default function CredentialsPage() {
                         </button>
                       )}
 
-                      {['salesforce','hubspot','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) ? (
+                      {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) ? (
                         <button
                           type="button"
                           className="ghost small"
@@ -1062,6 +1092,108 @@ export default function CredentialsPage() {
               )}
             </div>
           </div>
+        ) : form.type === 'dynamics_crm' ? (
+          <div className="card" style={{ padding: 24, marginBottom: 24, background: 'var(--panel-2)', border: '1px solid var(--border-strong)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(0, 120, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <NodeIcon type="dynamics_crm" size={24} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
+                    Microsoft Dynamics 365 (Dataverse)
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    Microsoft Entra ID OAuth 2.0 &amp; Service Principal Integration
+                  </div>
+                </div>
+              </div>
+              <span className="badge" style={{ background: 'rgba(0, 120, 212, 0.15)', color: '#38bdf8', borderColor: 'rgba(0, 120, 212, 0.3)', fontSize: 11 }}>
+                CRM &amp; Dataverse
+              </span>
+            </div>
+
+            <p className="hint" style={{ margin: '0 0 16px', fontSize: 13, lineHeight: 1.5 }}>
+              Authenticate securely with Microsoft Dynamics 365. Connect via standard 1-Click OAuth 2.0 PKCE with your Microsoft Entra ID account, or configure a Server-to-Server Service Principal for background daemon workflows.
+            </p>
+
+            {credentials.filter(c => c.type === 'dynamics_crm').length > 0 && (
+              <div style={{ margin: '0 0 16px', padding: '12px 14px', background: 'var(--panel)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div className="hint" style={{ fontSize: 12, marginBottom: 8, color: 'var(--text-secondary)' }}>
+                  Connected accounts:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {credentials.filter(c => c.type === 'dynamics_crm').map(acc => (
+                    <span
+                      key={acc.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        background: 'var(--panel-2)',
+                        fontSize: 12,
+                        border: '1px solid var(--border-strong)',
+                        color: 'var(--text)'
+                      }}
+                    >
+                      <span className="dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }} />
+                      <strong>{acc.name}</strong>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#0078d4' }}
+                        onClick={() => {
+                          setDynModalData(acc)
+                          setDynModalOpen(true)
+                        }}
+                        title="Configure Dynamics 365 settings"
+                      >
+                        ⚙️ Settings
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171' }}
+                        onClick={() => setLogoutTarget(acc)}
+                        title="Logout and revoke access"
+                      >
+                        🚪 Logout
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  setDynModalData(null)
+                  setDynModalOpen(true)
+                }}
+                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#0078d4', borderColor: '#0078d4' }}
+              >
+                ⚙️ Configure Dynamics 365 / Connect
+              </button>
+              {credentials.some(c => c.type === 'dynamics_crm') && (
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    setDynModalData(null)
+                    setDynModalOpen(true)
+                  }}
+                  style={{ padding: '9px 16px', fontSize: 13 }}
+                >
+                  + Connect Another Account
+                </button>
+              )}
+            </div>
+          </div>
         ) : isOAuthType ? (
           <div className="sf-connect-box" style={{ padding: '18px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
@@ -1338,6 +1470,50 @@ export default function CredentialsPage() {
             await load()
           } catch (err) {
             setError(err?.message || 'Failed to save Google configuration.')
+          }
+        }}
+      />
+
+      <DynamicsCrmOAuthModal
+        isOpen={dynModalOpen}
+        onClose={() => {
+          setDynModalOpen(false)
+          setDynModalData(null)
+        }}
+        initialData={dynModalData}
+        onConnected={async () => {
+          await load()
+          setNotice('Microsoft Dynamics 365 account connected successfully.')
+        }}
+        onSave={async (saved) => {
+          try {
+            if (dynModalData?.id) {
+              await api.updateCredentialConfig(dynModalData.id, {
+                name: saved?.name,
+                client_id: saved?.data?.client_id,
+                client_secret: saved?.data?.client_secret,
+                instance_url: saved?.data?.instance_url,
+                tenant_id: saved?.data?.tenant_id,
+              })
+              setNotice('Microsoft Dynamics 365 credential updated.')
+            } else if (saved?.data?.auth_type === 'client_credentials') {
+              await api.createCredential({
+                name: saved.name,
+                type: 'dynamics_crm',
+                data: saved.data,
+              })
+              setNotice('Microsoft Dynamics 365 Service Principal credential created.')
+            } else if (saved?.data?.client_id && saved?.data?.client_secret) {
+              await api.saveOAuthConfig('dynamics_crm', {
+                client_id: saved.data.client_id,
+                client_secret: saved.data.client_secret,
+                login_url: saved.data.instance_url,
+              })
+              setNotice('Microsoft Dynamics 365 App configuration saved.')
+            }
+            await load()
+          } catch (err) {
+            setError(err?.message || 'Failed to save Microsoft Dynamics 365 configuration.')
           }
         }}
       />

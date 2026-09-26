@@ -1,0 +1,361 @@
+/* =========================================================================
+   Flowsmith Obsidian Glass - Microsoft Dynamics 365 (OAuth & S2S) Modal
+   Aligns with Flowsmith Design System tokens, typography, and dark palette
+   ========================================================================= */
+
+.dynamics-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 11, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: dynamicsFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dynamicsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dynamicsModalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.dynamics-modal-window {
+  background: var(--panel, #111522);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.16));
+  border-radius: 16px;
+  box-shadow: var(--shadow-popover, 0 20px 48px rgba(0, 0, 0, 0.85));
+  width: 680px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--text, #f8fafc);
+  animation: dynamicsModalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Header */
+.dynamics-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--panel-2, #181e30);
+}
+
+.dynamics-modal-title-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dynamics-modal-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(0, 120, 212, 0.14);
+  border: 1px solid rgba(0, 120, 212, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dynamics-modal-title-area h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+}
+
+.dynamics-modal-title-area p {
+  font-size: 12px;
+  color: var(--text-dim, #94a3b8);
+  margin: 2px 0 0 0;
+}
+
+.dynamics-modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim, #94a3b8);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.dynamics-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* Tabs */
+.dynamics-modal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--panel, #111522);
+  padding: 0 16px;
+}
+
+.dynamics-modal-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim, #94a3b8);
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+
+.dynamics-modal-tab-btn:hover {
+  color: #fff;
+}
+
+.dynamics-modal-tab-btn.active {
+  color: #38bdf8;
+  border-bottom-color: #38bdf8;
+}
+
+/* Body */
+.dynamics-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dynamics-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dynamics-form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim, #cbd5e1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dynamics-form-group input,
+.dynamics-form-group select {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.dynamics-form-group input:focus,
+.dynamics-form-group select:focus {
+  border-color: #0078d4;
+  box-shadow: 0 0 0 1px #0078d4;
+}
+
+.dynamics-form-hint {
+  font-size: 11px;
+  color: var(--text-dim, #64748b);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Connect Card */
+.dynamics-connect-card {
+  background: rgba(0, 120, 212, 0.06);
+  border: 1px solid rgba(0, 120, 212, 0.24);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dynamics-connect-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dynamics-connect-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+}
+
+.dynamics-connect-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.dynamics-connect-btn {
+  background: #0078d4;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+
+.dynamics-connect-btn:hover:not(:disabled) {
+  background: #0060aa;
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.35);
+}
+
+.dynamics-connect-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Copy Box */
+.dynamics-copy-box {
+  display: flex;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dynamics-copy-box input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.dynamics-copy-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-left: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  color: #fff;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dynamics-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Steps list */
+.dynamics-setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim, #cbd5e1);
+}
+
+.dynamics-setup-step {
+  display: flex;
+  gap: 12px;
+}
+
+.dynamics-step-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Footer */
+.dynamics-modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--panel-2, #181e30);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dynamics-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dynamics-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Alert Boxes */
+.dynamics-alert-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.dynamics-alert-notice {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+}

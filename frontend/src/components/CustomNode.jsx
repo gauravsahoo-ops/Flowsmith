@@ -15,6 +15,8 @@ const CATEGORY_COLORS = {
   api: '#4f8cff',
   database: '#bf5af2',
   communication: '#4f8cff',
+  CRM: '#0078d4',
+  crm: '#0078d4',
 }
 
 function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
@@ -280,6 +282,8 @@ function CustomNode({ id, data, selected }) {
     subtitle = params.operation || 'Drive'
   } else if (nodeType === 'hubspot') {
     subtitle = params.resource || params.operation || 'HubSpot'
+  } else if (nodeType === 'dynamics_crm') {
+    subtitle = params.operation ? `${params.operation} (${params.entity || 'records'})` : 'Dynamics 365'
   } else if (nodeType === 'ai_agent' || nodeType === 'llm' || nodeType === 'agent') {
     subtitle = params.model ? `Model: ${params.model}` : 'AI Model'
   } else if (nodeType === 'subworkflow') {

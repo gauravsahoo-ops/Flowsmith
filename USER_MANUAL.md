@@ -267,9 +267,10 @@ If you don't want to drag cards manually, you can simply tell Flowsmith what you
 - **Email Trigger (IMAP)**: Listens to any corporate inbox (Gmail, Outlook, IMAP) and triggers when a new email arrives matching your sender or subject filters.
 - **Error Trigger**: Listens for failures across your other workflows. If any workflow encounters an error, this card fires automatically to page your engineering team on PagerDuty or alert Slack.
 
-### 7.2. App Connectors (Salesforce, Google, Slack, Stripe, etc.)
+### 7.2. App Connectors (Salesforce, Dynamics 365, Google, Slack, Stripe, etc.)
 Flowsmith includes **45+ native connectors**:
 - **Salesforce**: Search records with SOQL, Create, Update, Upsert, Get, and Delete records across standard or custom objects.
+- **Microsoft Dynamics 365 (Dataverse)**: Query records with OData filters or FetchXML, Create, Update, Upsert, Get, and Delete Accounts, Contacts, Leads, Opportunities, Incidents (Cases), and custom tables with dual support for 1-Click OAuth2 and Azure Entra ID Service Principal (S2S).
 - **Google Sheets**: Read rows, append new customer rows, update cells, or clear spreadsheets.
 - **Google Docs**: Create new documents from templates or append text dynamically.
 - **Gmail & Outlook**: Send rich HTML emails, attach documents, search inbox threads.
@@ -327,6 +328,12 @@ Flowsmith features a **1-click frictionless OAuth connection experience**:
 4. Click the blue button: **`[ Connect Salesforce ]`**.
 5. A secure popup opens. Simply log into your account and click **Allow / Approve**.
 6. The popup self-closes, and your account appears in the **Connected Credentials** table!
+
+#### Connecting Microsoft Dynamics 365 (Dataverse)
+Microsoft Dynamics 365 supports two enterprise authentication modes:
+- **Interactive OAuth2 (1-Click)**: Enter your Dynamics 365 Org URL (e.g. `https://myorg.crm.dynamics.com`) and click **Sign in with Microsoft 365**. Log into your corporate Microsoft account, grant permissions, and Flowsmith securely stores encrypted tokens with automatic background renewal.
+- **Service Principal (Server-to-Server / Daemon)**: For headless enterprise automations with no human login required, switch to the **Service Principal (S2S)** tab. Provide your Azure Entra ID Application (Client) ID, Client Secret, Tenant ID, and Dynamics Org URL. Flowsmith validates connectivity via `/api/data/v9.2/WhoAmI` and caches tokens thread-safely with automated refresh.
+- **Azure App Setup Guide**: The built-in Azure App Setup tab gives you the exact Redirect URI and API permissions (`Dynamics CRM -> user_impersonation`) needed in your Azure Portal.
 
 ### 8.2. Dynamic Session Status (Connected vs. Session Expired)
 - 🟢 **`● Connected`**: Active and valid. Workflows can use this credential freely.

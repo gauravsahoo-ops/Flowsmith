@@ -53,7 +53,7 @@ my-automation-tool
 
 # Agent rules & local customizations
 .agents/
-AGENTS.md
+/AGENTS.md
 
 # Deployment specifications
 DEPLOYMENT_REQUIREMENTS.md
