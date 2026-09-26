@@ -27,10 +27,9 @@ export default function ExecutionDetailPage() {
   }, [id])
 
   // Live auto-poll while running or queued
+  const isRunning = Boolean(data && ['running', 'queued', 'waiting_approval'].includes(data.status))
   useEffect(() => {
-    if (!data) return
-    const isActive = ['running', 'queued', 'waiting_approval'].includes(data.status)
-    if (!isActive) return
+    if (!isRunning) return
 
     const timer = setInterval(() => {
       api.getExecution(id).then(d => {
@@ -40,7 +39,7 @@ export default function ExecutionDetailPage() {
     }, 2000)
 
     return () => clearInterval(timer)
-  }, [id, data?.status, selected])
+  }, [id, isRunning, selected])
 
   async function handleRetry() {
     try { const { execution_id } = await api.retry(id); navigate(`/executions/${execution_id}`) } catch(e){ setError(e.message) }

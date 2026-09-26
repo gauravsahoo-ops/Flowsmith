@@ -25,7 +25,10 @@ from tests.test_api.conftest import auth_headers, register
 
 
 def _settings(**overrides) -> Settings:
-    defaults = {
+    from app.config import get_settings
+    current = get_settings()
+    data = current.model_dump()
+    data.update({
         "dynamics_crm_client_id": "DYN_CID_123",
         "dynamics_crm_client_secret": "DYN_SECRET_456",
         "dynamics_crm_redirect_uri": "http://localhost:8000/api/auth/dynamics_crm/callback",
@@ -33,9 +36,9 @@ def _settings(**overrides) -> Settings:
         "dynamics_crm_instance_url": "https://testorg.crm.dynamics.com",
         "dynamics_crm_scopes": "offline_access https://testorg.crm.dynamics.com/.default",
         "oauth_state_ttl_seconds": 600,
-    }
-    defaults.update(overrides)
-    return Settings(**defaults)
+    })
+    data.update(overrides)
+    return Settings(**data)
 
 
 class FakeHTTPClient:
@@ -77,14 +80,6 @@ def _configure_oauth(monkeypatch):
     settings = _settings()
     monkeypatch.setattr("app.api.oauth.get_settings", lambda: settings)
     yield settings
-
-
-@pytest.fixture
-def client():
-    from fastapi.testclient import TestClient
-    from app.main import app as fastapi_app
-
-    return TestClient(fastapi_app, follow_redirects=False)
 
 
 def _setup(client):
@@ -158,6 +153,7 @@ def test_callback_stores_encrypted_credential(client):
         resp = client.get(
             f"/api/auth/dynamics_crm/callback?code=abc123code&state={connect['state']}",
             headers=headers,
+            follow_redirects=False,
         )
         assert resp.status_code in (302, 307)
         assert "provider=dynamics_crm" in resp.headers["location"]
@@ -193,14 +189,20 @@ def test_callback_state_single_use(client):
         _json_response(200, whoami_body),
     ])
     try:
-        first = client.get(f"/api/auth/dynamics_crm/callback?code=a&state={connect['state']}")
+        first = client.get(
+            f"/api/auth/dynamics_crm/callback?code=a&state={connect['state']}",
+            follow_redirects=False,
+        )
         assert first.status_code in (302, 307)
         assert "provider=dynamics_crm" in first.headers["location"]
         assert "ok=1" in first.headers["location"]
     finally:
         patcher.stop()
 
-    second = client.get(f"/api/auth/dynamics_crm/callback?code=b&state={connect['state']}")
+    second = client.get(
+        f"/api/auth/dynamics_crm/callback?code=b&state={connect['state']}",
+        follow_redirects=False,
+    )
     assert second.status_code in (302, 307)
     assert "provider=dynamics_crm" in second.headers["location"]
     assert "ok=0" in second.headers["location"]

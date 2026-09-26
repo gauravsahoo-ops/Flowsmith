@@ -69,16 +69,29 @@ function useLabeledStatefulEdges(edges, edgeLabels, nodeStatuses, running) {
       let state = 'idle'
       const sourceStatus = nodeStatuses[e.source]
       const targetStatus = nodeStatuses[e.target]
-      if (targetStatus === 'failed' || targetStatus === 'error') state = 'error'
-      else if (targetStatus === 'skipped') state = 'skipped'
-      else if (sourceStatus === 'success' || sourceStatus === 'skipped') state = 'active'
-      else if (sourceStatus === 'running' || sourceStatus === 'waiting_approval') state = 'active'
-      else if (hasAnyStatus && sourceStatus && targetStatus) {
-        // For completed runs without `running` flag, highlight based on final statuses
-        if (sourceStatus === 'success' && (targetStatus === 'success' || targetStatus === 'skipped')) state = 'active'
-        if (targetStatus === 'failed' || targetStatus === 'error') state = 'error'
-        if (targetStatus === 'skipped') state = 'skipped'
+
+      if (targetStatus === 'failed' || targetStatus === 'error') {
+        state = 'error'
+      } else if (targetStatus === 'skipped') {
+        state = 'skipped'
+      } else if (anyRunning) {
+        // While running: animate active data flow leading into running nodes
+        if (sourceStatus === 'running' || sourceStatus === 'waiting_approval' || (sourceStatus === 'success' && targetStatus === 'running')) {
+          state = 'active'
+        } else if (sourceStatus === 'success' && targetStatus === 'success') {
+          state = 'completed'
+        } else if (sourceStatus === 'success' && !targetStatus) {
+          state = 'active'
+        }
+      } else if (hasAnyStatus) {
+        // After run finishes: smoothly show completed edges with clean crisp glow
+        if (sourceStatus === 'success' && (targetStatus === 'success' || targetStatus === 'skipped')) {
+          state = 'completed'
+        } else if (sourceStatus === 'success' && !targetStatus) {
+          state = 'completed'
+        }
       }
+
       const label = edgeLabels[edgeKey(e)]
       const prevData = e.data || {}
       const prevLabel = e.label

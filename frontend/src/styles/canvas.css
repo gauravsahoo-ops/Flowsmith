@@ -327,19 +327,26 @@
 .exec-edge {
   stroke: #475569;
   stroke-width: 2.2;
-  transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+  transition: stroke 0.25s ease, stroke-width 0.25s ease, opacity 0.25s ease;
 }
 .exec-edge.exec-active {
   stroke: #10b981;
   stroke-width: 2.6;
-  stroke-dasharray: 8 6;
-  animation: dashflow 0.4s linear infinite;
-  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.6));
+  stroke-dasharray: 6 6;
+  stroke-linecap: round;
+  animation: dashflow 0.9s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.55));
+  will-change: stroke-dashoffset;
+}
+.exec-edge.exec-completed {
+  stroke: #10b981;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.4));
 }
 .exec-edge.exec-error {
   stroke: #f43f5e;
-  stroke-width: 2.8;
-  filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.6));
+  stroke-width: 2.6;
+  filter: drop-shadow(0 0 5px rgba(244, 63, 94, 0.55));
 }
 .exec-edge.exec-skipped {
   stroke: #64748b;
@@ -347,8 +354,13 @@
   stroke-dasharray: 4 6;
   opacity: 0.5;
 }
-.exec-edge.exec-waiting { stroke: #f59e0b; stroke-width: 2; }
-@keyframes dashflow { to { stroke-dashoffset: -14; } }
+.exec-edge.exec-waiting {
+  stroke: #f59e0b;
+  stroke-width: 2.2;
+}
+@keyframes dashflow {
+  to { stroke-dashoffset: -12; }
+}
 .exec-edge-hit { pointer-events: stroke; cursor: pointer; }
 
 .react-flow__edge.selected .exec-edge {

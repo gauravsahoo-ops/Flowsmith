@@ -47,6 +47,49 @@ function deriveRunPreview(trace) {
   return out
 }
 
+let pendingNodeUpdates = {}
+let rafBatchHandle = null
+
+function scheduleNodeBatch(set) {
+  if (typeof requestAnimationFrame === 'function') {
+    if (rafBatchHandle) return
+    rafBatchHandle = requestAnimationFrame(() => {
+      rafBatchHandle = null
+      flushNodeBatch(set)
+    })
+  } else {
+    // Non-browser / test environment: flush synchronously
+    flushNodeBatch(set)
+  }
+}
+
+function flushNodeBatch(set) {
+  if (rafBatchHandle && typeof cancelAnimationFrame === 'function') {
+    cancelAnimationFrame(rafBatchHandle)
+    rafBatchHandle = null
+  }
+  const pending = pendingNodeUpdates
+  const keys = Object.keys(pending)
+  if (!keys.length) return
+  pendingNodeUpdates = {}
+  set((s) => {
+    const nextStatuses = { ...s.nodeStatuses }
+    const nextPreview = { ...s.runPreview }
+    for (const nid of keys) {
+      const item = pending[nid]
+      nextStatuses[nid] = item.status
+      nextPreview[nid] = {
+        ...(nextPreview[nid] || {}),
+        ...item,
+      }
+    }
+    return {
+      nodeStatuses: nextStatuses,
+      runPreview: nextPreview,
+    }
+  })
+}
+
 export const useExecutionStore = create((set, get) => ({
   executionId: null,
   status: null, // running | success | failed | cancelled
@@ -240,6 +283,11 @@ export const useExecutionStore = create((set, get) => ({
       return // malformed message, ignore
     }
     if (ev.type === 'execution.terminal') {
+      if (rafBatchHandle && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(rafBatchHandle)
+        rafBatchHandle = null
+      }
+      flushNodeBatch(set)
       set({ status: ev.status, error: ev.error || null, running: false })
       get().close()
       if (useUiStore.getState().soundEffects) {
@@ -253,31 +301,22 @@ export const useExecutionStore = create((set, get) => ({
     }
     const { node_id, status } = ev
     if (node_id && status) {
-      set((s) => {
-        const now = Date.now()
-        const prev = s.runPreview[node_id] || {}
-        // Build a live runPreview entry from the bus event so the
-        // canvas shows status badges and timing during execution.
-        const durationMs = (status === 'success' || status === 'error' || status === 'failed')
-          ? (prev._startMs ? now - prev._startMs : prev.durationMs || 0)
-          : prev.durationMs || 0
-        return {
-          nodeStatuses: { ...s.nodeStatuses, [node_id]: status },
-          runPreview: {
-            ...s.runPreview,
-            [node_id]: {
-              ...prev,
-              status,
-              durationMs: Math.round(durationMs),
-              _startMs: status === 'running' ? now : prev._startMs,
-              error:
-                ev.error && typeof ev.error !== 'string'
-                  ? ev.error.message || JSON.stringify(ev.error)
-                  : (ev.error || prev.error || null),
-            },
-          },
-        }
-      })
+      const now = Date.now()
+      const currentPreview = get().runPreview[node_id] || {}
+      const durationMs = (status === 'success' || status === 'error' || status === 'failed')
+        ? (currentPreview._startMs ? now - currentPreview._startMs : currentPreview.durationMs || 0)
+        : currentPreview.durationMs || 0
+
+      pendingNodeUpdates[node_id] = {
+        status,
+        durationMs: Math.round(durationMs),
+        _startMs: status === 'running' ? now : currentPreview._startMs,
+        error:
+          ev.error && typeof ev.error !== 'string'
+            ? ev.error.message || JSON.stringify(ev.error)
+            : (ev.error || currentPreview.error || null),
+      }
+      scheduleNodeBatch(set)
     }
   },
 
@@ -368,6 +407,11 @@ export const useExecutionStore = create((set, get) => ({
     }
     if (pollTimer) clearTimeout(pollTimer)
     set({ pollTimer: null })
+    if (rafBatchHandle && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(rafBatchHandle)
+      rafBatchHandle = null
+    }
+    pendingNodeUpdates = {}
   },
 }))
 

@@ -104,6 +104,54 @@ class AIAgentNode(BaseNode[AgentParams]):
     credential_types = ["llm", "http", "database"]
     idempotency = NON_IDEMPOTENT
 
+    @staticmethod
+    def _extract_final_answer(content: str | None) -> str | None:
+        """Extract final answer string from LLM response text or JSON payload."""
+        if not content or not str(content).strip():
+            return None
+        text = str(content).strip()
+
+        # 1. Strip markdown fences if present
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+
+        # 2. Try parsing entire text as JSON
+        try:
+            data = json.loads(text)
+            if isinstance(data, dict):
+                if data.get("action") == "final":
+                    return str(data.get("answer", ""))
+                if "action" in data and data["action"] != "final":
+                    return None
+                if "answer" in data:
+                    return str(data["answer"])
+        except Exception:
+            pass
+
+        # 3. Look for embedded JSON object with {"action": "final", ...}
+        start_idx = text.find("{")
+        while start_idx != -1:
+            for end_idx in range(len(text), start_idx, -1):
+                if text[end_idx - 1] == "}":
+                    candidate = text[start_idx:end_idx]
+                    try:
+                        data = json.loads(candidate)
+                        if isinstance(data, dict):
+                            if data.get("action") == "final":
+                                return str(data.get("answer", ""))
+                            if "action" in data and data["action"] != "final":
+                                return None
+                    except Exception:
+                        pass
+            start_idx = text.find("{", start_idx + 1)
+
+        return None
+
     async def run(
         self,
         ctx: NodeContext,
@@ -205,14 +253,8 @@ class AIAgentNode(BaseNode[AgentParams]):
 
             # If no tool calls, model has reached final answer!
             if not tool_calls:
-                final_answer = content
-                if content:
-                    try:
-                        parsed = json.loads(content)
-                        if isinstance(parsed, dict) and "answer" in parsed:
-                            final_answer = str(parsed["answer"])
-                    except Exception:
-                        pass
+                extracted = self._extract_final_answer(content)
+                final_answer = extracted if extracted is not None else content
                 step_trace["thought"] = final_answer
                 execution_trace.append(step_trace)
                 break
