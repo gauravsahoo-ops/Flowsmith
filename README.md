@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravsahoo-ops/Flowsmith/actions/workflows/ci.yml)
 [![Backend Tests](https://img.shields.io/badge/backend%20tests-1800%2B%20passing-brightgreen)](#backend-testing-1800-tests)
-[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-324%20passing-brightgreen)](#frontend-testing-324-vitest-tests--e2e-specs)
+[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-331%20passing-brightgreen)](#frontend-testing-331-vitest-tests--e2e-specs)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/react-19-61dafb)](https://react.dev/)
@@ -502,6 +502,7 @@ Flowsmith includes **45+ first-party connectors** with pre-configured schemas an
 | Connector | Supported Operations & Resources | Authentication |
 |---|---|---|
 | **Salesforce** | 13 Resources (Account, Contact, Lead, Opportunity, Case, Task, CustomObject, Attachment, Document, User, Flow, Search, CustomApiCall) × full CRUD & SOQL | OAuth2 (PKCE) / Single-Click Reconnect |
+| **Microsoft Dynamics 365** | Accounts, Contacts, Leads, Opportunities, Incidents (Cases), Tasks, Custom Tables × Query (OData & FetchXML), Search, Get, Create, Update, Upsert, Delete, Actions | OAuth2 (PKCE) / Azure Entra ID Service Principal (S2S) |
 | **HubSpot** | Contacts, Companies, Deals, Tickets (search, get, create, update) | OAuth2 |
 | **Google Calendar**| Events CRUD, attendee coordination, calendar lookups | OAuth2 |
 | **Google Sheets** | Sheet values read, append row, update ranges, batch operations | OAuth2 |
@@ -683,12 +684,12 @@ pytest tests/test_security/ -q                             # SSRF, auth, and enc
 # and isolated Redis instances (db 15), preventing collision with production workers.
 ```
 
-### Frontend Testing (324 Vitest Tests & E2E Specs)
+### Frontend Testing (331 Vitest Tests & E2E Specs)
 
 ```bash
 cd frontend
 
-# Run Vitest unit tests (324 passing across 23 test files)
+# Run Vitest unit tests (331 passing across 25 test files)
 npx vitest run
 
 # Run specific suite

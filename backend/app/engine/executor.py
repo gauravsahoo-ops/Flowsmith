@@ -813,7 +813,6 @@ async def _run_one(
                     all_output_items.extend(per_result.output_items)
                     if is_large_batch:
                         batch_outputs.extend(per_result.output_items)
-                emit("node.completed", node_id=node.id, status="success")
                 # Emit individual trace steps only for small batches
                 if not is_large_batch:
                     per_elapsed = (time.monotonic() - per_started) * 1000
@@ -849,6 +848,7 @@ async def _run_one(
             )
 
         results[node.id] = {"main": all_output_items}
+        emit("node.completed", node_id=node.id, status="success")
         return
 
     if node_instance.resolves_own_expressions:

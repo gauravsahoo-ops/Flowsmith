@@ -32,7 +32,11 @@ def upgrade() -> None:
     if not _has_column(bind, 'oauth_states', 'client_id'):
         op.add_column('oauth_states', sa.Column('client_id', sa.String(length=255), nullable=True))
     if not _has_column(bind, 'oauth_states', 'client_secret'):
-        op.add_column('oauth_states', sa.Column('client_secret', sa.String(length=255), nullable=True))
+        op.add_column('oauth_states', sa.Column('client_secret', sa.String(length=512), nullable=True))
+    if not _has_column(bind, 'oauth_states', 'name'):
+        op.add_column('oauth_states', sa.Column('name', sa.String(length=255), nullable=True))
+    if not _has_column(bind, 'oauth_states', 'allowed_domains'):
+        op.add_column('oauth_states', sa.Column('allowed_domains', sa.String(length=512), nullable=True))
 
 
 def downgrade() -> None:
@@ -41,6 +45,10 @@ def downgrade() -> None:
     if not insp.has_table("oauth_states"):
         return
 
+    if _has_column(bind, 'oauth_states', 'allowed_domains'):
+        op.drop_column('oauth_states', 'allowed_domains')
+    if _has_column(bind, 'oauth_states', 'name'):
+        op.drop_column('oauth_states', 'name')
     if _has_column(bind, 'oauth_states', 'client_secret'):
         op.drop_column('oauth_states', 'client_secret')
     if _has_column(bind, 'oauth_states', 'client_id'):
