@@ -46,17 +46,18 @@ Thumbs.db
 # Scratch & temporary
 scratch/
 test_report.html
-TODO.md
 Smithflow/
 Flowsmith/
 my-automation-tool
 
 # Agent rules & local customizations
 .agents/
-/AGENTS.md
 
-# Deployment specifications
-DEPLOYMENT_REQUIREMENTS.md
+# Markdown documentation & specifications (ignored for Bitbucket)
+*.md
+**/*.md
+docs/
+
 
 # Windows local startup scripts
 start.bat

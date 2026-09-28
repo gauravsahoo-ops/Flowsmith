@@ -231,16 +231,27 @@ export const api = {
       'GET',
       `/connectors/salesforce/schema/${encodeURIComponent(objectName)}${refresh ? '?refresh=true' : ''}`,
     ),
-  connectOAuth: (provider, loginUrl, prompt, extra = {}) =>
-    request('POST', `/auth/${provider}/connect`, {
-      ...(loginUrl ? { login_url: loginUrl } : {}),
-      ...(prompt ? { prompt } : {}),
-      ...(extra.clientId || extra.client_id ? { client_id: extra.clientId || extra.client_id } : {}),
-      ...(extra.clientSecret || extra.client_secret ? { client_secret: extra.clientSecret || extra.client_secret } : {}),
-      ...(extra.credentialId || extra.credential_id ? { credential_id: extra.credentialId || extra.credential_id } : {}),
-      ...(extra.name ? { name: extra.name } : {}),
-      ...(extra.allowedDomains || extra.allowed_domains ? { allowed_domains: extra.allowedDomains || extra.allowed_domains } : {}),
-    }),
+  connectOAuth: (provider, loginUrl, prompt, extra = {}) => {
+    let actualLoginUrl = loginUrl
+    let actualPrompt = prompt
+    let actualExtra = extra
+    if (typeof loginUrl === 'object' && loginUrl !== null) {
+      actualExtra = { ...loginUrl, ...extra }
+      actualLoginUrl = loginUrl.login_url || loginUrl.loginUrl || undefined
+      actualPrompt = loginUrl.prompt || prompt || undefined
+    }
+    const resolvedLoginUrl = typeof actualLoginUrl === 'string' ? actualLoginUrl.trim() : undefined
+    return request('POST', `/auth/${provider}/connect`, {
+      ...(resolvedLoginUrl ? { login_url: resolvedLoginUrl } : {}),
+      ...(actualPrompt ? { prompt: actualPrompt } : {}),
+      ...(actualExtra.clientId || actualExtra.client_id ? { client_id: actualExtra.clientId || actualExtra.client_id } : {}),
+      ...(actualExtra.clientSecret || actualExtra.client_secret ? { client_secret: actualExtra.clientSecret || actualExtra.client_secret } : {}),
+      ...(actualExtra.credentialId || actualExtra.credential_id ? { credential_id: actualExtra.credentialId || actualExtra.credential_id } : {}),
+      ...(actualExtra.name ? { name: actualExtra.name } : {}),
+      ...(actualExtra.allowedDomains || actualExtra.allowed_domains ? { allowed_domains: actualExtra.allowedDomains || actualExtra.allowed_domains } : {}),
+      ...(actualExtra.tenantId || actualExtra.tenant_id ? { tenant_id: actualExtra.tenantId || actualExtra.tenant_id } : {}),
+    })
+  },
   aiStatus: () => request('GET', '/ai/status'),
   explain: (executionId) => request('POST', '/ai/explain', { execution_id: executionId }),
   generateWorkflow: (prompt, opts = {}) =>
