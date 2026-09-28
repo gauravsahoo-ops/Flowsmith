@@ -846,6 +846,8 @@ def _dynamics_authorize_url(
         r_uri = r_uri or resolved_r_uri
 
     tenant, instance_url = _dynamics_normalize_urls(login_url, settings)
+    if kwargs.get("tenant_id"):
+        tenant = str(kwargs["tenant_id"]).strip()
 
     if instance_url:
         scope = f"{instance_url}/.default offline_access"

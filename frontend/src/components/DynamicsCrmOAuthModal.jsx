@@ -19,6 +19,7 @@ export default function DynamicsCrmOAuthModal({
   const [clientId, setClientId] = useState(initialData?.data?.client_id || '')
   const [clientSecret, setClientSecret] = useState(initialData?.data?.client_secret || '')
   const [showSecret, setShowSecret] = useState(false)
+  const [showCustomApp, setShowCustomApp] = useState(false)
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -97,18 +98,18 @@ export default function DynamicsCrmOAuthModal({
 
     try {
       const { api } = await import('../api')
-      const payload = {
-        login_url: instanceUrl.trim(),
+      const extra = {
         name: name.trim() || 'Microsoft Dynamics 365',
+        tenant_id: tenantId.trim() || 'common',
       }
       if (clientId.trim()) {
-        payload.client_id = clientId.trim()
+        extra.client_id = clientId.trim()
       }
       if (clientSecret.trim()) {
-        payload.client_secret = clientSecret.trim()
+        extra.client_secret = clientSecret.trim()
       }
 
-      const res = await api.connectOAuth('dynamics_crm', payload)
+      const res = await api.connectOAuth('dynamics_crm', instanceUrl.trim(), 'login', extra)
       const authorizeUrl = res?.data?.authorize_url || res?.authorize_url
       if (!authorizeUrl) {
         throw new Error('Server did not return an authorization URL.')
@@ -256,6 +257,63 @@ export default function DynamicsCrmOAuthModal({
                   Defaults to 'common' for multi-tenant accounts. Specify your Azure AD Tenant ID for single-tenant apps.
                 </span>
               </div>
+
+              <div className="dynamics-form-group" style={{ marginBottom: 12 }}>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#38bdf8',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    padding: 0,
+                    textAlign: 'left',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  onClick={() => setShowCustomApp(!showCustomApp)}
+                >
+                  <span>{showCustomApp ? '▼' : '▶'}</span>
+                  <span>{showCustomApp ? 'Hide Custom Azure App Credentials' : 'Specify Custom Azure App (Client ID & Secret)'}</span>
+                </button>
+              </div>
+
+              {showCustomApp && (
+                <>
+                  <div className="dynamics-form-group">
+                    <label>Application (Client) ID</label>
+                    <input
+                      type="text"
+                      value={clientId}
+                      onChange={(e) => setClientId(e.target.value)}
+                      placeholder="Azure App Registration Client ID (GUID)"
+                    />
+                  </div>
+                  <div className="dynamics-form-group">
+                    <label>
+                      Client Secret
+                      <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: 11 }}
+                        onClick={() => setShowSecret(!showSecret)}
+                      >
+                        {showSecret ? 'Hide' : 'Show'}
+                      </button>
+                    </label>
+                    <input
+                      type={showSecret ? 'text' : 'password'}
+                      value={clientSecret}
+                      onChange={(e) => setClientSecret(e.target.value)}
+                      placeholder="Azure App Client Secret Value"
+                    />
+                    <span className="dynamics-form-hint">
+                      Optional if DYNAMICS_CRM_CLIENT_ID & SECRET are configured on the server.
+                    </span>
+                  </div>
+                </>
+              )}
 
               <div className="dynamics-connect-card">
                 <div className="dynamics-connect-header">

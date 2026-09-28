@@ -87,6 +87,10 @@ class ConnectRequest(BaseModel):
         default=None,
         description="Allowed HTTP request domains policy (e.g. 'all', 'specific', 'none').",
     )
+    tenant_id: str | None = Field(
+        default=None,
+        description="Optional tenant ID override (for Microsoft Dynamics 365 / Azure Entra).",
+    )
 
 
 def _audit_names(provider_key: str) -> tuple[str, str]:
@@ -133,6 +137,8 @@ def _resolve_login_url(spec, body: ConnectRequest | None, db: Session | None = N
         except Exception:
             pass
     settings = get_settings()
+    if spec.key == "dynamics_crm":
+        return (getattr(settings, "dynamics_crm_instance_url", "") or "").rstrip("/")
     return (
         settings.salesforce_login_url
         or "https://login.salesforce.com"
@@ -234,6 +240,7 @@ def connect_provider(
             redirect_uri=redirect_uri,
             db=db,
             user_id=user.id,
+            tenant_id=body.tenant_id if body else None,
         )
     except TypeError:
         try:
