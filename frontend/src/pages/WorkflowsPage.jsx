@@ -313,26 +313,6 @@ export default function WorkflowsPage() {
     finally { setBusy(false); setCreateOpen(false) }
   }
 
-  async function handleCreateFromAI() {
-    const prompt = window.prompt('Describe the workflow you want to generate (requires llm credential):')
-    if (!prompt || !prompt.trim()) return
-    setBusy(true); setError(null)
-    try {
-      const res = await api.generateWorkflow(prompt.trim())
-      // res may contain workflow + validation
-      if (res?.workflow) {
-        const imported = await api.importWorkflow(res.workflow)
-        await load()
-        navigate(`/workflows/${imported.id}`)
-      } else if (res?.id) {
-        await load()
-        navigate(`/workflows/${res.id}`)
-      } else {
-        setError('AI generation returned no workflow')
-      }
-    } catch (e) { setError(e.message) }
-    finally { setBusy(false); setCreateOpen(false) }
-  }
 
   async function handleImportFile(file) {
     setImportError(null)
@@ -405,7 +385,6 @@ export default function WorkflowsPage() {
               {createOpen && (
                 <div className="dropdown-menu" role="menu">
                   <button role="menuitem" onClick={handleCreateBlank} disabled={busy}>Blank workflow</button>
-                  <button role="menuitem" onClick={handleCreateFromAI} disabled={busy}>From AI ✨</button>
                   <button role="menuitem" onClick={() => { setCreateOpen(false); navigate('/templates') }}>From template</button>
                   <button role="menuitem" onClick={() => { setCreateOpen(false); fileRef.current?.click() }}>Import from file</button>
                 </div>
