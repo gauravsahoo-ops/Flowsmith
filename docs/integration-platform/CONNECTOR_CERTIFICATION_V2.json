@@ -1,0 +1,4260 @@
+{
+  "version": "2.0.0",
+  "phase": "41",
+  "summary": {
+    "total_connectors": 86,
+    "production_certified": 0,
+    "contract_validated": 12,
+    "validated_functional": 73,
+    "mock_validated": 0,
+    "static_validated": 0,
+    "live_validated": 1,
+    "operations": {
+      "total_declared": 454,
+      "contract_validated": 59,
+      "mock_validated": 454,
+      "live_validated": 8
+    },
+    "triggers": {
+      "total_registered": 12,
+      "tested": 12,
+      "live_tested": 0
+    },
+    "search": {
+      "total_implemented": 20,
+      "tested": 20,
+      "live_tested": 0
+    },
+    "webhooks": {
+      "total_implemented": 14,
+      "signature_tested": 14,
+      "live_tested": 0
+    },
+    "pagination": {
+      "total_implemented": 45,
+      "tested": 45,
+      "live_tested": 0
+    },
+    "dynamic_schema": {
+      "static": 77,
+      "dynamic": 1,
+      "live_metadata": 8
+    }
+  },
+  "connectors": [
+    {
+      "connector": "activecampaign",
+      "application": "ActiveCampaign",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "airtable",
+      "application": "Airtable",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "anthropic",
+      "application": "Anthropic Claude",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 2,
+        "mock_validated": 2,
+        "contract_validated": 2,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "asana",
+      "application": "Asana",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "bigquery",
+      "application": "Google BigQuery",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_TOKEN",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "LIVE_METADATA_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "bitbucket",
+      "application": "Bitbucket",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "box",
+      "application": "Box",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 6,
+        "mock_validated": 6,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "brevo",
+      "application": "Brevo",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "calendly",
+      "application": "Calendly",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "clickup",
+      "application": "ClickUp",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "coda",
+      "application": "Coda",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_TOKEN",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "coin_gecko",
+      "application": "CoinGecko",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 50,
+        "mock_validated": 50,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "discord",
+      "application": "Discord",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 2,
+        "mock_validated": 2,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "docusign",
+      "application": "DocuSign",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "dropbox",
+      "application": "Dropbox",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "dummy_json",
+      "application": "DummyJSON",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 10,
+        "mock_validated": 10,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "dynamics_crm",
+      "application": "Microsoft Dynamics 365",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 8,
+        "mock_validated": 8,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "LIVE_METADATA_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "frankfurter",
+      "application": "Frankfurter FX",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "freshdesk",
+      "application": "Freshdesk",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "freshsales",
+      "application": "Freshsales",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "gemini",
+      "application": "Google Gemini",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 3,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "github",
+      "application": "GitHub",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 4,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "LINK_HEADER",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "gitlab",
+      "application": "GitLab",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "gmail",
+      "application": "Gmail",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "google_calendar",
+      "application": "Google Calendar",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "google_docs",
+      "application": "Google Docs",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "google_drive",
+      "application": "Google Drive",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_TOKEN",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "google_sheets",
+      "application": "Google Sheets",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "http",
+      "application": "Universal HTTP Connector",
+      "implementation_type": "UNIVERSAL_HTTP",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_VALIDATED"
+      },
+      "operations": {
+        "implemented": 8,
+        "mock_validated": 8,
+        "contract_validated": 8,
+        "live_validated": 8
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": true
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": true
+      },
+      "dynamic_schema": {
+        "type": "DYNAMIC_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "LIVE_API_VALIDATED"
+    },
+    {
+      "connector": "httpbin",
+      "application": "httpbin",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 50,
+        "mock_validated": 50,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "hubspot",
+      "application": "HubSpot",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 4,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "CURSOR",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "intercom",
+      "application": "Intercom",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 6,
+        "mock_validated": 6,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "CURSOR",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "jira",
+      "application": "Jira",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 4,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "json_placeholder",
+      "application": "JSONPlaceholder",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 9,
+        "mock_validated": 9,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "linear",
+      "application": "Linear",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "mailchimp",
+      "application": "Mailchimp",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "monday",
+      "application": "Monday.com",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "mongodb",
+      "application": "MongoDB",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "msteams",
+      "application": "Microsoft Teams",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "mysql",
+      "application": "MySQL",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "LIVE_METADATA_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "netsuite",
+      "application": "Oracle NetSuite ERP",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 7,
+        "mock_validated": 7,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "LIVE_METADATA_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "notion",
+      "application": "Notion",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "CURSOR",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo",
+      "application": "Open-Meteo",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo_air",
+      "application": "Open-Meteo Air Quality",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo_climate",
+      "application": "Open-Meteo climate",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo_elevation",
+      "application": "Open-Meteo Elevation",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo_ensemble",
+      "application": "Open-Meteo ensemble",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo_flood",
+      "application": "Open-Meteo flood",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo_historical_weather",
+      "application": "Open-Meteo historical-weather",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo_marine",
+      "application": "Open-Meteo marine",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_meteo_seasonal",
+      "application": "Open-Meteo seasonal",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 1,
+        "mock_validated": 1,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_notify",
+      "application": "Open Notify",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 2,
+        "mock_validated": 2,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "open_router",
+      "application": "OpenRouter",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "openai",
+      "application": "OpenAI",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 3,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "outlook",
+      "application": "Microsoft Outlook",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 2,
+        "mock_validated": 2,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "pagerduty",
+      "application": "PagerDuty",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 6,
+        "mock_validated": 6,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "pinecone",
+      "application": "Pinecone",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "pipedrive",
+      "application": "Pipedrive",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "poke_api",
+      "application": "PokeAPI",
+      "implementation_type": "OPENAPI_GENERATED",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 13,
+        "mock_validated": 13,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "postgres",
+      "application": "PostgreSQL",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 4,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "LIVE_METADATA_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "quickbooks",
+      "application": "QuickBooks",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 6,
+        "mock_validated": 6,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "redis",
+      "application": "Redis",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "resend",
+      "application": "Resend",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "s3",
+      "application": "AWS S3 / Object Storage",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "salesforce",
+      "application": "Salesforce",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 12,
+        "mock_validated": 12,
+        "contract_validated": 12,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "URL_QUERY",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "LIVE_METADATA_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "sap",
+      "application": "SAP S/4HANA",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 6,
+        "mock_validated": 6,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "LIVE_METADATA_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "schedule",
+      "application": "Schedule Connector",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 0,
+        "mock_validated": 0,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "sendgrid",
+      "application": "Twilio SendGrid",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 4,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "sentry",
+      "application": "Sentry",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "servicenow",
+      "application": "ServiceNow",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "shopify",
+      "application": "Shopify",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "CURSOR",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "slack",
+      "application": "Slack",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 2,
+        "mock_validated": 2,
+        "contract_validated": 2,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "CURSOR",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "snowflake",
+      "application": "Snowflake Data Cloud",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 5,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "LIVE_METADATA_SCHEMA",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "stripe",
+      "application": "Stripe",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 4,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "CURSOR",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "CONTRACT_VALIDATED"
+    },
+    {
+      "connector": "supabase",
+      "application": "Supabase",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "todoist",
+      "application": "Todoist",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 6,
+        "mock_validated": 6,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "trello",
+      "application": "Trello",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "twilio",
+      "application": "Twilio",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "typeform",
+      "application": "Typeform",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": true,
+        "signature_tested": true,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "webhook",
+      "application": "Webhook Connector",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 0,
+        "mock_validated": 0,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "whatsapp",
+      "application": "WhatsApp",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 3,
+        "mock_validated": 3,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "workday",
+      "application": "Workday",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 6,
+        "mock_validated": 6,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE_OR_OFFSET",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "xero",
+      "application": "Xero",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "zendesk",
+      "application": "Zendesk",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 1,
+        "tested": 1,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "CURSOR",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "zoho_crm",
+      "application": "Zoho CRM",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 5,
+        "mock_validated": 5,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "PAGE",
+        "implemented": true,
+        "tested": true,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector": "zoom",
+      "application": "Zoom",
+      "implementation_type": "NATIVE",
+      "authentication": {
+        "schema": "AUTH_SCHEMA_PRESENT",
+        "runtime": "AUTH_RUNTIME_VALIDATED",
+        "live": "AUTH_LIVE_UNAVAILABLE"
+      },
+      "operations": {
+        "implemented": 4,
+        "mock_validated": 4,
+        "contract_validated": 0,
+        "live_validated": 0
+      },
+      "triggers": {
+        "registered": 0,
+        "tested": 0,
+        "live_tested": 0
+      },
+      "search": {
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "webhooks": {
+        "implemented": false,
+        "signature_tested": false,
+        "live_tested": false
+      },
+      "pagination": {
+        "mechanism": "NONE",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "dynamic_schema": {
+        "type": "STATIC_SCHEMA",
+        "implemented": false,
+        "tested": false,
+        "live_tested": false
+      },
+      "security": {
+        "ssrf_enforced": true,
+        "secret_redaction": true,
+        "tenant_isolated": true
+      },
+      "certification": "VALIDATED_FUNCTIONAL"
+    }
+  ]
+}

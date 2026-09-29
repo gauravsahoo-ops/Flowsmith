@@ -1,0 +1,197 @@
+{
+  "version": "4.0.0",
+  "phase": "41",
+  "standard": "Section 29 & Phase 41 Real Certification Standard",
+  "ecosystem_scope": {
+    "external_applications_discovered": 191,
+    "sources": {
+      "zapier": 60,
+      "n8n": 58,
+      "cyclr": 54,
+      "mcp": 10,
+      "openapi": 9
+    },
+    "canonical_applications": 91,
+    "deduplication_ratio": "2.10:1"
+  },
+  "application_coverage": {
+    "canonical_applications_total": 91,
+    "flowsmith_supported_total": 91,
+    "by_implementation_strategy": {
+      "NATIVE": {
+        "count": 60,
+        "percentage": 65.93,
+        "description": "Custom Python provider, connector definition, and operational SDK wrapper"
+      },
+      "OPENAPI": {
+        "count": 9,
+        "percentage": 9.89,
+        "description": "Synthesized from official OpenAPI 3.0/3.1 specs via OpenAPI Connector Factory"
+      },
+      "REST_GENERATED": {
+        "count": 9,
+        "percentage": 9.89,
+        "description": "Generated from structured REST API schema and auth specifications"
+      },
+      "UNIVERSAL_HTTP": {
+        "count": 12,
+        "percentage": 13.19,
+        "description": "Standard REST/GraphQL/SOAP API with SSRF protection and dynamic schema inference"
+      },
+      "MCP": {
+        "count": 10,
+        "percentage": 10.99,
+        "description": "Model Context Protocol dynamic tool integration with server isolation"
+      },
+      "BLOCKED": {
+        "count": 0,
+        "percentage": 0.0,
+        "description": "Proprietary protocols with no public API"
+      },
+      "UNVERIFIED": {
+        "count": 0,
+        "percentage": 0.0,
+        "description": "Requires manual developer verification"
+      }
+    }
+  },
+  "connector_infrastructure": {
+    "total_registered_connectors": 86,
+    "native_connectors": 69,
+    "openapi_generated_connectors": 17,
+    "universal_http_connector": 1,
+    "core_flow_nodes": 66,
+    "triggers_dedicated": 12
+  },
+  "operation_coverage": {
+    "total_declared": 454,
+    "executable_in_runtime": 454,
+    "execution_integrity_pct": 100.0,
+    "by_verification_tier": {
+      "IMPLEMENTED": 454,
+      "MOCK_VALIDATED": 454,
+      "CONTRACT_VALIDATED": 59,
+      "LIVE_VALIDATED": 8
+    }
+  },
+  "authentication_certification": {
+    "total_connectors": 86,
+    "AUTH_SCHEMA_PRESENT": 86,
+    "AUTH_RUNTIME_VALIDATED": 86,
+    "AUTH_LIVE_VALIDATED": 1,
+    "mechanisms_supported": [
+      "OAuth2 Authorization Code (with PKCE & state tokens)",
+      "OAuth2 Client Credentials (Server-to-Server)",
+      "API Key (Header / Query)",
+      "Bearer Token",
+      "HTTP Basic Auth",
+      "JWT Service Account Credentials",
+      "OAuth1.0a / Token-Based Auth (NetSuite TBA)"
+    ]
+  },
+  "trigger_certification": {
+    "total_registered": 12,
+    "TESTED": 12,
+    "LIVE_TESTED": 0,
+    "types": [
+      "Webhook Trigger (GitHub, Stripe, Shopify, Salesforce, Zendesk)",
+      "SFTP Trigger (file polling, path matching)",
+      "Schedule Cron Trigger",
+      "Error / Exception Trigger"
+    ]
+  },
+  "search_certification": {
+    "total_implemented": 20,
+    "TESTED": 20,
+    "LIVE_TESTED": 0,
+    "capabilities": [
+      "Parameterized queries",
+      "Field filtering",
+      "Pagination traversal",
+      "Empty result normalization",
+      "Malformed query error handling"
+    ]
+  },
+  "webhook_certification": {
+    "total_implemented": 14,
+    "SIGNATURE_TESTED": 14,
+    "LIVE_TESTED": 0,
+    "features_verified": [
+      "HMAC-SHA256 signature verification",
+      "Replay attack rejection (300s window)",
+      "Idempotency cache deduplication",
+      "Immediate HTTP 200 acknowledgment",
+      "Graceful failure handling"
+    ]
+  },
+  "pagination_certification": {
+    "total_implemented": 45,
+    "TESTED": 45,
+    "LIVE_TESTED": 1,
+    "mechanisms": {
+      "CURSOR": [
+        "Slack",
+        "Stripe",
+        "Shopify",
+        "HubSpot",
+        "Zendesk",
+        "Notion",
+        "Intercom"
+      ],
+      "OFFSET": [
+        "Jira",
+        "Airtable",
+        "Google Sheets",
+        "Snowflake",
+        "ActiveCampaign",
+        "DocuSign"
+      ],
+      "PAGE": [
+        "SendGrid",
+        "Xero",
+        "Zoho CRM",
+        "Freshsales"
+      ],
+      "PAGE_TOKEN": [
+        "Google Drive",
+        "BigQuery",
+        "Coda"
+      ],
+      "LINK_HEADER": [
+        "GitHub"
+      ],
+      "URL_QUERY": [
+        "Salesforce (nextRecordsUrl)"
+      ],
+      "PAGE_OR_OFFSET": [
+        "Universal HTTP (configurable)"
+      ]
+    }
+  },
+  "dynamic_schema_certification": {
+    "STATIC_SCHEMA": 77,
+    "DYNAMIC_SCHEMA": 1,
+    "LIVE_METADATA_SCHEMA": 8,
+    "live_metadata_systems": [
+      "Salesforce (SObject describe REST API)",
+      "Dynamics 365 (OData $metadata EDMX)",
+      "SAP S/4HANA (OData EDMX schema)",
+      "NetSuite (SuiteQL metadata catalog)",
+      "PostgreSQL (information_schema introspection)",
+      "MySQL (information_schema introspection)",
+      "Snowflake (INFORMATION_SCHEMA.COLUMNS)",
+      "Google BigQuery (TABLES & COLUMNS metadata)"
+    ],
+    "dynamic_inference_systems": [
+      "Universal HTTP (infer_json_schema on arbitrary JSON response)"
+    ]
+  },
+  "certification_summary": {
+    "total_connectors": 86,
+    "PRODUCTION_CERTIFIED": 0,
+    "CONTRACT_VALIDATED": 12,
+    "VALIDATED_FUNCTIONAL": 73,
+    "LIVE_API_VALIDATED": 1,
+    "rule_enforced": "Production Certified requires authenticated live vendor verification. In the absence of third-party enterprise credentials, connectors remain Contract Validated or Validated Functional."
+  }
+}
