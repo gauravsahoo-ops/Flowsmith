@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-29T12:44:58.205535+00:00",
+  "generated_at": "2026-09-29T13:15:22.252508+00:00",
   "validity_window_days": 90,
   "total_profiles_audited": 25,
   "live_success_count": 1,
@@ -20,7 +20,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:d95e4f3a15a6c24a",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -52,7 +52,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:8e40bfa4c95bebce",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -86,7 +86,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:c46cafa46950ba1a",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -118,7 +118,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:074a7b37fedb4812",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -155,7 +155,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:d3ff577b3b39145e",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -185,7 +185,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:06373928767116b4",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -208,32 +208,32 @@
       "sandbox": "Public Live Sandboxes: https://httpbin.org, https://jsonplaceholder.typicode.com",
       "test_type": "AUTHENTICATED_LIVE_CALL",
       "result": "LIVE_SUCCESS",
-      "latency_ms": 1487.93,
+      "latency_ms": 1631.79,
       "http_status": 200,
       "environment": "public_sandbox",
-      "validated_at": "2026-09-29T12:44:58.205535+00:00",
-      "expires_at": "2026-12-28T12:44:58.205535+00:00",
+      "validated_at": "2026-09-29T13:03:04.731379+00:00",
+      "expires_at": "2026-12-28T13:03:04.731379+00:00",
       "is_stale": false,
       "schema_hash": "sha256:051b5bb6569c26f1",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
       "sanitized_response": {
         "args": {
-          "cert_id": "FLOWSMITH_CERT_TEST_1790685898"
+          "cert_id": "FLOWSMITH_CERT_TEST_1790686984"
         },
         "headers": {
           "Accept": "*/*",
           "Accept-Encoding": "gzip, deflate",
           "Host": "httpbin.org",
-          "User-Agent": "FlowSmith-Live-Certifier/2.0",
-          "X-Amzn-Trace-Id": "Root=1-6abbb2cb-2c43ca0b46d5576f32e3fa12"
+          "User-Agent": "FlowSmith-Live-Certifier/2.1",
+          "X-Amzn-Trace-Id": "Root=1-6abbb70a-0538cf3c375fec1c03e48eed"
         },
         "origin": "103.173.92.66",
-        "url": "https://httpbin.org/get?cert_id=FLOWSMITH_CERT_TEST_1790685898"
+        "url": "https://httpbin.org/get?cert_id=FLOWSMITH_CERT_TEST_1790686984"
       },
       "details": {
         "read_operation": "PASSED (GET /get)",
-        "write_disposable_operation": "PASSED (POST /post with FLOWSMITH_CERT_TEST_1790685898)",
+        "write_disposable_operation": "PASSED (POST /post with FLOWSMITH_CERT_TEST_1790686984)",
         "auth_operation": "PASSED (Bearer /bearer)",
         "dynamic_schema_inference": "PASSED (infer_json_schema verified)",
         "cleanup_completed": true
@@ -252,7 +252,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:c26ae87107514027",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_CONTRACT_VALIDATED",
       "details": {
         "required_credentials": [
@@ -284,7 +284,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:144cdd068da504f4",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_CONTRACT_VALIDATED",
       "details": {
         "required_credentials": [
@@ -318,7 +318,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:019ba619f6c0897b",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -350,7 +350,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:c77fbdd50f6da428",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -383,7 +383,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:b51f7da5ef3db54f",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -420,7 +420,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:d055a022dc83384a",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_CONTRACT_VALIDATED",
       "details": {
         "required_credentials": [
@@ -457,7 +457,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:efcced4b8d3f4c6c",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -488,7 +488,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:260ef01c4916d98f",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -524,7 +524,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:239286c509d7c7d5",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_CONTRACT_VALIDATED",
       "details": {
         "required_credentials": [
@@ -559,7 +559,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:01e3183295575e60",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -594,7 +594,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:e1d0aa48ebc85ca7",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_CONTRACT_VALIDATED",
       "details": {
         "required_credentials": [
@@ -623,7 +623,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:49ac72716c5bb3f2",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -657,7 +657,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:9d2d323a2f51bd35",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -691,7 +691,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:0317f97d0c58f674",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_CONTRACT_VALIDATED",
       "details": {
         "required_credentials": [
@@ -723,7 +723,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:f2b74b63521393d8",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_CONTRACT_VALIDATED",
       "details": {
         "required_credentials": [
@@ -762,7 +762,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:ce31d6d800593dfb",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_CONTRACT_VALIDATED",
       "details": {
         "required_credentials": [
@@ -794,7 +794,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:e1ba0c84b4a56806",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [
@@ -823,7 +823,7 @@
       "expires_at": null,
       "is_stale": false,
       "schema_hash": "sha256:969ab17dcd32f982",
-      "certification_version": "2.0.0",
+      "certification_version": "2.1.0",
       "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
       "details": {
         "required_credentials": [

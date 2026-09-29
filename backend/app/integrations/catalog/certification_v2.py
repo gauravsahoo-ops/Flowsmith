@@ -24,6 +24,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
 from app.connectors import ConnectorCategory, get_registry, register_builtin_connectors
+from app.integrations.catalog.certification_state_machine import (
+    get_certification_summary,
+    CertificationState,
+    AvailabilityState,
+    evaluate_promotion,
+    CertificationEvidenceModel,
+)
 
 
 WORKSPACE_ROOT = Path(r"c:\Flowsmith")
@@ -286,7 +293,7 @@ def audit_connector_certification() -> Dict[str, Any]:
 
 def run_certification_engine_v2() -> None:
     """Executes certification audit and writes CONNECTOR_CERTIFICATION_V2.json/.md."""
-    data = audit_connector_certification()
+    data = get_certification_summary()
     summary = data["summary"]
 
     json_path = DOCS_DIR / "CONNECTOR_CERTIFICATION_V2.json"
@@ -296,23 +303,26 @@ def run_certification_engine_v2() -> None:
     # Generate Markdown Table
     md_path = DOCS_DIR / "CONNECTOR_CERTIFICATION_V2.md"
     with open(md_path, "w", encoding="utf-8") as f:
-        f.write("# FlowSmith Connector Certification Matrix V2 (Phase 41)\n\n")
+        f.write("# FlowSmith Connector Certification Matrix V2 (Phase 43)\n\n")
         f.write("## Certification Taxonomy\n\n")
+        f.write("- **`PRODUCTION_CERTIFIED`**: Reserved strictly for connectors with verified live tests + contract tests + disposable write/cleanup + dynamic schema + security hardening.\n")
         f.write("- **`LIVE_API_VALIDATED`**: Executed against live remote vendor endpoints with authenticated credentials.\n")
         f.write("- **`CONTRACT_VALIDATED`**: Comprehensive end-to-end request construction, header formatting, pagination parsing, and error translation verified against official API specifications.\n")
-        f.write("- **`VALIDATED_FUNCTIONAL`**: Operation dispatch, input/output schemas, error handling, and mock responses verified.\n")
+        f.write("- **`MOCK_VALIDATED`**: Operation dispatch, input/output schemas, error handling, and mock responses verified.\n")
         f.write("- **`STATIC_VALIDATED`**: Definition schemas and AST contracts verified.\n")
-        f.write("- **`PRODUCTION_CERTIFIED`**: Reserved strictly for connectors with verified live tests + contract tests + security hardening.\n\n")
+        f.write("- **`LIVE_TEST_UNAVAILABLE`**: Explicit execution availability state indicating live credentials are not currently configured.\n\n")
         
-        f.write("## Certification Summary Metrics\n\n")
+        f.write("## Certification Summary Metrics (Reconciled)\n\n")
         f.write(f"- **Total Registered Connectors**: {summary['total_connectors']}\n")
-        f.write(f"- **Live API Validated**: {summary['live_validated']} (opt-in public sandbox)\n")
+        f.write(f"- **Production Certified**: {summary['production_certified']}\n")
+        f.write(f"- **Live API Validated**: {summary['live_api_validated']} (opt-in public sandbox)\n")
         f.write(f"- **Contract Validated**: {summary['contract_validated']}\n")
-        f.write(f"- **Validated Functional**: {summary['validated_functional']}\n")
-        f.write(f"- **Mock Validated Connectors**: {summary['total_connectors']}\n")
-        f.write(f"- **Total Declared Operations**: {summary['operations']['total_declared']}\n")
-        f.write(f"- **Operations Contract Validated**: {summary['operations']['contract_validated']}\n")
-        f.write(f"- **Operations Live Validated**: {summary['operations']['live_validated']}\n\n")
+        f.write(f"- **Mock Validated**: {summary['mock_validated']}\n")
+        f.write(f"- **Static Validated**: {summary['static_validated']}\n")
+        f.write(f"- **Live Test Unavailable**: {summary['live_test_unavailable']}\n")
+        f.write(f"- **Blocked**: {summary['blocked']}\n")
+        f.write(f"- **Stale Certifications**: {summary['stale_certifications']}\n")
+        f.write(f"- **Expired Certifications**: {summary['expired_certifications']}\n\n")
 
         f.write("## Connector Certification Ledger\n\n")
         f.write("| Connector | Application | Type | Auth Schema | Auth Live | Operations | Pagination | Dynamic Schema | Certification |\n")

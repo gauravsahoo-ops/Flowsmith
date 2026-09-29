@@ -122,22 +122,10 @@ def get_coverage(
 def get_certifications(
     user: User = Depends(get_current_user),
 ) -> dict:
-    """Returns genuine certification matrix for all active FlowSmith connectors (Phase 41/42)."""
-    import json
-    from pathlib import Path
-    from app.integrations.catalog.certification_v2 import audit_connector_certification
+    """Returns authoritative certification matrix and reconciled metrics for all active connectors (Phase 43)."""
+    from app.integrations.catalog.certification_state_machine import get_certification_summary
 
-    cert_json_path = Path(__file__).resolve().parent.parent.parent / "docs" / "integration-platform" / "CONNECTOR_CERTIFICATION_V2.json"
-    if cert_json_path.exists():
-        try:
-            with open(cert_json_path, "r", encoding="utf-8") as f:
-                payload = json.load(f)
-                return ok(payload)
-        except Exception:
-            pass
-
-    # Fallback to dynamic computation
-    payload = audit_connector_certification()
+    payload = get_certification_summary()
     return ok(payload)
 
 
