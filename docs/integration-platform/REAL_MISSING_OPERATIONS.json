@@ -1,0 +1,218 @@
+[
+  {
+    "application_id": "zoho_crm",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "zoho_crm",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "zoho_crm",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "zoho_crm",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  },
+  {
+    "application_id": "freshsales",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "freshsales",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "freshsales",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "freshsales",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  },
+  {
+    "application_id": "sendgrid",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "sendgrid",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "sendgrid",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "sendgrid",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  },
+  {
+    "application_id": "activecampaign",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "activecampaign",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "activecampaign",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "activecampaign",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  },
+  {
+    "application_id": "coda",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "coda",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "coda",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "coda",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  },
+  {
+    "application_id": "xero",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "xero",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "xero",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "xero",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  },
+  {
+    "application_id": "bigquery",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "bigquery",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "bigquery",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "bigquery",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  },
+  {
+    "application_id": "docusign",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "docusign",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "docusign",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "docusign",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  },
+  {
+    "application_id": "intercom",
+    "operation_key": "create",
+    "operation_name": "Create Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "intercom",
+    "operation_key": "get",
+    "operation_name": "Get Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "intercom",
+    "operation_key": "update",
+    "operation_name": "Update Resource",
+    "action_type": "crud"
+  },
+  {
+    "application_id": "intercom",
+    "operation_key": "search",
+    "operation_name": "Search / Query",
+    "action_type": "search"
+  }
+]

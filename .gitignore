@@ -56,7 +56,7 @@ my-automation-tool
 # Markdown documentation & specifications (ignored for Bitbucket)
 *.md
 **/*.md
-docs/
+
 
 
 # Windows local startup scripts

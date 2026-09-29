@@ -135,6 +135,41 @@ MCP_TOOLS: list[MCPTool] = [
             "required": ["template_id"],
         },
     ),
+    MCPTool(
+        name="list_connectors",
+        description="List all available integration connectors, their categories, and operations",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "Optional category filter"},
+            },
+        },
+    ),
+    MCPTool(
+        name="search_knowledge",
+        description="Perform semantic search over workspace RAG vector knowledge base",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "collection_id": {"type": "string", "description": "Collection ID"},
+                "query": {"type": "string", "description": "Search query"},
+                "top_k": {"type": "integer", "description": "Number of matches (default 4)"},
+            },
+            "required": ["collection_id", "query"],
+        },
+    ),
+    MCPTool(
+        name="query_data_table",
+        description="Query and filter rows from a workspace Data Table",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "table_id": {"type": "string", "description": "Data Table ID"},
+                "limit": {"type": "integer", "description": "Max rows to return (default 20)"},
+            },
+            "required": ["table_id"],
+        },
+    ),
 ]
 
 
@@ -398,6 +433,53 @@ async def call_mcp_tool(
             db.commit()
             db.refresh(rec)
             result = {"id": rec.id, "name": rec.name}
+
+        elif payload.name == "list_connectors":
+            from app.connectors import ensure_builtin_connectors, get_registry as get_conn_registry
+            ensure_builtin_connectors()
+            registry = get_conn_registry()
+            category_filter = args.get("category")
+            definitions = registry.list_definitions()
+            if category_filter:
+                definitions = [d for d in definitions if d.category == category_filter]
+            result = [
+                {
+                    "connector_key": d.connector_key,
+                    "display_name": d.display_name,
+                    "category": d.category,
+                    "description": d.description,
+                    "operations": list(d.operations.keys()),
+                    "triggers": list(d.triggers.keys()),
+                }
+                for d in definitions
+            ]
+
+        elif payload.name == "search_knowledge":
+            from app.rag import query_collection, RagAccess
+            collection_id = args["collection_id"]
+            query = args["query"]
+            top_k = int(args.get("top_k", 4))
+            access = RagAccess(user_id=user.id)
+            query_res = query_collection(db, collection_id, query, access, top_k=top_k)
+            result = query_res
+
+        elif payload.name == "query_data_table":
+            from app.models import DataTable, DataTableRow
+            from app.api.workspaces import _require_ws_member
+            table_id = args["table_id"]
+            limit = min(int(args.get("limit", 20)), 100)
+            tbl = db.get(DataTable, table_id)
+            if tbl is None:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "Table not found.")
+            if not _require_ws_member(db, tbl.workspace_id, user):
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "Table not found.")
+            rows = db.scalars(
+                select(DataTableRow).where(DataTableRow.table_id == table_id).limit(limit)
+            ).all()
+            result = [
+                {"id": r.id, "data": r.data, "created_at": str(r.created_at)}
+                for r in rows
+            ]
 
         else:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unknown tool: {payload.name}")

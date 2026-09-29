@@ -1,0 +1,56 @@
+[
+  {
+    "connector_id": "zoho_crm",
+    "canonical_name": "Zoho CRM",
+    "target_method": "UNIVERSAL_HTTP",
+    "priority_score": 9.2
+  },
+  {
+    "connector_id": "freshsales",
+    "canonical_name": "Freshsales",
+    "target_method": "UNIVERSAL_HTTP",
+    "priority_score": 9.2
+  },
+  {
+    "connector_id": "sendgrid",
+    "canonical_name": "Twilio SendGrid",
+    "target_method": "UNIVERSAL_HTTP",
+    "priority_score": 9.2
+  },
+  {
+    "connector_id": "activecampaign",
+    "canonical_name": "ActiveCampaign",
+    "target_method": "UNIVERSAL_HTTP",
+    "priority_score": 9.2
+  },
+  {
+    "connector_id": "coda",
+    "canonical_name": "Coda",
+    "target_method": "OPENAPI_GENERATABLE",
+    "priority_score": 9.2
+  },
+  {
+    "connector_id": "xero",
+    "canonical_name": "Xero Accounting",
+    "target_method": "UNIVERSAL_HTTP",
+    "priority_score": 9.2
+  },
+  {
+    "connector_id": "bigquery",
+    "canonical_name": "Google BigQuery",
+    "target_method": "OPENAPI_GENERATABLE",
+    "priority_score": 9.2
+  },
+  {
+    "connector_id": "docusign",
+    "canonical_name": "DocuSign eSignature",
+    "target_method": "REST_GENERATABLE",
+    "priority_score": 9.2
+  },
+  {
+    "connector_id": "intercom",
+    "canonical_name": "Intercom Customer Messaging",
+    "target_method": "REST_GENERATABLE",
+    "priority_score": 9.2
+  }
+]

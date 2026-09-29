@@ -623,6 +623,42 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.sentry_definition import build_sentry_definition
     from app.connectors.s3_connector import S3Connector
     from app.connectors.s3_definition import build_s3_definition
+    from app.connectors.servicenow_connector import ServiceNowConnector
+    from app.connectors.servicenow_definition import build_servicenow_definition
+    from app.connectors.sap_connector import SapConnector
+    from app.connectors.sap_definition import build_sap_definition
+    from app.connectors.workday_connector import WorkdayConnector
+    from app.connectors.workday_definition import build_workday_definition
+    from app.connectors.netsuite_connector import NetSuiteConnector
+    from app.connectors.netsuite_definition import build_netsuite_definition
+    from app.connectors.anthropic_connector import AnthropicConnector
+    from app.connectors.anthropic_definition import build_anthropic_definition
+    from app.connectors.gemini_connector import GeminiConnector
+    from app.connectors.gemini_definition import build_gemini_definition
+    from app.connectors.snowflake_connector import SnowflakeConnector
+    from app.connectors.snowflake_definition import build_snowflake_definition
+    from app.connectors.box_connector import BoxConnector
+    from app.connectors.box_definition import build_box_definition
+    from app.connectors.typeform_connector import TypeformConnector
+    from app.connectors.typeform_definition import build_typeform_definition
+    from app.connectors.bigquery_connector import BigQueryConnector
+    from app.connectors.bigquery_definition import build_bigquery_definition
+    from app.connectors.sendgrid_connector import SendGridConnector
+    from app.connectors.sendgrid_definition import build_sendgrid_definition
+    from app.connectors.intercom_connector import IntercomConnector
+    from app.connectors.intercom_definition import build_intercom_definition
+    from app.connectors.docusign_connector import DocuSignConnector
+    from app.connectors.docusign_definition import build_docusign_definition
+    from app.connectors.coda_connector import CodaConnector
+    from app.connectors.coda_definition import build_coda_definition
+    from app.connectors.xero_connector import XeroConnector
+    from app.connectors.xero_definition import build_xero_definition
+    from app.connectors.zoho_crm_connector import ZohoCrmConnector
+    from app.connectors.zoho_crm_definition import build_zoho_crm_definition
+    from app.connectors.freshsales_connector import FreshsalesConnector
+    from app.connectors.freshsales_definition import build_freshsales_definition
+    from app.connectors.activecampaign_connector import ActiveCampaignConnector
+    from app.connectors.activecampaign_definition import build_activecampaign_definition
 
     # connector_id -> (instance factory, definition builder). Definition
     # builders are paired with their connectors so discovery, the node
@@ -680,6 +716,24 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (PineconeConnector(), build_pinecone_definition),
         (SentryConnector(), build_sentry_definition),
         (S3Connector(), build_s3_definition),
+        (ServiceNowConnector(), build_servicenow_definition),
+        (SapConnector(), build_sap_definition),
+        (WorkdayConnector(), build_workday_definition),
+        (NetSuiteConnector(), build_netsuite_definition),
+        (AnthropicConnector(), build_anthropic_definition),
+        (GeminiConnector(), build_gemini_definition),
+        (SnowflakeConnector(), build_snowflake_definition),
+        (BoxConnector(), build_box_definition),
+        (TypeformConnector(), build_typeform_definition),
+        (BigQueryConnector(), build_bigquery_definition),
+        (SendGridConnector(), build_sendgrid_definition),
+        (IntercomConnector(), build_intercom_definition),
+        (DocuSignConnector(), build_docusign_definition),
+        (CodaConnector(), build_coda_definition),
+        (XeroConnector(), build_xero_definition),
+        (ZohoCrmConnector(), build_zoho_crm_definition),
+        (FreshsalesConnector(), build_freshsales_definition),
+        (ActiveCampaignConnector(), build_activecampaign_definition),
     ]
 
     registry = get_registry()

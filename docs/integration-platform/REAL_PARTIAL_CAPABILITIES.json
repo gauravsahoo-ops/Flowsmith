@@ -1,0 +1,572 @@
+[
+  {
+    "application_id": "hubspot",
+    "canonical_name": "HubSpot",
+    "flowsmith_ops": 4,
+    "external_max_ops": 14,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "pipedrive",
+    "canonical_name": "Pipedrive",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "google_sheets",
+    "canonical_name": "Google Sheets",
+    "flowsmith_ops": 3,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "google_drive",
+    "canonical_name": "Google Drive",
+    "flowsmith_ops": 3,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "google_docs",
+    "canonical_name": "Google Docs",
+    "flowsmith_ops": 4,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "google_calendar",
+    "canonical_name": "Google Calendar",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "gmail",
+    "canonical_name": "Gmail",
+    "flowsmith_ops": 1,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "outlook",
+    "canonical_name": "Microsoft Outlook / 365 Mail",
+    "flowsmith_ops": 2,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "msteams",
+    "canonical_name": "Microsoft Teams",
+    "flowsmith_ops": 3,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "slack",
+    "canonical_name": "Slack",
+    "flowsmith_ops": 2,
+    "external_max_ops": 12,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "discord",
+    "canonical_name": "Discord",
+    "flowsmith_ops": 2,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "twilio",
+    "canonical_name": "Twilio",
+    "flowsmith_ops": 3,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "whatsapp",
+    "canonical_name": "WhatsApp Business Cloud API",
+    "flowsmith_ops": 3,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "telegram",
+    "canonical_name": "Telegram Bot API",
+    "flowsmith_ops": 1,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "mailchimp",
+    "canonical_name": "Mailchimp",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "brevo",
+    "canonical_name": "Brevo (formerly Sendinblue)",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "resend",
+    "canonical_name": "Resend",
+    "flowsmith_ops": 3,
+    "external_max_ops": 6,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "jira",
+    "canonical_name": "Atlassian Jira Software Cloud",
+    "flowsmith_ops": 4,
+    "external_max_ops": 10,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "servicenow",
+    "canonical_name": "ServiceNow ITSM",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "zendesk",
+    "canonical_name": "Zendesk Support",
+    "flowsmith_ops": 5,
+    "external_max_ops": 9,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "freshdesk",
+    "canonical_name": "Freshdesk",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "pagerduty",
+    "canonical_name": "PagerDuty",
+    "flowsmith_ops": 6,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "notion",
+    "canonical_name": "Notion",
+    "flowsmith_ops": 3,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "airtable",
+    "canonical_name": "Airtable",
+    "flowsmith_ops": 4,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "asana",
+    "canonical_name": "Asana",
+    "flowsmith_ops": 5,
+    "external_max_ops": 9,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "monday",
+    "canonical_name": "Monday.com",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "clickup",
+    "canonical_name": "ClickUp",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "linear",
+    "canonical_name": "Linear",
+    "flowsmith_ops": 5,
+    "external_max_ops": 7,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "trello",
+    "canonical_name": "Trello",
+    "flowsmith_ops": 4,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "todoist",
+    "canonical_name": "Todoist",
+    "flowsmith_ops": 6,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "dropbox",
+    "canonical_name": "Dropbox",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "box",
+    "canonical_name": "Box",
+    "flowsmith_ops": 6,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "calendly",
+    "canonical_name": "Calendly",
+    "flowsmith_ops": 4,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "zoom",
+    "canonical_name": "Zoom Video Communications",
+    "flowsmith_ops": 4,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "github",
+    "canonical_name": "GitHub",
+    "flowsmith_ops": 4,
+    "external_max_ops": 10,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "gitlab",
+    "canonical_name": "GitLab",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "bitbucket",
+    "canonical_name": "Bitbucket Cloud",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "sentry",
+    "canonical_name": "Sentry Error Monitoring",
+    "flowsmith_ops": 3,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "stripe",
+    "canonical_name": "Stripe Payments",
+    "flowsmith_ops": 4,
+    "external_max_ops": 12,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "shopify",
+    "canonical_name": "Shopify",
+    "flowsmith_ops": 4,
+    "external_max_ops": 12,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "quickbooks",
+    "canonical_name": "Intuit QuickBooks Online",
+    "flowsmith_ops": 6,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "postgres",
+    "canonical_name": "PostgreSQL Database",
+    "flowsmith_ops": 4,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "mysql",
+    "canonical_name": "MySQL Database",
+    "flowsmith_ops": 4,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "redis",
+    "canonical_name": "Redis In-Memory Data Store",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "mongodb",
+    "canonical_name": "MongoDB Document Database",
+    "flowsmith_ops": 4,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "supabase",
+    "canonical_name": "Supabase (Backend as a Service)",
+    "flowsmith_ops": 5,
+    "external_max_ops": 6,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "s3",
+    "canonical_name": "Amazon S3 Object Storage",
+    "flowsmith_ops": 4,
+    "external_max_ops": 6,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "elasticsearch",
+    "canonical_name": "Elasticsearch & OpenSearch",
+    "flowsmith_ops": 1,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "pinecone",
+    "canonical_name": "Pinecone Vector Database",
+    "flowsmith_ops": 3,
+    "external_max_ops": 6,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "openai",
+    "canonical_name": "OpenAI LLM & API Platform",
+    "flowsmith_ops": 3,
+    "external_max_ops": 6,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "anthropic",
+    "canonical_name": "Anthropic Claude",
+    "flowsmith_ops": 2,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "gemini",
+    "canonical_name": "Google Gemini & Vertex AI",
+    "flowsmith_ops": 3,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "snowflake",
+    "canonical_name": "Snowflake Data Cloud",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "workday",
+    "canonical_name": "Workday Enterprise HCM & Finance",
+    "flowsmith_ops": 6,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "sap",
+    "canonical_name": "SAP S/4HANA ERP",
+    "flowsmith_ops": 6,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "netsuite",
+    "canonical_name": "Oracle NetSuite ERP",
+    "flowsmith_ops": 7,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  },
+  {
+    "application_id": "typeform",
+    "canonical_name": "Typeform",
+    "flowsmith_ops": 5,
+    "external_max_ops": 8,
+    "status": "PARTIALLY_IMPLEMENTED",
+    "missing_operation_keys": [
+      "advanced_filters"
+    ]
+  }
+]

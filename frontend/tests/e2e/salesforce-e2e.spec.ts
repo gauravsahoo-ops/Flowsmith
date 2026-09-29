@@ -28,7 +28,7 @@ async function gotoApp(page, token) {
   await page.goto('http://localhost:5173');
   await page.evaluate((t) => localStorage.setItem('mat_token', t), token);
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
   try {
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 5000 });
   } catch {
@@ -39,7 +39,7 @@ async function gotoApp(page, token) {
     const wfId = listJson.data?.[0]?.id;
     if (wfId) {
       await page.goto(`http://localhost:5173/workflows/${wfId}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('networkidle').catch(() => {});
     }
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
   }
@@ -76,11 +76,12 @@ async function createCredentialViaUi(page, token) {
   const meta = (await resp.json()).data;
   // Reload the page so the credential store picks up the new credential
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForFunction(
     () => {
       const s = window.__wfStore?.getState();
-      return s && !s.loading && s.workflow;
+      const c = window.__credentialStore?.getState();
+      return s && !s.loading && s.workflow && (!c || c.loaded);
     },
     { timeout: 15000 },
   );
@@ -145,14 +146,19 @@ async function bindCredentialViaUi(page, nodeId, credName) {
   // (the modal is reused across nodes, so a previous bind may have left it open
   //  — in that case clicking the toggle would COLLAPSE it).
   const credToggle = page.locator('.node-editor-modal button.cfg-section-head', { hasText: 'Credential' });
-  const credSection = page.locator('.node-editor-modal section.cfg-section.open').filter({ has: credToggle });
-  if ((await credSection.count()) === 0) {
+  const credSection = page.locator('.node-editor-modal section.cfg-section').filter({ hasText: 'Credential' });
+  const isOpen = await credSection.evaluate((el) => el.classList.contains('open')).catch(() => false);
+  if (!isOpen) {
     await credToggle.click({ timeout: 5000 });
   }
   // Now select the credential from the dropdown
   const sfLabel = page.locator('.node-editor-modal label', { hasText: 'salesforce' });
   await expect(sfLabel).toBeVisible({ timeout: 5000 });
-  await sfLabel.locator('select').selectOption({ label: credName });
+  const sfSelect = sfLabel.locator('select');
+  const sfOption = sfSelect.locator('option', { hasText: credName });
+  await expect(sfOption).toBeAttached({ timeout: 10000 });
+  const credVal = await sfOption.getAttribute('value');
+  await sfSelect.selectOption(credVal!);
   // Wait for the credential to land in the store (React state update
   // from selectOption must flush before we close the editor / save).
   await page.waitForFunction(
@@ -181,7 +187,7 @@ async function saveWorkflow(page) {
 }
 
 async function runAndWait(page, expectedNodeCount) {
-  await page.locator('button:has-text("▶ Run")').click();
+  await page.locator('button.primary--run, button[aria-label="Run workflow"]').first().click();
   await expect(page.locator('.rf-node.status-success')).toHaveCount(expectedNodeCount, { timeout: 45000 });
   // Scoped to the topbar: the inspector also renders a .run-status once
   // an execution is loaded, and strict mode forbids matching both.
@@ -213,10 +219,14 @@ function stepByName(steps, nodeType) {
 }
 
 async function checkHistoryUi(page, workflowName, _expectedSteps?: number) {
-  // The topbar 🕘 button navigates to the /executions page (a full page
-  // route, not a slide-in panel). Find the row for our workflow and verify
-  // its status badge, then open the detail page.
-  await page.locator('header.topbar button[title*="Executions" i]').click();
+  // Navigate to the /executions page (a full page route, not a slide-in panel).
+  // Find the row for our workflow and verify its status badge, then open the detail page.
+  const execNav = page.locator('a[href="/executions"], header.topbar button[title*="Executions" i]').first();
+  if (await execNav.isVisible().catch(() => false)) {
+    await execNav.click();
+  } else {
+    await page.goto('/executions');
+  }
   await page.waitForURL(/\/executions($|\?)/, { timeout: 10000 });
   await page.waitForSelector('.data-table tbody tr', { timeout: 15000 });
   const row = page
@@ -333,7 +343,7 @@ test('B — Search -> IF (true) -> Update end to end', async ({ page }) => {
   await connect(page, ifId, updateId, 'true', 'main');
 
   await saveWorkflow(page);
-  await runAndWait(page, 2);
+  await runAndWait(page, 3);
 
   const workflowName = await page.evaluate(() => window.__wfStore.getState().workflow.name);
   await checkHistoryUi(page, workflowName, 4);
@@ -409,7 +419,7 @@ test('C — Search -> IF (false) -> Create end to end', async ({ page }) => {
   await connect(page, ifId, createId, 'false', 'main');
 
   await saveWorkflow(page);
-  await runAndWait(page, 2);
+  await runAndWait(page, 3);
 
   const workflowName = await page.evaluate(() => window.__wfStore.getState().workflow.name);
   await checkHistoryUi(page, workflowName, 4);

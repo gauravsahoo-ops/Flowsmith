@@ -1,0 +1,5890 @@
+{
+  "total": 69,
+  "connectors": [
+    {
+      "connector_key": "airtable",
+      "display_name": "Airtable",
+      "description": "Read and write Airtable records via Web API v0.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "airtable"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "list_records": {
+          "display_name": "List Records",
+          "description": "List records of one table (offset pagination).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "airtable",
+          "input_schema_fields": [
+            "base_id",
+            "table_name",
+            "view",
+            "filter_by_formula",
+            "page_size",
+            "max_pages"
+          ]
+        },
+        "get_record": {
+          "display_name": "Get Record",
+          "description": "Fetch one record by id (rec\u2026).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "airtable",
+          "input_schema_fields": [
+            "base_id",
+            "table_name",
+            "record_id"
+          ]
+        },
+        "create_record": {
+          "display_name": "Create Record",
+          "description": "Create a record from a fields map.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "airtable",
+          "input_schema_fields": [
+            "base_id",
+            "table_name",
+            "fields"
+          ]
+        },
+        "update_record": {
+          "display_name": "Update Record",
+          "description": "Patch fields of an existing record.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "airtable",
+          "input_schema_fields": [
+            "base_id",
+            "table_name",
+            "record_id",
+            "fields"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "airtable": {
+          "display_name": "Airtable",
+          "secret_fields": [
+            "personal_access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "asana",
+      "display_name": "Asana",
+      "description": "Work with Asana projects, tasks, and comments.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "asana"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_tasks": {
+          "display_name": "List Project Tasks",
+          "description": "List tasks in a project.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "asana",
+          "input_schema_fields": [
+            "project_id"
+          ]
+        },
+        "get_task": {
+          "display_name": "Get Task",
+          "description": "Fetch one task by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "asana",
+          "input_schema_fields": [
+            "task_id"
+          ]
+        },
+        "create_task": {
+          "display_name": "Create Task",
+          "description": "Create a task in a project.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "asana",
+          "input_schema_fields": [
+            "project_id",
+            "name",
+            "notes"
+          ]
+        },
+        "update_task": {
+          "display_name": "Update Task",
+          "description": "Update name/notes/due date/assignee.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "asana",
+          "input_schema_fields": [
+            "task_id",
+            "name",
+            "notes",
+            "due_on",
+            "assignee"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Add a story comment to a task.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "asana",
+          "input_schema_fields": [
+            "task_id",
+            "text"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "asana": {
+          "display_name": "Asana",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "bitbucket",
+      "display_name": "Bitbucket",
+      "description": "Work with Bitbucket workspaces, repos, and pull requests.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "bitbucket"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_repos": {
+          "display_name": "List Repos",
+          "description": "List repos in a workspace.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "bitbucket",
+          "input_schema_fields": [
+            "workspace"
+          ]
+        },
+        "get_repo": {
+          "display_name": "Get Repo",
+          "description": "Fetch one repo.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "bitbucket",
+          "input_schema_fields": [
+            "workspace",
+            "repo_slug"
+          ]
+        },
+        "list_pull_requests": {
+          "display_name": "List Pull Requests",
+          "description": "List open pull requests.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "bitbucket",
+          "input_schema_fields": [
+            "workspace",
+            "repo_slug"
+          ]
+        },
+        "get_pull_request": {
+          "display_name": "Get Pull Request",
+          "description": "Fetch one pull request.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "bitbucket",
+          "input_schema_fields": [
+            "workspace",
+            "repo_slug",
+            "pr_id"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Comment on a pull request.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "bitbucket",
+          "input_schema_fields": [
+            "workspace",
+            "repo_slug",
+            "pr_id",
+            "text"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "bitbucket": {
+          "display_name": "Bitbucket",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "brevo",
+      "display_name": "Brevo",
+      "description": "Send Brevo transactional email and manage contacts.",
+      "category": "marketing",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "brevo"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "send_email": {
+          "display_name": "Send Email",
+          "description": "Send a transactional email.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "brevo",
+          "input_schema_fields": [
+            "sender",
+            "to",
+            "subject",
+            "html",
+            "text"
+          ]
+        },
+        "list_contacts": {
+          "display_name": "List Contacts",
+          "description": "List contacts.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "brevo",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_contact": {
+          "display_name": "Get Contact",
+          "description": "Fetch one contact by email.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "brevo",
+          "input_schema_fields": [
+            "email"
+          ]
+        },
+        "create_contact": {
+          "display_name": "Create Contact",
+          "description": "Add a contact.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "brevo",
+          "input_schema_fields": [
+            "email"
+          ]
+        },
+        "update_contact": {
+          "display_name": "Update Contact",
+          "description": "Update contact attributes.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "brevo",
+          "input_schema_fields": [
+            "email",
+            "subscribed"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "brevo": {
+          "display_name": "Brevo",
+          "secret_fields": [
+            "api_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "calendly",
+      "display_name": "Calendly",
+      "description": "Work with Calendly event types and scheduled events.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "calendly"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "list_event_types": {
+          "display_name": "List Event Types",
+          "description": "List scheduling event types.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "calendly",
+          "input_schema_fields": [
+            "user_uri"
+          ]
+        },
+        "list_events": {
+          "display_name": "List Events",
+          "description": "List scheduled events.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "calendly",
+          "input_schema_fields": [
+            "user_uri",
+            "count"
+          ]
+        },
+        "get_event": {
+          "display_name": "Get Event",
+          "description": "Fetch one scheduled event.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "calendly",
+          "input_schema_fields": [
+            "event_uuid"
+          ]
+        },
+        "cancel_event": {
+          "display_name": "Cancel Event",
+          "description": "Cancel a scheduled event.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "calendly",
+          "input_schema_fields": [
+            "event_uuid"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "calendly": {
+          "display_name": "Calendly",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "clickup",
+      "display_name": "ClickUp",
+      "description": "Work with ClickUp lists, tasks, and comments.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "clickup"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_tasks": {
+          "display_name": "List Tasks",
+          "description": "List tasks in a list.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "clickup",
+          "input_schema_fields": [
+            "list_id",
+            "limit"
+          ]
+        },
+        "get_task": {
+          "display_name": "Get Task",
+          "description": "Fetch one task by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "clickup",
+          "input_schema_fields": [
+            "task_id"
+          ]
+        },
+        "create_task": {
+          "display_name": "Create Task",
+          "description": "Create a task in a list.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "clickup",
+          "input_schema_fields": [
+            "list_id",
+            "name",
+            "description",
+            "status"
+          ]
+        },
+        "update_task": {
+          "display_name": "Update Task",
+          "description": "Update name/description/status.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "clickup",
+          "input_schema_fields": [
+            "task_id",
+            "name",
+            "description",
+            "status"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Comment on a task.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "clickup",
+          "input_schema_fields": [
+            "task_id",
+            "comment_text"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "clickup": {
+          "display_name": "ClickUp",
+          "secret_fields": [
+            "api_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "coin_gecko",
+      "display_name": "CoinGecko",
+      "description": "Generated from CoinGecko Demo API.",
+      "category": "finance",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "coin_gecko"
+      ],
+      "operations_count": 50,
+      "operations": {
+        "ping_server": {
+          "display_name": "API Server Status",
+          "description": "GET /ping",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "simple_price": {
+          "display_name": "Coin Price by IDs, Symbols, or Names",
+          "description": "GET /simple/price",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "vs_currencies",
+            "ids",
+            "names",
+            "symbols",
+            "include_tokens",
+            "include_market_cap",
+            "include_24hr_vol",
+            "include_24hr_change",
+            "include_last_updated_at",
+            "precision"
+          ]
+        },
+        "search_data": {
+          "display_name": "Search Queries",
+          "description": "GET /search",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "query"
+          ]
+        },
+        "simple_supported_currencies": {
+          "display_name": "Currencies List",
+          "description": "GET /simple/supported_vs_currencies",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "simple_token_price": {
+          "display_name": "Coin Price by Token Addresses",
+          "description": "GET /simple/token_price/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "contract_addresses",
+            "vs_currencies",
+            "include_market_cap",
+            "include_24hr_vol",
+            "include_24hr_change",
+            "include_last_updated_at",
+            "precision"
+          ]
+        },
+        "coins_list": {
+          "display_name": "Coins List",
+          "description": "GET /coins/list",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "include_platform",
+            "status"
+          ]
+        },
+        "coins_id": {
+          "display_name": "Coin Data by ID",
+          "description": "GET /coins/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "localization",
+            "tickers",
+            "market_data",
+            "community_data",
+            "developer_data",
+            "sparkline",
+            "include_categories_details",
+            "dex_pair_format"
+          ]
+        },
+        "coins_markets": {
+          "display_name": "Coins List with Market Data",
+          "description": "GET /coins/markets",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "vs_currency",
+            "ids",
+            "names",
+            "symbols",
+            "include_tokens",
+            "category",
+            "order",
+            "per_page",
+            "page",
+            "sparkline",
+            "price_change_percentage",
+            "locale",
+            "precision",
+            "include_rehypothecated"
+          ]
+        },
+        "coins_id_tickers": {
+          "display_name": "Coin Tickers by ID",
+          "description": "GET /coins/{id}/tickers",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "exchange_ids",
+            "include_exchange_logo",
+            "page",
+            "order",
+            "depth",
+            "dex_pair_format"
+          ]
+        },
+        "coins_id_history": {
+          "display_name": "Coin Historical Data by ID",
+          "description": "GET /coins/{id}/history",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "date",
+            "localization"
+          ]
+        },
+        "coins_id_market_chart": {
+          "display_name": "Coin Historical Chart Data by ID",
+          "description": "GET /coins/{id}/market_chart",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "vs_currency",
+            "days",
+            "interval",
+            "precision"
+          ]
+        },
+        "coins_id_market_chart_range": {
+          "display_name": "Coin Historical Chart Data within Time Range by ID",
+          "description": "GET /coins/{id}/market_chart/range",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "vs_currency",
+            "from",
+            "to",
+            "precision"
+          ]
+        },
+        "coins_id_ohlc": {
+          "display_name": "Coin OHLC Chart by ID",
+          "description": "GET /coins/{id}/ohlc",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "vs_currency",
+            "days",
+            "precision"
+          ]
+        },
+        "coins_contract_address": {
+          "display_name": "Coin Data by Token Address",
+          "description": "GET /coins/{id}/contract/{contract_address}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "contract_address"
+          ]
+        },
+        "contract_address_market_chart": {
+          "display_name": "Coin Historical Chart Data by Token Address",
+          "description": "GET /coins/{id}/contract/{contract_address}/market_chart",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "contract_address",
+            "vs_currency",
+            "days",
+            "interval",
+            "precision"
+          ]
+        },
+        "contract_address_market_chart_range": {
+          "display_name": "Coin Historical Chart Data within Time Range by Token Address",
+          "description": "GET /coins/{id}/contract/{contract_address}/market_chart/range",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "contract_address",
+            "vs_currency",
+            "from",
+            "to",
+            "precision"
+          ]
+        },
+        "asset_platforms_list": {
+          "display_name": "Asset Platforms List",
+          "description": "GET /asset_platforms",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "filter"
+          ]
+        },
+        "token_lists": {
+          "display_name": "Token Lists by Asset Platform ID",
+          "description": "GET /token_lists/{asset_platform_id}/all.json",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "asset_platform_id"
+          ]
+        },
+        "coins_categories_list": {
+          "display_name": "Coins Categories List",
+          "description": "GET /coins/categories/list",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "coins_categories": {
+          "display_name": "Coins Categories List with Market Data",
+          "description": "GET /coins/categories",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "order"
+          ]
+        },
+        "rwas_list": {
+          "display_name": "RWA List",
+          "description": "GET /rwas/list",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "asset_type"
+          ]
+        },
+        "rwas_markets": {
+          "display_name": "RWA List with Market Data",
+          "description": "GET /rwas/markets",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "asset_type",
+            "ids",
+            "names",
+            "symbols",
+            "issuer",
+            "order",
+            "per_page",
+            "page",
+            "sparkline",
+            "price_change_percentage",
+            "precision"
+          ]
+        },
+        "rwas_id": {
+          "display_name": "RWA Data by ID",
+          "description": "GET /rwas/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "sparkline",
+            "tokens",
+            "tokenized_market_data"
+          ]
+        },
+        "rwas_issuers_list": {
+          "display_name": "RWA Issuers List",
+          "description": "GET /rwas/issuers/list",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "rwas_issuers_id": {
+          "display_name": "RWA Issuer Data by ID",
+          "description": "GET /rwas/issuers/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "exchanges": {
+          "display_name": "Exchanges List with Data",
+          "description": "GET /exchanges",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "per_page",
+            "page"
+          ]
+        },
+        "exchanges_list": {
+          "display_name": "Exchanges List",
+          "description": "GET /exchanges/list",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "status"
+          ]
+        },
+        "exchanges_id": {
+          "display_name": "Exchange Data by ID",
+          "description": "GET /exchanges/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "dex_pair_format"
+          ]
+        },
+        "exchanges_id_tickers": {
+          "display_name": "Exchange Tickers by ID",
+          "description": "GET /exchanges/{id}/tickers",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "coin_ids",
+            "include_exchange_logo",
+            "page",
+            "depth",
+            "order",
+            "dex_pair_format"
+          ]
+        },
+        "exchanges_id_volume_chart": {
+          "display_name": "Exchange Volume Chart by ID",
+          "description": "GET /exchanges/{id}/volume_chart",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "days"
+          ]
+        },
+        "derivatives_tickers": {
+          "display_name": "Derivatives Tickers List",
+          "description": "GET /derivatives",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "derivatives_exchanges": {
+          "display_name": "Derivatives Exchanges List with Data",
+          "description": "GET /derivatives/exchanges",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "order",
+            "per_page",
+            "page"
+          ]
+        },
+        "derivatives_exchanges_id": {
+          "display_name": "Derivatives Exchange Data by ID",
+          "description": "GET /derivatives/exchanges/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id",
+            "include_tickers"
+          ]
+        },
+        "derivatives_exchanges_list": {
+          "display_name": "Derivatives Exchanges List",
+          "description": "GET /derivatives/exchanges/list",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "entities_list": {
+          "display_name": "Entities List",
+          "description": "GET /entities/list",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "entity_type",
+            "per_page",
+            "page"
+          ]
+        },
+        "companies_public_treasury": {
+          "display_name": "Crypto Treasury Holdings by Coin ID",
+          "description": "GET /{entity}/public_treasury/{coin_id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "entity",
+            "coin_id",
+            "per_page",
+            "page",
+            "order"
+          ]
+        },
+        "public_treasury_entity": {
+          "display_name": "Crypto Treasury Holdings by Entity ID",
+          "description": "GET /public_treasury/{entity_id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "entity_id",
+            "holding_amount_change",
+            "holding_change_percentage"
+          ]
+        },
+        "public_treasury_entity_chart": {
+          "display_name": "Crypto Treasury Holdings Historical Chart Data by ID",
+          "description": "GET /public_treasury/{entity_id}/{coin_id}/holding_chart",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "entity_id",
+            "coin_id",
+            "days",
+            "include_empty_intervals"
+          ]
+        },
+        "public_treasury_transaction_history": {
+          "display_name": "Crypto Treasury Transaction History by Entity ID",
+          "description": "GET /public_treasury/{entity_id}/transaction_history",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "entity_id",
+            "per_page",
+            "page",
+            "order",
+            "coin_ids"
+          ]
+        },
+        "nfts_list": {
+          "display_name": "NFTs List",
+          "description": "GET /nfts/list",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "order",
+            "per_page",
+            "page"
+          ]
+        },
+        "nfts_id": {
+          "display_name": "NFTs Collection Data by ID",
+          "description": "GET /nfts/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "nfts_contract_address": {
+          "display_name": "NFTs Collection Data by Contract Address",
+          "description": "GET /nfts/{asset_platform_id}/contract/{contract_address}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "asset_platform_id",
+            "contract_address"
+          ]
+        },
+        "exchange_rates": {
+          "display_name": "BTC-to-Currency Exchange Rates",
+          "description": "GET /exchange_rates",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "trending_search": {
+          "display_name": "Trending Search List",
+          "description": "GET /search/trending",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "crypto_global": {
+          "display_name": "Crypto Global Market Data",
+          "description": "GET /global",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "global_defi": {
+          "display_name": "Global DeFi Market Data",
+          "description": "GET /global/decentralized_finance_defi",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": []
+        },
+        "pool_address": {
+          "display_name": "Specific Pool Data by Pool Address",
+          "description": "GET /onchain/networks/{network}/pools/{address}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "network",
+            "address",
+            "include",
+            "include_volume_breakdown",
+            "include_composition"
+          ]
+        },
+        "trending_pools_list": {
+          "display_name": "Trending Pools List",
+          "description": "GET /onchain/networks/trending_pools",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "include",
+            "page",
+            "duration",
+            "include_gt_community_data"
+          ]
+        },
+        "trending_pools_network": {
+          "display_name": "Trending Pools by Network",
+          "description": "GET /onchain/networks/{network}/trending_pools",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "network",
+            "include",
+            "page",
+            "duration",
+            "include_gt_community_data"
+          ]
+        },
+        "top_pools_network": {
+          "display_name": "Top Pools by Network",
+          "description": "GET /onchain/networks/{network}/pools",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coin_gecko",
+          "input_schema_fields": [
+            "network",
+            "include",
+            "page",
+            "sort",
+            "include_gt_community_data"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "coin_gecko": {
+          "display_name": "CoinGecko",
+          "secret_fields": [
+            "api_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "discord",
+      "display_name": "Discord",
+      "description": "Send Discord messages via bot API or incoming webhooks.",
+      "category": "communication",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "discord"
+      ],
+      "operations_count": 2,
+      "operations": {
+        "send_message": {
+          "display_name": "Send Channel Message",
+          "description": "Send a message to a text channel via the bot API.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "discord",
+          "input_schema_fields": [
+            "channel_id",
+            "content"
+          ]
+        },
+        "send_webhook": {
+          "display_name": "Send Webhook",
+          "description": "Deliver a message through an incoming webhook URL (no bot needed).",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "webhook_url",
+            "content",
+            "username"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "discord": {
+          "display_name": "Discord",
+          "secret_fields": [
+            "bot_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "dropbox",
+      "display_name": "Dropbox",
+      "description": "Browse, manage, and upload Dropbox files.",
+      "category": "storage",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "dropbox"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_folder": {
+          "display_name": "List Folder",
+          "description": "List entries in a folder.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dropbox",
+          "input_schema_fields": [
+            "path",
+            "limit"
+          ]
+        },
+        "get_metadata": {
+          "display_name": "Get Metadata",
+          "description": "Fetch file/folder metadata.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dropbox",
+          "input_schema_fields": [
+            "path"
+          ]
+        },
+        "create_folder": {
+          "display_name": "Create Folder",
+          "description": "Create a folder.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "dropbox",
+          "input_schema_fields": [
+            "path"
+          ]
+        },
+        "delete": {
+          "display_name": "Delete",
+          "description": "Delete a file or folder.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "dropbox",
+          "input_schema_fields": [
+            "path"
+          ]
+        },
+        "upload_text": {
+          "display_name": "Upload Text",
+          "description": "Upload/overwrite a small text file.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "dropbox",
+          "input_schema_fields": [
+            "path",
+            "content"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "dropbox": {
+          "display_name": "Dropbox",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "dummy_json",
+      "display_name": "DummyJSON",
+      "description": "Generated from DummyJSON.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "dummy_json"
+      ],
+      "operations_count": 10,
+      "operations": {
+        "getcart": {
+          "display_name": "Get one cart",
+          "description": "GET /carts/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "getproduct": {
+          "display_name": "Get one product",
+          "description": "GET /products/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "getuser": {
+          "display_name": "Get one user",
+          "description": "GET /users/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "listcarts": {
+          "display_name": "List carts",
+          "description": "GET /carts",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "listposts": {
+          "display_name": "List posts",
+          "description": "GET /posts",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "listproducts": {
+          "display_name": "List products",
+          "description": "GET /products",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit",
+            "skip"
+          ]
+        },
+        "listquotes": {
+          "display_name": "List quotes",
+          "description": "GET /quotes",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "listtodos": {
+          "display_name": "List todos",
+          "description": "GET /todos",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "listusers": {
+          "display_name": "List users",
+          "description": "GET /users",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "searchproducts": {
+          "display_name": "Search products",
+          "description": "GET /products/search",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "q"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "dynamics_crm",
+      "display_name": "Microsoft Dynamics 365",
+      "description": "Microsoft Dynamics 365 CRM connector: query, create, update, upsert, and delete records across standard and custom Dataverse tables.",
+      "category": "crm",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "dynamics_crm"
+      ],
+      "operations_count": 8,
+      "operations": {
+        "query": {
+          "display_name": "Query Records (OData / FetchXML)",
+          "description": "Query Dataverse records using standard OData query parameters ($filter, $select, $expand, $orderby, $top) or native FetchXML.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "entity",
+            "filter",
+            "select",
+            "expand",
+            "orderby",
+            "top",
+            "fetchXml",
+            "timeout"
+          ]
+        },
+        "search": {
+          "display_name": "Search Records",
+          "description": "Search records in a table matching field criteria.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "entity",
+            "filter",
+            "select",
+            "top",
+            "timeout"
+          ]
+        },
+        "get": {
+          "display_name": "Get Record by ID",
+          "description": "Retrieve a single record by its Dataverse GUID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "entity",
+            "record_id",
+            "select",
+            "expand",
+            "timeout"
+          ]
+        },
+        "create": {
+          "display_name": "Create Record",
+          "description": "Create a new row in a Dataverse table (Contact, Account, Lead, Case, or custom table).",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "entity",
+            "data",
+            "timeout"
+          ]
+        },
+        "update": {
+          "display_name": "Update Record",
+          "description": "Update fields on an existing record by GUID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "entity",
+            "record_id",
+            "data",
+            "timeout"
+          ]
+        },
+        "upsert": {
+          "display_name": "Upsert Record",
+          "description": "Insert or update a record using an alternate key.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "entity",
+            "key_field",
+            "key_value",
+            "data",
+            "timeout"
+          ]
+        },
+        "delete": {
+          "display_name": "Delete Record",
+          "description": "Delete a record by its GUID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "entity",
+            "record_id",
+            "timeout"
+          ]
+        },
+        "execute_action": {
+          "display_name": "Execute Dataverse Action",
+          "description": "Call a custom or unbound Dataverse Web API action.",
+          "retryable": false,
+          "idempotency": "conditionally_idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "action_name",
+            "payload",
+            "timeout"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "dynamics_crm": {
+          "display_name": "Microsoft Dynamics 365 (Dataverse)",
+          "secret_fields": [
+            "client_secret",
+            "refresh_token",
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "frankfurter",
+      "display_name": "Frankfurter FX",
+      "description": "Generated from Frankfurter API.",
+      "category": "finance",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "frankfurter"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "get_currencies": {
+          "display_name": "Get available currencies",
+          "description": "GET /currencies",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_date": {
+          "display_name": "Get rates for a past date",
+          "description": "GET /{date}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "date"
+          ]
+        },
+        "get_latest": {
+          "display_name": "Get the latest rates",
+          "description": "GET /latest",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_start_date": {
+          "display_name": "Get rates for a time period",
+          "description": "GET /{start_date}..",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "start_date"
+          ]
+        },
+        "get_start_date_end_date": {
+          "display_name": "Get rates for a time period",
+          "description": "GET /{start_date}..{end_date}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "start_date",
+            "end_date"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "freshdesk",
+      "display_name": "Freshdesk",
+      "description": "Manage Freshdesk support tickets and notes.",
+      "category": "support",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "freshdesk"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_tickets": {
+          "display_name": "List Tickets",
+          "description": "List support tickets.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "freshdesk",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_ticket": {
+          "display_name": "Get Ticket",
+          "description": "Fetch one ticket by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "freshdesk",
+          "input_schema_fields": [
+            "ticket_id"
+          ]
+        },
+        "create_ticket": {
+          "display_name": "Create Ticket",
+          "description": "Open a new ticket.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "freshdesk",
+          "input_schema_fields": [
+            "subject",
+            "description",
+            "email",
+            "priority"
+          ]
+        },
+        "update_ticket": {
+          "display_name": "Update Ticket",
+          "description": "Patch status/priority.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "freshdesk",
+          "input_schema_fields": [
+            "ticket_id",
+            "status",
+            "priority"
+          ]
+        },
+        "add_note": {
+          "display_name": "Add Note",
+          "description": "Reply on a ticket.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "freshdesk",
+          "input_schema_fields": [
+            "ticket_id",
+            "body"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "freshdesk": {
+          "display_name": "Freshdesk",
+          "secret_fields": [
+            "api_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "github",
+      "display_name": "GitHub",
+      "description": "Inspect repositories and manage issues on GitHub via REST v3.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "github"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "get_repo": {
+          "display_name": "Get Repository",
+          "description": "Fetch summary metadata for one repository.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "github",
+          "input_schema_fields": [
+            "owner",
+            "repo"
+          ]
+        },
+        "create_issue": {
+          "display_name": "Create Issue",
+          "description": "Open a new issue with optional body and labels.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "github",
+          "input_schema_fields": [
+            "owner",
+            "repo",
+            "title",
+            "body",
+            "labels"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Comment on an issue or pull request.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "github",
+          "input_schema_fields": [
+            "owner",
+            "repo",
+            "issue_number",
+            "body"
+          ]
+        },
+        "list_issues": {
+          "display_name": "List Issues",
+          "description": "List issues of one repository (paginated; PRs flagged).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "github",
+          "input_schema_fields": [
+            "owner",
+            "repo",
+            "state",
+            "per_page",
+            "max_pages"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "github": {
+          "display_name": "GitHub",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "gitlab",
+      "display_name": "GitLab",
+      "description": "Work with GitLab projects, issues, notes, and merge requests.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "gitlab"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_issues": {
+          "display_name": "List Issues",
+          "description": "List project issues.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "gitlab",
+          "input_schema_fields": [
+            "project_id"
+          ]
+        },
+        "get_issue": {
+          "display_name": "Get Issue",
+          "description": "Fetch one issue by IID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "gitlab",
+          "input_schema_fields": [
+            "project_id",
+            "issue_iid"
+          ]
+        },
+        "create_issue": {
+          "display_name": "Create Issue",
+          "description": "Create a project issue.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "gitlab",
+          "input_schema_fields": [
+            "project_id",
+            "title",
+            "description"
+          ]
+        },
+        "add_note": {
+          "display_name": "Add Note",
+          "description": "Comment on an issue.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "gitlab",
+          "input_schema_fields": [
+            "project_id",
+            "issue_iid",
+            "body"
+          ]
+        },
+        "list_merge_requests": {
+          "display_name": "List Merge Requests",
+          "description": "List open merge requests.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "gitlab",
+          "input_schema_fields": [
+            "project_id"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "gitlab": {
+          "display_name": "GitLab",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "gmail",
+      "display_name": "Gmail",
+      "description": "Send email through Gmail via the send-only OAuth scope.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "gmail"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "send": {
+          "display_name": "Send Email",
+          "description": "Send an email from the connected Gmail account.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "gmail",
+          "input_schema_fields": [
+            "to",
+            "cc",
+            "bcc",
+            "subject",
+            "body_text",
+            "html",
+            "timeout_seconds"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "gmail": {
+          "display_name": "Gmail",
+          "secret_fields": [
+            "refresh_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "google_calendar",
+      "display_name": "Google Calendar",
+      "description": "Google Calendar connector: list, get, create, update and delete events via Calendar API v3.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "google_calendar"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_events": {
+          "display_name": "List Events",
+          "description": "List events in a time window (ordered by start).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_calendar",
+          "input_schema_fields": [
+            "calendar_id",
+            "time_min",
+            "time_max",
+            "max_results",
+            "timeout_seconds"
+          ]
+        },
+        "get_event": {
+          "display_name": "Get Event",
+          "description": "Fetch a single event by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_calendar",
+          "input_schema_fields": [
+            "calendar_id",
+            "event_id",
+            "timeout_seconds"
+          ]
+        },
+        "create_event": {
+          "display_name": "Create Event",
+          "description": "Create an event and return its id.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_calendar",
+          "input_schema_fields": [
+            "calendar_id",
+            "event",
+            "timeout_seconds"
+          ]
+        },
+        "update_event": {
+          "display_name": "Update Event",
+          "description": "Patch fields of an existing event.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_calendar",
+          "input_schema_fields": [
+            "calendar_id",
+            "event_id",
+            "event",
+            "timeout_seconds"
+          ]
+        },
+        "delete_event": {
+          "display_name": "Delete Event",
+          "description": "Delete an event by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_calendar",
+          "input_schema_fields": [
+            "calendar_id",
+            "event_id",
+            "timeout_seconds"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "google_calendar": {
+          "display_name": "Google Calendar",
+          "secret_fields": [
+            "refresh_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "google_docs",
+      "display_name": "Google Docs",
+      "description": "Read, create, and edit Google Docs documents.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "google_docs"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "get_document": {
+          "display_name": "Get Document",
+          "description": "Fetch a document by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_docs",
+          "input_schema_fields": [
+            "document_id"
+          ]
+        },
+        "create_document": {
+          "display_name": "Create Document",
+          "description": "Create a blank document.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_docs",
+          "input_schema_fields": [
+            "title"
+          ]
+        },
+        "append_text": {
+          "display_name": "Append Text",
+          "description": "Append text at the end of a document.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_docs",
+          "input_schema_fields": [
+            "document_id",
+            "text"
+          ]
+        },
+        "batch_update": {
+          "display_name": "Batch Update",
+          "description": "Apply raw Docs API requests.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_docs",
+          "input_schema_fields": [
+            "document_id",
+            "requests"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "google_docs": {
+          "display_name": "Google Docs",
+          "secret_fields": [
+            "refresh_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "google_drive",
+      "display_name": "Google Drive",
+      "description": "List, inspect and create Google Drive files via the Drive v3 API.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "google_drive"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "list_files": {
+          "display_name": "List Files",
+          "description": "List Drive files (inside a folder when given), newest first.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_drive",
+          "input_schema_fields": [
+            "folder_id",
+            "page_size",
+            "max_pages",
+            "query_extra",
+            "timeout_seconds"
+          ]
+        },
+        "upload_file": {
+          "display_name": "Upload File",
+          "description": "Create a Drive file from text or base64 content.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_drive",
+          "input_schema_fields": [
+            "name",
+            "content",
+            "mime_type",
+            "folder_id",
+            "is_base64",
+            "timeout_seconds"
+          ]
+        },
+        "get_file": {
+          "display_name": "Get File",
+          "description": "Fetch metadata for one Drive file.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_drive",
+          "input_schema_fields": [
+            "file_id",
+            "timeout_seconds"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "google_drive": {
+          "display_name": "Google Drive",
+          "secret_fields": [
+            "refresh_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "google_sheets",
+      "display_name": "Google Sheets",
+      "description": "Read, append and update rows in Google Sheets via the v4 values API.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "google_sheets"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "read": {
+          "display_name": "Read Rows",
+          "description": "Read values from an A1 range.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_sheets",
+          "input_schema_fields": [
+            "spreadsheet_id",
+            "range",
+            "timeout_seconds"
+          ]
+        },
+        "append": {
+          "display_name": "Append Row",
+          "description": "Append one row after the last data row.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_sheets",
+          "input_schema_fields": [
+            "spreadsheet_id",
+            "range",
+            "values",
+            "timeout_seconds"
+          ]
+        },
+        "update": {
+          "display_name": "Update Range",
+          "description": "Overwrite a range with rows.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_sheets",
+          "input_schema_fields": [
+            "spreadsheet_id",
+            "range",
+            "values",
+            "timeout_seconds"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "google_sheets": {
+          "display_name": "Google Sheets",
+          "secret_fields": [
+            "refresh_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "http",
+      "display_name": "HTTP Connector",
+      "description": "Calls any REST API endpoint.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "http"
+      ],
+      "operations_count": 8,
+      "operations": {
+        "query": {
+          "display_name": "Query",
+          "description": "Run a query.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "http",
+          "input_schema_fields": []
+        },
+        "get": {
+          "display_name": "Get",
+          "description": "Fetch a single record.",
+          "retryable": false,
+          "idempotency": "idempotent",
+          "credential_require": "http",
+          "input_schema_fields": []
+        },
+        "create": {
+          "display_name": "Create",
+          "description": "Create a record.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "http",
+          "input_schema_fields": []
+        },
+        "update": {
+          "display_name": "Update",
+          "description": "Update a record.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "http",
+          "input_schema_fields": []
+        },
+        "delete": {
+          "display_name": "Delete",
+          "description": "Delete a record.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "http",
+          "input_schema_fields": []
+        },
+        "list": {
+          "display_name": "List",
+          "description": "List resources.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "http",
+          "input_schema_fields": []
+        },
+        "describe": {
+          "display_name": "Describe",
+          "description": "Describe a resource.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "http",
+          "input_schema_fields": []
+        },
+        "execute": {
+          "display_name": "Execute",
+          "description": "Generic execute operation.",
+          "retryable": true,
+          "idempotency": "non_idempotent",
+          "credential_require": "http",
+          "input_schema_fields": []
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "http": {
+          "display_name": "HTTP",
+          "secret_fields": [
+            "api_key",
+            "password"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "httpbin",
+      "display_name": "httpbin",
+      "description": "Generated from httpbin.org.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "httpbin"
+      ],
+      "operations_count": 50,
+      "operations": {
+        "get_absolute_redirect_n": {
+          "display_name": "Absolutely 302 Redirects n times.",
+          "description": "GET /absolute-redirect/{n}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "n"
+          ]
+        },
+        "delete_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "DELETE /anything",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "GET /anything",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "patch_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "PATCH /anything",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "post_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "POST /anything",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "put_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "PUT /anything",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "delete_anything_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "DELETE /anything/{anything}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "anything"
+          ]
+        },
+        "get_anything_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "GET /anything/{anything}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "anything"
+          ]
+        },
+        "patch_anything_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "PATCH /anything/{anything}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "anything"
+          ]
+        },
+        "post_anything_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "POST /anything/{anything}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "anything"
+          ]
+        },
+        "put_anything_anything": {
+          "display_name": "Returns anything passed in request data.",
+          "description": "PUT /anything/{anything}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "anything"
+          ]
+        },
+        "get_base64_value": {
+          "display_name": "Decodes base64url-encoded string.",
+          "description": "GET /base64/{value}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "value"
+          ]
+        },
+        "get_basic_auth_user_passwd": {
+          "display_name": "Prompts the user for authorization using HTTP Basic Auth.",
+          "description": "GET /basic-auth/{user}/{passwd}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "user",
+            "passwd"
+          ]
+        },
+        "get_bearer": {
+          "display_name": "Prompts the user for authorization using bearer authentication.",
+          "description": "GET /bearer",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_brotli": {
+          "display_name": "Returns Brotli-encoded data.",
+          "description": "GET /brotli",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_bytes_n": {
+          "display_name": "Returns n random bytes generated with given seed",
+          "description": "GET /bytes/{n}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "n"
+          ]
+        },
+        "get_cache": {
+          "display_name": "Returns a 304 if an If-Modified-Since header or If-None-Match is present. Return",
+          "description": "GET /cache",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_cache_value": {
+          "display_name": "Sets a Cache-Control header for n seconds.",
+          "description": "GET /cache/{value}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "value"
+          ]
+        },
+        "get_cookies": {
+          "display_name": "Returns cookie data.",
+          "description": "GET /cookies",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_cookies_delete": {
+          "display_name": "Deletes cookie(s) as provided by the query string and redirects to cookie list.",
+          "description": "GET /cookies/delete",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "freeform"
+          ]
+        },
+        "get_cookies_set": {
+          "display_name": "Sets cookie(s) as provided by the query string and redirects to cookie list.",
+          "description": "GET /cookies/set",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "freeform"
+          ]
+        },
+        "get_cookies_set_name_value": {
+          "display_name": "Sets a cookie and redirects to cookie list.",
+          "description": "GET /cookies/set/{name}/{value}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "name",
+            "value"
+          ]
+        },
+        "get_deflate": {
+          "display_name": "Returns Deflate-encoded data.",
+          "description": "GET /deflate",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "delete_delay_delay": {
+          "display_name": "Returns a delayed response (max of 10 seconds).",
+          "description": "DELETE /delay/{delay}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "delay"
+          ]
+        },
+        "get_delay_delay": {
+          "display_name": "Returns a delayed response (max of 10 seconds).",
+          "description": "GET /delay/{delay}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "delay"
+          ]
+        },
+        "patch_delay_delay": {
+          "display_name": "Returns a delayed response (max of 10 seconds).",
+          "description": "PATCH /delay/{delay}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "delay"
+          ]
+        },
+        "post_delay_delay": {
+          "display_name": "Returns a delayed response (max of 10 seconds).",
+          "description": "POST /delay/{delay}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "delay"
+          ]
+        },
+        "put_delay_delay": {
+          "display_name": "Returns a delayed response (max of 10 seconds).",
+          "description": "PUT /delay/{delay}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "delay"
+          ]
+        },
+        "delete_delete": {
+          "display_name": "The request's DELETE parameters.",
+          "description": "DELETE /delete",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_deny": {
+          "display_name": "Returns page denied by robots.txt rules.",
+          "description": "GET /deny",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_digest_auth_qop_user_passwd": {
+          "display_name": "Prompts the user for authorization using Digest Auth.",
+          "description": "GET /digest-auth/{qop}/{user}/{passwd}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "qop",
+            "user",
+            "passwd"
+          ]
+        },
+        "get_digest_auth_qop_user_passwd_algorithm": {
+          "display_name": "Prompts the user for authorization using Digest Auth + Algorithm.",
+          "description": "GET /digest-auth/{qop}/{user}/{passwd}/{algorithm}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "qop",
+            "user",
+            "passwd",
+            "algorithm"
+          ]
+        },
+        "get_digest_auth_qop_user_passwd_algorithm_stale_after": {
+          "display_name": "Prompts the user for authorization using Digest Auth + Algorithm.",
+          "description": "GET /digest-auth/{qop}/{user}/{passwd}/{algorithm}/{stale_after}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "qop",
+            "user",
+            "passwd",
+            "algorithm",
+            "stale_after"
+          ]
+        },
+        "get_drip": {
+          "display_name": "Drips data over a duration after an optional initial delay.",
+          "description": "GET /drip",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "duration",
+            "numbytes",
+            "code",
+            "delay"
+          ]
+        },
+        "get_encoding_utf8": {
+          "display_name": "Returns a UTF-8 encoded body.",
+          "description": "GET /encoding/utf8",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_etag_etag": {
+          "display_name": "Assumes the resource has the given etag and responds to If-None-Match and If-Mat",
+          "description": "GET /etag/{etag}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "etag"
+          ]
+        },
+        "get_get": {
+          "display_name": "The request's query parameters.",
+          "description": "GET /get",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_gzip": {
+          "display_name": "Returns GZip-encoded data.",
+          "description": "GET /gzip",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_headers": {
+          "display_name": "Return the incoming request's HTTP headers.",
+          "description": "GET /headers",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_hidden_basic_auth_user_passwd": {
+          "display_name": "Prompts the user for authorization using HTTP Basic Auth.",
+          "description": "GET /hidden-basic-auth/{user}/{passwd}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "user",
+            "passwd"
+          ]
+        },
+        "get_html": {
+          "display_name": "Returns a simple HTML document.",
+          "description": "GET /html",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_image": {
+          "display_name": "Returns a simple image of the type suggest by the Accept header.",
+          "description": "GET /image",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_image_jpeg": {
+          "display_name": "Returns a simple JPEG image.",
+          "description": "GET /image/jpeg",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_image_png": {
+          "display_name": "Returns a simple PNG image.",
+          "description": "GET /image/png",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_image_svg": {
+          "display_name": "Returns a simple SVG image.",
+          "description": "GET /image/svg",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_image_webp": {
+          "display_name": "Returns a simple WEBP image.",
+          "description": "GET /image/webp",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_ip": {
+          "display_name": "Returns the requester's IP Address.",
+          "description": "GET /ip",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_json": {
+          "display_name": "Returns a simple JSON document.",
+          "description": "GET /json",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "get_links_n_offset": {
+          "display_name": "Generate a page containing n links to other pages which do the same.",
+          "description": "GET /links/{n}/{offset}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "n",
+            "offset"
+          ]
+        },
+        "patch_patch": {
+          "display_name": "The request's PATCH parameters.",
+          "description": "PATCH /patch",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "hubspot",
+      "display_name": "HubSpot",
+      "description": "HubSpot connector: search, get, create and update contacts, companies, deals and tickets via CRM v3.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "hubspot"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "search": {
+          "display_name": "Search Record",
+          "description": "Find a record by property value (e.g. contact by email) and return it.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "hubspot",
+          "input_schema_fields": [
+            "object_type",
+            "search_field",
+            "search_value",
+            "timeout_seconds"
+          ]
+        },
+        "get": {
+          "display_name": "Get Record",
+          "description": "Fetch a single HubSpot record by its id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "hubspot",
+          "input_schema_fields": [
+            "object_type",
+            "record_id",
+            "timeout_seconds"
+          ]
+        },
+        "create": {
+          "display_name": "Create Record",
+          "description": "Create a HubSpot record and return its new id.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "hubspot",
+          "input_schema_fields": [
+            "object_type",
+            "properties",
+            "timeout_seconds"
+          ]
+        },
+        "update": {
+          "display_name": "Update Record",
+          "description": "Update properties of an existing HubSpot record.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "hubspot",
+          "input_schema_fields": [
+            "object_type",
+            "record_id",
+            "properties",
+            "timeout_seconds"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "hubspot": {
+          "display_name": "HubSpot",
+          "secret_fields": [
+            "refresh_token",
+            "private_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "jira",
+      "display_name": "Jira",
+      "description": "Search, create and update Jira Cloud issues via REST v3.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "jira"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "search": {
+          "display_name": "Search (JQL)",
+          "description": "Run a JQL query and return matching issues.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "jira",
+          "input_schema_fields": [
+            "jql",
+            "max_results",
+            "max_pages"
+          ]
+        },
+        "create_issue": {
+          "display_name": "Create Issue",
+          "description": "Open an issue in a project (summary + optional description/extra fields).",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "jira",
+          "input_schema_fields": [
+            "project_key",
+            "issue_type",
+            "summary",
+            "description",
+            "fields"
+          ]
+        },
+        "update_issue": {
+          "display_name": "Update Issue",
+          "description": "Patch fields of an existing issue.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "jira",
+          "input_schema_fields": [
+            "issue_key",
+            "fields"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Comment on an issue.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "jira",
+          "input_schema_fields": [
+            "issue_key",
+            "body"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "jira": {
+          "display_name": "Jira",
+          "secret_fields": [
+            "api_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "json_placeholder",
+      "display_name": "JSONPlaceholder",
+      "description": "Generated from JSONPlaceholder.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "json_placeholder"
+      ],
+      "operations_count": 9,
+      "operations": {
+        "createpost": {
+          "display_name": "Create a post",
+          "description": "POST /posts",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "body"
+          ]
+        },
+        "deletepost": {
+          "display_name": "Delete a post",
+          "description": "DELETE /posts/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "getpost": {
+          "display_name": "Get one post",
+          "description": "GET /posts/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "getuser": {
+          "display_name": "Get one user",
+          "description": "GET /users/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "listcomments": {
+          "display_name": "List comments",
+          "description": "GET /comments",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "postId"
+          ]
+        },
+        "listposts": {
+          "display_name": "List posts",
+          "description": "GET /posts",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "listtodos": {
+          "display_name": "List todos",
+          "description": "GET /todos",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "listusers": {
+          "display_name": "List users",
+          "description": "GET /users",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "updatepost": {
+          "display_name": "Replace a post",
+          "description": "PUT /posts/{id}",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id",
+            "body"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "linear",
+      "display_name": "Linear",
+      "description": "Work with Linear teams, issues, and comments.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "linear"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_issues": {
+          "display_name": "List Team Issues",
+          "description": "List issues on a team.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "linear",
+          "input_schema_fields": [
+            "team_id",
+            "limit"
+          ]
+        },
+        "get_issue": {
+          "display_name": "Get Issue",
+          "description": "Fetch one issue by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "linear",
+          "input_schema_fields": [
+            "issue_id"
+          ]
+        },
+        "create_issue": {
+          "display_name": "Create Issue",
+          "description": "Create an issue on a team.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "linear",
+          "input_schema_fields": [
+            "team_id",
+            "title",
+            "description"
+          ]
+        },
+        "update_issue": {
+          "display_name": "Update Issue",
+          "description": "Update title/description.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "linear",
+          "input_schema_fields": [
+            "issue_id",
+            "title",
+            "description"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Comment on an issue.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "linear",
+          "input_schema_fields": [
+            "issue_id",
+            "body"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "linear": {
+          "display_name": "Linear",
+          "secret_fields": [
+            "api_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "mailchimp",
+      "display_name": "Mailchimp",
+      "description": "Manage Mailchimp audiences and contacts.",
+      "category": "marketing",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "mailchimp"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_lists": {
+          "display_name": "List Audiences",
+          "description": "List Mailchimp audiences.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mailchimp",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_list": {
+          "display_name": "Get Audience",
+          "description": "Fetch one audience by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mailchimp",
+          "input_schema_fields": [
+            "list_id"
+          ]
+        },
+        "add_member": {
+          "display_name": "Add Contact",
+          "description": "Add a contact to an audience.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "mailchimp",
+          "input_schema_fields": [
+            "list_id",
+            "email",
+            "status"
+          ]
+        },
+        "get_member": {
+          "display_name": "Get Contact",
+          "description": "Fetch one contact by email.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mailchimp",
+          "input_schema_fields": [
+            "list_id",
+            "email"
+          ]
+        },
+        "update_member": {
+          "display_name": "Update Contact",
+          "description": "Patch contact fields by email.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mailchimp",
+          "input_schema_fields": [
+            "list_id",
+            "email",
+            "status"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "mailchimp": {
+          "display_name": "Mailchimp",
+          "secret_fields": [
+            "api_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "monday",
+      "display_name": "Monday.com",
+      "description": "Work with Monday.com boards, items, and updates.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "monday"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_boards": {
+          "display_name": "List Boards",
+          "description": "List boards.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "monday",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_board": {
+          "display_name": "Get Board",
+          "description": "Fetch one board with groups.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "monday",
+          "input_schema_fields": [
+            "board_id"
+          ]
+        },
+        "list_items": {
+          "display_name": "List Items",
+          "description": "List items on a board.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "monday",
+          "input_schema_fields": [
+            "board_id",
+            "limit"
+          ]
+        },
+        "create_item": {
+          "display_name": "Create Item",
+          "description": "Create an item on a board.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "monday",
+          "input_schema_fields": [
+            "board_id",
+            "group_id",
+            "item_name"
+          ]
+        },
+        "add_update": {
+          "display_name": "Add Update",
+          "description": "Comment on an item.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "monday",
+          "input_schema_fields": [
+            "item_id",
+            "body"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "monday": {
+          "display_name": "Monday.com",
+          "secret_fields": [
+            "api_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "mongodb",
+      "display_name": "MongoDB",
+      "description": "Find and modify documents in MongoDB collections.",
+      "category": "database",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "mongodb"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "find": {
+          "display_name": "Find Documents",
+          "description": "Query documents with a filter (skip/limit paging).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mongodb",
+          "input_schema_fields": [
+            "database",
+            "collection",
+            "filter",
+            "limit",
+            "skip"
+          ]
+        },
+        "insert_one": {
+          "display_name": "Insert Document",
+          "description": "Insert one document.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "mongodb",
+          "input_schema_fields": [
+            "database",
+            "collection",
+            "document"
+          ]
+        },
+        "update_one": {
+          "display_name": "Update Document",
+          "description": "Update the first document matching a filter.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mongodb",
+          "input_schema_fields": [
+            "database",
+            "collection",
+            "filter",
+            "update"
+          ]
+        },
+        "delete_one": {
+          "display_name": "Delete Document",
+          "description": "Delete the first document matching a filter.",
+          "retryable": true,
+          "idempotency": "conditionally_idempotent",
+          "credential_require": "mongodb",
+          "input_schema_fields": [
+            "database",
+            "collection",
+            "filter"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "mongodb": {
+          "display_name": "MongoDB",
+          "secret_fields": [
+            "uri"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "msteams",
+      "display_name": "Microsoft Teams",
+      "description": "Send messages and browse teams/channels via the Microsoft Graph API.",
+      "category": "communication",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "msteams"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "send_message": {
+          "display_name": "Send Channel Message",
+          "description": "Post a message into a Teams channel.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "team_id",
+            "channel_id",
+            "content",
+            "subject"
+          ]
+        },
+        "list_teams": {
+          "display_name": "List Teams",
+          "description": "List the teams the identity has joined.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": []
+        },
+        "list_channels": {
+          "display_name": "List Channels",
+          "description": "List channels of one team.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "team_id"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "microsoft_graph": {
+          "display_name": "Microsoft Graph",
+          "secret_fields": [
+            "client_secret"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "mysql",
+      "display_name": "MySQL",
+      "description": "Query and write to MySQL / MariaDB databases via SQLAlchemy (parameterised statements).",
+      "category": "database",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "mysql"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "query": {
+          "display_name": "Query",
+          "description": "Run a SELECT and return the result rows (capped at 1000).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mysql",
+          "input_schema_fields": [
+            "sql",
+            "params"
+          ]
+        },
+        "execute": {
+          "display_name": "Execute",
+          "description": "Run an INSERT/UPDATE/DELETE/DDL statement and report affected rows.",
+          "retryable": true,
+          "idempotency": "non_idempotent",
+          "credential_require": "mysql",
+          "input_schema_fields": [
+            "sql",
+            "params"
+          ]
+        },
+        "insert_rows": {
+          "display_name": "Insert Rows",
+          "description": "Bulk-insert rows into a table (columns taken from the first row).",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "mysql",
+          "input_schema_fields": [
+            "table",
+            "rows"
+          ]
+        },
+        "list_tables": {
+          "display_name": "List Tables",
+          "description": "List table names visible to the credential.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mysql",
+          "input_schema_fields": []
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "mysql": {
+          "display_name": "MySQL",
+          "secret_fields": [
+            "dsn"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "notion",
+      "display_name": "Notion",
+      "description": "Query databases and create/update pages in Notion.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "notion"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "query_database": {
+          "display_name": "Query Database",
+          "description": "Query a Notion database with an optional filter; follows start_cursor.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "notion",
+          "input_schema_fields": [
+            "database_id",
+            "filter",
+            "page_size",
+            "max_pages"
+          ]
+        },
+        "create_page": {
+          "display_name": "Create Page",
+          "description": "Create a page inside a database. Properties use Notion's JSON shape.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "notion",
+          "input_schema_fields": [
+            "database_id",
+            "properties"
+          ]
+        },
+        "update_page": {
+          "display_name": "Update Page",
+          "description": "Update page properties, or archive the page.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "notion",
+          "input_schema_fields": [
+            "page_id",
+            "properties",
+            "archived"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "notion": {
+          "display_name": "Notion",
+          "secret_fields": [
+            "integration_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "open_meteo",
+      "display_name": "Open-Meteo",
+      "description": "Generated from Open-Meteo Weather Forecast API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_forecast": {
+          "display_name": "Open-Meteo Weather Forecast API",
+          "description": "GET /v1/forecast",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "hourly",
+            "daily",
+            "current",
+            "minutely_15",
+            "elevation",
+            "temperature_unit",
+            "wind_speed_unit",
+            "precipitation_unit",
+            "timeformat",
+            "timezone",
+            "past_days",
+            "forecast_days",
+            "past_hours",
+            "forecast_hours",
+            "start_date",
+            "end_date",
+            "tilt",
+            "azimuth",
+            "cell_selection",
+            "apikey",
+            "models"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_meteo_air",
+      "display_name": "Open-Meteo Air Quality",
+      "description": "Generated from Open-Meteo Air Quality API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo_air"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_air_quality": {
+          "display_name": "Hourly air quality forecast",
+          "description": "GET /v1/air-quality",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "hourly",
+            "current",
+            "timeformat",
+            "timezone",
+            "past_days",
+            "forecast_days",
+            "start_date",
+            "end_date",
+            "domains",
+            "apikey"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_meteo_climate",
+      "display_name": "Open-Meteo climate",
+      "description": "Generated from Open-Meteo Climate Change API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo_climate"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_climate": {
+          "display_name": "Daily climate data from CMIP6 models",
+          "description": "GET /v1/climate",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "start_date",
+            "end_date",
+            "daily",
+            "temperature_unit",
+            "wind_speed_unit",
+            "precipitation_unit",
+            "timeformat",
+            "timezone",
+            "disable_bias_correction",
+            "cell_selection",
+            "models",
+            "apikey"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_meteo_elevation",
+      "display_name": "Open-Meteo Elevation",
+      "description": "Generated from Open-Meteo Elevation API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo_elevation"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_elevation": {
+          "display_name": "Get terrain elevation for coordinates",
+          "description": "GET /v1/elevation",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "apikey"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_meteo_ensemble",
+      "display_name": "Open-Meteo ensemble",
+      "description": "Generated from Open-Meteo Ensemble Weather Forecast API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo_ensemble"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_ensemble": {
+          "display_name": "Open-Meteo Ensemble Weather Forecast API",
+          "description": "GET /v1/ensemble",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "hourly",
+            "daily",
+            "elevation",
+            "temperature_unit",
+            "wind_speed_unit",
+            "precipitation_unit",
+            "timeformat",
+            "timezone",
+            "past_days",
+            "forecast_days",
+            "past_hours",
+            "forecast_hours",
+            "start_date",
+            "end_date",
+            "tilt",
+            "azimuth",
+            "cell_selection",
+            "apikey",
+            "models",
+            "temporal_resolution"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_meteo_flood",
+      "display_name": "Open-Meteo flood",
+      "description": "Generated from Open-Meteo Flood Forecast API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo_flood"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_flood": {
+          "display_name": "Daily river discharge forecast",
+          "description": "GET /v1/flood",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "daily",
+            "timeformat",
+            "timezone",
+            "past_days",
+            "forecast_days",
+            "start_date",
+            "end_date",
+            "ensemble",
+            "cell_selection",
+            "models",
+            "apikey"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_meteo_historical_weather",
+      "display_name": "Open-Meteo historical-weather",
+      "description": "Generated from Open-Meteo Historical Weather API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo_historical_weather"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_archive": {
+          "display_name": "Open-Meteo Historical Weather API",
+          "description": "GET /v1/archive",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "hourly",
+            "daily",
+            "start_date",
+            "end_date",
+            "elevation",
+            "temperature_unit",
+            "wind_speed_unit",
+            "precipitation_unit",
+            "timeformat",
+            "timezone",
+            "past_days",
+            "forecast_days",
+            "past_hours",
+            "forecast_hours",
+            "tilt",
+            "azimuth",
+            "cell_selection",
+            "apikey",
+            "models"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_meteo_marine",
+      "display_name": "Open-Meteo marine",
+      "description": "Generated from Open-Meteo Marine Weather Forecast API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo_marine"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_marine": {
+          "display_name": "Hourly marine weather forecast",
+          "description": "GET /v1/marine",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "hourly",
+            "daily",
+            "current",
+            "minutely_15",
+            "temperature_unit",
+            "wind_speed_unit",
+            "length_unit",
+            "timeformat",
+            "timezone",
+            "past_days",
+            "forecast_days",
+            "start_date",
+            "end_date",
+            "cell_selection",
+            "models",
+            "apikey"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_meteo_seasonal",
+      "display_name": "Open-Meteo seasonal",
+      "description": "Generated from Open-Meteo Seasonal Weather Forecast API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_meteo_seasonal"
+      ],
+      "operations_count": 1,
+      "operations": {
+        "get_v1_seasonal": {
+          "display_name": "Seasonal weather forecast up to 9 months",
+          "description": "GET /v1/seasonal",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "latitude",
+            "longitude",
+            "hourly",
+            "daily",
+            "weekly",
+            "monthly",
+            "temperature_unit",
+            "wind_speed_unit",
+            "precipitation_unit",
+            "timeformat",
+            "timezone",
+            "past_days",
+            "forecast_days",
+            "start_date",
+            "end_date",
+            "cell_selection",
+            "models",
+            "apikey"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_notify",
+      "display_name": "Open Notify",
+      "description": "Generated from Open Notify.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_notify"
+      ],
+      "operations_count": 2,
+      "operations": {
+        "astros": {
+          "display_name": "People currently in space",
+          "description": "GET /astros.json",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        },
+        "issnow": {
+          "display_name": "Current ISS position",
+          "description": "GET /iss-now.json",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": []
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "open_router",
+      "display_name": "OpenRouter",
+      "description": "Generated from OpenRouter.",
+      "category": "ai",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "open_router"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "chatcompletion": {
+          "display_name": "Chat completion",
+          "description": "POST /chat/completions",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "open_router",
+          "input_schema_fields": [
+            "body"
+          ]
+        },
+        "keyinfo": {
+          "display_name": "Key info and credits",
+          "description": "GET /auth/key",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "open_router",
+          "input_schema_fields": []
+        },
+        "listmodels": {
+          "display_name": "List available models",
+          "description": "GET /models",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "open_router",
+          "input_schema_fields": []
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "open_router": {
+          "display_name": "OpenRouter",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "openai",
+      "display_name": "OpenAI",
+      "description": "OpenAI models, embeddings, and chat completions (or any OpenAI-compatible endpoint).",
+      "category": "ai",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "openai"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "list_models": {
+          "display_name": "List Models",
+          "description": "List available models.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "openai",
+          "input_schema_fields": []
+        },
+        "create_embedding": {
+          "display_name": "Create Embedding",
+          "description": "Embed text into vectors.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "openai",
+          "input_schema_fields": [
+            "model",
+            "text"
+          ]
+        },
+        "chat_completion": {
+          "display_name": "Chat Completion",
+          "description": "Run a chat completion.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "openai",
+          "input_schema_fields": [
+            "model",
+            "messages",
+            "temperature"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "openai": {
+          "display_name": "OpenAI",
+          "secret_fields": [
+            "api_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "outlook",
+      "display_name": "Microsoft Outlook",
+      "description": "Send and read Outlook mail via the Microsoft Graph API.",
+      "category": "communication",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "outlook"
+      ],
+      "operations_count": 2,
+      "operations": {
+        "send": {
+          "display_name": "Send Mail",
+          "description": "Send an email from the connected identity.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "to",
+            "subject",
+            "body",
+            "cc",
+            "save_to_sent"
+          ]
+        },
+        "list_messages": {
+          "display_name": "List Messages",
+          "description": "List the newest messages of one mail folder.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "folder",
+            "top"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "microsoft_graph": {
+          "display_name": "Microsoft Graph",
+          "secret_fields": [
+            "client_secret"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "pagerduty",
+      "display_name": "PagerDuty",
+      "description": "Manage PagerDuty incidents and notes.",
+      "category": "devops",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "pagerduty"
+      ],
+      "operations_count": 6,
+      "operations": {
+        "list_incidents": {
+          "display_name": "List Incidents",
+          "description": "List incidents.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pagerduty",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_incident": {
+          "display_name": "Get Incident",
+          "description": "Fetch one incident by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pagerduty",
+          "input_schema_fields": [
+            "incident_id"
+          ]
+        },
+        "create_incident": {
+          "display_name": "Trigger Incident",
+          "description": "Create (trigger) an incident.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "pagerduty",
+          "input_schema_fields": [
+            "title",
+            "service_id",
+            "urgency",
+            "description"
+          ]
+        },
+        "update_incident": {
+          "display_name": "Update Incident",
+          "description": "Patch incident fields.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pagerduty",
+          "input_schema_fields": [
+            "incident_id",
+            "status",
+            "urgency"
+          ]
+        },
+        "resolve_incident": {
+          "display_name": "Resolve Incident",
+          "description": "Mark an incident resolved.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pagerduty",
+          "input_schema_fields": [
+            "incident_id"
+          ]
+        },
+        "add_note": {
+          "display_name": "Add Note",
+          "description": "Add a note to an incident.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "pagerduty",
+          "input_schema_fields": [
+            "incident_id",
+            "content"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "pagerduty": {
+          "display_name": "PagerDuty",
+          "secret_fields": [
+            "api_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "pinecone",
+      "display_name": "Pinecone",
+      "description": "Upsert embeddings, query nearest neighbors, and manage vector indexes in Pinecone.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "pinecone"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "upsert_vectors": {
+          "display_name": "Upsert Vectors",
+          "description": "Insert or update vector embeddings and metadata in an index.",
+          "retryable": false,
+          "idempotency": "idempotent",
+          "credential_require": "pinecone",
+          "input_schema_fields": [
+            "host",
+            "vectors",
+            "namespace"
+          ]
+        },
+        "query_vectors": {
+          "display_name": "Query Nearest Neighbors",
+          "description": "Search for the most similar vectors by cosine/euclidean/dot-product distance.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pinecone",
+          "input_schema_fields": [
+            "host",
+            "vector",
+            "top_k",
+            "namespace",
+            "include_metadata"
+          ]
+        },
+        "describe_index_stats": {
+          "display_name": "Describe Index Stats",
+          "description": "Get dimension, total vector count, and per-namespace stats.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pinecone",
+          "input_schema_fields": [
+            "host"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "pinecone": {
+          "display_name": "Pinecone API Key",
+          "secret_fields": [
+            "api_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "pipedrive",
+      "display_name": "Pipedrive",
+      "description": "Work with Pipedrive deals and notes.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "pipedrive"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_deals": {
+          "display_name": "List Deals",
+          "description": "List deals in the pipeline.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pipedrive",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_deal": {
+          "display_name": "Get Deal",
+          "description": "Fetch one deal by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pipedrive",
+          "input_schema_fields": [
+            "deal_id"
+          ]
+        },
+        "create_deal": {
+          "display_name": "Create Deal",
+          "description": "Create a new deal.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "pipedrive",
+          "input_schema_fields": [
+            "title",
+            "value",
+            "currency"
+          ]
+        },
+        "update_deal": {
+          "display_name": "Update Deal",
+          "description": "Update title/value/currency.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pipedrive",
+          "input_schema_fields": [
+            "deal_id",
+            "title",
+            "value",
+            "currency"
+          ]
+        },
+        "add_note": {
+          "display_name": "Add Note",
+          "description": "Attach a note to a deal.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "pipedrive",
+          "input_schema_fields": [
+            "deal_id",
+            "content"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "pipedrive": {
+          "display_name": "Pipedrive",
+          "secret_fields": [
+            "api_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "poke_api",
+      "display_name": "PokeAPI",
+      "description": "Generated from Pok\u00e9API.",
+      "category": "developer",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "poke_api"
+      ],
+      "operations_count": 13,
+      "operations": {
+        "pokemon_color_list": {
+          "display_name": "List pokemon colors",
+          "description": "GET /api/v2/pokemon-color/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit",
+            "offset",
+            "q"
+          ]
+        },
+        "pokemon_color_retrieve": {
+          "display_name": "Get pokemon color",
+          "description": "GET /api/v2/pokemon-color/{id}/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "pokemon_encounters_list": {
+          "display_name": "Get pokemon encounter",
+          "description": "GET /api/v2/pokemon/{pokemon_id}/encounters",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "pokemon_id"
+          ]
+        },
+        "pokemon_form_list": {
+          "display_name": "List pokemon forms",
+          "description": "GET /api/v2/pokemon-form/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit",
+            "offset",
+            "q"
+          ]
+        },
+        "pokemon_form_retrieve": {
+          "display_name": "Get pokemon form",
+          "description": "GET /api/v2/pokemon-form/{id}/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "pokemon_habitat_list": {
+          "display_name": "List pokemom habitas",
+          "description": "GET /api/v2/pokemon-habitat/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit",
+            "offset",
+            "q"
+          ]
+        },
+        "pokemon_habitat_retrieve": {
+          "display_name": "Get pokemom habita",
+          "description": "GET /api/v2/pokemon-habitat/{id}/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "pokemon_list": {
+          "display_name": "List pokemon",
+          "description": "GET /api/v2/pokemon/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit",
+            "offset",
+            "q"
+          ]
+        },
+        "pokemon_retrieve": {
+          "display_name": "Get pokemon",
+          "description": "GET /api/v2/pokemon/{id}/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "pokemon_shape_list": {
+          "display_name": "List pokemon shapes",
+          "description": "GET /api/v2/pokemon-shape/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit",
+            "offset",
+            "q"
+          ]
+        },
+        "pokemon_shape_retrieve": {
+          "display_name": "Get pokemon shape",
+          "description": "GET /api/v2/pokemon-shape/{id}/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        },
+        "pokemon_species_list": {
+          "display_name": "List pokemon species",
+          "description": "GET /api/v2/pokemon-species/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "limit",
+            "offset",
+            "q"
+          ]
+        },
+        "pokemon_species_retrieve": {
+          "display_name": "Get pokemon species",
+          "description": "GET /api/v2/pokemon-species/{id}/",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": null,
+          "input_schema_fields": [
+            "id"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {}
+    },
+    {
+      "connector_key": "postgres",
+      "display_name": "PostgreSQL",
+      "description": "Query and write to PostgreSQL databases via SQLAlchemy (parameterised statements).",
+      "category": "database",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "postgres"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "query": {
+          "display_name": "Query",
+          "description": "Run a SELECT and return the result rows (capped at 1000).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "postgres",
+          "input_schema_fields": [
+            "sql",
+            "params"
+          ]
+        },
+        "execute": {
+          "display_name": "Execute",
+          "description": "Run an INSERT/UPDATE/DELETE/DDL statement and report affected rows.",
+          "retryable": true,
+          "idempotency": "non_idempotent",
+          "credential_require": "postgres",
+          "input_schema_fields": [
+            "sql",
+            "params"
+          ]
+        },
+        "insert_rows": {
+          "display_name": "Insert Rows",
+          "description": "Bulk-insert rows into a table (columns taken from the first row).",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "postgres",
+          "input_schema_fields": [
+            "table",
+            "rows"
+          ]
+        },
+        "list_tables": {
+          "display_name": "List Tables",
+          "description": "List table names visible to the credential.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "postgres",
+          "input_schema_fields": []
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "postgres": {
+          "display_name": "PostgreSQL",
+          "secret_fields": [
+            "dsn"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "quickbooks",
+      "display_name": "QuickBooks",
+      "description": "QuickBooks Online company, customers, invoices, and queries.",
+      "category": "finance",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "quickbooks"
+      ],
+      "operations_count": 6,
+      "operations": {
+        "query": {
+          "display_name": "Query",
+          "description": "Run a QuickBooks query (select * from Customer ...).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "quickbooks",
+          "input_schema_fields": [
+            "query"
+          ]
+        },
+        "get_company": {
+          "display_name": "Get Company",
+          "description": "Fetch company info.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "quickbooks",
+          "input_schema_fields": []
+        },
+        "create_customer": {
+          "display_name": "Create Customer",
+          "description": "Create a customer.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "quickbooks",
+          "input_schema_fields": [
+            "display_name",
+            "email"
+          ]
+        },
+        "get_customer": {
+          "display_name": "Get Customer",
+          "description": "Fetch one customer by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "quickbooks",
+          "input_schema_fields": [
+            "customer_id"
+          ]
+        },
+        "create_invoice": {
+          "display_name": "Create Invoice",
+          "description": "Create an invoice for a customer.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "quickbooks",
+          "input_schema_fields": [
+            "customer_ref",
+            "lines"
+          ]
+        },
+        "get_invoice": {
+          "display_name": "Get Invoice",
+          "description": "Fetch one invoice by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "quickbooks",
+          "input_schema_fields": [
+            "invoice_id"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "quickbooks": {
+          "display_name": "QuickBooks",
+          "secret_fields": [
+            "access_token",
+            "refresh_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "redis",
+      "display_name": "Redis",
+      "description": "Read/write keys and publish messages in Redis.",
+      "category": "database",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "redis"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "get": {
+          "display_name": "Get",
+          "description": "Read a string key.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "redis",
+          "input_schema_fields": [
+            "key"
+          ]
+        },
+        "set": {
+          "display_name": "Set",
+          "description": "Write a string key (optional expiry).",
+          "retryable": true,
+          "idempotency": "conditionally_idempotent",
+          "credential_require": "redis",
+          "input_schema_fields": [
+            "key",
+            "value",
+            "ttl_seconds"
+          ]
+        },
+        "delete": {
+          "display_name": "Delete",
+          "description": "Remove a key.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "redis",
+          "input_schema_fields": [
+            "key"
+          ]
+        },
+        "incr": {
+          "display_name": "Increment",
+          "description": "Increment an integer counter by an amount.",
+          "retryable": true,
+          "idempotency": "non_idempotent",
+          "credential_require": "redis",
+          "input_schema_fields": [
+            "key",
+            "amount"
+          ]
+        },
+        "publish": {
+          "display_name": "Publish",
+          "description": "Publish a message on a channel.",
+          "retryable": true,
+          "idempotency": "non_idempotent",
+          "credential_require": "redis",
+          "input_schema_fields": [
+            "channel",
+            "message"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "redis": {
+          "display_name": "Redis",
+          "secret_fields": [
+            "uri"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "resend",
+      "display_name": "Resend",
+      "description": "Send transactional emails, batch campaigns, and manage email domains via Resend.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "resend"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "send_email": {
+          "display_name": "Send Email",
+          "description": "Deliver a single transactional email via Resend.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "resend",
+          "input_schema_fields": [
+            "from",
+            "to",
+            "subject",
+            "html",
+            "text",
+            "reply_to"
+          ]
+        },
+        "get_email": {
+          "display_name": "Get Email Status",
+          "description": "Retrieve delivery status and metadata for a sent email.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "resend",
+          "input_schema_fields": [
+            "email_id"
+          ]
+        },
+        "list_domains": {
+          "display_name": "List Domains",
+          "description": "List verified sender domains.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "resend",
+          "input_schema_fields": []
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "resend": {
+          "display_name": "Resend API Key",
+          "secret_fields": [
+            "api_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "s3",
+      "display_name": "AWS S3 / Object Storage",
+      "description": "Upload, download, list, and delete files in AWS S3, Cloudflare R2, MinIO, or Wasabi.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "aws_s3",
+        "s3"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "upload_file": {
+          "display_name": "Upload File / Put Object",
+          "description": "Upload a text or binary payload to an S3 bucket.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "aws_s3",
+          "input_schema_fields": [
+            "bucket",
+            "key",
+            "content",
+            "content_type"
+          ]
+        },
+        "download_file": {
+          "display_name": "Download File / Get Object",
+          "description": "Retrieve a file or pre-signed URL from an S3 bucket.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "aws_s3",
+          "input_schema_fields": [
+            "bucket",
+            "key"
+          ]
+        },
+        "list_objects": {
+          "display_name": "List Objects",
+          "description": "List files and prefixes in an S3 bucket.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "aws_s3",
+          "input_schema_fields": [
+            "bucket",
+            "prefix"
+          ]
+        },
+        "delete_object": {
+          "display_name": "Delete Object",
+          "description": "Delete a file from an S3 bucket.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "aws_s3",
+          "input_schema_fields": [
+            "bucket",
+            "key"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "aws_s3": {
+          "display_name": "AWS S3 / S3-Compatible Credentials",
+          "secret_fields": [
+            "secret_access_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "salesforce",
+      "display_name": "Salesforce",
+      "description": "Salesforce connector: CRUD plus upsert-by-external-id, SOQL queries with pagination, schema/field discovery, Bulk API 2.0 and generic REST/Flow invoke \u2014 one generic node covering standard and custom objects.",
+      "category": "api",
+      "version": "1.2.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "salesforce"
+      ],
+      "operations_count": 12,
+      "operations": {
+        "search": {
+          "display_name": "Search/Get Record",
+          "description": "Find a record by field value (e.g. Lead by Email) and return the full record.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "object_name",
+            "search_field",
+            "search_value",
+            "timeout_seconds"
+          ]
+        },
+        "get": {
+          "display_name": "Get Record",
+          "description": "Fetch a single Salesforce record by its id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "object_name",
+            "record_id",
+            "timeout_seconds"
+          ]
+        },
+        "create": {
+          "display_name": "Create Record",
+          "description": "Create a Salesforce record and return its new id. Never auto-retried (a retry could duplicate the record).",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "object_name",
+            "record",
+            "timeout_seconds"
+          ]
+        },
+        "update": {
+          "display_name": "Update Record",
+          "description": "Update fields of an existing Salesforce record.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "object_name",
+            "record_id",
+            "record",
+            "timeout_seconds"
+          ]
+        },
+        "upsert": {
+          "display_name": "Upsert Record",
+          "description": "Create or update a record identified by an external-id field; safe to retry (no duplicates on re-run).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "object_name",
+            "external_id_field",
+            "external_id",
+            "record",
+            "timeout_seconds"
+          ]
+        },
+        "delete": {
+          "display_name": "Delete Record",
+          "description": "Delete a Salesforce record by its id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "object_name",
+            "record_id",
+            "timeout_seconds"
+          ]
+        },
+        "query": {
+          "display_name": "SOQL Query",
+          "description": "Run a SOQL query against the org, following nextRecordsUrl pages up to max_pages. When done=false, feed nextRecordsUrl back via SOQL-free continuation or raise max_pages.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "soql",
+            "max_pages",
+            "timeout_seconds"
+          ]
+        },
+        "describe": {
+          "display_name": "Describe Object",
+          "description": "Field discovery: rich metadata for one object (field names, labels, types, picklist values, required flags, reference targets).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "object_name",
+            "timeout_seconds"
+          ]
+        },
+        "list": {
+          "display_name": "List Objects",
+          "description": "Object discovery: all sobjects in the org with their labels and create-ability.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "timeout_seconds"
+          ]
+        },
+        "bulk": {
+          "display_name": "Bulk Load (Bulk API 2.0)",
+          "description": "Load a batch of records through a Bulk API 2.0 ingest job (insert/update/upsert/delete). Insert jobs are never auto-retried.",
+          "retryable": false,
+          "idempotency": "conditionally_idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "object_name",
+            "bulk_operation",
+            "records",
+            "external_id_field",
+            "poll_interval_seconds",
+            "max_polls",
+            "timeout_seconds"
+          ]
+        },
+        "custom_api_call": {
+          "display_name": "Custom API Call",
+          "description": "Make a generic Salesforce REST API call (any path/method). Authenticated with the stored Salesforce credential.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "custom_api_url",
+            "custom_api_method",
+            "custom_api_body",
+            "timeout_seconds"
+          ]
+        },
+        "flow_invoke": {
+          "display_name": "Invoke Flow",
+          "description": "Invoke an autolaunched Salesforce Flow via REST (Flow resource).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "flow_api_name",
+            "flow_inputs",
+            "timeout_seconds"
+          ]
+        }
+      },
+      "triggers_count": 1,
+      "triggers": {
+        "outbound_message": {
+          "trigger_type": "webhook",
+          "credential_require": null
+        }
+      },
+      "credential_types": {
+        "salesforce": {
+          "display_name": "Salesforce",
+          "secret_fields": [
+            "client_secret",
+            "password",
+            "refresh_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "schedule",
+      "display_name": "Schedule Connector",
+      "description": "Handles scheduled trigger operations.",
+      "category": "schedule",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "schedule"
+      ],
+      "operations_count": 0,
+      "operations": {},
+      "triggers_count": 1,
+      "triggers": {
+        "cron": {
+          "trigger_type": "scheduled",
+          "credential_require": null
+        }
+      },
+      "credential_types": {}
+    },
+    {
+      "connector_key": "sentry",
+      "display_name": "Sentry",
+      "description": "List, inspect, and manage errors and unresolved issues in Sentry.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "sentry"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "list_issues": {
+          "display_name": "List Issues",
+          "description": "Search for unresolved issues in a project or organization.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "sentry",
+          "input_schema_fields": [
+            "organization_slug",
+            "project_slug",
+            "query"
+          ]
+        },
+        "get_issue": {
+          "display_name": "Get Issue Details",
+          "description": "Retrieve full stack trace, tags, and metadata for a Sentry issue.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "sentry",
+          "input_schema_fields": [
+            "issue_id"
+          ]
+        },
+        "resolve_issue": {
+          "display_name": "Resolve / Update Issue",
+          "description": "Change issue status (resolved, ignored, unresolved).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "sentry",
+          "input_schema_fields": [
+            "issue_id",
+            "status"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "sentry": {
+          "display_name": "Sentry Auth Token",
+          "secret_fields": [
+            "auth_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "servicenow",
+      "display_name": "ServiceNow",
+      "description": "Manage ServiceNow ITSM records via the Table API (incident, change, problem, CMDB).",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "servicenow"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_records": {
+          "display_name": "List Records",
+          "description": "Query table rows with encoded query + limit/offset.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "servicenow",
+          "input_schema_fields": [
+            "table",
+            "query",
+            "limit",
+            "offset",
+            "fields",
+            "orderby"
+          ]
+        },
+        "get_record": {
+          "display_name": "Get Record",
+          "description": "Fetch one record by sys_id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "servicenow",
+          "input_schema_fields": [
+            "table",
+            "sys_id"
+          ]
+        },
+        "create_record": {
+          "display_name": "Create Record",
+          "description": "Insert a row into a table.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "servicenow",
+          "input_schema_fields": [
+            "table",
+            "fields"
+          ]
+        },
+        "update_record": {
+          "display_name": "Update Record",
+          "description": "Patch fields of a record by sys_id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "servicenow",
+          "input_schema_fields": [
+            "table",
+            "sys_id",
+            "fields"
+          ]
+        },
+        "delete_record": {
+          "display_name": "Delete Record",
+          "description": "Delete a record by sys_id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "servicenow",
+          "input_schema_fields": [
+            "table",
+            "sys_id"
+          ]
+        }
+      },
+      "triggers_count": 1,
+      "triggers": {
+        "record_updated": {
+          "trigger_type": "polling",
+          "credential_require": "servicenow"
+        }
+      },
+      "credential_types": {
+        "servicenow": {
+          "display_name": "ServiceNow",
+          "secret_fields": [
+            "password",
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "shopify",
+      "display_name": "Shopify",
+      "description": "Manage Shopify store products and orders via the Admin REST API.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "shopify"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "get_product": {
+          "display_name": "Get Product",
+          "description": "Fetch one product with its variants.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "shopify",
+          "input_schema_fields": [
+            "product_id"
+          ]
+        },
+        "list_products": {
+          "display_name": "List Products",
+          "description": "List products of the store (Link-header pagination).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "shopify",
+          "input_schema_fields": [
+            "limit",
+            "max_pages",
+            "status"
+          ]
+        },
+        "create_product": {
+          "display_name": "Create Product",
+          "description": "Create a product (title required; body, vendor and tags optional).",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "shopify",
+          "input_schema_fields": [
+            "title",
+            "body_html",
+            "vendor",
+            "tags"
+          ]
+        },
+        "get_order": {
+          "display_name": "Get Order",
+          "description": "Fetch summary data for one order.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "shopify",
+          "input_schema_fields": [
+            "order_id"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "shopify": {
+          "display_name": "Shopify",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "slack",
+      "display_name": "Slack",
+      "description": "Send messages to Slack channels and list workspace channels via the Web API.",
+      "category": "communication",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "slack_api"
+      ],
+      "operations_count": 2,
+      "operations": {
+        "send_message": {
+          "display_name": "Send Message",
+          "description": "Post a message to a channel via chat.postMessage.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "slack",
+          "input_schema_fields": [
+            "channel",
+            "text",
+            "thread_ts"
+          ]
+        },
+        "list_channels": {
+          "display_name": "List Channels",
+          "description": "List workspace channels (conversations.list) with pagination.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "slack",
+          "input_schema_fields": [
+            "limit",
+            "max_pages",
+            "exclude_archived"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "slack": {
+          "display_name": "Slack",
+          "secret_fields": [
+            "bot_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "stripe",
+      "display_name": "Stripe",
+      "description": "Manage Stripe customers and payment intents over REST v1.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "stripe"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "create_customer": {
+          "display_name": "Create Customer",
+          "description": "Create a Stripe customer.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "stripe",
+          "input_schema_fields": [
+            "email",
+            "name",
+            "metadata"
+          ]
+        },
+        "get_customer": {
+          "display_name": "Get Customer",
+          "description": "Fetch one customer by id (cus_\u2026).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "stripe",
+          "input_schema_fields": [
+            "customer_id"
+          ]
+        },
+        "list_customers": {
+          "display_name": "List Customers",
+          "description": "List customers, newest first (starting_after pagination).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "stripe",
+          "input_schema_fields": [
+            "limit",
+            "max_pages",
+            "email_filter"
+          ]
+        },
+        "create_payment_intent": {
+          "display_name": "Create Payment Intent",
+          "description": "Create a PaymentIntent for an amount in cents (idempotency-keyed).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "stripe",
+          "input_schema_fields": [
+            "amount",
+            "currency",
+            "customer_id",
+            "description"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "stripe": {
+          "display_name": "Stripe",
+          "secret_fields": [
+            "secret_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "supabase",
+      "display_name": "Supabase",
+      "description": "Query tables, insert/update/delete records, and call RPC functions in Supabase.",
+      "category": "api",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "supabase"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "select_rows": {
+          "display_name": "Select Rows",
+          "description": "Query rows from a table with filters, column selection, and limits.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "supabase",
+          "input_schema_fields": [
+            "table",
+            "select",
+            "limit",
+            "filter"
+          ]
+        },
+        "insert_row": {
+          "display_name": "Insert Row",
+          "description": "Insert one or more records into a table.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "supabase",
+          "input_schema_fields": [
+            "table",
+            "data"
+          ]
+        },
+        "update_row": {
+          "display_name": "Update Row",
+          "description": "Update records matching a column filter.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "supabase",
+          "input_schema_fields": [
+            "table",
+            "match_column",
+            "match_value",
+            "data"
+          ]
+        },
+        "delete_row": {
+          "display_name": "Delete Row",
+          "description": "Delete records matching a column filter.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "supabase",
+          "input_schema_fields": [
+            "table",
+            "match_column",
+            "match_value"
+          ]
+        },
+        "rpc_call": {
+          "display_name": "Call RPC Function",
+          "description": "Call a Supabase database function / RPC endpoint.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "supabase",
+          "input_schema_fields": [
+            "function_name",
+            "args"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "supabase": {
+          "display_name": "Supabase API Credentials",
+          "secret_fields": [
+            "service_role_key",
+            "anon_key"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "todoist",
+      "display_name": "Todoist",
+      "description": "Manage Todoist tasks and comments.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "todoist"
+      ],
+      "operations_count": 6,
+      "operations": {
+        "list_tasks": {
+          "display_name": "List Tasks",
+          "description": "List tasks.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "todoist",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_task": {
+          "display_name": "Get Task",
+          "description": "Fetch one task by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "todoist",
+          "input_schema_fields": [
+            "task_id"
+          ]
+        },
+        "create_task": {
+          "display_name": "Create Task",
+          "description": "Create a task.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "todoist",
+          "input_schema_fields": [
+            "content",
+            "description"
+          ]
+        },
+        "update_task": {
+          "display_name": "Update Task",
+          "description": "Update content/description.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "todoist",
+          "input_schema_fields": [
+            "task_id",
+            "content",
+            "description"
+          ]
+        },
+        "close_task": {
+          "display_name": "Close Task",
+          "description": "Mark a task complete.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "todoist",
+          "input_schema_fields": [
+            "task_id"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Comment on a task.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "todoist",
+          "input_schema_fields": [
+            "task_id",
+            "content"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "todoist": {
+          "display_name": "Todoist",
+          "secret_fields": [
+            "api_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "trello",
+      "display_name": "Trello",
+      "description": "Work with Trello boards, cards, and comments.",
+      "category": "productivity",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "trello"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "list_cards": {
+          "display_name": "List Board Cards",
+          "description": "List cards on a Trello board.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "trello",
+          "input_schema_fields": [
+            "board_id"
+          ]
+        },
+        "get_card": {
+          "display_name": "Get Card",
+          "description": "Fetch one Trello card by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "trello",
+          "input_schema_fields": [
+            "card_id"
+          ]
+        },
+        "create_card": {
+          "display_name": "Create Card",
+          "description": "Create a card on a list.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "trello",
+          "input_schema_fields": [
+            "list_id",
+            "name",
+            "desc"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Add a comment to a card.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "trello",
+          "input_schema_fields": [
+            "card_id",
+            "text"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "trello": {
+          "display_name": "Trello",
+          "secret_fields": [
+            "api_key",
+            "api_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "twilio",
+      "display_name": "Twilio",
+      "description": "Send and inspect Twilio SMS messages.",
+      "category": "communication",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "twilio"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "send_sms": {
+          "display_name": "Send SMS",
+          "description": "Send an SMS message.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "twilio",
+          "input_schema_fields": [
+            "from_number",
+            "to_number",
+            "body"
+          ]
+        },
+        "list_messages": {
+          "display_name": "List Messages",
+          "description": "List recent messages.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "twilio",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_message": {
+          "display_name": "Get Message",
+          "description": "Fetch one message by SID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "twilio",
+          "input_schema_fields": [
+            "message_sid"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "twilio": {
+          "display_name": "Twilio",
+          "secret_fields": [
+            "account_sid",
+            "auth_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "webhook",
+      "display_name": "Webhook Connector",
+      "description": "Handles webhook trigger operations.",
+      "category": "webhook",
+      "version": "1.0.0",
+      "lifecycle_status": "stable",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "webhook"
+      ],
+      "operations_count": 0,
+      "operations": {},
+      "triggers_count": 1,
+      "triggers": {
+        "receive": {
+          "trigger_type": "webhook",
+          "credential_require": null
+        }
+      },
+      "credential_types": {}
+    },
+    {
+      "connector_key": "whatsapp",
+      "display_name": "WhatsApp",
+      "description": "Send WhatsApp Business Cloud API text and template messages.",
+      "category": "communication",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "whatsapp"
+      ],
+      "operations_count": 3,
+      "operations": {
+        "send_text": {
+          "display_name": "Send Text Message",
+          "description": "Send a free-form text message.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "whatsapp",
+          "input_schema_fields": [
+            "to",
+            "body",
+            "preview_url"
+          ]
+        },
+        "send_template": {
+          "display_name": "Send Template Message",
+          "description": "Send an approved message template.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "whatsapp",
+          "input_schema_fields": [
+            "to",
+            "template",
+            "language"
+          ]
+        },
+        "get_message": {
+          "display_name": "Get Message",
+          "description": "Fetch a sent message by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "whatsapp",
+          "input_schema_fields": [
+            "message_id"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "whatsapp": {
+          "display_name": "WhatsApp",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "zendesk",
+      "display_name": "Zendesk",
+      "description": "Manage Zendesk support tickets and comments.",
+      "category": "support",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "zendesk"
+      ],
+      "operations_count": 5,
+      "operations": {
+        "list_tickets": {
+          "display_name": "List Tickets",
+          "description": "List support tickets.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zendesk",
+          "input_schema_fields": [
+            "limit"
+          ]
+        },
+        "get_ticket": {
+          "display_name": "Get Ticket",
+          "description": "Fetch one ticket by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zendesk",
+          "input_schema_fields": [
+            "ticket_id"
+          ]
+        },
+        "create_ticket": {
+          "display_name": "Create Ticket",
+          "description": "Open a new ticket.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "zendesk",
+          "input_schema_fields": [
+            "subject",
+            "comment",
+            "priority"
+          ]
+        },
+        "update_ticket": {
+          "display_name": "Update Ticket",
+          "description": "Patch status/priority/tags.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zendesk",
+          "input_schema_fields": [
+            "ticket_id",
+            "status",
+            "priority"
+          ]
+        },
+        "add_comment": {
+          "display_name": "Add Comment",
+          "description": "Reply on a ticket.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "zendesk",
+          "input_schema_fields": [
+            "ticket_id",
+            "body"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "zendesk": {
+          "display_name": "Zendesk",
+          "secret_fields": [
+            "api_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    },
+    {
+      "connector_key": "zoom",
+      "display_name": "Zoom",
+      "description": "Work with Zoom users and meetings.",
+      "category": "communication",
+      "version": "1.0.0",
+      "lifecycle_status": "beta",
+      "quality_tier": "NATIVE",
+      "node_types": [
+        "zoom"
+      ],
+      "operations_count": 4,
+      "operations": {
+        "list_meetings": {
+          "display_name": "List Meetings",
+          "description": "List scheduled meetings for a user.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zoom",
+          "input_schema_fields": [
+            "user_id"
+          ]
+        },
+        "get_meeting": {
+          "display_name": "Get Meeting",
+          "description": "Fetch one meeting by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zoom",
+          "input_schema_fields": [
+            "meeting_id"
+          ]
+        },
+        "create_meeting": {
+          "display_name": "Create Meeting",
+          "description": "Schedule a meeting.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "zoom",
+          "input_schema_fields": [
+            "user_id",
+            "topic",
+            "start_time",
+            "duration_min"
+          ]
+        },
+        "delete_meeting": {
+          "display_name": "Delete Meeting",
+          "description": "Delete a meeting.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "zoom",
+          "input_schema_fields": [
+            "meeting_id"
+          ]
+        }
+      },
+      "triggers_count": 0,
+      "triggers": {},
+      "credential_types": {
+        "zoom": {
+          "display_name": "Zoom",
+          "secret_fields": [
+            "access_token"
+          ],
+          "encryption_required": true
+        }
+      }
+    }
+  ]
+}

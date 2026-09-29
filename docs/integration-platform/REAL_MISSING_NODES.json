@@ -1,0 +1,56 @@
+[
+  {
+    "node_slug": "zoho_crm_action",
+    "application": "Zoho CRM",
+    "category": "CRM & Sales",
+    "required_for": "UNIVERSAL_HTTP"
+  },
+  {
+    "node_slug": "freshsales_action",
+    "application": "Freshsales",
+    "category": "CRM & Sales",
+    "required_for": "UNIVERSAL_HTTP"
+  },
+  {
+    "node_slug": "sendgrid_action",
+    "application": "Twilio SendGrid",
+    "category": "Email & Marketing",
+    "required_for": "UNIVERSAL_HTTP"
+  },
+  {
+    "node_slug": "activecampaign_action",
+    "application": "ActiveCampaign",
+    "category": "Email & Marketing",
+    "required_for": "UNIVERSAL_HTTP"
+  },
+  {
+    "node_slug": "coda_action",
+    "application": "Coda",
+    "category": "Productivity & Collaboration",
+    "required_for": "OPENAPI_GENERATABLE"
+  },
+  {
+    "node_slug": "xero_action",
+    "application": "Xero Accounting",
+    "category": "Finance & Commerce",
+    "required_for": "UNIVERSAL_HTTP"
+  },
+  {
+    "node_slug": "bigquery_action",
+    "application": "Google BigQuery",
+    "category": "Database & Cloud Storage",
+    "required_for": "OPENAPI_GENERATABLE"
+  },
+  {
+    "node_slug": "docusign_action",
+    "application": "DocuSign eSignature",
+    "category": "Productivity & Collaboration",
+    "required_for": "REST_GENERATABLE"
+  },
+  {
+    "node_slug": "intercom_action",
+    "application": "Intercom Customer Messaging",
+    "category": "Customer Support & Success",
+    "required_for": "REST_GENERATABLE"
+  }
+]

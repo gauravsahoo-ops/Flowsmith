@@ -1,0 +1,47 @@
+[
+  {
+    "application_id": "zoho_crm",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  },
+  {
+    "application_id": "freshsales",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  },
+  {
+    "application_id": "sendgrid",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  },
+  {
+    "application_id": "activecampaign",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  },
+  {
+    "application_id": "coda",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  },
+  {
+    "application_id": "xero",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  },
+  {
+    "application_id": "bigquery",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  },
+  {
+    "application_id": "docusign",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  },
+  {
+    "application_id": "intercom",
+    "search_key": "search",
+    "search_name": "Search / Query"
+  }
+]

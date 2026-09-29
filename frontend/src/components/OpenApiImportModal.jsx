@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { api } from '../api'
 import { useWorkflowStore } from '../stores/workflowStore'
 import './OpenApiImportModal.css'
 
-export default function OpenApiImportModal({ isOpen, onClose }) {
+export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuccess }) {
   const [tab, setTab] = useState('url') // 'url' | 'raw'
   const [specUrl, setSpecUrl] = useState('')
   const [specRaw, setSpecRaw] = useState('')
@@ -19,6 +20,15 @@ export default function OpenApiImportModal({ isOpen, onClose }) {
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState(null)
   const [importSuccess, setImportSuccess] = useState(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose?.()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -79,6 +89,9 @@ export default function OpenApiImportModal({ isOpen, onClose }) {
           useWorkflowStore.setState({ catalog: nodes })
         }
       } catch {}
+      if (typeof onImportSuccess === 'function') {
+        onImportSuccess(data)
+      }
     } catch (err) {
       setImportError(err.message || 'Failed to import connector.')
     } finally {
@@ -86,7 +99,7 @@ export default function OpenApiImportModal({ isOpen, onClose }) {
     }
   }
 
-  return (
+  return createPortal(
     <div className="oai-modal-overlay" onClick={onClose}>
       <div className="oai-modal-window" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -300,6 +313,7 @@ export default function OpenApiImportModal({ isOpen, onClose }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

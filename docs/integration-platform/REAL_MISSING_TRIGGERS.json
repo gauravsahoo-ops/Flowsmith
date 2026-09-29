@@ -1,0 +1,56 @@
+[
+  {
+    "application_id": "zoho_crm",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  },
+  {
+    "application_id": "freshsales",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  },
+  {
+    "application_id": "sendgrid",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  },
+  {
+    "application_id": "activecampaign",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  },
+  {
+    "application_id": "coda",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  },
+  {
+    "application_id": "xero",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  },
+  {
+    "application_id": "bigquery",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  },
+  {
+    "application_id": "docusign",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  },
+  {
+    "application_id": "intercom",
+    "trigger_key": "new_event",
+    "trigger_name": "New Event Trigger",
+    "trigger_type": "webhook"
+  }
+]

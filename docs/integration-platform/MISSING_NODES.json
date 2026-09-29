@@ -1,0 +1,32 @@
+{
+  "total_missing_core_nodes": 3,
+  "nodes": [
+    {
+      "slug": "sftp_trigger",
+      "name": "SFTP Trigger",
+      "category": "Triggers",
+      "description": "Polling trigger that watches SFTP remote directory for newly uploaded files",
+      "priority": "Medium",
+      "current_workaround": "Schedule Trigger + SSH/FTP node with cursor in Data Tables",
+      "target_implementation": "Trigger Node with polling cursor persistence"
+    },
+    {
+      "slug": "elasticsearch",
+      "name": "Elasticsearch / OpenSearch",
+      "category": "Database & Storage",
+      "description": "Full-text search cluster querying and document indexing",
+      "priority": "Low",
+      "current_workaround": "Universal HTTP Request node with Elastic JSON query DSL",
+      "target_implementation": "OpenAPI Importer or Native Connector"
+    },
+    {
+      "slug": "reranker",
+      "name": "AI Cross-Encoder Reranker",
+      "category": "AI & Vector Search",
+      "description": "Standalone reranking node for vector retrieval refinement",
+      "priority": "Low",
+      "current_workaround": "Embedded inside RAG pipeline node (rag_pipeline.py)",
+      "target_implementation": "Standalone Flow Node"
+    }
+  ]
+}

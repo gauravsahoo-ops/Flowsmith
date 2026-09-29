@@ -153,3 +153,57 @@ async def test_wait_node(ctx):
     params = cls.parameters_schema(mode="delay", seconds=0.01)
     res = await node.run(ctx, params, [{"status": "ok"}])
     assert res.output_items == [{"status": "ok"}]
+
+
+@pytest.mark.asyncio
+async def test_reranker_node(ctx):
+    cls = NODE_REGISTRY["reranker"]
+    node = cls()
+    params = cls.parameters_schema(
+        query="invoice payment refund",
+        text_field="text",
+        top_k=2
+    )
+    items = [
+        {"id": 1, "text": "The weather today in San Francisco is sunny and bright."},
+        {"id": 2, "text": "Customer requested a payment refund for their disputed invoice."},
+        {"id": 3, "text": "Annual developer summit conference keynote speech schedule."},
+    ]
+    res = await node.run(ctx, params, items)
+    assert len(res.output_items) == 2
+    # Document 2 should be ranked #1
+    assert res.output_items[0]["id"] == 2
+    assert res.output_items[0]["_reranked_position"] == 1
+    assert res.output_items[0]["_relevance_score"] > 0
+
+
+@pytest.mark.asyncio
+async def test_reranker_node_missing_query(ctx):
+    cls = NODE_REGISTRY["reranker"]
+    node = cls()
+    params = cls.parameters_schema(query="")
+    with pytest.raises(NodeExecutionError) as exc_info:
+        await node.run(ctx, params, [{"text": "Sample text without query"}])
+    assert "MISSING_QUERY" in str(exc_info.value.code)
+
+
+@pytest.mark.asyncio
+async def test_sftp_trigger_requires_credentials(ctx):
+    cls = NODE_REGISTRY["sftp_trigger"]
+    node = cls()
+    params = cls.parameters_schema(path="/inbox")
+    # ctx has no credentials by default
+    with pytest.raises(NodeExecutionError) as exc_info:
+        await node.run(ctx, params, [])
+    assert exc_info.value.code == "CREDENTIALS_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_elasticsearch_node_validation(ctx):
+    cls = NODE_REGISTRY["elasticsearch"]
+    node = cls()
+    params = cls.parameters_schema(operation="search", index="")
+    with pytest.raises(NodeExecutionError) as exc_info:
+        await node.run(ctx, params, [])
+    assert exc_info.value.code == "MISSING_INDEX"
+

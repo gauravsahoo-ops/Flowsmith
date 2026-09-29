@@ -341,8 +341,28 @@ export const api = {
   getBranding: () => request('GET', '/branding'),
   updateBranding: (data) => request('PUT', '/branding', data),
   resetBranding: () => request('POST', '/branding/reset'),
-  // OpenAPI / Swagger Connector Importer
+  // Connectors & OpenAPI Importer
+  listConnectors: () => request('GET', '/connectors'),
+  getConnector: (key) => request('GET', `/connectors/${encodeURIComponent(key)}`),
+  getConnectorOperations: (key) => request('GET', `/connectors/${encodeURIComponent(key)}/operations`),
+  getConnectorTriggers: (key) => request('GET', `/connectors/${encodeURIComponent(key)}/triggers`),
   previewOpenApi: (payload) => request('POST', '/connectors/preview-openapi', payload),
   importOpenApi: (payload) => request('POST', '/connectors/import-openapi', payload),
+  // Model Context Protocol (MCP)
+  listMcpTools: () => request('GET', '/mcp/tools'),
+  callMcpTool: (payload) => request('POST', '/mcp/call', payload),
+  listMcpPrompts: () => request('GET', '/mcp/prompts'),
+  listMcpResources: () => request('GET', '/mcp/resources'),
+  // Universal Integration Catalog, Coverage & Canonical Nodes (Phase 4, 6, 29)
+  listIntegrationCatalog: (params) => {
+    const q = new URLSearchParams()
+    if (params?.q) q.set('q', params.q)
+    if (params?.category) q.set('category', params.category)
+    const qs = q.toString() ? `?${q.toString()}` : ''
+    return request('GET', `/integrations/catalog${qs}`)
+  },
+  getIntegrationCoverage: () => request('GET', '/integrations/coverage'),
+  getIntegrationCertification: () => request('GET', '/integrations/certification'),
+  listCanonicalNodes: () => request('GET', '/integrations/canonical-nodes'),
 }
 

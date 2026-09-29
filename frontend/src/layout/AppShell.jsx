@@ -123,7 +123,7 @@ export default function AppShell({ onLogout }) {
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              <span className="app-topbar-search-text">Search workflows, credentials, templates…</span>
+              <span className="app-topbar-search-text">Search workflows, connectors, credentials…</span>
               <kbd className="app-topbar-search-kbd">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
             </button>
           </div>

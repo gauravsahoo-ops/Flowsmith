@@ -8,7 +8,7 @@ import secrets
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -490,4 +490,100 @@ def use_template(template_id: int, user: User = Depends(get_current_user), db: S
         "id": tmpl.id,
         "name": tmpl.name,
         "workflow_data": data,
+    })
+
+
+# --- Enterprise Workflow Promotion (Phase 15) ---
+
+class WorkflowPromoteRequest(BaseModel):
+    target_environment: str = Field(pattern="^(development|testing|staging|production)$")
+    notes: str = ""
+
+
+@router.post("/api/workflows/{workflow_id}/promote")
+def promote_workflow(
+    workflow_id: str,
+    payload: WorkflowPromoteRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Enterprise Workflow Promotion (Phase 15): promote workflow across Dev/Test/Staging/Prod with snapshot and audit."""
+    import uuid
+    from datetime import datetime, UTC
+    from app.api.access import get_workflow
+    from app.models import WorkflowRecord, WorkflowVersionRecord
+    from app.credentials.validator import validate_workflow_credentials
+    from app.engine.graph import validate_graph
+    from app.schemas.workflow import Workflow
+
+    rec = get_workflow(db, workflow_id, user, require_edit=True)
+    source_env = (rec.data or {}).get("settings", {}).get("environment", "development")
+
+    # Validate graph & credentials before promotion
+    try:
+        wf_model = Workflow.model_validate(rec.data or {})
+        validate_graph(wf_model)
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"Cannot promote workflow: invalid graph structure ({exc}).",
+        )
+
+    try:
+        validate_workflow_credentials(rec.data or {}, db, user.id)
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"Cannot promote workflow: credential validation failed ({exc}).",
+        )
+
+    # Apply promotion
+    updated_data = dict(rec.data or {})
+    settings = dict(updated_data.get("settings") or {})
+    settings["environment"] = payload.target_environment
+    settings["promoted_at"] = datetime.now(UTC).isoformat()
+    settings["promoted_by"] = user.email
+    if payload.notes:
+        settings["promotion_notes"] = payload.notes
+    updated_data["settings"] = settings
+
+    new_version = (rec.version or 1) + 1
+    rec.version = new_version
+    rec.data = updated_data
+    rec.updated_at = datetime.now(UTC)
+
+    # Create immutable version record for rollback
+    ver = WorkflowVersionRecord(
+        id=f"ver_{uuid.uuid4().hex[:12]}",
+        workflow_id=rec.id,
+        version=new_version,
+        data=updated_data,
+        user_id=user.id,
+        is_active=rec.active,
+    )
+    db.add(ver)
+    db.commit()
+    db.refresh(rec)
+
+    log_event(
+        db,
+        "workflow.promoted",
+        target_type="workflow",
+        target_id=rec.id,
+        user_id=user.id,
+        detail={
+            "source_env": source_env,
+            "target_env": payload.target_environment,
+            "version": new_version,
+            "notes": payload.notes,
+        },
+    )
+
+    return ok({
+        "workflow_id": rec.id,
+        "version": new_version,
+        "source_environment": source_env,
+        "target_environment": payload.target_environment,
+        "promoted_at": settings["promoted_at"],
+        "node_count": len((rec.data or {}).get("nodes", [])),
     })

@@ -6,12 +6,15 @@ import { useWorkflowStore } from './stores/workflowStore'
 import { useExecutionStore } from './stores/executionStore'
 import { useUiStore } from './stores/uiStore'
 
+import { useCredentialStore } from './stores/credentialStore'
+
 // Expose stores for e2e tests (dev only — avoids prod window pollution)
 if (import.meta.env.DEV) {
   window.__wfStore = useWorkflowStore
   window.__uiStore = useUiStore
   window.__executionStore = useExecutionStore
   window.__execStore = useExecutionStore
+  window.__credentialStore = useCredentialStore
 }
 
 createRoot(document.getElementById('root')).render(

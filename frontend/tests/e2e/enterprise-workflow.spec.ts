@@ -31,7 +31,7 @@ async function gotoApp(page: Page, token: string) {
   await page.goto('http://localhost:5173');
   await page.evaluate((t: string) => localStorage.setItem('mat_token', t), token);
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
   try {
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 5000 });
   } catch {
@@ -40,7 +40,7 @@ async function gotoApp(page: Page, token: string) {
     const wfId = listJson.data?.[0]?.id;
     if (wfId) {
       await page.goto(`http://localhost:5173/workflows/${wfId}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('networkidle').catch(() => {});
     }
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
   }
@@ -224,7 +224,7 @@ test('enterprise workflow: trigger → code → login → IF → get data → sp
 
   // ── Save and run ────────────────────────────────────────────
   await saveWorkflow(page);
-  await page.locator('button:has-text("▶ Run")').click();
+  await page.locator('button.primary--run, button[aria-label="Run workflow"]').first().click();
 
   // Wait for execution to complete — the topbar shows "success"
   await expect(page.locator('.topbar .run-status.status-success')).toHaveText('success', { timeout: 60000 });

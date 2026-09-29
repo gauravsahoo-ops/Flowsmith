@@ -278,8 +278,8 @@ const server = http.createServer(async (req, res) => {
   // ── Custom API Call (generic) ──────────────────────────────────
   // POST /services/data/{v}/custom/api/* — pass-through
   if (/^\/services\/data\/[^/]+\/custom\//.test(path)) {
-    const body = JSON.parse((await collectBody(req)) || '{}');
-    return sendJson(res, 200, { success: true, endpoint: path, body });
+    const reqBody = JSON.parse((await collectBody(req)) || '{}');
+    return sendJson(res, 200, { success: true, endpoint: path, data: reqBody });
   }
 
   // ── Generic catch-all (for mapping test /get, /post, etc.) ─────

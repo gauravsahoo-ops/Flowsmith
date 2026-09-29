@@ -132,10 +132,16 @@ def _load_builtin_nodes() -> None:
         token_fetch,
         token_manager,
         token_store,
+        router,
+        soap_request,
+        string_tools,
         wait,
         webhook,
         websocket,
         xml_ops,
+        elasticsearch,
+        reranker,
+        sftp_trigger,
     )
 
 

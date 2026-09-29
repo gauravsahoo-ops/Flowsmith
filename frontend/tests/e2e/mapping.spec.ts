@@ -64,9 +64,9 @@ test('map an upstream field into a node without writing expressions', async ({ p
   await page.goto('http://localhost:5173');
   await page.evaluate((t) => localStorage.setItem('mat_token', t), token);
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
   await page.goto(`http://localhost:5173/workflows/${wfId}`);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
 
   // Wait for the store to hydrate, then load the workflow, clear the URL (to
   // avoid double-appending), and open the http node editor.

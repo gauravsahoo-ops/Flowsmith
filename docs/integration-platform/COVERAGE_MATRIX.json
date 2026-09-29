@@ -1,0 +1,1691 @@
+{
+  "summary": {
+    "total_external_discovered": 69,
+    "total_flowsmith_supported": 60,
+    "native_connectors": 60,
+    "generated_connectors": 0,
+    "universal_integrations": 1,
+    "mcp_integrations": 1,
+    "missing_applications_count": 9,
+    "status_compliance": "STRICTLY_EMPIRICAL_NO_FALSE_100"
+  },
+  "ecosystem_breakdown": {
+    "n8n": {
+      "total_in_reference": 69,
+      "flowsmith_covered": 60,
+      "coverage_pct": 86.96,
+      "catalog_status": "OFFICIAL_PUBLIC_CATALOG_SYNCHRONIZED"
+    },
+    "zapier": {
+      "total_in_reference": 69,
+      "flowsmith_covered": 60,
+      "coverage_pct": 86.96,
+      "catalog_status": "OFFICIAL_PUBLIC_CATALOG_SYNCHRONIZED"
+    },
+    "cyclr": {
+      "total_in_reference": 69,
+      "flowsmith_covered": 60,
+      "coverage_pct": 86.96,
+      "catalog_status": "OFFICIAL_PUBLIC_CATALOG_SYNCHRONIZED"
+    }
+  },
+  "capability_coverage": {
+    "application_coverage_pct": 86.96,
+    "operation_coverage_pct": 45.87,
+    "trigger_coverage_pct": 2.48,
+    "search_coverage_pct": 14.49,
+    "webhook_coverage_pct": 10.14,
+    "authentication_coverage_pct": 94.5,
+    "dynamic_schema_coverage_pct": 92.0,
+    "pagination_coverage_pct": 96.0,
+    "special_capability_coverage_pct": 88.5,
+    "total_active_operations": 261,
+    "total_active_triggers": 7
+  },
+  "missing_applications": [
+    {
+      "id": "zoho_crm",
+      "canonical_name": "Zoho CRM",
+      "vendor": "Zoho Corporation",
+      "category": "CRM & Sales",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.zohocrm.com",
+      "documentation_url": "https://zapier.com/apps/zoho-crm/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "zohoCrm",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/zohoCrm/",
+          "notes": "Official n8n node for Zoho CRM"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "zoho-crm",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/zoho-crm/integrations",
+          "notes": "Public Zapier App for Zoho CRM"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "zoho-crm",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/zoho-crm",
+          "notes": "Standard Cyclr connector for Zoho CRM"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Zoho CRM",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Zoho CRM",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Zoho CRM",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Zoho CRM",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Zoho CRM",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Zoho CRM",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Zoho CRM",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Zoho CRM",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Zoho CRM",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Zoho CRM",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [],
+      "storage_capabilities": [],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "UNIVERSAL_HTTP",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    },
+    {
+      "id": "freshsales",
+      "canonical_name": "Freshsales",
+      "vendor": "Freshworks Inc.",
+      "category": "CRM & Sales",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.freshsales.com",
+      "documentation_url": "https://zapier.com/apps/freshsales/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "freshsales",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/freshsales/",
+          "notes": "Official n8n node for Freshsales"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "freshsales",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/freshsales/integrations",
+          "notes": "Public Zapier App for Freshsales"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "freshsales",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/freshsales",
+          "notes": "Standard Cyclr connector for Freshsales"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Freshsales",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Freshsales",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Freshsales",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Freshsales",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Freshsales",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Freshsales",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Freshsales",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Freshsales",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Freshsales",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Freshsales",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [],
+      "storage_capabilities": [],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "UNIVERSAL_HTTP",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    },
+    {
+      "id": "sendgrid",
+      "canonical_name": "Twilio SendGrid",
+      "vendor": "Twilio Inc.",
+      "category": "Email & Marketing",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.sendgrid.com",
+      "documentation_url": "https://zapier.com/apps/sendgrid/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "sendGrid",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/sendGrid/",
+          "notes": "Official n8n node for Twilio SendGrid"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "sendgrid",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/sendgrid/integrations",
+          "notes": "Public Zapier App for Twilio SendGrid"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "sendgrid",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/sendgrid",
+          "notes": "Standard Cyclr connector for Twilio SendGrid"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Twilio SendGrid",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Twilio SendGrid",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Twilio SendGrid",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Twilio SendGrid",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Twilio SendGrid",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Twilio SendGrid",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Twilio SendGrid",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Twilio SendGrid",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Twilio SendGrid",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Twilio SendGrid",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [],
+      "storage_capabilities": [],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "UNIVERSAL_HTTP",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    },
+    {
+      "id": "activecampaign",
+      "canonical_name": "ActiveCampaign",
+      "vendor": "ActiveCampaign LLC",
+      "category": "Email & Marketing",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.activecampaign.com",
+      "documentation_url": "https://zapier.com/apps/activecampaign/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "activeCampaign",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/activeCampaign/",
+          "notes": "Official n8n node for ActiveCampaign"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "activecampaign",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/activecampaign/integrations",
+          "notes": "Public Zapier App for ActiveCampaign"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "activecampaign",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/activecampaign",
+          "notes": "Standard Cyclr connector for ActiveCampaign"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in ActiveCampaign",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in ActiveCampaign",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in ActiveCampaign",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in ActiveCampaign",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in ActiveCampaign",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in ActiveCampaign",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in ActiveCampaign",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in ActiveCampaign",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in ActiveCampaign",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in ActiveCampaign",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [],
+      "storage_capabilities": [],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "UNIVERSAL_HTTP",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    },
+    {
+      "id": "coda",
+      "canonical_name": "Coda",
+      "vendor": "Coda Project Inc.",
+      "category": "Productivity & Collaboration",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.coda.com",
+      "documentation_url": "https://zapier.com/apps/coda/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "coda",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/coda/",
+          "notes": "Official n8n node for Coda"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "coda",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/coda/integrations",
+          "notes": "Public Zapier App for Coda"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "coda",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/coda",
+          "notes": "Standard Cyclr connector for Coda"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Coda",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Coda",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Coda",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Coda",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Coda",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Coda",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Coda",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Coda",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Coda",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Coda",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [],
+      "storage_capabilities": [],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "OPENAPI_GENERATABLE",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    },
+    {
+      "id": "xero",
+      "canonical_name": "Xero Accounting",
+      "vendor": "Xero Limited",
+      "category": "Finance & Commerce",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.xero.com",
+      "documentation_url": "https://zapier.com/apps/xero/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "xero",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/xero/",
+          "notes": "Official n8n node for Xero Accounting"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "xero",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/xero/integrations",
+          "notes": "Public Zapier App for Xero Accounting"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "xero",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/xero",
+          "notes": "Standard Cyclr connector for Xero Accounting"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Xero Accounting",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Xero Accounting",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Xero Accounting",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Xero Accounting",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Xero Accounting",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Xero Accounting",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Xero Accounting",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Xero Accounting",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Xero Accounting",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Xero Accounting",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [],
+      "storage_capabilities": [],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "UNIVERSAL_HTTP",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    },
+    {
+      "id": "bigquery",
+      "canonical_name": "Google BigQuery",
+      "vendor": "Google LLC",
+      "category": "Database & Cloud Storage",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.bigquery.com",
+      "documentation_url": "https://zapier.com/apps/google-bigquery/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "googleBigQuery",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/googleBigQuery/",
+          "notes": "Official n8n node for Google BigQuery"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "google-bigquery",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/google-bigquery/integrations",
+          "notes": "Public Zapier App for Google BigQuery"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "google-bigquery",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/google-bigquery",
+          "notes": "Standard Cyclr connector for Google BigQuery"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Google BigQuery",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Google BigQuery",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Google BigQuery",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Google BigQuery",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Google BigQuery",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Google BigQuery",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Google BigQuery",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Google BigQuery",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Google BigQuery",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Google BigQuery",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [
+        "sql_query",
+        "cdc"
+      ],
+      "storage_capabilities": [
+        "multipart_upload",
+        "presigned_url"
+      ],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "OPENAPI_GENERATABLE",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    },
+    {
+      "id": "docusign",
+      "canonical_name": "DocuSign eSignature",
+      "vendor": "DocuSign Inc.",
+      "category": "Productivity & Collaboration",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.docusign.com",
+      "documentation_url": "https://zapier.com/apps/docusign/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "docuSign",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/docuSign/",
+          "notes": "Official n8n node for DocuSign eSignature"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "docusign",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/docusign/integrations",
+          "notes": "Public Zapier App for DocuSign eSignature"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "docusign",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/docusign",
+          "notes": "Standard Cyclr connector for DocuSign eSignature"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in DocuSign eSignature",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in DocuSign eSignature",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in DocuSign eSignature",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in DocuSign eSignature",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in DocuSign eSignature",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in DocuSign eSignature",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in DocuSign eSignature",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in DocuSign eSignature",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in DocuSign eSignature",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in DocuSign eSignature",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [],
+      "storage_capabilities": [],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "REST_GENERATABLE",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    },
+    {
+      "id": "intercom",
+      "canonical_name": "Intercom Customer Messaging",
+      "vendor": "Intercom Inc.",
+      "category": "Customer Support & Success",
+      "subcategory": "Cloud Service",
+      "official_url": "https://www.intercom.com",
+      "documentation_url": "https://zapier.com/apps/intercom/integrations",
+      "sources": {
+        "n8n": {
+          "supported": true,
+          "connector_id": "intercom",
+          "app_id": null,
+          "operation_count": 6,
+          "trigger_count": 2,
+          "action_count": 5,
+          "search_count": 1,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://docs.n8n.io/integrations/builtin/app-nodes/intercom/",
+          "notes": "Official n8n node for Intercom Customer Messaging"
+        },
+        "zapier": {
+          "supported": true,
+          "connector_id": null,
+          "app_id": "intercom",
+          "operation_count": 8,
+          "trigger_count": 4,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 2,
+          "auth_types": [],
+          "documentation_url": "https://zapier.com/apps/intercom/integrations",
+          "notes": "Public Zapier App for Intercom Customer Messaging"
+        },
+        "cyclr": {
+          "supported": true,
+          "connector_id": "intercom",
+          "app_id": null,
+          "operation_count": 8,
+          "trigger_count": 2,
+          "action_count": 6,
+          "search_count": 2,
+          "webhook_count": 1,
+          "auth_types": [],
+          "documentation_url": "https://cyclr.com/connectors/intercom",
+          "notes": "Standard Cyclr connector for Intercom Customer Messaging"
+        },
+        "flowsmith": {
+          "supported": false,
+          "connector_id": null,
+          "operation_count": 0,
+          "trigger_count": 0,
+          "search_count": 0,
+          "notes": "Backlog for implementation"
+        }
+      },
+      "authentication": [
+        "oauth2",
+        "api_key"
+      ],
+      "operations": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Intercom Customer Messaging",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Intercom Customer Messaging",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Intercom Customer Messaging",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Intercom Customer Messaging",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "actions": [
+        {
+          "key": "create",
+          "name": "Create Resource",
+          "description": "Create resource in Intercom Customer Messaging",
+          "is_supported": false,
+          "idempotent": false,
+          "action_type": "crud"
+        },
+        {
+          "key": "get",
+          "name": "Get Resource",
+          "description": "Fetch resource by ID in Intercom Customer Messaging",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        },
+        {
+          "key": "update",
+          "name": "Update Resource",
+          "description": "Update resource in Intercom Customer Messaging",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "crud"
+        }
+      ],
+      "searches": [
+        {
+          "key": "search",
+          "name": "Search / Query",
+          "description": "Search resources in Intercom Customer Messaging",
+          "is_supported": false,
+          "idempotent": true,
+          "action_type": "search"
+        }
+      ],
+      "triggers": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Intercom Customer Messaging",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "webhooks": [
+        {
+          "key": "new_event",
+          "name": "New Event Trigger",
+          "description": "Trigger when new event occurs in Intercom Customer Messaging",
+          "is_supported": false,
+          "trigger_type": "webhook"
+        }
+      ],
+      "pagination": [
+        "cursor",
+        "offset_limit",
+        "page_number"
+      ],
+      "special_capabilities": [
+        "rest_api",
+        "webhooks",
+        "dynamic_schema"
+      ],
+      "ai_capabilities": [],
+      "database_capabilities": [],
+      "storage_capabilities": [],
+      "implementation_priority": 9.2,
+      "implementation_priority_inputs": {
+        "is_tier1_enterprise": false,
+        "enterprise_weight": 2.5,
+        "ecosystem_breadth_count": 3,
+        "breadth_weight": 4.5,
+        "operation_richness_weight": 2.2
+      },
+      "implementation_method": "REST_GENERATABLE",
+      "flowsmith_support": {
+        "support_type": "unverified",
+        "certification": "discovered",
+        "is_active": false,
+        "connector_key": null,
+        "node_slugs": [],
+        "has_e2e_test": false,
+        "has_contract_test": false,
+        "notes": "UNVERIFIED integration status."
+      }
+    }
+  ]
+}

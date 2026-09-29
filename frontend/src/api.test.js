@@ -537,3 +537,67 @@ describe('ai assistant superpowers', () => {
   })
 })
 
+describe('connector endpoints', () => {
+  it('calls listConnectors', async () => {
+    mockFetchSuccess([{ connector_key: 'salesforce', display_name: 'Salesforce' }])
+    const res = await api.listConnectors()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/connectors')
+    expect(res).toEqual([{ connector_key: 'salesforce', display_name: 'Salesforce' }])
+  })
+
+  it('calls getConnector', async () => {
+    mockFetchSuccess({ connector_key: 'slack', display_name: 'Slack' })
+    const res = await api.getConnector('slack')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/connectors/slack')
+    expect(res.connector_key).toBe('slack')
+  })
+})
+
+describe('mcp endpoints', () => {
+  it('calls listMcpTools', async () => {
+    mockFetchSuccess([{ name: 'list_connectors', description: 'List connectors' }])
+    const res = await api.listMcpTools()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/mcp/tools')
+    expect(res).toEqual([{ name: 'list_connectors', description: 'List connectors' }])
+  })
+
+  it('calls callMcpTool', async () => {
+    mockFetchSuccess({ status: 'ok', data: [] })
+    const res = await api.callMcpTool({ name: 'list_connectors', arguments: {} })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/mcp/call')
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST')
+    expect(res.status).toBe('ok')
+  })
+})
+
+describe('integration catalog & coverage endpoints (Phase 4, 6, 29)', () => {
+  it('calls listIntegrationCatalog with query params', async () => {
+    mockFetchSuccess([{ id: 'salesforce', name: 'Salesforce' }])
+    const res = await api.listIntegrationCatalog({ q: 'salesforce', category: 'crm' })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/integrations/catalog?q=salesforce&category=crm')
+    expect(res).toEqual([{ id: 'salesforce', name: 'Salesforce' }])
+  })
+
+  it('calls getIntegrationCoverage', async () => {
+    mockFetchSuccess({ summary: { total_external_discovered: 72 } })
+    const res = await api.getIntegrationCoverage()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/integrations/coverage')
+    expect(res.summary.total_external_discovered).toBe(72)
+  })
+
+  it('calls getIntegrationCertification', async () => {
+    mockFetchSuccess([{ connector_key: 'salesforce', certification: 'CERTIFIED' }])
+    const res = await api.getIntegrationCertification()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/integrations/certification')
+    expect(res[0].certification).toBe('CERTIFIED')
+  })
+
+  it('calls listCanonicalNodes', async () => {
+    mockFetchSuccess([{ slug: 'http_request', display_name: 'HTTP Request' }])
+    const res = await api.listCanonicalNodes()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/integrations/canonical-nodes')
+    expect(res[0].slug).toBe('http_request')
+  })
+})
+
+
