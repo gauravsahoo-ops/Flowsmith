@@ -1,0 +1,38 @@
+{
+  "connector": "dynamics_crm",
+  "vendor": "Microsoft Corporation",
+  "wave": 1,
+  "sandbox": "Microsoft 365 Developer Program / Dynamics 365 Sales Trial",
+  "required_credentials": [
+    "DYNAMICS_TENANT_ID",
+    "DYNAMICS_CLIENT_ID",
+    "DYNAMICS_CLIENT_SECRET",
+    "DYNAMICS_RESOURCE_URL"
+  ],
+  "required_scopes": [
+    "https://admin.services.crm.dynamics.com/.default"
+  ],
+  "operations_to_test": [
+    "list_accounts",
+    "create_contact",
+    "get_entity",
+    "update_lead",
+    "delete_entity"
+  ],
+  "searches_to_test": [
+    "filter_contacts ($filter OData query)"
+  ],
+  "triggers_to_test": [
+    "dynamics_webhook_trigger"
+  ],
+  "webhooks_to_test": [
+    "dataverse_service_endpoint_webhook"
+  ],
+  "pagination_to_test": [
+    "@odata.nextLink pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "OData $metadata EDMX entity model describe"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

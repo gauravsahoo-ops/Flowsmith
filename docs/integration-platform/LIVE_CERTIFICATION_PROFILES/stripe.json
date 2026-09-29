@@ -1,0 +1,35 @@
+{
+  "connector": "stripe",
+  "vendor": "Stripe, Inc.",
+  "wave": 3,
+  "sandbox": "Stripe Test Mode (dashboard.stripe.com/test)",
+  "required_credentials": [
+    "STRIPE_API_KEY",
+    "STRIPE_WEBHOOK_SECRET"
+  ],
+  "required_scopes": [
+    "rk_test_* restricted or sk_test_* secret keys"
+  ],
+  "operations_to_test": [
+    "get_balance",
+    "list_customers",
+    "create_customer",
+    "create_payment_intent"
+  ],
+  "searches_to_test": [
+    "list_customers (email search filter)"
+  ],
+  "triggers_to_test": [
+    "payment_intent.succeeded"
+  ],
+  "webhooks_to_test": [
+    "stripe_webhook (Stripe-Signature timestamped HMAC validation)"
+  ],
+  "pagination_to_test": [
+    "starting_after cursor pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "STATIC_SCHEMA"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

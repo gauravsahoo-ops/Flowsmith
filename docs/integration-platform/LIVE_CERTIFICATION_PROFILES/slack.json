@@ -1,0 +1,38 @@
+{
+  "connector": "slack",
+  "vendor": "Slack Technologies / Salesforce",
+  "wave": 1,
+  "sandbox": "Slack Sandbox Workspace (api.slack.com/developer-program)",
+  "required_credentials": [
+    "SLACK_BOT_TOKEN",
+    "SLACK_SIGNING_SECRET"
+  ],
+  "required_scopes": [
+    "channels:read",
+    "channels:history",
+    "chat:write",
+    "users:read"
+  ],
+  "operations_to_test": [
+    "auth_test",
+    "list_channels",
+    "post_message",
+    "get_conversation_history"
+  ],
+  "searches_to_test": [
+    "search_messages (search.messages)"
+  ],
+  "triggers_to_test": [
+    "message.channels (Events API)"
+  ],
+  "webhooks_to_test": [
+    "slack_events_api (X-Slack-Signature / timestamp validation)"
+  ],
+  "pagination_to_test": [
+    "response_metadata.next_cursor pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "STATIC_SCHEMA"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

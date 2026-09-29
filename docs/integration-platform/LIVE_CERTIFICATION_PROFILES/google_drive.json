@@ -1,0 +1,34 @@
+{
+  "connector": "google_drive",
+  "vendor": "Google LLC",
+  "wave": 2,
+  "sandbox": "Google Cloud Console Sandbox Project (Service Account)",
+  "required_credentials": [
+    "GOOGLE_SERVICE_ACCOUNT_JSON"
+  ],
+  "required_scopes": [
+    "https://www.googleapis.com/auth/drive.file"
+  ],
+  "operations_to_test": [
+    "list_files",
+    "get_file_metadata",
+    "upload_file",
+    "delete_file"
+  ],
+  "searches_to_test": [
+    "list_files (q query string search)"
+  ],
+  "triggers_to_test": [
+    "drive_changes_watch_trigger"
+  ],
+  "webhooks_to_test": [
+    "google_drive_push_notification_webhook"
+  ],
+  "pagination_to_test": [
+    "pageToken / nextPageToken pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "STATIC_SCHEMA"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

@@ -1,0 +1,41 @@
+{
+  "connector": "snowflake",
+  "vendor": "Snowflake, Inc.",
+  "wave": 2,
+  "sandbox": "Snowflake 30-Day Free Trial (snowflake.com/trial)",
+  "required_credentials": [
+    "SNOWFLAKE_ACCOUNT",
+    "SNOWFLAKE_USER",
+    "SNOWFLAKE_PASSWORD",
+    "SNOWFLAKE_DATABASE",
+    "SNOWFLAKE_SCHEMA",
+    "SNOWFLAKE_WAREHOUSE"
+  ],
+  "required_scopes": [
+    "USAGE",
+    "OPERATE",
+    "SELECT",
+    "INSERT"
+  ],
+  "operations_to_test": [
+    "execute_query",
+    "list_tables",
+    "describe_table"
+  ],
+  "searches_to_test": [
+    "execute_query (SQL SELECT WHERE)"
+  ],
+  "triggers_to_test": [
+    "snowflake_streams_trigger"
+  ],
+  "webhooks_to_test": [
+    "snowflake_external_function_webhook"
+  ],
+  "pagination_to_test": [
+    "SQL LIMIT / OFFSET pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "INFORMATION_SCHEMA.COLUMNS table introspection"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

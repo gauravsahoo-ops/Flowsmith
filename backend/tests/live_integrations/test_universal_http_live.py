@@ -15,6 +15,9 @@ from tests.live_integrations.harness import (
 )
 
 
+pytestmark = [pytest.mark.live, pytest.mark.asyncio]
+
+
 @pytest.fixture
 def http_connector() -> HTTPConnector:
     return HTTPConnector()

@@ -122,44 +122,24 @@ def get_coverage(
 def get_certifications(
     user: User = Depends(get_current_user),
 ) -> dict:
-    """Returns certification levels for all active FlowSmith connectors."""
-    from app.connectors import get_registry, register_builtin_connectors
+    """Returns genuine certification matrix for all active FlowSmith connectors (Phase 41/42)."""
+    import json
     from pathlib import Path
-    
-    register_builtin_connectors()
-    reg = get_registry()
-    gen_dir = Path(__file__).resolve().parent.parent / "connectors" / "generated"
-    generated_keys = set(f.stem[4:-10] for f in gen_dir.glob("gen_*_connector.py"))
+    from app.integrations.catalog.certification_v2 import audit_connector_certification
 
-    CERTIFIED_SET = {
-        "salesforce", "dynamics_crm", "hubspot", "jira", "slack", "github",
-        "stripe", "shopify", "zendesk", "notion", "airtable", "linear",
-        "asana", "resend", "s3", "pinecone", "supabase", "openai", "http",
-        "google_calendar", "google_sheets", "gmail", "redis", "postgres",
-        "schedule", "webhook", "twilio", "discord", "msteams", "outlook",
-        "mongodb", "mysql", "trello", "zoom", "sentry", "clickup"
-    }
+    cert_json_path = Path(__file__).resolve().parent.parent.parent / "docs" / "integration-platform" / "CONNECTOR_CERTIFICATION_V2.json"
+    if cert_json_path.exists():
+        try:
+            with open(cert_json_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+                return ok(payload)
+        except Exception:
+            pass
 
-    results = []
-    for defn in reg.list_definitions():
-        key = defn.connector_key
-        if key in CERTIFIED_SET:
-            level = "CERTIFIED"
-        elif key in generated_keys or key.startswith("gen_"):
-            level = "GENERATED"
-        else:
-            level = "VALIDATED"
-        results.append({
-            "connector_key": key,
-            "display_name": defn.display_name,
-            "certification_level": level,
-            "category": defn.category,
-            "version": defn.connector_version,
-            "operations_count": len(defn.operations),
-        })
+    # Fallback to dynamic computation
+    payload = audit_connector_certification()
+    return ok(payload)
 
-    results.sort(key=lambda x: (x["certification_level"], x["connector_key"]))
-    return ok(results)
 
 
 @router.get("/canonical-nodes")

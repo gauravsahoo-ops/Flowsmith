@@ -21,6 +21,8 @@ from tests.live_integrations.harness import (
     require_live_credentials,
 )
 
+pytestmark = [pytest.mark.live]
+
 
 def test_salesforce_live_query() -> None:
     """Live verification of Salesforce SOQL query."""

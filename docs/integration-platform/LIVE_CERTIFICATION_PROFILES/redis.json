@@ -1,0 +1,35 @@
+{
+  "connector": "redis",
+  "vendor": "Redis Ltd.",
+  "wave": 2,
+  "sandbox": "Local Redis Container (port 6379) / Redis Cloud Free Tier",
+  "required_credentials": [
+    "REDIS_URL"
+  ],
+  "required_scopes": [
+    "allcommands"
+  ],
+  "operations_to_test": [
+    "get",
+    "set",
+    "delete",
+    "keys",
+    "publish"
+  ],
+  "searches_to_test": [
+    "scan (SCAN match pattern)"
+  ],
+  "triggers_to_test": [
+    "redis_keyspace_notification_trigger"
+  ],
+  "webhooks_to_test": [
+    "redis_pubsub_webhook"
+  ],
+  "pagination_to_test": [
+    "SCAN cursor continuation"
+  ],
+  "dynamic_schema_to_test": [
+    "STATIC_SCHEMA"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

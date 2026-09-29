@@ -1,0 +1,37 @@
+{
+  "connector": "box",
+  "vendor": "Box, Inc.",
+  "wave": 3,
+  "sandbox": "Box Developer Free Sandbox (account.box.com/signup/n/developer)",
+  "required_credentials": [
+    "BOX_CLIENT_ID",
+    "BOX_CLIENT_SECRET",
+    "BOX_DEVELOPER_TOKEN"
+  ],
+  "required_scopes": [
+    "root_readwrite",
+    "manage_webhook"
+  ],
+  "operations_to_test": [
+    "get_current_user",
+    "get_folder_items",
+    "create_folder",
+    "delete_folder"
+  ],
+  "searches_to_test": [
+    "search (query string search)"
+  ],
+  "triggers_to_test": [
+    "FILE.UPLOADED (Box Webhooks V2)"
+  ],
+  "webhooks_to_test": [
+    "box_v2_webhook_signature"
+  ],
+  "pagination_to_test": [
+    "marker / next_marker cursor pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "STATIC_SCHEMA"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

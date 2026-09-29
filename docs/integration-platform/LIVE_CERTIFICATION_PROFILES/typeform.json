@@ -1,0 +1,37 @@
+{
+  "connector": "typeform",
+  "vendor": "Typeform SL",
+  "wave": 3,
+  "sandbox": "Typeform Free Plan (admin.typeform.com)",
+  "required_credentials": [
+    "TYPEFORM_ACCESS_TOKEN"
+  ],
+  "required_scopes": [
+    "forms:read",
+    "forms:write",
+    "responses:read",
+    "webhooks:read",
+    "webhooks:write"
+  ],
+  "operations_to_test": [
+    "list_forms",
+    "get_form",
+    "get_responses"
+  ],
+  "searches_to_test": [
+    "list_forms (search by form title)"
+  ],
+  "triggers_to_test": [
+    "form_response_submitted"
+  ],
+  "webhooks_to_test": [
+    "typeform_webhook_sha256_signature"
+  ],
+  "pagination_to_test": [
+    "page / page_size pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "Dynamic form field question schema"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

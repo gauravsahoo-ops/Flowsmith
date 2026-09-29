@@ -1,0 +1,39 @@
+{
+  "connector": "netsuite",
+  "vendor": "Oracle Corporation",
+  "wave": 1,
+  "sandbox": "Oracle NetSuite Release Preview / Sandbox Account",
+  "required_credentials": [
+    "NETSUITE_ACCOUNT_ID",
+    "NETSUITE_CONSUMER_KEY",
+    "NETSUITE_CONSUMER_SECRET",
+    "NETSUITE_TOKEN_ID",
+    "NETSUITE_TOKEN_SECRET"
+  ],
+  "required_scopes": [
+    "restlets",
+    "rest_webservices",
+    "suiteql"
+  ],
+  "operations_to_test": [
+    "execute_suiteql",
+    "get_customer",
+    "create_sales_order"
+  ],
+  "searches_to_test": [
+    "execute_suiteql (SuiteQL queries)"
+  ],
+  "triggers_to_test": [
+    "netsuite_user_event_script_trigger"
+  ],
+  "webhooks_to_test": [
+    "restlet_outbound_webhook"
+  ],
+  "pagination_to_test": [
+    "limit / offset SuiteQL pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "SuiteQL record-catalog schema discovery"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

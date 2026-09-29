@@ -1,0 +1,29 @@
+{
+  "connector": "http",
+  "vendor": "Universal API Standard (W3C / IETF / OpenAPI)",
+  "wave": 3,
+  "sandbox": "Public Live Sandboxes: https://httpbin.org, https://jsonplaceholder.typicode.com",
+  "required_credentials": [],
+  "required_scopes": [],
+  "operations_to_test": [
+    "request (GET/POST/PUT/DELETE)",
+    "search",
+    "query"
+  ],
+  "searches_to_test": [
+    "search (query parameters)"
+  ],
+  "triggers_to_test": [
+    "http_inbound_webhook_trigger"
+  ],
+  "webhooks_to_test": [
+    "inbound_raw_http_webhook"
+  ],
+  "pagination_to_test": [
+    "page / offset / cursor configurable pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "infer_json_schema dynamic runtime inference"
+  ],
+  "expected_certification": "LIVE_API_VALIDATED"
+}

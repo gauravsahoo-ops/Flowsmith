@@ -1,0 +1,36 @@
+{
+  "connector": "docusign",
+  "vendor": "DocuSign, Inc.",
+  "wave": 3,
+  "sandbox": "DocuSign eSignature Developer Demo (account-d.docusign.com)",
+  "required_credentials": [
+    "DOCUSIGN_ACCOUNT_ID",
+    "DOCUSIGN_ACCESS_TOKEN"
+  ],
+  "required_scopes": [
+    "signature",
+    "extended"
+  ],
+  "operations_to_test": [
+    "list_envelopes",
+    "create_envelope",
+    "get_envelope",
+    "list_templates"
+  ],
+  "searches_to_test": [
+    "list_envelopes (from_date / status search)"
+  ],
+  "triggers_to_test": [
+    "envelope-completed (DocuSign Connect)"
+  ],
+  "webhooks_to_test": [
+    "docusign_connect_hmac_webhook"
+  ],
+  "pagination_to_test": [
+    "start_position / count offset pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "STATIC_SCHEMA"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

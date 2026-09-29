@@ -1,0 +1,41 @@
+{
+  "connector": "postgres",
+  "vendor": "PostgreSQL Global Development Group",
+  "wave": 2,
+  "sandbox": "Local / Containerized PostgreSQL Sandbox (port 5432)",
+  "required_credentials": [
+    "POSTGRES_HOST",
+    "POSTGRES_PORT",
+    "POSTGRES_USER",
+    "POSTGRES_PASSWORD",
+    "POSTGRES_DB"
+  ],
+  "required_scopes": [
+    "CONNECT",
+    "SELECT",
+    "INSERT",
+    "UPDATE",
+    "DELETE"
+  ],
+  "operations_to_test": [
+    "execute_query",
+    "list_tables",
+    "describe_table"
+  ],
+  "searches_to_test": [
+    "execute_query (SQL parameterized filter)"
+  ],
+  "triggers_to_test": [
+    "logical_replication_cdc_trigger"
+  ],
+  "webhooks_to_test": [
+    "pg_notify_listener"
+  ],
+  "pagination_to_test": [
+    "LIMIT / OFFSET pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "information_schema.columns introspection"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

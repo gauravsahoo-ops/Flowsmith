@@ -1,0 +1,38 @@
+{
+  "connector": "shopify",
+  "vendor": "Shopify Inc.",
+  "wave": 3,
+  "sandbox": "Shopify Partner Development Store (partners.shopify.com)",
+  "required_credentials": [
+    "SHOPIFY_SHOP_DOMAIN",
+    "SHOPIFY_ADMIN_ACCESS_TOKEN",
+    "SHOPIFY_WEBHOOK_SECRET"
+  ],
+  "required_scopes": [
+    "read_products",
+    "write_products",
+    "read_orders"
+  ],
+  "operations_to_test": [
+    "list_products",
+    "get_product",
+    "create_product",
+    "list_orders"
+  ],
+  "searches_to_test": [
+    "list_products (title query search)"
+  ],
+  "triggers_to_test": [
+    "orders/create"
+  ],
+  "webhooks_to_test": [
+    "shopify_webhook (X-Shopify-Hmac-Sha256 base64 validation)"
+  ],
+  "pagination_to_test": [
+    "page_info cursor pagination (Link header)"
+  ],
+  "dynamic_schema_to_test": [
+    "GraphQL Admin API schema describe"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

@@ -1,0 +1,35 @@
+{
+  "connector": "bigquery",
+  "vendor": "Google Cloud",
+  "wave": 2,
+  "sandbox": "Google Cloud Free Tier / BigQuery Sandbox (without credit card)",
+  "required_credentials": [
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "BIGQUERY_PROJECT_ID"
+  ],
+  "required_scopes": [
+    "https://www.googleapis.com/auth/bigquery"
+  ],
+  "operations_to_test": [
+    "query",
+    "list_datasets",
+    "list_tables",
+    "get_table_metadata"
+  ],
+  "searches_to_test": [
+    "query (Standard SQL parameterized search)"
+  ],
+  "triggers_to_test": [
+    "bigquery_eventarc_trigger"
+  ],
+  "webhooks_to_test": [
+    "gcp_pubsub_push_webhook"
+  ],
+  "pagination_to_test": [
+    "pageToken / nextPageToken pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "BigQuery schema field definitions"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}
