@@ -1,0 +1,37 @@
+{
+  "connector": "servicenow",
+  "vendor": "ServiceNow, Inc.",
+  "wave": 1,
+  "sandbox": "ServiceNow Personal Developer Instance (PDI - developer.servicenow.com)",
+  "required_credentials": [
+    "SERVICENOW_INSTANCE_URL",
+    "SERVICENOW_USERNAME",
+    "SERVICENOW_PASSWORD"
+  ],
+  "required_scopes": [
+    "itil",
+    "admin"
+  ],
+  "operations_to_test": [
+    "query_incidents",
+    "create_incident",
+    "get_incident",
+    "update_incident"
+  ],
+  "searches_to_test": [
+    "query_incidents (sysparm_query)"
+  ],
+  "triggers_to_test": [
+    "business_rule_outbound_rest"
+  ],
+  "webhooks_to_test": [
+    "scripted_rest_api_webhook"
+  ],
+  "pagination_to_test": [
+    "sysparm_limit / sysparm_offset pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "sys_dictionary schema inspection"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

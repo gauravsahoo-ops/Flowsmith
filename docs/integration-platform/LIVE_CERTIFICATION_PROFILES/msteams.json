@@ -1,0 +1,35 @@
+{
+  "connector": "msteams",
+  "vendor": "Microsoft Corporation",
+  "wave": 1,
+  "sandbox": "Microsoft 365 Developer Sandbox (E5 Developer Tenant)",
+  "required_credentials": [
+    "MSTEAMS_TENANT_ID",
+    "MSTEAMS_CLIENT_ID",
+    "MSTEAMS_CLIENT_SECRET"
+  ],
+  "required_scopes": [
+    "https://graph.microsoft.com/.default"
+  ],
+  "operations_to_test": [
+    "list_teams",
+    "list_channels",
+    "post_chat_message"
+  ],
+  "searches_to_test": [
+    "list_channels (filter by display name)"
+  ],
+  "triggers_to_test": [
+    "graph_change_notification_trigger"
+  ],
+  "webhooks_to_test": [
+    "microsoft_graph_subscription_webhook"
+  ],
+  "pagination_to_test": [
+    "@odata.nextLink pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "Graph API metadata"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

@@ -1,0 +1,40 @@
+{
+  "connector": "salesforce",
+  "vendor": "Salesforce, Inc.",
+  "wave": 1,
+  "sandbox": "https://test.salesforce.com (Developer Edition / Scratch Org)",
+  "required_credentials": [
+    "SALESFORCE_INSTANCE_URL",
+    "SALESFORCE_ACCESS_TOKEN",
+    "SALESFORCE_REFRESH_TOKEN"
+  ],
+  "required_scopes": [
+    "api",
+    "refresh_token",
+    "offline_access"
+  ],
+  "operations_to_test": [
+    "query_records",
+    "create_record",
+    "get_record",
+    "update_record",
+    "delete_record"
+  ],
+  "searches_to_test": [
+    "query_records (SOQL parameterized search)"
+  ],
+  "triggers_to_test": [
+    "salesforce_cdc (Change Data Capture)",
+    "salesforce_outbound_message"
+  ],
+  "webhooks_to_test": [
+    "apex_rest_webhook"
+  ],
+  "pagination_to_test": [
+    "nextRecordsUrl cursor traversal"
+  ],
+  "dynamic_schema_to_test": [
+    "SObject describe global and SObject describe layout"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

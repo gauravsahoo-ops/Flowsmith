@@ -1,0 +1,37 @@
+{
+  "connector": "sap",
+  "vendor": "SAP SE",
+  "wave": 1,
+  "sandbox": "SAP BTP Trial / SAP Cloud Appliance Library (CAL) S/4HANA Sandbox",
+  "required_credentials": [
+    "SAP_BASE_URL",
+    "SAP_USERNAME",
+    "SAP_PASSWORD",
+    "SAP_CLIENT_ID"
+  ],
+  "required_scopes": [
+    "API_BUSINESS_PARTNER",
+    "API_SALES_ORDER_SRV"
+  ],
+  "operations_to_test": [
+    "list_business_partners",
+    "get_sales_order",
+    "create_business_partner"
+  ],
+  "searches_to_test": [
+    "list_business_partners ($filter)"
+  ],
+  "triggers_to_test": [
+    "sap_event_mesh_trigger"
+  ],
+  "webhooks_to_test": [
+    "sap_enterprise_messaging_webhook"
+  ],
+  "pagination_to_test": [
+    "$top / $skip OData pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "$metadata EDMX schema inspection"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

@@ -1,0 +1,37 @@
+{
+  "connector": "jira",
+  "vendor": "Atlassian, Inc.",
+  "wave": 1,
+  "sandbox": "Atlassian Developer Cloud Sandbox (go.atlassian.com/cloud-dev)",
+  "required_credentials": [
+    "JIRA_BASE_URL",
+    "JIRA_USER_EMAIL",
+    "JIRA_API_TOKEN"
+  ],
+  "required_scopes": [
+    "read:jira-work",
+    "write:jira-work"
+  ],
+  "operations_to_test": [
+    "search_issues",
+    "create_issue",
+    "get_issue",
+    "transition_issue"
+  ],
+  "searches_to_test": [
+    "search_issues (JQL queries)"
+  ],
+  "triggers_to_test": [
+    "jira:issue_created"
+  ],
+  "webhooks_to_test": [
+    "atlassian_connect_webhook"
+  ],
+  "pagination_to_test": [
+    "startAt / maxResults offset pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "issue/createmeta custom field discovery"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

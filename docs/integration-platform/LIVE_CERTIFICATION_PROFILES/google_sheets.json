@@ -1,0 +1,33 @@
+{
+  "connector": "google_sheets",
+  "vendor": "Google LLC",
+  "wave": 2,
+  "sandbox": "Google Cloud Console Sandbox Project (Service Account)",
+  "required_credentials": [
+    "GOOGLE_SERVICE_ACCOUNT_JSON"
+  ],
+  "required_scopes": [
+    "https://www.googleapis.com/auth/spreadsheets"
+  ],
+  "operations_to_test": [
+    "get_spreadsheet",
+    "read_range",
+    "append_rows"
+  ],
+  "searches_to_test": [
+    "read_range (A1 notation range search)"
+  ],
+  "triggers_to_test": [
+    "apps_script_on_change_trigger"
+  ],
+  "webhooks_to_test": [
+    "apps_script_do_post_webhook"
+  ],
+  "pagination_to_test": [
+    "Row offset pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "Sheet header row dynamic column introspection"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

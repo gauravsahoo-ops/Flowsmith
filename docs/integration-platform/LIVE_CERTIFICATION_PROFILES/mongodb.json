@@ -1,0 +1,35 @@
+{
+  "connector": "mongodb",
+  "vendor": "MongoDB, Inc.",
+  "wave": 2,
+  "sandbox": "MongoDB Atlas Free Shared Cluster (M0 Sandbox)",
+  "required_credentials": [
+    "MONGODB_URI",
+    "MONGODB_DATABASE"
+  ],
+  "required_scopes": [
+    "readWrite"
+  ],
+  "operations_to_test": [
+    "find_documents",
+    "insert_document",
+    "update_document",
+    "delete_document"
+  ],
+  "searches_to_test": [
+    "find_documents (MQL query filter)"
+  ],
+  "triggers_to_test": [
+    "mongodb_change_streams_trigger"
+  ],
+  "webhooks_to_test": [
+    "atlas_app_services_webhook"
+  ],
+  "pagination_to_test": [
+    "skip / limit / cursor pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "BSON schema validator discovery"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

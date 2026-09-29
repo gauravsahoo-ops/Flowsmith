@@ -1,0 +1,34 @@
+{
+  "connector": "sendgrid",
+  "vendor": "Twilio SendGrid",
+  "wave": 3,
+  "sandbox": "SendGrid Free Plan / Sandbox Mode (mail_settings.sandbox_mode=true)",
+  "required_credentials": [
+    "SENDGRID_API_KEY"
+  ],
+  "required_scopes": [
+    "mail.send",
+    "templates.read"
+  ],
+  "operations_to_test": [
+    "send_mail",
+    "list_templates",
+    "get_verified_senders"
+  ],
+  "searches_to_test": [
+    "list_templates (filter by generation type)"
+  ],
+  "triggers_to_test": [
+    "event_webhook_delivered"
+  ],
+  "webhooks_to_test": [
+    "sendgrid_event_webhook (ECDSA signature verification)"
+  ],
+  "pagination_to_test": [
+    "page / page_size pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "STATIC_SCHEMA"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

@@ -1,0 +1,37 @@
+{
+  "connector": "hubspot",
+  "vendor": "HubSpot, Inc.",
+  "wave": 1,
+  "sandbox": "HubSpot Developer Account / App Test Portal",
+  "required_credentials": [
+    "HUBSPOT_ACCESS_TOKEN",
+    "HUBSPOT_CLIENT_SECRET"
+  ],
+  "required_scopes": [
+    "crm.objects.contacts.read",
+    "crm.objects.contacts.write",
+    "crm.schemas.contacts.read"
+  ],
+  "operations_to_test": [
+    "get_contacts",
+    "create_contact",
+    "search_contacts",
+    "update_contact"
+  ],
+  "searches_to_test": [
+    "search_contacts (CRM filter groups)"
+  ],
+  "triggers_to_test": [
+    "contact_created_trigger"
+  ],
+  "webhooks_to_test": [
+    "hubspot_app_webhook (v3 event subscription)"
+  ],
+  "pagination_to_test": [
+    "paging.next.after cursor pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "crm/v3/properties/contacts metadata schema describe"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

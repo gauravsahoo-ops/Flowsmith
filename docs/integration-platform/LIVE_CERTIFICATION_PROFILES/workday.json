@@ -1,0 +1,36 @@
+{
+  "connector": "workday",
+  "vendor": "Workday, Inc.",
+  "wave": 1,
+  "sandbox": "Workday Developer Preview Tenant (community.workday.com)",
+  "required_credentials": [
+    "WORKDAY_TENANT_URL",
+    "WORKDAY_ISU_USERNAME",
+    "WORKDAY_ISU_PASSWORD"
+  ],
+  "required_scopes": [
+    "Human_Resources",
+    "Staffing"
+  ],
+  "operations_to_test": [
+    "get_workers",
+    "get_organization",
+    "execute_report"
+  ],
+  "searches_to_test": [
+    "get_workers (RaaS parameterized report)"
+  ],
+  "triggers_to_test": [
+    "workday_outbound_integration_trigger"
+  ],
+  "webhooks_to_test": [
+    "workday_event_notification"
+  ],
+  "pagination_to_test": [
+    "Page / Count XML pagination"
+  ],
+  "dynamic_schema_to_test": [
+    "RaaS WSDL / XSD dynamic schema parsing"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

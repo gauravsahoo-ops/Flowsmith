@@ -1,0 +1,40 @@
+{
+  "connector": "s3",
+  "vendor": "Amazon Web Services",
+  "wave": 2,
+  "sandbox": "AWS Free Tier Account / LocalStack S3 Sandbox",
+  "required_credentials": [
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_REGION",
+    "AWS_S3_TEST_BUCKET"
+  ],
+  "required_scopes": [
+    "s3:ListBucket",
+    "s3:GetObject",
+    "s3:PutObject",
+    "s3:DeleteObject"
+  ],
+  "operations_to_test": [
+    "list_objects",
+    "get_object",
+    "put_object",
+    "delete_object"
+  ],
+  "searches_to_test": [
+    "list_objects (prefix search)"
+  ],
+  "triggers_to_test": [
+    "s3_object_created_sns_sqs"
+  ],
+  "webhooks_to_test": [
+    "aws_sns_webhook_signature_verification"
+  ],
+  "pagination_to_test": [
+    "continuation-token / NextContinuationToken"
+  ],
+  "dynamic_schema_to_test": [
+    "STATIC_SCHEMA"
+  ],
+  "expected_certification": "PRODUCTION_CERTIFIED"
+}

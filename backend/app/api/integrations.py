@@ -122,44 +122,12 @@ def get_coverage(
 def get_certifications(
     user: User = Depends(get_current_user),
 ) -> dict:
-    """Returns certification levels for all active FlowSmith connectors."""
-    from app.connectors import get_registry, register_builtin_connectors
-    from pathlib import Path
-    
-    register_builtin_connectors()
-    reg = get_registry()
-    gen_dir = Path(__file__).resolve().parent.parent / "connectors" / "generated"
-    generated_keys = set(f.stem[4:-10] for f in gen_dir.glob("gen_*_connector.py"))
+    """Returns authoritative certification matrix and reconciled metrics for all active connectors (Phase 43)."""
+    from app.integrations.catalog.certification_state_machine import get_certification_summary
 
-    CERTIFIED_SET = {
-        "salesforce", "dynamics_crm", "hubspot", "jira", "slack", "github",
-        "stripe", "shopify", "zendesk", "notion", "airtable", "linear",
-        "asana", "resend", "s3", "pinecone", "supabase", "openai", "http",
-        "google_calendar", "google_sheets", "gmail", "redis", "postgres",
-        "schedule", "webhook", "twilio", "discord", "msteams", "outlook",
-        "mongodb", "mysql", "trello", "zoom", "sentry", "clickup"
-    }
+    payload = get_certification_summary()
+    return ok(payload)
 
-    results = []
-    for defn in reg.list_definitions():
-        key = defn.connector_key
-        if key in CERTIFIED_SET:
-            level = "CERTIFIED"
-        elif key in generated_keys or key.startswith("gen_"):
-            level = "GENERATED"
-        else:
-            level = "VALIDATED"
-        results.append({
-            "connector_key": key,
-            "display_name": defn.display_name,
-            "certification_level": level,
-            "category": defn.category,
-            "version": defn.connector_version,
-            "operations_count": len(defn.operations),
-        })
-
-    results.sort(key=lambda x: (x["certification_level"], x["connector_key"]))
-    return ok(results)
 
 
 @router.get("/canonical-nodes")
