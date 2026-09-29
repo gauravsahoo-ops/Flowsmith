@@ -7,6 +7,7 @@ import EmptyState from '../components/shared/EmptyState'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import WorkspaceTabs from '../components/shared/WorkspaceTabs'
+import { useWorkflowStore } from '../stores/workflowStore'
 
 function PortalMenu({ anchorRef, open, onClose, children }) {
   const menuRef = useRef(null)
@@ -357,7 +358,7 @@ export default function WorkflowsPage() {
 
   async function handleDelete(wf) {
     try {
-      await api.deleteWorkflow(wf.id)
+      await useWorkflowStore.getState().deleteWorkflow(wf.id)
       await load()
       setDeleteTarget(null)
     } catch (e) { setError(e.message) }

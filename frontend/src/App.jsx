@@ -25,6 +25,8 @@ const KnowledgePage = lazy(() => import('./pages/KnowledgePage'))
 const NodeEditorModal = lazy(() => import('./components/NodeEditorModal'))
 const FormFillPage = lazy(() => import('./pages/FormFillPage'))
 const ChatPage = lazy(() => import('./pages/ChatPage'))
+const IntegrationsPage = lazy(() => import('./pages/IntegrationsPage'))
+const AIPage = lazy(() => import('./pages/AIPage'))
 
 // Fallback for unknown routes
 function NotFound() {
@@ -84,6 +86,7 @@ function AuthenticatedRoutes({ onLogout }) {
           <Route path="overview" element={<OverviewPage />} />
           <Route path="workflows" element={<WorkflowsPage />} />
           <Route path="workflows/:id" element={<WorkflowEditorPage />} />
+          <Route path="integrations" element={<IntegrationsPage />} />
           <Route path="credentials" element={<CredentialsPage />} />
           <Route path="executions" element={<ExecutionsPage />} />
           <Route path="executions/:id" element={<ExecutionDetailPage />} />
@@ -95,6 +98,7 @@ function AuthenticatedRoutes({ onLogout }) {
           <Route path="approvals" element={<ApprovalsPage />} />
           <Route path="shared" element={<SharedPage />} />
           <Route path="monitoring" element={<MonitoringPage />} />
+          <Route path="ai" element={<AIPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="help" element={<HelpPage />} />
           <Route path="*" element={<NotFound />} />

@@ -1,0 +1,250 @@
+{
+  "generated_at": "2026-09-29T11:47:54.518255+00:00",
+  "total_backlog_items": 22,
+  "items": [
+    {
+      "application": "Amazon S3",
+      "canonical_id": "amazon_s3",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "cyclr",
+        "zapier"
+      ],
+      "operations_count": 6,
+      "triggers_count": 2,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Amazon S3",
+      "canonical_id": "awss3",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "n8n"
+      ],
+      "operations_count": 6,
+      "triggers_count": 1,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Google BigQuery",
+      "canonical_id": "google_bigquery",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "zapier"
+      ],
+      "operations_count": 6,
+      "triggers_count": 1,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Google Gemini / Vertex AI",
+      "canonical_id": "google_vertex_ai",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "zapier"
+      ],
+      "operations_count": 6,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Jira Software Cloud",
+      "canonical_id": "jira_software_cloud",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "zapier"
+      ],
+      "operations_count": 9,
+      "triggers_count": 5,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Brave Search MCP Server",
+      "canonical_id": "mcp_brave_search",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 4,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Filesystem MCP Server",
+      "canonical_id": "mcp_filesystem",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 7,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "GitHub MCP Server",
+      "canonical_id": "mcp_github",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 12,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Google Maps MCP Server",
+      "canonical_id": "mcp_google_maps",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 5,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Knowledge Graph Memory MCP Server",
+      "canonical_id": "mcp_memory",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 5,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "PostgreSQL MCP Server",
+      "canonical_id": "mcp_postgres",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 8,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Puppeteer Browser MCP Server",
+      "canonical_id": "mcp_puppeteer",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 6,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Sentry MCP Server",
+      "canonical_id": "mcp_sentry",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 6,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Slack MCP Server",
+      "canonical_id": "mcp_slack",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 6,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "SQLite Database MCP Server",
+      "canonical_id": "mcp_sqlite",
+      "strategy": "MCP",
+      "ecosystem_presence": [
+        "mcp"
+      ],
+      "operations_count": 6,
+      "triggers_count": 0,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Microsoft Dynamics 365 CRM",
+      "canonical_id": "microsoft_dynamics_365",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "cyclr"
+      ],
+      "operations_count": 9,
+      "triggers_count": 2,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Microsoft Dynamics 365 CRM",
+      "canonical_id": "microsoft_dynamics_crm",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "zapier"
+      ],
+      "operations_count": 8,
+      "triggers_count": 3,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Microsoft Outlook",
+      "canonical_id": "microsoft_outlook",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "zapier"
+      ],
+      "operations_count": 8,
+      "triggers_count": 4,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Microsoft Teams",
+      "canonical_id": "microsoft_teams",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "cyclr",
+        "zapier"
+      ],
+      "operations_count": 6,
+      "triggers_count": 3,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "Microsoft Outlook",
+      "canonical_id": "office_365_mail",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "cyclr"
+      ],
+      "operations_count": 7,
+      "triggers_count": 2,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "WhatsApp Business",
+      "canonical_id": "whatsapp_business",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "cyclr"
+      ],
+      "operations_count": 4,
+      "triggers_count": 1,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "application": "WhatsApp Notifications",
+      "canonical_id": "whatsapp_notifications",
+      "strategy": "UNIVERSAL_HTTP",
+      "ecosystem_presence": [
+        "zapier"
+      ],
+      "operations_count": 5,
+      "triggers_count": 2,
+      "certification_status": "VALIDATED_FUNCTIONAL"
+    }
+  ]
+}

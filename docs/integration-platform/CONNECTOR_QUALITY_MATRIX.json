@@ -1,0 +1,3277 @@
+{
+  "generated_at": "2026-09-29T11:47:26.224197+00:00",
+  "summary": {
+    "total_connectors_audited": 86,
+    "native_connectors": 69,
+    "generated_connectors": 17,
+    "total_operations_declared": 454,
+    "total_operations_fully_implemented": 454,
+    "total_operations_partial": 0,
+    "total_operations_registered_only": 0,
+    "total_triggers_declared": 12,
+    "total_triggers_fully_implemented": 11,
+    "total_core_flow_nodes": 66
+  },
+  "connectors": [
+    {
+      "connector_key": "http",
+      "display_name": "Universal HTTP Connector",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "http"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 8,
+        "fully_implemented": 8,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_binary_storage_audit.py",
+          "test_credentials_engine.py",
+          "test_engine.py",
+          "test_http_node_audit.py",
+          "test_http_universal_connector.py",
+          "test_safe_http_client.py",
+          "test_safe_http_client_hardening.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "salesforce",
+      "display_name": "Salesforce",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "salesforce"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 12,
+        "fully_implemented": 12,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "outbound_message": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "sobject_describe"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_salesforce_connector.py",
+          "test_salesforce_definition.py",
+          "test_salesforce_error_handling.py",
+          "test_salesforce_event_parser.py",
+          "test_salesforce_provider.py",
+          "test_salesforce_retry_idempotency.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "hubspot",
+      "display_name": "HubSpot",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "hubspot"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "dynamics_crm",
+      "display_name": "Microsoft Dynamics 365",
+      "category": "crm",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "dynamics_crm"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 8,
+        "fully_implemented": 8,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "odata_metadata"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "google_calendar",
+      "display_name": "Google Calendar",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "google_calendar"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "google_sheets",
+      "display_name": "Google Sheets",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "google_sheets"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "gmail",
+      "display_name": "Gmail",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "gmail"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "schedule",
+      "display_name": "Schedule Connector",
+      "category": "schedule",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 0,
+        "fully_implemented": 0,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "cron": {
+            "trigger_type": "scheduled",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": false
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_scheduler_lock.py",
+          "test_scheduler_persistence_audit.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "webhook",
+      "display_name": "Webhook Connector",
+      "category": "webhook",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 0,
+        "fully_implemented": 0,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "receive": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_stress_audit.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "postgres",
+      "display_name": "PostgreSQL",
+      "category": "database",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "postgres"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "information_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "mysql",
+      "display_name": "MySQL",
+      "category": "database",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "mysql"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "information_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "google_drive",
+      "display_name": "Google Drive",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "google_drive"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "slack",
+      "display_name": "Slack",
+      "category": "communication",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "slack"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 2,
+        "fully_implemented": 2,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "msteams",
+      "display_name": "Microsoft Teams",
+      "category": "communication",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "microsoft_graph"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "outlook",
+      "display_name": "Microsoft Outlook",
+      "category": "communication",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "microsoft_graph"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 2,
+        "fully_implemented": 2,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "github",
+      "display_name": "GitHub",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "github"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "notion",
+      "display_name": "Notion",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "notion"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "jira",
+      "display_name": "Jira",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "jira"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "discord",
+      "display_name": "Discord",
+      "category": "communication",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "discord"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 2,
+        "fully_implemented": 2,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "stripe",
+      "display_name": "Stripe",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "stripe"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "mongodb",
+      "display_name": "MongoDB",
+      "category": "database",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "mongodb"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "redis",
+      "display_name": "Redis",
+      "category": "database",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "redis"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "conftest.py",
+          "test_queue_audit.py",
+          "test_redis_live_audit.py",
+          "test_redis_login_throttle.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "airtable",
+      "display_name": "Airtable",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "airtable"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "shopify",
+      "display_name": "Shopify",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "shopify"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "trello",
+      "display_name": "Trello",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "trello"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "asana",
+      "display_name": "Asana",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "asana"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "linear",
+      "display_name": "Linear",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "linear"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_execution_audit.py"
+        ]
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "calendly",
+      "display_name": "Calendly",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "calendly"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "gitlab",
+      "display_name": "GitLab",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "gitlab"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "zoom",
+      "display_name": "Zoom",
+      "category": "communication",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "zoom"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "twilio",
+      "display_name": "Twilio",
+      "category": "communication",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "twilio"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "bitbucket",
+      "display_name": "Bitbucket",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "bitbucket"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "whatsapp",
+      "display_name": "WhatsApp",
+      "category": "communication",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "whatsapp"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "clickup",
+      "display_name": "ClickUp",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "clickup"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "pipedrive",
+      "display_name": "Pipedrive",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "pipedrive"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "dropbox",
+      "display_name": "Dropbox",
+      "category": "storage",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "dropbox"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "openai",
+      "display_name": "OpenAI",
+      "category": "ai",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "openai"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_ai_advanced_suite.py"
+        ]
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "mailchimp",
+      "display_name": "Mailchimp",
+      "category": "marketing",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "mailchimp"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "quickbooks",
+      "display_name": "QuickBooks",
+      "category": "finance",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "quickbooks"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 6,
+        "fully_implemented": 6,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "google_docs",
+      "display_name": "Google Docs",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "google_docs"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "pagerduty",
+      "display_name": "PagerDuty",
+      "category": "devops",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "pagerduty"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 6,
+        "fully_implemented": 6,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "zendesk",
+      "display_name": "Zendesk",
+      "category": "support",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "zendesk"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "todoist",
+      "display_name": "Todoist",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "todoist"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 6,
+        "fully_implemented": 6,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "brevo",
+      "display_name": "Brevo",
+      "category": "marketing",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "brevo"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "freshdesk",
+      "display_name": "Freshdesk",
+      "category": "support",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "freshdesk"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "monday",
+      "display_name": "Monday.com",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "monday"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "supabase",
+      "display_name": "Supabase",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "supabase"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_new_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "resend",
+      "display_name": "Resend",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "resend"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_new_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "pinecone",
+      "display_name": "Pinecone",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "pinecone"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_new_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "sentry",
+      "display_name": "Sentry",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "sentry"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_new_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "s3",
+      "display_name": "AWS S3 / Object Storage",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "aws_s3"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_new_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "servicenow",
+      "display_name": "ServiceNow",
+      "category": "api",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "servicenow"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "record_updated": {
+            "trigger_type": "polling",
+            "status": "PARTIALLY_IMPLEMENTED",
+            "supports_verification": false
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": false,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "sap",
+      "display_name": "SAP S/4HANA",
+      "category": "finance",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "sap"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 6,
+        "fully_implemented": 6,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "business_event": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "odata_metadata"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_enterprise_erp_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "workday",
+      "display_name": "Workday",
+      "category": "crm",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "workday"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 6,
+        "fully_implemented": 6,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "outbound_event": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_enterprise_erp_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "netsuite",
+      "display_name": "Oracle NetSuite ERP",
+      "category": "finance",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "netsuite"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 7,
+        "fully_implemented": 7,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "webhook": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "suiteql_metadata"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_enterprise_erp_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "anthropic",
+      "display_name": "Anthropic Claude",
+      "category": "ai",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "anthropic"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 2,
+        "fully_implemented": 2,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_ai_advanced_suite.py",
+          "test_ai_and_data_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "gemini",
+      "display_name": "Google Gemini",
+      "category": "ai",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "gemini"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_ai_and_data_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "snowflake",
+      "display_name": "Snowflake Data Cloud",
+      "category": "database",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "snowflake"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": true,
+        "introspection_type": "sql_api_describe"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_ai_and_data_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "box",
+      "display_name": "Box",
+      "category": "storage",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "box"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 6,
+        "fully_implemented": 6,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "webhook": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_box_and_typeform_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "typeform",
+      "display_name": "Typeform",
+      "category": "marketing",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "typeform"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "form_response": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_box_and_typeform_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "bigquery",
+      "display_name": "Google BigQuery",
+      "category": "database",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "bigquery"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "sendgrid",
+      "display_name": "Twilio SendGrid",
+      "category": "marketing",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "sendgrid"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "event_webhook": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "intercom",
+      "display_name": "Intercom",
+      "category": "customer_support",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "intercom"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 6,
+        "fully_implemented": 6,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "conversation_webhook": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "docusign",
+      "display_name": "DocuSign",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "docusign"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 4,
+        "fully_implemented": 4,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 1,
+        "triggers_list": {
+          "envelope_status_webhook": {
+            "trigger_type": "webhook",
+            "status": "FULLY_IMPLEMENTED",
+            "supports_verification": true
+          }
+        }
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "coda",
+      "display_name": "Coda",
+      "category": "productivity",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "coda"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "xero",
+      "display_name": "Xero",
+      "category": "finance",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "xero"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "zoho_crm",
+      "display_name": "Zoho CRM",
+      "category": "crm",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "zoho_crm"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "freshsales",
+      "display_name": "Freshsales",
+      "category": "crm",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "freshsales"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "activecampaign",
+      "display_name": "ActiveCampaign",
+      "category": "marketing",
+      "implementation_type": "IMPLEMENTED_NATIVE",
+      "lifecycle_status": "stable",
+      "auth": {
+        "credential_types": [
+          "activecampaign"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": [
+          "test_phase40_backlog_connectors.py"
+        ]
+      },
+      "production_readiness": "PRODUCTION_CERTIFIED"
+    },
+    {
+      "connector_key": "coin_gecko",
+      "display_name": "CoinGecko",
+      "category": "finance",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "coin_gecko"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 50,
+        "fully_implemented": 50,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "dummy_json",
+      "display_name": "DummyJSON",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 10,
+        "fully_implemented": 10,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "frankfurter",
+      "display_name": "Frankfurter FX",
+      "category": "finance",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 5,
+        "fully_implemented": 5,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "httpbin",
+      "display_name": "httpbin",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 50,
+        "fully_implemented": 50,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "json_placeholder",
+      "display_name": "JSONPlaceholder",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 9,
+        "fully_implemented": 9,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo_air",
+      "display_name": "Open-Meteo Air Quality",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo_climate",
+      "display_name": "Open-Meteo climate",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo",
+      "display_name": "Open-Meteo",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo_elevation",
+      "display_name": "Open-Meteo Elevation",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo_ensemble",
+      "display_name": "Open-Meteo ensemble",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo_flood",
+      "display_name": "Open-Meteo flood",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo_historical_weather",
+      "display_name": "Open-Meteo historical-weather",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo_marine",
+      "display_name": "Open-Meteo marine",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_meteo_seasonal",
+      "display_name": "Open-Meteo seasonal",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 1,
+        "fully_implemented": 1,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_notify",
+      "display_name": "Open Notify",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 2,
+        "fully_implemented": 2,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "open_router",
+      "display_name": "OpenRouter",
+      "category": "ai",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [
+          "open_router"
+        ],
+        "auth_kinds": [
+          "api_key"
+        ]
+      },
+      "operations": {
+        "total": 3,
+        "fully_implemented": 3,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": false
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    },
+    {
+      "connector_key": "poke_api",
+      "display_name": "PokeAPI",
+      "category": "developer",
+      "implementation_type": "IMPLEMENTED_GENERATED",
+      "lifecycle_status": "beta",
+      "auth": {
+        "credential_types": [],
+        "auth_kinds": []
+      },
+      "operations": {
+        "total": 13,
+        "fully_implemented": 13,
+        "partial": 0,
+        "registered_only": 0
+      },
+      "triggers": {
+        "total": 0,
+        "triggers_list": {}
+      },
+      "dynamic_schema": {
+        "supported": false,
+        "introspection_type": "json_schema"
+      },
+      "pagination": {
+        "supported": true
+      },
+      "tests": {
+        "has_dedicated_test": true,
+        "test_references": []
+      },
+      "production_readiness": "VALIDATED_FUNCTIONAL"
+    }
+  ]
+}

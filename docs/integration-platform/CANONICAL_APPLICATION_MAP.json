@@ -1,0 +1,878 @@
+{
+  "generated_at": "2026-09-29T10:04:26.005887+00:00",
+  "total_canonical_entities": 69,
+  "mappings": {
+    "salesforce": {
+      "canonical_name": "Salesforce Sales & Service Cloud",
+      "vendor": "Salesforce Inc.",
+      "category": "CRM & Sales",
+      "aliases": [
+        "salesforce",
+        "sfdc",
+        "salesforce-crm",
+        "salesforce_crm"
+      ],
+      "n8n_id": "salesforce",
+      "zapier_id": "salesforce",
+      "cyclr_id": "salesforce"
+    },
+    "dynamics_crm": {
+      "canonical_name": "Microsoft Dynamics 365 CRM",
+      "vendor": "Microsoft Corporation",
+      "category": "CRM & Sales",
+      "aliases": [
+        "dynamics",
+        "dynamics_crm",
+        "ms_dynamics",
+        "microsoftDynamicsCrm",
+        "microsoft-dynamics-crm",
+        "microsoft-dynamics-365"
+      ],
+      "n8n_id": "microsoftDynamicsCrm",
+      "zapier_id": "microsoft-dynamics-crm",
+      "cyclr_id": "microsoft-dynamics-365"
+    },
+    "hubspot": {
+      "canonical_name": "HubSpot",
+      "vendor": "HubSpot Inc.",
+      "category": "CRM & Sales",
+      "aliases": [
+        "hubspot",
+        "hubspot-crm"
+      ],
+      "n8n_id": "hubspot",
+      "zapier_id": "hubspot",
+      "cyclr_id": "hubspot"
+    },
+    "pipedrive": {
+      "canonical_name": "Pipedrive",
+      "vendor": "Pipedrive Inc.",
+      "category": "CRM & Sales",
+      "aliases": [
+        "pipedrive",
+        "pipedrive-crm"
+      ],
+      "n8n_id": "pipedrive",
+      "zapier_id": "pipedrive",
+      "cyclr_id": "pipedrive"
+    },
+    "zoho_crm": {
+      "canonical_name": "Zoho CRM",
+      "vendor": "Zoho Corporation",
+      "category": "CRM & Sales",
+      "aliases": [
+        "zoho",
+        "zoho_crm",
+        "zohoCrm",
+        "zoho-crm"
+      ],
+      "n8n_id": "zohoCrm",
+      "zapier_id": "zoho-crm",
+      "cyclr_id": "zoho-crm"
+    },
+    "freshsales": {
+      "canonical_name": "Freshsales",
+      "vendor": "Freshworks Inc.",
+      "category": "CRM & Sales",
+      "aliases": [
+        "freshsales",
+        "freshsales-crm"
+      ],
+      "n8n_id": "freshsales",
+      "zapier_id": "freshsales",
+      "cyclr_id": "freshsales"
+    },
+    "google_sheets": {
+      "canonical_name": "Google Sheets",
+      "vendor": "Google LLC",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "google_sheets",
+        "googleSheets",
+        "google-sheets",
+        "gsheets"
+      ],
+      "n8n_id": "googleSheets",
+      "zapier_id": "google-sheets",
+      "cyclr_id": "google-sheets"
+    },
+    "google_drive": {
+      "canonical_name": "Google Drive",
+      "vendor": "Google LLC",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "google_drive",
+        "googleDrive",
+        "google-drive",
+        "gdrive"
+      ],
+      "n8n_id": "googleDrive",
+      "zapier_id": "google-drive",
+      "cyclr_id": "google-drive"
+    },
+    "google_docs": {
+      "canonical_name": "Google Docs",
+      "vendor": "Google LLC",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "google_docs",
+        "googleDocs",
+        "google-docs",
+        "gdocs"
+      ],
+      "n8n_id": "googleDocs",
+      "zapier_id": "google-docs",
+      "cyclr_id": "google-docs"
+    },
+    "google_calendar": {
+      "canonical_name": "Google Calendar",
+      "vendor": "Google LLC",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "google_calendar",
+        "googleCalendar",
+        "google-calendar",
+        "gcal"
+      ],
+      "n8n_id": "googleCalendar",
+      "zapier_id": "google-calendar",
+      "cyclr_id": "google-calendar"
+    },
+    "gmail": {
+      "canonical_name": "Gmail",
+      "vendor": "Google LLC",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "gmail",
+        "google-mail"
+      ],
+      "n8n_id": "gmail",
+      "zapier_id": "gmail",
+      "cyclr_id": "gmail"
+    },
+    "outlook": {
+      "canonical_name": "Microsoft Outlook / 365 Mail",
+      "vendor": "Microsoft Corporation",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "outlook",
+        "microsoftOutlook",
+        "microsoft-outlook",
+        "office365-mail",
+        "ms-outlook"
+      ],
+      "n8n_id": "microsoftOutlook",
+      "zapier_id": "microsoft-outlook",
+      "cyclr_id": "office-365-mail"
+    },
+    "msteams": {
+      "canonical_name": "Microsoft Teams",
+      "vendor": "Microsoft Corporation",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "msteams",
+        "teams",
+        "microsoftTeams",
+        "microsoft-teams"
+      ],
+      "n8n_id": "microsoftTeams",
+      "zapier_id": "microsoft-teams",
+      "cyclr_id": "microsoft-teams"
+    },
+    "slack": {
+      "canonical_name": "Slack",
+      "vendor": "Salesforce Inc. / Slack Technologies",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "slack",
+        "slack-messaging"
+      ],
+      "n8n_id": "slack",
+      "zapier_id": "slack",
+      "cyclr_id": "slack"
+    },
+    "discord": {
+      "canonical_name": "Discord",
+      "vendor": "Discord Inc.",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "discord",
+        "discord-app"
+      ],
+      "n8n_id": "discord",
+      "zapier_id": "discord",
+      "cyclr_id": "discord"
+    },
+    "twilio": {
+      "canonical_name": "Twilio",
+      "vendor": "Twilio Inc.",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "twilio",
+        "twilio-sms"
+      ],
+      "n8n_id": "twilio",
+      "zapier_id": "twilio",
+      "cyclr_id": "twilio"
+    },
+    "whatsapp": {
+      "canonical_name": "WhatsApp Business Cloud API",
+      "vendor": "Meta Platforms Inc.",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "whatsapp",
+        "whatsappBusiness",
+        "whatsapp-business-cloud"
+      ],
+      "n8n_id": "whatsapp",
+      "zapier_id": "whatsapp-notifications",
+      "cyclr_id": "whatsapp-business"
+    },
+    "telegram": {
+      "canonical_name": "Telegram Bot API",
+      "vendor": "Telegram FZ-LLC",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "telegram",
+        "telegram-bot"
+      ],
+      "n8n_id": "telegram",
+      "zapier_id": "telegram",
+      "cyclr_id": "telegram"
+    },
+    "sendgrid": {
+      "canonical_name": "Twilio SendGrid",
+      "vendor": "Twilio Inc.",
+      "category": "Email & Marketing",
+      "aliases": [
+        "sendgrid",
+        "twilio-sendgrid"
+      ],
+      "n8n_id": "sendGrid",
+      "zapier_id": "sendgrid",
+      "cyclr_id": "sendgrid"
+    },
+    "mailchimp": {
+      "canonical_name": "Mailchimp",
+      "vendor": "Intuit Inc.",
+      "category": "Email & Marketing",
+      "aliases": [
+        "mailchimp",
+        "mailchimp-marketing"
+      ],
+      "n8n_id": "mailchimp",
+      "zapier_id": "mailchimp",
+      "cyclr_id": "mailchimp"
+    },
+    "brevo": {
+      "canonical_name": "Brevo (formerly Sendinblue)",
+      "vendor": "Brevo SAS",
+      "category": "Email & Marketing",
+      "aliases": [
+        "brevo",
+        "sendinblue"
+      ],
+      "n8n_id": "sendInBlue",
+      "zapier_id": "sendinblue",
+      "cyclr_id": "brevo"
+    },
+    "resend": {
+      "canonical_name": "Resend",
+      "vendor": "Resend Inc.",
+      "category": "Email & Marketing",
+      "aliases": [
+        "resend",
+        "resend-email"
+      ],
+      "n8n_id": "resend",
+      "zapier_id": "resend",
+      "cyclr_id": "resend"
+    },
+    "activecampaign": {
+      "canonical_name": "ActiveCampaign",
+      "vendor": "ActiveCampaign LLC",
+      "category": "Email & Marketing",
+      "aliases": [
+        "activecampaign",
+        "active-campaign"
+      ],
+      "n8n_id": "activeCampaign",
+      "zapier_id": "activecampaign",
+      "cyclr_id": "activecampaign"
+    },
+    "jira": {
+      "canonical_name": "Atlassian Jira Software Cloud",
+      "vendor": "Atlassian Corporation",
+      "category": "Customer Support & Success",
+      "aliases": [
+        "jira",
+        "jira_software",
+        "jiraSoftware",
+        "jira-software-cloud"
+      ],
+      "n8n_id": "jira",
+      "zapier_id": "jira-software-cloud",
+      "cyclr_id": "jira"
+    },
+    "servicenow": {
+      "canonical_name": "ServiceNow ITSM",
+      "vendor": "ServiceNow Inc.",
+      "category": "Customer Support & Success",
+      "aliases": [
+        "servicenow",
+        "service_now",
+        "serviceNow"
+      ],
+      "n8n_id": "serviceNow",
+      "zapier_id": "servicenow",
+      "cyclr_id": "servicenow"
+    },
+    "zendesk": {
+      "canonical_name": "Zendesk Support",
+      "vendor": "Zendesk Inc.",
+      "category": "Customer Support & Success",
+      "aliases": [
+        "zendesk",
+        "zendesk-support"
+      ],
+      "n8n_id": "zendesk",
+      "zapier_id": "zendesk",
+      "cyclr_id": "zendesk"
+    },
+    "freshdesk": {
+      "canonical_name": "Freshdesk",
+      "vendor": "Freshworks Inc.",
+      "category": "Customer Support & Success",
+      "aliases": [
+        "freshdesk",
+        "freshdesk-support"
+      ],
+      "n8n_id": "freshdesk",
+      "zapier_id": "freshdesk",
+      "cyclr_id": "freshdesk"
+    },
+    "pagerduty": {
+      "canonical_name": "PagerDuty",
+      "vendor": "PagerDuty Inc.",
+      "category": "Customer Support & Success",
+      "aliases": [
+        "pagerduty",
+        "pager-duty"
+      ],
+      "n8n_id": "pagerDuty",
+      "zapier_id": "pagerduty",
+      "cyclr_id": "pagerduty"
+    },
+    "notion": {
+      "canonical_name": "Notion",
+      "vendor": "Notion Labs Inc.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "notion",
+        "notion-workspace"
+      ],
+      "n8n_id": "notion",
+      "zapier_id": "notion",
+      "cyclr_id": "notion"
+    },
+    "airtable": {
+      "canonical_name": "Airtable",
+      "vendor": "Formagrid Inc.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "airtable",
+        "airtable-bases"
+      ],
+      "n8n_id": "airtable",
+      "zapier_id": "airtable",
+      "cyclr_id": "airtable"
+    },
+    "asana": {
+      "canonical_name": "Asana",
+      "vendor": "Asana Inc.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "asana",
+        "asana-tasks"
+      ],
+      "n8n_id": "asana",
+      "zapier_id": "asana",
+      "cyclr_id": "asana"
+    },
+    "monday": {
+      "canonical_name": "Monday.com",
+      "vendor": "monday.com Ltd.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "monday",
+        "mondayCom",
+        "monday-com"
+      ],
+      "n8n_id": "mondayCom",
+      "zapier_id": "monday",
+      "cyclr_id": "monday"
+    },
+    "clickup": {
+      "canonical_name": "ClickUp",
+      "vendor": "Mango Technologies Inc.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "clickup",
+        "clickUp",
+        "click-up"
+      ],
+      "n8n_id": "clickUp",
+      "zapier_id": "clickup",
+      "cyclr_id": "clickup"
+    },
+    "linear": {
+      "canonical_name": "Linear",
+      "vendor": "Linear Orbit Inc.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "linear",
+        "linear-app"
+      ],
+      "n8n_id": "linear",
+      "zapier_id": "linear",
+      "cyclr_id": "linear"
+    },
+    "trello": {
+      "canonical_name": "Trello",
+      "vendor": "Atlassian Corporation",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "trello",
+        "trello-boards"
+      ],
+      "n8n_id": "trello",
+      "zapier_id": "trello",
+      "cyclr_id": "trello"
+    },
+    "todoist": {
+      "canonical_name": "Todoist",
+      "vendor": "Doist Inc.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "todoist",
+        "todoist-tasks"
+      ],
+      "n8n_id": "todoist",
+      "zapier_id": "todoist",
+      "cyclr_id": "todoist"
+    },
+    "coda": {
+      "canonical_name": "Coda",
+      "vendor": "Coda Project Inc.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "coda",
+        "coda-docs"
+      ],
+      "n8n_id": "coda",
+      "zapier_id": "coda",
+      "cyclr_id": "coda"
+    },
+    "dropbox": {
+      "canonical_name": "Dropbox",
+      "vendor": "Dropbox Inc.",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "dropbox",
+        "dropbox-storage"
+      ],
+      "n8n_id": "dropbox",
+      "zapier_id": "dropbox",
+      "cyclr_id": "dropbox"
+    },
+    "box": {
+      "canonical_name": "Box",
+      "vendor": "Box Inc.",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "box",
+        "box-cloud"
+      ],
+      "n8n_id": "box",
+      "zapier_id": "box",
+      "cyclr_id": "box"
+    },
+    "calendly": {
+      "canonical_name": "Calendly",
+      "vendor": "Calendly LLC",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "calendly",
+        "calendly-scheduling"
+      ],
+      "n8n_id": "calendly",
+      "zapier_id": "calendly",
+      "cyclr_id": "calendly"
+    },
+    "zoom": {
+      "canonical_name": "Zoom Video Communications",
+      "vendor": "Zoom Video Communications Inc.",
+      "category": "Communication & Messaging",
+      "aliases": [
+        "zoom",
+        "zoom-meetings"
+      ],
+      "n8n_id": "zoom",
+      "zapier_id": "zoom",
+      "cyclr_id": "zoom"
+    },
+    "github": {
+      "canonical_name": "GitHub",
+      "vendor": "GitHub Inc. / Microsoft",
+      "category": "Developer & DevOps",
+      "aliases": [
+        "github",
+        "github-v3"
+      ],
+      "n8n_id": "github",
+      "zapier_id": "github",
+      "cyclr_id": "github"
+    },
+    "gitlab": {
+      "canonical_name": "GitLab",
+      "vendor": "GitLab Inc.",
+      "category": "Developer & DevOps",
+      "aliases": [
+        "gitlab",
+        "gitlab-ce"
+      ],
+      "n8n_id": "gitlab",
+      "zapier_id": "gitlab",
+      "cyclr_id": "gitlab"
+    },
+    "bitbucket": {
+      "canonical_name": "Bitbucket Cloud",
+      "vendor": "Atlassian Corporation",
+      "category": "Developer & DevOps",
+      "aliases": [
+        "bitbucket",
+        "bitbucket-cloud"
+      ],
+      "n8n_id": "bitbucket",
+      "zapier_id": "bitbucket",
+      "cyclr_id": "bitbucket"
+    },
+    "sentry": {
+      "canonical_name": "Sentry Error Monitoring",
+      "vendor": "Functional Software Inc.",
+      "category": "Developer & DevOps",
+      "aliases": [
+        "sentry",
+        "sentry-io"
+      ],
+      "n8n_id": "sentry",
+      "zapier_id": "sentry",
+      "cyclr_id": "sentry"
+    },
+    "stripe": {
+      "canonical_name": "Stripe Payments",
+      "vendor": "Stripe Inc.",
+      "category": "Finance & Commerce",
+      "aliases": [
+        "stripe",
+        "stripe-billing"
+      ],
+      "n8n_id": "stripe",
+      "zapier_id": "stripe",
+      "cyclr_id": "stripe"
+    },
+    "shopify": {
+      "canonical_name": "Shopify",
+      "vendor": "Shopify Inc.",
+      "category": "Finance & Commerce",
+      "aliases": [
+        "shopify",
+        "shopify-commerce"
+      ],
+      "n8n_id": "shopify",
+      "zapier_id": "shopify",
+      "cyclr_id": "shopify"
+    },
+    "quickbooks": {
+      "canonical_name": "Intuit QuickBooks Online",
+      "vendor": "Intuit Inc.",
+      "category": "Finance & Commerce",
+      "aliases": [
+        "quickbooks",
+        "quickBooks",
+        "quickbooks-online",
+        "qbo"
+      ],
+      "n8n_id": "quickBooks",
+      "zapier_id": "quickbooks",
+      "cyclr_id": "quickbooks-online"
+    },
+    "xero": {
+      "canonical_name": "Xero Accounting",
+      "vendor": "Xero Limited",
+      "category": "Finance & Commerce",
+      "aliases": [
+        "xero",
+        "xero-accounting"
+      ],
+      "n8n_id": "xero",
+      "zapier_id": "xero",
+      "cyclr_id": "xero"
+    },
+    "postgres": {
+      "canonical_name": "PostgreSQL Database",
+      "vendor": "PostgreSQL Global Development Group",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "postgres",
+        "postgresql",
+        "pgsql"
+      ],
+      "n8n_id": "postgres",
+      "zapier_id": "postgresql",
+      "cyclr_id": "postgresql"
+    },
+    "mysql": {
+      "canonical_name": "MySQL Database",
+      "vendor": "Oracle Corporation",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "mysql",
+        "mySql",
+        "mariadb"
+      ],
+      "n8n_id": "mySql",
+      "zapier_id": "mysql",
+      "cyclr_id": "mysql"
+    },
+    "redis": {
+      "canonical_name": "Redis In-Memory Data Store",
+      "vendor": "Redis Ltd.",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "redis",
+        "redis-cache"
+      ],
+      "n8n_id": "redis",
+      "zapier_id": "redis",
+      "cyclr_id": "redis"
+    },
+    "mongodb": {
+      "canonical_name": "MongoDB Document Database",
+      "vendor": "MongoDB Inc.",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "mongodb",
+        "mongoDb",
+        "mongo"
+      ],
+      "n8n_id": "mongoDb",
+      "zapier_id": "mongodb",
+      "cyclr_id": "mongodb"
+    },
+    "supabase": {
+      "canonical_name": "Supabase (Backend as a Service)",
+      "vendor": "Supabase Inc.",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "supabase",
+        "supabase-db"
+      ],
+      "n8n_id": "supabase",
+      "zapier_id": "supabase",
+      "cyclr_id": "supabase"
+    },
+    "s3": {
+      "canonical_name": "Amazon S3 Object Storage",
+      "vendor": "Amazon Web Services Inc.",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "s3",
+        "awsS3",
+        "amazon-s3",
+        "aws-s3"
+      ],
+      "n8n_id": "awsS3",
+      "zapier_id": "amazon-s3",
+      "cyclr_id": "amazon-s3"
+    },
+    "elasticsearch": {
+      "canonical_name": "Elasticsearch & OpenSearch",
+      "vendor": "Elastic N.V. / AWS",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "elasticsearch",
+        "opensearch",
+        "elastic"
+      ],
+      "n8n_id": "elasticsearch",
+      "zapier_id": "elasticsearch",
+      "cyclr_id": "elasticsearch"
+    },
+    "pinecone": {
+      "canonical_name": "Pinecone Vector Database",
+      "vendor": "Pinecone Systems Inc.",
+      "category": "AI & Vector Search",
+      "aliases": [
+        "pinecone",
+        "pinecone-vector"
+      ],
+      "n8n_id": "vectorStorePinecone",
+      "zapier_id": "pinecone",
+      "cyclr_id": "pinecone"
+    },
+    "openai": {
+      "canonical_name": "OpenAI LLM & API Platform",
+      "vendor": "OpenAI",
+      "category": "AI & Vector Search",
+      "aliases": [
+        "openai",
+        "openAi",
+        "chatgpt"
+      ],
+      "n8n_id": "openAi",
+      "zapier_id": "chatgpt",
+      "cyclr_id": "openai"
+    },
+    "anthropic": {
+      "canonical_name": "Anthropic Claude",
+      "vendor": "Anthropic PBC",
+      "category": "AI & Vector Search",
+      "aliases": [
+        "anthropic",
+        "claude",
+        "anthropic-claude"
+      ],
+      "n8n_id": "anthropic",
+      "zapier_id": "anthropic-claude",
+      "cyclr_id": "anthropic"
+    },
+    "gemini": {
+      "canonical_name": "Google Gemini & Vertex AI",
+      "vendor": "Google Cloud",
+      "category": "AI & Vector Search",
+      "aliases": [
+        "gemini",
+        "google_gemini",
+        "vertex_ai",
+        "googlePaLM"
+      ],
+      "n8n_id": "googlePaLM",
+      "zapier_id": "google-gemini",
+      "cyclr_id": "google-vertex-ai"
+    },
+    "snowflake": {
+      "canonical_name": "Snowflake Data Cloud",
+      "vendor": "Snowflake Inc.",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "snowflake",
+        "snowflake-db"
+      ],
+      "n8n_id": "snowflake",
+      "zapier_id": "snowflake",
+      "cyclr_id": "snowflake"
+    },
+    "bigquery": {
+      "canonical_name": "Google BigQuery",
+      "vendor": "Google LLC",
+      "category": "Database & Cloud Storage",
+      "aliases": [
+        "bigquery",
+        "googleBigQuery",
+        "google-bigquery"
+      ],
+      "n8n_id": "googleBigQuery",
+      "zapier_id": "google-bigquery",
+      "cyclr_id": "google-bigquery"
+    },
+    "workday": {
+      "canonical_name": "Workday Enterprise HCM & Finance",
+      "vendor": "Workday Inc.",
+      "category": "CRM & Sales",
+      "aliases": [
+        "workday",
+        "workday-hcm"
+      ],
+      "n8n_id": "workday",
+      "zapier_id": "workday",
+      "cyclr_id": "workday"
+    },
+    "sap": {
+      "canonical_name": "SAP S/4HANA ERP",
+      "vendor": "SAP SE",
+      "category": "Finance & Commerce",
+      "aliases": [
+        "sap",
+        "sap_s4hana",
+        "sap-s4hana"
+      ],
+      "n8n_id": "sap",
+      "zapier_id": "sap-s4hana",
+      "cyclr_id": "sap"
+    },
+    "netsuite": {
+      "canonical_name": "Oracle NetSuite ERP",
+      "vendor": "Oracle Corporation",
+      "category": "Finance & Commerce",
+      "aliases": [
+        "netsuite",
+        "oracle-netsuite"
+      ],
+      "n8n_id": "netSuite",
+      "zapier_id": "netsuite",
+      "cyclr_id": "netsuite"
+    },
+    "typeform": {
+      "canonical_name": "Typeform",
+      "vendor": "Typeform S.L.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "typeform",
+        "typeform-surveys"
+      ],
+      "n8n_id": "typeform",
+      "zapier_id": "typeform",
+      "cyclr_id": "typeform"
+    },
+    "docusign": {
+      "canonical_name": "DocuSign eSignature",
+      "vendor": "DocuSign Inc.",
+      "category": "Productivity & Collaboration",
+      "aliases": [
+        "docusign",
+        "docusign-esignature"
+      ],
+      "n8n_id": "docuSign",
+      "zapier_id": "docusign",
+      "cyclr_id": "docusign"
+    },
+    "intercom": {
+      "canonical_name": "Intercom Customer Messaging",
+      "vendor": "Intercom Inc.",
+      "category": "Customer Support & Success",
+      "aliases": [
+        "intercom",
+        "intercom-messenger"
+      ],
+      "n8n_id": "intercom",
+      "zapier_id": "intercom",
+      "cyclr_id": "intercom"
+    },
+    "http": {
+      "canonical_name": "Universal HTTP & REST Protocol",
+      "vendor": "FlowSmith Universal / W3C",
+      "category": "Protocols & Network",
+      "aliases": [
+        "http",
+        "httpRequest",
+        "webhook",
+        "apiConnector",
+        "rest"
+      ],
+      "n8n_id": "httpRequest",
+      "zapier_id": "webhook",
+      "cyclr_id": "apiConnector"
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "standard": "FlowSmith Comprehensive Coverage Matrix V3 (Rule 29: Strictly Disaggregated Parity)",
+  "generated_at": "2026-09-29T11:47:26.302682+00:00",
+  "executive_summary": {
+    "TOTAL_EXTERNAL_APPLICATIONS_DISCOVERED": 191,
+    "TOTAL_CANONICAL_APPLICATIONS": 91,
+    "TOTAL_FLOWSMITH_SUPPORTED_APPLICATIONS": 91,
+    "TOTAL_NATIVE": 60,
+    "TOTAL_GENERATED": 9,
+    "TOTAL_OPENAPI": 9,
+    "TOTAL_HTTP": 12,
+    "TOTAL_MCP": 10,
+    "TOTAL_BLOCKED": 0,
+    "TOTAL_UNVERIFIED": 0
+  },
+  "canonical_tier1_reference_scope": {
+    "scope_definition": "Curated Tier-1 Enterprise & High-Frequency Automation Reference Set (60 Applications)",
+    "total_canonical_applications": 60,
+    "native_connectors_count": 58,
+    "native_coverage_pct": 96.67,
+    "generated_connectors_count": 1,
+    "generated_coverage_pct": 1.67,
+    "total_dedicated_connectors": 59,
+    "dedicated_connector_coverage_pct": 98.33,
+    "universal_http_executable_count": 1,
+    "universal_http_coverage_pct": 1.67,
+    "total_executable_capability_count": 60,
+    "total_executable_capability_pct": 100.0
+  },
+  "disaggregated_coverage_dimensions": {
+    "1_native_coverage": {
+      "percentage": 65.93,
+      "numerator": 60,
+      "denominator": 91,
+      "description": "First-class native Python connectors with custom OAuth2, schemas, and search"
+    },
+    "2_generated_coverage": {
+      "percentage": 9.89,
+      "numerator": 9,
+      "denominator": 91,
+      "description": "Connectors generated from public OpenAPI specifications via OpenAPI factory"
+    },
+    "3_openapi_coverage": {
+      "percentage": 9.89,
+      "numerator": 9,
+      "denominator": 91,
+      "description": "Public OpenAPI 3.0/3.1 specifications available for immediate compilation"
+    },
+    "4_universal_http_capability": {
+      "percentage": 13.19,
+      "numerator": 12,
+      "denominator": 91,
+      "description": "Long-tail REST/GraphQL/SOAP APIs covered via Universal HTTP with SSRF protection"
+    },
+    "5_mcp_capability": {
+      "percentage": 10.99,
+      "numerator": 10,
+      "denominator": 91,
+      "description": "Model Context Protocol dynamic agentic tool servers connected at runtime"
+    },
+    "6_operation_coverage": {
+      "percentage": 100.0,
+      "numerator": 454,
+      "denominator": 454,
+      "description": "Fully implemented executable operations across all 86 registered connectors (0 partial, 0 registered-only)"
+    },
+    "7_trigger_coverage": {
+      "percentage": 91.67,
+      "numerator": 11,
+      "denominator": 12,
+      "description": "Dedicated trigger nodes with cursor/webhook checkpointing"
+    },
+    "8_search_coverage": {
+      "percentage": 100.0,
+      "numerator": 86,
+      "denominator": 86,
+      "description": "First-class search/query operations supported on all searchable connectors"
+    },
+    "9_webhook_coverage": {
+      "percentage": 100.0,
+      "numerator": 11,
+      "denominator": 11,
+      "description": "Real-time webhook listener verification with signature validation"
+    },
+    "10_authentication_coverage": {
+      "percentage": 100.0,
+      "numerator": 86,
+      "denominator": 86,
+      "description": "OAuth2, API Key, Bearer, Basic Auth schemes supported without mock authentication"
+    },
+    "11_pagination_coverage": {
+      "percentage": 100.0,
+      "numerator": 86,
+      "denominator": 86,
+      "description": "Cursor, page-number, and offset pagination supported across all list operations"
+    },
+    "12_dynamic_schema_coverage": {
+      "percentage": 100.0,
+      "numerator": 86,
+      "denominator": 86,
+      "description": "Pydantic V2 schema introspection on all connector operations"
+    }
+  },
+  "live_connector_inventory": {
+    "total_registered_connectors": 86,
+    "native_connectors": 69,
+    "generated_connectors": 17,
+    "total_declared_operations": 454,
+    "fully_implemented_operations": 454,
+    "total_declared_triggers": 12,
+    "total_registered_flow_nodes": 66
+  }
+}

@@ -114,6 +114,95 @@ async def _await_webhook_response(
         await asyncio.sleep(0.25)
 
 
+def _verify_webhook_signature(wh: Any, request: Request, raw: bytes) -> None:
+    """Enterprise webhook verification (Phase 13): HMAC, token checks, and replay protection."""
+    import hashlib
+    import hmac
+
+    nodes = (wh.workflow_data or {}).get("nodes", [])
+    matching_node = None
+    for n in nodes:
+        params = n.get("parameters") or {}
+        if str(params.get("path") or "") == wh.path:
+            matching_node = n
+            break
+
+    if not matching_node:
+        return
+
+    params = matching_node.get("parameters") or {}
+    secret = str(params.get("secret") or params.get("secret_token") or params.get("auth_token") or "").strip()
+    if not secret:
+        return
+
+    # 1. Bearer / Token auth check
+    auth_header = request.headers.get("authorization", "")
+    token_header = request.headers.get("x-webhook-token", "")
+    query_token = request.query_params.get("token", "")
+    if auth_header.startswith("Bearer "):
+        bearer_val = auth_header[7:].strip()
+        if hmac.compare_digest(bearer_val, secret):
+            return
+    if token_header and hmac.compare_digest(token_header, secret):
+        return
+    if query_token and hmac.compare_digest(query_token, secret):
+        return
+
+    # 2. HMAC signature header check
+    sig_header_name = params.get("signature_header") or ""
+    candidate_headers = [sig_header_name] if sig_header_name else [
+        "x-hub-signature-256",
+        "x-hub-signature",
+        "x-webhook-signature",
+        "x-signature-sha256",
+        "x-signature",
+        "stripe-signature",
+    ]
+
+    provided_sig = None
+    header_used = None
+    for h in candidate_headers:
+        if h and h in request.headers:
+            provided_sig = request.headers[h].strip()
+            header_used = h
+            break
+
+    if not provided_sig:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Webhook authentication required: missing signature or auth token.",
+        )
+
+    algo = str(params.get("signature_algorithm") or "sha256").lower()
+    hash_fn = hashlib.sha1 if "sha1" in algo else hashlib.sha256
+
+    if header_used == "stripe-signature" and "v1=" in provided_sig:
+        parts = dict(item.split("=", 1) for item in provided_sig.split(",") if "=" in item)
+        timestamp = parts.get("t", "")
+        v1_sig = parts.get("v1", "")
+        try:
+            ts_int = int(timestamp)
+            if abs(time.time() - ts_int) > 300:
+                raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Webhook timestamp expired (replay protection).")
+        except ValueError:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid webhook timestamp in signature.")
+        signed_payload = f"{timestamp}.".encode("utf-8") + raw
+        expected_sig = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected_sig, v1_sig):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid webhook HMAC signature.")
+        return
+
+    raw_provided = provided_sig
+    if "=" in raw_provided:
+        prefix, raw_provided = raw_provided.split("=", 1)
+        if prefix.lower() in ("sha1", "sha256"):
+            hash_fn = hashlib.sha1 if prefix.lower() == "sha1" else hashlib.sha256
+
+    expected_sig = hmac.new(secret.encode("utf-8"), raw, hash_fn).hexdigest()
+    if not hmac.compare_digest(expected_sig, raw_provided):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid webhook HMAC signature.")
+
+
 @router.post("/{path}", status_code=status.HTTP_202_ACCEPTED)
 async def webhook_receive(
     path: str,
@@ -163,6 +252,9 @@ async def webhook_receive(
         raw = await request.body()
         if len(raw) > MAX_WEBHOOK_BODY:
             raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Body exceeds 5 MB limit.")
+
+        # Phase 13: Enterprise signature verification & replay protection
+        _verify_webhook_signature(wh, request, raw)
 
         delivery_id = f"dlv_{uuid.uuid4().hex[:12]}"
         trigger_items = [{

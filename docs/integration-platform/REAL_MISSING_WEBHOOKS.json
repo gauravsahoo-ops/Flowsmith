@@ -1,0 +1,47 @@
+[
+  {
+    "application_id": "zoho_crm",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  },
+  {
+    "application_id": "freshsales",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  },
+  {
+    "application_id": "sendgrid",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  },
+  {
+    "application_id": "activecampaign",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  },
+  {
+    "application_id": "coda",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  },
+  {
+    "application_id": "xero",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  },
+  {
+    "application_id": "bigquery",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  },
+  {
+    "application_id": "docusign",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  },
+  {
+    "application_id": "intercom",
+    "webhook_event": "new_event",
+    "verification": "HMAC_SHA256"
+  }
+]

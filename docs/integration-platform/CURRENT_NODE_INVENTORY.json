@@ -1,0 +1,1850 @@
+{
+  "total": 66,
+  "generated_at": "2026-09-29T10:04:26.005887+00:00",
+  "nodes": [
+    {
+      "id": "node_aggregate",
+      "slug": "aggregate",
+      "name": "Aggregate",
+      "display_name": "Aggregate",
+      "description": "Collect multiple items into a single list.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83d\udce6",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "field"
+      ]
+    },
+    {
+      "id": "node_ai",
+      "slug": "ai",
+      "name": "AI",
+      "display_name": "AI",
+      "description": "Chat with an OpenAI-compatible model; optional tool calling.",
+      "version": 1,
+      "category": "AI",
+      "icon": "\ud83e\udd16",
+      "credential_types": [
+        "llm",
+        "http",
+        "database"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "non-idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "prompt",
+        "system_message",
+        "temperature",
+        "response_format",
+        "max_turns",
+        "tools"
+      ]
+    },
+    {
+      "id": "node_ai_agent",
+      "slug": "ai_agent",
+      "name": "AI Agent",
+      "display_name": "AI Agent",
+      "description": "Autonomous ReAct agent with native tool execution, multi-provider support, and persistent memory.",
+      "version": 2,
+      "category": "AI",
+      "icon": "\ud83e\udd16",
+      "credential_types": [
+        "llm",
+        "http",
+        "database"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "non-idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "instructions",
+        "input",
+        "model",
+        "tools",
+        "memory_type",
+        "session_id",
+        "max_iterations",
+        "temperature",
+        "response_format"
+      ]
+    },
+    {
+      "id": "node_chat_trigger",
+      "slug": "chat_trigger",
+      "name": "Chat Trigger",
+      "display_name": "Chat Trigger",
+      "description": "Starts the workflow for each chat message.",
+      "version": 1,
+      "category": "Triggers",
+      "icon": "\ud83d\udde8\ufe0f",
+      "credential_types": [],
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "path",
+        "title",
+        "greeting"
+      ]
+    },
+    {
+      "id": "node_code",
+      "slug": "code",
+      "name": "Code",
+      "display_name": "Code",
+      "description": "Run JavaScript code to transform data. Use $input.all() and $input.item.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83d\udcbb",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "code",
+        "jsCode",
+        "language",
+        "mode"
+      ]
+    },
+    {
+      "id": "node_compare_datasets",
+      "slug": "compare_datasets",
+      "name": "Compare Datasets",
+      "display_name": "Compare Datasets",
+      "description": "Compare two inputs for changes",
+      "version": 1,
+      "category": "Flow",
+      "icon": "compare_datasets",
+      "credential_types": [],
+      "input_handles": [
+        "input_a",
+        "input_b",
+        "main"
+      ],
+      "output_handles": [
+        "main",
+        "different",
+        "same"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "fieldsToMatch",
+        "whenThereAreDifferences",
+        "fuzzyCompare",
+        "options",
+        "merge_by",
+        "key_fields",
+        "fields_to_compare",
+        "input1",
+        "input2"
+      ]
+    },
+    {
+      "id": "node_crypto_tools",
+      "slug": "crypto_tools",
+      "name": "Crypto",
+      "display_name": "Crypto",
+      "description": "Hash, HMAC, Base64, UUID, and secure tokens.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83d\udd11",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "text",
+        "algorithm",
+        "key",
+        "num_bytes"
+      ]
+    },
+    {
+      "id": "node_csv_json_transform",
+      "slug": "csv_json_transform",
+      "name": "CSV / JSON Transform",
+      "display_name": "CSV / JSON Transform",
+      "description": "Transform data between CSV and JSON formats.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83d\udd04",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "mode",
+        "json_input",
+        "csv_input",
+        "include_header"
+      ]
+    },
+    {
+      "id": "node_data_table",
+      "slug": "data_table",
+      "name": "Data Table",
+      "display_name": "Data Table",
+      "description": "Store and query structured data in workspace tables.",
+      "version": 1,
+      "category": "Database",
+      "icon": "\ud83d\uddc3\ufe0f",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "table_id",
+        "table_name",
+        "workspace_id",
+        "operation",
+        "filters",
+        "search",
+        "sort_by",
+        "sort_order",
+        "limit",
+        "offset",
+        "row_data",
+        "row_id",
+        "rows",
+        "upsert_key"
+      ]
+    },
+    {
+      "id": "node_database_query",
+      "slug": "database_query",
+      "name": "Database Query",
+      "display_name": "Database Query",
+      "description": "Runs SQL and returns the result rows.",
+      "version": 1,
+      "category": "Database",
+      "icon": "\ud83d\uddc4\ufe0f",
+      "credential_types": [
+        "database"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "sql",
+        "params"
+      ]
+    },
+    {
+      "id": "node_date_time",
+      "slug": "date_time",
+      "name": "Date & Time",
+      "display_name": "Date & Time",
+      "description": "Now, format, parse, shift, and diff datetimes.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83d\udd52",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "value",
+        "input_format",
+        "output_format",
+        "days",
+        "hours",
+        "minutes",
+        "base",
+        "start",
+        "unit",
+        "timezone"
+      ]
+    },
+    {
+      "id": "node_embeddings",
+      "slug": "embeddings",
+      "name": "Embeddings",
+      "display_name": "Embeddings",
+      "description": "Embed texts into vectors for RAG retrieval.",
+      "version": 1,
+      "category": "AI",
+      "icon": "\ud83e\udde0",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "texts",
+        "field",
+        "model",
+        "max_items"
+      ]
+    },
+    {
+      "id": "node_email_read",
+      "slug": "email_read",
+      "name": "Read Email",
+      "display_name": "Read Email",
+      "description": "Read messages from an IMAP mailbox.",
+      "version": 1,
+      "category": "Communication",
+      "icon": "\ud83d\udce5",
+      "credential_types": [
+        "imap"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "folder",
+        "unseen_only",
+        "limit",
+        "mark_seen",
+        "timeout_seconds"
+      ]
+    },
+    {
+      "id": "node_error_trigger",
+      "slug": "error_trigger",
+      "name": "Error Trigger",
+      "display_name": "Error Trigger",
+      "description": "Triggers automatically when a linked workflow encounters an execution failure.",
+      "version": 1,
+      "category": "Triggers",
+      "icon": "alert_triangle",
+      "credential_types": [],
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": false,
+      "parameters_properties": []
+    },
+    {
+      "id": "node_execute_workflow_trigger",
+      "slug": "execute_workflow_trigger",
+      "name": "When executed by Another Workflow",
+      "display_name": "When executed by Another Workflow",
+      "description": "Starts the workflow when called by an Execute Sub-workflow node in another workflow.",
+      "version": 1,
+      "category": "Flow",
+      "icon": "execute_workflow_trigger",
+      "credential_types": [],
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "input_data_mode",
+        "json_example",
+        "schema_fields"
+      ]
+    },
+    {
+      "id": "node_file_io",
+      "slug": "file_io",
+      "name": "File I/O",
+      "display_name": "File I/O",
+      "description": "Read from or write to a file on disk with async I/O and binary storage.",
+      "version": 2,
+      "category": "Actions",
+      "icon": "\ud83d\udcc4",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "path",
+        "mode",
+        "encoding",
+        "content",
+        "create_parents",
+        "max_size_bytes",
+        "binary",
+        "binary_property"
+      ]
+    },
+    {
+      "id": "node_filter",
+      "slug": "filter",
+      "name": "Filter",
+      "display_name": "Filter",
+      "description": "Keep only items matching a condition",
+      "version": 1,
+      "category": "Flow",
+      "icon": "filter",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "condition",
+        "conditions",
+        "combinator",
+        "convertTypes",
+        "options"
+      ]
+    },
+    {
+      "id": "node_form_trigger",
+      "slug": "form_trigger",
+      "name": "Form Trigger",
+      "display_name": "Form Trigger",
+      "description": "Starts the workflow when someone submits its public form.",
+      "version": 1,
+      "category": "Triggers",
+      "icon": "\ud83d\udccb",
+      "credential_types": [],
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "path",
+        "title",
+        "fields"
+      ]
+    },
+    {
+      "id": "node_ftp",
+      "slug": "ftp",
+      "name": "FTP",
+      "display_name": "FTP",
+      "description": "List, download, upload, and delete files on FTP/FTPS servers",
+      "version": 1,
+      "category": "Flow",
+      "icon": "\ud83d\udcc1",
+      "credential_types": [
+        "ftp"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "path",
+        "content",
+        "limit",
+        "max_bytes"
+      ]
+    },
+    {
+      "id": "node_git",
+      "slug": "git",
+      "name": "Git",
+      "display_name": "Git",
+      "description": "Read-only Git inspection: status, log, branches",
+      "version": 1,
+      "category": "Flow",
+      "icon": "\ud83c\udf3f",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "repo_path",
+        "limit"
+      ]
+    },
+    {
+      "id": "node_graphql",
+      "slug": "graphql",
+      "name": "GraphQL",
+      "display_name": "GraphQL",
+      "description": "Execute a GraphQL query or mutation against any endpoint.",
+      "version": 1,
+      "category": "Actions",
+      "icon": "\u25c8",
+      "credential_types": [
+        "http"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "url",
+        "query",
+        "variables",
+        "operation_name",
+        "headers",
+        "auth_type",
+        "auth_token",
+        "api_key_name",
+        "timeout_seconds",
+        "max_response_bytes"
+      ]
+    },
+    {
+      "id": "node_html_extract",
+      "slug": "html_extract",
+      "name": "HTML Extract",
+      "display_name": "HTML Extract",
+      "description": "Extract text, links, images, or tables from HTML.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83d\udd0d",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "html",
+        "max_items"
+      ]
+    },
+    {
+      "id": "node_http_request",
+      "slug": "http_request",
+      "name": "HTTP Request",
+      "display_name": "HTTP Request",
+      "description": "Universal REST client: any method, headers/query/path params, JSON/form/multipart/raw bodies, API-key/Bearer/Basic auth, timeouts, redirects, SSL options, Link-header pagination and response-size limits.",
+      "version": 3,
+      "category": "Actions",
+      "icon": "\ud83c\udf10",
+      "credential_types": [
+        "http",
+        "basic_auth",
+        "bearer_auth",
+        "header_auth",
+        "query_auth",
+        "digest_auth",
+        "custom_auth",
+        "oauth2",
+        "oauth1",
+        "api_key",
+        "pat",
+        "jwt",
+        "service_account",
+        "aws_iam",
+        "aws_assume_role",
+        "salesforce",
+        "hubspot",
+        "google_calendar",
+        "google_sheets",
+        "gmail",
+        "google_drive",
+        "slack",
+        "github",
+        "notion",
+        "jira",
+        "discord",
+        "stripe",
+        "mongodb",
+        "redis",
+        "airtable",
+        "shopify",
+        "postgres",
+        "mysql",
+        "database",
+        "smtp",
+        "llm",
+        "telegram",
+        "microsoft_graph"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "method",
+        "url",
+        "sendQuery",
+        "sendHeaders",
+        "sendBody",
+        "specifyHeaders",
+        "specifyBody",
+        "specifyQuery",
+        "path_params",
+        "query",
+        "headers",
+        "body",
+        "body_format",
+        "bodyContentType",
+        "jsonBodyMode",
+        "queryParameters",
+        "headerParameters",
+        "bodyParameters",
+        "rawBody",
+        "queryMode",
+        "queryJson",
+        "headerMode",
+        "headerJson",
+        "authentication",
+        "predefinedType",
+        "auth_type",
+        "auth_token",
+        "auth_username",
+        "auth_password",
+        "api_key_name",
+        "api_key_in",
+        "timeout_seconds",
+        "max_response_bytes",
+        "follow_redirects",
+        "max_redirects",
+        "ignore_ssl_issues",
+        "response_format",
+        "binary_property",
+        "pagination_mode",
+        "max_pages",
+        "idempotency_key",
+        "importCurl",
+        "auto_store_token",
+        "auto_store_provider",
+        "on_init_headers",
+        "on_success_expression",
+        "on_error_action",
+        "on_error_fallback"
+      ]
+    },
+    {
+      "id": "node_human_approval",
+      "slug": "human_approval",
+      "name": "Human Approval",
+      "display_name": "Human Approval",
+      "description": "Pause workflow and wait for human approval.",
+      "version": 1,
+      "category": "Logic",
+      "icon": "\ud83d\udc64",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "message",
+        "approvers",
+        "timeout_hours"
+      ]
+    },
+    {
+      "id": "node_if_condition",
+      "slug": "if_condition",
+      "name": "If",
+      "display_name": "If",
+      "description": "Route items to different branches (true/false)",
+      "version": 2,
+      "category": "Flow",
+      "icon": "if",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "true",
+        "false"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "condition",
+        "conditions",
+        "combinator",
+        "convertTypes",
+        "options"
+      ]
+    },
+    {
+      "id": "node_item_lists",
+      "slug": "item_lists",
+      "name": "Item Lists",
+      "display_name": "Item Lists",
+      "description": "Sort, limit, dedupe, reverse, or pluck item fields.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83e\uddee",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "field",
+        "descending",
+        "limit",
+        "offset"
+      ]
+    },
+    {
+      "id": "node_loop",
+      "slug": "loop",
+      "name": "Loop / ForEach",
+      "display_name": "Loop / ForEach",
+      "description": "Split a list into individual items for downstream processing.",
+      "version": 1,
+      "category": "Flow",
+      "icon": "loop_over_items",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "done",
+        "loop"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "field",
+        "batch_size"
+      ]
+    },
+    {
+      "id": "node_loop_over_items",
+      "slug": "loop_over_items",
+      "name": "Loop Over Items",
+      "display_name": "Loop Over Items",
+      "description": "Split data into batches and iterate over each batch",
+      "version": 1,
+      "category": "Flow",
+      "icon": "loop_over_items",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "done",
+        "loop"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "field",
+        "batch_size"
+      ]
+    },
+    {
+      "id": "node_loop_while",
+      "slug": "loop_while",
+      "name": "Loop While",
+      "display_name": "Loop While",
+      "description": "Bounded iteration loop with a termination condition, hard limit and per-iteration delay.",
+      "version": 1,
+      "category": "Logic",
+      "icon": "\ud83d\udd01",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "condition",
+        "mode",
+        "update",
+        "max_iterations",
+        "delay_seconds",
+        "on_limit"
+      ]
+    },
+    {
+      "id": "node_manual_trigger",
+      "slug": "manual_trigger",
+      "name": "Manual Trigger",
+      "display_name": "Manual Trigger",
+      "description": "Runs the workflow when you press Run in the UI.",
+      "version": 1,
+      "category": "Triggers",
+      "icon": "\u25b6\ufe0f",
+      "credential_types": [],
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": false,
+      "parameters_properties": []
+    },
+    {
+      "id": "node_markdown_text",
+      "slug": "markdown_text",
+      "name": "Markdown",
+      "display_name": "Markdown",
+      "description": "Convert markdown to plain text or simple HTML.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83d\udcdd",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "text",
+        "field"
+      ]
+    },
+    {
+      "id": "node_memory",
+      "slug": "memory",
+      "name": "Memory",
+      "display_name": "Memory",
+      "description": "Session chat memory: push, recall, or clear messages.",
+      "version": 1,
+      "category": "AI",
+      "icon": "\ud83d\udcad",
+      "credential_types": [
+        "redis"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "session_id",
+        "role",
+        "content",
+        "limit",
+        "ttl_seconds"
+      ]
+    },
+    {
+      "id": "node_merge",
+      "slug": "merge",
+      "name": "Merge",
+      "display_name": "Merge",
+      "description": "Merges data of multiple streams once data from both is available",
+      "version": 1,
+      "category": "Flow",
+      "icon": "merge",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "strategy"
+      ]
+    },
+    {
+      "id": "node_noop",
+      "slug": "noop",
+      "name": "NoOp",
+      "display_name": "NoOp",
+      "description": "Pass input items through unchanged (does nothing)",
+      "version": 1,
+      "category": "Flow",
+      "icon": "\u23ed\ufe0f",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": false,
+      "parameters_properties": []
+    },
+    {
+      "id": "node_output_parser",
+      "slug": "output_parser",
+      "name": "Output Parser",
+      "display_name": "Output Parser",
+      "description": "Parse model text into JSON, lines, or fields.",
+      "version": 1,
+      "category": "AI",
+      "icon": "\ud83e\udde9",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "mode",
+        "text",
+        "fields",
+        "strict"
+      ]
+    },
+    {
+      "id": "node_pagination",
+      "slug": "pagination",
+      "name": "Pagination",
+      "display_name": "Pagination",
+      "description": "Split items into pages of a configurable size with page metadata.",
+      "version": 1,
+      "category": "Logic",
+      "icon": "\ud83d\udcc4",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "page_size",
+        "field"
+      ]
+    },
+    {
+      "id": "node_rag_pipeline",
+      "slug": "rag_pipeline",
+      "name": "RAG Pipeline",
+      "display_name": "RAG Pipeline",
+      "description": "Ingest documents, embed, retrieve relevant chunks, and synthesize answer with LLM.",
+      "version": 1,
+      "category": "AI",
+      "icon": "\ud83d\udcda",
+      "credential_types": [
+        "llm"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "non-idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "source_type",
+        "source",
+        "collection_name",
+        "chunk_size",
+        "chunk_overlap",
+        "embedding_model",
+        "top_k",
+        "similarity_threshold",
+        "query",
+        "system_prompt",
+        "temperature",
+        "max_tokens"
+      ]
+    },
+    {
+      "id": "node_respond_to_webhook",
+      "slug": "respond_to_webhook",
+      "name": "Respond to Webhook",
+      "display_name": "Respond to Webhook",
+      "description": "Return a synchronous HTTP response to the triggering webhook delivery",
+      "version": 1,
+      "category": "Flow",
+      "icon": "\u21a9\ufe0f",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "status_code",
+        "respond_with",
+        "response_body"
+      ]
+    },
+    {
+      "id": "node_rss_feed",
+      "slug": "rss_feed",
+      "name": "RSS Feed",
+      "display_name": "RSS Feed",
+      "description": "Fetch an RSS/Atom feed into items.",
+      "version": 1,
+      "category": "Actions",
+      "icon": "\ud83d\udce1",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "url",
+        "limit",
+        "timeout_seconds"
+      ]
+    },
+    {
+      "id": "node_salesforce_trigger",
+      "slug": "salesforce_trigger",
+      "name": "Salesforce Event Trigger",
+      "display_name": "Salesforce Event Trigger",
+      "description": "Starts the workflow when Salesforce sends an Outbound Message (record create/update).",
+      "version": 1,
+      "category": "Triggers",
+      "icon": "\u2601\ufe0f",
+      "credential_types": [],
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "path",
+        "object_name",
+        "description"
+      ]
+    },
+    {
+      "id": "node_schedule",
+      "slug": "schedule",
+      "name": "Schedule Trigger",
+      "display_name": "Schedule Trigger",
+      "description": "Runs the workflow on a cron schedule.",
+      "version": 1,
+      "category": "Triggers",
+      "icon": "\u23f0",
+      "credential_types": [],
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "rules",
+        "cron",
+        "timezone"
+      ]
+    },
+    {
+      "id": "node_send_email",
+      "slug": "send_email",
+      "name": "Send Email",
+      "display_name": "Send Email",
+      "description": "Sends an email via SMTP.",
+      "version": 1,
+      "category": "Communication",
+      "icon": "\ud83d\udce7",
+      "credential_types": [
+        "smtp"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "non-idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "to",
+        "subject",
+        "body",
+        "from_address",
+        "use_html",
+        "idempotency_key"
+      ]
+    },
+    {
+      "id": "node_set_data",
+      "slug": "set_data",
+      "name": "Set / Edit Data",
+      "display_name": "Set / Edit Data",
+      "description": "Set or replace fields on the data passing through.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\u270f\ufe0f",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "mode",
+        "fields"
+      ]
+    },
+    {
+      "id": "node_set_variable",
+      "slug": "set_variable",
+      "name": "",
+      "display_name": "",
+      "description": "",
+      "version": 1,
+      "category": "Actions",
+      "icon": "\ud83d\udd27",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "variables",
+        "key",
+        "value",
+        "scope",
+        "is_secret"
+      ]
+    },
+    {
+      "id": "node_slack",
+      "slug": "slack",
+      "name": "Slack",
+      "display_name": "Slack",
+      "description": "Send a message to a Slack channel.",
+      "version": 1,
+      "category": "Communication",
+      "icon": "\ud83d\udcac",
+      "credential_types": [
+        "slack"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "webhook_url",
+        "channel",
+        "text",
+        "username",
+        "icon_emoji",
+        "blocks",
+        "timeout_seconds"
+      ]
+    },
+    {
+      "id": "node_split",
+      "slug": "split",
+      "name": "Split Out",
+      "display_name": "Split Out",
+      "description": "Turn a list inside item(s) into separate items",
+      "version": 1,
+      "category": "Flow",
+      "icon": "split_out",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "fieldToSplitOut",
+        "include",
+        "fieldsToInclude",
+        "options",
+        "batch_size"
+      ]
+    },
+    {
+      "id": "node_split_out",
+      "slug": "split_out",
+      "name": "Split Out",
+      "display_name": "Split Out",
+      "description": "Turn a list inside item(s) into separate items",
+      "version": 1,
+      "category": "Flow",
+      "icon": "split_out",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "fieldToSplitOut",
+        "include",
+        "fieldsToInclude",
+        "options",
+        "batch_size"
+      ]
+    },
+    {
+      "id": "node_ssh",
+      "slug": "ssh",
+      "name": "SSH",
+      "display_name": "SSH",
+      "description": "Run remote commands and move files over SSH/SFTP",
+      "version": 1,
+      "category": "Flow",
+      "icon": "\ud83d\udda5\ufe0f",
+      "credential_types": [
+        "ssh"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "command",
+        "path",
+        "content",
+        "timeout_seconds",
+        "max_bytes"
+      ]
+    },
+    {
+      "id": "node_stop_and_error",
+      "slug": "stop_and_error",
+      "name": "Stop and Error",
+      "display_name": "Stop and Error",
+      "description": "Throw an error in the workflow",
+      "version": 1,
+      "category": "Flow",
+      "icon": "\ud83d\uded1",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "error_type",
+        "error_message",
+        "error_object"
+      ]
+    },
+    {
+      "id": "node_sub_workflow",
+      "slug": "sub_workflow",
+      "name": "Execute Sub-workflow",
+      "display_name": "Execute Sub-workflow",
+      "description": "Helpers for calling other workflows. Used for designing modular, microservice-like workflows.",
+      "version": 1,
+      "category": "Flow",
+      "icon": "sub_workflow",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "source",
+        "workflow_selector",
+        "workflow_id",
+        "workflow_json",
+        "mode",
+        "options",
+        "data"
+      ]
+    },
+    {
+      "id": "node_switch",
+      "slug": "switch",
+      "name": "Switch",
+      "display_name": "Switch",
+      "description": "Route items depending on defined expression or rules",
+      "version": 1,
+      "category": "Flow",
+      "icon": "switch",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "route_0",
+        "route_1",
+        "route_2",
+        "default"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "mode",
+        "expression",
+        "rules",
+        "convert_types",
+        "options"
+      ]
+    },
+    {
+      "id": "node_telegram",
+      "slug": "telegram",
+      "name": "Telegram",
+      "display_name": "Telegram",
+      "description": "Send a message to a Telegram chat.",
+      "version": 1,
+      "category": "Communication",
+      "icon": "\ud83d\udcf2",
+      "credential_types": [
+        "telegram"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "bot_token",
+        "chat_id",
+        "text",
+        "parse_mode",
+        "timeout_seconds"
+      ]
+    },
+    {
+      "id": "node_text_splitter",
+      "slug": "text_splitter",
+      "name": "Text Splitter",
+      "display_name": "Text Splitter",
+      "description": "Split text into overlapping chunks for RAG.",
+      "version": 1,
+      "category": "AI",
+      "icon": "\u2702\ufe0f",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "mode",
+        "text",
+        "field",
+        "chunk_size",
+        "overlap",
+        "max_chunks"
+      ]
+    },
+    {
+      "id": "node_token_fetch",
+      "slug": "token_fetch",
+      "name": "Token Fetch",
+      "display_name": "Token Fetch",
+      "description": "Automatically retrieve stored authentication for the workflow, refreshing once when expired.",
+      "version": 1,
+      "category": "Actions",
+      "icon": "\ud83d\udd11",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "provider",
+        "workflow_id",
+        "auto_refresh",
+        "max_recovery_attempts"
+      ]
+    },
+    {
+      "id": "node_token_manager",
+      "slug": "token_manager",
+      "name": "Token Manager",
+      "display_name": "Token Manager",
+      "description": "Universal token lifecycle manager: automatically fetches stored credentials, auto-refreshes expired tokens, and saves new logins to database.",
+      "version": 1,
+      "category": "Actions",
+      "icon": "\ud83d\udd11",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "valid",
+        "login"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "provider",
+        "mode",
+        "workflow_id",
+        "auto_refresh",
+        "max_recovery_attempts",
+        "access_token",
+        "refresh_token",
+        "token_type",
+        "scope",
+        "expires_at",
+        "expires_in",
+        "client_id",
+        "client_secret",
+        "token_url",
+        "login_url",
+        "login_method",
+        "login_headers",
+        "login_body",
+        "force_refresh",
+        "refresh_url",
+        "refresh_method",
+        "refresh_headers",
+        "refresh_body"
+      ]
+    },
+    {
+      "id": "node_token_store",
+      "slug": "token_store",
+      "name": "Token Store",
+      "display_name": "Token Store",
+      "description": "Securely save authentication credentials received from Login API / HTTP Request (encrypted UPSERT).",
+      "version": 1,
+      "category": "Actions",
+      "icon": "\ud83d\udcbe",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "provider",
+        "workflow_id",
+        "auto_detect",
+        "access_token",
+        "refresh_token",
+        "token_type",
+        "scope",
+        "expires_at",
+        "expires_in",
+        "client_id",
+        "client_secret",
+        "token_url"
+      ]
+    },
+    {
+      "id": "node_router",
+      "slug": "router",
+      "name": "Router",
+      "display_name": "Router",
+      "description": "Route items to one or more destinations by strategy.",
+      "version": 1,
+      "category": "Flow",
+      "icon": "router",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "route_0",
+        "route_1",
+        "default"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "strategy",
+        "field",
+        "routes",
+        "case_insensitive"
+      ]
+    },
+    {
+      "id": "node_xml_ops",
+      "slug": "xml_ops",
+      "name": "XML",
+      "display_name": "XML",
+      "description": "Parse XML to JSON and build XML from JSON.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83e\uddfe",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "xml",
+        "data",
+        "root",
+        "field"
+      ]
+    },
+    {
+      "id": "node_soap_request",
+      "slug": "soap_request",
+      "name": "SOAP Request",
+      "display_name": "SOAP Request",
+      "description": "Call a SOAP 1.1/1.2 operation and parse the XML response.",
+      "version": 1,
+      "category": "Actions",
+      "icon": "\ud83e\uddfc",
+      "credential_types": [
+        "http"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "url",
+        "soap_action",
+        "envelope",
+        "action",
+        "body",
+        "soap_version",
+        "headers",
+        "timeout_seconds",
+        "max_response_bytes"
+      ]
+    },
+    {
+      "id": "node_string_tools",
+      "slug": "string_tools",
+      "name": "String Tools",
+      "display_name": "String Tools",
+      "description": "Format, split, match and convert strings and numbers.",
+      "version": 1,
+      "category": "Transform",
+      "icon": "\ud83d\udd24",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "source",
+        "destination",
+        "pattern",
+        "replacement",
+        "start",
+        "end",
+        "separator",
+        "extra",
+        "case_insensitive"
+      ]
+    },
+    {
+      "id": "node_wait",
+      "slug": "wait",
+      "name": "Wait",
+      "display_name": "Wait",
+      "description": "Wait before continue with execution",
+      "version": 1,
+      "category": "Flow",
+      "icon": "wait",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "resume",
+        "mode",
+        "amount",
+        "unit",
+        "seconds",
+        "date_time",
+        "until",
+        "webhook_suffix"
+      ]
+    },
+    {
+      "id": "node_webhook",
+      "slug": "webhook",
+      "name": "Webhook Trigger",
+      "display_name": "Webhook Trigger",
+      "description": "Starts the workflow when someone calls its public URL.",
+      "version": 1,
+      "category": "Triggers",
+      "icon": "\ud83d\udd17",
+      "credential_types": [],
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "path",
+        "method"
+      ]
+    },
+    {
+      "id": "node_websocket",
+      "slug": "websocket",
+      "name": "WebSocket",
+      "display_name": "WebSocket",
+      "description": "Send/receive messages via WebSocket with auth headers and retry support.",
+      "version": 2,
+      "category": "Communication",
+      "icon": "\ud83d\udce1",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "url",
+        "message",
+        "message_type",
+        "timeout_seconds",
+        "wait_for_response",
+        "max_messages",
+        "headers",
+        "max_retries"
+      ]
+    },
+    {
+      "id": "node_elasticsearch",
+      "slug": "elasticsearch",
+      "name": "Elasticsearch",
+      "display_name": "Elasticsearch",
+      "description": "Execute search queries, index documents, and manage Elasticsearch or OpenSearch clusters",
+      "version": 1,
+      "category": "Database",
+      "icon": "\ud83d\udd0d",
+      "credential_types": [
+        "elasticsearch",
+        "http"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "operation",
+        "index",
+        "document_id",
+        "query",
+        "document",
+        "size"
+      ]
+    },
+    {
+      "id": "node_reranker",
+      "slug": "reranker",
+      "name": "AI Reranker",
+      "display_name": "AI Reranker",
+      "description": "Score and rerank retrieved documents or search results against a query",
+      "version": 1,
+      "category": "AI",
+      "icon": "\u2696\ufe0f",
+      "credential_types": [],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "query",
+        "query_field",
+        "text_field",
+        "top_k",
+        "model"
+      ]
+    },
+    {
+      "id": "node_sftp_trigger",
+      "slug": "sftp_trigger",
+      "name": "SFTP Trigger",
+      "display_name": "SFTP Trigger",
+      "description": "Polls an SFTP directory and triggers workflow when new or updated files arrive",
+      "version": 1,
+      "category": "Triggers",
+      "icon": "\ud83d\udce1",
+      "credential_types": [
+        "ssh"
+      ],
+      "input_handles": [
+        "main"
+      ],
+      "output_handles": [
+        "main"
+      ],
+      "idempotency": "conditionally_idempotent",
+      "has_parameters_schema": true,
+      "parameters_properties": [
+        "path",
+        "pattern",
+        "cursor_mode",
+        "max_files_per_poll"
+      ]
+    }
+  ]
+}

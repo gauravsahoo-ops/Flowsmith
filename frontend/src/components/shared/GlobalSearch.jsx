@@ -35,11 +35,13 @@ export default function GlobalSearch({ open, onClose }) {
     setLoading(true)
     const t = setTimeout(async () => {
       try {
-        const [workflows, creds, templates, dtRes] = await Promise.all([
+        const [workflows, creds, templates, dtRes, connectors, execs] = await Promise.all([
           api.listWorkflows().catch(() => []),
           api.listCredentials().catch(() => []),
           api.listTemplates().catch(() => []),
           api.listDataTables({ pageSize: 100 }).then(r => r.data || []).catch(() => []),
+          api.listConnectors().then(r => Array.isArray(r) ? r : (r && r.data) || []).catch(() => []),
+          api.listExecutions({ pageSize: 20 }).then(r => Array.isArray(r) ? r : (r && r.data) || []).catch(() => []),
         ])
         if (cancelled) return
         const wf = (Array.isArray(workflows) ? workflows : []).filter(w =>
@@ -54,9 +56,15 @@ export default function GlobalSearch({ open, onClose }) {
         const dts = (Array.isArray(dtRes) ? dtRes : []).filter(t =>
           `${t.name} ${t.description}`.toLowerCase().includes(q)
         ).slice(0, 5)
-        setResults({ workflows: wf, credentials: cr, templates: tp, dataTables: dts, executions: [] })
+        const conns = (Array.isArray(connectors) ? connectors : []).filter(c =>
+          `${c.display_name} ${c.connector_key} ${c.category} ${c.description}`.toLowerCase().includes(q)
+        ).slice(0, 5)
+        const ex = (Array.isArray(execs) ? execs : []).filter(e =>
+          `${e.id} ${e.workflow_id} ${e.status} ${e.trigger}`.toLowerCase().includes(q)
+        ).slice(0, 4)
+        setResults({ workflows: wf, credentials: cr, templates: tp, dataTables: dts, connectors: conns, executions: ex })
       } catch {
-        if (!cancelled) setResults({ workflows: [], credentials: [], templates: [], dataTables: [], executions: [] })
+        if (!cancelled) setResults({ workflows: [], credentials: [], templates: [], dataTables: [], connectors: [], executions: [] })
       } finally {
         if (!cancelled) setLoading(false)
       }

@@ -5,13 +5,28 @@ import React from 'react'
  * Supports exact brand logos (multi-color / brand palette) for all 45+ enterprise integrations
  * and clean, modern SVG icons for all 57+ flow and logic nodes.
  */
-export function NodeIcon({ type, icon, size = 34, color }) {
+export function NodeIcon({ type, name, icon, size = 34, color }) {
   const t = (type || '').toLowerCase().trim()
+  const n = (name || '').toLowerCase().trim()
   const ic = (icon || '').toLowerCase().trim()
+  const tNorm = t.replace(/[-_\s]/g, '')
+  const nNorm = n.replace(/[-_\s]/g, '')
 
-  // Helper to check match across type, alias, or icon key
+  // Helper to check match across type, name, alias, or icon key
   const matches = (...keys) => {
-    return keys.some((k) => t === k || t.includes(k) || ic === k || ic.includes(k))
+    return keys.some((k) => {
+      const kn = k.replace(/[-_\s]/g, '')
+      return (
+        t === k ||
+        t.includes(k) ||
+        (kn.length > 2 && tNorm.includes(kn)) ||
+        n === k ||
+        n.includes(k) ||
+        (kn.length > 2 && nNorm.includes(kn)) ||
+        ic === k ||
+        ic.includes(k)
+      )
+    })
   }
 
   // =========================================================================
@@ -1319,6 +1334,47 @@ export function NodeIcon({ type, icon, size = 34, color }) {
         <polyline points="7 8 3 12 7 16" />
         <polyline points="17 8 21 12 17 16" />
         <line x1="14" y1="4" x2="10" y2="20" />
+      </svg>
+    )
+  }
+
+  // ServiceNow (brand green circle-S)
+  if (matches('servicenow', 'service_now', 'snc')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#81B5A1" />
+        <path d="M8 9.5c0-1.4 1.8-2.5 4-2.5s4 1.1 4 2.5-1.6 2.3-4 2.7c-1.5.3-2.7.7-3.2 1.3h6.4v1.5H8.4c-.3 0-.4-.4-.2-.6C9.4 13 11.4 12.3 13 12c2-.4 3-1 3-2.5 0-1.4-1.8-2.5-4-2.5S8 8.1 8 9.5zm-.5 7h9v1.5h-9z" fill="#fff" />
+      </svg>
+    )
+  }
+
+  // Router (branch distribution)
+  if (matches('router')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#8b5cf6'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="6" cy="12" r="2.5" />
+        <circle cx="18" cy="6" r="2.5" />
+        <circle cx="18" cy="18" r="2.5" />
+        <path d="M8.2 10.8l7.3-3.6M8.2 13.2l7.3 3.6" />
+      </svg>
+    )
+  }
+
+  // SOAP Request (envelope)
+  if (matches('soap_request', 'soap')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#0ea5e9'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 7l9 6 9-6" />
+      </svg>
+    )
+  }
+
+  // String Tools (text)
+  if (matches('string_tools', 'stringtools')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#10b981'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7V5h16v2M12 5v14M9 19h6" />
       </svg>
     )
   }

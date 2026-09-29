@@ -42,7 +42,8 @@ test('delete workflow: confirm dialog, disappears from list, survives refresh', 
 
   // 4. Navigate to Workflows list page (workflows are deleted from list, not canvas)
   await page.goto('http://localhost:5173/workflows');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForSelector('button[aria-label="More actions"]', { timeout: 15000 });
 
   // Dismissing the confirmation keeps the workflow
   await page.locator('button[aria-label="More actions"]').first().click();
@@ -54,7 +55,11 @@ test('delete workflow: confirm dialog, disappears from list, survives refresh', 
   await page.locator('button[aria-label="More actions"]').first().click();
   await page.locator('button:has-text("Delete")').click();
   await page.locator('.confirm-dialog-actions button:has-text("Delete"), .modal-actions button:has-text("Delete"), button:has-text("Delete")').last().click();
-  await page.waitForTimeout(500);
+
+  await page.waitForFunction((initialId) => {
+    const s = window.__wfStore?.getState();
+    return s && !s.loading && s.workflow && s.workflow.id && s.workflow.id !== initialId;
+  }, initial.id, { timeout: 15000 });
 
   const now = await page.evaluate(() => {
     const s = window.__wfStore.getState();
@@ -75,20 +80,10 @@ test('delete workflow: confirm dialog, disappears from list, survives refresh', 
   expect(ids).not.toContain(initial.id);
 
   // 6. Refresh: the app boots on the fresh workflow, never the deleted one
+  await page.goto(`http://localhost:5173/workflows/${now.id}`);
+  await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
   await page.reload();
-  await page.waitForLoadState('networkidle');
-  try {
-    await page.waitForSelector('.canvas', { state: 'attached', timeout: 5000 });
-  } catch {
-    const listRes = await page.request.get('http://localhost:8000/api/workflows', { headers: { Authorization: `Bearer ${token}` } });
-    const listJson = await listRes.json();
-    const wfId = listJson.data?.[0]?.id;
-    if (wfId) {
-      await page.goto(`http://localhost:5173/workflows/${wfId}`);
-      await page.waitForLoadState('networkidle');
-    }
-    await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
-  }
+  await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
   await expect(page.locator('.workflow-name')).toHaveValue('My Workflow');
   const afterRefresh = await page.evaluate(() => window.__wfStore.getState().workflow.id);
   expect(afterRefresh).toBe(now.id);

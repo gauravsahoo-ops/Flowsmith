@@ -93,11 +93,17 @@ function NavIcon({ name, size = 18 }) {
           <line x1="6" y1="20" x2="6" y2="14" />
         </svg>
       )
-    case 'billing':
+    case 'integrations':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect width="20" height="14" x="2" y="5" rx="2" />
-          <line x1="2" y1="10" x2="22" y2="10" />
+          <path d="M12 2v6m0 8v6M2 12h6m8 0h6" />
+          <rect x="8" y="8" width="8" height="8" rx="2" />
+        </svg>
+      )
+    case 'ai':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
         </svg>
       )
     case 'settings':
@@ -125,6 +131,7 @@ const NAV = [
     items: [
       { id: 'overview', label: 'Overview', path: '/overview', desc: 'Dashboard' },
       { id: 'workflows', label: 'Workflows', path: '/workflows', desc: 'Your workflows' },
+      { id: 'integrations', label: 'Integrations', path: '/integrations', desc: 'Marketplace' },
       { id: 'shared', label: 'Shared with you', path: '/shared', desc: 'Shared workflows' },
     ],
   },
@@ -139,8 +146,9 @@ const NAV = [
     ],
   },
   {
-    section: 'Automate',
+    section: 'Automate & AI',
     items: [
+      { id: 'ai', label: 'AI Copilot & Agents', path: '/ai', desc: 'Autonomous chat' },
       { id: 'approvals', label: 'Approvals', path: '/approvals', desc: 'Awaiting decision' },
       { id: 'templates', label: 'Templates', path: '/templates', desc: 'Gallery' },
     ],

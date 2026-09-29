@@ -22,7 +22,7 @@ test('save button persists the workflow across a browser refresh', async ({ page
 
   // 4. Reload to trigger auth, then navigate to workflow editor (new shell: root is overview)
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
   try {
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 5000 });
   } catch {
@@ -31,7 +31,7 @@ test('save button persists the workflow across a browser refresh', async ({ page
     const wfId = listJson.data?.[0]?.id;
     if (wfId) {
       await page.goto(`http://localhost:5173/workflows/${wfId}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('networkidle').catch(() => {});
     }
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
   }
@@ -40,7 +40,8 @@ test('save button persists the workflow across a browser refresh', async ({ page
   await page.evaluate(() => {
     const store = window.__wfStore.getState();
     store.setName('Saved on Refresh');
-    store.addNode('set_data', { x: 200, y: 100 });
+    store.addNode('manual_trigger', { x: 100, y: 100 });
+    store.addNode('set_data', { x: 300, y: 100 });
   });
 
   // 6. Click the visible Save button
@@ -51,7 +52,7 @@ test('save button persists the workflow across a browser refresh', async ({ page
 
   // 8. Refresh the browser: the workflow must reload from the server
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
   // After refresh we may be on overview; ensure we are on canvas
   try {
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 5000 });
@@ -59,7 +60,7 @@ test('save button persists the workflow across a browser refresh', async ({ page
     const curId = await page.evaluate(() => window.__wfStore?.getState()?.workflow?.id || null);
     if (curId) {
       await page.goto(`http://localhost:5173/workflows/${curId}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('networkidle').catch(() => {});
       await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
     }
   }

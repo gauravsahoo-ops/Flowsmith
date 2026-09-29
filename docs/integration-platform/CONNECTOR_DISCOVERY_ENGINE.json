@@ -1,0 +1,30 @@
+{
+  "engine_version": "3.0.0",
+  "timestamp": "2026-09-29T11:47:54.518255+00:00",
+  "sources_ingested": {
+    "n8n_discovered": 58,
+    "zapier_discovered": 60,
+    "cyclr_discovered": 54,
+    "mcp_discovered": 10,
+    "openapi_discovered": 9
+  },
+  "deduplication_ratio": "191 -> 91",
+  "decision_hierarchy": [
+    "1. Existing native connector?",
+    "2. Existing generated connector?",
+    "3. Official OpenAPI available?",
+    "4. Official REST API available?",
+    "5. MCP server available?",
+    "6. Universal HTTP sufficient?",
+    "7. Native implementation required?",
+    "8. Blocked/unverified?"
+  ],
+  "implementation_strategy_breakdown": {
+    "NATIVE": 60,
+    "OPENAPI": 9,
+    "UNIVERSAL_HTTP": 12,
+    "MCP": 10,
+    "BLOCKED": 0,
+    "UNVERIFIED": 0
+  }
+}

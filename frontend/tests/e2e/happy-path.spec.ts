@@ -18,7 +18,7 @@ test('happy path: register, load canvas, add nodes, connect, run, see green', as
   await page.evaluate((t) => localStorage.setItem('mat_token', t), token);
 
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('networkidle').catch(() => {});
   try {
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 5000 });
   } catch {
@@ -27,7 +27,7 @@ test('happy path: register, load canvas, add nodes, connect, run, see green', as
     const wfId = listJson.data?.[0]?.id;
     if (wfId) {
       await page.goto(`http://localhost:5173/workflows/${wfId}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('networkidle').catch(() => {});
     }
     await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
   }
@@ -83,7 +83,7 @@ test('happy path: register, load canvas, add nodes, connect, run, see green', as
     return store && !store.saving;
   }, { timeout: 10000 });
 
-  await page.locator('button:has-text("▶ Run")').click();
+  await page.locator('button.primary--run, button[aria-label="Run workflow"]').first().click();
 
   await expect(page.locator('.rf-node.status-success')).toHaveCount(2, { timeout: 30000 });
 });

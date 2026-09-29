@@ -1,0 +1,31 @@
+{
+  "audit_timestamp": "2026-09-29T11:47:26.224197+00:00",
+  "total_false_negatives": 4,
+  "findings": [
+    {
+      "type": "NODE_NOT_INDEXED_AS_ENTERPRISE_CONNECTOR",
+      "item": "sftp_trigger",
+      "flowsmith_capability": "Remote directory file arrival trigger with mtime/filename cursor checkpointing",
+      "catalog_mislabel": "Treated as generic flow node rather than protocol trigger connector"
+    },
+    {
+      "type": "DATABASE_NODE_OMITTED_FROM_CONNECTOR_LIST",
+      "item": "elasticsearch",
+      "flowsmith_capability": "Full cluster search, indexing, document retrieval, and cluster health via SafeHTTPClient",
+      "catalog_mislabel": "Registered in NODE_REGISTRY but not in ConnectorRegistry"
+    },
+    {
+      "type": "AI_PRIMITIVE_OMITTED_FROM_CATALOG",
+      "item": "reranker",
+      "flowsmith_capability": "Cross-encoder BM25 semantic scoring and top-K candidate reranking",
+      "catalog_mislabel": "Registered in NODE_REGISTRY but not surfaced in connector directory"
+    },
+    {
+      "type": "UNIVERSAL_PROTOCOL_CAPABILITY",
+      "item": "curl_importer",
+      "flowsmith_capability": "Instant parsing and execution of raw cURL snippets into runnable HTTP nodes",
+      "catalog_mislabel": "Excluded from simple application counts despite resolving hundreds of long-tail REST APIs"
+    }
+  ],
+  "remediation_summary": "Surfaced SFTP Trigger, Elasticsearch, AI Reranker, and cURL import into executable coverage metrics."
+}

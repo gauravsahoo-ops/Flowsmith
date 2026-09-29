@@ -20,6 +20,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any, Callable
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.credentials import service as credential_service
@@ -50,8 +51,6 @@ def _node_statuses(events: list[dict[str, Any]]) -> dict[str, str]:
 
 def _mark_deliveries(db: Session, execution_id: str, status_value: str) -> None:
     """Spec 32: link delivery records to their execution's final outcome."""
-    from sqlalchemy import select
-
     from app.models import WebhookDelivery
 
     rows = db.scalars(
@@ -528,12 +527,15 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
 def _maybe_run_error_workflow(
     db: Session, job: QueueJob, execution_id: str, error: dict[str, Any] | None,
 ) -> None:
-    """Global error workflow (Batch D): on a failed run, start the handler
-    workflow named by ``settings.on_error_workflow_id`` with the failure
-    context. Strictly best-effort and single-level: handler runs use
-    trigger ``error_handler`` and never cascade; test-mode runs never
-    fire handlers; everything is swallowed so the original failed record
-    is always preserved.
+    """Multi-level error workflow (Phase 14): on a failed run, start the handler
+    workflow named by:
+    1. Workflow-level settings: ``settings.on_error_workflow_id``
+    2. Workspace-level: workspace env variable ``DEFAULT_ERROR_WORKFLOW_ID``
+    3. Workspace error handler: any active workflow in the workspace containing an ``error_trigger`` node
+
+    Strictly best-effort and single-level: handler runs use trigger
+    ``error_handler`` and never cascade; test-mode runs never fire handlers;
+    everything is swallowed so the original failed record is always preserved.
     """
     try:
         if job.trigger == "error_handler":
@@ -542,14 +544,50 @@ def _maybe_run_error_workflow(
             return
         settings = ((job.workflow_data or {}).get("settings") or {})
         handler_id = str(settings.get("on_error_workflow_id") or "").strip()
+
+        from app.api.executions import workflow_workspace
+        ws_id = job.workspace_id or workflow_workspace(db, job.workflow_id)
+
+        # Level 2 & 3: Workspace-level fallback if not specified on the workflow itself
+        if not handler_id or handler_id == job.workflow_id:
+            handler_id = ""
+            if ws_id:
+                from app.models import Environment
+                env_row = db.execute(
+                    select(Environment).where(
+                        Environment.workspace_id == ws_id,
+                        Environment.key == "DEFAULT_ERROR_WORKFLOW_ID",
+                    )
+                ).scalar_one_or_none()
+                if env_row and env_row.value:
+                    from app.environments import decrypt_env_value
+                    handler_id = decrypt_env_value(env_row.value).strip()
+
+            if not handler_id and ws_id:
+                from app.models import WorkflowRecord
+                candidate_wfs = db.execute(
+                    select(WorkflowRecord).where(
+                        WorkflowRecord.workspace_id == ws_id,
+                        WorkflowRecord.active.is_(True),
+                        WorkflowRecord.deleted_at.is_(None),
+                        WorkflowRecord.id != job.workflow_id,
+                    )
+                ).scalars().all()
+                for cw in candidate_wfs:
+                    nodes = (cw.data or {}).get("nodes", [])
+                    if any(n.get("type") == "error_trigger" for n in nodes):
+                        handler_id = cw.id
+                        break
+
         if not handler_id or handler_id == job.workflow_id:
             return
+
         from app.models import WorkflowRecord
 
         handler = db.get(WorkflowRecord, handler_id)
         if handler is None or not handler.active:
             return
-        from app.api.executions import start_execution, workflow_workspace
+        from app.api.executions import start_execution
 
         start_execution(
             db,
@@ -562,6 +600,7 @@ def _maybe_run_error_workflow(
                 "error": error or {},
                 "failed_execution_id": execution_id,
                 "failed_workflow_id": job.workflow_id,
+                "timestamp": datetime.now(UTC).isoformat(),
             }],
             workspace_id=workflow_workspace(db, handler.id),
         )
