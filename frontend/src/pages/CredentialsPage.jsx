@@ -52,6 +52,11 @@ export default function CredentialsPage() {
   const [testingId, setTestingId] = useState(null)
   const [testResult, setTestResult] = useState(null)
   const [reconnectingId, setReconnectingId] = useState(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editData, setEditData] = useState({})
+  const [editBusy, setEditBusy] = useState(false)
   const [sfModalOpen, setSfModalOpen] = useState(false)
   const [sfModalData, setSfModalData] = useState(null)
   const [hsModalOpen, setHsModalOpen] = useState(false)
@@ -413,7 +418,7 @@ export default function CredentialsPage() {
       ) : (
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Type</th><th>Auth Method</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {filtered.map(c => (
                 <tr key={c.id}>
@@ -470,6 +475,11 @@ export default function CredentialsPage() {
                       }}
                     >
                       {c.type.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>
+                      {types.find(t => t.type === c.type)?.auth_method || 'API Key'}
                     </span>
                   </td>
                   <td>
@@ -533,6 +543,25 @@ export default function CredentialsPage() {
                             <span>Test</span>
                           </>
                         )}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="ghost small"
+                        onClick={() => {
+                          setEditTarget(c)
+                          setEditName(c.name)
+                          setEditData({})
+                          setEditModalOpen(true)
+                        }}
+                        title="Rotate secrets or edit credential"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        <span>Edit</span>
                       </button>
 
                       {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
@@ -769,17 +798,21 @@ export default function CredentialsPage() {
                 data: defaultsFromSchema(selectedType?.parameters_schema),
               }))
             }}
-            options={types.map(t => ({
-              value: t.type,
-              label: `${t.name} (${t.type})`,
-              disabled: t.implemented === false,
-              disabledReason: t.implemented === false ? 'Not implemented' : undefined,
-              hint: t.description || undefined,
-            }))}
+            options={types.map(t => {
+              const authMethod = t.auth_method || 'API Key'
+              const isPending = t.implemented === false || t.status === 'coming_soon'
+              return {
+                value: t.type,
+                label: `${t.name} — ${authMethod} (${isPending ? 'Coming Soon' : 'Available'})`,
+                disabled: isPending,
+                disabledReason: isPending ? 'Connector unavailable — implementation pending.' : undefined,
+                hint: t.description || undefined,
+              }
+            })}
             placeholder="Search or select credential type…"
           />
-          {form.type && types.find(t => t.type === form.type)?.implemented === false && (
-            <div className="banner-inline err" style={{ marginTop: 6 }}>Authentication provider not implemented yet — execution will be blocked.</div>
+          {form.type && (types.find(t => t.type === form.type)?.implemented === false || types.find(t => t.type === form.type)?.status === 'coming_soon') && (
+            <div className="banner-inline err" style={{ marginTop: 6 }}>Connector unavailable — implementation pending.</div>
           )}
         </div>
 
@@ -1517,6 +1550,91 @@ export default function CredentialsPage() {
           }
         }}
       />
+
+      {editModalOpen && editTarget && (
+        <div className="modal-overlay" onClick={() => setEditModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>Edit Credential</h3>
+            <p className="hint" style={{ margin: '0 0 16px', fontSize: 12 }}>
+              Update display name or rotate secret keys without changing the credential ID. Workflows referencing this credential will continue to work seamlessly.
+            </p>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Credential Name</label>
+              <input
+                className="input"
+                style={{ width: '100%' }}
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                placeholder="Credential Name"
+              />
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Connector / Type</label>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                <code>{editTarget.type}</code> ({types.find(t => t.type === editTarget.type)?.name || editTarget.type})
+              </div>
+            </div>
+
+            {(() => {
+              const targetType = types.find(t => t.type === editTarget.type)
+              const props = targetType?.parameters_schema?.properties || {}
+              const secFields = new Set(targetType?.secret_fields || [])
+              return Object.entries(props).map(([propKey, propVal]) => (
+                <div key={propKey} style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                    {propVal.title || propKey} {secFields.has(propKey) && <span style={{ color: '#f59e0b', fontSize: 10 }}>🔒 Secret</span>}
+                  </label>
+                  <input
+                    className="input"
+                    style={{ width: '100%' }}
+                    type={secFields.has(propKey) ? "password" : "text"}
+                    value={editData[propKey] !== undefined ? editData[propKey] : ''}
+                    placeholder={secFields.has(propKey) ? "•••••••• (leave blank to keep current)" : (propVal.description || '')}
+                    onChange={e => setEditData(prev => ({ ...prev, [propKey]: e.target.value }))}
+                  />
+                </div>
+              ))
+            })()}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+              <button type="button" className="ghost" onClick={() => setEditModalOpen(false)}>Cancel</button>
+              <button
+                type="button"
+                className="primary"
+                disabled={editBusy || !editName.trim()}
+                onClick={async () => {
+                  setEditBusy(true)
+                  setError(null)
+                  try {
+                    const filteredData = {}
+                    for (const [k, v] of Object.entries(editData)) {
+                      if (v !== '' && v !== null && v !== undefined) {
+                        filteredData[k] = v
+                      }
+                    }
+                    await api.updateCredential(editTarget.id, {
+                      name: editName.trim(),
+                      data: Object.keys(filteredData).length > 0 ? filteredData : undefined,
+                    })
+                    setNotice(`Credential '${editName}' updated and rotated successfully.`)
+                    setEditModalOpen(false)
+                    await load()
+                  } catch (err) {
+                    setError(err?.message || 'Failed to update credential.')
+                  } finally {
+                    setEditBusy(false)
+                  }
+                }}
+              >
+                {editBusy ? 'Saving…' : 'Save & Rotate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

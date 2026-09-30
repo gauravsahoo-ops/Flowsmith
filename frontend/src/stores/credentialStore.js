@@ -28,6 +28,15 @@ export const useCredentialStore = create((set, get) => ({
     return meta
   },
 
+  async update(id, payload) {
+    const meta = await api.updateCredential(id, payload)
+    set({
+      credentials: get().credentials.map((c) => (c.id === id ? { ...c, ...meta } : c)),
+    })
+    return meta
+  },
+
+
   async remove(id) {
     await api.deleteCredential(id)
     set({ credentials: get().credentials.filter((c) => c.id !== id) })

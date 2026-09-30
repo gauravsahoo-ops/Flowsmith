@@ -537,13 +537,21 @@ async def _run_one(
     node_cls = NODE_REGISTRY.get(node.type)
     connector = None if node_cls is not None else connector_registry.primary_for_node_type(node.type)
     if node_cls is None and connector is None:
-        error = NodeExecutionError(f"Unknown node type '{node.type}'.", code="UNKNOWN_NODE_TYPE", node_id=node.id)
+        definition = connector_registry.get_definition(node.type)
+        if definition is not None and getattr(definition, "lifecycle_status", "") in ("draft", "coming_soon", "not_implemented"):
+            msg = f"Connector '{node.type}' unavailable — implementation pending."
+            code = "CONNECTOR_UNAVAILABLE"
+        else:
+            msg = f"Unknown node type '{node.type}'."
+            code = "UNKNOWN_NODE_TYPE"
+        error = NodeExecutionError(msg, code=code, node_id=node.id)
         _add_step(
             result, node_id=node.id, node_type=node.type, status="error",
             started_at=datetime.now(UTC).isoformat(), duration_ms=0,
             error=error.to_dict(),
         )
         return _fail(node, gnode, results, result, error, emit, graph)
+
 
     if any(parent_id in result.node_errors for parent_id in gnode.input_node_ids):
         result.skipped.append(node.id)

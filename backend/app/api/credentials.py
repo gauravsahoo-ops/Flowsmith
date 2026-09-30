@@ -90,18 +90,63 @@ def predefined_credentials(user: User = Depends(get_current_user)) -> dict:
     return ok(PREDEFINED_CREDENTIALS)
 
 
+@router.get("/auth-metadata")
+def credential_auth_metadata(user: User = Depends(get_current_user)) -> dict:
+    """Return machine-readable authentication metadata and classification summary across all connectors."""
+    from app.credentials.auth_metadata import list_connector_auth_metadata, get_auth_classification_summary
+
+    items = list_connector_auth_metadata()
+    summary = get_auth_classification_summary()
+    return ok({
+        "connectors": [i.model_dump() for i in items],
+        "summary": summary,
+    })
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_credential(
     body: CredentialCreate,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
+    from app.credentials.registry import is_implemented
+
+    if not is_implemented(body.type):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"Connector '{body.type}' unavailable — implementation pending."
+        )
+
     try:
         meta = service.create_for_user(db, user.id, body.name, body.type, body.data)
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
     log_event(db, CREDENTIAL_CREATE, target_type="credential", target_id=meta["id"], user_id=user.id)
     return ok(meta)
+
+
+class CredentialUpdateBody(BaseModel):
+    name: str | None = None
+    data: dict[str, Any] | None = None
+
+
+@router.put("/{credential_id}")
+@router.patch("/{credential_id}")
+def update_credential(
+    credential_id: str,
+    body: CredentialUpdateBody,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Rotate/update credential name or secrets without changing its credential ID, preserving workflows."""
+    try:
+        meta = service.update_for_user(db, user.id, credential_id, name=body.name, data=body.data)
+    except service.CredentialError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
+    return ok(meta)
+
 
 
 @router.post("/{credential_id}/reconnect")
@@ -397,6 +442,11 @@ async def test_credential(
         rec = store.get_encrypted(db, user.id, credential_id)
     except service.CredentialError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
+
+    from app.credentials.registry import is_implemented
+    if not is_implemented(rec.type):
+        return ok({"ok": False, "message": "Connector unavailable — implementation pending.", "implemented": False, "provider": rec.type})
+
     try:
         data = store.decrypt(rec)
     except Exception:
