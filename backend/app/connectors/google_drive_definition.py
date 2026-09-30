@@ -142,7 +142,7 @@ def build_google_drive_definition() -> ConnectorDefinitionV1:
         connector_key=GOOGLE_DRIVE_CONNECTOR_KEY,
         display_name="Google Drive",
         description="List, inspect and create Google Drive files via the Drive v3 API.",
-        category="api",
+        category="storage",
         connector_version=GOOGLE_DRIVE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_google_drive_operations(),

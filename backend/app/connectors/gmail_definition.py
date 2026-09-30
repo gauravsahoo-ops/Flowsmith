@@ -18,7 +18,7 @@ def build_gmail_definition() -> ConnectorDefinitionV1:
         connector_key=KEY,
         display_name="Gmail",
         description="Send email through Gmail via the send-only OAuth scope.",
-        category="api",
+        category="communication",
         connector_version=VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations={

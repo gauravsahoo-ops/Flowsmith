@@ -36,7 +36,10 @@ class CredentialResolver:
             provider_id = cred_type  # legacy: type == provider hint
         else:
             if not type_entry.get("implemented"):
-                raise ValueError(f"Authentication provider '{type_entry.get('provider')}' for '{cred_type}' not implemented yet.")
+                raise CredentialError(
+                    f"Connector '{cred_type}' unavailable — implementation pending.",
+                    code="CONNECTOR_UNAVAILABLE"
+                )
             provider_id = type_entry.get("provider") or cred_type
 
         store = get_credential_store()

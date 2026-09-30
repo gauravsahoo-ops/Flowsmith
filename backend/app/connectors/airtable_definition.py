@@ -134,7 +134,7 @@ def build_airtable_definition() -> ConnectorDefinitionV1:
         connector_key=AIRTABLE_CONNECTOR_KEY,
         display_name="Airtable",
         description="Read and write Airtable records via Web API v0.",
-        category="api",
+        category="productivity",
         connector_version=AIRTABLE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_airtable_operations(),

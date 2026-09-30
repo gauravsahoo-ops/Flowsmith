@@ -134,7 +134,7 @@ def build_jira_definition() -> ConnectorDefinitionV1:
         connector_key=JIRA_CONNECTOR_KEY,
         display_name="Jira",
         description="Search, create and update Jira Cloud issues via REST v3.",
-        category="api",
+        category="productivity",
         connector_version=JIRA_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_jira_operations(),

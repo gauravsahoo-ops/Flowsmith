@@ -37,7 +37,7 @@ def build_google_sheets_definition() -> ConnectorDefinitionV1:
         connector_key=KEY,
         display_name="Google Sheets",
         description="Read, append and update rows in Google Sheets via the v4 values API.",
-        category="api",
+        category="productivity",
         connector_version=VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations={

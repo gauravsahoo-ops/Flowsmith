@@ -58,6 +58,32 @@ def create_for_user(db: Session, user_id: int, name: str, cred_type: str, data: 
     return to_meta(rec)
 
 
+def update_for_user(db: Session, user_id: int, credential_id: str, name: str | None = None, data: dict[str, Any] | None = None) -> dict[str, str]:
+    """Rotate/update credential name or secrets without changing its credential ID, preserving workflows."""
+    rec = db.get(Credential, credential_id)
+    if rec is None or rec.user_id != user_id:
+        raise CredentialError("Credential not found.", code="CREDENTIAL_NOT_FOUND")
+    if name is not None and name.strip():
+        rec.name = name.strip()
+    if data is not None and data:
+        try:
+            existing = json.loads(decrypt_text(rec.data))
+        except Exception:
+            existing = {}
+        # Ignore masked placeholder dots so unchanged secrets are preserved
+        cleaned_data = {
+            k: v for k, v in data.items()
+            if not (isinstance(v, str) and ("••••" in v or v == "********"))
+        }
+        merged = {**existing, **cleaned_data}
+        normalized = validate_data(rec.type, merged)
+        rec.data = encrypt_text(json.dumps(normalized, ensure_ascii=False))
+    db.commit()
+    db.refresh(rec)
+    return to_meta(rec)
+
+
+
 def delete_for_user(db: Session, user_id: int, credential_id: str) -> None:
     rec = db.get(Credential, credential_id)
     if rec is None or rec.user_id != user_id:
@@ -139,10 +165,19 @@ def resolve_credentials(db: Session, user_id: int, refs: dict[str, str]) -> dict
 
     `refs` maps credential type -> credential id. Returns
     `{type: decrypted_data}` for each ref; raises CredentialError on the
-    first missing/foreign/undecryptable reference.
+    first missing/foreign/undecryptable reference or unimplemented connector.
     """
+    from app.credentials.type_registry import get_credential_type_registry
+
+    type_reg = get_credential_type_registry()
     resolved: dict[str, Any] = {}
     for cred_type, cred_id in refs.items():
+        type_entry = type_reg.get(cred_type)
+        if type_entry and not type_entry.get("implemented"):
+            raise CredentialError(
+                f"Connector '{cred_type}' unavailable — implementation pending.",
+                code="CONNECTOR_UNAVAILABLE",
+            )
         rec = db.get(Credential, cred_id)
         if rec is None or rec.user_id != user_id:
             raise CredentialError(

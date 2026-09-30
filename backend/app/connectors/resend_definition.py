@@ -19,7 +19,7 @@ def build_resend_definition() -> ConnectorDefinitionV1:
         connector_key=RESEND_CONNECTOR_KEY,
         display_name="Resend",
         description="Send transactional emails, batch campaigns, and manage email domains via Resend.",
-        category=ConnectorCategory.API.value,
+        category="communication",
         connector_version=RESEND_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         credential_types={

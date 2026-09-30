@@ -19,7 +19,7 @@ def build_s3_definition() -> ConnectorDefinitionV1:
         connector_key=S3_CONNECTOR_KEY,
         display_name="AWS S3 / Object Storage",
         description="Upload, download, list, and delete files in AWS S3, Cloudflare R2, MinIO, or Wasabi.",
-        category=ConnectorCategory.API.value,
+        category="storage",
         connector_version=S3_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         credential_types={

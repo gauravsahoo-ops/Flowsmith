@@ -41,32 +41,102 @@ _PREDEFINED_DEFS: List[Dict[str, Any]] = [
 ]
 
 
+def _build_all_defs() -> List[Dict[str, Any]]:
+    """Build complete catalog of predefined + connector credential types."""
+    from app.credentials.registry import (
+        CREDENTIAL_TYPES,
+        TYPE_META,
+        CREDENTIAL_PROVIDER,
+        CREDENTIAL_IMPLEMENTED,
+    )
+    from app.credentials.auth_metadata import CONNECTOR_AUTH_CATALOG
+
+    defs = list(_PREDEFINED_DEFS)
+    seen = {d["id"] for d in defs}
+
+    oauth_types = frozenset({
+        "oauth2", "oauth1", "salesforce", "hubspot", "dynamics_crm",
+        "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs",
+        "zoho_crm", "xero", "box", "typeform", "sharepoint", "onedrive", "quickbooks",
+    })
+    refresh_types = frozenset({
+        "oauth2", "salesforce", "hubspot", "dynamics_crm",
+        "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs",
+        "quickbooks", "sharepoint", "onedrive",
+    })
+
+    for type_id in CREDENTIAL_TYPES:
+        if type_id in seen:
+            # Update implemented flag
+            for d in defs:
+                if d["id"] == type_id:
+                    d["implemented"] = CREDENTIAL_IMPLEMENTED.get(type_id, True)
+            continue
+
+        meta = TYPE_META.get(type_id, {"name": type_id, "description": ""})
+        auth_meta = CONNECTOR_AUTH_CATALOG.get(type_id, {})
+        raw_auth = auth_meta.get("auth_method", "API Key")
+        auth_str = raw_auth.value if hasattr(raw_auth, "value") else str(raw_auth)
+
+        prov = "" if type_id == "http" else CREDENTIAL_PROVIDER.get(type_id, "header")
+        is_impl = CREDENTIAL_IMPLEMENTED.get(type_id, True)
+
+        defs.append({
+            "id": type_id,
+            "displayName": meta.get("name", type_id),
+            "category": "connector",
+            "authType": auth_str,
+            "provider": prov,
+            "implemented": is_impl,
+            "supportsOAuth": type_id in oauth_types,
+            "supportsRefresh": type_id in refresh_types,
+            "supportsTest": is_impl,
+        })
+        seen.add(type_id)
+    return defs
+
+
 class CredentialTypeRegistry:
     def __init__(self, generic: List[Dict[str, Any]], predefined: List[Dict[str, Any]]) -> None:
+        self._generic = generic
+        self._predefined = predefined
         self._by_id: Dict[str, Dict[str, Any]] = {}
-        for entry in generic + predefined:
+        self.reload()
+
+    def reload(self) -> None:
+        all_predefined = _build_all_defs()
+        self._by_id.clear()
+        for entry in self._generic + all_predefined:
             self._by_id[entry["id"]] = dict(entry)
 
     def get(self, type_id: str) -> Dict[str, Any] | None:
+        if not self._by_id:
+            self.reload()
         return self._by_id.get(type_id)
 
     def list(self) -> List[Dict[str, Any]]:
+        if not self._by_id:
+            self.reload()
         return sorted(self._by_id.values(), key=lambda x: x["id"])
 
     def list_generic(self) -> List[Dict[str, Any]]:
-        return [v for v in self._by_id.values() if v["category"] == "generic"]
+        if not self._by_id:
+            self.reload()
+        return [v for v in self._by_id.values() if v.get("category") == "generic"]
 
     def list_predefined(self) -> List[Dict[str, Any]]:
-        return [v for v in self._by_id.values() if v["category"] == "predefined"]
+        if not self._by_id:
+            self.reload()
+        return [v for v in self._by_id.values() if v.get("category") != "generic"]
 
     def is_implemented(self, type_id: str) -> bool:
-        entry = self._by_id.get(type_id)
+        entry = self.get(type_id)
         if not entry:
             return False
         return bool(entry.get("implemented"))
 
     def provider_for(self, type_id: str) -> str | None:
-        entry = self._by_id.get(type_id)
+        entry = self.get(type_id)
         if not entry:
             return None
         return entry.get("provider")
@@ -77,3 +147,4 @@ _credential_type_registry = CredentialTypeRegistry(_TYPE_DEFS, _PREDEFINED_DEFS)
 
 def get_credential_type_registry() -> CredentialTypeRegistry:
     return _credential_type_registry
+

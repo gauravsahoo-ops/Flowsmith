@@ -1150,7 +1150,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 # Determine provider_id
                 provider_id: str | None = None
                 entry = type_reg.get(cred_type)
-                if entry:
+                if entry and entry.get("provider") and cred_type != "http":
                     provider_id = entry.get("provider")
                     # Check implemented flag — if not implemented, fail fast (spec CRITICAL RULE)
                     if not entry.get("implemented"):

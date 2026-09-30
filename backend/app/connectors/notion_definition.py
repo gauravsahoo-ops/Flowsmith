@@ -129,7 +129,7 @@ def build_notion_definition() -> ConnectorDefinitionV1:
         connector_key=NOTION_CONNECTOR_KEY,
         display_name="Notion",
         description="Query databases and create/update pages in Notion.",
-        category="api",
+        category="productivity",
         connector_version=NOTION_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_notion_operations(),

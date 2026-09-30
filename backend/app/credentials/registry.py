@@ -625,6 +625,164 @@ class S3Credential(BaseModel):
     endpoint_url: str = Field(default="", description="Custom endpoint URL for MinIO, Wasabi, or Cloudflare R2 (optional).")
 
 
+# Phase 43 additions — Enterprise & AI Connectors
+class ActiveCampaignCredential(BaseModel):
+    account: str = Field(min_length=1, description="Account / Subdomain (e.g. myaccount in myaccount.api-us1.com).")
+    api_key: str = Field(min_length=1, description="ActiveCampaign API Key (Settings > Developer).")
+
+
+class AnthropicCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Anthropic API Key (sk-ant-...).")
+
+
+class BigQueryCredential(BaseModel):
+    project_id: str = Field(min_length=1, description="Google Cloud Project ID.")
+    access_token: str = Field(min_length=1, description="OAuth2 or Service Account Access Token.")
+
+
+class BoxCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Box Developer Token or OAuth 2.0 Access Token.")
+
+
+class CodaCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Coda Personal API Token (coda.io/account).")
+
+
+class CoinGeckoCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="CoinGecko Demo or Pro API Key.")
+
+
+class DocuSignCredential(BaseModel):
+    account_id: str = Field(min_length=1, description="DocuSign API Account ID (GUID).")
+    access_token: str = Field(min_length=1, description="OAuth 2.0 Access Token.")
+    environment: str = Field(default="demo", description="Environment: demo, na2, na3, na4, eu.")
+
+
+class FreshsalesCredential(BaseModel):
+    domain: str = Field(min_length=1, description="Freshsales Domain Name (e.g. acme in acme.freshsales.io).")
+    api_key: str = Field(min_length=1, description="Freshsales API Token.")
+
+
+class GeminiCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Google AI Studio Gemini API Key (AIzaSy...).")
+
+
+class IntercomCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Intercom Developer Workspace Access Token.")
+
+
+class NetSuiteCredential(BaseModel):
+    account_id: str = Field(min_length=1, description="Oracle NetSuite Account ID (e.g. 1234567 or TSTDRV1234567).")
+    token: str = Field(default="", description="OAuth 2.0 Bearer Token (optional if using TBA).")
+    consumer_key: str = Field(default="", description="Token-Based Authentication Consumer Key.")
+    consumer_secret: str = Field(default="", description="Token-Based Authentication Consumer Secret.")
+    token_id: str = Field(default="", description="Token-Based Authentication Token ID.")
+    token_secret: str = Field(default="", description="Token-Based Authentication Token Secret.")
+
+
+class OpenRouterCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="OpenRouter API Key (sk-or-...).")
+
+
+class SAPCredential(BaseModel):
+    base_url: str = Field(min_length=1, description="SAP S/4HANA Instance Base URL (e.g. https://my-s4hana.ondemand.com).")
+    username: str = Field(default="", description="Communication / Technical Username.")
+    password: str = Field(default="", description="Communication / Technical Password.")
+    client: str = Field(default="", description="SAP Client / Mandant (e.g. 100).")
+    token: str = Field(default="", description="OAuth 2.0 Bearer Token.")
+    api_key: str = Field(default="", description="SAP Business Accelerator Hub API Key.")
+
+    @model_validator(mode="after")
+    def _validate_sap(self) -> "SAPCredential":
+        if not (self.username and self.password) and not self.token and not self.api_key:
+            raise ValueError("SAP requires username and password, token, or api_key.")
+        return self
+
+
+class SendGridCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="SendGrid API Key (SG....).")
+
+
+class ServiceNowCredential(BaseModel):
+    instance: str = Field(min_length=1, description="ServiceNow Instance Name or Domain (e.g. dev12345 or acme.service-now.com).")
+    username: str = Field(default="", description="Basic Auth Username.")
+    password: str = Field(default="", description="Basic Auth Password.")
+    access_token: str = Field(default="", description="OAuth 2.0 Bearer Token (alternative to Basic Auth).")
+
+
+class SnowflakeCredential(BaseModel):
+    account: str = Field(min_length=1, description="Snowflake Account Identifier (e.g. xy12345.us-east-1).")
+    token: str = Field(default="", description="Snowflake SQL API Bearer Token / Keypair JWT.")
+    username: str = Field(default="", description="Snowflake Username.")
+    password: str = Field(default="", description="Snowflake Password.")
+    warehouse: str = Field(default="", description="Default Warehouse (optional).")
+    database: str = Field(default="", description="Default Database (optional).")
+    schema_name: str = Field(default="", description="Default Schema (optional).", alias="schema")
+    role: str = Field(default="", description="Default Role (optional).")
+
+    @model_validator(mode="after")
+    def _validate_snowflake(self) -> "SnowflakeCredential":
+        if not self.token and not (self.username and self.password):
+            raise ValueError("Snowflake requires either a token or username/password.")
+        return self
+
+
+class TypeformCredential(BaseModel):
+    token: str = Field(min_length=1, description="Typeform Personal Access Token.")
+
+
+class WorkdayCredential(BaseModel):
+    host: str = Field(min_length=1, description="Workday Host (e.g. https://wd2-impl-services1.workday.com).")
+    tenant: str = Field(min_length=1, description="Workday Tenant Name.")
+    token: str = Field(default="", description="OAuth2 Bearer Token.")
+    client_id: str = Field(default="", description="Client ID (optional).")
+    client_secret: str = Field(default="", description="Client Secret (optional).")
+
+
+class XeroCredential(BaseModel):
+    tenant_id: str = Field(min_length=1, description="Xero Tenant ID (GUID).")
+    access_token: str = Field(min_length=1, description="OAuth 2.0 Access Token.")
+
+
+class ZohoCrmCredential(BaseModel):
+    access_token: str = Field(default="", description="Zoho CRM OAuth 2.0 Access Token.")
+    refresh_token: str = Field(default="", description="Zoho CRM OAuth 2.0 Refresh Token.")
+    client_id: str = Field(default="", description="Zoho OAuth Client ID.")
+    client_secret: str = Field(default="", description="Zoho OAuth Client Secret.")
+    accounts_server: str = Field(default="https://accounts.zoho.com", description="Accounts server URL.")
+
+    @model_validator(mode="after")
+    def _validate_zoho(self) -> "ZohoCrmCredential":
+        if not self.access_token and not (self.client_id and self.client_secret and self.refresh_token):
+            raise ValueError("Zoho CRM requires either access_token or (client_id, client_secret, refresh_token).")
+        return self
+
+
+class GroqCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="Groq API Key (gsk_...).")
+
+
+class DeepSeekCredential(BaseModel):
+    api_key: str = Field(min_length=1, description="DeepSeek API Key (sk-...).")
+
+
+class SharePointCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Microsoft Graph SharePoint Access Token.")
+    site_url: str = Field(default="", description="SharePoint Site URL.")
+    tenant_id: str = Field(default="", description="Azure Tenant ID.")
+    client_id: str = Field(default="", description="Client ID.")
+    client_secret: str = Field(default="", description="Client Secret.")
+
+
+class OneDriveCredential(BaseModel):
+    access_token: str = Field(min_length=1, description="Microsoft Graph OneDrive Access Token.")
+    tenant_id: str = Field(default="", description="Azure Tenant ID.")
+    client_id: str = Field(default="", description="Client ID.")
+    client_secret: str = Field(default="", description="Client Secret.")
+
+
+
+
 CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "smtp": SMTPCredential,
     "imap": IMAPCredential,
@@ -684,6 +842,31 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "sentry": SentryCredential,
     "aws_s3": S3Credential,
     "s3": S3Credential,
+    # Phase 43 additions
+    "activecampaign": ActiveCampaignCredential,
+    "anthropic": AnthropicCredential,
+    "bigquery": BigQueryCredential,
+    "box": BoxCredential,
+    "coda": CodaCredential,
+    "coin_gecko": CoinGeckoCredential,
+    "docusign": DocuSignCredential,
+    "freshsales": FreshsalesCredential,
+    "gemini": GeminiCredential,
+    "intercom": IntercomCredential,
+    "netsuite": NetSuiteCredential,
+    "open_router": OpenRouterCredential,
+    "sap": SAPCredential,
+    "sendgrid": SendGridCredential,
+    "servicenow": ServiceNowCredential,
+    "snowflake": SnowflakeCredential,
+    "typeform": TypeformCredential,
+    "workday": WorkdayCredential,
+    "xero": XeroCredential,
+    "zoho_crm": ZohoCrmCredential,
+    "groq": GroqCredential,
+    "deepseek": DeepSeekCredential,
+    "sharepoint": SharePointCredential,
+    "onedrive": OneDriveCredential,
     # Generic HTTP Auth providers (spec)
     "basic_auth": BasicAuthCredential,
     "bearer_auth": BearerAuthCredential,
@@ -759,6 +942,31 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "sentry": frozenset({"auth_token"}),
     "aws_s3": frozenset({"secret_access_key"}),
     "s3": frozenset({"secret_access_key"}),
+    # Phase 43 additions
+    "activecampaign": frozenset({"api_key"}),
+    "anthropic": frozenset({"api_key"}),
+    "bigquery": frozenset({"access_token"}),
+    "box": frozenset({"access_token"}),
+    "coda": frozenset({"api_key"}),
+    "coin_gecko": frozenset({"api_key"}),
+    "docusign": frozenset({"access_token"}),
+    "freshsales": frozenset({"api_key"}),
+    "gemini": frozenset({"api_key"}),
+    "intercom": frozenset({"access_token"}),
+    "netsuite": frozenset({"token", "consumer_secret", "token_secret"}),
+    "open_router": frozenset({"access_token"}),
+    "sap": frozenset({"password", "token", "client_secret", "api_key"}),
+    "sendgrid": frozenset({"api_key"}),
+    "servicenow": frozenset({"password", "access_token"}),
+    "snowflake": frozenset({"token"}),
+    "typeform": frozenset({"token"}),
+    "workday": frozenset({"token", "client_secret", "refresh_token"}),
+    "xero": frozenset({"access_token"}),
+    "zoho_crm": frozenset({"access_token"}),
+    "groq": frozenset({"api_key"}),
+    "deepseek": frozenset({"api_key"}),
+    "sharepoint": frozenset({"access_token", "client_secret"}),
+    "onedrive": frozenset({"access_token", "client_secret"}),
     "basic_auth": frozenset({"password"}),
     "bearer_auth": frozenset({"token"}),
     "header_auth": frozenset({"header_value"}),
@@ -832,6 +1040,30 @@ TYPE_META: dict[str, dict[str, str]] = {
     "sentry": {"name": "Sentry", "description": "Sentry Auth Token for error tracking and issue management."},
     "aws_s3": {"name": "AWS S3", "description": "AWS S3 / S3-compatible object storage access credentials."},
     "s3": {"name": "AWS S3 / Storage", "description": "AWS S3, MinIO, or Cloudflare R2 credentials."},
+    "activecampaign": {"name": "ActiveCampaign", "description": "ActiveCampaign Marketing API credentials."},
+    "anthropic": {"name": "Anthropic Claude", "description": "Anthropic Claude LLM API key."},
+    "bigquery": {"name": "Google Cloud BigQuery", "description": "GCP BigQuery project ID and access token."},
+    "box": {"name": "Box", "description": "Box cloud storage access token."},
+    "coda": {"name": "Coda", "description": "Coda docs and tables API token."},
+    "coin_gecko": {"name": "CoinGecko", "description": "CoinGecko cryptocurrency market data API key."},
+    "docusign": {"name": "DocuSign", "description": "DocuSign eSignature OAuth access token."},
+    "freshsales": {"name": "Freshsales", "description": "Freshsales CRM domain and API key."},
+    "gemini": {"name": "Google Gemini", "description": "Google AI Studio / Gemini API key."},
+    "intercom": {"name": "Intercom", "description": "Intercom customer messaging workspace token."},
+    "netsuite": {"name": "Oracle NetSuite", "description": "Oracle NetSuite ERP TBA or OAuth token."},
+    "open_router": {"name": "OpenRouter", "description": "OpenRouter multi-model AI routing API key."},
+    "sap": {"name": "SAP S/4HANA", "description": "SAP S/4HANA Enterprise ERP communication credentials."},
+    "sendgrid": {"name": "SendGrid", "description": "Twilio SendGrid transactional email API key."},
+    "servicenow": {"name": "ServiceNow", "description": "ServiceNow ITSM enterprise credentials."},
+    "snowflake": {"name": "Snowflake", "description": "Snowflake cloud data warehouse SQL API token."},
+    "typeform": {"name": "Typeform", "description": "Typeform online forms and surveys API token."},
+    "workday": {"name": "Workday", "description": "Workday Human Capital Management OAuth2 credentials."},
+    "xero": {"name": "Xero", "description": "Xero cloud accounting OAuth2 token."},
+    "zoho_crm": {"name": "Zoho CRM", "description": "Zoho CRM REST API v2 OAuth token."},
+    "groq": {"name": "Groq", "description": "Groq LPU ultra-fast AI inference API key."},
+    "deepseek": {"name": "DeepSeek", "description": "DeepSeek LLM API key."},
+    "sharepoint": {"name": "Microsoft SharePoint", "description": "Microsoft Graph SharePoint document library credentials."},
+    "onedrive": {"name": "Microsoft OneDrive", "description": "Microsoft Graph OneDrive cloud storage credentials."},
     "ftp": {"name": "FTP", "description": "FTP/FTPS server connection for the FTP node."},
     "ssh": {"name": "SSH", "description": "SSH server connection (password or key) for the SSH node."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
@@ -876,6 +1108,31 @@ CREDENTIAL_PROVIDER: dict[str, str] = {
     "google_sheets": "oauth2",
     "gmail": "oauth2",
     "google_drive": "oauth2",
+    # Enterprise & AI additions
+    "activecampaign": "api_key",
+    "anthropic": "api_key",
+    "bigquery": "service_account",
+    "box": "bearer",
+    "coda": "bearer",
+    "coin_gecko": "api_key",
+    "docusign": "bearer",
+    "freshsales": "api_key",
+    "gemini": "api_key",
+    "intercom": "bearer",
+    "netsuite": "client_credentials",
+    "open_router": "bearer",
+    "sap": "basic",
+    "sendgrid": "bearer",
+    "servicenow": "basic",
+    "snowflake": "bearer",
+    "typeform": "bearer",
+    "workday": "bearer",
+    "xero": "oauth2",
+    "zoho_crm": "oauth2",
+    "groq": "api_key",
+    "deepseek": "api_key",
+    "sharepoint": "oauth2",
+    "onedrive": "oauth2",
 }
 
 # Which credential types are considered fully implemented (provider exists and tested)
@@ -953,6 +1210,32 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "sentry": True,
     "aws_s3": True,
     "s3": True,
+    # Phase 43 implementations
+    "activecampaign": True,
+    "anthropic": True,
+    "bigquery": True,
+    "box": True,
+    "coda": True,
+    "coin_gecko": True,
+    "docusign": True,
+    "freshsales": True,
+    "gemini": True,
+    "intercom": True,
+    "netsuite": True,
+    "open_router": True,
+    "sap": True,
+    "sendgrid": True,
+    "servicenow": True,
+    "snowflake": True,
+    "typeform": True,
+    "workday": True,
+    "xero": True,
+    "zoho_crm": True,
+    # Backlog connectors pending implementation
+    "groq": False,
+    "deepseek": False,
+    "sharepoint": False,
+    "onedrive": False,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work
@@ -971,20 +1254,50 @@ def is_implemented(cred_type: str) -> bool:
 
 def list_types() -> list[dict[str, Any]]:
     """Catalog for GET /api/credentials/types (drives the frontend form)."""
-    return [
-        {
+    from app.credentials.auth_metadata import get_connector_auth_metadata, AuthMethod
+
+    oauth_types = frozenset({
+        "oauth2", "oauth1", "salesforce", "hubspot", "dynamics_crm",
+        "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs",
+        "zoho_crm", "xero", "box", "typeform", "sharepoint", "onedrive", "quickbooks",
+    })
+    refresh_types = frozenset({
+        "oauth2", "salesforce", "hubspot", "dynamics_crm",
+        "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs",
+        "quickbooks", "sharepoint", "onedrive",
+    })
+
+    out = []
+    for t, schema in CREDENTIAL_TYPES.items():
+        meta = TYPE_META.get(t, {"name": t, "description": ""})
+        auth_meta = get_connector_auth_metadata(t)
+        is_impl = CREDENTIAL_IMPLEMENTED.get(t, True)
+        status_val = "available" if is_impl else "coming_soon"
+
+        if auth_meta:
+            auth_method_label = auth_meta.auth_method.value if isinstance(auth_meta.auth_method, AuthMethod) else str(auth_meta.auth_method)
+        else:
+            auth_method_label = (
+                "OAuth 2.0" if t in oauth_types
+                else "Basic Auth" if t in ("basic_auth", "jira", "bitbucket", "freshdesk", "zendesk", "twilio", "sap", "servicenow")
+                else "Bearer Token" if t in ("bearer_auth", "github", "gitlab", "slack", "stripe", "openai", "sendgrid", "resend", "sentry", "intercom", "snowflake", "whatsapp", "calendly", "todoist", "open_router")
+                else "API Key"
+            )
+
+        out.append({
             "type": t,
-            **TYPE_META.get(t, {"name": t, "description": ""}),
+            **meta,
             "secret_fields": sorted(SECRET_FIELDS.get(t, frozenset())),
             "parameters_schema": schema.model_json_schema(),
             "provider": CREDENTIAL_PROVIDER.get(t, ""),
-            "implemented": CREDENTIAL_IMPLEMENTED.get(t, True),
-            "supportsOAuth": t in ("oauth2", "oauth1", "salesforce", "hubspot", "dynamics_crm", "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs"),
-            "supportsRefresh": t in ("oauth2", "salesforce", "hubspot", "dynamics_crm", "google_calendar", "google_sheets", "gmail", "google_drive", "google_docs"),
-            "supportsTest": CREDENTIAL_IMPLEMENTED.get(t, True),
-        }
-        for t, schema in CREDENTIAL_TYPES.items()
-    ]
+            "implemented": is_impl,
+            "status": status_val,
+            "auth_method": auth_method_label,
+            "supportsOAuth": t in oauth_types,
+            "supportsRefresh": t in refresh_types,
+            "supportsTest": is_impl,
+        })
+    return out
 
 
 def validate_data(cred_type: str, data: dict[str, Any]) -> dict[str, Any]:
@@ -997,3 +1310,13 @@ def validate_data(cred_type: str, data: dict[str, Any]) -> dict[str, Any]:
 
 def is_known_type(cred_type: str) -> bool:
     return cred_type in CREDENTIAL_TYPES
+
+
+def redact_data(cred_type: str, data: dict[str, Any]) -> dict[str, Any]:
+    """Redact secret fields from credential data dict for safe display."""
+    secrets = SECRET_FIELDS.get(cred_type, frozenset())
+    out = dict(data)
+    for f in secrets:
+        if f in out and out[f]:
+            out[f] = "••••••••"
+    return out

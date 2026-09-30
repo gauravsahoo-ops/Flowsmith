@@ -532,7 +532,7 @@ def build_salesforce_definition() -> ConnectorDefinitionV1:
             "pagination, schema/field discovery, Bulk API 2.0 and generic REST/Flow invoke — one generic "
             "node covering standard and custom objects."
         ),
-        category="api",
+        category="crm",
         connector_version=SALESFORCE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_salesforce_operations(),

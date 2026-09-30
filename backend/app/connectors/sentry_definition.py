@@ -19,7 +19,7 @@ def build_sentry_definition() -> ConnectorDefinitionV1:
         connector_key=SENTRY_CONNECTOR_KEY,
         display_name="Sentry",
         description="List, inspect, and manage errors and unresolved issues in Sentry.",
-        category=ConnectorCategory.API.value,
+        category="developer",
         connector_version=SENTRY_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         credential_types={

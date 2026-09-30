@@ -30,7 +30,9 @@ class HeaderAuthProvider(AuthProvider):
         name = cred["header_name"] or "X-API-Key"
         if not cred["header_value"]:
             raise ValueError("Header value missing")
-        headers.setdefault(name, cred["header_value"])
+        existing_key = next((k for k in headers if k.lower() == name.lower()), None)
+        if existing_key is None:
+            headers[name] = cred["header_value"]
         request["headers"] = headers
         return request
 

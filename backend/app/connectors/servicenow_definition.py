@@ -42,7 +42,7 @@ def build_servicenow_definition() -> ConnectorDefinitionV1:
         connector_key=SERVICENOW_CONNECTOR_KEY,
         display_name="ServiceNow",
         description="Manage ServiceNow ITSM records via the Table API (incident, change, problem, CMDB).",
-        category="api",
+        category="productivity",
         connector_version=SERVICENOW_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations={

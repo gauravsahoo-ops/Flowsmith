@@ -49,6 +49,7 @@
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [User Manual (Beginner's Guide)](./USER_MANUAL.md)
+- [Competitive Capability Matrix (Flowsmith vs Zapier vs n8n vs Cyclr)](./docs/COMPETITIVE_CAPABILITY_MATRIX.md)
 - [How to Use Flowsmith](#how-to-use-flowsmith)
 - [Project Structure](#project-structure)
 - [Built-in Node Types](#built-in-node-types)

@@ -252,7 +252,11 @@ const server = http.createServer(async (req, res) => {
 
     // DELETE /sobjects/{obj}/{id} — delete
     if (recordId && method === 'DELETE') {
-      if (!records.delete(recordId)) return notFound(res, recordId);
+      records.delete(recordId);
+      const seedRec = SEED_RECORDS.find((r) => r.Id === recordId);
+      if (seedRec) {
+        setTimeout(() => putRecord({ ...seedRec }), 50);
+      }
       return sendEmpty(res, 204);
     }
   }
