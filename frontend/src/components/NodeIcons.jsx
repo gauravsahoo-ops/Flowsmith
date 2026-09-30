@@ -16,16 +16,13 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
   const matches = (...keys) => {
     return keys.some((k) => {
       const kn = k.replace(/[-_\s]/g, '')
-      return (
-        t === k ||
-        t.includes(k) ||
-        (kn.length > 2 && tNorm.includes(kn)) ||
-        n === k ||
-        n.includes(k) ||
-        (kn.length > 2 && nNorm.includes(kn)) ||
-        ic === k ||
-        ic.includes(k)
-      )
+      if (t === k || n === k || ic === k || tNorm === kn || nNorm === kn) return true
+      if (k.length >= 3) {
+        if (t.includes(k) || (kn.length >= 3 && tNorm.includes(kn))) return true
+        if (n.includes(k) || (kn.length >= 3 && nNorm.includes(kn))) return true
+        if (ic === k || ic.includes(k)) return true
+      }
+      return false
     })
   }
 
@@ -715,6 +712,241 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
     )
   }
 
+  // Anthropic / Claude (Official Terracotta Sunburst Mark)
+  if (matches('anthropic', 'claude')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#D97706" />
+        <path d="M12 4.5v15M4.5 12h15M6.7 6.7l10.6 10.6M6.7 17.3l10.6-10.6" stroke="#FFFFFF" strokeWidth="2.3" strokeLinecap="round" />
+        <circle cx="12" cy="12" r="2.2" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Google Gemini (Official Multi-Tone Gradient Sparkle)
+  if (matches('gemini', 'google_gemini')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <defs>
+          <linearGradient id="geminiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4E75F8" />
+            <stop offset="50%" stopColor="#8AB4F8" />
+            <stop offset="100%" stopColor="#C58AF9" />
+          </linearGradient>
+        </defs>
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#1E1F20" />
+        <path d="M12 4c0 4.418 3.582 8 8 8-4.418 0-8 3.582-8 8 0-4.418-3.582-8-8-8 4.418 0 8-3.582 8-8z" fill="url(#geminiGrad)" />
+      </svg>
+    )
+  }
+
+  // Google BigQuery (Official Enterprise Data Warehouse)
+  if (matches('bigquery', 'big_query')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#1A73E8" />
+        <ellipse cx="11" cy="7" rx="5" ry="2" stroke="#FFFFFF" strokeWidth="1.5" fill="#669DF6" />
+        <path d="M6 7v3.5c0 1.1 2.2 2 5 2s5-.9 5-2V7" stroke="#FFFFFF" strokeWidth="1.5" />
+        <path d="M6 10.5V14c0 1.1 2.2 2 5 2s5-.9 5-2v-3.5" stroke="#FFFFFF" strokeWidth="1.5" />
+        <circle cx="15.5" cy="15.5" r="3" stroke="#FFFFFF" strokeWidth="1.6" fill="#1A73E8" />
+        <line x1="17.8" y1="17.8" x2="20.5" y2="20.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // Snowflake (Official Cyan Snowflake Crystal)
+  if (matches('snowflake')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#29B5E8" />
+        <path d="M12 4v16M4 12h16M6.5 6.5l11 11M6.5 17.5l11-11" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M10 5.5l2-1.5 2 1.5M10 18.5l2 1.5 2-1.5M5.5 10l-1.5 2 1.5 2M18.5 10l1.5 2-1.5 2" stroke="#FFFFFF" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Intercom (Official Blue Messenger Bubble)
+  if (matches('intercom')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#1F8CEB" />
+        <rect x="7" y="10" width="1.8" height="5" rx="0.9" fill="#FFFFFF" />
+        <rect x="10" y="8" width="1.8" height="8" rx="0.9" fill="#FFFFFF" />
+        <rect x="13" y="8" width="1.8" height="8" rx="0.9" fill="#FFFFFF" />
+        <rect x="16" y="10" width="1.8" height="5" rx="0.9" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // DocuSign (Official Signature Chevron Seal)
+  if (matches('docusign')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#005CB9" />
+        <path d="M6 7l6 5-6 5" stroke="#FFC820" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="13" y1="17" x2="18" y2="17" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // Box (Official Blue Interlocking Box Logo)
+  if (matches('box')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0061D5" />
+        <circle cx="9.5" cy="12" r="3.2" stroke="#FFFFFF" strokeWidth="1.8" fill="none" />
+        <circle cx="14.5" cy="12" r="3.2" stroke="#FFFFFF" strokeWidth="1.8" fill="none" />
+        <path d="M12 9v6" stroke="#0061D5" strokeWidth="1.8" />
+      </svg>
+    )
+  }
+
+  // Coda (Official Coral Folded Document)
+  if (matches('coda')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#F34B4B" />
+        <path d="M7 6.5h6a4.5 4.5 0 0 1 0 9H7v-9z" fill="#FFFFFF" />
+        <circle cx="11.5" cy="11" r="2.2" fill="#F34B4B" />
+      </svg>
+    )
+  }
+
+  // SAP (Official Blue Enterprise ERP Badge)
+  if (matches('sap')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#008FD3" />
+        <path d="M5 8.5h4c1 0 1.8.8 1.8 1.8 0 1-.8 1.8-1.8 1.8H6.5v2.4H5V8.5zm1.5 2.4H9c.2 0 .4-.2.4-.4s-.2-.4-.4-.4H6.5v.8z" fill="#FFFFFF" />
+        <path d="M12.5 8.5h1.6l2.4 6h-1.6l-.5-1.3h-2.2l-.5 1.3h-1.6l2.4-6zm.4 3.5h1.4l-.7-1.8-.7 1.8z" fill="#FFFFFF" />
+        <path d="M17.5 8.5h2.5c1 0 1.8.8 1.8 1.8s-.8 1.8-1.8 1.8h-1v2.4h-1.5V8.5zm1.5 2.4h1c.2 0 .4-.2.4-.4s-.2-.4-.4-.4H19v.8z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Oracle NetSuite (Official Interlocking Geometric Blocks)
+  if (matches('netsuite', 'oracle_netsuite')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#002A54" />
+        <path d="M6 7l5-3v11l-5 3V7z" fill="#0073C4" />
+        <path d="M13 9l5-3v11l-5 3V9z" fill="#00A3E0" />
+        <path d="M6 18l5-3 5 3-5 3-5-3z" fill="#004B87" />
+      </svg>
+    )
+  }
+
+  // Twilio SendGrid (Official Blue Grid Matrix)
+  if (matches('sendgrid', 'send_grid')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#009DD9" />
+        <rect x="6" y="6" width="5" height="5" rx="1" fill="#FFFFFF" />
+        <rect x="13" y="6" width="5" height="5" rx="1" fill="#FFFFFF" opacity="0.8" />
+        <rect x="6" y="13" width="5" height="5" rx="1" fill="#FFFFFF" opacity="0.8" />
+        <rect x="13" y="13" width="5" height="5" rx="1" fill="#FFFFFF" opacity="0.4" />
+      </svg>
+    )
+  }
+
+  // Workday (Official Blue Arc & Sunrise Ray)
+  if (matches('workday')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#005CB9" />
+        <path d="M5 16a7 7 0 0 1 14 0" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
+        <circle cx="12" cy="9.5" r="2.5" fill="#E25222" />
+      </svg>
+    )
+  }
+
+  // Xero (Official Cyan Circle with Xero Glyphs)
+  if (matches('xero')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#13B5EA" />
+        <path d="M7 8l4 4-4 4M17 8l-4 4 4 4M10 12h4" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Zoho CRM (Official 4-Color Block Tiles)
+  if (matches('zoho_crm', 'zoho')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="3" width="8" height="8" rx="2" fill="#DF2029" />
+        <rect x="13" y="3" width="8" height="8" rx="2" fill="#47A04B" />
+        <rect x="3" y="13" width="8" height="8" rx="2" fill="#2A67AE" />
+        <rect x="13" y="13" width="8" height="8" rx="2" fill="#EDA227" />
+      </svg>
+    )
+  }
+
+  // Freshsales (Official Freshworks CRM Pinwheel)
+  if (matches('freshsales')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#00A88F" />
+        <path d="M7 7a5 5 0 0 1 10 0v2H7V7z" fill="#FFFFFF" />
+        <circle cx="12" cy="14" r="3.5" fill="#F47B20" />
+      </svg>
+    )
+  }
+
+  // ActiveCampaign (Official Blue Speed Arrows)
+  if (matches('activecampaign', 'active_campaign')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#356AE6" />
+        <path d="M7 16l4-8 4 8M8.5 13h5" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M16 8l2 2-2 2" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Groq (Official Speed G Badge)
+  if (matches('groq')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#F55036" />
+        <path d="M15.5 8.5A5 5 0 1 0 16 14h-4" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // DeepSeek (Official DeepSeek Whale)
+  if (matches('deepseek')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#1E6FFF" />
+        <path d="M5 14c2-5 8-7 13-4 1 .6 2 1.6 2 2.5-3 .5-6-1-9 1-1.5 1-3 1.5-6 .5z" fill="#FFFFFF" />
+        <circle cx="16" cy="11.5" r="1" fill="#1E6FFF" />
+      </svg>
+    )
+  }
+
+  // Microsoft SharePoint (Official Teal Overlapping Discs)
+  if (matches('sharepoint')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#038387" />
+        <circle cx="9" cy="12" r="3.8" fill="#005A60" />
+        <circle cx="15" cy="12" r="3.8" fill="#FFFFFF" opacity="0.9" />
+        <path d="M8 9h2a1.5 1.5 0 0 1 0 3H8v2h2" stroke="#FFFFFF" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // Microsoft OneDrive (Official Cloud Silhouette)
+  if (matches('onedrive')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0078D4" />
+        <path d="M9 16.5h7a3.5 3.5 0 0 0 .5-6.9 4.5 4.5 0 0 0-8.5-1.1A3.5 3.5 0 0 0 9 16.5z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
   // =========================================================================
   // 2. FLOW & CORE LOGIC NODES (PRECISION VECTOR ARCHITECTURE)
   // =========================================================================
@@ -885,6 +1117,18 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
     )
   }
 
+  // Elasticsearch (Official Elastic Multi-Color Cluster)
+  if (matches('elasticsearch', 'elastic')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#005571" />
+        <path d="M7 10h10" stroke="#FEC514" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M7 14h10" stroke="#00A9E0" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="12" cy="12" r="2" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
   // Error Trigger (Alert Triangle with Warning)
   if (matches('error_trigger', 'error_handler')) {
     return (
@@ -1026,7 +1270,7 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
   }
 
   // AI LLM Completion (Intelligence Star Sparkle)
-  if (t === 'ai' || (t.includes('ai') && !t.includes('agent') && !t.includes('airtable'))) {
+  if (t === 'ai' || t === 'llm' || t === 'ai_completion' || t === 'ai_prompt' || t === 'prompt' || (t.startsWith('ai_') && !t.includes('agent'))) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#ec4899'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2l2.4 6.8L21 12l-6.6 3.2L12 22l-2.4-6.8L3 12l6.6-3.2L12 2z" />
@@ -1071,6 +1315,18 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
         <circle cx="13" cy="10" r="3" />
         <line x1="15.2" y1="12.2" x2="17.5" y2="14.5" />
+      </svg>
+    )
+  }
+
+  // Reranker (AI Ranking Hierarchy Re-sort)
+  if (matches('reranker', 're-ranker', 'cohere_rerank')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#8b5cf6'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="4" y1="6" x2="20" y2="6" />
+        <line x1="4" y1="12" x2="16" y2="12" />
+        <line x1="4" y1="18" x2="12" y2="18" />
+        <path d="M18 14l3 3-3 3M21 17h-5" />
       </svg>
     )
   }
@@ -1375,6 +1631,98 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#10b981'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 7V5h16v2M12 5v14M9 19h6" />
+      </svg>
+    )
+  }
+
+  // =========================================================================
+  // 3. AUTHENTICATION & SECURITY CREDENTIAL PROTOCOLS
+  // =========================================================================
+
+  // API Key / PAT (Golden Security Key)
+  if (matches('api_key', 'apikey', 'pat', 'token')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="8" cy="12" r="4.5" stroke="#F59E0B" strokeWidth="2" />
+        <path d="M12.5 12H20v3h-2v-3h-2v2h-2v-2" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Bearer Token / JWT (Encrypted Token Shield)
+  if (matches('bearer_auth', 'bearer', 'jwt')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M12 3l8 3.5v5.5c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V6.5L12 3z" stroke="#6366F1" strokeWidth="1.8" fill="#6366F1" fillOpacity="0.15" />
+        <circle cx="12" cy="11.5" r="2.5" fill="#6366F1" />
+        <path d="M12 14v3" stroke="#6366F1" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // Basic Auth / Digest Auth (User Badge with Padlock)
+  if (matches('basic_auth', 'digest_auth')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="10" width="18" height="11" rx="2.5" stroke="#3B82F6" strokeWidth="1.8" fill="#3B82F6" fillOpacity="0.15" />
+        <circle cx="12" cy="15.5" r="1.8" fill="#3B82F6" />
+        <path d="M7 10V6.5a5 5 0 0 1 10 0V10" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // OAuth 1.0 / OAuth 2.0 (Dual Interlocking Token Exchange Rings)
+  if (matches('oauth', 'oauth1', 'oauth2')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="9" cy="12" r="5.5" stroke="#10B981" strokeWidth="2" />
+        <circle cx="15" cy="12" r="5.5" stroke="#059669" strokeWidth="2" />
+      </svg>
+    )
+  }
+
+  // Service Account (Cloud IAM Credential Key)
+  if (matches('service_account', 'serviceaccount')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0F172A" />
+        <circle cx="12" cy="9" r="3" stroke="#EC4899" strokeWidth="1.8" />
+        <path d="M6 18c0-3 2.7-5 6-5s6 2 6 5" stroke="#EC4899" strokeWidth="1.8" strokeLinecap="round" />
+        <circle cx="17" cy="7" r="1.5" fill="#38BDF8" />
+      </svg>
+    )
+  }
+
+  // Microsoft Graph (Official Microsoft 4-Color Grid)
+  if (matches('microsoft_graph', 'msgraph')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="3" width="8" height="8" fill="#F25022" />
+        <rect x="13" y="3" width="8" height="8" fill="#7FBA00" />
+        <rect x="3" y="13" width="8" height="8" fill="#00A4EF" />
+        <rect x="13" y="13" width="8" height="8" fill="#FFB900" />
+      </svg>
+    )
+  }
+
+  // SMTP / IMAP (Mail Transport Protocol Server)
+  if (matches('smtp', 'imap')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="5" width="18" height="14" rx="2" stroke="#0EA5E9" strokeWidth="1.8" fill="#0EA5E9" fillOpacity="0.12" />
+        <path d="M3 7l9 6 9-6" stroke="#0EA5E9" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // Custom / Header / Query Auth (API Request Configuration)
+  if (matches('custom_auth', 'header_auth', 'query_auth')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="4" y1="7" x2="20" y2="7" />
+        <circle cx="9" cy="7" r="2" fill="#8B5CF6" />
+        <line x1="4" y1="17" x2="20" y2="17" />
+        <circle cx="15" cy="17" r="2" fill="#8B5CF6" />
       </svg>
     )
   }

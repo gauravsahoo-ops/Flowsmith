@@ -147,7 +147,7 @@ def build_google_calendar_definition() -> ConnectorDefinitionV1:
         connector_key=GOOGLE_CONNECTOR_KEY,
         display_name="Google Calendar",
         description="Google Calendar connector: list, get, create, update and delete events via Calendar API v3.",
-        category="api",
+        category="productivity",
         connector_version=GOOGLE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_google_operations(),

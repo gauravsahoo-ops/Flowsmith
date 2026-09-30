@@ -139,7 +139,7 @@ def build_shopify_definition() -> ConnectorDefinitionV1:
         connector_key=SHOPIFY_CONNECTOR_KEY,
         display_name="Shopify",
         description="Manage Shopify store products and orders via the Admin REST API.",
-        category="api",
+        category="finance",
         connector_version=SHOPIFY_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_shopify_operations(),

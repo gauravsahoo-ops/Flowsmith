@@ -193,7 +193,7 @@ def build_hubspot_definition() -> ConnectorDefinitionV1:
         connector_key=HUBSPOT_CONNECTOR_KEY,
         display_name="HubSpot",
         description="HubSpot connector: search, get, create and update contacts, companies, deals and tickets via CRM v3.",
-        category="api",
+        category="crm",
         connector_version=HUBSPOT_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_hubspot_operations(),

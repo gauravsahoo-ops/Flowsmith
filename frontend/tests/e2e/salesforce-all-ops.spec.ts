@@ -28,8 +28,18 @@ async function gotoApp(page: any, token: string) {
 async function addHttpNodeAndConnect(page: any, url: string, method = 'GET', extra: Record<string, any> = {}) {
   await page.evaluate(({ url, method, extra }) => {
     const store = window.__wfStore.getState();
-    const triggerId = store.nodes.find((n: any) => n.data?.node?.type === 'manual_trigger')?.id;
-    store.addNode('http_request', { x: 300, y: 0 });
+    const existingHttpIds = new Set(
+      store.nodes.filter((n: any) => n.data?.node?.type === 'http_request').map((n: any) => n.id)
+    );
+    if (existingHttpIds.size > 0) {
+      window.__wfStore.setState({
+        nodes: store.nodes.filter((n: any) => !existingHttpIds.has(n.id)),
+        edges: store.edges.filter((e: any) => !existingHttpIds.has(e.source) && !existingHttpIds.has(e.target)),
+      });
+    }
+    const currentStore = window.__wfStore.getState();
+    const triggerId = currentStore.nodes.find((n: any) => n.data?.node?.type === 'manual_trigger')?.id;
+    currentStore.addNode('http_request', { x: 300, y: 0 });
     const httpNode = window.__wfStore.getState().nodes.filter((n: any) => n.data?.node?.type === 'http_request').pop();
     window.__wfStore.getState().updateNode(httpNode.id, { parameters: { method, url, ...extra } });
     window.__wfStore.getState().onConnect({ source: triggerId, target: httpNode.id, sourceHandle: 'main', targetHandle: 'main' });
@@ -115,7 +125,11 @@ test.describe('SF — Account', () => {
 
   test('Delete', async ({ page }) => {
     const token = await registerAndLogin(page);
-    const steps = await runOneHttp(page, token, `${STUB}/services/data/v63.0/sobjects/Account/001AA000003TEST`, 'DELETE');
+    const cr = await page.request.post(`${STUB}/services/data/v63.0/sobjects/Account`, {
+      data: { Name: 'To Delete Account' },
+    });
+    const { id: newId } = await cr.json();
+    const steps = await runOneHttp(page, token, `${STUB}/services/data/v63.0/sobjects/Account/${newId || '001AA000003TEST'}`, 'DELETE');
     expect(lastOutput(steps)?.statusCode).toBe(204);
   });
 

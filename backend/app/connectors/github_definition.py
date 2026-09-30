@@ -145,7 +145,7 @@ def build_github_definition() -> ConnectorDefinitionV1:
         connector_key=GITHUB_CONNECTOR_KEY,
         display_name="GitHub",
         description="Inspect repositories and manage issues on GitHub via REST v3.",
-        category="api",
+        category="developer",
         connector_version=GITHUB_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_github_operations(),

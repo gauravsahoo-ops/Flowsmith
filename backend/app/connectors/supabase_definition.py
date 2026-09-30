@@ -19,7 +19,7 @@ def build_supabase_definition() -> ConnectorDefinitionV1:
         connector_key=SUPABASE_CONNECTOR_KEY,
         display_name="Supabase",
         description="Query tables, insert/update/delete records, and call RPC functions in Supabase.",
-        category=ConnectorCategory.API.value,
+        category="database",
         connector_version=SUPABASE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         credential_types={

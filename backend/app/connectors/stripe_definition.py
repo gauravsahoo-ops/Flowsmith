@@ -140,7 +140,7 @@ def build_stripe_definition() -> ConnectorDefinitionV1:
         connector_key=STRIPE_CONNECTOR_KEY,
         display_name="Stripe",
         description="Manage Stripe customers and payment intents over REST v1.",
-        category="api",
+        category="finance",
         connector_version=STRIPE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=_stripe_operations(),

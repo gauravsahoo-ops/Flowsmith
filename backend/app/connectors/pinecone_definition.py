@@ -19,7 +19,7 @@ def build_pinecone_definition() -> ConnectorDefinitionV1:
         connector_key=PINECONE_CONNECTOR_KEY,
         display_name="Pinecone",
         description="Upsert embeddings, query nearest neighbors, and manage vector indexes in Pinecone.",
-        category=ConnectorCategory.API.value,
+        category="database",
         connector_version=PINECONE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         credential_types={

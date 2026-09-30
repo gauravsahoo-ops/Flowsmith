@@ -21,6 +21,117 @@ const CATEGORIES = [
   { id: 'finance', label: 'Finance & Payments' },
 ]
 
+export const CONNECTOR_CATEGORY_MAP = {
+  // CRM & Sales
+  salesforce: ['crm'],
+  hubspot: ['crm'],
+  dynamics_crm: ['crm'],
+  freshsales: ['crm'],
+  zoho_crm: ['crm'],
+  pipedrive: ['crm', 'productivity'],
+  activecampaign: ['crm', 'communication'],
+  workday: ['crm'],
+  zendesk: ['crm', 'communication'],
+  freshdesk: ['crm', 'communication'],
+  intercom: ['crm', 'communication'],
+
+  // Databases & Storage
+  postgres: ['database'],
+  mysql: ['database'],
+  mongodb: ['database'],
+  redis: ['database'],
+  supabase: ['database'],
+  snowflake: ['database'],
+  bigquery: ['database'],
+  s3: ['database'],
+  google_drive: ['database', 'productivity'],
+  dropbox: ['database', 'productivity'],
+  box: ['database', 'productivity'],
+  pinecone: ['database', 'ai'],
+  airtable: ['database', 'productivity'],
+
+  // Communication
+  slack: ['communication'],
+  discord: ['communication'],
+  msteams: ['communication'],
+  whatsapp: ['communication'],
+  twilio: ['communication'],
+  zoom: ['communication'],
+  gmail: ['communication'],
+  outlook: ['communication'],
+  resend: ['communication'],
+  sendgrid: ['communication'],
+  mailchimp: ['communication', 'crm'],
+  brevo: ['communication', 'crm'],
+
+  // Developer & DevOps
+  github: ['developer'],
+  gitlab: ['developer'],
+  bitbucket: ['developer'],
+  sentry: ['developer'],
+  pagerduty: ['developer'],
+  http: ['developer'],
+  httpbin: ['developer'],
+  dummy_json: ['developer'],
+  json_placeholder: ['developer'],
+  poke_api: ['developer'],
+  open_notify: ['developer'],
+  schedule: ['developer'],
+  webhook: ['developer'],
+
+  // AI & Knowledge
+  openai: ['ai'],
+  anthropic: ['ai'],
+  gemini: ['ai'],
+  open_router: ['ai'],
+
+  // Productivity
+  notion: ['productivity'],
+  jira: ['productivity', 'developer'],
+  linear: ['productivity', 'developer'],
+  asana: ['productivity'],
+  clickup: ['productivity'],
+  monday: ['productivity'],
+  trello: ['productivity'],
+  todoist: ['productivity'],
+  coda: ['productivity'],
+  google_docs: ['productivity'],
+  google_sheets: ['productivity'],
+  google_calendar: ['productivity'],
+  calendly: ['productivity'],
+  docusign: ['productivity'],
+  servicenow: ['productivity'],
+  typeform: ['productivity'],
+
+  // Finance & Payments
+  stripe: ['finance'],
+  shopify: ['finance'],
+  quickbooks: ['finance'],
+  xero: ['finance'],
+  netsuite: ['finance'],
+  sap: ['finance'],
+  frankfurter: ['finance'],
+  coin_gecko: ['finance'],
+}
+
+export function matchesCategory(conn, catId) {
+  if (!catId || catId === 'all') return true
+  const key = (conn.connector_key || '').toLowerCase()
+  const mapped = CONNECTOR_CATEGORY_MAP[key]
+  if (mapped && mapped.includes(catId)) return true
+  if (key.startsWith('open_meteo') && catId === 'developer') return true
+
+  const cat = (conn.category || '').toLowerCase()
+  if (catId === 'crm') return cat.includes('crm') || cat.includes('sales') || cat.includes('support')
+  if (catId === 'database') return cat.includes('data') || cat.includes('storage') || cat.includes('sql')
+  if (catId === 'communication') return cat.includes('comm') || cat.includes('message') || cat.includes('mail') || cat.includes('marketing')
+  if (catId === 'developer') return cat.includes('dev') || cat.includes('git') || cat.includes('code') || cat.includes('api') || cat.includes('devops')
+  if (catId === 'ai') return cat.includes('ai') || cat.includes('rag') || cat.includes('llm')
+  if (catId === 'productivity') return cat.includes('prod') || cat.includes('task') || cat.includes('work') || cat.includes('doc')
+  if (catId === 'finance') return cat.includes('finance') || cat.includes('payment') || cat.includes('billing')
+  return cat.includes(catId)
+}
+
 export default function IntegrationsPage() {
   const navigate = useNavigate()
   const [connectors, setConnectors] = useState([])
@@ -71,19 +182,19 @@ export default function IntegrationsPage() {
     return s
   }, [credentials])
 
+  const categoryCounts = useMemo(() => {
+    const counts = { all: connectors.length }
+    for (const cat of CATEGORIES) {
+      if (cat.id === 'all') continue
+      counts[cat.id] = connectors.filter((c) => matchesCategory(c, cat.id)).length
+    }
+    return counts
+  }, [connectors])
+
   const filtered = useMemo(() => {
     let list = connectors
     if (category !== 'all') {
-      list = list.filter((c) => {
-        const cat = (c.category || '').toLowerCase()
-        if (category === 'crm') return cat.includes('crm') || cat.includes('sales')
-        if (category === 'database') return cat.includes('data') || cat.includes('storage') || cat.includes('sql')
-        if (category === 'communication') return cat.includes('comm') || cat.includes('message') || cat.includes('mail')
-        if (category === 'developer') return cat.includes('dev') || cat.includes('git') || cat.includes('code')
-        if (category === 'ai') return cat.includes('ai') || cat.includes('rag') || cat.includes('llm')
-        if (category === 'finance') return cat.includes('finance') || cat.includes('payment') || cat.includes('billing')
-        return cat.includes(category)
-      })
+      list = list.filter((c) => matchesCategory(c, category))
     }
     if (search.trim()) {
       const q = search.trim().toLowerCase()
@@ -190,6 +301,18 @@ export default function IntegrationsPage() {
               }}
             >
               {cat.label}
+              {categoryCounts[cat.id] !== undefined && (
+                <span
+                  style={{
+                    marginLeft: '6px',
+                    opacity: category === cat.id ? 0.9 : 0.6,
+                    fontSize: '11px',
+                    fontWeight: 500,
+                  }}
+                >
+                  ({categoryCounts[cat.id]})
+                </span>
+              )}
             </button>
           ))}
         </div>
