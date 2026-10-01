@@ -1,0 +1,282 @@
+# Flowsmith — REST & WebSocket API Specification
+
+> **Base URL**: `/api`  
+> **API Version**: 2.5.0  
+> **Protocol**: HTTPS / WSS  
+> **Data Format**: JSON (`application/json`)  
+> **Authentication**: `Bearer <JWT_TOKEN>` or `X-API-Key: fs_live_...`  
+
+---
+
+## 1. Overview & Response Conventions
+
+Flowsmith exposes a clean, predictable, RESTful API adhering strictly to RFC standards. All responses are encapsulated in a standard envelope:
+
+### 1.1 Success Response Envelope
+```json
+{
+  "data": {
+    "id": "wf_8f7e6d5c",
+    "name": "Lead Synchronization Pipeline",
+    "active": true
+  },
+  "error": null
+}
+```
+
+### 1.2 Error Response Envelope
+```json
+{
+  "data": null,
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Node 'dynamics_1' requires parameter 'entity' to be non-empty.",
+    "details": {
+      "field": "parameters.entity"
+    }
+  }
+}
+```
+
+---
+
+## 2. Authentication & Authorization
+
+All private endpoints require an `Authorization` header containing a valid user JWT or an enterprise API key:
+
+```bash
+# User Session Bearer Token:
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Automation / Service Account API Key:
+X-API-Key: fs_live_a1b2c3d4e5f67890
+```
+
+---
+
+## 3. Endpoints Reference
+
+### 3.1 Authentication (`/api/auth`)
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Register a new user account | No |
+| `POST` | `/api/auth/login` | Authenticate and obtain JWT access token | No |
+| `GET` | `/api/auth/me` | Fetch authenticated user profile & organization | **Yes** |
+| `POST` | `/api/auth/logout` | Revoke current token and terminate session | **Yes** |
+| `POST` | `/api/auth/password-reset`| Request or complete password reset | No |
+
+---
+
+### 3.2 Workflows (`/api/workflows`)
+
+#### `GET /api/workflows`
+Returns all workflows accessible to the authenticated user.
+* **Query Parameters**:
+  * `active` (boolean, optional): Filter by active status (`true` / `false`).
+  * `search` (string, optional): Keyword search against name and description.
+* **Response**: `200 OK` with list of workflow summaries.
+
+#### `POST /api/workflows`
+Creates a new workflow graph.
+* **Request Body**:
+  ```json
+  {
+    "name": "Customer Onboarding Sync",
+    "description": "Sync new signups to Salesforce & Dynamics CRM",
+    "data": {
+      "nodes": [
+        {
+          "id": "trigger_1",
+          "type": "webhook",
+          "parameters": { "path": "customer-signup" }
+        }
+      ],
+      "edges": []
+    }
+  }
+  ```
+* **Response**: `201 Created` with workflow object.
+
+#### `GET /api/workflows/{id}`
+Fetches full workflow graph definition including nodes, edges, and triggers.
+
+#### `PUT /api/workflows/{id}`
+Updates an existing workflow graph and creates a new version snapshot.
+
+#### `DELETE /api/workflows/{id}`
+Deletes the workflow and cancels any pending scheduled executions.
+
+#### `POST /api/workflows/{id}/duplicate`
+Creates an exact clone of the specified workflow.
+
+#### `POST /api/workflows/{id}/run`
+Triggers an immediate asynchronous execution of the workflow.
+* **Request Body**:
+  ```json
+  {
+    "data": {
+      "email": "alex.morgan@contoso.com",
+      "company": "Contoso Ltd"
+    }
+  }
+  ```
+* **Response**: `202 Accepted` returning `{"execution_id": "exec_4f3e2d1c"}`.
+
+---
+
+### 3.3 Executions (`/api/executions`)
+
+#### `GET /api/executions`
+Lists execution runs with pagination and status filters.
+* **Query Parameters**:
+  * `workflow_id` (string, optional): Filter runs by workflow.
+  * `status` (string, optional): `queued`, `running`, `success`, `failed`, `cancelled`.
+  * `limit` (int, default: 50): Number of records per page.
+
+#### `GET /api/executions/{id}`
+Retrieves detailed status, start/finish timestamps, total duration, and output payload.
+
+#### `POST /api/executions/{id}/cancel`
+Signals a running execution to abort immediately.
+
+#### `GET /api/executions/{id}/trace`
+Returns fine-grained step-by-step telemetry, detailing input/output data and execution duration for every individual node.
+
+---
+
+### 3.4 Node Catalog & Testing (`/api/nodes`)
+
+#### `GET /api/nodes`
+Returns metadata and JSON schemas for all available node types in the palette.
+
+#### `POST /api/nodes/{type}/test`
+Executes an isolated single step ("Test Step") without running the full workflow DAG.
+* **Request Body**:
+  ```json
+  {
+    "parameters": {
+      "resource": "Contact",
+      "operation": "get",
+      "record_id": "00000000-0000-0000-0000-000000000000"
+    },
+    "credentials": {
+      "dynamics_crm": "cred_dynamics_prod"
+    },
+    "input_data": {}
+  }
+  ```
+* **Response**: `200 OK` with node execution output payload or error details.
+
+---
+
+### 3.5 Credential Vault (`/api/credentials`)
+
+#### `GET /api/credentials`
+Lists all stored credentials with secrets securely redacted (`••••••••••••`).
+
+#### `POST /api/credentials`
+Creates and encrypts a new credential entry.
+* **Request Body**:
+  ```json
+  {
+    "name": "Salesforce Production",
+    "type": "salesforce",
+    "data": {
+      "instance_url": "https://company.my.salesforce.com",
+      "client_id": "3MVG9...",
+      "client_secret": "91823...",
+      "refresh_token": "5Aep8..."
+    }
+  }
+  ```
+
+#### `POST /api/credentials/{id}/test`
+Executes a live health probe against the target service (e.g. `WhoAmI` call) to verify credential validity.
+
+---
+
+### 3.6 Embedded Relational Data Tables (`/api/data-tables`)
+
+#### `GET /api/data-tables`
+Lists custom relational tables defined in the current organization.
+
+#### `POST /api/data-tables`
+Creates a new custom table schema.
+
+#### `GET /api/data-tables/{id}/rows`
+Queries table records with optional SQL-like filtering, sorting, and pagination.
+
+#### `POST /api/data-tables/{id}/rows`
+Inserts or upserts a row into the specified data table.
+
+#### `POST /api/data-tables/{id}/bulk-import`
+Streams bulk CSV or JSON data directly into the table.
+
+---
+
+### 3.7 AI & Autonomous Agents (`/api/ai`)
+
+#### `POST /api/ai/chat`
+Proxies a chat completion request to the configured provider (OpenAI, Claude, Gemini, DeepSeek, Groq, Ollama) with optional streaming.
+
+#### `POST /api/ai/agent/execute`
+Executes an isolated ReAct agent loop against a specified prompt, toolset, and memory configuration.
+
+---
+
+### 3.8 Human-in-the-Loop Approvals (`/api/approvals`)
+
+#### `GET /api/approvals`
+Lists pending approval requests assigned to the authenticated user.
+
+#### `POST /api/approvals/{id}/respond`
+Approves or rejects a suspended workflow execution:
+```json
+{
+  "decision": "approved",
+  "comment": "Expense request authorized by Finance Director",
+  "data": {
+    "approved_amount": 5400
+  }
+}
+```
+
+---
+
+### 3.9 Real-Time Execution Streaming (WebSocket)
+
+#### `WS /api/ws/executions/{id}`
+Subscribes to live execution status updates. As nodes execute on distributed workers, status events are streamed to the client in real-time:
+
+```json
+{
+  "event": "node_started",
+  "execution_id": "exec_4f3e2d1c",
+  "node_id": "dynamics_crm_1",
+  "timestamp": 1727260800000
+}
+```
+
+---
+
+### 3.10 System Health & Readiness
+
+#### `GET /api/health`
+Liveness probe. Returns `200 OK` if the FastAPI gateway process is active.
+
+#### `GET /api/readyz`
+Readiness probe. Checks PostgreSQL database connection, Redis connectivity, and worker heartbeat health:
+```json
+{
+  "data": {
+    "status": "ready",
+    "checks": {
+      "postgres": "ok",
+      "redis": "ok"
+    },
+    "uptime_s": 9420
+  },
+  "error": null
+}
+```
