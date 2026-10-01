@@ -46,6 +46,7 @@ Thumbs.db
 # Scratch & temporary
 scratch/
 test_report.html
+*.eml
 Smithflow/
 Flowsmith/
 my-automation-tool
@@ -54,6 +55,8 @@ my-automation-tool
 .agents/
 
 # Markdown documentation & specifications (ignored for Bitbucket)
+README.md
+USER_MANUAL.md
 *.md
 **/*.md
 
