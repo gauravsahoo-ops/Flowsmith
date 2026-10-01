@@ -11,7 +11,7 @@
 [![Vite](https://img.shields.io/badge/vite-8-646cff)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/license-BSL--1.1-blue)](./LICENSE)
 
-**Flowsmith** is an enterprise-grade, self-hosted, source-available workflow automation and orchestration suite engineered for complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, encrypted credential vault, and 45+ first-party connectors (including deep Salesforce OAuth2 CRM synchronization with seamless single-click zero-config reconnection).
+**Flowsmith** is an enterprise-grade, self-hosted, source-available workflow automation and orchestration suite engineered for complete data sovereignty, zero per-run fees, and deep enterprise integrations. It combines a state-of-the-art interactive visual DAG canvas, sandboxed code execution, autonomous AI agents, RAG vector retrieval, native relational Data Tables, an AES-256-GCM v2 encrypted credential vault, and 86 registered enterprise connectors across 8 categories governed by an authoritative 5-tier certification state machine (including deep Salesforce and Dynamics 365 OAuth2 CRM synchronization with seamless single-click zero-config reconnection).
 
 ---
 
@@ -105,8 +105,8 @@ Flowsmith is designed from the ground up to provide a frictionless, world-class 
 │  ├── Workflow Engine: Cycle detection, DAG topological resolution, branch merging      │
 │  ├── Expression Evaluator: Sandboxed interpolation ({{ $json.* }}, $node, $cred, $env) │
 │  ├── Sandboxed Code Runtimes: JavaScript (DukPy engine) & Python execution sandboxes   │
-│  ├── Credential Vault: AES-128-CBC Fernet encryption with multi-key rotation keyring   │
-│  ├── Native Connectors: 45+ first-party connectors with OAuth2 PKCE flows              │
+│  ├── Credential Vault: AES-256-GCM v2 & Fernet encryption with multi-key rotation      │
+│  ├── Native Connectors: 86 registered connectors with OAuth2 PKCE & 5-tier certification│
 │  └── AI Subsystem: Natural-language workflow generator, error assistant, ReAct agents   │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Distributed Execution & Asynchronous Worker                                           │
@@ -398,7 +398,7 @@ Flowsmith/
 │   │   │   ├── expressions.py  # Sandboxed {{ }} expression evaluation engine
 │   │   │   └── node_base.py    # BaseNode, NodeContext, and NodeResult interfaces
 │   │   ├── nodes/              # 50+ built-in node type implementations
-│   │   ├── connectors/         # 45+ first-party enterprise connectors (+ OpenAPI catalog)
+│   │   ├── connectors/         # 86 registered enterprise connectors (+ OpenAPI catalog)
 │   │   ├── providers/          # Low-level external integration clients
 │   │   ├── queue/              # Asynchronous job queue & worker processes
 │   │   ├── models/             # 20 SQLAlchemy ORM model files (30 relational tables)
@@ -498,52 +498,73 @@ Flowsmith provides **50+ built-in node types** organized across functional domai
 
 ## First-Party Connectors
 
-Flowsmith includes **45+ first-party connectors** with pre-configured schemas and authentication handlers:
+Flowsmith includes **86 registered enterprise connectors** (69 native SDK connectors, 17 OpenAPI-generated) organized across 8 distinct categories, governed by an authoritative 5-tier certification state machine:
 
-| Connector | Supported Operations & Resources | Authentication |
-|---|---|---|
-| **Salesforce** | 13 Resources (Account, Contact, Lead, Opportunity, Case, Task, CustomObject, Attachment, Document, User, Flow, Search, CustomApiCall) × full CRUD & SOQL | OAuth2 (PKCE) / Single-Click Reconnect |
-| **HubSpot** | Contacts, Companies, Deals, Tickets (search, get, create, update) | OAuth2 |
-| **Google Calendar**| Events CRUD, attendee coordination, calendar lookups | OAuth2 |
-| **Google Sheets** | Sheet values read, append row, update ranges, batch operations | OAuth2 |
-| **Google Drive** | File upload, folder traversal, permissions, download | OAuth2 |
-| **Gmail** | Send rich HTML/MIME emails, draft creation | OAuth2 |
-| **PostgreSQL** | Direct raw SQL queries, transactions, parameterized execution | Connection String |
-| **MySQL** | Direct raw SQL queries, batch inserts | Connection String |
-| **MongoDB** | Collections CRUD, aggregation pipelines | Connection URI |
-| **Redis** | Key get/set/delete, counters (incr), and channel publish | Connection URI |
-| **Slack** | Channel messaging, ephemeral responses, user lookup | Bot Token |
-| **MS Teams** | Channel messages, webhook web-alerts, adaptive cards | OAuth2 / Webhook |
-| **Outlook** | Email dispatch, calendar schedule lookups | OAuth2 |
-| **GitHub** | Repository stats, issue creation, pull request management | Personal Access Token |
-| **GitLab** | Issues, merge requests, notes (list, get, create) | Personal Access Token |
-| **Bitbucket** | Repositories, pull requests, comments | Access Token |
-| **Linear** | Issues and comments (list, get, create, update) | API Key |
-| **Notion** | Database queries, page creation, block manipulation | Internal Integration Token |
-| **Jira** | Issue lifecycle CRUD, transition management | API Token |
-| **Discord** | Webhook and bot channel notifications | Bot Token |
-| **Stripe** | Customer creation, charge intents, subscription queries | API Secret Key |
-| **Airtable** | Base record queries, row inserts, table updates | Personal Access Token |
-| **Shopify** | Product management, customer lookup, order lifecycle | OAuth2 / Admin Token |
-| **Asana** | Tasks and comments (list, get, create, update) | Personal Access Token |
-| **Trello** | Boards, cards, and comments (list, get, create) | API Key + Token |
-| **Calendly** | Event types and scheduled events (list, get, cancel) | Personal Access Token |
-| **Zoom** | Meetings (list, get, create, delete) | Access Token |
-| **Twilio** | SMS send, message history and lookup | Account SID / Auth Token |
-| **WhatsApp** | Text and template messages via Meta Cloud API | Access Token |
-| **ClickUp** | Lists, tasks, and comments (list, get, create, update) | API Token |
-| **Pipedrive** | Deals and notes (list, get, create, update) | API Token |
-| **Dropbox** | Folder browse, metadata, upload, delete | Access Token |
-| **OpenAI** | Models, embeddings, chat completions (or compatible endpoint) | API Key |
-| **Mailchimp** | Audiences and contacts (lists, members, tags) | API Key |
-| **QuickBooks** | Company, customers, invoices, raw queries (sandbox/production) | OAuth2 Token |
-| **Google Docs** | Documents read/create/append via shared Google OAuth app | OAuth2 |
-| **PagerDuty** | Incidents and notes (list, trigger, update, resolve) | API Token |
-| **Zendesk** | Support tickets and replies (list, get, create, update) | Email + API Token |
-| **Todoist** | Tasks and comments (list, get, create, close) | API Token |
-| **Brevo** | Transactional email + contacts (lists, members) | API Key |
-| **Freshdesk** | Support tickets and notes (list, get, create, update) | Email + API Key |
-| **Monday.com** | Boards, items, and updates (list, get, create) | API Token |
+### Authoritative Certification State Machine
+$$\text{STATIC\_VALIDATED} \longrightarrow \text{MOCK\_VALIDATED} \longrightarrow \text{CONTRACT\_VALIDATED} \longrightarrow \text{LIVE\_API\_VALIDATED} \longrightarrow \text{PRODUCTION\_CERTIFIED}$$
+
+- **Live API Validated (1)**: Real HTTP remote execution against live sandboxes (`http`).
+- **Contract Validated (12)**: Strict end-to-end protocol and schema suites (`salesforce`, `github`, `slack`, `stripe`, `sendgrid`, `jira`, `hubspot`, `postgres`, `snowflake`, `openai`, `anthropic`, `gemini`).
+- **Mock Validated (73)**: Full operation dispatch, parameter validation, and mock API suites.
+- **Promotion Gate & Integrity Guards**: 12 negative validation checks preventing false promotions (schema hash drift detection, 90-day evidence expiration, automated disposable write cleanup verification).
+
+### Connector Catalog Highlights
+
+| Connector | Category | Supported Operations & Resources | Authentication |
+|---|---|---|---|
+| **Salesforce** | CRM | 13 Resources (Account, Contact, Lead, Opportunity, Case, Task, CustomObject, Attachment, Document, User, Flow, Search, CustomApiCall) × full CRUD & SOQL | OAuth2 (PKCE) / Single-Click Reconnect |
+| **Microsoft Dynamics 365** | CRM | Dataverse entities (Accounts, Contacts, Leads, Opportunities), custom entities, OData queries | OAuth2 / S2S Service Principal |
+| **HubSpot** | CRM | Contacts, Companies, Deals, Tickets (search, get, create, update) | OAuth2 |
+| **Pipedrive** | CRM | Deals, Persons, Organizations, Activities, Notes | API Token |
+| **Google Calendar** | Productivity | Events CRUD, attendee coordination, calendar lookups | OAuth2 |
+| **Google Sheets** | Productivity | Sheet values read, append row, update ranges, batch operations | OAuth2 |
+| **Google Drive** | Productivity | File upload, folder traversal, permissions, download | OAuth2 |
+| **Google Docs** | Productivity | Documents read, create, append via shared Google OAuth app | OAuth2 |
+| **Gmail** | Communication | Send rich HTML/MIME emails, draft creation | OAuth2 |
+| **PostgreSQL** | Database | Direct raw SQL queries, transactions, parameterized execution | Connection String |
+| **MySQL** | Database | Direct raw SQL queries, batch inserts | Connection String |
+| **Snowflake** | Database | Cloud data warehouse queries, table inspection, batch execution | Key Pair / Credentials |
+| **MongoDB** | Database | Collections CRUD, aggregation pipelines | Connection URI |
+| **Redis** | Database | Key get/set/delete, counters (incr), channel publish | Connection URI |
+| **Supabase** | Database | PostgreSQL client, REST data queries, auth admin | API Key / URL |
+| **Pinecone** | AI | Vector upsert, query, delete, namespace indexing | API Key |
+| **OpenAI** | AI | Chat completions, embeddings, fine-tuning, moderation | API Key |
+| **Anthropic** | AI | Claude 3.5 Sonnet / Haiku messages, tool calling | API Key |
+| **Google Gemini** | AI | Gemini 1.5 Pro / Flash completions, multimodal tokens | API Key |
+| **Slack** | Communication | Channel messaging, ephemeral responses, user lookup | Bot Token |
+| **MS Teams** | Communication | Channel messages, webhook web-alerts, adaptive cards | OAuth2 / Webhook |
+| **Outlook** | Communication | Email dispatch, calendar schedule lookups | OAuth2 |
+| **Discord** | Communication | Webhook and bot channel notifications | Bot Token |
+| **Twilio** | Communication | SMS send, message history and lookup | Account SID / Auth Token |
+| **WhatsApp** | Communication | Text and template messages via Meta Cloud API | Access Token |
+| **SendGrid** | Communication | Transactional email dispatch, template delivery | API Key |
+| **Resend** | Communication | Modern developer transactional email API | API Key |
+| **GitHub** | Dev | Repository stats, issue creation, pull request management | Personal Access Token |
+| **GitLab** | Dev | Issues, merge requests, notes (list, get, create) | Personal Access Token |
+| **Bitbucket** | Dev | Repositories, pull requests, comments | Access Token |
+| **Jira** | Dev | Issue lifecycle CRUD, transition management | API Token |
+| **Linear** | Dev | Issues and comments (list, get, create, update) | API Key |
+| **Sentry** | Dev | Issue retrieval, project events, alert resolution | Auth Token |
+| **ServiceNow** | Dev | Enterprise IT service tickets, incidents, change requests | Basic / OAuth2 |
+| **AWS S3** | Utilities | Bucket browse, object upload/download, presigned URLs | AWS Access Key / Secret |
+| **Stripe** | Finance | Customer creation, charge intents, subscription queries | API Secret Key |
+| **QuickBooks** | Finance | Company, customers, invoices, raw queries (sandbox/production) | OAuth2 Token |
+| **Shopify** | Finance | Product management, customer lookup, order lifecycle | OAuth2 / Admin Token |
+| **Airtable** | Productivity | Base record queries, row inserts, table updates | Personal Access Token |
+| **Notion** | Productivity | Database queries, page creation, block manipulation | Internal Integration Token |
+| **Asana** | Productivity | Tasks and comments (list, get, create, update) | Personal Access Token |
+| **Trello** | Productivity | Boards, cards, and comments (list, get, create) | API Key + Token |
+| **ClickUp** | Productivity | Lists, tasks, and comments (list, get, create, update) | API Token |
+| **Monday.com** | Productivity | Boards, items, and updates (list, get, create) | API Token |
+| **Calendly** | Productivity | Event types and scheduled events (list, get, cancel) | Personal Access Token |
+| **Zoom** | Productivity | Meetings (list, get, create, delete) | Access Token |
+| **Dropbox** | Productivity | Folder browse, metadata, upload, delete | Access Token |
+| **Mailchimp** | Marketing | Audiences and contacts (lists, members, tags) | API Key |
+| **Brevo** | Marketing | Transactional email + contacts (lists, members) | API Key |
+| **PagerDuty** | Utilities | Incidents and notes (list, trigger, update, resolve) | API Token |
+| **Zendesk** | Utilities | Support tickets and replies (list, get, create, update) | Email + API Token |
+| **Freshdesk** | Utilities | Support tickets and notes (list, get, create, update) | Email + API Key |
+| **Todoist** | Utilities | Tasks and comments (list, get, create, close) | API Token |
 
 ---
 

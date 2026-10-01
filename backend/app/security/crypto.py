@@ -80,7 +80,7 @@ def cipher_encrypt_v2(plaintext: str) -> bytes:
 
 def cipher_decrypt_v2(stored: bytes | str) -> str:
     """Decrypt an AES-256-GCM v2 token or JSON object with iv/authTag/ciphertext."""
-    raw_str = stored.decode("utf-8", errors="replace") if isinstance(stored, bytes) else str(stored)
+    raw_str = stored.decode("utf-8", errors="replace") if isinstance(stored, bytes) else stored
     raw_str = raw_str.strip()
 
     iv_bytes: bytes

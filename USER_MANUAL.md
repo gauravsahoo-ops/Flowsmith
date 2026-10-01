@@ -12,7 +12,7 @@
 3. [The Flowsmith Interface (Complete Screen Tour)](#3-the-flowsmith-interface-complete-screen-tour)
 4. [The 4 Basic Building Blocks (The "Lego" Pieces)](#4-the-4-basic-building-blocks-the-lego-pieces)
 5. [5-Minute Quick Start: Building Your First Automation](#5-5-minute-quick-start-building-your-first-automation)
-6. [Using AI to Build Workflows For You ("From AI ✨")](#6-using-ai-to-build-workflows-for-you-from-ai-)
+6. [AI Copilot & Workflow Generation (`/ai`)](#6-ai-copilot--workflow-generation-ai)
 7. [The Complete Card Catalog (Every Node Explained)](#7-the-complete-card-catalog-every-node-explained)
    - [7.1. Triggers (Starting Events)](#71-triggers-starting-events)
    - [7.2. App Connectors (Salesforce, Google, Slack, Stripe, etc.)](#72-app-connectors-salesforce-google-slack-stripe-etc)
@@ -36,7 +36,7 @@
     - [15.3. Console Drawer & Step Execution Logs](#153-console-drawer--step-execution-logs)
     - [15.4. Version History & 1-Click Rollback](#154-version-history--1-click-rollback)
     - [15.5. System Health, Telemetry & Disaster Recovery](#155-system-health-telemetry--disaster-recovery)
-16. [Custom Connectors & OpenAPI / cURL Importer (`/connectors`)](#16-custom-connectors--openapi--curl-importer-connectors)
+16. [Enterprise Integrations & OpenAPI / cURL Importer (`/integrations`)](#16-enterprise-integrations--openapi--curl-importer-integrations)
 17. [White-Labeling & Brand Change (Make It Your Own Platform)](#17-white-labeling--brand-change-make-it-your-own-platform)
 18. [Keyboard Shortcuts & Canvas Navigation](#18-keyboard-shortcuts--canvas-navigation)
 19. [A to Z Complete Glossary (Every Tech Term Defined)](#19-a-to-z-complete-glossary-every-tech-term-defined)
@@ -230,13 +230,13 @@ Let's build a real, working automation in under 5 minutes:
 
 ---
 
-## 6. Using AI to Build Workflows For You ("From AI ✨")
+## 6. AI Copilot & Workflow Generation (`/ai`)
 
-If you don't want to drag cards manually, you can simply tell Flowsmith what you want in plain English:
+If you don't want to drag cards manually, you can simply tell Flowsmith what you want in plain English via the dedicated **AI Command Center (`/ai`)**:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                              AI WORKFLOW GENERATOR                                     │
+│                              AI WORKFLOW GENERATOR (/ai)                               │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │  Prompt: [ When a customer submits a contact request, check if their budget is       ] │
 │          [ over $10,000. If yes, add a Lead in Salesforce and notify Slack.          ] │
@@ -247,14 +247,14 @@ If you don't want to drag cards manually, you can simply tell Flowsmith what you
 ```
 
 ### How to Use the AI Builder:
-1. On the **Workflows** page, click the button that says **"From AI ✨"**.
-2. Type your requirement in normal, conversational English.
+1. Navigate to **AI Copilot** (`/ai`) from the top navigation bar or sidebar.
+2. Type your requirement in normal, conversational English in the AI prompt box.
 3. Click **"Generate Workflow"**.
-4. In just 3 seconds, Flowsmith's AI will:
-   - Pick the exact cards needed (Webhook, IF Condition, Salesforce, Slack, Email).
-   - Place them on the canvas in the correct order.
-   - Wire the connections and configure the branching rules.
-5. You can inspect any card, make adjustments, and activate it immediately!
+4. In just seconds, Flowsmith's schema-grounded AI compiler will:
+   - Match verified node and connector specifications from the catalog (eliminating hallucinated parameters).
+   - Synthesize a fully valid Directed Acyclic Graph (DAG) with proper port bindings and template expressions.
+   - Run deterministic AST checks to ensure zero circular loops, broken handles, or schema violations.
+5. Review the visual preview card, test step behavior, and click **"Create Workflow"** to load the validated automation directly onto the canvas!
 
 ---
 
@@ -267,17 +267,19 @@ If you don't want to drag cards manually, you can simply tell Flowsmith what you
 - **Email Trigger (IMAP)**: Listens to any corporate inbox (Gmail, Outlook, IMAP) and triggers when a new email arrives matching your sender or subject filters.
 - **Error Trigger**: Listens for failures across your other workflows. If any workflow encounters an error, this card fires automatically to page your engineering team on PagerDuty or alert Slack.
 
-### 7.2. App Connectors (Salesforce, Google, Slack, Stripe, etc.)
-Flowsmith includes **45+ native connectors**:
-- **Salesforce**: Search records with SOQL, Create, Update, Upsert, Get, and Delete records across standard or custom objects.
-- **Google Sheets**: Read rows, append new customer rows, update cells, or clear spreadsheets.
-- **Google Docs**: Create new documents from templates or append text dynamically.
+### 7.2. App Connectors (Salesforce, Dynamics 365, Google, Slack, Stripe, etc.)
+Flowsmith includes **86 registered enterprise connectors** across 8 categories, governed by an authoritative 5-tier certification state machine (`STATIC` $\rightarrow$ `MOCK` $\rightarrow$ `CONTRACT` $\rightarrow$ `LIVE` $\rightarrow$ `PROD`):
+- **Salesforce**: Search records with SOQL, Create, Update, Upsert, Get, and Delete records across 13 standard or custom objects with cursor-based pagination.
+- **Microsoft Dynamics 365**: Full Dataverse entity synchronization (Accounts, Contacts, Leads, Opportunities) supporting dual OAuth2 and Service-to-Service (S2S) auth.
+- **Google Sheets & Docs**: Read rows, append new customer rows, update cells, clear spreadsheets, or create documents from templates.
 - **Gmail & Outlook**: Send rich HTML emails, attach documents, search inbox threads.
-- **Slack & Microsoft Teams**: Post formatted messages, adaptive cards, and channel alerts.
+- **Slack, Discord & Microsoft Teams**: Post formatted messages, adaptive cards, and channel alerts.
 - **HubSpot & Pipedrive**: Create and update CRM contacts, deals, and pipeline stages.
-- **Stripe**: Manage customers, inspect invoices, verify charges, and issue refunds.
-- **Jira, GitHub, GitLab, Bitbucket**: Create issues, manage pull requests, and comment on tickets.
+- **PostgreSQL, MySQL, Snowflake & MongoDB**: Query relational databases and cloud warehouses with transaction isolation.
+- **Stripe & QuickBooks**: Manage customers, inspect invoices, verify charges, and issue refunds.
+- **Jira, Linear, GitHub, GitLab, Bitbucket**: Create issues, manage pull requests, and comment on tickets.
 - **Twilio & WhatsApp**: Send SMS alerts or Meta Cloud API WhatsApp template messages.
+- **OpenAI, Anthropic & Google Gemini**: Chat completions, text analysis, and autonomous tool calling.
 - **Airtable & Notion**: Query bases, insert records, and create workspace pages.
 - **HTTP Request**: The universal connector! Connect to **any REST API on the internet** with full support for GET, POST, PUT, DELETE, headers, and authentication.
 
@@ -507,12 +509,12 @@ Empower your automations with your company's private documents:
 
 ---
 
-## 16. Custom Connectors & OpenAPI / cURL Importer (`/connectors`)
+## 16. Enterprise Integrations & OpenAPI / cURL Importer (`/integrations`)
 
 Need to connect to an API that doesn't have a pre-built card?
 
 ### OpenAPI 3.0 / Swagger Importer:
-1. Navigate to `/connectors`.
+1. Navigate to **Integrations** (`/integrations`).
 2. Paste any OpenAPI or Swagger specification URL (or paste raw JSON/YAML).
 3. Flowsmith automatically parses all endpoints, authentication schemes, and parameters.
 4. Click **"Import"**, and Flowsmith instantly generates first-class, native connector cards for that service!
