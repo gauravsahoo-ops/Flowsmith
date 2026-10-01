@@ -70,8 +70,13 @@ async def chat_completion(
     Returns the assistant `message` dictionary containing `role`, `content`,
     optional `tool_calls`, and optional `reasoning_content`.
     """
-    prov_name = credential.get("provider")
-    model = credential.get("model") or "gpt-4o-mini"
+    prov_name = credential.get("provider") or credential.get("provider_id")
+    model = (
+        credential.get("selected_model")
+        or credential.get("model")
+        or credential.get("default_model")
+        or "gpt-4o-mini"
+    )
     api_key = credential.get("api_key") or ""
     base_url = str(credential.get("base_url") or "").rstrip("/")
     timeout_s = float(credential.get("timeout_s") or 60.0)
@@ -123,20 +128,31 @@ async def chat_completion(
             raise LLMError(f"LLM request to '{model}' failed: {exc}", code="LLM_EXECUTION_ERROR") from exc
 
     # Default: Native OpenAI-compatible /chat/completions endpoint
-    # (Covers OpenAI, Ollama, DeepSeek, Groq, OpenRouter, Mistral, LM Studio, vLLM, and unit test doubles)
+    # Resolves default base URL from centralized LLM Provider Registry
     if not base_url:
-        if prov_name == "ollama":
-            base_url = "http://localhost:11434/v1"
-        elif prov_name == "deepseek":
-            base_url = "https://api.deepseek.com/v1"
-        elif prov_name == "groq":
-            base_url = "https://api.groq.com/openai/v1"
-        elif prov_name in ("openrouter", "open_router"):
-            base_url = "https://openrouter.ai/api/v1"
-        elif prov_name == "mistral":
-            base_url = "https://api.mistral.ai/v1"
-        else:
-            base_url = "https://api.openai.com/v1"
+        if prov_name:
+            from app.ai.llm_registry import get_llm_registry
+            reg_p = get_llm_registry().get(prov_name)
+            if reg_p and reg_p.base_url:
+                base_url = reg_p.base_url.rstrip("/")
+
+        if not base_url:
+            if prov_name == "ollama":
+                base_url = "http://localhost:11434/v1"
+            elif prov_name == "deepseek":
+                base_url = "https://api.deepseek.com/v1"
+            elif prov_name == "groq":
+                base_url = "https://api.groq.com/openai/v1"
+            elif prov_name in ("openrouter", "open_router"):
+                base_url = "https://openrouter.ai/api/v1"
+            elif prov_name == "mistral":
+                base_url = "https://api.mistral.ai/v1"
+            elif prov_name == "together":
+                base_url = "https://api.together.xyz/v1"
+            elif prov_name == "cohere":
+                base_url = "https://api.cohere.com/v2"
+            else:
+                base_url = "https://api.openai.com/v1"
 
     payload: dict[str, Any] = {
         "model": model,
@@ -156,6 +172,19 @@ async def chat_completion(
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
+    if prov_name in ("openrouter", "open_router"):
+        headers["HTTP-Referer"] = "https://flowsmith.io"
+        headers["X-Title"] = "Flowsmith"
+    if isinstance(credential.get("custom_headers"), dict):
+        for hk, hv in credential["custom_headers"].items():
+            if hk and hv:
+                headers[str(hk)] = str(hv)
+
+    # Determine chat completions endpoint URL
+    chat_endpoint = str(credential.get("chat_endpoint") or "/chat/completions")
+    if not chat_endpoint.startswith("/"):
+        chat_endpoint = f"/{chat_endpoint}"
+    post_url = base_url if base_url.endswith(chat_endpoint) else f"{base_url}{chat_endpoint}"
 
     last_exc: Exception | None = None
     delay = 1.0
@@ -165,7 +194,7 @@ async def chat_completion(
         try:
             try:
                 resp = await client.post(
-                    f"{base_url}/chat/completions",
+                    post_url,
                     headers=headers,
                     content=json.dumps(payload, ensure_ascii=False),
                 )
@@ -229,25 +258,41 @@ async def stream_chat_completion(
     max_tokens: int | None = None,
 ) -> AsyncIterator[LLMStreamChunk]:
     """Stream token chunks from the designated provider."""
-    prov_name = credential.get("provider")
-    model = credential.get("model") or "gpt-4o-mini"
+    prov_name = credential.get("provider") or credential.get("provider_id")
+    model = (
+        credential.get("selected_model")
+        or credential.get("model")
+        or credential.get("default_model")
+        or "gpt-4o-mini"
+    )
     api_key = credential.get("api_key") or ""
-    base_url = credential.get("base_url") or ""
+    base_url = str(credential.get("base_url") or "").rstrip("/")
     timeout_s = float(credential.get("timeout_s") or 60.0)
 
     if not base_url:
-        if prov_name == "ollama":
-            base_url = "http://localhost:11434/v1"
-        elif prov_name == "deepseek":
-            base_url = "https://api.deepseek.com/v1"
-        elif prov_name == "groq":
-            base_url = "https://api.groq.com/openai/v1"
-        elif prov_name in ("openrouter", "open_router"):
-            base_url = "https://openrouter.ai/api/v1"
-        elif prov_name == "mistral":
-            base_url = "https://api.mistral.ai/v1"
-        else:
-            base_url = "https://api.openai.com/v1"
+        if prov_name:
+            from app.ai.llm_registry import get_llm_registry
+            reg_p = get_llm_registry().get(prov_name)
+            if reg_p and reg_p.base_url:
+                base_url = reg_p.base_url.rstrip("/")
+
+        if not base_url:
+            if prov_name == "ollama":
+                base_url = "http://localhost:11434/v1"
+            elif prov_name == "deepseek":
+                base_url = "https://api.deepseek.com/v1"
+            elif prov_name == "groq":
+                base_url = "https://api.groq.com/openai/v1"
+            elif prov_name in ("openrouter", "open_router"):
+                base_url = "https://openrouter.ai/api/v1"
+            elif prov_name == "mistral":
+                base_url = "https://api.mistral.ai/v1"
+            elif prov_name == "together":
+                base_url = "https://api.together.xyz/v1"
+            elif prov_name == "cohere":
+                base_url = "https://api.cohere.com/v2"
+            else:
+                base_url = "https://api.openai.com/v1"
 
     provider: BaseLLMProvider = get_provider(provider_name=prov_name, model=model)
 

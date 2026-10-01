@@ -23,22 +23,22 @@ describe('AI Components Suite', () => {
         React.createElement(AICopilotModal, { isOpen: true, onClose: () => {} })
       )
       expect(html).toContain('AI COPILOT')
-      expect(html).toContain('Prompt to Workflow Generator')
-      expect(html).toContain('Try an example:')
-      expect(html).toContain('Generate Workflow')
-      expect(html).toContain('Cancel')
+      expect(html).toContain('Smith')
+      expect(html).toContain('Chat &amp; Tools')
+      expect(html).toContain('Debug &amp; Analyze')
+      expect(html).not.toContain('Workflow Builder')
     })
 
-    it('renders all example prompt chips', () => {
+    it('renders all quick action cards', () => {
       const html = renderToStaticMarkup(
         React.createElement(AICopilotModal, { isOpen: true, onClose: () => {} })
       )
-      expect(html).toContain('Stripe payment webhook')
-      expect(html).toContain('Postgres new customer query')
-      expect(html).toContain('Schedule daily RSS parser')
-      expect(html).toContain('RAG knowledge base pipeline')
+      expect(html).toContain('Inspect this workflow and list all nodes')
+      expect(html).toContain('Explain how this workflow works')
+      expect(html).toContain('Debug last execution failure')
+      expect(html).toContain('Optimize this workflow')
     })
-    it('renders extend canvas option in AICopilotModal when canvas has nodes', () => {
+    it('renders canvas context option in AICopilotModal when canvas has nodes', () => {
       const mockCanvasNodes = [{ id: 'node_1', type: 'custom', data: { node: { id: 'node_1', type: 'webhook' } } }]
       const html = renderToStaticMarkup(
         React.createElement(AICopilotModal, {
@@ -47,9 +47,7 @@ describe('AI Components Suite', () => {
           nodes: mockCanvasNodes,
         })
       )
-      expect(html).toContain('Extend current canvas')
-      expect(html).toContain('Ctrl')
-      expect(html).toContain('Enter')
+      expect(html).toContain('Use current canvas')
     })
   })
 
@@ -73,7 +71,7 @@ describe('AI Components Suite', () => {
       expect(html).toContain('Ready')
       expect(html).toContain('New Chat')
       expect(html).toContain('Chat &amp; Tools')
-      expect(html).toContain('Workflow Builder')
+      expect(html).not.toContain('Workflow Builder')
       expect(html).toContain('Debug &amp; Analyze')
       expect(html).toContain('Use current canvas')
       expect(html).toContain('Ask Smith anything...')

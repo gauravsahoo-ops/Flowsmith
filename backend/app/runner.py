@@ -71,12 +71,15 @@ class BackgroundRunner:
             loop = self._loop
 
         async def _cleanup() -> None:
-            # Cancel all pending tasks
-            for task in asyncio.all_tasks(loop):
+            # Cancel all pending tasks except current cleanup task
+            current = asyncio.current_task(loop)
+            tasks = [t for t in asyncio.all_tasks(loop) if t is not current]
+            for task in tasks:
                 if not task.done():
                     task.cancel()
             # Wait for cancellations to propagate
-            await asyncio.gather(*asyncio.all_tasks(loop), return_exceptions=True)
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
             # Close the shared HTTP client
             if self._http_client is not None:
                 await self._http_client.aclose()

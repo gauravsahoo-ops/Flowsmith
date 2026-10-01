@@ -189,3 +189,77 @@ All HTTP requests originating from user workflows or webhooks pass through a str
 * All credential secrets (`client_secret`, `api_key`, `refresh_token`, `password`) are encrypted at rest using AES-256-GCM.
 * Cryptographic keys are derived from the root environment variable `CREDENTIALS_ENCRYPTION_KEY` using PBKDF2 with 100,000 iterations.
 * Secret values are never returned over the REST API and are redacted from logs and execution traces.
+
+---
+
+## 8. AI-Native Workflow Orchestration Architecture
+
+Flowsmith is designed around the core principle:
+
+> **AI PROPOSES. FLOWSMITH VALIDATES. THE EXECUTION ENGINE EXECUTES.**
+
+```
+        USER INTENT
+             ↓
+       AI UNDERSTANDING (IntentEngine)
+             ↓
+       WORKFLOW PLANNING (WorkflowIR)
+             ↓
+    CAPABILITY DISCOVERY (CapabilityRegistry & Search)
+             ↓
+       WORKFLOW IR
+             ↓
+    DETERMINISTIC COMPILER (WorkflowCompiler)
+             ↓
+      STATIC VALIDATION (PipelineValidator: 6 Stages)
+             ↓
+      SECURITY VALIDATION (SSRF & Secret Scrubbing)
+             ↓
+        SIMULATION (WorkflowSimulator: Mock Topological Execution)
+             ↓
+       AI AUTO-REPAIR (WorkflowRepairer: Diff Generation)
+             ↓
+        USER APPROVAL
+             ↓
+       CREATE WORKFLOW (Visual Canvas DAG)
+             ↓
+        TEST / EXECUTE (Worker Fleet)
+             ↓
+      OBSERVE / DEBUG (Step Logs & Metrics)
+             ↓
+       OPTIMIZE / REPAIR (Cost, Latency, Reliability)
+```
+
+### 8.1 Workflow Intermediate Representation (IR)
+The intermediate representation (`WorkflowIR`) abstracts high-level business intent away from UI layout coordinates and low-level internal node names:
+- **`IRTrigger`**: Webhook, Schedule (Cron/Interval), Event, Polling, Manual.
+- **`IRStep`**: Normalized actions, conditions, loops, parallel branches, AI agents, HTTP calls, connectors, approvals.
+- **`IRConnection`**: Directed dependency links with typed handle binding (`main`, `true`, `false`, `approved`).
+- **`IRErrorPolicy`**: Retry budgets, exponential backoff, timeout caps, and failure alert channels.
+
+### 8.2 Deterministic Compiler
+The `WorkflowCompiler` translates `WorkflowIR` into an executable Flowsmith DAG:
+- Matches systems against live `NODE_REGISTRY` and `ConnectorRegistry`.
+- Maps parameters and expressions (`{{ $json.field }}`).
+- Positions nodes on visual grid layout with horizontal spacing.
+- Enforces strict DAG validation rules.
+
+### 8.3 6-Stage Validation Pipeline (`PipelineValidator`)
+Before any generated workflow is presented to the user or saved to disk, it must pass 6 validation stages:
+1. **Structural Validation**: Connected DAG, valid handles, no disconnected nodes, Kahn's algorithm cycle detection.
+2. **Connector Schema Validation**: Operation existence, required parameters, type checks.
+3. **Data & Expression Validation**: Syntax checking of double-curly expressions (`{{ $json.field }}`), pipe validity, and dunder-call protection.
+4. **Credential Health Validation**: Checks for active credentials matching required connector and LLM auth.
+5. **Runtime Policy Validation**: Concurrency bounds, timeouts, retry limits ($\le 5$).
+6. **Security Validation**: Secret scrubbing (detecting hardcoded API tokens or private keys) and SSRF protection.
+
+### 8.4 Non-Destructive Workflow Simulator (`WorkflowSimulator`)
+Simulates execution without performing external state mutations:
+- Topologically traverses nodes.
+- Injects synthetic test payloads and propagates mock responses downstream.
+- Estimates step-by-step latency and verifies expression bindings.
+
+### 8.5 Auto-Repair & NL Modification (`WorkflowRepairer` & `WorkflowModifier`)
+- **Diagnostic Engine**: Analyzes execution trace and failure payloads (e.g. HTTP 429 rate limit or schema mismatch).
+- **Safe Proposal Diff**: Generates targeted before/after diffs (e.g. adding exponential backoff retries, inserting human approval gates, or migrating AI models) for explicit human review.
+

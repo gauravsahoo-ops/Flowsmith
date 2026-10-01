@@ -109,37 +109,82 @@ def _validate_webhook_paths(workflow: Workflow, db: Session, exclude_id: str | N
             )
 
 
-def _validate_credential_refs(workflow: Workflow, user: User, db: Session) -> None:
-    """Reject workflows referencing unknown/mismatched credentials at
-    save time (spec 24: credentials referenced by nodes exist)."""
+def _validate_credential_refs(
+    workflow: Workflow, user: User, db: Session, allow_unbound: bool = False
+) -> None:
+    """Validate credentials referenced by nodes.
+
+    If allow_unbound is True (e.g. on import, templates, or AI workflow drafts),
+    unresolvable or placeholder credentials are removed from node.credentials so the
+    workflow can be loaded into the canvas for configuration without raising 422.
+    If the user has a valid credential of the matching type, it is automatically bound.
+    """
     for node in workflow.nodes:
         if not node.credentials:
             continue
         node_cls = NODE_REGISTRY.get(node.type)
-        if node_cls is None:
-            continue  # unknown node types are rejected by graph validation
+        supported_cred_types: set[str] = set()
+        if node_cls is not None:
+            supported_cred_types = set(node_cls.credential_types or [])
+        else:
+            # Check registered connectors
+            from app.connectors import ensure_builtin_connectors, get_registry as get_connector_registry
+            ensure_builtin_connectors()
+            c_reg = get_connector_registry()
+            p_conn = c_reg.primary_for_node_type(node.type)
+            if p_conn is not None:
+                c_id = getattr(p_conn, "connector_id", None) or node.type
+                supported_cred_types.add(c_id)
+                try:
+                    c_def = c_reg.get_definition(c_id)
+                    if c_def and getattr(c_def, "operations", None):
+                        for op in c_def.operations.values():
+                            if getattr(op, "credential_require", None):
+                                supported_cred_types.add(str(op.credential_require))
+                except Exception:
+                    pass
+
         for cred_type, cred_id in list(node.credentials.items()):
-            if cred_type not in node_cls.credential_types:
-                raise HTTPException(
-                    status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    f"Node '{node.id}' ({node.type}) does not support '{cred_type}' credentials.",
-                )
-            rec = db.get(Credential, cred_id)
-            if rec is None or rec.user_id != user.id:
-                # Auto-heal: if user has a valid credential of this type, link it
-                user_cred = (
-                    db.query(Credential)
-                    .filter(Credential.user_id == user.id, Credential.type == cred_type)
-                    .order_by(Credential.created_at.desc())
-                    .first()
-                )
-                if user_cred:
-                    node.credentials[cred_type] = user_cred.id
+            is_placeholder = (
+                not cred_id
+                or str(cred_id).startswith("$")
+                or str(cred_id).lower() in ("placeholder", "none", "null", "undefined")
+            )
+
+            # If node class explicitly specifies credentials and cred_type is not supported
+            if supported_cred_types and cred_type not in supported_cred_types:
+                if allow_unbound or is_placeholder:
+                    node.credentials.pop(cred_type, None)
+                    continue
                 else:
                     raise HTTPException(
                         status.HTTP_422_UNPROCESSABLE_CONTENT,
-                        f"Node '{node.id}' references an unknown credential.",
+                        f"Node '{node.id}' ({node.type}) does not support '{cred_type}' credentials.",
                     )
+
+            rec = None if is_placeholder else db.get(Credential, cred_id)
+            if rec is not None and rec.user_id == user.id:
+                # Valid existing credential owned by this user
+                continue
+
+            # Auto-heal: if user has a valid credential of this type, link it
+            user_cred = (
+                db.query(Credential)
+                .filter(Credential.user_id == user.id, Credential.type == cred_type)
+                .order_by(Credential.created_at.desc())
+                .first()
+            )
+            if user_cred is not None:
+                node.credentials[cred_type] = user_cred.id
+            elif allow_unbound or is_placeholder:
+                # User has not connected this credential yet: remove unbound reference
+                # so the workflow imports/creates safely and node is ready for config in canvas
+                node.credentials.pop(cred_type, None)
+            else:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    f"Node '{node.id}' references an unknown credential.",
+                )
 
 
 def _to_dict(rec: WorkflowRecord, permission: str) -> dict[str, Any]:
@@ -220,14 +265,14 @@ def import_workflow(
     if not source_id or db.get(WorkflowRecord, source_id) is not None:
         native["id"] = f"wf_import_{uuid.uuid4().hex[:12]}"
     workflow = validate_workflow_payload(native)
-    _validate_credential_refs(workflow, user, db)
+    _validate_credential_refs(workflow, user, db, allow_unbound=True)
 
     # Ensure imported webhook/trigger paths meet 24+ char entropy and uniqueness requirements
     import re
     from app.models import WebhookTrigger
 
     for node in workflow.nodes:
-        if node.type in ("webhook", "salesforce_trigger"):
+        if node.type in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
             curr_path = str(node.parameters.get("path") or "")
             clean_prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr_path)[:12] or "hook"
             if len(curr_path) < 24:
@@ -275,7 +320,7 @@ def get_workflow_endpoint(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_workflow(body: dict, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     workflow = validate_workflow_payload(body)
-    _validate_credential_refs(workflow, user, db)
+    _validate_credential_refs(workflow, user, db, allow_unbound=True)
     # Phase 23/38: trigger-path entropy + uniqueness on CREATE too (it
     # previously ran only on update, so weak/duplicate paths slipped in).
     _validate_webhook_paths(workflow, db)

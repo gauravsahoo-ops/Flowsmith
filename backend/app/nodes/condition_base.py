@@ -13,7 +13,7 @@ import re
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.engine.errors import NodeExecutionError
 
@@ -53,22 +53,132 @@ DATE_OPERATORS = [
 
 ALL_OPERATORS = list(set(STRING_OPERATORS + NUMBER_OPERATORS + BOOLEAN_OPERATORS + NULL_OPERATORS + ARRAY_OPERATORS + DATE_OPERATORS))
 
-# For backward compat with old literal operators
+# For backward compat with old literal operators and LLM dialects
 LEGACY_OPERATOR_MAP = {
+    # Equality
     "equals": "is equal to",
+    "equal": "is equal to",
+    "eq": "is equal to",
+    "==": "is equal to",
+    "=": "is equal to",
+    "is": "is equal to",
+    "exact": "is equal to",
+    "same": "is equal to",
     "not_equals": "is not equal to",
+    "not_equal": "is not equal to",
+    "neq": "is not equal to",
+    "ne": "is not equal to",
+    "!=": "is not equal to",
+    "!==": "is not equal to",
+    "is_not": "is not equal to",
+    # Substrings & collections
     "contains": "contains",
-    "greater_than": "is greater than",
-    "less_than": "is less than",
+    "contain": "contains",
+    "does_not_contain": "does not contain",
+    "doesnotcontain": "does not contain",
+    "not_contains": "does not contain",
+    "not_contain": "does not contain",
     "starts_with": "starts with",
+    "startswith": "starts with",
+    "does_not_start_with": "does not start with",
+    "doesnotstartwith": "does not start with",
+    "ends_with": "ends with",
+    "endswith": "ends with",
+    "does_not_end_with": "does not end with",
+    "doesnotendwith": "does not end with",
+    # Regex
+    "regex": "matches regex",
+    "matches_regex": "matches regex",
+    "matchesregex": "matches regex",
+    "matches": "matches regex",
+    "match": "matches regex",
+    "does_not_match_regex": "does not match regex",
+    "doesnotmatchregex": "does not match regex",
+    # Numbers / Comparisons
+    "greater_than": "is greater than",
+    "greaterthan": "is greater than",
+    ">": "is greater than",
+    "gt": "is greater than",
+    "greater_than_or_equal": "is greater than or equal to",
+    "greater_than_or_equals": "is greater than or equal to",
+    "greaterthanorequal": "is greater than or equal to",
+    ">=": "is greater than or equal to",
+    "gte": "is greater than or equal to",
+    "less_than": "is less than",
+    "lessthan": "is less than",
+    "<": "is less than",
+    "lt": "is less than",
+    "less_than_or_equal": "is less than or equal to",
+    "less_than_or_equals": "is less than or equal to",
+    "lessthanorequal": "is less than or equal to",
+    "<=": "is less than or equal to",
+    "lte": "is less than or equal to",
+    # Empty / Null / Exists / Boolean
+    "empty": "is empty",
+    "is_empty": "is empty",
+    "isempty": "is empty",
+    "not_empty": "is not empty",
+    "is_not_empty": "is not empty",
+    "isnotempty": "is not empty",
+    "null": "is null",
+    "is_null": "is null",
+    "isnull": "is null",
+    "not_null": "is not null",
+    "is_not_null": "is not null",
+    "isnotnull": "is not null",
     "exists": "exists",
+    "exist": "exists",
+    "does_not_exist": "does not exist",
+    "doesnotexist": "does not exist",
+    "not_exists": "does not exist",
+    "true": "is true",
+    "is_true": "is true",
+    "istrue": "is true",
+    "false": "is false",
+    "is_false": "is false",
+    "isfalse": "is false",
+    # Dates
+    "before": "is before",
+    "is_before": "is before",
+    "isbefore": "is before",
+    "after": "is after",
+    "is_after": "is after",
+    "isafter": "is after",
+    "is_before_or_equal_to": "is before or equal to",
+    "is_after_or_equal_to": "is after or equal to",
 }
 
 
 class Condition(BaseModel):
-    left: Any
-    operator: str
+    left: Any = ""
+    operator: str = "is equal to"
     right: Any = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        d = dict(data)
+        if "left" not in d or d["left"] is None:
+            for k in ("leftValue", "value1", "left_value"):
+                if k in d and d[k] is not None:
+                    d["left"] = d[k]
+                    break
+        if "right" not in d or d["right"] is None:
+            for k in ("rightValue", "value2", "right_value"):
+                if k in d and d[k] is not None:
+                    d["right"] = d[k]
+                    break
+        op = d.get("operator")
+        if isinstance(op, dict):
+            op = op.get("operation") or op.get("operator") or op.get("type") or "is equal to"
+        elif op is None:
+            op = d.get("operation") or "is equal to"
+        op_str = str(op).strip()
+        op_lookup = op_str.lower().replace("-", "_")
+        d["operator"] = LEGACY_OPERATOR_MAP.get(op_lookup, LEGACY_OPERATOR_MAP.get(op_str, op_str))
+        return d
 
 
 class ConditionRow(BaseModel):
@@ -77,6 +187,51 @@ class ConditionRow(BaseModel):
     operator: str = "is equal to"
     right: Any = ""
     combinator: Literal["AND", "OR"] = "AND"
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        d = dict(data)
+        # 1. Alias left / right fields
+        if "left" not in d or d["left"] is None or d["left"] == "":
+            for k in ("leftValue", "value1", "left_value", "lhs", "variable"):
+                if k in d and d[k] is not None:
+                    d["left"] = d[k]
+                    break
+        if "right" not in d or d["right"] is None or d["right"] == "":
+            for k in ("rightValue", "value2", "right_value", "rhs", "value"):
+                if k in d and d[k] is not None:
+                    d["right"] = d[k]
+                    break
+
+        # 2. Clean '={{ expr }}' -> '{{ expr }}'
+        for k in ("left", "right"):
+            val = d.get(k)
+            if isinstance(val, str):
+                s = val.strip()
+                if s.startswith("={") and s.endswith("}"):
+                    d[k] = s[1:]
+
+        # 3. Handle operator (can be dict, e.g. {"operation": "equals", "type": "string"})
+        op = d.get("operator")
+        if isinstance(op, dict):
+            op = op.get("operation") or op.get("operator") or op.get("type") or "is equal to"
+        elif op is None:
+            op = d.get("operation") or "is equal to"
+
+        op_str = str(op).strip()
+        op_lookup = op_str.lower().replace("-", "_")
+        d["operator"] = LEGACY_OPERATOR_MAP.get(op_lookup, LEGACY_OPERATOR_MAP.get(op_str, op_str))
+
+        # 4. Handle combinator
+        comb = d.get("combinator")
+        if isinstance(comb, str):
+            comb_upper = comb.strip().upper()
+            d["combinator"] = comb_upper if comb_upper in ("AND", "OR") else "AND"
+
+        return d
 
 
 def _is_empty(value: Any) -> bool:

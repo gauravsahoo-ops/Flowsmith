@@ -89,14 +89,21 @@ class WorkflowRefRequest(BaseModel):
 
 
 def _llm_credentials(db: Session, user: User, credential_id: str | None) -> list[dict]:
-    metas = [m for m in credential_service.list_for_user(db, user.id) if m["type"] == "llm"]
+    metas = [m for m in credential_service.list_for_user(db, user.id) if m["type"] in ("llm", "openai", "anthropic")]
     if credential_id is not None:
         metas = [m for m in metas if m["id"] == credential_id]
     resolved: list[dict] = []
     for meta in metas:
         try:
             data = credential_service.resolve_credentials(db, user.id, {"llm": meta["id"]})
-            resolved.append({"id": meta["id"], **data["llm"]})
+            cred_dict = {"id": meta["id"], "name": meta.get("name"), **data["llm"]}
+            # Synchronize model and provider fields with dynamic LLM platform
+            sel_model = cred_dict.get("selected_model")
+            if sel_model:
+                cred_dict["model"] = sel_model
+            if not cred_dict.get("provider") and cred_dict.get("provider_id"):
+                cred_dict["provider"] = cred_dict["provider_id"]
+            resolved.append(cred_dict)
         except credential_service.CredentialError:
             continue
     return resolved
@@ -114,7 +121,30 @@ def _pick_llm(db: Session, user: User, credential_id: str | None) -> dict:
 
 @router.get("/status")
 def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    return ok({"configured": len(_llm_credentials(db, user, None)) > 0})
+    creds = _llm_credentials(db, user, None)
+    configured = len(creds) > 0
+    active_info = None
+    if configured:
+        first = creds[0]
+        active_info = {
+            "id": first.get("id"),
+            "name": first.get("name") or "LLM Provider",
+            "provider": first.get("provider") or first.get("provider_id") or "openai",
+            "model": first.get("selected_model") or first.get("model") or "default",
+        }
+    return ok({
+        "configured": configured,
+        "credentials": [
+            {
+                "id": c.get("id"),
+                "name": c.get("name") or c.get("provider") or "LLM Credential",
+                "provider": c.get("provider") or c.get("provider_id") or "openai",
+                "model": c.get("selected_model") or c.get("model") or "default",
+            }
+            for c in creds
+        ],
+        "active": active_info,
+    })
 
 
 @router.post("/explain")
@@ -258,7 +288,7 @@ async def chat_with_agent(
         "session_id": body.session_id,
         "memory_type": body.memory_type,
     }
-    model_choice = llm.get("model") or body.model
+    model_choice = body.model or llm.get("selected_model") or llm.get("model") or llm.get("default_model")
     if model_choice:
         param_kwargs["model"] = model_choice
     if body.tools is not None:
@@ -300,6 +330,7 @@ async def chat_with_agent(
         "tools_used": output_item.get("tools_used") or [],
         "session_id": body.session_id,
         "model": model_choice or "default",
+        "provider": llm.get("provider") or "default",
     })
 
 
@@ -548,4 +579,201 @@ async def auto_fix_endpoint(
     log_event(db, AI_ASSIST, target_type="workflow", target_id=body.workflow_id,
               user_id=user.id, detail={"surface": "auto_fix", "node_id": body.node_id})
     return ok(result)
+
+
+# ----------------------------------------------------------------------
+# AI-Native Workflow Builder Endpoints
+# ----------------------------------------------------------------------
+
+@router.get("/capabilities")
+def get_capabilities(
+    q: str = "",
+    limit: int = 15,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Search registered nodes and connector capabilities."""
+    from app.ai.capabilities import CapabilityRegistry
+    reg = CapabilityRegistry.get_instance()
+    results = reg.search_capabilities(q, limit=limit)
+    return ok(results)
+
+
+class IntentRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=10000)
+    mode: str = "build"  # build | modify | repair
+    credential_id: str | None = None
+    existing_workflow: dict | None = None
+    answers: dict | None = None
+
+
+@router.post("/intent")
+async def extract_intent_endpoint(
+    body: IntentRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Extract structured intent and clarification questions from natural language requirements."""
+    from app.ai.intent import IntentEngine
+
+    llm = _pick_llm(db, user, body.credential_id)
+    intent = await IntentEngine.extract_intent(
+        prompt=body.prompt,
+        chat=chat_completion,
+        llm=llm,
+        existing_workflow=body.existing_workflow,
+        answers=body.answers,
+        mode=body.mode,
+    )
+    return ok(intent.model_dump())
+
+
+class CompileIRRequest(BaseModel):
+    ir: dict[str, Any]
+    credential_id: str | None = None
+
+
+@router.post("/compile")
+def compile_ir_endpoint(
+    body: CompileIRRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Compile WorkflowIR into a concrete Flowsmith DAG document."""
+    from app.ai.compiler import WorkflowCompiler
+    from app.ai.ir import WorkflowIR
+
+    ir_obj = WorkflowIR.model_validate(body.ir)
+    compiled = WorkflowCompiler.compile_ir(ir_obj)
+    return ok({"workflow": compiled})
+
+
+class PipelineValidationRequest(BaseModel):
+    workflow: dict[str, Any]
+    credential_id: str | None = None
+
+
+@router.post("/validate-pipeline")
+def validate_pipeline_endpoint(
+    body: PipelineValidationRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Run full 6-stage validation across structural, connector, data, credential, runtime and security."""
+    from app.ai.pipeline_validator import PipelineValidator
+
+    user_creds = {meta["type"] for meta in credential_service.list_for_user(db, user.id)}
+    report = PipelineValidator.validate_full(body.workflow, user_credentials=user_creds)
+    return ok(report)
+
+
+class SimulateRequest(BaseModel):
+    workflow: dict[str, Any]
+    mock_input: dict[str, Any] | None = None
+    credential_id: str | None = None
+
+
+@router.post("/simulate")
+def simulate_endpoint(
+    body: SimulateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Safely simulate workflow execution with synthetic data propagation and latency estimation."""
+    from app.ai.simulator import WorkflowSimulator
+
+    user_creds = {meta["type"] for meta in credential_service.list_for_user(db, user.id)}
+    sim_res = WorkflowSimulator.simulate(body.workflow, user_credentials=user_creds, mock_input=body.mock_input)
+    return ok(sim_res)
+
+
+class RepairWorkflowRequest(BaseModel):
+    workflow: dict[str, Any]
+    error_message: str
+    execution_trace: list[dict[str, Any]] | None = None
+    credential_id: str | None = None
+
+
+@router.post("/repair-workflow")
+async def repair_workflow_endpoint(
+    body: RepairWorkflowRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Analyze workflow failure and construct validated repair proposal with diff."""
+    from app.ai.repair import WorkflowRepairer
+
+    llm = _pick_llm(db, user, body.credential_id)
+    user_creds = {meta["type"] for meta in credential_service.list_for_user(db, user.id)}
+
+    proposal = await WorkflowRepairer.analyze_and_repair(
+        workflow_doc=body.workflow,
+        error_context=body.error_message,
+        execution_trace=body.execution_trace,
+        chat=chat_completion,
+        llm=llm,
+        user_credentials=user_creds,
+    )
+    return ok(proposal.model_dump())
+
+
+class ModifyWorkflowRequest(BaseModel):
+    workflow: dict[str, Any]
+    instruction: str
+    credential_id: str | None = None
+
+
+@router.post("/modify-workflow")
+async def modify_workflow_endpoint(
+    body: ModifyWorkflowRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Apply surgical natural language modification to an existing workflow and return diff."""
+    from app.ai.modification import WorkflowModifier
+
+    llm = _pick_llm(db, user, body.credential_id)
+    user_creds = {meta["type"] for meta in credential_service.list_for_user(db, user.id)}
+
+    diff = await WorkflowModifier.modify_workflow(
+        current_workflow=body.workflow,
+        instruction=body.instruction,
+        chat=chat_completion,
+        llm=llm,
+        user_credentials=user_creds,
+    )
+    return ok(diff.model_dump())
+
+
+class OptimizeDraftRequest(BaseModel):
+    workflow: dict[str, Any]
+    dimension: str = "cost"
+
+
+@router.post("/optimize-draft")
+def optimize_draft_endpoint(
+    body: OptimizeDraftRequest,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Propose surgical optimizations for cost, latency, or reliability on a draft workflow."""
+    from app.ai.modification import WorkflowModifier
+    res = WorkflowModifier.optimize_workflow(body.workflow, dimension=body.dimension)
+    return ok(res)
+
+
+class ExplainDraftRequest(BaseModel):
+    workflow: dict[str, Any]
+    failure_context: str | None = None
+
+
+@router.post("/explain-draft")
+def explain_draft_endpoint(
+    body: ExplainDraftRequest,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Generate business and technical explanation for a draft workflow, with optional failure diagnosis."""
+    from app.ai.modification import WorkflowModifier
+    res = WorkflowModifier.explain_workflow(body.workflow, failure_context=body.failure_context)
+    return ok(res)
+
+
 

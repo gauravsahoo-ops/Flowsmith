@@ -471,6 +471,15 @@ async def test_credential(
                 raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Cannot decrypt credential.")
 
     async def _run_test(target_data: dict[str, Any]) -> dict[str, Any]:
+        if rec.type == "llm":
+            from app.ai.llm_registry import get_llm_registry
+            from app.ai.llm_adapters import get_adapter_for_provider
+            prov_id = target_data.get("provider") or "openai"
+            prov_def = get_llm_registry().get(prov_id) or get_llm_registry().get("custom")
+            adapter = get_adapter_for_provider(prov_def)
+            live_res = await adapter.test_connection(target_data, variant=target_data.get("variant", ""))
+            return {**live_res, "provider": prov_id}
+
         provider_id = CREDENTIAL_PROVIDER.get(rec.type) or get_provider_for_type(rec.type) or rec.type
         reg = get_provider_registry()
         provider = reg.get(provider_id) or reg.get_by_auth_type(provider_id)

@@ -148,7 +148,7 @@ const NAV = [
   {
     section: 'Automate & AI',
     items: [
-      { id: 'ai', label: 'AI Copilot & Agents', path: '/ai', desc: 'Autonomous chat' },
+      { id: 'ai', label: 'AI Studio', path: '/ai', desc: 'Generative workflows' },
       { id: 'approvals', label: 'Approvals', path: '/approvals', desc: 'Awaiting decision' },
       { id: 'templates', label: 'Templates', path: '/templates', desc: 'Gallery' },
     ],

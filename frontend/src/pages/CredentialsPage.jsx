@@ -12,6 +12,7 @@ import SalesforceOAuthModal from '../components/SalesforceOAuthModal'
 import HubSpotOAuthModal from '../components/HubSpotOAuthModal'
 import GoogleOAuthModal from '../components/GoogleOAuthModal'
 import DynamicsCrmOAuthModal from '../components/DynamicsCrmOAuthModal'
+import LLMCredentialModal from '../components/LLMCredentialModal'
 
 function defaultsFromSchema(schema) {
   const out = {}
@@ -66,6 +67,8 @@ export default function CredentialsPage() {
   const [googleModalOpen, setGoogleModalOpen] = useState(false)
   const [googleModalData, setGoogleModalData] = useState(null)
   const [googleModalService, setGoogleModalService] = useState('google_calendar')
+  const [llmModalOpen, setLlmModalOpen] = useState(false)
+  const [llmModalData, setLlmModalData] = useState(null)
 
   const mountedRef = useRef(true)
   const oauthCleanupRef = useRef(null)
@@ -351,6 +354,30 @@ export default function CredentialsPage() {
           <option value="all">All types</option>
           {types.map(t => <option key={t.type} value={t.type}>{t.name}</option>)}
         </select>
+        <button
+          type="button"
+          onClick={() => {
+            setLlmModalData(null)
+            setLlmModalOpen(true)
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+            border: 'none',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: 12.5,
+            padding: '6px 14px',
+            borderRadius: 6,
+            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)',
+            cursor: 'pointer',
+          }}
+        >
+          <span>⚡</span>
+          <span>Add LLM Credential</span>
+        </button>
         <span className="hint">{filtered.length}/{credentials.length}</span>
       </div>
 
@@ -474,8 +501,23 @@ export default function CredentialsPage() {
                         textTransform: 'capitalize'
                       }}
                     >
-                      {c.type.replace(/_/g, ' ')}
+                      {c.type === 'llm' ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          <span>⚡</span>
+                          <span>LLM</span>
+                          {c.data?.provider && <span style={{ opacity: 0.85, fontWeight: 400 }}>({c.data.provider})</span>}
+                        </span>
+                      ) : (
+                        c.type.replace(/_/g, ' ')
+                      )}
                     </span>
+                    {c.type === 'llm' && c.data?.selected_model && (
+                      <div style={{ marginTop: 3 }}>
+                        <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', fontSize: 10.5, border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                          {c.data.selected_model}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td>
                     <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>
@@ -549,12 +591,17 @@ export default function CredentialsPage() {
                         type="button"
                         className="ghost small"
                         onClick={() => {
-                          setEditTarget(c)
-                          setEditName(c.name)
-                          setEditData({})
-                          setEditModalOpen(true)
+                          if (c.type === 'llm') {
+                            setLlmModalData(c)
+                            setLlmModalOpen(true)
+                          } else {
+                            setEditTarget(c)
+                            setEditName(c.name)
+                            setEditData({})
+                            setEditModalOpen(true)
+                          }
                         }}
-                        title="Rotate secrets or edit credential"
+                        title={c.type === 'llm' ? "Configure LLM provider & models" : "Rotate secrets or edit credential"}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -563,6 +610,27 @@ export default function CredentialsPage() {
                         </svg>
                         <span>Edit</span>
                       </button>
+
+                      {c.type === 'llm' && (
+                        <button
+                          type="button"
+                          className="ghost small"
+                          onClick={() => {
+                            setLlmModalData(c)
+                            setLlmModalOpen(true)
+                          }}
+                          title="Open LLM Model Discovery & Provider Settings"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            color: '#818cf8',
+                            borderColor: 'rgba(99, 102, 241, 0.3)',
+                          }}
+                        >
+                          <span>⚡ Models</span>
+                        </button>
+                      )}
 
                       {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                         <button
@@ -790,6 +858,11 @@ export default function CredentialsPage() {
           <SearchableSelect
             value={form.type}
             onChange={val => {
+              if (val === 'llm') {
+                setLlmModalData(null)
+                setLlmModalOpen(true)
+                return
+              }
               const selectedType = types.find(t => t.type === val)
               setForm(prev => ({
                 ...prev,
@@ -1548,6 +1621,19 @@ export default function CredentialsPage() {
           } catch (err) {
             setError(err?.message || 'Failed to save Microsoft Dynamics 365 configuration.')
           }
+        }}
+      />
+
+      <LLMCredentialModal
+        open={llmModalOpen}
+        onClose={() => {
+          setLlmModalOpen(false)
+          setLlmModalData(null)
+        }}
+        initialData={llmModalData}
+        onSuccess={async () => {
+          await load()
+          setNotice('LLM Provider Credential saved successfully.')
         }}
       />
 
