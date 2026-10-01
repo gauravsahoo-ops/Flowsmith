@@ -55,10 +55,10 @@ my-automation-tool
 .agents/
 
 # Markdown documentation & specifications (ignored for Bitbucket)
+README.md
+USER_MANUAL.md
 *.md
 **/*.md
-!README.md
-!USER_MANUAL.md
 
 
 
