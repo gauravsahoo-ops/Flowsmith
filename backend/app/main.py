@@ -23,7 +23,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.api import admin, ai, audit, auth, billing, branding, code, connectors, credentials, data_tables, environments, executions, files, integrations, mcp, monitoring, nodes, oauth, organizations, rag, salesforce_events, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
+from app.api import admin, ai, audit, auth, billing, branding, code, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, monitoring, nodes, oauth, organizations, rag, salesforce_events, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
 from app.api.auth import get_current_user
 from app.api.common import ok
 from app.config import get_settings
@@ -282,6 +282,7 @@ app.include_router(oauth.router)
 app.include_router(users.router)
 app.include_router(admin.router)
 app.include_router(ai.router)
+app.include_router(llm.router)
 app.include_router(billing.router)
 app.include_router(credentials.router)
 app.include_router(environments.router)

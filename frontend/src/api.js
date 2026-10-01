@@ -5,10 +5,12 @@ const TOKEN_KEY = 'mat_token'
 const DEFAULT_TIMEOUT_MS = 30000
 
 export function getToken() {
+  if (typeof localStorage === 'undefined') return null
   return localStorage.getItem(TOKEN_KEY)
 }
 
 export function setToken(token) {
+  if (typeof localStorage === 'undefined') return
   if (token) localStorage.setItem(TOKEN_KEY, token)
   else localStorage.removeItem(TOKEN_KEY)
 }
@@ -276,6 +278,14 @@ export const api = {
   explainWorkflow: (workflowId) => request('POST', '/ai/explain-workflow', { workflow_id: workflowId }),
   documentWorkflow: (workflowId) => request('POST', '/ai/document-workflow', { workflow_id: workflowId }),
   autoFixNode: (payload) => request('POST', '/ai/auto-fix', payload),
+  // AI-Native Workflow Builder API
+  getAiCapabilities: (q = '', limit = 15) => request('GET', `/ai/capabilities?q=${encodeURIComponent(q)}&limit=${limit}`),
+  extractIntent: (payload) => request('POST', '/ai/intent', payload),
+  compileIR: (payload) => request('POST', '/ai/compile', payload),
+  validatePipeline: (workflow, credentialId = null) => request('POST', '/ai/validate-pipeline', { workflow, credential_id: credentialId }),
+  simulateWorkflow: (workflow, mockInput = null, credentialId = null) => request('POST', '/ai/simulate', { workflow, mock_input: mockInput, credential_id: credentialId }),
+  repairWorkflow: (payload) => request('POST', '/ai/repair-workflow', payload),
+  modifyWorkflow: (payload) => request('POST', '/ai/modify-workflow', payload),
   // Data Tables (DATA-TABLES-01)
   listDataTables: (params = {}) => {
     const q = new URLSearchParams()
@@ -366,5 +376,36 @@ export const api = {
   getIntegrationCoverage: () => request('GET', '/integrations/coverage'),
   getIntegrationCertification: () => request('GET', '/integrations/certification'),
   listCanonicalNodes: () => request('GET', '/integrations/canonical-nodes'),
+  // Multi-Provider LLM Platform
+  listLLMProviders: (params) => {
+    const q = new URLSearchParams()
+    if (params?.q) q.set('q', params.q)
+    if (params?.category) q.set('category', params.category)
+    if (params?.status) q.set('status', params.status)
+    const qs = q.toString() ? `?${q.toString()}` : ''
+    return request('GET', `/llm/providers${qs}`)
+  },
+  getLLMProvider: (providerId) => request('GET', `/llm/providers/${encodeURIComponent(providerId)}`),
+  testLLMConnection: (payload) => request('POST', '/llm/test-connection', payload),
+  discoverLLMModels: (payload) => request('POST', '/llm/discover-models', payload),
+  getLLMCredentialModels: (credId, refresh = false) => request('GET', `/llm/credentials/${credId}/models?refresh=${refresh}`),
+  refreshLLMCredentialModels: (credId) => request('POST', `/llm/credentials/${credId}/refresh-models`),
+  // AI Builder Pipeline Methods
+  aiCapabilities: (q = '', category = '') => {
+    const p = new URLSearchParams()
+    if (q) p.set('q', q)
+    if (category) p.set('category', category)
+    const qs = p.toString() ? `?${p.toString()}` : ''
+    return request('GET', `/ai/capabilities${qs}`)
+  },
+  aiIntent: (prompt, credentialId) => request('POST', '/ai/intent', { prompt, credential_id: credentialId }),
+  aiCompile: (ir) => request('POST', '/ai/compile', { ir }),
+  aiValidatePipeline: (workflow) => request('POST', '/ai/validate-pipeline', { workflow }),
+  aiSimulate: (workflow, mockInput = null) => request('POST', '/ai/simulate', { workflow, mock_input: mockInput }),
+  aiRepairWorkflow: (workflow, errorMessage, executionTrace = null) => request('POST', '/ai/repair-workflow', { workflow, error_message: errorMessage, execution_trace: executionTrace }),
+  aiModifyWorkflow: (workflow, instruction) => request('POST', '/ai/modify-workflow', { workflow, instruction }),
+  aiOptimizeDraft: (workflow, dimension = 'cost') => request('POST', '/ai/optimize-draft', { workflow, dimension }),
+  aiExplainDraft: (workflow, failureContext = null) => request('POST', '/ai/explain-draft', { workflow, failure_context: failureContext }),
 }
+
 

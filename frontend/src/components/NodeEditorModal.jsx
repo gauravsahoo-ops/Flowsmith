@@ -42,6 +42,7 @@ const TokenFetchNodeEditor = lazy(() => import('./TokenFetchNodeEditor'))
 const TokenStoreNodeEditor = lazy(() => import('./TokenStoreNodeEditor'))
 const SetVariableNodeEditor = lazy(() => import('./SetVariableNodeEditor'))
 const DataTableDiscovery = lazy(() => import('./DataTableDiscovery'))
+const AINodeEditor = lazy(() => import('./AINodeEditor'))
 import {
   IDEMPOTENCY_LABEL,
   IDEMPOTENCY_HINT,
@@ -670,6 +671,15 @@ export default function NodeEditorModal() {
                     <TokenStoreNodeEditor
                       node={node}
                       onParamsChange={handleParamsChange}
+                      mapping={mapping}
+                      onPreview={previewExpression}
+                    />
+                  ) : (node.type === 'ai') ? (
+                    <AINodeEditor
+                      node={node}
+                      onParamsChange={handleParamsChange}
+                      credentials={credentials}
+                      onCredentialChange={setCredential}
                       mapping={mapping}
                       onPreview={previewExpression}
                     />

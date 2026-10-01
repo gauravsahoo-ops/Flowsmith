@@ -227,3 +227,78 @@ def test_catalog_summary_counts_real_surface():
     assert counts["nodes"] >= 20
     assert counts["connectors"] >= 15
     assert counts["operations"] >= counts["connectors"]
+
+
+# ----------------------------------------------------------------------
+# multi-provider condition normalization
+# ----------------------------------------------------------------------
+
+def test_if_condition_with_nested_dict_and_operator_dict_passes():
+    cand = _wf(
+        [
+            {"id": "start", "type": "manual_trigger", "parameters": {}},
+            {
+                "id": "check",
+                "type": "if_condition",
+                "parameters": {
+                    "combinator": "OR",
+                    "conditions": {
+                        "combinator": "OR",
+                        "conditions": [
+                            {
+                                "leftValue": "={{ $json.type }}",
+                                "operator": {"operation": "equals", "type": "string"},
+                                "rightValue": "payment_intent.succeeded",
+                            }
+                        ],
+                    },
+                },
+            },
+            {
+                "id": "log",
+                "type": "set_data",
+                "parameters": {"fields": {"status": "paid"}},
+            },
+        ],
+        [
+            {"source": "start", "target": "check"},
+            {"source": "check", "sourceHandle": "true", "target": "log"},
+        ],
+    )
+    report = validate_candidate(cand, available_credentials=set())
+    assert report["ok"] is True, report["errors"]
+
+
+def test_parse_candidate_with_reasoning_and_fences():
+    from app.ai.generation import _parse_candidate
+
+    raw_output = """<think>
+User wants to handle stripe webhooks and send messages.
+I will generate a workflow JSON.
+</think>
+Here is your workflow:
+```json
+{
+  "name": "Stripe Webhook Handler",
+  "nodes": [
+    {"id": "t", "type": "manual_trigger", "parameters": {}},
+    {"id": "if1", "type": "if_condition", "parameters": {
+      "conditions": {
+        "conditions": [
+          {"leftValue": "={{ $json.event }}", "operator": {"operation": "=="}, "rightValue": "charge.failed"}
+        ]
+      }
+    }}
+  ],
+  "connections": [{"source": "t", "target": "if1"}]
+}
+```
+Enjoy your automation!"""
+
+    parsed = _parse_candidate(raw_output)
+    assert parsed is not None
+    assert parsed["name"] == "Stripe Webhook Handler"
+    assert len(parsed["nodes"]) == 2
+    report = validate_candidate(parsed, available_credentials=set())
+    assert report["ok"] is True, report["errors"]
+

@@ -34,6 +34,8 @@ class AIParams(BaseModel):
     response_format: str = Field(default="text", pattern="^(text|json)$")
     max_turns: int = Field(default=8, ge=1, le=20, description="Max model/tool round trips.")
     tools: list[str] = Field(default_factory=list, description="Tools the model may call.")
+    provider: str = Field(default="", description="Optional provider identifier (e.g. openai, anthropic, groq, etc.).")
+    model: str = Field(default="", description="Selected model identifier.")
 
 
 @register
@@ -55,12 +57,19 @@ class AINode(BaseNode[AIParams]):
         params: AIParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
-        llm_cred = ctx.credentials.get("llm")
-        if not llm_cred:
+        raw_cred = ctx.credentials.get("llm")
+        if not raw_cred:
             raise NodeExecutionError(
                 "The AI node needs an 'llm' credential.",
                 code="CREDENTIALS_REQUIRED", node_id="ai", retryable=False,
             )
+        llm_cred = dict(raw_cred)
+        if params.provider:
+            llm_cred["provider"] = params.provider
+        if params.model:
+            llm_cred["model"] = params.model
+        elif llm_cred.get("selected_model"):
+            llm_cred["model"] = llm_cred["selected_model"]
 
         invalid = [t for t in params.tools if t not in TOOLS]
         if invalid:

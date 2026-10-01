@@ -26,6 +26,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from pydantic import ValidationError
+
 from app.ai.catalog import build_connector_entries
 from app.engine.errors import WorkflowValidationError
 from app.engine.expressions import _EXPR_RE
@@ -207,7 +209,27 @@ def validate_candidate(candidate: dict[str, Any], *, available_credentials: set[
     errors: list[dict] = []
     warnings: list[dict] = []
 
-    workflow = Workflow.model_validate({**candidate, "id": candidate.get("id") or "wf_ai"})
+    if not isinstance(candidate, dict):
+        return {
+            "ok": False,
+            "errors": [_issue("INVALID_PARAMETER", message="Candidate must be a JSON object.")],
+            "warnings": [],
+        }
+
+    try:
+        workflow = Workflow.model_validate({**candidate, "id": candidate.get("id") or "wf_ai"})
+    except (ValidationError, ValueError, Exception) as exc:
+        raw_issues = getattr(exc, "issues", None)
+        if raw_issues:
+            for raw in raw_issues:
+                errors.append(_issue("INVALID_PARAMETER", node_id=raw.get("node_id"), field=raw.get("field"), message=raw.get("message") or str(raw)))
+        elif hasattr(exc, "errors") and callable(exc.errors):
+            for err in exc.errors():
+                loc = ".".join(str(p) for p in err.get("loc", []))
+                errors.append(_issue("INVALID_PARAMETER", field=loc, message=err.get("msg", str(err))))
+        else:
+            errors.append(_issue("INVALID_PARAMETER", message=str(exc)))
+        return {"ok": False, "errors": errors, "warnings": warnings}
 
     # 1-4: engine validation with FULL parameter checks + acyclicity.
     try:

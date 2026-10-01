@@ -107,9 +107,9 @@ class AIAgentNode(BaseNode[AgentParams]):
     @staticmethod
     def _extract_final_answer(content: str | None) -> str | None:
         """Extract final answer string from LLM response text or JSON payload."""
-        if not content or not str(content).strip():
+        if not content or not content.strip():
             return None
-        text = str(content).strip()
+        text = content.strip()
 
         # 1. Strip markdown fences if present
         if text.startswith("```"):
@@ -171,6 +171,8 @@ class AIAgentNode(BaseNode[AgentParams]):
         effective_cred = dict(llm_cred)
         if params.model:
             effective_cred["model"] = params.model
+        elif effective_cred.get("selected_model"):
+            effective_cred["model"] = effective_cred["selected_model"]
 
         # Determine prompt / user input
         user_input = params.input.strip()

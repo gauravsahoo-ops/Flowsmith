@@ -36,7 +36,41 @@ class FilterParams(BaseModel):
         if not isinstance(data, dict):
             return data
         d = dict(data)
-        if "conditions" not in d or d["conditions"] is None:
+
+        # Unpack nested dict conditions (e.g., n8n dialect or wrapper dicts)
+        if isinstance(d.get("conditions"), dict):
+            cond_dict = d["conditions"]
+            if "combinator" in cond_dict and isinstance(cond_dict["combinator"], str):
+                inner_comb = cond_dict["combinator"].strip().upper()
+                if inner_comb in ("AND", "OR"):
+                    d["combinator"] = inner_comb
+            elif "all" in cond_dict:
+                d["combinator"] = "AND"
+            elif "any" in cond_dict:
+                d["combinator"] = "OR"
+
+            extracted_list = None
+            if "conditions" in cond_dict and isinstance(cond_dict["conditions"], list):
+                extracted_list = cond_dict["conditions"]
+            elif "rules" in cond_dict and isinstance(cond_dict["rules"], list):
+                extracted_list = cond_dict["rules"]
+            elif "all" in cond_dict and isinstance(cond_dict["all"], list):
+                extracted_list = cond_dict["all"]
+            elif "any" in cond_dict and isinstance(cond_dict["any"], list):
+                extracted_list = cond_dict["any"]
+            elif "values" in cond_dict and isinstance(cond_dict["values"], list):
+                extracted_list = cond_dict["values"]
+            else:
+                typed_list = []
+                for k, v in cond_dict.items():
+                    if isinstance(v, list):
+                        typed_list.extend(v)
+                if typed_list:
+                    extracted_list = typed_list
+
+            d["conditions"] = extracted_list or []
+
+        if not d.get("conditions"):
             if "condition" in d and d["condition"] is not None:
                 cond = d["condition"]
                 if hasattr(cond, "model_dump"):
@@ -49,21 +83,29 @@ class FilterParams(BaseModel):
                     cond_dict = {"left": getattr(cond, "left", ""), "operator": getattr(cond, "operator", "is equal to"), "right": getattr(cond, "right", "")}
 
                 op_raw = cond_dict.get("operator")
-                op_str = str(op_raw) if op_raw is not None else "is equal to"
-                op = LEGACY_OPERATOR_MAP.get(op_str, op_str)
+                if isinstance(op_raw, dict):
+                    op_raw = op_raw.get("operation") or op_raw.get("operator") or op_raw.get("type") or "is equal to"
+                elif op_raw is None:
+                    op_raw = cond_dict.get("operation") or "is equal to"
+                op_str = str(op_raw).strip()
+                op = LEGACY_OPERATOR_MAP.get(op_str.lower().replace("-", "_"), LEGACY_OPERATOR_MAP.get(op_str, op_str))
                 d["conditions"] = [
                     {
                         "id": "legacy",
-                        "left": cond_dict.get("left", ""),
+                        "left": cond_dict.get("left", cond_dict.get("leftValue", "")),
                         "operator": op,
-                        "right": cond_dict.get("right", ""),
+                        "right": cond_dict.get("right", cond_dict.get("rightValue", "")),
                         "combinator": "AND",
                     }
                 ]
             elif "leftValue" in d or "left" in d:
                 op_raw = d.get("operator")
-                op_str = str(op_raw) if op_raw is not None else "is equal to"
-                op = LEGACY_OPERATOR_MAP.get(op_str, op_str)
+                if isinstance(op_raw, dict):
+                    op_raw = op_raw.get("operation") or op_raw.get("operator") or op_raw.get("type") or "is equal to"
+                elif op_raw is None:
+                    op_raw = d.get("operation") or "is equal to"
+                op_str = str(op_raw).strip()
+                op = LEGACY_OPERATOR_MAP.get(op_str.lower().replace("-", "_"), LEGACY_OPERATOR_MAP.get(op_str, op_str))
                 d["conditions"] = [
                     {
                         "id": "legacy",
@@ -77,35 +119,68 @@ class FilterParams(BaseModel):
                 d["conditions"] = [
                     {"id": "default", "left": "", "operator": "is equal to", "right": "", "combinator": "AND"}
                 ]
+
         if isinstance(d.get("conditions"), list):
             new_conds = []
             for idx, c in enumerate(d["conditions"]):
                 c_dict: dict[str, Any]
                 if isinstance(c, dict):
-                    c_dict = c
+                    c_dict = dict(c)
                 elif hasattr(c, "model_dump"):
                     c_dict = getattr(c, "model_dump")()
                 elif hasattr(c, "__dict__"):
-                    c_dict = getattr(c, "__dict__")
+                    c_dict = dict(getattr(c, "__dict__"))
                 else:
                     continue
-                c = c_dict
-                op_raw = c.get("operator")
-                op_str = str(op_raw) if op_raw is not None else "is equal to"
-                op = LEGACY_OPERATOR_MAP.get(op_str, op_str)
-                comb = c.get("combinator", "AND")
+
+                op_raw = c_dict.get("operator")
+                if isinstance(op_raw, dict):
+                    op_raw = op_raw.get("operation") or op_raw.get("operator") or op_raw.get("type") or "is equal to"
+                elif op_raw is None:
+                    op_raw = c_dict.get("operation") or "is equal to"
+                op_str = str(op_raw).strip()
+                op = LEGACY_OPERATOR_MAP.get(op_str.lower().replace("-", "_"), LEGACY_OPERATOR_MAP.get(op_str, op_str))
+
+                left_val = c_dict.get("left")
+                if left_val is None or left_val == "":
+                    for k in ("leftValue", "value1", "left_value", "lhs", "variable"):
+                        if k in c_dict and c_dict[k] is not None:
+                            left_val = c_dict[k]
+                            break
+                if left_val is None:
+                    left_val = ""
+
+                right_val = c_dict.get("right")
+                if right_val is None or right_val == "":
+                    for k in ("rightValue", "value2", "right_value", "rhs", "value"):
+                        if k in c_dict and c_dict[k] is not None:
+                            right_val = c_dict[k]
+                            break
+                if right_val is None:
+                    right_val = ""
+
+                if isinstance(left_val, str) and left_val.strip().startswith("={") and left_val.strip().endswith("}"):
+                    left_val = left_val.strip()[1:]
+                if isinstance(right_val, str) and right_val.strip().startswith("={") and right_val.strip().endswith("}"):
+                    right_val = right_val.strip()[1:]
+
+                comb = c_dict.get("combinator", "AND")
                 if idx == 0:
                     comb = "AND"
-                elif comb not in ("AND", "OR"):
+                elif str(comb).upper() not in ("AND", "OR"):
                     comb = "AND"
+                else:
+                    comb = str(comb).upper()
+
                 new_conds.append({
-                    "id": c.get("id") or f"cond_{idx}",
-                    "left": c.get("left", ""),
+                    "id": c_dict.get("id") or f"cond_{idx}",
+                    "left": left_val,
                     "operator": op,
-                    "right": c.get("right", ""),
+                    "right": right_val,
                     "combinator": comb,
                 })
             d["conditions"] = new_conds
+
         if "convertTypes" not in d and "convert_types" in d:
             d["convertTypes"] = bool(d.pop("convert_types"))
         return d

@@ -384,6 +384,28 @@ export default function WorkflowsPage() {
               </button>
               {createOpen && (
                 <div className="dropdown-menu" role="menu">
+                  <button
+                    role="menuitem"
+                    className="dropdown-item--ai-builder"
+                    onClick={() => { setCreateOpen(false); navigate('/ai?tab=builder') }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      background: 'rgba(99, 102, 241, 0.08)',
+                      borderBottom: '1px solid var(--border, #334155)',
+                      textAlign: 'left',
+                      width: '100%',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ fontSize: '18px', marginTop: '1px' }}>✨</span>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent, #6366f1)', fontSize: '13px' }}>AI Builder</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', marginTop: '2px' }}>Describe what you want</div>
+                    </div>
+                  </button>
                   <button role="menuitem" onClick={handleCreateBlank} disabled={busy}>Blank workflow</button>
                   <button role="menuitem" onClick={() => { setCreateOpen(false); navigate('/templates') }}>From template</button>
                   <button role="menuitem" onClick={() => { setCreateOpen(false); fileRef.current?.click() }}>Import from file</button>

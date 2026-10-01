@@ -8,7 +8,7 @@ ignore case, send to all matching outputs, and type conversion.
 from __future__ import annotations
 
 from typing import Any, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.engine import expressions as _expr
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
@@ -62,6 +62,31 @@ class SwitchRule(BaseModel):
     rename_output: bool = Field(default=False, description="Whether to customize the output name")
     output_name: str = Field(default="", description="Custom output name")
     output: str = Field(default="", description="Route handle key")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        d = dict(data)
+        if "value1" not in d or d["value1"] is None or d["value1"] == "":
+            for k in ("leftValue", "left", "value_1"):
+                if k in d and d[k] is not None:
+                    d["value1"] = d[k]
+                    break
+        if "value2" not in d or d["value2"] is None or d["value2"] == "":
+            for k in ("rightValue", "right", "value_2"):
+                if k in d and d[k] is not None:
+                    d["value2"] = d[k]
+                    break
+        op = d.get("operator")
+        if isinstance(op, dict):
+            op = op.get("operation") or op.get("operator") or op.get("type") or "is equal to"
+        elif op is None:
+            op = d.get("operation") or "is equal to"
+        op_str = str(op).strip()
+        d["operator"] = LEGACY_OPERATOR_MAP.get(op_str.lower().replace("-", "_"), LEGACY_OPERATOR_MAP.get(op_str, op_str))
+        return d
 
 
 class SwitchParams(BaseModel):

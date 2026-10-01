@@ -51,13 +51,28 @@ class HTTPCredential(BaseModel):
 
 
 class LLMCredential(BaseModel):
+    provider: str = Field(default="openai", description="Selected LLM provider ID.")
+    variant: str = Field(default="", description="Provider regional or plan variant.")
     base_url: str = Field(
         default="https://api.openai.com/v1",
-        min_length=1,
-        description="OpenAI-compatible /chat/completions base URL (OpenAI, Ollama, LM Studio...).",
+        description="Base URL for provider endpoint.",
     )
-    api_key: str = Field(default="", description="API key (leave empty for local servers like Ollama).")
-    model: str = Field(default="gpt-4o-mini", min_length=1, description="Model name.")
+    api_key: str = Field(default="", description="API key or token.")
+    model: str = Field(default="gpt-4o-mini", description="Model name or default identifier.")
+    selected_model: str = Field(default="", description="Preferred selected model.")
+    organization: str = Field(default="", description="Optional organization identifier.")
+    api_version: str = Field(default="", description="Optional API version.")
+    access_key_id: str = Field(default="", description="AWS Access Key ID for Bedrock.")
+    secret_access_key: str = Field(default="", description="AWS Secret Access Key for Bedrock.")
+    region: str = Field(default="", description="Cloud region.")
+    session_token: str = Field(default="", description="AWS Session Token.")
+    deployment: str = Field(default="", description="Azure deployment name.")
+    endpoint: str = Field(default="", description="Custom endpoint or instance URL.")
+    models_endpoint: str = Field(default="/models", description="Endpoint for model discovery.")
+    chat_endpoint: str = Field(default="/chat/completions", description="Endpoint for chat completions.")
+    provider_name: str = Field(default="", description="Custom provider display name.")
+    default_model: str = Field(default="", description="Custom provider fallback model.")
+    custom_headers: dict[str, str] = Field(default_factory=dict, description="Custom HTTP headers.")
     timeout_s: int = Field(default=60, ge=1, le=300, description="Request timeout in seconds.")
 
 
