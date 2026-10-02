@@ -153,8 +153,10 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
                 type="button"
                 className="op-btn-repair"
                 onClick={onAutoRepair}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                ⚡ Flowsmith AI Self-Healing Diagnostic
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>Flowsmith AI Self-Healing Diagnostic</span>
               </button>
             )
           }
@@ -165,8 +167,10 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
                 className="op-btn-retest"
                 onClick={onExecuteStep}
                 disabled={executing}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                🔄 Re-test Step
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                <span>Re-test Step</span>
               </button>
             )
           }
@@ -193,8 +197,10 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
                 className="op-btn-repair"
                 onClick={onAutoRepair}
                 title="Diagnose root cause and automatically propose fix"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                ⚡ AI Auto-Repair
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>AI Auto-Repair</span>
               </button>
             )}
             {onExecuteStep && (
@@ -203,8 +209,10 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
                 className="op-btn-retest"
                 onClick={onExecuteStep}
                 disabled={executing}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                🔄 Re-test
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                <span>Re-test</span>
               </button>
             )}
           </div>
@@ -221,8 +229,10 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
                 navigator.clipboard?.writeText(url)
               }}
               title="Copy request URL"
+              aria-label="Copy request URL"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              📋
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
             </button>
           </div>
         )}
@@ -269,8 +279,19 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
                 type="button"
                 className="op-error-copy-btn-action"
                 onClick={handleCopyBody}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
               >
-                {copied ? '✓ Copied' : '📋 Copy Response Body'}
+                {copied ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    <span>Copy Response Body</span>
+                  </>
+                )}
               </button>
             </div>
             <pre className="op-error-pre">{formattedBody}</pre>
@@ -509,8 +530,9 @@ export default function OutputPanel({
           )}
           {pinned && <span className="nem-upstream-badge badge-skipped">PINNED</span>}
           {copiedSnippet && (
-            <span className="nem-input-copied-toast" title={copiedSnippet}>
-              ✓ {copiedSnippet}
+            <span className="nem-input-copied-toast" title={copiedSnippet} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>{copiedSnippet}</span>
             </span>
           )}
         </div>
@@ -627,8 +649,10 @@ export default function OutputPanel({
             onClick={handlePin}
             title={pinned ? 'Unpin output data' : 'Pin output data'}
             disabled={isEmpty}
+            aria-label="Pin output data"
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            📌
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
           </button>
         </div>
       </div>
@@ -649,8 +673,10 @@ export default function OutputPanel({
               type="button"
               className="nem-input-search-clear"
               onClick={() => setSearch('')}
+              aria-label="Clear search"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           )}
         </div>
@@ -684,7 +710,10 @@ export default function OutputPanel({
       {/* Pinned Notification Banner */}
       {pinned && !isEditing && (
         <div className="op-pinned-banner">
-          <span>📌 Pinned mock/override data active</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+            <span>Pinned mock/override data active</span>
+          </span>
           <button className="ghost op-btn small" onClick={handlePin}>
             Unpin
           </button>
@@ -710,8 +739,14 @@ export default function OutputPanel({
                       setSelectedBranch(bKey)
                       setCurrentItemIdx(0)
                     }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
-                    {bKey === 'true' ? '✓ true' : bKey === 'false' ? '✗ false' : bKey} ({count})
+                    {bKey === 'true' ? (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    ) : bKey === 'false' ? (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    ) : null}
+                    <span>{bKey} ({count})</span>
                   </button>
                 )
               })}
@@ -727,8 +762,10 @@ export default function OutputPanel({
                 disabled={safeItemIdx <= 0}
                 onClick={() => setCurrentItemIdx((prev) => Math.max(0, prev - 1))}
                 title="Previous item"
+                aria-label="Previous item"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                ◀
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
               <span className="nem-pager-label">
                 Item {safeItemIdx + 1} of {totalItemsCount}
@@ -739,8 +776,10 @@ export default function OutputPanel({
                 disabled={safeItemIdx >= totalItemsCount - 1}
                 onClick={() => setCurrentItemIdx((prev) => Math.min(totalItemsCount - 1, prev + 1))}
                 title="Next item"
+                aria-label="Next item"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                ▶
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
             </div>
           )}
@@ -791,8 +830,19 @@ export default function OutputPanel({
                       setCopiedSnippet('Error JSON copied')
                       setTimeout(() => setCopiedSnippet(null), 2000)
                     }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
-                    {copiedSnippet === 'Error JSON copied' ? '✓ Copied' : '📋 Copy Error JSON'}
+                    {copiedSnippet === 'Error JSON copied' ? (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <span>Copy Error JSON</span>
+                      </>
+                    )}
                   </button>
                 </div>
                 <JsonTree value={typeof error === 'object' && error !== null ? error : { error: String(error) }} defaultExpandDepth={3} />
@@ -813,8 +863,19 @@ export default function OutputPanel({
                       setCopiedSnippet('Table copied')
                       setTimeout(() => setCopiedSnippet(null), 2000)
                     }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
-                    {copiedSnippet === 'Table copied' ? '✓ Copied' : '📋 Copy Table'}
+                    {copiedSnippet === 'Table copied' ? (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <span>Copy Table</span>
+                      </>
+                    )}
                   </button>
                 </div>
                 <TableView data={errorTableData} />
@@ -862,8 +923,10 @@ export default function OutputPanel({
                 className="primary small nem-empty-btn"
                 onClick={onExecuteStep}
                 disabled={executing}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
               >
-                ▶ Execute Step
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Execute Step</span>
               </button>
             )}
           </div>
@@ -919,14 +982,16 @@ export default function OutputPanel({
                 <div className="op-binary-grid">
                   {binaryEntries.map((bin, idx) => (
                     <div key={idx} className="op-binary-card">
-                      <div className="op-binary-card-icon">
-                        {bin.mimeType?.startsWith('image/')
-                          ? '🖼️'
-                          : bin.mimeType === 'application/pdf'
-                            ? '📄'
-                            : bin.mimeType?.startsWith('text/')
-                              ? '📝'
-                              : '📁'}
+                      <div className="op-binary-card-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {bin.mimeType?.startsWith('image/') ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                        ) : bin.mimeType === 'application/pdf' ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        ) : bin.mimeType?.startsWith('text/') ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" x2="3" y1="6" y2="6"/><line x1="21" x2="3" y1="12" y2="12"/><line x1="15" x2="3" y1="18" y2="18"/></svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+                        )}
                       </div>
                       <div className="op-binary-card-info">
                         <div className="op-binary-card-name" title={bin.fileName}>
@@ -943,8 +1008,10 @@ export default function OutputPanel({
                           className="op-btn small primary"
                           onClick={() => setSelectedBinaryModal(bin)}
                           title="Preview file"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                         >
-                          👁️ View
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                          <span>View</span>
                         </button>
                         <button
                           type="button"
@@ -962,8 +1029,10 @@ export default function OutputPanel({
                             document.body.removeChild(a)
                           }}
                           title="Download file"
+                          aria-label="Download file"
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         >
-                          ⬇️
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                         </button>
                       </div>
                     </div>
@@ -992,8 +1061,10 @@ export default function OutputPanel({
               setPinned(null)
             }}
             title="Clear output and unpin"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
           >
-            🗑 Clear
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            <span>Clear</span>
           </button>
         ) : (
           <span />

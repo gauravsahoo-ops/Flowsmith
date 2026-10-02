@@ -296,8 +296,13 @@ export default function SettingsPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <label className="button ghost small" style={{ cursor: 'pointer', margin: 0 }}>
-                      <span>📁 Upload Logo Image</span>
+                    <label className="button ghost small" style={{ cursor: 'pointer', margin: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      <span>Upload Logo Image</span>
                       <input
                         type="file"
                         accept="image/png,image/svg+xml,image/jpeg,image/webp"
@@ -423,8 +428,13 @@ export default function SettingsPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
-              <button className="primary" type="submit" disabled={brandBusy}>
-                {brandBusy ? 'Saving…' : '✓ Save Branding'}
+              <button className="primary" type="submit" disabled={brandBusy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {!brandBusy && (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+                {brandBusy ? 'Saving…' : 'Save Branding'}
               </button>
               <button
                 type="button"
@@ -432,7 +442,7 @@ export default function SettingsPage() {
                 disabled={brandBusy}
                 onClick={handleResetBranding}
               >
-                ↺ Reset to Defaults
+                Reset to Defaults
               </button>
             </div>
           </form>

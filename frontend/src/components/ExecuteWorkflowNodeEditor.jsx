@@ -160,7 +160,7 @@ export default function ExecuteWorkflowNodeEditor({
                       <span className="subwf-select-item-title">{s.title}</span>
                       <span className="subwf-select-item-desc">{s.desc}</span>
                     </div>
-                    {isSelected && <span className="subwf-select-check">✓</span>}
+                    {isSelected && <span className="subwf-select-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>}
                   </button>
                 )
               })}
@@ -220,7 +220,7 @@ export default function ExecuteWorkflowNodeEditor({
                     {selectedWf ? selectedWf.name : 'Choose...'}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {!workflowId && <span className="subwf-warning-icon" title="Required">⚠️</span>}
+                    {!workflowId && <span className="subwf-warning-icon" title="Required"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>}
                     <span className="subwf-select-arrow">{wfPickerOpen ? '▴' : '▾'}</span>
                   </div>
                 </button>
@@ -340,7 +340,7 @@ export default function ExecuteWorkflowNodeEditor({
                       <span className="subwf-select-item-title">{m.title}</span>
                       <span className="subwf-select-item-desc">{m.desc}</span>
                     </div>
-                    {isSelected && <span className="subwf-select-check">✓</span>}
+                    {isSelected && <span className="subwf-select-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>}
                   </button>
                 )
               })}
@@ -392,8 +392,9 @@ export default function ExecuteWorkflowNodeEditor({
                   className="subwf-remove-btn"
                   title="Remove option"
                   onClick={() => handleOptionChange('waitForSubWorkflowCompletion', undefined)}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  ✕
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             </div>

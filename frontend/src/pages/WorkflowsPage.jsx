@@ -114,7 +114,11 @@ function WorkflowRow({ wf, isPinned, onTogglePin, onOpen, onDuplicate, onDelete,
                     fontWeight: 600,
                   }}
                 >
-                  📌 Pinned
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                    <line x1="12" y1="17" x2="12" y2="22" />
+                    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6a3 3 0 0 0-6 0v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24Z" />
+                  </svg>
+                  <span>Pinned</span>
                 </span>
               )}
             </div>
@@ -379,8 +383,10 @@ export default function WorkflowsPage() {
         actions={
           <div className="page-header-actions-group">
             <div className="create-wrap" ref={createRef}>
-              <button className="primary" onClick={() => setCreateOpen(v => !v)} aria-haspopup="menu" aria-expanded={createOpen}>
-                <span style={{ fontSize: 16, marginRight: 4 }}>＋</span> Create workflow ▾
+              <button className="primary" onClick={() => setCreateOpen(v => !v)} aria-haspopup="menu" aria-expanded={createOpen} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Create workflow</span>
+                <span style={{ fontSize: 10, marginLeft: 2 }}>▼</span>
               </button>
               {createOpen && (
                 <div className="dropdown-menu" role="menu">
@@ -435,7 +441,7 @@ export default function WorkflowsPage() {
           </select>
           <select value={filterActive} onChange={e => setFilterActive(e.target.value)} aria-label="Filter">
             <option value="all">All ({workflows.length})</option>
-            <option value="pinned">📌 Pinned ({workflows.filter(isWfPinned).length})</option>
+            <option value="pinned">Pinned ({workflows.filter(isWfPinned).length})</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
@@ -447,9 +453,9 @@ export default function WorkflowsPage() {
 
       {loading ? <LoadingSkeleton rows={6} /> : filtered.length === 0 ? (
         workflows.length === 0 ? (
-          <EmptyState icon="⚡" title="No workflows yet" description="Create your first workflow to start automating." action={<button className="primary" onClick={handleCreateBlank}>Create workflow</button>} secondaryAction={<button className="ghost" onClick={() => navigate('/templates')}>Browse templates</button>} />
+          <EmptyState icon="workflows" title="No workflows yet" description="Create your first workflow to start automating." action={<button className="primary" onClick={handleCreateBlank}>Create workflow</button>} secondaryAction={<button className="ghost" onClick={() => navigate('/templates')}>Browse templates</button>} />
         ) : (
-          <EmptyState icon="🔍" title="No matches" description={`No workflows match “${search}” or the current filter.`} action={<button className="ghost" onClick={() => { setSearch(''); setFilterActive('all') }}>Clear filters</button>} />
+          <EmptyState icon="search" title="No matches" description={`No workflows match “${search}” or the current filter.`} action={<button className="ghost" onClick={() => { setSearch(''); setFilterActive('all') }}>Clear filters</button>} />
         )
       ) : (
         <>

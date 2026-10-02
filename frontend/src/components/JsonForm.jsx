@@ -341,9 +341,7 @@ function MapField({ schema, value, onChange, path }) {
                       className="remove-btn"
                       title="Remove field"
                       onClick={() => handleRemove(key)}
-                    >
-                      ✕
-                    </button>
+                     style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                   </div>
                 ))}
               </div>
@@ -358,7 +356,7 @@ function MapField({ schema, value, onChange, path }) {
                 placeholder={'{\n  "firstname": "John",\n  "lastname": "Doe",\n  "emailaddress1": "john@example.com"\n}'}
                 spellCheck={false}
               />
-              {jsonError && <span className="map-json-error">⚠️ {jsonError}</span>}
+              {jsonError && <span className="map-json-error" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{jsonError}</span>}
             </div>
           )}
         </div>
@@ -404,7 +402,7 @@ function ArrayField({ schema, value, onChange, path, rootSchema, errors }) {
             <div key={index} className="array-item">
               <div className="array-item-header">
                 <span>[{index}]</span>
-                <button type="button" className="remove-btn" onClick={() => removeItem(index)}>✕</button>
+                <button type="button" className="remove-btn" onClick={() => removeItem(index)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
               </div>
               <SchemaField
                 schema={items}

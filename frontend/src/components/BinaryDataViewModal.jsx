@@ -35,8 +35,16 @@ export default function BinaryDataViewModal({ binaryEntry, onClose }) {
         {/* Header */}
         <div className="bdv-header">
           <div className="bdv-title-group">
-            <span className="bdv-icon">
-              {isImage ? '🖼️' : isPdf ? '📄' : isText ? '📝' : '📁'}
+            <span className="bdv-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {isImage ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+              ) : isPdf ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              ) : isText ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" x2="3" y1="6" y2="6"/><line x1="21" x2="3" y1="12" y2="12"/><line x1="15" x2="3" y1="18" y2="18"/></svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+              )}
             </span>
             <div className="bdv-meta">
               <span className="bdv-filename" title={fileName}>{fileName || 'Unnamed File'}</span>
@@ -72,8 +80,8 @@ export default function BinaryDataViewModal({ binaryEntry, onClose }) {
               Download
             </button>
 
-            <button type="button" className="bdv-btn-close" onClick={onClose} title="Close">
-              ✕
+            <button type="button" className="bdv-btn-close" onClick={onClose} title="Close" aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
         </div>
@@ -112,7 +120,9 @@ export default function BinaryDataViewModal({ binaryEntry, onClose }) {
                 </div>
               ) : (
                 <div className="bdv-no-preview">
-                  <span className="bdv-no-preview-icon">📦</span>
+                  <span className="bdv-no-preview-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                  </span>
                   <h4>No inline preview available</h4>
                   <p>This file type cannot be previewed directly in the browser.</p>
                   <button type="button" className="bdv-btn-download-center" onClick={handleDownload}>

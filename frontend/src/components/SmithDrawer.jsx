@@ -265,7 +265,7 @@ export default function SmithDrawer({
     // 1. Local specialized handlers for instant responsiveness
     if (lower === 'inspect this workflow and list all nodes' || lower === '/inspect') {
       setTimeout(() => {
-        let content = `### 🔍 Canvas Workflow Inspection\n\n`
+        let content = `### Canvas Workflow Inspection\n\n`
         if (nodes.length === 0) {
           content += `The canvas is currently empty. You can build a workflow via chat (e.g. \`/generate\`) or open the **AI Workflow Builder Studio**.`
         } else {
@@ -293,7 +293,7 @@ export default function SmithDrawer({
 
     if (lower === 'explain how this workflow works step by step' || lower.includes('explain how this workflow works')) {
       setTimeout(() => {
-        let content = `### 📄 Workflow Architecture & Data Flow\n\n`
+        let content = `### Workflow Architecture & Data Flow\n\n`
         if (nodes.length === 0) {
           content += `There are no nodes on the canvas yet to explain. Ask me to generate a workflow or open the AI Studio to get started!`
         } else {
@@ -670,20 +670,20 @@ export default function SmithDrawer({
                       className="smith-dropdown-item"
                       style={{ color: '#f59e0b', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      ⚠️ Add LLM Credential
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Add LLM Credential
                     </a>
                   )}
                   <button type="button" className="smith-dropdown-item" onClick={handleClearMemory}>
-                    🧹 Reset Memory
+                    Reset Memory
                   </button>
                   <button type="button" className="smith-dropdown-item" onClick={handleCopySession}>
-                    {copiedSession ? '✓ Copied' : `📋 Copy Session (${sessionId.slice(0, 8)})`}
+                    {copiedSession ? 'Copied' : `Copy Session (${sessionId.slice(0, 8)})`}
                   </button>
                 </div>
               )}
             </div>
             <button type="button" className="smith-close-btn" onClick={onClose} aria-label="Close Smith">
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
         </div>
@@ -727,7 +727,7 @@ export default function SmithDrawer({
               gap: 8,
             }}
           >
-            <span>✓</span> Workflow applied to canvas!
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> Workflow applied to canvas!
           </div>
         )}
 

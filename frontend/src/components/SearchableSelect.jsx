@@ -326,8 +326,8 @@ export default function SearchableSelect({
         >
           {/* Search Header */}
           <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border, rgba(255,255,255,0.1))', flexShrink: 0, position: 'relative', background: 'var(--panel-2, #182234)' }}>
-            <span aria-hidden="true" style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted, #94a3b8)', fontSize: 13 }}>
-              🔍
+            <span aria-hidden="true" style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", color: "var(--muted, #94a3b8)", display: "inline-flex", alignItems: "center" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
             <input
               ref={inputRef}
@@ -421,7 +421,7 @@ export default function SearchableSelect({
                       cursor: 'pointer',
                     }}
                   >
-                    ➕ {customLabel}: &ldquo;{query.trim()}&rdquo;
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>{customLabel}: &ldquo;{query.trim()}&rdquo;</span>
                   </button>
                 )}
               </div>
@@ -579,7 +579,7 @@ export default function SearchableSelect({
                 cursor: 'pointer',
               }}
             >
-              <span>➕</span>
+              <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
               <span>{customLabel}: &ldquo;{query.trim()}&rdquo;</span>
             </div>
           )}
@@ -616,7 +616,7 @@ export default function SearchableSelect({
                 e.currentTarget.style.color = 'var(--accent, #818cf8)'
               }}
             >
-              <span style={{ fontSize: 14 }}>➕</span>
+              <span style={{ display: "inline-flex", alignItems: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
               <span>{actionLabel}</span>
             </div>
           )}

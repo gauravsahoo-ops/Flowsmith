@@ -179,7 +179,7 @@ export default function SwitchNodeEditor({
                       <span className="switch-select-item-title">{m.title}</span>
                       <span className="switch-select-item-desc">{m.desc}</span>
                     </div>
-                    {isSelected && <span className="switch-select-check">✓</span>}
+                    {isSelected && <span className="switch-select-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>}
                   </button>
                 )
               })}
@@ -244,7 +244,7 @@ export default function SwitchNodeEditor({
                         removeRule(rule.id)
                       }}
                     >
-                      ✕
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>
 
@@ -328,7 +328,7 @@ export default function SwitchNodeEditor({
                                     }}
                                   >
                                     <span>{op.label}</span>
-                                    {isSelected && <span className="switch-op-check">✓</span>}
+                                    {isSelected && <span className="switch-op-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>}
                                   </button>
                                 )
                               })}
@@ -486,7 +486,7 @@ export default function SwitchNodeEditor({
                   title="Remove option"
                   onClick={() => handleOptionChange('fallbackOutput', undefined)}
                 >
-                  ✕
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             </div>
@@ -521,7 +521,7 @@ export default function SwitchNodeEditor({
                   title="Remove option"
                   onClick={() => handleOptionChange('ignoreCase', undefined)}
                 >
-                  ✕
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             </div>
@@ -556,7 +556,7 @@ export default function SwitchNodeEditor({
                   title="Remove option"
                   onClick={() => handleOptionChange('sendToAllMatching', undefined)}
                 >
-                  ✕
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             </div>

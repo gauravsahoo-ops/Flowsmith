@@ -3,6 +3,39 @@ import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 
+function renderStatIcon(type) {
+  switch (type) {
+    case 'running':
+      return (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      )
+    case 'queued':
+      return (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      )
+    case 'success':
+      return (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      )
+    case 'failed':
+      return (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
 function MonitoringStatCard({ title, value, subtitle, color, icon }) {
   return (
     <div className="monitoring-card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column' }}>
@@ -188,16 +221,22 @@ export default function MonitoringPage() {
               />
               Auto-refresh (15s)
             </label>
-            <button className="ghost" onClick={fetchStats} disabled={loading}>↻ Refresh</button>
+            <button className="ghost" onClick={fetchStats} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              Refresh
+            </button>
           </div>
         }
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
-        <MonitoringStatCard title="Running Executions" value={stats?.executions?.running || 0} color="#38bdf8" icon="⚡" subtitle="Currently active in runtime" />
-        <MonitoringStatCard title="Queued Runs" value={stats?.executions?.queued || 0} color="#f59e0b" icon="⏳" subtitle="Waiting for available worker" />
-        <MonitoringStatCard title="Success (Past 1h)" value={stats?.last_hour?.success || 0} color="#10b981" icon="✓" subtitle="Completed without error" />
-        <MonitoringStatCard title="Failed (Past 1h)" value={stats?.last_hour?.failed || 0} color="#ef4444" icon="✕" subtitle="Errored execution runs" />
+        <MonitoringStatCard title="Running Executions" value={stats?.executions?.running || 0} color="#38bdf8" icon={renderStatIcon('running')} subtitle="Currently active in runtime" />
+        <MonitoringStatCard title="Queued Runs" value={stats?.executions?.queued || 0} color="#f59e0b" icon={renderStatIcon('queued')} subtitle="Waiting for available worker" />
+        <MonitoringStatCard title="Success (Past 1h)" value={stats?.last_hour?.success || 0} color="#10b981" icon={renderStatIcon('success')} subtitle="Completed without error" />
+        <MonitoringStatCard title="Failed (Past 1h)" value={stats?.last_hour?.failed || 0} color="#ef4444" icon={renderStatIcon('failed')} subtitle="Errored execution runs" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 18, marginBottom: 20 }}>

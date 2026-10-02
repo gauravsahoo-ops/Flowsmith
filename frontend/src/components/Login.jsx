@@ -149,7 +149,11 @@ export default function Login({ onAuthed }) {
 
             <div className="flow-nodes-track">
               <div className="flow-node node-trigger">
-                <div className="node-icon">⚡</div>
+                <div className="node-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                </div>
                 <div className="node-info">
                   <span className="node-name">Webhook</span>
                   <span className="node-sub">Trigger</span>
@@ -162,7 +166,11 @@ export default function Login({ onAuthed }) {
               </div>
 
               <div className="flow-node node-salesforce">
-                <div className="node-icon">☁️</div>
+                <div className="node-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+                  </svg>
+                </div>
                 <div className="node-info">
                   <span className="node-name">Salesforce</span>
                   <span className="node-sub">Sync Record</span>
@@ -175,7 +183,16 @@ export default function Login({ onAuthed }) {
               </div>
 
               <div className="flow-node node-ai">
-                <div className="node-icon">🤖</div>
+                <div className="node-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 8V4H8" />
+                    <rect width="16" height="12" x="4" y="8" rx="2" />
+                    <path d="M2 14h2" />
+                    <path d="M20 14h2" />
+                    <path d="M15 13v2" />
+                    <path d="M9 13v2" />
+                  </svg>
+                </div>
                 <div className="node-info">
                   <span className="node-name">AI Agent</span>
                   <span className="node-sub">Enrich Data</span>

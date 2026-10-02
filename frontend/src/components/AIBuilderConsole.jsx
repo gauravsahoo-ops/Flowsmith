@@ -585,7 +585,7 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
               {repairProposal && (
                 <div style={{ padding: '0.75rem', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px' }}>
                   <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#34d399', marginBottom: '4px' }}>
-                    ✓ Root Cause: {repairProposal.root_cause}
+                    Root Cause: {repairProposal.root_cause}
                   </div>
                   <div style={{ fontSize: '12px', color: '#cbd5e1' }}>
                     {repairProposal.rationale}
@@ -633,7 +633,7 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
                       color: '#e2e8f0',
                     }}
                   >
-                    {c.display_name} ✓
+                    {c.display_name}
                   </span>
                 ))
               ) : (
@@ -653,27 +653,27 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '11.5px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>1. Structural DAG</span>
-                  <span style={{ color: validationReport.structural_ok ? '#10b981' : '#ef4444' }}>{validationReport.structural_ok ? '✓ Pass' : '✗ Issue'}</span>
+                  <span style={{ color: validationReport.structural_ok ? '#10b981' : '#ef4444' }}>{validationReport.structural_ok ? 'Pass' : 'Issue'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>2. Connector Schema</span>
-                  <span style={{ color: validationReport.connector_ok ? '#10b981' : '#ef4444' }}>{validationReport.connector_ok ? '✓ Pass' : '✗ Issue'}</span>
+                  <span style={{ color: validationReport.connector_ok ? '#10b981' : '#ef4444' }}>{validationReport.connector_ok ? 'Pass' : 'Issue'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>3. Expression & Data</span>
-                  <span style={{ color: validationReport.data_ok ? '#10b981' : '#ef4444' }}>{validationReport.data_ok ? '✓ Pass' : '✗ Issue'}</span>
+                  <span style={{ color: validationReport.data_ok ? '#10b981' : '#ef4444' }}>{validationReport.data_ok ? 'Pass' : 'Issue'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>4. Credential Availability</span>
-                  <span style={{ color: validationReport.credential_ok ? '#10b981' : '#f59e0b' }}>{validationReport.credential_ok ? '✓ Ready' : '⚠ Action'}</span>
+                  <span style={{ color: validationReport.credential_ok ? '#10b981' : '#f59e0b' }}>{validationReport.credential_ok ? 'Ready' : 'Action'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>5. Runtime Policies</span>
-                  <span style={{ color: validationReport.runtime_ok ? '#10b981' : '#ef4444' }}>{validationReport.runtime_ok ? '✓ Pass' : '✗ Issue'}</span>
+                  <span style={{ color: validationReport.runtime_ok ? '#10b981' : '#ef4444' }}>{validationReport.runtime_ok ? 'Pass' : 'Issue'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>6. Security & Secret Guard</span>
-                  <span style={{ color: validationReport.security_ok ? '#10b981' : '#ef4444' }}>{validationReport.security_ok ? '✓ Secure' : '✗ Unsafe'}</span>
+                  <span style={{ color: validationReport.security_ok ? '#10b981' : '#ef4444' }}>{validationReport.security_ok ? 'Secure' : 'Unsafe'}</span>
                 </div>
               </div>
             ) : (
@@ -702,7 +702,7 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
                     cursor: simulating ? 'wait' : 'pointer',
                   }}
                 >
-                  {simulating ? '⏳ Simulating...' : '▶ Run Mock'}
+                  {simulating ? 'Simulating...' : '▶ Run Mock'}
                 </button>
               )}
             </div>
@@ -743,8 +743,8 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
                       }}
                     >
                       {simulationResult.success
-                        ? '✓ Simulation Passed'
-                        : (simulationResult.total_steps > 0 ? '⚠ Dry-Run Completed (Notices)' : '✗ Simulation Failed')}
+                        ? 'Simulation Passed'
+                        : (simulationResult.total_steps > 0 ? 'Dry-Run Completed (Notices)' : 'Simulation Failed')}
                     </span>
                     <span style={{ color: '#94a3b8', fontSize: '10.5px' }}>
                       {simulationResult.estimated_latency_ms}ms estimated
@@ -819,7 +819,7 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
                                   fontSize: '10px',
                                 }}
                               >
-                                {step.status === 'success' ? '✓' : '⚠'}
+                                {step.status === 'success' ? 'Pass' : 'Notice'}
                               </span>
                             </div>
                           </div>

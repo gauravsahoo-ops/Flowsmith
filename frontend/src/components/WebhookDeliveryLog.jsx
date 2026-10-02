@@ -44,7 +44,9 @@ function DeliveryDetail({ delivery, onClose }) {
     <div className="card" style={{ marginTop: 12, padding: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
         <h4 style={{ margin: 0 }}>Delivery #{delivery.id}</h4>
-        <button className="ghost" onClick={onClose}>✕</button>
+        <button className="ghost" onClick={onClose} aria-label="Close" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 6px' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
         <div>

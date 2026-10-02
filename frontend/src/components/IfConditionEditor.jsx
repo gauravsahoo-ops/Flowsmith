@@ -136,7 +136,7 @@ export default function IfConditionEditor({ node, onParamsChange, mapping, onPre
 
         {conditions.some(c => !c.left?.trim() || (!NO_RIGHT_VALUE_OPS.has(c.operator) && !c.right?.trim())) && (
           <div style={{ padding: '6px 10px', fontSize: 11.5, background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: 6, color: '#f59e0b', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>⚠️</span>
+            <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
             <span>Fill in required condition values before executing this step.</span>
           </div>
         )}
@@ -166,7 +166,7 @@ export default function IfConditionEditor({ node, onParamsChange, mapping, onPre
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Condition #{idx + 1}</span>
                 )}
                 {conditions.length > 1 && (
-                  <button type="button" className="ghost" onClick={() => removeCondition(cond.id)} title="Remove condition" style={{ fontSize: 11, padding: '2px 8px', color: 'var(--red)', marginLeft: 'auto' }}>✕ Remove</button>
+                  <button type="button" className="ghost" onClick={() => removeCondition(cond.id)} title="Remove condition" style={{ fontSize: 11, padding: "2px 8px", color: "var(--red)", marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Remove</button>
                 )}
               </div>
 

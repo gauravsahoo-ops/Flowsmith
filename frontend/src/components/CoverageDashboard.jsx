@@ -80,21 +80,21 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
           onClick={() => setActiveTab('overview')}
           style={{ fontSize: '13px', padding: '0.45rem 1rem' }}
         >
-          📊 Coverage & Benchmarks
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Coverage & Benchmarks
         </button>
         <button
           className={activeTab === 'certifications' ? 'primary' : 'ghost'}
           onClick={() => setActiveTab('certifications')}
           style={{ fontSize: '13px', padding: '0.45rem 1rem' }}
         >
-          🛡️ Connector Certifications ({certifications.length})
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Connector Certifications ({certifications.length})
         </button>
         <button
           className={activeTab === 'canonical' ? 'primary' : 'ghost'}
           onClick={() => setActiveTab('canonical')}
           style={{ fontSize: '13px', padding: '0.45rem 1rem' }}
         >
-          ⚡ Canonical Node Contract ({canonicalNodes.length})
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Canonical Node Contract ({canonicalNodes.length})
         </button>
       </div>
 
@@ -171,7 +171,7 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0.75rem' }}>
               {Object.entries(capabilities).map(([cap, desc]) => (
                 <div key={cap} style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 6, display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                  <span style={{ color: '#10b981', fontWeight: 700, fontSize: '14px' }}>✓</span>
+                  <span style={{ color: "#10b981", display: "inline-flex", alignItems: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: 600, textTransform: 'capitalize' }}>{cap.replace('_', ' / ')}</div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{desc}</div>
@@ -351,7 +351,7 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{c.implementation_type || 'NATIVE'}</span>
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
-                        <span style={{ color: '#10b981' }}>✓ Schema</span>
+                        <span style={{ color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Schema</span>
                         <div style={{ fontSize: '10px', color: isLiveAvail ? '#06b6d4' : 'var(--text-muted)' }}>
                           {isLiveAvail ? '● Live Verified' : '○ Vault Pending'}
                         </div>
@@ -363,13 +363,13 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
                         </div>
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
-                        {c.search?.implemented ? <span style={{ color: '#10b981' }}>✓ Query</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                        {c.search?.implemented ? <span style={{ color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Query</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
-                        {c.triggers?.registered ? <span style={{ color: '#6366f1' }}>✓ Active</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                        {c.triggers?.registered ? <span style={{ color: "#6366f1", display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Active</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
-                        {c.webhooks?.implemented ? <span style={{ color: '#f59e0b' }}>✓ HMAC</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                        {c.webhooks?.implemented ? <span style={{ color: "#f59e0b", display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>HMAC</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
                         <span style={{ fontSize: '11px', padding: '1px 6px', background: 'rgba(255,255,255,0.04)', borderRadius: 4 }}>
@@ -378,11 +378,11 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
                         <span style={{ fontSize: '11px', color: c.dynamic_schema?.type === 'LIVE_METADATA_SCHEMA' ? '#06b6d4' : c.dynamic_schema?.type === 'DYNAMIC_SCHEMA' ? '#8b5cf6' : 'var(--text-muted)' }}>
-                          {c.dynamic_schema?.type === 'LIVE_METADATA_SCHEMA' ? '⚡ Live Metadata' : c.dynamic_schema?.type === 'DYNAMIC_SCHEMA' ? '✦ Inferred' : 'Static'}
+                          {c.dynamic_schema?.type === 'LIVE_METADATA_SCHEMA' ? 'Live Metadata' : c.dynamic_schema?.type === 'DYNAMIC_SCHEMA' ? 'Inferred' : 'Static'}
                         </span>
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
-                        <span style={{ color: '#10b981', fontSize: '11px' }}>🔒 Hardened</span>
+                        <span style={{ color: "#10b981", fontSize: "11px" }}>Hardened</span>
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>SSRF+Redact</div>
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
@@ -450,7 +450,7 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{n.idempotency_level || 'UNKNOWN'}</span>
                     </td>
                     <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>{n.timeout_seconds || 60}s</td>
-                    <td style={{ padding: '0.75rem 0.5rem', color: '#10b981' }}>✓ Tool Ready</td>
+                    <td style={{ padding: "0.75rem 0.5rem", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Tool Ready</span></td>
                   </tr>
                 ))}
               </tbody>

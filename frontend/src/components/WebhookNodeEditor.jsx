@@ -132,7 +132,7 @@ print(response.status_code, response.json())`
           {/* Endpoint Configuration */}
           <div className="we-section">
             <div className="we-title">
-              <span>🔗</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
               <span>Public Webhook Endpoint</span>
             </div>
 
@@ -192,7 +192,7 @@ print(response.status_code, response.json())`
                 {webhookUrl}
               </span>
               <button type="button" className="we-copy-btn" onClick={handleCopyUrl}>
-                {copied ? '✓ Copied' : 'Copy URL'}
+                {copied ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied</span>) : 'Copy URL'}
               </button>
             </div>
           </div>
@@ -200,7 +200,7 @@ print(response.status_code, response.json())`
           {/* Code Snippet Generator */}
           <div className="we-section">
             <div className="we-title">
-              <span>⚡</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               <span>cURL & Code Snippet Generator</span>
             </div>
 
@@ -258,7 +258,7 @@ print(response.status_code, response.json())`
                     fontWeight: 600,
                   }}
                 >
-                  {testing ? 'Sending…' : '⚡ Dispatch Test Webhook'}
+                  {testing ? 'Sending…' : (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Dispatch Test Webhook</span>)}
                 </Button>
                 {!path && (
                   <span style={{ fontSize: 11, color: '#f87171' }}>Please enter a webhook path suffix first.</span>

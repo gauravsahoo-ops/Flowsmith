@@ -203,7 +203,7 @@ export default function TokenManagerNodeEditor({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 20 }}>🔑</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3"/></svg>
             <div>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Token Manager</div>
               <div style={{ fontSize: 11, color: 'var(--muted)' }}>One Universal Authentication Lifecycle Node</div>
@@ -305,7 +305,7 @@ export default function TokenManagerNodeEditor({
               fontFamily: lastOutput?.isValid ? 'inherit' : 'var(--font-mono, monospace)',
             }}
           >
-            {lastOutput?.isValid ? '🛡️ Secure Credential Store (AES-GCM Encrypted at Rest)' : 'null'}
+            {lastOutput?.isValid ? 'Secure Credential Store (AES-GCM Encrypted at Rest)' : 'null'}
           </span>
         </div>
 
@@ -323,7 +323,7 @@ export default function TokenManagerNodeEditor({
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
             {refreshSuccess && (
               <span style={{ fontSize: 11.5, color: '#22c55e', fontWeight: 500 }}>
-                ✅ {refreshSuccess}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>{refreshSuccess}</span>
               </span>
             )}
             {refreshError && (
@@ -331,7 +331,7 @@ export default function TokenManagerNodeEditor({
                 style={{ fontSize: 11, color: '#ef4444', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 title={refreshError}
               >
-                ⚠️ {refreshError}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{refreshError}</span>
               </span>
             )}
             {!refreshSuccess && !refreshError && (
@@ -359,9 +359,7 @@ export default function TokenManagerNodeEditor({
               transition: 'all 0.15s ease',
             }}
           >
-            <span style={{ display: 'inline-block', transform: isRefreshing ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s ease' }}>
-              🔄
-            </span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline-block', transform: isRefreshing ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s ease' }}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             {isRefreshing ? 'Refreshing...' : 'Manual Refresh Now'}
           </button>
         </div>
@@ -382,10 +380,10 @@ export default function TokenManagerNodeEditor({
           }}
         >
           {[
-            { id: 'auto', label: '⚡ Automatic', desc: 'Auto-detects whether to fetch or store' },
-            { id: 'fetch', label: '📥 Fetch Stored', desc: 'Fetch stored credentials from database' },
-            { id: 'store', label: '💾 Store Only', desc: 'Persist incoming tokens to database' },
-            { id: 'refresh', label: '🔄 Refresh Token', desc: 'Use refresh token to create new access token if expired or invalid' },
+            { id: 'auto', label: 'Automatic', desc: 'Auto-detects whether to fetch or store' },
+            { id: 'fetch', label: 'Fetch Stored', desc: 'Fetch stored credentials from database' },
+            { id: 'store', label: 'Store Only', desc: 'Persist incoming tokens to database' },
+            { id: 'refresh', label: 'Refresh Token', desc: 'Use refresh token to create new access token if expired or invalid' },
           ].map((m) => (
             <button
               key={m.id}
@@ -411,10 +409,10 @@ export default function TokenManagerNodeEditor({
           ))}
         </div>
         <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 }}>
-          {mode === 'auto' && '⚡ Automatically detects whether to fetch stored credentials or save incoming tokens.'}
-          {mode === 'fetch' && '📥 Fetches stored credentials from database (outputs null on first run before login).'}
-          {mode === 'store' && '💾 Saves incoming tokens from the Login API directly to the encrypted database store.'}
-          {mode === 'refresh' && '🔄 Uses stored refresh token to create a new access token if current token is expired or invalid.'}
+          {mode === 'auto' && 'Automatically detects whether to fetch stored credentials or save incoming tokens.'}
+          {mode === 'fetch' && 'Fetches stored credentials from database (outputs null on first run before login).'}
+          {mode === 'store' && 'Saves incoming tokens from the Login API directly to the encrypted database store.'}
+          {mode === 'refresh' && 'Uses stored refresh token to create a new access token if current token is expired or invalid.'}
         </div>
       </div>
 
@@ -537,7 +535,7 @@ export default function TokenManagerNodeEditor({
             Optionally specify the Login API / Token endpoint to call when no credentials exist in database. 
             On the very first run, Token Manager executes this request, saves the token, and outputs populated credentials so <strong>fields are never null</strong>.
             <div style={{ marginTop: 4, color: '#38bdf8' }}>
-              💡 <em>If left blank, Token Manager automatically detects and runs any Login API node connected to its <code>login</code> handle!</em>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline-block", marginRight: 4, verticalAlign: -1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><em>If left blank, Token Manager automatically detects and runs any Login API node connected to its <code>login</code> handle!</em>
             </div>
           </div>
 
@@ -650,7 +648,7 @@ export default function TokenManagerNodeEditor({
           <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.45 }}>
             Optionally specify a custom OAuth refresh endpoint URL and payload. If configured, Token Manager will send the refresh request here instead of using the standard provider endpoint.
             <div style={{ marginTop: 4, color: '#38bdf8' }}>
-              💡 <em>Use <code>{'{'}{'{'}refreshToken{'}'}{'}'}</code> in the body to inject the stored refresh token.</em>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: "inline-block", marginRight: 4, verticalAlign: -1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><em>Use <code>{'{'}{'{'}refreshToken{'}'}{'}'}</code> in the body to inject the stored refresh token.</em>
             </div>
           </div>
 

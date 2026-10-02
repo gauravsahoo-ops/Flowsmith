@@ -63,7 +63,7 @@ export default function KnowledgePage() {
           {notice && <div className="banner-inline ok">{notice}</div>}
 
           {loading ? <LoadingSkeleton rows={3} /> : collections.length === 0 ? (
-            <EmptyState icon="📚" title="No collections" description="Create a collection to start ingesting documents." />
+            <EmptyState icon="knowledge" title="No collections" description="Create a collection to start ingesting documents." />
           ) : (
             <div className="rag-list" style={{ marginTop: 12 }}>
               {collections.map(c => (
@@ -72,7 +72,12 @@ export default function KnowledgePage() {
                     <span className="rag-name">{c.name}</span>
                     <span className="rag-meta">{c.workspace_id ? 'workspace' : 'personal'}</span>
                   </button>
-                  <button className="ghost small" onClick={() => setDeleteTarget(c)}>🗑</button>
+                  <button className="ghost small" onClick={() => setDeleteTarget(c)} title="Delete collection" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
                 </div>
               ))}
             </div>
@@ -81,7 +86,7 @@ export default function KnowledgePage() {
 
         <div className="knowledge-main">
           {!selected ? (
-            <EmptyState icon="📚" title="Select a collection" description="Choose a collection from the left to ingest and query." />
+            <EmptyState icon="knowledge" title="Select a collection" description="Choose a collection from the left to ingest and query." />
           ) : (
             <div className="knowledge-detail">
               <h3>{selected.name}</h3>
@@ -91,14 +96,26 @@ export default function KnowledgePage() {
                 <h4>Ingest document</h4>
                 <label>Text<textarea rows={4} value={ingestText} onChange={e => setIngestText(e.target.value)} placeholder="Paste content to embed…" /></label>
                 <label>Document ID <span className="hint">(optional; same ID replaces)</span><input value={docId} onChange={e => setDocId(e.target.value)} /></label>
-                <button className="ghost" onClick={handleIngest} disabled={busy || !ingestText.trim()}>📥 Ingest / re-index</button>
+                <button className="ghost" onClick={handleIngest} disabled={busy || !ingestText.trim()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+                    <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+                  </svg>
+                  Ingest / re-index
+                </button>
               </section>
 
               <section className="card" style={{ marginTop: 16 }}>
                 <h4>Query</h4>
                 <form onSubmit={handleQuery} className="rag-form">
                   <input placeholder="Query this collection…" value={query} onChange={e => setQuery(e.target.value)} disabled={busy} />
-                  <button className="primary" type="submit" disabled={busy || !query.trim()}>🔍 Query</button>
+                  <button className="primary" type="submit" disabled={busy || !query.trim()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    Query
+                  </button>
                 </form>
                 {result && (
                   <div className="rag-result" style={{ marginTop: 12 }}>

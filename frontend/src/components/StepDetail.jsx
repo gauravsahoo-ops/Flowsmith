@@ -84,7 +84,10 @@ export default function StepDetail({ execution, step, onRetryNode }) {
 
       <div className="sd-badges">
         <Badge tone="time" title="Wall-clock duration of this step">
-          ⏱ {fmtDuration(step.duration_ms)}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4, verticalAlign: -1 }}>
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          {fmtDuration(step.duration_ms)}
         </Badge>
         {(step.retries > 0 || (step.attempts ?? 1) > 1) ? (
           <>
@@ -108,7 +111,10 @@ export default function StepDetail({ execution, step, onRetryNode }) {
         )}
         {connectorId && (
           <Badge tone="conn" title="Served by this connector">
-            🔌 {connectorId}
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4, verticalAlign: -1 }}>
+              <path d="M12 2v6"/><path d="M9 2v4"/><path d="M15 2v4"/><path d="M6 8v4a6 6 0 0 0 12 0V8z"/><path d="M12 18v4"/>
+            </svg>
+            {connectorId}
           </Badge>
         )}
         {branches.map((b) => (
@@ -117,7 +123,19 @@ export default function StepDetail({ execution, step, onRetryNode }) {
             tone={b.taken ? 'branch' : 'muted'}
             title={`${b.items} item(s) routed to “${b.handle}”`}
           >
-            {b.taken ? '⑂' : '○'} {b.handle}: {b.items}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4, verticalAlign: -1 }}>
+              {b.taken ? (
+                <>
+                  <line x1="6" x2="6" y1="3" y2="15"/>
+                  <circle cx="18" cy="6" r="3"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <path d="M18 9a9 9 0 0 1-9 9"/>
+                </>
+              ) : (
+                <circle cx="12" cy="12" r="8"/>
+              )}
+            </svg>
+            {b.handle}: {b.items}
           </Badge>
         ))}
       </div>
@@ -133,14 +151,20 @@ export default function StepDetail({ execution, step, onRetryNode }) {
 
       {isSkipped && (
         <div className="banner-inline info sd-skipped" style={{ background: 'rgba(148, 163, 184, 0.12)', borderColor: 'rgba(148, 163, 184, 0.3)', color: '#cbd5e1' }}>
-          <strong style={{ color: '#f1f5f9' }}>⊘ Step Skipped:</strong>{' '}
+          <strong style={{ color: '#f1f5f9', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" x2="19.07" y1="4.93" y2="19.07"/></svg>
+            Step Skipped:
+          </strong>{' '}
           {step.note || 'No input items arrived; step was not executed.'}
         </div>
       )}
 
       {stoppedAtNode && (
         <div className="banner-inline warn sd-stopped" style={{ background: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fde68a' }}>
-          <strong style={{ color: '#fbbf24' }}>⏹ Workflow Stopped Here:</strong>{' '}
+          <strong style={{ color: '#fbbf24', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="5" y="5" rx="2"/></svg>
+            Workflow Stopped Here:
+          </strong>{' '}
           This node executed successfully and produced 0 items. Downstream connected nodes were skipped because there was no data to continue.
         </div>
       )}
@@ -149,8 +173,9 @@ export default function StepDetail({ execution, step, onRetryNode }) {
         <div className={`sd-retry ${safety === 'caution' ? 'caution' : ''}`}>
           {!confirmUnsafe ? (
             <>
-              <button type="button" className="ghost" onClick={onRetryClick}>
-                ↻ Retry from here
+              <button type="button" className="ghost" onClick={onRetryClick} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                Retry from here
               </button>
               {safety === 'caution' && (
                 <span className="hint">

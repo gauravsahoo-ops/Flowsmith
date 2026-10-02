@@ -43,7 +43,7 @@ export default function ApprovalsPage() {
       ) : rows.length === 0 ? (
         <>
           <EmptyState
-            icon="✅"
+            icon="approvals"
             title="Nothing waiting for approval"
             description="There are currently no workflow executions paused for review. When a workflow reaches a human approval node, it will appear here."
             action={<button className="primary" onClick={() => navigate('/executions')}>View Executions</button>}
@@ -76,8 +76,19 @@ export default function ApprovalsPage() {
                 {e.pause_state?.node_id && <span>· Node: {e.pause_state.node_id}</span>}
               </div>
               <div className="approvals-actions">
-                <button className="primary small" disabled={busyId === e.id} onClick={() => decide(e.id, true)}>✓ Approve</button>
-                <button className="danger small" disabled={busyId === e.id} onClick={() => decide(e.id, false)}>✕ Reject</button>
+                <button className="primary small" disabled={busyId === e.id} onClick={() => decide(e.id, true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Approve
+                </button>
+                <button className="danger small" disabled={busyId === e.id} onClick={() => decide(e.id, false)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  Reject
+                </button>
                 <button className="ghost small" onClick={() => navigate(`/executions/${e.id}`)}>Inspect trace →</button>
               </div>
             </div>

@@ -90,7 +90,12 @@ function ColumnManager({ table, onChanged }) {
                     ) : (
                       <>
                         <button className="ghost small" onClick={() => setEditing(col.id)}>Edit</button>
-                        <button className="ghost small" onClick={() => handleDelete(col)}>🗑</button>
+                        <button className="ghost small" onClick={() => handleDelete(col)} title="Delete column" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
                         <button className="ghost small" disabled={idx === 0} onClick={() => handleReorder(idx, idx - 1)}>↑</button>
                         <button className="ghost small" disabled={idx === cols.length - 1} onClick={() => handleReorder(idx, idx + 1)}>↓</button>
                       </>
@@ -276,7 +281,7 @@ function RowEditor({ table, onRowChanged }) {
       )}
 
       {loading ? <LoadingSkeleton rows={5} /> : rows.length === 0 ? (
-        <EmptyState icon="🗃️" title="No rows" description={search || filterCol ? "No rows match the current search/filter." : "Add your first row to this table."} />
+        <EmptyState icon="database" title="No rows" description={search || filterCol ? "No rows match the current search/filter." : "Add your first row to this table."} />
       ) : (
         <>
           <div className="table-wrap" style={{ overflowX: 'auto' }}>
@@ -304,7 +309,12 @@ function RowEditor({ table, onRowChanged }) {
                     <td>
                       <div className="row-actions">
                         <button className="ghost small" onClick={() => startEdit(row)}>Edit</button>
-                        <button className="ghost small" onClick={() => handleDelete(row)}>🗑</button>
+                        <button className="ghost small" onClick={() => handleDelete(row)} title="Delete row" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>

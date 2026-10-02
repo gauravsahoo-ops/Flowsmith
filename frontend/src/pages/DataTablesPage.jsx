@@ -145,11 +145,11 @@ export default function DataTablesPage() {
 
       {loading ? <LoadingSkeleton rows={5} /> : sorted.length === 0 ? (
         workspaces.length === 0 ? (
-          <EmptyState icon="🗃️" title="No workspaces" description="Create a workspace first to store data tables." />
+          <EmptyState icon="database" title="No workspaces" description="Create a workspace first to store data tables." />
         ) : search.trim() ? (
-          <EmptyState icon="🔍" title="No matches" description={`No tables match “${search}”.`} action={<button className="ghost" onClick={() => setSearch('')}>Clear search</button>} />
+          <EmptyState icon="search" title="No matches" description={`No tables match “${search}”.`} action={<button className="ghost" onClick={() => setSearch('')}>Clear search</button>} />
         ) : (
-          <EmptyState icon="🗃️" title="No Data Tables yet" description="Create a table to store structured data for your workflows." action={<button className="primary" onClick={() => setShowCreate(true)}>Create table</button>} />
+          <EmptyState icon="database" title="No Data Tables yet" description="Create a table to store structured data for your workflows." action={<button className="primary" onClick={() => setShowCreate(true)}>Create table</button>} />
         )
       ) : (
         <div className="table-wrap">
@@ -170,7 +170,12 @@ export default function DataTablesPage() {
                   <td>
                     <div className="row-actions" onClick={e => e.stopPropagation()}>
                       <button className="ghost small" onClick={() => navigate(`/data-tables/${tbl.id}`)}>Open</button>
-                      <button className="ghost small" onClick={() => setDeleteTarget(tbl)}>🗑</button>
+                      <button className="ghost small" onClick={() => setDeleteTarget(tbl)} title="Delete table" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
                     </div>
                   </td>
                 </tr>

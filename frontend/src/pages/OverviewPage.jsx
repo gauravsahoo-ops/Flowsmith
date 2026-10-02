@@ -107,7 +107,7 @@ function RecentWorkflows({ workflows, loading }) {
   if (!workflows.length) {
     return (
       <EmptyState
-        icon="⚡"
+        icon="workflows"
         title="No workflows yet"
         description="Create your first workflow to get started."
         action={<button className="primary" onClick={() => navigate('/workflows')}>Create Workflow</button>}
@@ -166,7 +166,7 @@ function RecentWorkflows({ workflows, loading }) {
                 type="button"
                 className="ghost ghost--sm"
                 title="Run workflow"
-                style={{ padding: '3px 7px', fontSize: 11, color: '#10b981' }}
+                style={{ padding: '3px 8px', fontSize: 11, color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                 onClick={(e) => {
                   e.stopPropagation()
                   api.run(w.id).then(() => {
@@ -176,7 +176,8 @@ function RecentWorkflows({ workflows, loading }) {
                   })
                 }}
               >
-                ▶ Run
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Run</span>
               </button>
               <span className="overview-card-arrow">→</span>
             </div>
@@ -193,7 +194,7 @@ function RecentExecutions({ executions, loading }) {
   if (!executions.length) {
     return (
       <EmptyState
-        icon="🕘"
+        icon="executions"
         title="No executions yet"
         description="Run a workflow to see execution history here."
         action={<button className="ghost" onClick={() => navigate('/executions')}>View executions</button>}
@@ -223,7 +224,9 @@ function RecentExecutions({ executions, loading }) {
             <tr key={e.id} className="clickable" onClick={() => navigate(`/executions/${e.id}`)} tabIndex={0} onKeyDown={ev => { if (ev.key === 'Enter') navigate(`/executions/${e.id}`)}}>
               <td style={{ fontWeight: 600, color: '#f8fafc' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#818cf8', fontSize: 12 }}>⚡</span>
+                  <span style={{ color: '#818cf8', display: 'inline-flex', alignItems: 'center' }}>
+                    <Icon name="workflows" size={13} color="currentColor" />
+                  </span>
                   <span>{e.workflow_name || (e.workflow_id ? e.workflow_id.slice(0, 8) : e.id.slice(0, 8))}</span>
                 </div>
               </td>

@@ -65,26 +65,26 @@ describe('Logs feature utils and data structures', () => {
     function getStatusLabel(status) {
       switch (status) {
         case 'success':
-          return '✓ Success'
+          return 'Success'
         case 'running':
-          return '● Running'
+          return 'Running'
         case 'failed':
         case 'error':
-          return '✕ Error'
+          return 'Error'
         case 'skipped':
-          return '— Skipped'
+          return 'Skipped'
         case 'waiting_approval':
-          return '⏸ Waiting'
+          return 'Waiting'
         default:
           return status
       }
     }
 
-    expect(getStatusLabel('success')).toBe('✓ Success')
-    expect(getStatusLabel('running')).toBe('● Running')
-    expect(getStatusLabel('failed')).toBe('✕ Error')
-    expect(getStatusLabel('error')).toBe('✕ Error')
-    expect(getStatusLabel('skipped')).toBe('— Skipped')
-    expect(getStatusLabel('waiting_approval')).toBe('⏸ Waiting')
+    expect(getStatusLabel('success')).toBe('Success')
+    expect(getStatusLabel('running')).toBe('Running')
+    expect(getStatusLabel('failed')).toBe('Error')
+    expect(getStatusLabel('error')).toBe('Error')
+    expect(getStatusLabel('skipped')).toBe('Skipped')
+    expect(getStatusLabel('waiting_approval')).toBe('Waiting')
   })
 })

@@ -5,11 +5,11 @@ import SearchableSelect from './SearchableSelect'
 
 const CAPABILITY_TAGS = [
   { id: 'all', label: 'All Models' },
-  { id: 'reasoning', label: '🧠 Reasoning' },
-  { id: 'vision', label: '👁 Vision' },
-  { id: 'tools', label: '🛠 Tool Calling' },
-  { id: 'streaming', label: '⚡ Streaming' },
-  { id: '128k', label: '📚 128K+ Context' },
+  { id: 'reasoning', label: 'Reasoning' },
+  { id: 'vision', label: 'Vision' },
+  { id: 'tools', label: 'Tool Calling' },
+  { id: 'streaming', label: 'Streaming' },
+  { id: '128k', label: '128K+ Context' },
 ]
 
 export default function LLMCredentialModal({
@@ -157,7 +157,7 @@ export default function LLMCredentialModal({
           label: name,
           category: p.category,
           hint: p.aliases?.length ? `Also: ${p.aliases.slice(0, 3).join(', ')}` : '',
-          meta: p.status === 'SUPPORTED' ? '✓ Supported' : p.status === 'CUSTOM_ONLY' ? 'Custom' : p.status,
+          meta: p.status === 'SUPPORTED' ? 'Supported' : p.status === 'CUSTOM_ONLY' ? 'Custom' : p.status,
           aliases: p.aliases || [],
         }
       })
@@ -351,16 +351,16 @@ export default function LLMCredentialModal({
               style={{
                 width: 38,
                 height: 38,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                borderRadius: 8,
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border, rgba(255, 255, 255, 0.1))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 20,
-                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                color: 'var(--text)',
               }}
             >
-              ⚡
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             </div>
             <div>
               <h2 id="llm-cred-modal-title" style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>
@@ -378,14 +378,16 @@ export default function LLMCredentialModal({
               background: 'transparent',
               border: 'none',
               color: 'var(--muted, #94a3b8)',
-              fontSize: 18,
               cursor: 'pointer',
               padding: 6,
               borderRadius: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
             aria-label="Close modal"
           >
-            ✕
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </header>
 
@@ -483,9 +485,22 @@ export default function LLMCredentialModal({
                             color: 'var(--muted, #94a3b8)',
                             fontSize: 11,
                             cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
                           }}
                         >
-                          {showSec ? '🙈 Hide' : '👁 Show'}
+                          {showSec ? (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                              <span>Hide</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                              <span>Show</span>
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
@@ -590,7 +605,8 @@ export default function LLMCredentialModal({
                   </>
                 ) : (
                   <>
-                    <span>⚡ Test Connection</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <span>Test Connection</span>
                   </>
                 )}
               </button>
@@ -620,7 +636,8 @@ export default function LLMCredentialModal({
                   </>
                 ) : (
                   <>
-                    <span>↻ {models.length > 0 ? 'Refresh Models' : 'Fetch Models'}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                    <span>{models.length > 0 ? 'Refresh Models' : 'Fetch Models'}</span>
                   </>
                 )}
               </button>
@@ -643,7 +660,13 @@ export default function LLMCredentialModal({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>{testResult.ok ? '✓' : '⚠'}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {testResult.ok ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    )}
+                  </span>
                   <div>
                     <strong>{testResult.ok ? 'Connection Verified' : (testResult.error_code || 'Test Failed')}</strong>
                     <div style={{ color: 'var(--text, #f8fafc)', opacity: 0.9, marginTop: 1 }}>
@@ -777,8 +800,9 @@ export default function LLMCredentialModal({
             background: 'var(--panel-2, #182234)',
           }}
         >
-          <div style={{ fontSize: 11.5, color: 'var(--muted, #94a3b8)' }}>
-            🔒 Credentials are encrypted at rest with AES-256 / Fernet.
+          <div style={{ fontSize: 11.5, color: 'var(--muted, #94a3b8)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Credentials are encrypted at rest with AES-256 / Fernet.</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button

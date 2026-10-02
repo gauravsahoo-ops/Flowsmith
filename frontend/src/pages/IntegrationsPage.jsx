@@ -240,34 +240,54 @@ export default function IntegrationsPage() {
               onClick={() => setOpenApiModalOpen(true)}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <span>⚡</span> Import OpenAPI / Swagger
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Import OpenAPI / Swagger
             </button>
             <button
               className="primary"
               onClick={() => navigate('/credentials')}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <span>🔑</span> Manage Credentials
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 2l-2 2m-1.5 1.5L14 9l-3-3 2.5-2.5a2.12 2.12 0 0 1 3 0l4.5 4.5" />
+                <path d="M15.5 10.5L8 18l-3-1-1 3 3 1 1-3 7.5-7.5" />
+              </svg>
+              Manage Credentials
             </button>
           </div>
         }
       />
 
-      {/* Primary View Switcher (Phase 29) */}
+      {/* Primary View Switcher */}
       <div style={{ display: 'flex', gap: '0.5rem', margin: '1.25rem 0 1rem 0', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
         <button
           className={mainTab === 'marketplace' ? 'primary' : 'ghost'}
           onClick={() => setMainTab('marketplace')}
-          style={{ fontSize: '13px', padding: '0.5rem 1.1rem', borderRadius: 8 }}
+          style={{ fontSize: '13px', padding: '0.5rem 1.1rem', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
-          🔌 Connectors Directory ({connectors.length})
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+            <line x1="6" y1="6" x2="6.01" y2="6" />
+            <line x1="6" y1="18" x2="6.01" y2="18" />
+          </svg>
+          Connectors Directory ({connectors.length})
         </button>
         <button
           className={mainTab === 'coverage' ? 'primary' : 'ghost'}
           onClick={() => setMainTab('coverage')}
-          style={{ fontSize: '13px', padding: '0.5rem 1.1rem', borderRadius: 8 }}
+          style={{ fontSize: '13px', padding: '0.5rem 1.1rem', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
-          📈 Coverage & Parity Engine (n8n / Zapier / Cyclr)
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Coverage & Parity Engine (n8n / Zapier / Cyclr)
         </button>
       </div>
 
@@ -461,9 +481,22 @@ export default function IntegrationsPage() {
                     color: '#64748b',
                   }}
                 >
-                  <div style={{ display: 'flex', gap: '0.85rem' }}>
-                    <span>⚡ {opCount} action{opCount !== 1 ? 's' : ''}</span>
-                    {trigCount > 0 && <span>📥 {trigCount} trigger{trigCount !== 1 ? 's' : ''}</span>}
+                  <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                      </svg>
+                      {opCount} action{opCount !== 1 ? 's' : ''}
+                    </span>
+                    {trigCount > 0 && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
+                          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+                          <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+                        </svg>
+                        {trigCount} trigger{trigCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
                   <span style={{ color: '#38bdf8', fontWeight: 500 }}>Inspect →</span>
                 </div>
@@ -502,9 +535,9 @@ export default function IntegrationsPage() {
               overflowY: 'auto',
               borderRadius: 12,
               padding: '2rem',
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              background: '#0d0e12',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -514,11 +547,11 @@ export default function IntegrationsPage() {
                     width: 52,
                     height: 52,
                     borderRadius: 12,
-                    background: 'rgba(255, 255, 255, 0.08)',
+                    background: 'rgba(255, 255, 255, 0.06)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
                   <NodeIcon type={selectedConnector.connector_key} name={selectedConnector.display_name} icon={selectedConnector.icon} size={36} />
@@ -538,8 +571,11 @@ export default function IntegrationsPage() {
                   </div>
                 </div>
               </div>
-              <button className="ghost drawer-close" onClick={() => setSelectedConnector(null)} style={{ padding: '0.4rem 0.8rem' }}>
-                ✕
+              <button className="ghost drawer-close" onClick={() => setSelectedConnector(null)} style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
 
@@ -555,8 +591,13 @@ export default function IntegrationsPage() {
                   setSelectedConnector(null)
                   navigate('/credentials')
                 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                🔑 Configure Credentials
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 2l-2 2m-1.5 1.5L14 9l-3-3 2.5-2.5a2.12 2.12 0 0 1 3 0l4.5 4.5" />
+                  <path d="M15.5 10.5L8 18l-3-1-1 3 3 1 1-3 7.5-7.5" />
+                </svg>
+                Configure Credentials
               </button>
               <button
                 className="ghost"
@@ -564,8 +605,12 @@ export default function IntegrationsPage() {
                   setSelectedConnector(null)
                   navigate('/workflows')
                 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                ⚡ Use in Workflow
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                Use in Workflow
               </button>
             </div>
 
@@ -609,9 +654,15 @@ export default function IntegrationsPage() {
                           borderRadius: 6,
                           fontSize: '13px',
                           color: '#e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
                         }}
                       >
-                        ⚡ {op}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                        {op}
                       </div>
                     ))
                   )}
@@ -632,9 +683,16 @@ export default function IntegrationsPage() {
                             borderRadius: 6,
                             fontSize: '13px',
                             color: '#e2e8f0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
                           }}
                         >
-                          📥 {trig}
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+                            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+                            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+                          </svg>
+                          {trig}
                         </div>
                       ))}
                     </div>

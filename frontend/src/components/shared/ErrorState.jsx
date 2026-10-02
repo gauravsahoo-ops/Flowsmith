@@ -27,7 +27,18 @@ function toSafeDetails(details, description) {
   return null
 }
 
-export default function ErrorState({ icon = '⚠️', title, description, details, action, secondaryAction }) {
+function getErrorIcon(icon) {
+  if (isValidElement(icon)) return icon
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+export default function ErrorState({ icon = 'alert', title, description, details, action, secondaryAction }) {
   const safeTitle = toSafeText(title)
   const safeDesc = toSafeText(description)
   const safeDetails = toSafeDetails(details, description)
@@ -44,7 +55,7 @@ export default function ErrorState({ icon = '⚠️', title, description, detail
 
   return (
     <div className="error-state" role="alert">
-      <div className="es-icon" aria-hidden="true">{icon}</div>
+      <div className="es-icon" aria-hidden="true">{getErrorIcon(icon)}</div>
       <div className="es-title">{safeTitle}</div>
       {safeDesc && <div className="es-desc">{safeDesc}</div>}
       {safeDetails && (
@@ -54,11 +65,15 @@ export default function ErrorState({ icon = '⚠️', title, description, detail
             <button
               type="button"
               className="ghost small"
-              style={{ fontSize: 11, padding: '2px 8px', color: '#94a3b8', background: 'rgba(255,255,255,0.06)', borderRadius: 4, border: 'none' }}
+              style={{ fontSize: 11, padding: '2px 8px', color: '#94a3b8', background: 'rgba(255,255,255,0.06)', borderRadius: 4, border: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
               onClick={handleCopy}
               title="Copy technical details"
             >
-              {copied ? '✓ Copied' : '📋 Copy'}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+              <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
           </summary>
           <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 220, overflowY: 'auto' }}>{safeDetails}</pre>

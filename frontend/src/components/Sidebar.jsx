@@ -140,7 +140,7 @@ export default function Sidebar({ onOpenCredentials }) {
     const seen = new Set()
     for (const node of matches) {
       if (node.type === 'loop') continue
-      if (!q && selectedCategory !== 'Connectors' && (node.icon === '🔌' || node.category === 'Connectors')) continue
+      if (!q && selectedCategory !== 'Connectors' && (node.category === 'Connectors' || node.icon === '\uD83D\uDD0C')) continue
       const key = `${node.category || 'Other'}::${node.display_name}`
       if (seen.has(key)) continue
       seen.add(key)
@@ -156,7 +156,7 @@ export default function Sidebar({ onOpenCredentials }) {
   }, [catalog, query, selectedCategory])
 
   const connectorNodes = useMemo(() => {
-    return catalog.filter((n) => n.icon === '🔌' || n.category === 'Connectors')
+    return catalog.filter((n) => n.icon === '\uD83D\uDD0C' || n.category === 'Connectors')
   }, [catalog])
 
   /** Jump to the first canvas instance of a node type. */
@@ -561,9 +561,15 @@ export default function Sidebar({ onOpenCredentials }) {
               className="clickable"
               onClick={() => setSelectedCategory('Connectors')}
               title="Click to view all Connectors"
-              style={{ margin: 0 }}
+              style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              🔌 Connectors ({connectorNodes.length})
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                <line x1="6" y1="6" x2="6.01" y2="6" />
+                <line x1="6" y1="18" x2="6.01" y2="18" />
+              </svg>
+              <span>Connectors ({connectorNodes.length})</span>
             </h3>
             <button
               type="button"
@@ -601,8 +607,13 @@ export default function Sidebar({ onOpenCredentials }) {
       )}
 
       {!selectedCategory && (
-        <button className="ghost creds-button" onClick={onOpenCredentials}>
-          🔑 Credentials
+        <button className="ghost creds-button" onClick={onOpenCredentials} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="7.5" cy="15.5" r="5.5" />
+            <path d="M21 2l-9.6 9.6" />
+            <path d="M15.5 7.5l3 3L22 7l-3-3" />
+          </svg>
+          <span>Credentials</span>
         </button>
       )}
       <OpenApiImportModal

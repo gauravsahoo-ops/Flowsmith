@@ -5,11 +5,11 @@ import LLMCredentialModal from './LLMCredentialModal'
 
 const CAPABILITY_TAGS = [
   { id: 'all', label: 'All Models' },
-  { id: 'reasoning', label: '🧠 Reasoning' },
-  { id: 'vision', label: '👁 Vision' },
-  { id: 'tools', label: '🛠 Tools' },
-  { id: 'streaming', label: '⚡ Streaming' },
-  { id: '128k', label: '📚 128K+' },
+  { id: 'reasoning', label: 'Reasoning' },
+  { id: 'vision', label: 'Vision' },
+  { id: 'tools', label: 'Tools' },
+  { id: 'streaming', label: 'Streaming' },
+  { id: '128k', label: '128K+' },
 ]
 
 export default function AINodeEditor({
@@ -121,7 +121,7 @@ export default function AINodeEditor({
         label: name,
         category: p.category,
         hint: p.aliases?.slice(0, 2).join(', '),
-        meta: p.status === 'SUPPORTED' ? '✓' : p.status,
+        meta: p.status === 'SUPPORTED' ? 'Supported' : p.status,
         aliases: p.aliases || [],
       }
     })

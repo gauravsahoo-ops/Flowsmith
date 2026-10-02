@@ -129,20 +129,33 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
       </button>
 
       <button type="button" role="menuitem" onClick={handleRunToHere} disabled={runningStep}>
-        <span className="ctx-icon" style={{ color: '#10b981' }}>
-          ⏩
+        <span className="ctx-icon" style={{ color: '#10b981', display: 'flex', alignItems: 'center' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="13 19 22 12 13 5 13 19" />
+            <polygon points="2 19 11 12 2 5 2 19" />
+          </svg>
         </span>
         <span className="ctx-label">Run to Here</span>
       </button>
 
       {isPinned ? (
         <button type="button" role="menuitem" onClick={() => { onUnpin(); onClose() }}>
-          <span className="ctx-icon">📌</span>
+          <span className="ctx-icon" style={{ display: 'flex', alignItems: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="17" x2="12" y2="22" />
+              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z" />
+            </svg>
+          </span>
           <span className="ctx-label">Unpin Mock Data</span>
         </button>
       ) : (
         <button type="button" role="menuitem" onClick={() => { onPin(); onClose() }}>
-          <span className="ctx-icon">📌</span>
+          <span className="ctx-icon" style={{ display: 'flex', alignItems: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="17" x2="12" y2="22" />
+              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z" />
+            </svg>
+          </span>
           <span className="ctx-label">Pin Output Data</span>
         </button>
       )}
@@ -362,8 +375,11 @@ function CustomNode({ id, data, selected }) {
 
         {/* Pinned mock data badge */}
         {isPinned && (
-          <span className="rf-node-pin-badge" title="Pinned Mock Data Active (live API calls bypassed)">
-            📌
+          <span className="rf-node-pin-badge" title="Pinned Mock Data Active (live API calls bypassed)" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="17" x2="12" y2="22" />
+              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z" />
+            </svg>
           </span>
         )}
 
@@ -410,7 +426,7 @@ function CustomNode({ id, data, selected }) {
               className="preview-chip stopped"
               title="Workflow stopped here: node produced 0 output items (no data to continue downstream)"
             >
-              ⏹ Stopped (0 items)
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ marginRight: 4, verticalAlign: -1 }}><rect width="18" height="18" x="3" y="3" rx="2"/></svg>Stopped (0 items)
             </span>
           ) : (
             preview?.outputCount != null && !preview?.error && (

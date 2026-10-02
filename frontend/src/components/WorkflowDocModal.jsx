@@ -63,7 +63,9 @@ export default function WorkflowDocModal({ isOpen, onClose, workflowId, workflow
         {/* Header */}
         <div className="wdm-modal-header">
           <div className="wdm-header-title">
-            <span className="wdm-icon">📄</span>
+            <span className="wdm-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </span>
             <div>
               <h3>Workflow Architecture & Documentation</h3>
               <span className="wdm-subtitle">
@@ -71,8 +73,8 @@ export default function WorkflowDocModal({ isOpen, onClose, workflowId, workflow
               </span>
             </div>
           </div>
-          <button type="button" className="wdm-close-btn" onClick={onClose}>
-            ✕
+          <button type="button" className="wdm-close-btn" onClick={onClose} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
@@ -100,8 +102,19 @@ export default function WorkflowDocModal({ isOpen, onClose, workflowId, workflow
               className="wdm-btn ghost"
               onClick={handleCopy}
               disabled={!doc?.markdown}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
             >
-              {copied ? '✓ Copied!' : 'Copy Markdown'}
+              {copied ? (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  <span>Copy Markdown</span>
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -130,7 +143,10 @@ export default function WorkflowDocModal({ isOpen, onClose, workflowId, workflow
               <span>Analyzing graph topology and generating architecture document…</span>
             </div>
           ) : error ? (
-            <div className="wdm-error-banner">⚠️ {error}</div>
+            <div className="wdm-error-banner" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>{error}</span>
+            </div>
           ) : doc ? (
             tab === 'preview' ? (
               <div className="wdm-rendered-doc">

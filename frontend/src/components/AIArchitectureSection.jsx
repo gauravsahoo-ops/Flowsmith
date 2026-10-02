@@ -597,7 +597,7 @@ export default function AIArchitectureSection() {
               Open MCP Studio ↓
             </a>
             <button className="ghost" onClick={handleCopySnippet} style={{ fontSize: '12.5px', padding: '0.45rem 0.85rem' }}>
-              {copiedSnippet ? '✓ Copied' : 'Copy Claude Config'}
+              {copiedSnippet ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied</span>) : 'Copy Claude Config'}
             </button>
           </div>
         </div>
@@ -720,7 +720,7 @@ export default function AIArchitectureSection() {
         <div style={{ marginBottom: '1.25rem' }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>Topological Platform Execution Flow</span>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>(Layer 1 Intent ➔ Layer 7 Consumption Surface)</span>
+            <span style={{ fontSize: '11px', color: '#64748b' }}>(Layer 1 Intent → Layer 7 Consumption Surface)</span>
           </div>
 
           <div
@@ -906,7 +906,7 @@ export default function AIArchitectureSection() {
                   cursor: 'pointer',
                 }}
               >
-                {copiedSnippet ? '✓ Copied' : 'Copy'}
+                {copiedSnippet ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied</span>) : 'Copy'}
               </button>
             </div>
             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '0.6rem' }}>
@@ -999,7 +999,7 @@ export default function AIArchitectureSection() {
               </button>
               {toolExecutionLatency !== null && (
                 <span style={{ fontSize: '11px', color: '#4ade80' }}>
-                  ✓ Response in {toolExecutionLatency}ms
+                  Response in {toolExecutionLatency}ms
                 </span>
               )}
             </div>
@@ -1007,7 +1007,7 @@ export default function AIArchitectureSection() {
             {/* Error Display */}
             {toolError && (
               <div style={{ fontSize: '12px', color: '#f87171', padding: '6px 10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', marginBottom: '0.5rem' }}>
-                ⚠️ {toolError}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {toolError}
               </div>
             )}
 
@@ -1242,7 +1242,7 @@ export default function AIArchitectureSection() {
                   <span style={{ fontSize: '12.5px', fontWeight: 600, color: isDone ? '#4ade80' : '#f1f5f9' }}>
                     {s.title}
                   </span>
-                  {isDone && <span style={{ fontSize: '11px', color: '#4ade80' }}>✓</span>}
+                  {isDone && <span style={{ fontSize: "11px", color: "#4ade80", display: "inline-flex", alignItems: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>}
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: '1.35' }}>
                   {s.text}

@@ -160,8 +160,9 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                 className="expr-close-btn"
                 onClick={() => setIsOpen(false)}
                 title="Close (Esc)"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
               >
-                ✕
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
 
@@ -181,9 +182,10 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                     <button
                       type="button"
                       className="expr-search-clear"
-                      onClick={() => setFilter('')}
+                      onClick={() => setFilter("")}
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                     >
-                      ✕
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   )}
                 </div>
@@ -311,11 +313,11 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                   <div className="expr-preview-box">
                     {previewError ? (
                       <div className="expr-preview-err">
-                        <span>⚠️ {previewError}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{previewError}</span>
                       </div>
                     ) : previewResult?.error ? (
                       <div className="expr-preview-err">
-                        <span>⚠️ {previewResult.error}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{previewResult.error}</span>
                       </div>
                     ) : previewResult?.resolved !== undefined ? (
                       <pre className="expr-preview-val">
@@ -332,7 +334,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
 
                   {previewResult?.missing && (
                     <div className="expr-missing-warning">
-                      ⚠️ Contains unresolved placeholders (some fields were not found upstream).
+                      Contains unresolved placeholders (some fields were not found upstream).
                     </div>
                   )}
                 </div>
@@ -342,7 +344,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
             {/* Modal Footer */}
             <div className="expr-modal-footer">
               <div className="expr-footer-left">
-                {copied && <span className="expr-copied-notice">✓ Copied to clipboard!</span>}
+                {copied && <span className="expr-copied-notice">Copied to clipboard!</span>}
               </div>
               <div className="expr-footer-right">
                 <button

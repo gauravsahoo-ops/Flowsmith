@@ -70,7 +70,7 @@ export default function OAuthCallbackPage() {
     return (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#16181d', color: '#e6e9ef', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 1s linear infinite", display: "inline-block" }}><circle cx="12" cy="12" r="10" strokeOpacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg></div>
           <div>Processing connection…</div>
         </div>
       </div>
@@ -79,23 +79,32 @@ export default function OAuthCallbackPage() {
 
   if (status === 'success') {
     return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#16181d', color: '#e6e9ef', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0e0f14', color: '#e6e9ef', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ textAlign: 'center', padding: 24 }}>
-          <div style={{ fontSize: 32, marginBottom: 12, color: '#34c759' }}>✓</div>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>Connection successful</div>
-          <div style={{ color: '#9aa3b2', fontSize: 13 }}>Closing this window…</div>
-          <div style={{ color: '#9aa3b2', fontSize: 12, marginTop: 8 }}>You can close this window if it doesn't close automatically.</div>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, color: '#f8fafc' }}>Connection successful</div>
+          <div style={{ color: '#94a3b8', fontSize: 13 }}>Closing this window…</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>You can close this window if it doesn't close automatically.</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#16181d', color: '#e6e9ef', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0e0f14', color: '#e6e9ef', fontFamily: 'system-ui, sans-serif' }}>
       <div style={{ textAlign: 'center', padding: 24 }}>
-        <div style={{ fontSize: 32, marginBottom: 12, color: '#ff453a' }}>✕</div>
-        <div style={{ fontWeight: 600, marginBottom: 6 }}>Connection failed</div>
-        <div style={{ color: '#9aa3b2', fontSize: 13 }}>You can close this window and try again.</div>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </div>
+        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6, color: '#f8fafc' }}>Connection failed</div>
+        <div style={{ color: '#94a3b8', fontSize: 13 }}>You can close this window and try again.</div>
       </div>
     </div>
   )

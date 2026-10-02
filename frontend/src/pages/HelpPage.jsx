@@ -2,17 +2,45 @@ import { Link } from 'react-router-dom'
 import PageHeader from '../components/shared/PageHeader'
 
 const DOCS = [
-  { title: 'Workflow basics', desc: 'Visual canvas, nodes, connections, and DAG execution', to: '/workflows', icon: '⚡' },
-  { title: 'Expressions & Syntax', desc: 'Use {{ $json }}, {{ $node.* }}, {{ $env.* }}, {{ $cred.* }}', to: '/variables', icon: '🧩' },
-  { title: 'Credentials & Auth', desc: 'Encrypted at rest, injected securely as $cred', to: '/credentials', icon: '🔑' },
-  { title: 'Triggers', desc: 'Manual triggers, webhook listeners, and cron schedules', to: '/workflows', icon: '⏰' },
-  { title: 'Executions & Console', desc: 'Timeline, step payload inspection, retry, and trace console', to: '/executions', icon: '🕘' },
-  { title: 'Variables & Environment', desc: 'Workspace-scoped variables, secret masking, and {{ $env.KEY }}', to: '/variables', icon: '🌍' },
-  { title: 'Templates Gallery', desc: 'Production-ready starter workflows and team sharing', to: '/templates', icon: '📋' },
-  { title: 'RAG & Knowledge', desc: 'Vector collections, document chunking, and similarity search', to: '/knowledge', icon: '📚' },
-  { title: 'Human Approvals', desc: 'Pause execution for manual review before high-impact actions', to: '/approvals', icon: '✅' },
-  { title: 'Monitoring & Health', desc: 'Queue throughput, worker concurrency, and system telemetry', to: '/monitoring', icon: '📊' },
+  { id: 'workflows', title: 'Workflow basics', desc: 'Visual canvas, nodes, connections, and DAG execution', to: '/workflows' },
+  { id: 'expressions', title: 'Expressions & Syntax', desc: 'Use {{ $json }}, {{ $node.* }}, {{ $env.* }}, {{ $cred.* }}', to: '/variables' },
+  { id: 'credentials', title: 'Credentials & Auth', desc: 'Encrypted at rest, injected securely as $cred', to: '/credentials' },
+  { id: 'triggers', title: 'Triggers', desc: 'Manual triggers, webhook listeners, and cron schedules', to: '/workflows' },
+  { id: 'executions', title: 'Executions & Console', desc: 'Timeline, step payload inspection, retry, and trace console', to: '/executions' },
+  { id: 'variables', title: 'Variables & Environment', desc: 'Workspace-scoped variables, secret masking, and {{ $env.KEY }}', to: '/variables' },
+  { id: 'templates', title: 'Templates Gallery', desc: 'Production-ready starter workflows and team sharing', to: '/templates' },
+  { id: 'knowledge', title: 'RAG & Knowledge', desc: 'Vector collections, document chunking, and similarity search', to: '/knowledge' },
+  { id: 'approvals', title: 'Human Approvals', desc: 'Pause execution for manual review before high-impact actions', to: '/approvals' },
+  { id: 'monitoring', title: 'Monitoring & Health', desc: 'Queue throughput, worker concurrency, and system telemetry', to: '/monitoring' },
 ]
+
+function renderDocIcon(id) {
+  const props = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }
+  switch (id) {
+    case 'workflows':
+      return <svg {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+    case 'expressions':
+      return <svg {...props}><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+    case 'credentials':
+      return <svg {...props}><circle cx="7.5" cy="15.5" r="5.5" /><path d="M21 2l-9.6 9.6" /><path d="M15.5 7.5l3 3L22 7l-3-3" /></svg>
+    case 'triggers':
+      return <svg {...props}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+    case 'executions':
+      return <svg {...props}><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" /></svg>
+    case 'variables':
+      return <svg {...props}><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+    case 'templates':
+      return <svg {...props}><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>
+    case 'knowledge':
+      return <svg {...props}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+    case 'approvals':
+      return <svg {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+    case 'monitoring':
+      return <svg {...props}><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+    default:
+      return null
+  }
+}
 
 export default function HelpPage() {
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
@@ -30,7 +58,7 @@ export default function HelpPage() {
           <Link key={d.title} to={d.to} className="help-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <strong style={{ fontSize: 14, color: '#f8fafc' }}>{d.title}</strong>
-              <span style={{ fontSize: 16 }}>{d.icon}</span>
+              <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}>{renderDocIcon(d.id)}</span>
             </div>
             <p className="hint" style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: '#94a3b8' }}>{d.desc}</p>
           </Link>

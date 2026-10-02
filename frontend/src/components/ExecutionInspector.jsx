@@ -19,14 +19,6 @@ import ExecutionCompare from './ExecutionCompare'
 import Status from './shared/Status'
 import ErrorState from './shared/ErrorState'
 
-const STEP_ICON = {
-  success: '✓',
-  error: '✕',
-  failed: '✕',
-  cancelled: '⊘',
-  skipped: '—',
-}
-
 function fmtDuration(ms) {
   if (ms == null) return ''
   if (ms < 1000) return `${Math.round(ms)}ms`
@@ -208,8 +200,11 @@ export default function ExecutionInspector({ onClose }) {
             <h2>Console</h2>
           </div>
           <div className="inspector-actions">
-            <button type="button" className="ghost" onClick={onClose || clear} title="Close Console">
-              ✕
+            <button type="button" className="ghost" onClick={onClose || clear} title="Close Console" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, padding: 0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           </div>
         </header>
@@ -382,24 +377,33 @@ export default function ExecutionInspector({ onClose }) {
                   <button
                     type="button"
                     className="ghost small"
-                    style={{ width: '100%', textAlign: 'left', padding: '6px 10px', display: 'block', fontSize: 12 }}
+                    style={{ width: '100%', textAlign: 'left', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                     onClick={() => {
                       setExportMenuOpen(false)
                       api.exportExecution(executionId, 'json')
                     }}
                   >
-                    📄 JSON Trace
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="16 18 22 12 16 6" />
+                      <polyline points="8 6 2 12 8 18" />
+                    </svg>
+                    JSON Trace
                   </button>
                   <button
                     type="button"
                     className="ghost small"
-                    style={{ width: '100%', textAlign: 'left', padding: '6px 10px', display: 'block', fontSize: 12 }}
+                    style={{ width: '100%', textAlign: 'left', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                     onClick={() => {
                       setExportMenuOpen(false)
                       api.exportExecution(executionId, 'csv')
                     }}
                   >
-                    📊 CSV Audit
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10" />
+                      <line x1="12" y1="20" x2="12" y2="4" />
+                      <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>
+                    CSV Audit
                   </button>
                 </div>
               )}
@@ -415,8 +419,12 @@ export default function ExecutionInspector({ onClose }) {
       </header>
 
       {status === 'waiting_approval' && (
-        <div className="banner-inline info">
-          ⏸ {pauseState?.message || 'Waiting for a human decision.'} Approve it in ✅ Approvals.
+        <div className="banner-inline info" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+          </svg>
+          <span>{pauseState?.message || 'Waiting for a human decision.'} Approve it in Approvals page.</span>
         </div>
       )}
       {approval && (
@@ -446,7 +454,6 @@ export default function ExecutionInspector({ onClose }) {
 
       {error && (
         <ErrorState
-          icon="⚠️"
           title={error.code || 'Execution error'}
           description={error.message || JSON.stringify(error)}
           details={

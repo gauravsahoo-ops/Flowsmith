@@ -37,7 +37,7 @@ export default function SubWorkflowBrowser({ onClose }) {
       </div>
 
       <div className="subwf-browser-search">
-        <span className="subwf-search-icon">🔍</span>
+        <span className="subwf-search-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
         <input
           autoFocus
           placeholder="Search actions & triggers..."
@@ -47,7 +47,7 @@ export default function SubWorkflowBrowser({ onClose }) {
           aria-label="Search Sub-workflow"
         />
         {search && (
-          <button className="ghost small" onClick={() => setSearch('')} aria-label="Clear search">✕</button>
+          <button className="ghost small" onClick={() => setSearch("")} aria-label="Clear search" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         )}
       </div>
 
@@ -81,7 +81,7 @@ export default function SubWorkflowBrowser({ onClose }) {
                   </div>
                   <div className="subwf-card-content">
                     <div className="subwf-card-title">When executed by Another Workflow</div>
-                    <div className="subwf-card-badge">⚡</div>
+                    <div className="subwf-card-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
                     <div className="subwf-card-desc">
                       Starts the workflow when called by an Execute Sub-workflow node in another workflow.
                     </div>

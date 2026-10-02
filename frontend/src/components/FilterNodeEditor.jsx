@@ -208,9 +208,7 @@ export default function FilterNodeEditor({
                     className="filter-remove-btn"
                     onClick={() => removeCondition(cond.id)}
                     title="Remove condition"
-                  >
-                    🗑
-                  </button>
+                   style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                 </div>
 
                 {/* value1 field */}
@@ -254,9 +252,7 @@ export default function FilterNodeEditor({
                   </button>
 
                   {/* Circular Checkmark Badge */}
-                  <span className="filter-valid-badge" title="Type valid">
-                    ✓
-                  </span>
+                  <span className="filter-valid-badge" title="Type valid" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>
 
                   {/* Cascading 2-Column Flyout Menu */}
                   {isFlyoutOpen && (
@@ -307,7 +303,7 @@ export default function FilterNodeEditor({
                               >
                                 <span>{op.label}</span>
                                 {isSelected && (
-                                  <span className="filter-op-item-check">✓</span>
+                                  <span className="filter-op-item-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 )}
                               </button>
                             )
@@ -405,9 +401,7 @@ export default function FilterNodeEditor({
                   className="filter-remove-btn"
                   title="Remove option"
                   onClick={() => handleOptionChange('ignoreCase', undefined)}
-                >
-                  ✕
-                </button>
+                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
               </div>
             </div>
           ) : (

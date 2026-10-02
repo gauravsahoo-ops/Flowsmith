@@ -83,7 +83,7 @@ export default function TokenFetchNodeEditor({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 18 }}>🔑</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3"/></svg>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Token Fetch Node</div>
               <div style={{ fontSize: 11, color: 'var(--muted)' }}>Auth Lifecycle & Credential Reuse</div>
