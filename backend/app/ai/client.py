@@ -81,8 +81,13 @@ async def chat_completion(
     base_url = str(credential.get("base_url") or "").rstrip("/")
     timeout_s = float(credential.get("timeout_s") or 60.0)
 
-    # Route specialized non-OpenAI providers (Anthropic, Gemini) via provider classes
-    if prov_name in ("anthropic", "gemini") or (prov_name is None and model.startswith(("claude", "gemini"))):
+    # Route specialized non-OpenAI or local builtin providers via provider classes
+    if (
+        prov_name in ("anthropic", "gemini", "builtin", "local_ai", "offline", "mock")
+        or model.startswith(("claude", "gemini", "builtin"))
+        or model in ("builtin", "local-ai")
+        or (prov_name == "builtin")
+    ):
         fmt = response_format
         if response_json and not fmt:
             fmt = {"type": "json_object"}

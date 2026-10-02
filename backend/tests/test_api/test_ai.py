@@ -285,3 +285,68 @@ def test_ai_chat_with_llm_credential_and_memory(client, fake_llm):
     assert mem_data["turns"] == 2
     assert mem_data["messages"][0]["content"] == "Hi there, who are you?"
     assert mem_data["messages"][1]["content"] == "Hello! I am Flowsmith AI Agent."
+
+
+def test_ai_chat_zero_llm_mode(client):
+    """Calling /api/ai/chat with allow_builtin=True runs without an external LLM credential."""
+    reg = register(client, "offline_ai_user@example.com")
+    headers = auth_headers(reg["token"])
+
+    resp = client.post(
+        "/api/ai/chat",
+        json={
+            "message": "What time is it?",
+            "session_id": "offline_sess_1",
+            "allow_builtin": True,
+            "memory_type": "complete",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["provider"] == "builtin"
+    assert "UTC" in data["response"] or "time" in data["response"].lower()
+
+
+def test_ai_memory_search_and_entities_endpoints(client):
+    """Test multi-tier memory management API: entities, notes, and search."""
+    reg = register(client, "mem_tier_user@example.com")
+    headers = auth_headers(reg["token"])
+    sess = "tier_sess_99"
+
+    # 1. Upsert entities
+    post_ent = client.post(
+        f"/api/ai/memory/{sess}/entities",
+        json={"entities": {"target_region": "us-east-1", "service": "kubernetes"}},
+        headers=headers,
+    )
+    assert post_ent.status_code == 200
+    assert post_ent.json()["data"]["entities"]["target_region"] == "us-east-1"
+
+    # 2. Get entities
+    get_ent = client.get(f"/api/ai/memory/{sess}/entities", headers=headers)
+    assert get_ent.status_code == 200
+    assert get_ent.json()["data"]["entities"]["service"] == "kubernetes"
+
+    # 3. Upsert note
+    post_note = client.post(
+        f"/api/ai/memory/{sess}/notes",
+        json={"key": "step_arch", "content": "Deploying distributed worker queue", "tags": ["ops"]},
+        headers=headers,
+    )
+    assert post_note.status_code == 200
+    assert post_note.json()["data"]["saved"] is True
+
+    # 4. List notes
+    get_notes = client.get(f"/api/ai/memory/{sess}/notes", headers=headers)
+    assert get_notes.status_code == 200
+    notes = get_notes.json()["data"]["notes"]
+    assert len(notes) == 1
+    assert notes[0]["key"] == "step_arch"
+
+    # 5. Search
+    search_resp = client.get(f"/api/ai/memory/{sess}/search?q=kubernetes", headers=headers)
+    assert search_resp.status_code == 200
+    results = search_resp.json()["data"]["results"]
+    assert len(results) >= 1
+    assert any(r.get("key") == "service" or "kubernetes" in str(r) for r in results)

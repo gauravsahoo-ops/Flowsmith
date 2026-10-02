@@ -69,10 +69,14 @@ class AgentParams(BaseModel):
         ],
         description="Tools available to the agent.",
     )
+    allow_builtin_fallback: bool = Field(
+        default=False,
+        description="Allow falling back to built-in local engine if no external LLM credentials are provided.",
+    )
     memory_type: str = Field(
         default="window",
-        pattern="^(window|summary|episodic|none)$",
-        description="Memory type: window (sliding), summary (LLM compressed), episodic (pgvector), or none.",
+        pattern="^(complete|window|summary|episodic|entity|scratchpad|none)$",
+        description="Memory tier: complete (multi-tier), window (sliding), summary (compressed), episodic (semantic), entity (facts), scratchpad, or none.",
     )
     session_id: str = Field(
         default="default",
@@ -159,13 +163,23 @@ class AIAgentNode(BaseNode[AgentParams]):
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
         llm_cred = ctx.credentials.get("llm")
+        is_builtin_target = bool(
+            params.model and str(params.model).lower() in ("builtin", "local", "local_ai", "offline", "none")
+        )
         if not llm_cred:
-            raise NodeExecutionError(
-                "The AI Agent node requires an 'llm' credential.",
-                code="CREDENTIALS_REQUIRED",
-                node_id=self.node_type,
-                retryable=False,
-            )
+            if params.allow_builtin_fallback or is_builtin_target:
+                llm_cred = {
+                    "provider": "builtin",
+                    "model": params.model or "builtin",
+                    "api_key": "builtin_local",
+                }
+            else:
+                raise NodeExecutionError(
+                    "The AI Agent node requires an 'llm' credential.",
+                    code="CREDENTIALS_REQUIRED",
+                    node_id=self.node_type,
+                    retryable=False,
+                )
 
         # Clone cred and apply model override if set
         effective_cred = dict(llm_cred)
@@ -192,7 +206,7 @@ class AIAgentNode(BaseNode[AgentParams]):
             {"role": "system", "content": params.instructions},
         ]
 
-        # Handle Tri-Tier Memory
+        # Handle Multi-Tier Memory
         mem_manager = get_memory_manager()
         session_key = (
             f"{ctx.workflow_id}_{params.session_id}"
@@ -200,7 +214,13 @@ class AIAgentNode(BaseNode[AgentParams]):
             else params.session_id
         )
 
-        if params.memory_type == "window":
+        if params.memory_type == "complete":
+            complete_mem = await mem_manager.get_complete_memory(session_key)
+            context_prompt = await complete_mem.format_prompt_context(query=user_input)
+            if context_prompt:
+                messages.append({"role": "system", "content": context_prompt})
+            messages.extend(complete_mem.working.get_messages())
+        elif params.memory_type == "window":
             working_mem = await mem_manager.get_working_memory(session_key)
             messages.extend(working_mem.get_messages())
         elif params.memory_type == "summary":
@@ -214,6 +234,20 @@ class AIAgentNode(BaseNode[AgentParams]):
                     "role": "system",
                     "content": "[Relevant Historical Memories]:\n" + "\n- ".join(recalled),
                 })
+        elif params.memory_type == "entity":
+            complete_mem = await mem_manager.get_complete_memory(session_key)
+            entities = complete_mem.entities.get_all()
+            if entities:
+                ent_lines = [f"- {k}: {v}" for k, v in entities.items()]
+                messages.append({"role": "system", "content": "[Known Entities & Facts]:\n" + "\n".join(ent_lines)})
+            messages.extend(complete_mem.working.get_messages())
+        elif params.memory_type == "scratchpad":
+            complete_mem = await mem_manager.get_complete_memory(session_key)
+            notes = complete_mem.scratchpad.list_notes()
+            if notes:
+                note_lines = [f"- {n['key']}: {n['content']}" for n in notes]
+                messages.append({"role": "system", "content": "[Working Scratchpad Notes]:\n" + "\n".join(note_lines)})
+            messages.extend(complete_mem.working.get_messages())
 
         # Append current user prompt
         messages.append({"role": "user", "content": user_input})
@@ -326,7 +360,15 @@ class AIAgentNode(BaseNode[AgentParams]):
                 structured_json = {"raw": final_answer}
 
         # Update persistent memory
-        if params.memory_type == "window":
+        if params.memory_type == "complete":
+            comp_mem = await mem_manager.get_complete_memory(session_key)
+            await comp_mem.record_turn(
+                user_content=user_input,
+                assistant_content=final_answer,
+                llm_func=chat_completion,
+                llm_cred=effective_cred,
+            )
+        elif params.memory_type == "window":
             mem = await mem_manager.get_working_memory(session_key)
             mem.add_message("user", user_input)
             mem.add_message("assistant", final_answer)
@@ -338,6 +380,17 @@ class AIAgentNode(BaseNode[AgentParams]):
         elif params.memory_type == "episodic":
             mem_epi = await mem_manager.get_episodic_memory(session_key)
             await mem_epi.store_memory(f"User asked: {user_input} | Answer: {final_answer[:200]}")
+        elif params.memory_type == "entity":
+            comp_mem = await mem_manager.get_complete_memory(session_key)
+            comp_mem.entities.extract_from_text(user_input)
+            comp_mem.entities.extract_from_text(final_answer)
+            comp_mem.working.add_message("user", user_input)
+            comp_mem.working.add_message("assistant", final_answer)
+        elif params.memory_type == "scratchpad":
+            comp_mem = await mem_manager.get_complete_memory(session_key)
+            comp_mem.scratchpad.set(f"turn_{int(time.time())}", final_answer[:300])
+            comp_mem.working.add_message("user", user_input)
+            comp_mem.working.add_message("assistant", final_answer)
 
         # Assemble clean output item
         output_payload: dict[str, Any] = {
