@@ -17,13 +17,13 @@
 .canvas-toolbar {
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
   z-index: 12; display: flex; align-items: center; gap: 4px;
-  background: rgba(14, 18, 28, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px; padding: 5px 8px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(12, 16, 26, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px; padding: 5px 9px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px -4px rgba(99, 102, 241, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .tool-btn {
   background: transparent; border: none; color: #cbd5e1;
@@ -327,26 +327,27 @@
 .exec-edge {
   stroke: #475569;
   stroke-width: 2.2;
-  transition: stroke 0.25s ease, stroke-width 0.25s ease, opacity 0.25s ease;
+  transition: stroke 0.25s cubic-bezier(0.16, 1, 0.3, 1), stroke-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.exec-edge.exec-active {
+.exec-edge.exec-active,
+.exec-edge.exec-running {
   stroke: #10b981;
-  stroke-width: 2.6;
-  stroke-dasharray: 6 6;
+  stroke-width: 2.8;
+  stroke-dasharray: 7 5;
   stroke-linecap: round;
-  animation: dashflow 0.9s linear infinite;
-  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.55));
+  animation: dashflow 0.75s linear infinite;
+  filter: drop-shadow(0 0 7px rgba(16, 185, 129, 0.75));
   will-change: stroke-dashoffset;
 }
 .exec-edge.exec-completed {
   stroke: #10b981;
   stroke-width: 2.2;
-  filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.4));
+  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.45));
 }
 .exec-edge.exec-error {
   stroke: #f43f5e;
   stroke-width: 2.6;
-  filter: drop-shadow(0 0 5px rgba(244, 63, 94, 0.55));
+  filter: drop-shadow(0 0 7px rgba(244, 63, 94, 0.7));
 }
 .exec-edge.exec-skipped {
   stroke: #64748b;
@@ -356,17 +357,19 @@
 }
 .exec-edge.exec-waiting {
   stroke: #f59e0b;
-  stroke-width: 2.2;
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.5));
 }
 @keyframes dashflow {
-  to { stroke-dashoffset: -12; }
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
 }
 .exec-edge-hit { pointer-events: stroke; cursor: pointer; }
 
 .react-flow__edge.selected .exec-edge {
   stroke: var(--accent);
   stroke-width: 2.8;
-  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.75));
 }
 
 /* ---------- edge actions (inline + and delete) ---------- */
