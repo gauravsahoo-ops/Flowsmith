@@ -354,34 +354,6 @@ export default function CredentialsPage() {
           <option value="all">All types</option>
           {types.map(t => <option key={t.type} value={t.type}>{t.name}</option>)}
         </select>
-        <button
-          type="button"
-          onClick={() => {
-            setLlmModalData(null)
-            setLlmModalOpen(true)
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            background: '#18181b',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            color: '#f4f4f5',
-            fontWeight: 600,
-            fontSize: 12.5,
-            padding: '6px 14px',
-            borderRadius: 6,
-            cursor: 'pointer',
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#38bdf8' }}>
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-            <line x1="6" y1="6" x2="6.01" y2="6" />
-            <line x1="6" y1="18" x2="6.01" y2="18" />
-          </svg>
-          <span>Add LLM Credential</span>
-        </button>
         <span className="hint">{filtered.length}/{credentials.length}</span>
       </div>
 
