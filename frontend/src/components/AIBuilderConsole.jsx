@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 
 const BUILDER_MODES = [
-  { id: 'build', label: '✨ Build', desc: 'Create a new workflow from requirements' },
-  { id: 'modify', label: '🔧 Modify', desc: 'Surgically add or update an existing workflow' },
-  { id: 'repair', label: '🩹 Repair', desc: 'Diagnose and fix an execution error with diff' },
+  { id: 'build', label: 'Build', desc: 'Create a new workflow from requirements' },
+  { id: 'modify', label: 'Modify', desc: 'Surgically add or update an existing workflow' },
+  { id: 'repair', label: 'Repair', desc: 'Diagnose and fix an execution error with diff' },
 ]
 
 const STARTER_PROMPTS = [
@@ -249,7 +249,7 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
               fontSize: '12px',
             }}
           >
-            <option value="auto">⚡ Auto (Task-Based Optimal Routing)</option>
+            <option value="auto">Auto (Task-Based Optimal Routing)</option>
             {availableProviders.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name || c.id} ({c.provider || 'llm'})
@@ -260,8 +260,13 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
       </div>
 
       {error && (
-        <div className="banner-inline err" style={{ padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px' }}>
-          ⚠️ {error}
+        <div className="banner-inline err" style={{ padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 
@@ -355,7 +360,10 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
               </>
             ) : (
               <>
-                <span>✨</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
                 {mode === 'build' ? 'Synthesize & Validate Workflow' : (mode === 'modify' ? 'Apply Modification Diff' : 'Generate Repair Proposal')}
               </>
             )}
@@ -371,8 +379,13 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
                 borderRadius: '8px',
               }}
             >
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#818cf8', marginBottom: '0.5rem' }}>
-                💡 Clarification Needed
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#818cf8', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>Clarification Required</span>
               </div>
               {clarifications.map((q) => (
                 <div key={q.id} style={{ marginBottom: '0.6rem' }}>
@@ -488,7 +501,7 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
               {intent?.summary && (
                 <div style={{ padding: '0.75rem', background: '#09090b', borderRadius: '8px', border: '1px solid #27272a', fontSize: '12.5px', color: '#cbd5e1' }}>
-                  <strong>Executive Plan:</strong> {intent.summary}
+                  <strong>Synthesis Plan:</strong> {intent.summary}
                 </div>
               )}
 
@@ -708,7 +721,8 @@ export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onS
                   gap: '8px',
                 }}
               >
-                <span>⚡</span> Simulating topological execution across DAG...
+                <span className="smith-send-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#60a5fa' }} />
+                <span>Simulating topological execution across DAG...</span>
               </div>
             ) : simulationResult ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

@@ -33,14 +33,14 @@ test('AI Builder 3-column UI audit and visual verification', async ({ page }) =>
   await page.screenshot({ path: `${ARTIFACT_DIR}/ai_builder_3_column_console.png`, fullPage: true });
 
   // 5. Verify Mode Switching
-  await page.locator('button:has-text("🔧 Modify")').click();
+  await page.locator('button', { hasText: /^Modify$/i }).click();
   await page.waitForTimeout(500);
 
-  await page.locator('button:has-text("🩹 Repair")').click();
+  await page.locator('button', { hasText: /^Repair$/i }).click();
   await page.waitForTimeout(500);
 
   // Return to build mode
-  await page.locator('button:has-text("✨ Build")').click();
+  await page.locator('button', { hasText: /^Build$/i }).click();
   await page.waitForTimeout(500);
 
   // Take screenshot of interactive modes

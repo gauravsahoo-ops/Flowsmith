@@ -69,9 +69,9 @@ export default function ExecutionDetailPage() {
         breadcrumbs={[{ label: 'Executions', href: '/executions' }, { label: id.slice(0,8) }]}
         actions={<>
           <button className="ghost" onClick={() => navigate('/executions')}>Back</button>
-          {data.status === 'failed' && <button className="ghost" onClick={handleExplain} disabled={explaining}>✨ Explain</button>}
+          {data.status === 'failed' && <button className="ghost" onClick={handleExplain} disabled={explaining}>Explain</button>}
           {(data.status === 'running' || data.status === 'waiting_approval' || data.status === 'queued') && <button className="danger" onClick={handleCancel}>Cancel</button>}
-          {terminal && <button className="ghost" onClick={handleRetry}>↻ Retry</button>}
+          {terminal && <button className="ghost" onClick={handleRetry}>Retry</button>}
         </>}
       />
 

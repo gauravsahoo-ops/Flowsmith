@@ -51,7 +51,8 @@ export default function ApprovalsPage() {
           />
           <div className="help-card" style={{ maxWidth: 680, margin: '20px auto', padding: '16px 20px', background: 'rgba(22, 27, 38, 0.5)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: 12 }}>
             <h4 style={{ margin: '0 0 6px', fontSize: 13, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>💡</span> How Human Approvals work
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#94a3b8' }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>How Human Approvals Work</span>
             </h4>
             <p className="hint" style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55 }}>
               Add an <strong>Approval</strong> node to any workflow before critical steps (such as sending emails, deleting records, or updating customer data in Salesforce). The execution pauses safely in <code>waiting_approval</code> state and notifies you here with the payload to inspect, approve, or reject.

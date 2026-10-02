@@ -1328,7 +1328,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {/* on_success post-response hook */}
           <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <span style={{ fontSize: 13 }}>✨</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent, #6366f1)' }}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
               <span style={{ fontSize: 12, fontWeight: 600 }}>on_success (Post-Response Transform)</span>
             </div>
             <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Unwrap, filter, or project response data (e.g. <code>{'{{ $response.body.data }}'}</code>).</p>

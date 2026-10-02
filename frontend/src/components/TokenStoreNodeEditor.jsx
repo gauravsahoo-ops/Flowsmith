@@ -148,7 +148,7 @@ export default function TokenStoreNodeEditor({
             }}
           >
             <div style={{ fontWeight: 600, color: '#38bdf8', marginBottom: 2 }}>
-              ✨ 100% Automatic Token Storage
+              Automatic Token Ingestion
             </div>
             <div>
               Automatically detects and extracts <code>access_token</code>, <code>refresh_token</code>, <code>expires_in</code>, and <code>token_type</code> directly from the incoming Login API response.

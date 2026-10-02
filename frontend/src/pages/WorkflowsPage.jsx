@@ -400,7 +400,12 @@ export default function WorkflowsPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    <span style={{ fontSize: '18px', marginTop: '1px' }}>✨</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: '2px', color: 'var(--accent, #6366f1)', flexShrink: 0 }}>
+                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    </svg>
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--accent, #6366f1)', fontSize: '13px' }}>AI Builder</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', marginTop: '2px' }}>Describe what you want</div>

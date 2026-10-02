@@ -72,14 +72,18 @@ export default function AIPage() {
                 alignItems: 'center',
                 gap: '6px',
                 padding: '6px 14px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-                border: 'none',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)',
+                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
                 fontWeight: 600,
                 cursor: 'pointer',
+                borderRadius: '6px',
               }}
             >
-              <span>💬</span> Ask Smith AI Assistant
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Ask Smith AI Assistant
             </button>
             {statusInfo.loading ? (
               <span className="badge badge-neutral" style={{ fontSize: '12px' }}>Checking AI status...</span>
@@ -136,7 +140,12 @@ export default function AIPage() {
                   gap: '6px',
                 }}
               >
-                <span>⚠️</span> Add LLM Credential
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                Add LLM Credential
               </button>
             )}
           </div>
@@ -159,14 +168,24 @@ export default function AIPage() {
           onClick={() => { setActiveTab('builder'); setSearchParams({ tab: 'builder' }) }}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
         >
-          <span>✨</span> AI Workflow Builder (Plan · Simulate · Repair)
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+          </svg>
+          AI Workflow Builder (Plan · Simulate · Repair)
         </button>
         <button
           className={activeTab === 'capabilities' ? 'primary' : 'ghost'}
           onClick={() => { setActiveTab('capabilities'); setSearchParams({ tab: 'capabilities' }) }}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
         >
-          <span>⚡</span> AI Architecture & MCP
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+            <polyline points="2 17 12 22 22 17" />
+            <polyline points="2 12 12 17 22 12" />
+          </svg>
+          AI Architecture & MCP
         </button>
       </div>
 
