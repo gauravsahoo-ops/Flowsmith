@@ -101,5 +101,5 @@ def build_trello_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_cards", "get_card", "create_card", "add_comment"], "auth": "api key + token"},
-        icon="🗂️",
+        icon="trello",
     )

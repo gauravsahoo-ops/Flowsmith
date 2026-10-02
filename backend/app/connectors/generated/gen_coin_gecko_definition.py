@@ -115,5 +115,5 @@ def build_coin_gecko_definition() -> ConnectorDefinitionV1:
             ),
         },
         metadata={"source": "openapi-import", "api_title": "CoinGecko Demo API"},
-        icon="🧲",
+        icon="openapi",
     )

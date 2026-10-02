@@ -1732,10 +1732,10 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
     icon &&
     typeof icon === 'string' &&
     icon.trim() &&
-    icon !== '🌐' &&
-    icon !== '🔌' &&
+    icon !== '\uD83C\uDF10' &&
+    icon !== '\uD83D\uDD0C' &&
     icon !== '•' &&
-    icon !== '⚡' &&
+    icon !== '\u26A1' &&
     !icon.includes('http')
   ) {
     return (

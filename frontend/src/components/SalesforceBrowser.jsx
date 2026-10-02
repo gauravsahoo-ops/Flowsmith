@@ -249,11 +249,11 @@ export default function SalesforceBrowser({ onClose }) {
       <div className="sf-browser-header">
         <button className="ghost" onClick={onClose} aria-label="Back">←</button>
         <span className="sf-browser-title">Salesforce</span>
-        <span className="sf-browser-subtitle">☁️</span>
+        <span className="sf-browser-subtitle"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
       </div>
 
       <div className="sf-browser-search">
-        <span className="sf-search-icon">🔍</span>
+        <span className="sf-search-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
         <input
           autoFocus
           placeholder="Search Salesforce Actions..."
@@ -263,7 +263,7 @@ export default function SalesforceBrowser({ onClose }) {
           aria-label="Search Salesforce Actions"
         />
         {search && (
-          <button className="ghost small" onClick={() => setSearch('')} aria-label="Clear search">✕</button>
+          <button className="ghost small" onClick={() => setSearch("")} aria-label="Clear search" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         )}
       </div>
 
@@ -291,7 +291,7 @@ export default function SalesforceBrowser({ onClose }) {
                       onClick={() => handleSelectTrigger(key)}
                       title={trig.description || trig.trigger_key}
                     >
-                      <span className="sf-op-icon">☁️</span>
+                      <span className="sf-op-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
                       <span className="sf-op-name">{trig.display_name || trig.trigger_key || key}</span>
                       <span className="sf-op-type">{trig.trigger_type || 'webhook'}</span>
                     </button>
@@ -326,7 +326,7 @@ export default function SalesforceBrowser({ onClose }) {
                               onClick={() => handleSelectAction(op)}
                               title={op.description}
                             >
-                              <span className="sf-op-icon">☁️</span>
+                              <span className="sf-op-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
                               <span className="sf-op-name">{op.display_name}</span>
                             </button>
                           ))}

@@ -62,7 +62,7 @@ class CryptoToolsNode(BaseNode[CryptoToolsParams]):
     version = 1
     description = "Hash, HMAC, Base64, UUID, and secure tokens."
     category = "Transform"
-    icon = "🔑"
+    icon = "crypto_tools"
     parameters_schema = CryptoToolsParams
 
     async def run(

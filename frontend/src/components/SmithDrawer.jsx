@@ -265,7 +265,7 @@ export default function SmithDrawer({
     // 1. Local specialized handlers for instant responsiveness
     if (lower === 'inspect this workflow and list all nodes' || lower === '/inspect') {
       setTimeout(() => {
-        let content = `### 🔍 Canvas Workflow Inspection\n\n`
+        let content = `### Canvas Workflow Inspection\n\n`
         if (nodes.length === 0) {
           content += `The canvas is currently empty. You can build a workflow via chat (e.g. \`/generate\`) or open the **AI Workflow Builder Studio**.`
         } else {
@@ -293,7 +293,7 @@ export default function SmithDrawer({
 
     if (lower === 'explain how this workflow works step by step' || lower.includes('explain how this workflow works')) {
       setTimeout(() => {
-        let content = `### 📄 Workflow Architecture & Data Flow\n\n`
+        let content = `### Workflow Architecture & Data Flow\n\n`
         if (nodes.length === 0) {
           content += `There are no nodes on the canvas yet to explain. Ask me to generate a workflow or open the AI Studio to get started!`
         } else {
@@ -327,16 +327,16 @@ export default function SmithDrawer({
 
     if (lower.includes('debug last execution failure') || lower === '/debug') {
       setTimeout(() => {
-        let content = `### 🐞 Execution Diagnostics\n\n`
+        let content = `### Execution Diagnostics\n\n`
         if (executionError || executionStatus === 'failed') {
-          content += `**Execution ID**: \`${executionId || 'latest'}\`\n**Status**: ❌ FAILED\n\n`
+          content += `**Execution ID**: \`${executionId || 'latest'}\`\n**Status**: FAILED\n\n`
           content += `**Error Details**: ${executionError?.message || executionError || 'Step execution encountered an error.'}\n\n`
           content += `**Recommended Resolution**:\n`
           content += `1. Check authentication credentials for external endpoints.\n`
           content += `2. Verify input payload matches required schema types.\n`
           content += `3. Enable retry policies on the failing node settings.`
         } else if (executionStatus === 'success') {
-          content += `✅ Your latest execution (\`${executionId}\`) finished with **SUCCESS**! All nodes completed within nominal latencies.`
+          content += `Your latest execution (\`${executionId}\`) completed successfully. All nodes completed within nominal latencies.`
         } else {
           content += `No failed runs recorded in the current session. Pre-flight checks on all **${nodes.length} canvas nodes** indicate syntax and parameter readiness.`
         }
@@ -356,7 +356,7 @@ export default function SmithDrawer({
 
     if (lower.includes('optimize this workflow') || lower === '/optimize') {
       setTimeout(() => {
-        let content = `### 🚀 Optimization Recommendations\n\n`
+        let content = `### Optimization Recommendations\n\n`
         content += `I reviewed your canvas graph for performance and reliability:\n\n`
         content += `1. **Concurrency & Buffering**: Enable async batching if processing >100 items/sec.\n`
         content += `2. **Error Boundary**: Add an error branch to handle unexpected 5xx responses.\n`
@@ -387,7 +387,7 @@ export default function SmithDrawer({
 
     if (isAccessQuery) {
       setTimeout(() => {
-        let content = `### ⚡ My Access & Capabilities\n\n`
+        let content = `### Access & Capabilities\n\n`
         content += `Yes! As your Flowsmith AI Copilot, I have direct context and control over your workflow workspace:\n\n`
         content += `1. **Active Canvas Graph**: Full real-time access to all **${nodes.length} nodes** and **${edges.length} connections**, including node types, inputs, parameter configurations, and expressions.\n`
         content += `2. **Live Execution Trace**: Instant visibility into runtime logs, step execution latencies, output payloads, and error stacks for debugging.\n`
@@ -670,20 +670,20 @@ export default function SmithDrawer({
                       className="smith-dropdown-item"
                       style={{ color: '#f59e0b', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      ⚠️ Add LLM Credential
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Add LLM Credential
                     </a>
                   )}
                   <button type="button" className="smith-dropdown-item" onClick={handleClearMemory}>
-                    🧹 Reset Memory
+                    Reset Memory
                   </button>
                   <button type="button" className="smith-dropdown-item" onClick={handleCopySession}>
-                    {copiedSession ? '✓ Copied' : `📋 Copy Session (${sessionId.slice(0, 8)})`}
+                    {copiedSession ? 'Copied' : `Copy Session (${sessionId.slice(0, 8)})`}
                   </button>
                 </div>
               )}
             </div>
             <button type="button" className="smith-close-btn" onClick={onClose} aria-label="Close Smith">
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
         </div>
@@ -695,7 +695,9 @@ export default function SmithDrawer({
             className={`smith-segment-btn ${activeTab === 'chat' ? 'active' : ''}`}
             onClick={() => setActiveTab('chat')}
           >
-            <span>🔮</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
             <span>Chat & Tools</span>
           </button>
           <button
@@ -703,7 +705,9 @@ export default function SmithDrawer({
             className={`smith-segment-btn ${activeTab === 'debug' ? 'active' : ''}`}
             onClick={() => setActiveTab('debug')}
           >
-            <span>🐞</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
             <span>Debug & Analyze</span>
           </button>
         </div>
@@ -723,7 +727,7 @@ export default function SmithDrawer({
               gap: 8,
             }}
           >
-            <span>✓</span> Workflow applied to canvas!
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> Workflow applied to canvas!
           </div>
         )}
 
@@ -743,11 +747,11 @@ export default function SmithDrawer({
                       <span className="smith-msg-time">{currentTimeString}</span>
                     </div>
                     <div className="smith-greeting-text">
-                      {`Hi ${userName}! 👋\nI can help you build, modify, debug, and optimize workflows. I have access to your canvas, connectors, schemas, and execution data.`}
+                      {`Hi ${userName}! I can inspect, synthesize, debug, and optimize your workflows with direct grounding into active canvas topology, schemas, and execution telemetry.`}
                     </div>
 
                     {/* Section 1: Quick Canvas Tasks */}
-                    <div className="smith-section-title">What would you like to do today?</div>
+                    <div className="smith-section-title">Quick Operations</div>
                     <div className="smith-cards-grid">
                       <button
                         type="button"
@@ -812,9 +816,9 @@ export default function SmithDrawer({
                       style={{
                         marginTop: 12,
                         padding: '10px 14px',
-                        borderRadius: 10,
-                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%)',
-                        border: '1px solid rgba(139, 92, 246, 0.25)',
+                        borderRadius: 8,
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -822,10 +826,17 @@ export default function SmithDrawer({
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: '#f8fafc' }}>
-                          ✨ Full AI Automation Studio
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#818cf8' }}>
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                          </svg>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#f8fafc' }}>
+                            Full AI Automation Studio
+                          </span>
                         </div>
-                        <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.35 }}>
+                        <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.35, marginTop: 2 }}>
                           6-stage validation, topological simulation, and model routing.
                         </div>
                       </div>
@@ -833,14 +844,14 @@ export default function SmithDrawer({
                         href="/ai?tab=builder"
                         style={{
                           fontSize: 11,
-                          fontWeight: 600,
+                          fontWeight: 500,
                           padding: '5px 10px',
                           borderRadius: 6,
-                          background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
                           color: '#ffffff',
                           textDecoration: 'none',
                           whiteSpace: 'nowrap',
-                          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
                         }}
                       >
                         Open Studio →
@@ -926,7 +937,8 @@ export default function SmithDrawer({
                           className="smith-trace-toggle-btn"
                           onClick={() => setExpandedTraceIndex(expandedTraceIndex === idx ? null : idx)}
                         >
-                          <span>⚙ Tool Trace ({msg.trace.length})</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                          <span>Tool Trace ({msg.trace.length})</span>
                           <span>{expandedTraceIndex === idx ? '▲' : '▼'}</span>
                         </button>
                         {expandedTraceIndex === idx && (
@@ -1059,7 +1071,7 @@ export default function SmithDrawer({
                   handleSendMessage('Inspect this workflow and list all nodes')
                 }}
               >
-                🔍 Inspect Graph
+                Inspect Graph
               </button>
             </div>
 
@@ -1114,7 +1126,13 @@ export default function SmithDrawer({
                     handleSendMessage('Debug last execution failure')
                   }}
                 >
-                  <span style={{ color: '#f43f5e' }}>🐞</span>
+                  <div className="smith-card-icon" style={{ color: '#f43f5e' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                  </div>
                   <div className="smith-card-text">
                     <strong>Debug Last Execution Trace</strong>
                     <div style={{ fontSize: 11, color: '#64748b' }}>Pinpoint failing node, error message, and payload</div>
@@ -1128,7 +1146,11 @@ export default function SmithDrawer({
                     handleSendMessage('Optimize this workflow')
                   }}
                 >
-                  <span style={{ color: '#38bdf8' }}>🚀</span>
+                  <div className="smith-card-icon" style={{ color: '#38bdf8' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
+                  </div>
                   <div className="smith-card-text">
                     <strong>Run Performance & Resilience Analysis</strong>
                     <div style={{ fontSize: 11, color: '#64748b' }}>Check for rate limits, missing error branches, and retry policies</div>
@@ -1139,7 +1161,13 @@ export default function SmithDrawer({
                   className="smith-action-card"
                   style={{ textDecoration: 'none' }}
                 >
-                  <span style={{ color: '#a855f7' }}>⚡</span>
+                  <div className="smith-card-icon" style={{ color: '#818cf8' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                      <line x1="8" y1="21" x2="16" y2="21" />
+                      <line x1="12" y1="17" x2="12" y2="21" />
+                    </svg>
+                  </div>
                   <div className="smith-card-text">
                     <strong>Open Full AI Automation Studio</strong>
                     <div style={{ fontSize: 11, color: '#64748b' }}>6-stage pipeline, simulation runner & auto-repair</div>

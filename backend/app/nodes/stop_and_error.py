@@ -37,7 +37,7 @@ class StopAndErrorNode(BaseNode[StopAndErrorParams]):
     version = 1
     description = "Throw an error in the workflow"
     category = "Flow"
-    icon = "🛑"
+    icon = "stop_and_error"
     parameters_schema = StopAndErrorParams
     input_handles = ["main"]
     output_handles = ["main"]

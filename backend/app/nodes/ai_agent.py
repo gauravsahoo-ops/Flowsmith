@@ -99,7 +99,7 @@ class AIAgentNode(BaseNode[AgentParams]):
     version = 2
     description = "Autonomous ReAct agent with native tool execution, multi-provider support, and persistent memory."
     category = "AI"
-    icon = "🤖"
+    icon = "ai_agent"
     parameters_schema = AgentParams
     credential_types = ["llm", "http", "database"]
     idempotency = NON_IDEMPOTENT

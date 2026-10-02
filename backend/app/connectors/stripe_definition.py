@@ -152,5 +152,5 @@ def build_stripe_definition() -> ConnectorDefinitionV1:
             "rate_limits": "429 + Retry-After honored",
             "retries": "writes carry execution-scoped Idempotency-Key",
         },
-        icon="💳",
+        icon="stripe",
     )

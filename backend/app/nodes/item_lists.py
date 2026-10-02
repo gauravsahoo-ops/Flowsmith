@@ -41,7 +41,7 @@ class ItemListsNode(BaseNode[ItemListsParams]):
     version = 1
     description = "Sort, limit, dedupe, reverse, or pluck item fields."
     category = "Transform"
-    icon = "🧮"
+    icon = "item_lists"
     parameters_schema = ItemListsParams
 
     async def run(

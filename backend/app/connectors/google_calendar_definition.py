@@ -157,5 +157,5 @@ def build_google_calendar_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["list_events", "get_event", "create_event", "update_event", "delete_event"],
             "auth": "OAuth2 authorization-code (Connect Google Calendar), offline access",
         },
-        icon="📅",
+        icon="google_calendar",
     )

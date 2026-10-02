@@ -62,7 +62,7 @@ class LoopWhileNode(BaseNode[LoopWhileParams]):
     version = 1
     description = "Bounded iteration loop with a termination condition, hard limit and per-iteration delay."
     category = "Logic"
-    icon = "🔁"
+    icon = "loop_while"
     parameters_schema = LoopWhileParams
     # Condition/update expressions are re-evaluated every iteration, so
     # the engine must NOT bake them into constants up front.

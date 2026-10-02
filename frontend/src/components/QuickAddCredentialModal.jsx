@@ -98,7 +98,7 @@ export default function QuickAddCredentialModal({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>🔑</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--muted)' }}><path d="m21 2-2 2m-1.5 1.5L10 13m-2-2L3.5 15.5a3.536 3.536 0 0 0 5 5L13 16m-2-2 2.5 2.5m1-1 2 2m-7-7 2 2"/><circle cx="7.5" cy="16.5" r=".5" fill="currentColor"/></svg>
             <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>
               Add New Credential
             </span>
@@ -107,9 +107,10 @@ export default function QuickAddCredentialModal({
             type="button"
             className="ghost"
             onClick={onClose}
-            style={{ fontSize: 16, padding: '4px 8px', cursor: 'pointer' }}
+            aria-label="Close"
+            style={{ padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            ✕
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 

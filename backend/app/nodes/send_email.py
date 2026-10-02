@@ -37,7 +37,7 @@ class SendEmailNode(BaseNode[SendEmailParams]):
     version = 1
     description = "Sends an email via SMTP."
     category = "Communication"
-    icon = "📧"
+    icon = "send_email"
     parameters_schema = SendEmailParams
     credential_types = ["smtp"]
     # Every run sends a real email (spec 35).

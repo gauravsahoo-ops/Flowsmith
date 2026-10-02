@@ -221,8 +221,9 @@ export default function InputPanel({
         <div className="nem-input-title-group">
           <span className="nem-input-title">INPUT</span>
           {copiedSnippet && (
-            <span className="nem-input-copied-toast" title={copiedSnippet}>
-              ✓ Copied: {copiedSnippet}
+            <span className="nem-input-copied-toast" title={copiedSnippet} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Copied: {copiedSnippet}</span>
             </span>
           )}
         </div>
@@ -291,8 +292,10 @@ export default function InputPanel({
               type="button"
               className="nem-input-search-clear"
               onClick={() => setSearchTerm('')}
+              aria-label="Clear search"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           )}
         </div>
@@ -388,14 +391,16 @@ export default function InputPanel({
                     <div className="nem-upstream-node-content">
                       {up.isSkipped ? (
                         <div className="nem-upstream-no-data">
-                          <p className="hint" style={{ color: '#fbbf24' }}>
-                            ⚠️ {up.skipNote || 'This node was skipped in the execution flow.'}
+                          <p className="hint" style={{ color: '#fbbf24', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span>{up.skipNote || 'This node was skipped in the execution flow.'}</span>
                           </p>
                         </div>
                       ) : up.stepExecuted && up.totalItems === 0 ? (
                         <div className="nem-upstream-no-data">
-                          <p className="hint" style={{ color: '#a1a1aa' }}>
-                            ℹ️ This node executed and returned 0 items. Downstream nodes were not executed.
+                          <p className="hint" style={{ color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <span>This node executed and returned 0 items. Downstream nodes were not executed.</span>
                           </p>
                         </div>
                       ) : up.hasData ? (
@@ -415,13 +420,14 @@ export default function InputPanel({
                                     onClick={() =>
                                       setNodeBranches((prev) => ({ ...prev, [up.id]: bKey }))
                                     }
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                   >
-                                    {bKey === 'true'
-                                      ? '✓ true'
-                                      : bKey === 'false'
-                                        ? '✗ false'
-                                        : bKey}{' '}
-                                    ({count})
+                                    {bKey === 'true' ? (
+                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    ) : bKey === 'false' ? (
+                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    ) : null}
+                                    <span>{bKey} ({count})</span>
                                   </button>
                                 )
                               })}
@@ -442,8 +448,10 @@ export default function InputPanel({
                                   }))
                                 }
                                 title="Previous item"
+                                aria-label="Previous item"
+                                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                               >
-                                ◀
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                               </button>
                               <span className="nem-pager-label">
                                 Item {currentItemIdx + 1} of {items.length}
@@ -459,8 +467,10 @@ export default function InputPanel({
                                   }))
                                 }
                                 title="Next item"
+                                aria-label="Next item"
+                                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                               >
-                                ▶
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                               </button>
                             </div>
                           )}
@@ -493,10 +503,17 @@ export default function InputPanel({
                               className="ghost small"
                               onClick={() => onExecutePrevious(up.id)}
                               disabled={executing}
-                              style={{ marginTop: 6 }}
+                              style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                               title="Execute this upstream node to capture live test data"
                             >
-                              {executing ? 'Executing…' : '▶ Execute Previous Node'}
+                              {executing ? (
+                                'Executing…'
+                              ) : (
+                                <>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                  <span>Execute Previous Node</span>
+                                </>
+                              )}
                             </button>
                           )}
                         </div>

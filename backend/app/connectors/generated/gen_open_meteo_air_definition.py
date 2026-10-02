@@ -52,5 +52,5 @@ def build_open_meteo_air_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types={},
         metadata={"source": "openapi-import", "api_title": "Open-Meteo Air Quality API"},
-        icon="🧲",
+        icon="openapi",
     )

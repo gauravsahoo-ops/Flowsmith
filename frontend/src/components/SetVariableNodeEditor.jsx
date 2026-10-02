@@ -67,7 +67,7 @@ export default function SetVariableNodeEditor({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13, color: '#fff' }}>
-              <span>🌐</span>
+              <span style={{ display: "inline-flex", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
               <span>Workspace Persistent</span>
             </div>
             <p style={{ margin: '6px 0 0', fontSize: 11, color: '#94a3b8', lineHeight: 1.4 }}>
@@ -87,7 +87,7 @@ export default function SetVariableNodeEditor({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13, color: '#fff' }}>
-              <span>⚡</span>
+              <span style={{ display: "inline-flex", alignItems: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
               <span>Workflow Runtime ($env)</span>
             </div>
             <p style={{ margin: '6px 0 0', fontSize: 11, color: '#94a3b8', lineHeight: 1.4 }}>
@@ -190,9 +190,7 @@ export default function SetVariableNodeEditor({
                     borderRadius: 6,
                   }}
                   title="Remove variable"
-                >
-                  ✕
-                </button>
+                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
               </div>
             </div>
           ))}
@@ -228,7 +226,7 @@ export default function SetVariableNodeEditor({
           lineHeight: 1.5,
         }}
       >
-        <strong>💡 Expression Usage in Downstream Nodes:</strong>
+        <strong>Expression Usage in Downstream Nodes:</strong>
         <p style={{ margin: '4px 0 0' }}>
           Any downstream node (HTTP Request, Code, Switch, etc.) can access these variables via expression:{' '}
           <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 5px', borderRadius: 4, color: '#38bdf8' }}>

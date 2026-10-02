@@ -87,17 +87,18 @@ export default function NodeAutoRepair({
     <div className="node-auto-repair-container" role="region" aria-label="Flowsmith AI Self-Healing Diagnostic">
       <div className="nar-header">
         <div className="nar-title">
-          <span>⚡</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#818cf8', flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span>Flowsmith AI Self-Healing Diagnostic</span>
         </div>
         <button
           type="button"
           className="nem-close"
           onClick={onClose}
-          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           title="Close Diagnostic"
+          aria-label="Close"
         >
-          ✕
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -170,14 +171,14 @@ export default function NodeAutoRepair({
                   className="btn secondary"
                   style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 12px', background: 'rgba(99,102,241,0.2)', border: '1px solid #6366f1', color: '#c7d2fe', borderRadius: 6 }}
                 >
-                  🔑 Open Credentials Page
+                  Open Credentials Page
                 </a>
                 <Button
                   className="nar-btn-primary"
                   onClick={() => onApplyFix(result.suggested_parameters, true)}
                   title="Save repaired configuration and immediately re-test step"
                 >
-                  🔄 Re-test Step
+                  Re-test Step
                 </Button>
               </>
             ) : (
@@ -187,7 +188,7 @@ export default function NodeAutoRepair({
                   onClick={() => onApplyFix(result.suggested_parameters, true)}
                   title="Save repaired configuration and immediately re-test step"
                 >
-                  ✨ Apply Fix & Re-test
+                  Apply Fix & Re-test
                 </Button>
                 <Button
                   variant="secondary"

@@ -16,7 +16,7 @@ describe('ErrorState & EmptyState Object-Safety Suite', () => {
 
     const html = renderToStaticMarkup(
       React.createElement(ErrorState, {
-        icon: '⚠️',
+        icon: 'alert',
         title: 'Execution failed',
         description: errorObj,
       })

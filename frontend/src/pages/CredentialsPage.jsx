@@ -354,30 +354,6 @@ export default function CredentialsPage() {
           <option value="all">All types</option>
           {types.map(t => <option key={t.type} value={t.type}>{t.name}</option>)}
         </select>
-        <button
-          type="button"
-          onClick={() => {
-            setLlmModalData(null)
-            setLlmModalOpen(true)
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            border: 'none',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: 12.5,
-            padding: '6px 14px',
-            borderRadius: 6,
-            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)',
-            cursor: 'pointer',
-          }}
-        >
-          <span>⚡</span>
-          <span>Add LLM Credential</span>
-        </button>
         <span className="hint">{filtered.length}/{credentials.length}</span>
       </div>
 
@@ -401,14 +377,29 @@ export default function CredentialsPage() {
             >
               Authorize in New Tab ↗
             </a>
-            <button className="ghost small" onClick={() => setFallbackUrl('')}>✕</button>
+            <button className="ghost small" onClick={() => setFallbackUrl('')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
       {testResult && (
         <div className={`banner-inline ${testResult.ok ? 'ok' : 'err'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 8, padding: '10px 14px', margin: '12px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>{testResult.ok ? '✓' : '⚠'}</span>
+            {testResult.ok ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            )}
             <span>
               <strong>{testResult.name || testResult.id}:</strong>{' '}
               {testResult.message || (testResult.ok ? 'Connection test passed' : 'Test failed')}
@@ -435,13 +426,18 @@ export default function CredentialsPage() {
                 <span>{reconnectingId === testResult.id ? 'Reconnecting…' : 'Reconnect Now'}</span>
               </button>
             )}
-            <button className="ghost small" onClick={() => setTestResult(null)} aria-label="Dismiss">✕</button>
+            <button className="ghost small" onClick={() => setTestResult(null)} aria-label="Dismiss" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
 
       {loading ? <LoadingSkeleton rows={4} /> : filtered.length === 0 ? (
-        credentials.length === 0 ? <EmptyState icon="🔑" title="No credentials yet" description="Add a credential to connect workflows to external services. Secrets are encrypted at rest." /> : <EmptyState icon="🔍" title="No matches" description="No credentials match your search." />
+        credentials.length === 0 ? <EmptyState icon="credentials" title="No credentials yet" description="Add a credential to connect workflows to external services. Secrets are encrypted at rest." /> : <EmptyState icon="search" title="No matches" description="No credentials match your search." />
       ) : (
         <div className="table-wrap">
           <table className="data-table">
@@ -503,7 +499,12 @@ export default function CredentialsPage() {
                     >
                       {c.type === 'llm' ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                          <span>⚡</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#38bdf8' }}>
+                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                            <line x1="6" y1="6" x2="6.01" y2="6" />
+                            <line x1="6" y1="18" x2="6.01" y2="18" />
+                          </svg>
                           <span>LLM</span>
                           {c.data?.provider && <span style={{ opacity: 0.85, fontWeight: 400 }}>({c.data.provider})</span>}
                         </span>
@@ -628,7 +629,12 @@ export default function CredentialsPage() {
                             borderColor: 'rgba(99, 102, 241, 0.3)',
                           }}
                         >
-                          <span>⚡ Models</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                            <polyline points="2 17 12 22 22 17" />
+                            <polyline points="2 12 12 17 22 12" />
+                          </svg>
+                          <span>Models</span>
                         </button>
                       )}
 
@@ -940,23 +946,32 @@ export default function CredentialsPage() {
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '2px 6px', fontSize: 11, color: '#38bdf8' }}
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#38bdf8', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => {
                           setSfModalData(acc)
                           setSfModalOpen(true)
                         }}
                         title="Configure Connected App settings"
                       >
-                        ⚙️ Settings
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="3" />
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                        Settings
                       </button>
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171' }}
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
                         title="Logout and revoke access"
                       >
-                        🚪 Logout
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Disconnect
                       </button>
                     </span>
                   ))}
@@ -972,9 +987,13 @@ export default function CredentialsPage() {
                   setSfModalData(null)
                   setSfModalOpen(true)
                 }}
-                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600 }}
+                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                ⚙️ Configure Connected App / Connect
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                Configure Connected App / Connect
               </button>
               {credentials.some(c => c.type === 'salesforce') && (
                 <button
@@ -1042,23 +1061,32 @@ export default function CredentialsPage() {
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '2px 6px', fontSize: 11, color: '#ff7a59' }}
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#ff7a59', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => {
                           setHsModalData(acc)
                           setHsModalOpen(true)
                         }}
                         title="Configure HubSpot App / Token settings"
                       >
-                        ⚙️ Settings
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="3" />
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                        Settings
                       </button>
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171' }}
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
                         title="Logout and revoke access"
                       >
-                        🚪 Logout
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Disconnect
                       </button>
                     </span>
                   ))}
@@ -1074,9 +1102,13 @@ export default function CredentialsPage() {
                   setHsModalData(null)
                   setHsModalOpen(true)
                 }}
-                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#ff7a59', borderColor: '#ff7a59' }}
+                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#ff7a59', borderColor: '#ff7a59', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                ⚙️ Configure HubSpot App / Connect
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                Configure HubSpot App / Connect
               </button>
               {credentials.some(c => c.type === 'hubspot') && (
                 <button
@@ -1144,7 +1176,7 @@ export default function CredentialsPage() {
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '2px 6px', fontSize: 11, color: '#60a5fa' }}
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#60a5fa', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => {
                           setGoogleModalService(form.type)
                           setGoogleModalData(acc)
@@ -1152,16 +1184,25 @@ export default function CredentialsPage() {
                         }}
                         title="Configure Google App settings"
                       >
-                        ⚙️ Settings
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="3" />
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                        Settings
                       </button>
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171' }}
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
                         title="Logout and revoke access"
                       >
-                        🚪 Logout
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Disconnect
                       </button>
                     </span>
                   ))}
@@ -1178,9 +1219,13 @@ export default function CredentialsPage() {
                   setGoogleModalData(null)
                   setGoogleModalOpen(true)
                 }}
-                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#3b82f6', borderColor: '#3b82f6' }}
+                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#3b82f6', borderColor: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                ⚙️ Configure Google App / Connect
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                Configure Google App / Connect
               </button>
               {credentials.some(c => c.type === form.type) && (
                 <button
@@ -1249,23 +1294,32 @@ export default function CredentialsPage() {
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '2px 6px', fontSize: 11, color: '#0078d4' }}
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#0078d4', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => {
                           setDynModalData(acc)
                           setDynModalOpen(true)
                         }}
                         title="Configure Dynamics 365 settings"
                       >
-                        ⚙️ Settings
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="3" />
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                        Settings
                       </button>
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171' }}
+                        style={{ padding: '2px 6px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
                         title="Logout and revoke access"
                       >
-                        🚪 Logout
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Disconnect
                       </button>
                     </span>
                   ))}
@@ -1281,9 +1335,13 @@ export default function CredentialsPage() {
                   setDynModalData(null)
                   setDynModalOpen(true)
                 }}
-                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#0078d4', borderColor: '#0078d4' }}
+                style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: '#0078d4', borderColor: '#0078d4', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                ⚙️ Configure Dynamics 365 / Connect
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                Configure Dynamics 365 / Connect
               </button>
               {credentials.some(c => c.type === 'dynamics_crm') && (
                 <button
@@ -1312,8 +1370,11 @@ export default function CredentialsPage() {
                 </span>
               </div>
               {credentials.filter(c => c.type === form.type).length > 0 && (
-                <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
-                  ✓ {credentials.filter(c => c.type === form.type).length} account{credentials.filter(c => c.type === form.type).length > 1 ? 's' : ''} connected
+                <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderColor: 'rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {credentials.filter(c => c.type === form.type).length} account{credentials.filter(c => c.type === form.type).length > 1 ? 's' : ''} connected
                 </span>
               )}
             </div>
@@ -1333,11 +1394,16 @@ export default function CredentialsPage() {
                       <button
                         type="button"
                         className="ghost small"
-                        style={{ padding: '0 4px', fontSize: 11, color: '#f87171' }}
+                        style={{ padding: '0 4px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
                         title="Logout and revoke this account"
                       >
-                        🚪 Logout
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        Disconnect
                       </button>
                     </span>
                   ))}
@@ -1375,8 +1441,13 @@ export default function CredentialsPage() {
                 placeholder="e.g. My Database Connection"
               />
               {form.type && !form.name.trim() && (
-                <span style={{ color: 'var(--amber, #f59e0b)', fontSize: 11, display: 'block', marginTop: 3 }}>
-                  ⚠️ Name is required — please enter a name above to enable saving.
+                <span style={{ color: 'var(--amber, #f59e0b)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Name is required — please enter a name above to enable saving.
                 </span>
               )}
             </label>
@@ -1389,8 +1460,13 @@ export default function CredentialsPage() {
                   <span className="muted">
                     {' — '}{prop.description}
                     {key === 'base_url' && form.type === 'llm' && (
-                      <span style={{ display: 'block', marginTop: 2, color: '#38bdf8' }}>
-                        💡 Tip for OpenRouter: Use <code>https://openrouter.ai/api/v1</code>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 2, color: '#38bdf8' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="16" x2="12" y2="12" />
+                          <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                        Reference URL for OpenRouter: <code>https://openrouter.ai/api/v1</code>
                       </span>
                     )}
                   </span>
@@ -1401,7 +1477,13 @@ export default function CredentialsPage() {
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <input style={{ flex: 1 }} type={secretFields.has(key) ? 'password' : prop.type === 'number' || prop.type === 'integer' ? 'number' : 'text'} value={form.data[key] ?? ''} onChange={e => setForm({ ...form, data: { ...form.data, [key]: prop.type === 'number' || prop.type === 'integer' ? Number(e.target.value) : e.target.value } })} />
                     {isConnStr && form.data[key] && (
-                      <button type="button" className="ghost small" onClick={() => setForm({ ...form, data: { ...form.data, [key]: '' } })} title="Clear connection string">🗑 Clear</button>
+                      <button type="button" className="ghost small" onClick={() => setForm({ ...form, data: { ...form.data, [key]: '' } })} title="Clear connection string" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Clear
+                      </button>
                     )}
                   </div>
                 )}
@@ -1670,7 +1752,15 @@ export default function CredentialsPage() {
               return Object.entries(props).map(([propKey, propVal]) => (
                 <div key={propKey} style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-                    {propVal.title || propKey} {secFields.has(propKey) && <span style={{ color: '#f59e0b', fontSize: 10 }}>🔒 Secret</span>}
+                    {propVal.title || propKey} {secFields.has(propKey) && (
+                      <span style={{ color: '#f59e0b', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        Secret
+                      </span>
+                    )}
                   </label>
                   <input
                     className="input"

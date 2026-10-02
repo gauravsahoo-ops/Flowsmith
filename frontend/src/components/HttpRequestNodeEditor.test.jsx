@@ -70,12 +70,12 @@ describe('HttpRequestNodeEditor Suite', () => {
         onParamsChange: () => {},
       })
     )
-    expect(html).toContain('🔑 + Authorization Header')
+    expect(html).toContain('+ Authorization Header')
     expect(html).toContain('+ Content-Type: JSON')
     expect(html).toContain('+ Accept: JSON')
     expect(html).toContain('id="fs-header-datalist"')
     expect(html).toContain('value="Authorization"')
-    expect(html).toContain('🔑 Auth')
+    expect(html).toContain('Auth')
     expect(html).toContain('Key-Value Headers')
   })
 

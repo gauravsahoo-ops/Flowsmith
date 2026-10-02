@@ -371,19 +371,31 @@ export default function NodeEditorModal() {
               onClick={handleExecutePrevious}
               disabled={executing}
               title="Execute all nodes up to this one"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
             >
-              {executing ? '…' : '▶'} Previous
+              {executing ? (
+                '…'
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              )}
+              <span>Previous</span>
             </Button>
             <Button
               variant="primary"
               onClick={handleExecuteStep}
               disabled={executing}
               title="Execute this node only"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
             >
-              {executing ? '…' : '▶'} Execute Step
+              {executing ? (
+                '…'
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              )}
+              <span>Execute Step</span>
             </Button>
-            <Button variant="ghost" className="nem-close" onClick={handleClose} title="Close (Esc)">
-              ✕
+            <Button variant="ghost" className="nem-close" onClick={handleClose} title="Close (Esc)" aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </Button>
           </div>
         </header>
@@ -425,7 +437,6 @@ export default function NodeEditorModal() {
 
         {effectiveError && !showAutoRepair && (
           <ErrorState
-            icon="⚠️"
             title="Execution failed"
             description={effectiveError}
             details={typeof rawError === 'object' && rawError !== null ? (rawError.details || rawError) : undefined}
@@ -434,12 +445,16 @@ export default function NodeEditorModal() {
                 variant="primary"
                 onClick={() => setShowAutoRepair(true)}
                 style={{
-                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
-                  border: 'none',
-                  color: '#fff',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                ⚡ Flowsmith AI Self-Healing Diagnostic
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>Flowsmith AI Self-Healing Diagnostic</span>
               </Button>
             }
           />
@@ -486,7 +501,9 @@ export default function NodeEditorModal() {
 
         {status === 'success' && preview?.outputCount === 0 && (
           <div className="nem-stop-notice nem-stop-zero">
-            <span className="nem-stop-icon">⏹</span>
+            <span className="nem-stop-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="5" y="5" rx="2"/></svg>
+            </span>
             <div className="nem-stop-content">
               <strong>Workflow Stopped Here: 0 Output Items</strong>
               <p>This node executed successfully but produced 0 output items. Connected downstream nodes were not executed because there was no data to continue.</p>
@@ -700,7 +717,9 @@ export default function NodeEditorModal() {
                         />
                       ) : (
                         <div className="nem-empty">
-                          <div className="nem-empty-icon">⚙️</div>
+                          <div className="nem-empty-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                          </div>
                           <p className="hint">No parameters defined for this node.</p>
                         </div>
                       )}
@@ -726,11 +745,11 @@ export default function NodeEditorModal() {
                             Icon
                             <input
                               value={node.settings?.icon || ''}
-                              placeholder={meta?.icon || '🌐'}
+                              placeholder={meta?.icon || ''}
                               maxLength={6}
                               onChange={(e) => setSetting('icon', e.target.value)}
                               style={{ textAlign: 'center', fontSize: 18 }}
-                              title="Custom icon or emoji for this node"
+                              title="Custom icon for this node"
                             />
                           </label>
                           <label style={{ flex: 1 }}>
@@ -814,10 +833,13 @@ export default function NodeEditorModal() {
                                     </div>
                                   )}
                                   {isConnStrType && value && (
-                                    <button type="button" className="ghost small" style={{ alignSelf: 'flex-start', color: 'var(--red)', fontSize: 11 }} onClick={async () => {
+                                    <button type="button" className="ghost small" style={{ alignSelf: 'flex-start', color: 'var(--red)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={async () => {
                                       if (!window.confirm(`Delete connection string “${selectedName}”? This will remove the credential permanently.`)) return
                                       try { await useCredentialStore.getState().remove(value); setCredential(type, '') } catch (e) { alert(e.message) }
-                                    }} title="Delete connection string">🗑 Delete connection string</button>
+                                    }} title="Delete connection string">
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                      Delete connection string
+                                    </button>
                                   )}
                                 </div>
                               )

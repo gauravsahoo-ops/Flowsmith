@@ -37,7 +37,7 @@ class FtpNode(BaseNode[FtpParams]):
     version = 1
     description = "List, download, upload, and delete files on FTP/FTPS servers"
     category = "Flow"
-    icon = "📁"
+    icon = "ftp"
     parameters_schema = FtpParams
     credential_types = ["ftp"]
     input_handles = ["main"]

@@ -78,5 +78,5 @@ def build_gmail_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["send"], "auth": "OAuth2 offline access, gmail.send scope"},
-        icon="✉️",
+        icon="gmail",
     )

@@ -68,5 +68,5 @@ def build_open_router_definition() -> ConnectorDefinitionV1:
             ),
         },
         metadata={"source": "openapi-import", "api_title": "OpenRouter"},
-        icon="🧲",
+        icon="openapi",
     )

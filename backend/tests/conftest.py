@@ -192,7 +192,7 @@ class SlackStubNode(BaseNode):
     display_name = "Slack (test stub)"
     version = 1
     category = "Communication"
-    icon = "💬"
+    icon = "slack"
     input_handles = ["main"]
     output_handles = ["main"]
 
@@ -206,7 +206,7 @@ class DbStubNode(BaseNode):
     display_name = "Database (test stub)"
     version = 1
     category = "Database"
-    icon = "🗄️"
+    icon = "postgres"
     input_handles = ["main"]
     output_handles = ["main"]
 
@@ -317,7 +317,7 @@ def slow_node():
         version = 1
         description = "Hangs until cancelled."
         category = "Test"
-        icon = "🐌"
+        icon = "slow"
         parameters_schema = EmptyParams
 
         async def run(self, ctx: NodeContext, params: EmptyParams, input_items: list[dict[str, Any]]) -> NodeResult:

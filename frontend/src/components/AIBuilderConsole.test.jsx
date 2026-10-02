@@ -38,9 +38,9 @@ describe('AIBuilderConsole (3-Column Production Architecture)', () => {
 
     // Left Column: Intent & Conversation
     expect(html).toContain('Natural Language Requirements')
-    expect(html).toContain('✨ Build')
-    expect(html).toContain('🔧 Modify')
-    expect(html).toContain('🩹 Repair')
+    expect(html).toContain('Build')
+    expect(html).toContain('Modify')
+    expect(html).toContain('Repair')
     expect(html).toContain('Model Router:')
     expect(html).toContain('Auto (Task-Based Optimal Routing)')
 

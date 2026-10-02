@@ -48,31 +48,56 @@ export default function CommandPalette({ open, onClose }) {
     const commands = [
       {
         id: 'cmd-run',
-        title: '▶ Run workflow',
+        title: 'Run workflow',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>,
         hint: 'Ctrl+Enter',
         enabled: Boolean(workflow?.id),
         perform: () => run(workflow.id),
       },
-      { id: 'cmd-save', title: '💾 Save now', hint: 'Ctrl+S', enabled: true, perform: () => save().catch(() => {}) },
-      { id: 'cmd-undo', title: '↶ Undo', hint: 'Ctrl+Z', enabled: canUndo, perform: undo },
-      { id: 'cmd-redo', title: '↷ Redo', hint: 'Ctrl+Shift+Z', enabled: canRedo, perform: redo },
+      {
+        id: 'cmd-save',
+        title: 'Save workflow',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>,
+        hint: 'Ctrl+S',
+        enabled: true,
+        perform: () => save().catch(() => {}),
+      },
+      {
+        id: 'cmd-undo',
+        title: 'Undo',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>,
+        hint: 'Ctrl+Z',
+        enabled: canUndo,
+        perform: undo,
+      },
+      {
+        id: 'cmd-redo',
+        title: 'Redo',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>,
+        hint: 'Ctrl+Shift+Z',
+        enabled: canRedo,
+        perform: redo,
+      },
       {
         id: 'cmd-select-all',
-        title: '⬚ Select all nodes',
+        title: 'Select all nodes',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeDasharray="3 3" /></svg>,
         hint: 'Ctrl+A',
         enabled: true,
         perform: () => selectAll(),
       },
       {
         id: 'cmd-fit',
-        title: '⤢ Zoom to fit',
+        title: 'Zoom to fit',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>,
         hint: 'Ctrl+0',
         enabled: true,
         perform: () => fitView({ duration: 300, padding: 0.15, maxZoom: 1 }),
       },
       {
         id: 'cmd-comment',
-        title: '💬 Add comment',
+        title: 'Add sticky note / comment',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>,
         enabled: true,
         perform: () => {
           let at = { x: 160, y: 160 }
@@ -90,7 +115,8 @@ export default function CommandPalette({ open, onClose }) {
       },
       {
         id: 'cmd-group',
-        title: '⛁ Group selected nodes',
+        title: 'Group selected nodes',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg>,
         hint: 'select 2+, then run',
         enabled: nodes.filter((n) => n.selected).length >= 2,
         perform: () => {
@@ -100,7 +126,8 @@ export default function CommandPalette({ open, onClose }) {
       },
       {
         id: 'cmd-layout',
-        title: '⌗ Auto-layout',
+        title: 'Auto-layout DAG',
+        svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="6" height="6" rx="1" /><rect x="15" y="3" width="6" height="6" rx="1" /><rect x="9" y="15" width="6" height="6" rx="1" /><line x1="6" y1="9" x2="12" y2="15" /><line x1="18" y1="9" x2="12" y2="15" /></svg>,
         enabled: true,
         perform: () => {
           import('../utils/autoLayout').then(({ autoLayout }) => {
@@ -235,7 +262,11 @@ export default function CommandPalette({ open, onClose }) {
                 onMouseEnter={() => setActive(i)}
                 onClick={() => choose(item)}
               >
-                {item.icon && (
+                {item.svgIcon ? (
+                  <span className="node-icon" style={{ display: 'inline-flex', alignItems: 'center', opacity: 0.8, color: '#94a3b8' }}>
+                    {item.svgIcon}
+                  </span>
+                ) : item.icon && (
                   <span className="node-icon">
                     <NodeIcon type={item.type} icon={item.icon} size={16} />
                   </span>
@@ -253,7 +284,7 @@ export default function CommandPalette({ open, onClose }) {
           )}
         </ul>
         <footer className="palette-foot hint">
-          ↑↓ navigate · ⏎ run · esc close
+          ↑↓ navigate · Enter run · Esc close
         </footer>
       </div>
     </div>

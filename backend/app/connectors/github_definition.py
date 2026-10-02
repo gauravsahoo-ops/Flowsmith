@@ -156,5 +156,5 @@ def build_github_definition() -> ConnectorDefinitionV1:
             "auth": "personal access token",
             "rate_limits": "primary+secondary budgets honored (X-RateLimit headers)",
         },
-        icon="🐙",
+        icon="github",
     )

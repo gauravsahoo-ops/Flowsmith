@@ -100,5 +100,5 @@ def build_pagerduty_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_incidents", "get_incident", "create_incident", "update_incident", "resolve_incident", "add_note"], "auth": "API token"},
-        icon="🚨",
+        icon="pagerduty",
     )

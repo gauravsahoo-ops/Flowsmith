@@ -312,8 +312,10 @@ export default function SalesforceOAuthModal({
             className="sf-close-btn"
             onClick={onClose}
             title="Close (Esc)"
+            aria-label="Close"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            ✕
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
@@ -323,24 +325,27 @@ export default function SalesforceOAuthModal({
             type="button"
             className={`sf-tab-btn ${tab === 'connection' ? 'active' : ''}`}
             onClick={() => setTab('connection')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>🔑</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21 2-2 2m-1.5 1.5L10 13m-2-2L3.5 15.5a3.536 3.536 0 0 0 5 5L13 16m-2-2 2.5 2.5m1-1 2 2m-7-7 2 2"/><circle cx="7.5" cy="16.5" r=".5" fill="currentColor"/></svg>
             <span>App Credentials</span>
           </button>
           <button
             type="button"
             className={`sf-tab-btn ${tab === 'environment' ? 'active' : ''}`}
             onClick={() => setTab('environment')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>🌐</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <span>Environment & Scope</span>
           </button>
           <button
             type="button"
             className={`sf-tab-btn ${tab === 'details' ? 'active' : ''}`}
             onClick={() => setTab('details')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>🛡️</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>Security & Details</span>
           </button>
         </div>
@@ -348,15 +353,15 @@ export default function SalesforceOAuthModal({
         {/* Modal Body */}
         <div className="sf-modal-body">
           {error && (
-            <div className="sf-alert sf-alert-error">
-              <span>⚠️</span>
+            <div className="sf-alert sf-alert-error" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <div>{error}</div>
             </div>
           )}
 
           {notice && (
-            <div className="sf-alert sf-alert-success">
-              <span>✓</span>
+            <div className="sf-alert sf-alert-success" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               <div>{notice}</div>
             </div>
           )}
@@ -430,8 +435,19 @@ export default function SalesforceOAuthModal({
                     type="button"
                     className={`sf-input-btn ${copied ? 'copied' : ''}`}
                     onClick={handleCopyRedirect}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
-                    {copied ? '✓ Copied' : 'Copy'}
+                    {copied ? (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <span>Copy</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -442,8 +458,9 @@ export default function SalesforceOAuthModal({
                   <span>
                     Consumer Key (Client ID) <span className="required">*</span>
                     {serverConfigured && (
-                      <span className="sf-badge-flow" style={{ marginLeft: 8, fontSize: '10px' }}>
-                        ✓ Pre-configured in Flowsmith
+                      <span className="sf-badge-flow" style={{ marginLeft: 8, fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Pre-configured in Flowsmith</span>
                       </span>
                     )}
                   </span>
@@ -477,16 +494,27 @@ export default function SalesforceOAuthModal({
                     className="sf-input-btn"
                     onClick={() => setShowSecret(!showSecret)}
                     title={showSecret ? 'Hide secret' : 'Show secret'}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
-                    {showSecret ? '🙈 Hide' : '👁️ Show'}
+                    {showSecret ? (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                        <span>Hide</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <span>Show</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
 
               {/* Quick Setup Instructions Guide */}
               <div className="sf-info-guide">
-                <div className="sf-info-guide-title">
-                  <span>⚡</span>
+                <div className="sf-info-guide-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                   <span>Salesforce Connected App Quick Setup</span>
                 </div>
                 <ol>
@@ -512,7 +540,9 @@ export default function SalesforceOAuthModal({
                   >
                     <div className="sf-env-card-title">
                       <span>Production / Developer</span>
-                      {envType === 'production' && <span>✓</span>}
+                      {envType === 'production' && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      )}
                     </div>
                     <span className="sf-env-card-url">https://login.salesforce.com</span>
                   </div>
@@ -523,7 +553,9 @@ export default function SalesforceOAuthModal({
                   >
                     <div className="sf-env-card-title">
                       <span>Sandbox / Test</span>
-                      {envType === 'sandbox' && <span>✓</span>}
+                      {envType === 'sandbox' && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      )}
                     </div>
                     <span className="sf-env-card-url">https://test.salesforce.com</span>
                   </div>
@@ -567,8 +599,8 @@ export default function SalesforceOAuthModal({
           {/* TAB 3: Security & Details */}
           {tab === 'details' && (
             <div className="sf-info-guide" style={{ gap: 12 }}>
-              <div className="sf-info-guide-title">
-                <span>🛡️</span>
+              <div className="sf-info-guide-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 <span>Security &amp; Encryption Architecture</span>
               </div>
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>

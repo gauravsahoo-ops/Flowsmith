@@ -48,7 +48,7 @@ class MemoryNode(BaseNode[MemoryParams]):
     version = 1
     description = "Session chat memory: push, recall, or clear messages."
     category = "AI"
-    icon = "💭"
+    icon = "memory"
     credential_types = ["redis"]
     parameters_schema = MemoryParams
     idempotency = "conditionally_idempotent"

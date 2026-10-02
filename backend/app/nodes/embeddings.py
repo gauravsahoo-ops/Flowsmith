@@ -50,7 +50,7 @@ class EmbeddingsNode(BaseNode[EmbeddingsParams]):
     version = 1
     description = "Embed texts into vectors for RAG retrieval."
     category = "AI"
-    icon = "🧠"
+    icon = "embeddings"
     parameters_schema = EmbeddingsParams
     idempotency = "idempotent"
 

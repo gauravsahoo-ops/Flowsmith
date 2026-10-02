@@ -67,7 +67,7 @@ class SalesforceTriggerNode(BaseNode[SalesforceTriggerParams]):
     version = 1
     description = "Starts the workflow when Salesforce sends an Outbound Message (record create/update)."
     category = "Triggers"
-    icon = "☁️"
+    icon = "salesforce"
     parameters_schema = SalesforceTriggerParams
     input_handles: list[str] = []
 

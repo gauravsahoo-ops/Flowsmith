@@ -82,5 +82,5 @@ def build_calendly_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_event_types", "list_events", "get_event", "cancel_event"], "auth": "PAT Bearer"},
-        icon="📅",
+        icon="calendly",
     )

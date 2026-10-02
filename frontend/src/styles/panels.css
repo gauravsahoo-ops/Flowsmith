@@ -205,18 +205,28 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   border-radius: 6px;
 }
 
-/* Running Node Glow Pulse */
+/* Running Node Glow Pulse (Tier-1 Ambient Luminescence) */
 @keyframes nodeRunningGlow {
   0%, 100% {
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.45), 0 10px 28px -4px rgba(0, 0, 0, 0.65), inset 0 0 0 1.5px #6366f1;
+    box-shadow: 
+      0 0 0 2px rgba(56, 189, 248, 0.5), 
+      0 10px 28px -4px rgba(0, 0, 0, 0.65), 
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+      0 0 16px -2px rgba(56, 189, 248, 0.4);
+    border-color: rgba(56, 189, 248, 0.7);
   }
   50% {
-    box-shadow: 0 0 28px 6px rgba(99, 102, 241, 0.8), 0 16px 36px -4px rgba(0, 0, 0, 0.8), inset 0 0 0 2px #a5b4fc;
+    box-shadow: 
+      0 0 0 2.5px rgba(99, 102, 241, 0.7), 
+      0 18px 42px -4px rgba(0, 0, 0, 0.8), 
+      inset 0 1px 2px 0 rgba(255, 255, 255, 0.6),
+      0 0 32px 4px rgba(56, 189, 248, 0.75);
+    border-color: rgba(165, 180, 252, 0.9);
   }
 }
 .rf-node-card.running {
   animation: nodeRunningGlow 1.6s ease-in-out infinite !important;
-  will-change: box-shadow;
+  will-change: box-shadow, border-color;
 }
 
 /* Execution Edge Animated Dash */

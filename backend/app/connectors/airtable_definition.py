@@ -144,5 +144,5 @@ def build_airtable_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["list_records", "get_record", "create_record", "update_record"],
             "auth": "personal access token",
         },
-        icon="🧮",
+        icon="airtable",
     )

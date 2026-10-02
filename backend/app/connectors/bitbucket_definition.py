@@ -90,5 +90,5 @@ def build_bitbucket_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_repos", "get_repo", "list_pull_requests", "get_pull_request", "add_comment"], "auth": "Bearer"},
-        icon="🪣",
+        icon="bitbucket",
     )

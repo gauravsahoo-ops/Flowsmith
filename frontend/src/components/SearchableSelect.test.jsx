@@ -5,9 +5,9 @@ import SearchableSelect from './SearchableSelect'
 
 describe('SearchableSelect Suite', () => {
   const mockOptions = [
-    { value: 'openai', label: 'OpenAI', category: 'Major Providers', meta: '✓ Supported' },
-    { value: 'anthropic', label: 'Anthropic', category: 'Major Providers', meta: '✓ Supported' },
-    { value: 'groq', label: 'Groq', category: 'Inference Providers', meta: '✓ Supported' },
+    { value: 'openai', label: 'OpenAI', category: 'Major Providers', meta: 'Supported' },
+    { value: 'anthropic', label: 'Anthropic', category: 'Major Providers', meta: 'Supported' },
+    { value: 'groq', label: 'Groq', category: 'Inference Providers', meta: 'Supported' },
     { value: 'deepseek', label: 'DeepSeek', category: 'Major Providers', tags: ['Reasoning', 'Vision'] },
     { value: 'custom', label: 'Other Custom provider', category: 'Custom', meta: 'Custom' },
   ]
@@ -34,7 +34,7 @@ describe('SearchableSelect Suite', () => {
       })
     )
     expect(html).toContain('OpenAI')
-    expect(html).toContain('✓ Supported')
+    expect(html).toContain('Supported')
   })
 
   it('renders loading spinner when loading prop is true', () => {

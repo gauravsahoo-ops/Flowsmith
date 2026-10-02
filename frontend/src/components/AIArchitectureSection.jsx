@@ -2,10 +2,156 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 
+function ArchIcon({ name, size = 18, color = 'currentColor', style = {} }) {
+  const baseProps = {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: color,
+    strokeWidth: 2,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    style: { display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style },
+  }
+
+  switch (name) {
+    case 'natural_language':
+      return (
+        <svg {...baseProps}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      )
+    case 'workflow_builder':
+      return (
+        <svg {...baseProps}>
+          <rect x="3" y="3" width="6" height="6" rx="1.5" />
+          <rect x="15" y="15" width="6" height="6" rx="1.5" />
+          <path d="M6 9v3a3 3 0 0 0 3 3h6" />
+        </svg>
+      )
+    case 'capability_triad':
+      return (
+        <svg {...baseProps}>
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </svg>
+      )
+    case 'workflow_engine':
+      return (
+        <svg {...baseProps}>
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+          <rect x="9" y="9" width="6" height="6" />
+          <line x1="9" y1="1" x2="9" y2="4" /><line x1="15" y1="1" x2="15" y2="4" />
+          <line x1="9" y1="20" x2="9" y2="23" /><line x1="15" y1="20" x2="15" y2="23" />
+          <line x1="20" y1="9" x2="23" y2="9" /><line x1="20" y1="14" x2="23" y2="14" />
+          <line x1="1" y1="9" x2="4" y2="9" /><line x1="1" y1="14" x2="4" y2="14" />
+        </svg>
+      )
+    case 'execution_intelligence':
+      return (
+        <svg {...baseProps}>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <polyline points="9 12 11 14 15 10" />
+        </svg>
+      )
+    case 'enterprise_governance':
+      return (
+        <svg {...baseProps}>
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      )
+    case 'consumption_surface':
+      return (
+        <svg {...baseProps}>
+          <polyline points="4 17 10 11 4 5" />
+          <line x1="12" y1="19" x2="20" y2="19" />
+        </svg>
+      )
+    case 'simplicity':
+      return (
+        <svg {...baseProps}>
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      )
+    case 'control':
+      return (
+        <svg {...baseProps}>
+          <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+        </svg>
+      )
+    case 'ipaas':
+      return (
+        <svg {...baseProps}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+      )
+    case 'sovereignty':
+      return (
+        <svg {...baseProps}>
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+          <line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" />
+        </svg>
+      )
+    case 'database':
+      return (
+        <svg {...baseProps}>
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+      )
+    case 'mcp':
+      return (
+        <svg {...baseProps}>
+          <path d="M12 2v6m0 8v6M2 12h6m8 0h6" />
+          <rect x="8" y="8" width="8" height="8" rx="2" />
+        </svg>
+      )
+    case 'repair':
+      return (
+        <svg {...baseProps}>
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </svg>
+      )
+    case 'platform':
+      return (
+        <svg {...baseProps}>
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+      )
+    case 'rag':
+      return (
+        <svg {...baseProps}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      )
+    case 'empty':
+      return (
+        <svg {...baseProps}>
+          <polyline points="21 8 21 21 3 21 3 8" />
+          <rect x="1" y="3" width="22" height="5" />
+          <line x1="10" y1="12" x2="14" y2="12" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
 const ARCH_PIPELINE = [
   {
     id: 'natural_language',
-    icon: '💬',
     layer: 'Layer 1',
     title: '1. Natural Language',
     desc: 'Intent ingestion, user prompts, and conversational workflow chat.',
@@ -14,7 +160,6 @@ const ARCH_PIPELINE = [
   },
   {
     id: 'workflow_builder',
-    icon: '✨',
     layer: 'Layer 2',
     title: '2. AI Workflow Builder',
     desc: 'Grounded prompt-to-DAG compiler matching ports, data contracts, and schemas.',
@@ -23,7 +168,6 @@ const ARCH_PIPELINE = [
   },
   {
     id: 'capability_triad',
-    icon: '🧩',
     layer: 'Layer 3',
     title: '3. Connectors · Agents · RAG',
     desc: '45+ native connectors, autonomous ReAct agents, and pgvector knowledge bases.',
@@ -32,7 +176,6 @@ const ARCH_PIPELINE = [
   },
   {
     id: 'workflow_engine',
-    icon: '⚙️',
     layer: 'Layer 4',
     title: '4. Workflow Engine',
     desc: "AsyncIO DAG scheduler executing parallel branches via Kahn's algorithm.",
@@ -41,7 +184,6 @@ const ARCH_PIPELINE = [
   },
   {
     id: 'execution_intelligence',
-    icon: '🛡️',
     layer: 'Layer 5',
     title: '5. Execute · Observe · Repair',
     desc: 'Subprocess memory sandboxes, live WebSocket telemetry, and deterministic auto-repair.',
@@ -50,7 +192,6 @@ const ARCH_PIPELINE = [
   },
   {
     id: 'enterprise_governance',
-    icon: '🏢',
     layer: 'Layer 6',
     title: '6. Enterprise Layer',
     desc: 'RBAC, immutable audit logging, Fernet vault, and environment promotion.',
@@ -59,7 +200,6 @@ const ARCH_PIPELINE = [
   },
   {
     id: 'consumption_surface',
-    icon: '🚀',
     layer: 'Layer 7',
     title: '7. UI/API · MCP · Embedded',
     desc: 'Visual canvas & REST API, Model Context Protocol server, and white-label iPaaS.',
@@ -73,7 +213,6 @@ const CONVERGENCE_PILLARS = [
     id: 'simplicity',
     competitor: 'Zapier',
     pillar: "Zapier's Simplicity",
-    icon: '⚡',
     color: '#f97316',
     bg: 'rgba(249, 115, 22, 0.08)',
     border: 'rgba(249, 115, 22, 0.3)',
@@ -83,7 +222,6 @@ const CONVERGENCE_PILLARS = [
     id: 'control',
     competitor: 'n8n',
     pillar: "n8n's Technical Control",
-    icon: '🛠️',
     color: '#ec4899',
     bg: 'rgba(236, 72, 153, 0.08)',
     border: 'rgba(236, 72, 153, 0.3)',
@@ -93,7 +231,6 @@ const CONVERGENCE_PILLARS = [
     id: 'ipaas',
     competitor: 'Cyclr',
     pillar: "Cyclr's iPaaS Architecture",
-    icon: '🌐',
     color: '#06b6d4',
     bg: 'rgba(6, 182, 212, 0.08)',
     border: 'rgba(6, 182, 212, 0.3)',
@@ -103,7 +240,6 @@ const CONVERGENCE_PILLARS = [
     id: 'sovereignty',
     competitor: 'Flowsmith',
     pillar: "Flowsmith's Sovereign Moat",
-    icon: '🏰',
     color: '#8b5cf6',
     bg: 'rgba(139, 92, 246, 0.08)',
     border: 'rgba(139, 92, 246, 0.3)',
@@ -388,8 +524,8 @@ export default function AIArchitectureSection() {
           <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'rgba(99, 102, 241, 0.18)', border: '1px solid rgba(99, 102, 241, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
-                📚
+              <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'rgba(99, 102, 241, 0.18)', border: '1px solid rgba(99, 102, 241, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ArchIcon name="database" size={22} color="#818cf8" />
               </div>
               <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
                 pgvector · HNSW
@@ -434,8 +570,8 @@ export default function AIArchitectureSection() {
           <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'rgba(16, 185, 129, 0.18)', border: '1px solid rgba(16, 185, 129, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
-                🔌
+              <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'rgba(16, 185, 129, 0.18)', border: '1px solid rgba(16, 185, 129, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ArchIcon name="mcp" size={22} color="#34d399" />
               </div>
               <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 MCP Protocol 2024-11-05
@@ -461,7 +597,7 @@ export default function AIArchitectureSection() {
               Open MCP Studio ↓
             </a>
             <button className="ghost" onClick={handleCopySnippet} style={{ fontSize: '12.5px', padding: '0.45rem 0.85rem' }}>
-              {copiedSnippet ? '✓ Copied' : 'Copy Claude Config'}
+              {copiedSnippet ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied</span>) : 'Copy Claude Config'}
             </button>
           </div>
         </div>
@@ -484,8 +620,8 @@ export default function AIArchitectureSection() {
           <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'rgba(168, 85, 247, 0.18)', border: '1px solid rgba(168, 85, 247, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
-                🛠️
+              <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'rgba(168, 85, 247, 0.18)', border: '1px solid rgba(168, 85, 247, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ArchIcon name="repair" size={22} color="#c084fc" />
               </div>
               <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '12px', background: 'rgba(168, 85, 247, 0.15)', color: '#d8b4fe', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
                 Zero Hallucination · AST
@@ -525,7 +661,7 @@ export default function AIArchitectureSection() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ fontSize: '1.25rem' }}>🏛️</span>
+              <ArchIcon name="platform" size={22} color="#818cf8" />
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#f8fafc' }}>
                 One Flowsmith Platform: Strategic Convergence
               </h3>
@@ -565,7 +701,7 @@ export default function AIArchitectureSection() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '1.2rem' }}>{p.icon}</span>
+                <ArchIcon name={p.id} size={20} color={p.color} />
                 <span style={{ fontSize: '10px', fontWeight: 700, color: p.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {p.competitor} Virtue
                 </span>
@@ -584,7 +720,7 @@ export default function AIArchitectureSection() {
         <div style={{ marginBottom: '1.25rem' }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>Topological Platform Execution Flow</span>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>(Layer 1 Intent ➔ Layer 7 Consumption Surface)</span>
+            <span style={{ fontSize: '11px', color: '#64748b' }}>(Layer 1 Intent → Layer 7 Consumption Surface)</span>
           </div>
 
           <div
@@ -616,7 +752,7 @@ export default function AIArchitectureSection() {
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                      <span style={{ fontSize: '1.25rem' }}>{stage.icon}</span>
+                      <ArchIcon name={stage.id} size={18} color={isSelected ? '#c7d2fe' : '#94a3b8'} />
                       <span style={{ fontSize: '9.5px', fontWeight: 700, color: isSelected ? '#a5b4fc' : '#64748b' }}>
                         L{idx + 1}
                       </span>
@@ -647,8 +783,8 @@ export default function AIArchitectureSection() {
             boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
           }}
         >
-          <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0 }}>
-            {activePipelineStep.icon}
+          <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ArchIcon name={activePipelineStep.id} size={24} color="#818cf8" />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
@@ -679,7 +815,7 @@ export default function AIArchitectureSection() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.3rem' }}>🔌</span>
+              <ArchIcon name="mcp" size={20} color="#34d399" />
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>
                 Model Context Protocol (MCP) Studio
               </h3>
@@ -770,7 +906,7 @@ export default function AIArchitectureSection() {
                   cursor: 'pointer',
                 }}
               >
-                {copiedSnippet ? '✓ Copied' : 'Copy'}
+                {copiedSnippet ? (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied</span>) : 'Copy'}
               </button>
             </div>
             <div style={{ fontSize: '11px', color: '#64748b', marginTop: '0.6rem' }}>
@@ -863,7 +999,7 @@ export default function AIArchitectureSection() {
               </button>
               {toolExecutionLatency !== null && (
                 <span style={{ fontSize: '11px', color: '#4ade80' }}>
-                  ✓ Response in {toolExecutionLatency}ms
+                  Response in {toolExecutionLatency}ms
                 </span>
               )}
             </div>
@@ -871,7 +1007,7 @@ export default function AIArchitectureSection() {
             {/* Error Display */}
             {toolError && (
               <div style={{ fontSize: '12px', color: '#f87171', padding: '6px 10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', marginBottom: '0.5rem' }}>
-                ⚠️ {toolError}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {toolError}
               </div>
             )}
 
@@ -911,7 +1047,7 @@ export default function AIArchitectureSection() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.3rem' }}>🧠</span>
+              <ArchIcon name="rag" size={20} color="#818cf8" />
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>
                 pgvector RAG Semantic Search Playground
               </h3>
@@ -935,7 +1071,9 @@ export default function AIArchitectureSection() {
               borderRadius: '10px',
             }}
           >
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📭</div>
+            <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'center' }}>
+              <ArchIcon name="empty" size={32} color="#64748b" />
+            </div>
             <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9', marginBottom: '0.4rem' }}>
               No Knowledge Collections Ingested Yet
             </div>
@@ -948,7 +1086,7 @@ export default function AIArchitectureSection() {
               disabled={creatingDemoRag}
               style={{ fontSize: '13px', padding: '0.5rem 1.25rem' }}
             >
-              {creatingDemoRag ? 'Embedding Sample Docs...' : '⚡ Create Demo RAG Collection'}
+              {creatingDemoRag ? 'Embedding Sample Docs...' : 'Create Demo RAG Collection'}
             </button>
           </div>
         ) : (
@@ -1001,13 +1139,14 @@ export default function AIArchitectureSection() {
                 disabled={ragSearching || !ragQuery.trim()}
                 style={{ fontSize: '13px', padding: '0.6rem 1.25rem' }}
               >
-                {ragSearching ? 'Searching...' : '🔍 Semantic Search'}
+                {ragSearching ? 'Searching...' : 'Semantic Search'}
               </button>
             </div>
 
             {ragError && (
-              <div style={{ fontSize: '12px', color: '#f87171', padding: '8px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px' }}>
-                ⚠️ {ragError}
+              <div style={{ fontSize: '12px', color: '#f87171', padding: '8px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>{ragError}</span>
               </div>
             )}
 
@@ -1059,7 +1198,7 @@ export default function AIArchitectureSection() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.3rem' }}>🛠️</span>
+              <ArchIcon name="repair" size={20} color="#c084fc" />
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>
                 Deterministic Graph Auto-Repair Architecture
               </h3>
@@ -1074,7 +1213,7 @@ export default function AIArchitectureSection() {
             disabled={simulatingRepair}
             style={{ fontSize: '12px', padding: '0.45rem 1rem' }}
           >
-            {simulatingRepair ? 'Simulating Diagnostics...' : '⚡ Run Repair Simulation'}
+            {simulatingRepair ? 'Simulating Diagnostics...' : 'Run Repair Simulation'}
           </button>
         </div>
 
@@ -1103,7 +1242,7 @@ export default function AIArchitectureSection() {
                   <span style={{ fontSize: '12.5px', fontWeight: 600, color: isDone ? '#4ade80' : '#f1f5f9' }}>
                     {s.title}
                   </span>
-                  {isDone && <span style={{ fontSize: '11px', color: '#4ade80' }}>✓</span>}
+                  {isDone && <span style={{ fontSize: "11px", color: "#4ade80", display: "inline-flex", alignItems: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>}
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: '1.35' }}>
                   {s.text}
@@ -1124,7 +1263,7 @@ export default function AIArchitectureSection() {
               <pre style={{ margin: 0, fontSize: '11px', color: '#fca5a5', fontFamily: 'monospace' }}>
 {`// Upstream emitted 'user_id', but node expected 'id'
 {
-  "customer_id": "{{ $json.id }}" // ❌ null / missing
+  "customer_id": "{{ $json.id }}" // null / missing property
 }`}
               </pre>
             </div>
@@ -1137,7 +1276,7 @@ export default function AIArchitectureSection() {
               <pre style={{ margin: 0, fontSize: '11px', color: '#86efac', fontFamily: 'monospace' }}>
 {`// Inferred from upstream schema without guessing
 {
-  "customer_id": "{{ $json.user_id }}" // ✅ Matched
+  "customer_id": "{{ $json.user_id }}" // Resolved from schema
 }`}
               </pre>
             </div>

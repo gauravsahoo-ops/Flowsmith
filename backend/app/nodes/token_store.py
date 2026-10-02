@@ -150,7 +150,7 @@ class TokenStoreNode(BaseNode[TokenStoreParams]):
     version = 1
     description = "Securely save authentication credentials received from Login API / HTTP Request (encrypted UPSERT)."
     category = "Actions"
-    icon = "💾"
+    icon = "token_store"
     parameters_schema = TokenStoreParams
     idempotency = "conditionally_idempotent"
 

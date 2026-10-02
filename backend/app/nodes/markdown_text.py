@@ -102,7 +102,7 @@ class MarkdownTextNode(BaseNode[MarkdownTextParams]):
     version = 1
     description = "Convert markdown to plain text or simple HTML."
     category = "Transform"
-    icon = "📝"
+    icon = "markdown_text"
     parameters_schema = MarkdownTextParams
 
     async def run(

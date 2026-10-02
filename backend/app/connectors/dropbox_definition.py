@@ -92,5 +92,5 @@ def build_dropbox_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_folder", "get_metadata", "create_folder", "delete", "upload_text"], "auth": "Bearer token"},
-        icon="📦",
+        icon="dropbox",
     )

@@ -38,7 +38,7 @@ class SlackNode(BaseNode[SlackParams]):
     version = 1
     description = "Send a message to a Slack channel."
     category = "Communication"
-    icon = "💬"
+    icon = "slack"
     parameters_schema = SlackParams
     credential_types = ["slack"]
 

@@ -278,7 +278,7 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
               style={{ fontSize: 11, padding: '2px 6px', background: '#18181b', color: '#a5b4fc', border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: 4 }}
               title="Insert pre-built battle-tested code snippets"
             >
-              <option value="" disabled>📚 Snippet Templates…</option>
+              <option value="" disabled>Snippet Templates…</option>
               {(SNIPPETS[language] || []).map((s) => (
                 <option key={s.label} value={s.label}>{s.label}</option>
               ))}
@@ -318,13 +318,13 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
       {/* Validation */}
       {validation && validation.valid && (
         <div className="banner-inline ok" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontWeight: 600 }}>✓ VALID</span>
+          <span style={{ fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>VALID</span>
           <span style={{ fontSize: 11 }}>{validation.message}</span>
         </div>
       )}
       {validation && !validation.valid && (
         <ErrorState
-          icon="✗"
+          icon="alert"
           title="Code validation failed"
           description={validation.message}
           details={validation.line ? `Line ${validation.line}${validation.column ? `, Column ${validation.column}` : ''}` : undefined}

@@ -96,5 +96,5 @@ def build_brevo_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["send_email", "list_contacts", "get_contact", "create_contact", "update_contact"], "auth": "API key header"},
-        icon="📧",
+        icon="brevo",
     )

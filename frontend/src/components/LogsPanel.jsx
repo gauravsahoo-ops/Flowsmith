@@ -357,8 +357,20 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
           )}
 
           {!running && executionStatus && activeTab === 'logs' && (
-            <span className={`logs-status-pill ${executionStatus}`}>
-              {executionStatus === 'success' ? '✓ Finished' : executionStatus === 'failed' || executionStatus === 'error' ? '✕ Failed' : executionStatus}
+            <span className={`logs-status-pill ${executionStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {executionStatus === 'success' ? (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Finished</span>
+                </>
+              ) : executionStatus === 'failed' || executionStatus === 'error' ? (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <span>Failed</span>
+                </>
+              ) : (
+                <span>{executionStatus}</span>
+              )}
             </span>
           )}
         </div>
@@ -397,7 +409,11 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                     className="logs-menu-item"
                     onClick={toggleSync}
                   >
-                    <span className="logs-check">{syncWithCanvas ? '✓' : ''}</span>
+                    <span className="logs-check">
+                      {syncWithCanvas ? (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      ) : null}
+                    </span>
                     <span>Sync selection with canvas</span>
                   </button>
                   <button
@@ -563,12 +579,32 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                     >
                       <span className="logs-col-time">{fmtTime(step.started_at)}</span>
 
-                      <span className={`logs-col-status status-${status}`}>
-                        {status === 'success' && '✓ Success'}
-                        {status === 'running' && '● Running'}
-                        {(status === 'failed' || status === 'error') && '✕ Error'}
-                        {status === 'skipped' && '— Skipped'}
-                        {status === 'waiting_approval' && '⏸ Waiting'}
+                      <span className={`logs-col-status status-${status}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {status === 'success' && (
+                          <>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Success</span>
+                          </>
+                        )}
+                        {status === 'running' && (
+                          <>
+                            <span className="status-dot-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                            <span>Running</span>
+                          </>
+                        )}
+                        {(status === 'failed' || status === 'error') && (
+                          <>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            <span>Error</span>
+                          </>
+                        )}
+                        {status === 'skipped' && <span>— Skipped</span>}
+                        {status === 'waiting_approval' && (
+                          <>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>
+                            <span>Waiting</span>
+                          </>
+                        )}
                       </span>
 
                       <span className="logs-col-node">
@@ -598,7 +634,10 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                 {executionError && (
                   <div className="logs-row error execution-fatal">
                     <span className="logs-col-time" />
-                    <span className="logs-col-status status-error">✕ Run Error</span>
+                    <span className="logs-col-status status-error" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      <span>Run Error</span>
+                    </span>
                     <span className="logs-col-node" />
                     <span className="logs-col-duration" />
                     <span className="logs-col-items" />

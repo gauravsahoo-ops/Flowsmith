@@ -66,7 +66,9 @@ function CurlModal({ open, onClose, onImport }) {
       <div className="credentials-panel" style={{ width: 560 }} onClick={(e) => e.stopPropagation()}>
         <header>
           <h2>Import cURL</h2>
-          <button className="ghost" onClick={onClose}>✕</button>
+          <button className="ghost" onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </header>
         <p className="hint" style={{ margin: '8px 0' }}>Paste a cURL command. Method, URL, headers, query and body will be extracted.</p>
         <textarea
@@ -237,7 +239,9 @@ function KeyValueList({ items, onChange, namePlaceholder = 'Name', valuePlacehol
               <input value={it.value} onChange={(e) => update(idx, 'value', e.target.value)} placeholder={valuePlaceholder} style={{ width: '100%' }} />
             )}
           </div>
-          <button type="button" className="ghost" onClick={() => remove(idx)} title="Remove" style={{ padding: '6px 8px' }}>✕</button>
+          <button type="button" className="ghost" onClick={() => remove(idx)} title="Remove" style={{ padding: '6px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
       ))}
       <button type="button" className="ghost" onClick={add} style={{ marginTop: 4 }}>{addLabel}</button>
@@ -252,8 +256,8 @@ function QueryParamRow({ index, name, value, onNameChange, onValueChange, onRemo
     <div className="fs-param-card">
       <div className="fs-param-card-header" onClick={() => setCollapsed(v => !v)}>
         <span className="fs-param-card-title">
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', display: 'inline-block', width: 14, lineHeight: 1 }}>
-            {collapsed ? '›' : '⌄'}
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', display: 'inline-flex', alignItems: 'center', width: 14, lineHeight: 1 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' }}><polyline points="6 9 12 15 18 9"/></svg>
           </span>
           <span style={{ fontWeight: 600, color: '#f8fafc' }}>{displayName}</span>
         </span>
@@ -265,8 +269,9 @@ function QueryParamRow({ index, name, value, onNameChange, onValueChange, onRemo
             onRemove()
           }}
           title="Remove parameter"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          ✕
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       {!collapsed && (
@@ -330,12 +335,13 @@ function HeaderRow({ index, name, value, onNameChange, onValueChange, onRemove, 
     <div className="fs-param-card" style={isAuth ? { borderColor: 'rgba(56, 189, 248, 0.4)', background: '#111722' } : undefined}>
       <div className="fs-param-card-header" onClick={() => setCollapsed(v => !v)}>
         <span className="fs-param-card-title">
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', display: 'inline-block', width: 14, lineHeight: 1 }}>
-            {collapsed ? '›' : '⌄'}
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', display: 'inline-flex', alignItems: 'center', width: 14, lineHeight: 1 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' }}><polyline points="6 9 12 15 18 9"/></svg>
           </span>
           {isAuth && (
-            <span style={{ fontSize: 10.5, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8', padding: '1px 6px', borderRadius: 3, fontWeight: 600, marginRight: 4 }}>
-              🔑 Auth
+            <span style={{ fontSize: 10.5, background: 'rgba(56, 189, 248, 0.16)', color: '#38bdf8', padding: '1px 6px', borderRadius: 3, fontWeight: 600, marginRight: 4, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3"/></svg>
+              Auth
             </span>
           )}
           <span style={{ fontWeight: 600, color: '#f8fafc' }}>{displayName}</span>
@@ -349,8 +355,9 @@ function HeaderRow({ index, name, value, onNameChange, onValueChange, onRemove, 
             onRemove()
           }}
           title="Remove header"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          ✕
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       {!collapsed && (
@@ -592,11 +599,11 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
       {detectedTokenPath && (
         <div
           style={{
-            margin: '4px 0 10px',
+            margin: '8px 0 12px',
             padding: '10px 14px',
-            borderRadius: 8,
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%)',
-            border: '1px solid rgba(168, 85, 247, 0.35)',
+            borderRadius: 6,
+            background: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -604,7 +611,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 18 }}>⚡</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#e0e7ff' }}>
                 Upstream Token Detected
@@ -618,14 +625,11 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
             type="button"
             className="primary primary--sm"
             style={{
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              border: 'none',
               whiteSpace: 'nowrap',
               padding: '6px 14px',
               fontSize: 11,
               fontWeight: 600,
               cursor: 'pointer',
-              color: '#fff',
               borderRadius: 6,
             }}
             onClick={() => {
@@ -653,7 +657,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
       {authSelection === 'bearer' && (
         <div className="fs-auth-direct-card">
           <div className="fs-auth-header-badge">
-            <span style={{ fontSize: 13 }}>🔑</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3"/></svg>
             <span>Sends direct header: <code>Authorization: Bearer &lt;token&gt;</code></span>
           </div>
           <label>
@@ -685,7 +689,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
       {authSelection === 'header' && (
         <div className="fs-auth-direct-card">
           <div className="fs-auth-header-badge">
-            <span style={{ fontSize: 13 }}>🛡️</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>Sends custom header: <code>{params.api_key_name || 'Authorization'}: &lt;value&gt;</code></span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
@@ -729,7 +733,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
       {authSelection === 'basic' && (
         <div className="fs-auth-direct-card">
           <div className="fs-auth-header-badge">
-            <span style={{ fontSize: 13 }}>🔒</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span>Sends direct header: <code>Authorization: Basic &lt;base64(username:password)&gt;</code></span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -999,14 +1003,14 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
               className={`fs-segmented-btn ${(params.queryMode || 'fields') === 'fields' ? 'active' : ''}`}
               onClick={() => patch({ queryMode: 'fields' })}
             >
-              <span>📋</span> Key-Value Parameters ({queryList.length})
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg> Key-Value Parameters ({queryList.length})
             </button>
             <button
               type="button"
               className={`fs-segmented-btn ${(params.queryMode || 'fields') === 'json' ? 'active' : ''}`}
               onClick={() => patch({ queryMode: 'json' })}
             >
-              <span>📝</span> Query JSON / Expression
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Query JSON / Expression
             </button>
           </div>
 
@@ -1100,7 +1104,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
               }}
               title="Add direct Authorization header"
             >
-              🔑 + Authorization Header
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3"/></svg>+ Authorization Header
             </button>
             <button
               type="button"
@@ -1135,14 +1139,14 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
               className={`fs-segmented-btn ${(params.headerMode || 'fields') === 'fields' ? 'active' : ''}`}
               onClick={() => patch({ headerMode: 'fields' })}
             >
-              <span>📋</span> Key-Value Headers ({headerList.length})
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg> Key-Value Headers ({headerList.length})
             </button>
             <button
               type="button"
               className={`fs-segmented-btn ${(params.headerMode || 'fields') === 'json' ? 'active' : ''}`}
               onClick={() => patch({ headerMode: 'json' })}
             >
-              <span>📝</span> Headers JSON / Expression
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Headers JSON / Expression
             </button>
           </div>
 
@@ -1194,7 +1198,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
                   }}
                   style={{ fontSize: 12, color: '#38bdf8' }}
                 >
-                  🔑 + Add Authorization
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3"/></svg>+ Add Authorization
                 </button>
               </div>
             </div>
@@ -1302,7 +1306,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {/* on_init pre-request hook */}
           <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <span style={{ fontSize: 13 }}>⚡</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               <span style={{ fontSize: 12, fontWeight: 600 }}>on_init (Pre-Request Transform)</span>
             </div>
             <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Inject dynamic headers or compute timestamps before sending.</p>
@@ -1328,7 +1332,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {/* on_success post-response hook */}
           <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <span style={{ fontSize: 13 }}>✨</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent, #6366f1)' }}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
               <span style={{ fontSize: 12, fontWeight: 600 }}>on_success (Post-Response Transform)</span>
             </div>
             <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Unwrap, filter, or project response data (e.g. <code>{'{{ $response.body.data }}'}</code>).</p>
@@ -1353,7 +1357,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {/* on_error hook */}
           <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <span style={{ fontSize: 13 }}>🛡️</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               <span style={{ fontSize: 12, fontWeight: 600 }}>on_error (Error & Fallback Handling)</span>
             </div>
             <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Behavior when HTTP call fails (status &gt;= 400 or network error).</p>
@@ -1424,40 +1428,40 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {optionsList.includes('timeout') && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <label style={{ flex: 1 }}><span>Timeout (seconds)</span><input type="number" min={1} max={300} value={params.timeout_seconds ?? 30} onChange={(e) => patch({ timeout_seconds: Number(e.target.value) })} /></label>
-              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'timeout')); patch({ timeout_seconds: 30 }) }} title="Remove">✕</button>
+              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'timeout')); patch({ timeout_seconds: 30 }) }} title="Remove" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
           )}
           {optionsList.includes('ignore_ssl') && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <label className="check" style={{ flex: 1 }}><input type="checkbox" checked={Boolean(params.ignore_ssl_issues)} onChange={(e) => patch({ ignore_ssl_issues: e.target.checked })} /><span>Ignore SSL Issues</span></label>
-              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'ignore_ssl')); patch({ ignore_ssl_issues: false }) }} title="Remove">✕</button>
+              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'ignore_ssl')); patch({ ignore_ssl_issues: false }) }} title="Remove" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
           )}
           {optionsList.includes('ignore_ssl') && params.ignore_ssl_issues && (
-            <p className="hint" style={{ color: 'var(--red)', marginTop: -4 }}>⚠ Disables TLS verification — insecure. Use only for testing.</p>
+            <p className="hint" style={{ color: 'var(--red)', marginTop: -4, display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Disables TLS verification — insecure. Use only for testing.</p>
           )}
           {optionsList.includes('follow_redirects') && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <label className="check" style={{ flex: 1 }}><input type="checkbox" checked={params.follow_redirects !== false} onChange={(e) => patch({ follow_redirects: e.target.checked })} /><span>Follow Redirects</span></label>
-              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'follow_redirects')); patch({ follow_redirects: true }) }} title="Remove">✕</button>
+              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'follow_redirects')); patch({ follow_redirects: true }) }} title="Remove" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
           )}
           {optionsList.includes('max_redirects') && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <label style={{ flex: 1 }}><span>Max Redirects</span><input type="number" min={0} max={20} value={params.max_redirects ?? 5} onChange={(e) => patch({ max_redirects: Number(e.target.value) })} /></label>
-              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'max_redirects')); patch({ max_redirects: 5 }) }} title="Remove">✕</button>
+              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'max_redirects')); patch({ max_redirects: 5 }) }} title="Remove" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
           )}
           {optionsList.includes('response_format') && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <label style={{ flex: 1 }}><span>Response Format</span><select value={params.response_format || 'auto'} onChange={(e) => patch({ response_format: e.target.value })}>{RESPONSE_FORMATS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>
-              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'response_format')); patch({ response_format: 'auto' }) }} title="Remove">✕</button>
+              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'response_format')); patch({ response_format: 'auto' }) }} title="Remove" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
           )}
           {optionsList.includes('max_response_bytes') && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <label style={{ flex: 1 }}><span>Max Response Bytes</span><input type="number" min={1024} value={params.max_response_bytes ?? 10*1024*1024} onChange={(e) => patch({ max_response_bytes: Number(e.target.value) })} /></label>
-              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'max_response_bytes')); patch({ max_response_bytes: 10*1024*1024 }) }} title="Remove">✕</button>
+              <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'max_response_bytes')); patch({ max_response_bytes: 10*1024*1024 }) }} title="Remove" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
           )}
         </div>

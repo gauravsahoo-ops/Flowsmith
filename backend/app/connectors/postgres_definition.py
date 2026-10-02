@@ -147,5 +147,5 @@ def build_postgres_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["query", "execute", "insert_rows", "list_tables"],
             "auth": "connection string (dsn) stored encrypted",
         },
-        icon="🐘",
+        icon="postgres",
     )

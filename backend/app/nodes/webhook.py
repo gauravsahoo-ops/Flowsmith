@@ -43,7 +43,7 @@ class WebhookTriggerNode(BaseNode[WebhookTriggerParams]):
     version = 1
     description = "Starts the workflow when someone calls its public URL."
     category = "Triggers"
-    icon = "🔗"
+    icon = "webhook"
     parameters_schema = WebhookTriggerParams
     input_handles: list[str] = []
 

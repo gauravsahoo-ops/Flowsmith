@@ -87,5 +87,5 @@ def build_whatsapp_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["send_text", "send_template", "get_message"], "auth": "Bearer token"},
-        icon="💬",
+        icon="whatsapp",
     )

@@ -139,5 +139,5 @@ def build_notion_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["query_database", "create_page", "update_page"],
             "auth": "internal integration token",
         },
-        icon="🗒️",
+        icon="notion",
     )

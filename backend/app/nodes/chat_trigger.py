@@ -46,7 +46,7 @@ class ChatTriggerNode(BaseNode[ChatTriggerParams]):
     version = 1
     description = "Starts the workflow for each chat message."
     category = "Triggers"
-    icon = "🗨️"
+    icon = "chat_trigger"
     parameters_schema = ChatTriggerParams
     input_handles: list[str] = []
 

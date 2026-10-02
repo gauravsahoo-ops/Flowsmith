@@ -156,7 +156,7 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
       )}
       {preview && preview.missing && (
         <div className="preview err" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', marginTop: 3 }}>
-          ⚠ field not found in upstream outputs
+          field not found in upstream outputs
         </div>
       )}
     </div>

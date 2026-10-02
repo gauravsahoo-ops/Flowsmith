@@ -96,5 +96,5 @@ def build_linear_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_issues", "get_issue", "create_issue", "update_issue", "add_comment"], "auth": "API key"},
-        icon="📈",
+        icon="linear",
     )

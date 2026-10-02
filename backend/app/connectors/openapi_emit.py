@@ -291,7 +291,7 @@ def emit_definition(key: str, display_name: str, api: ApiSpec, category: str = "
         ]
     lines += [
         "        metadata={" + f'"source": "openapi-import", "api_title": {_py_str(api.title)}' + "},",
-        '        icon="🧲",',
+        '        icon="openapi",',
         "    )",
         "",
     ]

@@ -55,7 +55,7 @@ class FormTriggerNode(BaseNode[FormTriggerParams]):
     version = 1
     description = "Starts the workflow when someone submits its public form."
     category = "Triggers"
-    icon = "📋"
+    icon = "form_trigger"
     parameters_schema = FormTriggerParams
     input_handles: list[str] = []
 

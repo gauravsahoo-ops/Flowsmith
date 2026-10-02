@@ -16,24 +16,21 @@ function getIconComponent(icon, size = 24) {
           <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
         </svg>
       )
-    case '⚡':
-    case 'workflow':
+        case 'workflow':
     case 'workflows':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2" />
         </svg>
       )
-    case '🔍':
-    case 'search':
+        case 'search':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
       )
-    case '🌍':
-    case 'variables':
+        case 'variables':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
@@ -41,8 +38,7 @@ function getIconComponent(icon, size = 24) {
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
         </svg>
       )
-    case '📋':
-    case 'templates':
+        case 'templates':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="12 2 2 7 12 12 22 7 12 2" />
@@ -50,16 +46,14 @@ function getIconComponent(icon, size = 24) {
           <polyline points="2 12 12 17 22 12" />
         </svg>
       )
-    case '📚':
-    case 'knowledge':
+        case 'knowledge':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
         </svg>
       )
-    case '🕘':
-    case 'history':
+        case 'history':
     case 'executions':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -67,8 +61,7 @@ function getIconComponent(icon, size = 24) {
           <polyline points="12 6 12 12 16 14" />
         </svg>
       )
-    case '🗃️':
-    case 'database':
+        case 'database':
     case 'data-tables':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -78,8 +71,7 @@ function getIconComponent(icon, size = 24) {
           <line x1="9" y1="3" x2="9" y2="21" />
         </svg>
       )
-    case '🔑':
-    case 'credentials':
+        case 'credentials':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m15.5 7.5 3 3L22 7l-3-3" />
@@ -87,24 +79,21 @@ function getIconComponent(icon, size = 24) {
           <line x1="10.5" y1="13.5" x2="17" y2="7" />
         </svg>
       )
-    case '💳':
-    case 'billing':
+        case 'billing':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect width="20" height="14" x="2" y="5" rx="2" />
           <line x1="2" y1="10" x2="22" y2="10" />
         </svg>
       )
-    case '✅':
-    case 'approvals':
+        case 'approvals':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           <path d="m9 12 2 2 4-4" />
         </svg>
       )
-    case '📭':
-    default:
+        default:
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
@@ -124,7 +113,7 @@ function toSafeText(val) {
   return String(val)
 }
 
-export default function EmptyState({ icon = "📭", title, description, action, secondaryAction }) {
+export default function EmptyState({ icon = "inbox", title, description, action, secondaryAction }) {
   const safeTitle = toSafeText(title)
   const safeDesc = toSafeText(description)
 

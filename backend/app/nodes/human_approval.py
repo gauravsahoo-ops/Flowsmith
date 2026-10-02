@@ -42,7 +42,7 @@ class HumanApprovalNode(BaseNode[HumanApprovalParams]):
     version = 1
     description = "Pause workflow and wait for human approval."
     category = "Logic"
-    icon = "👤"
+    icon = "human_approval"
     parameters_schema = HumanApprovalParams
 
     async def run(

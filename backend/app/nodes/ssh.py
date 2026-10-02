@@ -37,7 +37,7 @@ class SshNode(BaseNode[SshParams]):
     version = 1
     description = "Run remote commands and move files over SSH/SFTP"
     category = "Flow"
-    icon = "🖥️"
+    icon = "ssh"
     parameters_schema = SshParams
     credential_types = ["ssh"]
     input_handles = ["main"]

@@ -54,7 +54,7 @@ class PaginationNode(BaseNode[PaginationParams]):
     version = 1
     description = "Split items into pages of a configurable size with page metadata."
     category = "Logic"
-    icon = "📄"
+    icon = "pagination"
     parameters_schema = PaginationParams
     idempotency = "idempotent"
 

@@ -38,7 +38,7 @@ class DataTableNode(BaseNode[DataTableParams]):
     version = 1
     description = "Store and query structured data in workspace tables."
     category = "Database"
-    icon = "🗃️"
+    icon = "data_table"
     parameters_schema = DataTableParams
     idempotency = "conditionally_idempotent"
 

@@ -1,10 +1,10 @@
 export const OPERATOR_CATEGORIES = [
   { id: 'string', label: 'String', icon: 'T' },
   { id: 'number', label: 'Number', icon: '#' },
-  { id: 'dateTime', label: 'Date & Time', icon: '📅' },
-  { id: 'boolean', label: 'Boolean', icon: '☑' },
+  { id: 'dateTime', label: 'Date & Time', icon: 'D' },
+  { id: 'boolean', label: 'Boolean', icon: 'B' },
   { id: 'array', label: 'Array', icon: ':=' },
-  { id: 'object', label: 'Object', icon: '📦' },
+  { id: 'object', label: 'Object', icon: '{ }' },
 ]
 
 export const CATEGORY_OPERATORS = {

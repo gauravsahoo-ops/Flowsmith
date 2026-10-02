@@ -93,5 +93,5 @@ def build_gitlab_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_issues", "get_issue", "create_issue", "add_note", "list_merge_requests"], "auth": "PAT"},
-        icon="🦊",
+        icon="gitlab",
     )

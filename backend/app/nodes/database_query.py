@@ -37,7 +37,7 @@ class DatabaseQueryNode(BaseNode[DatabaseQueryParams]):
     version = 1
     description = "Runs SQL and returns the result rows."
     category = "Database"
-    icon = "🗄️"
+    icon = "database_query"
     parameters_schema = DatabaseQueryParams
     credential_types = ["database"]
     # SELECT runs are pure; INSERT/UPDATE/DELETE are not.

@@ -134,7 +134,7 @@ def _connector_catalog_entries() -> list[dict]:
                 "display_name": connector.name,
                 "description": connector.description,
                 "category": category,
-                "icon": "🔌",
+                "icon": "connector",
                 "credential_types": credential_types,
                 "input_handles": ["main"],
                 "output_handles": ["main"],

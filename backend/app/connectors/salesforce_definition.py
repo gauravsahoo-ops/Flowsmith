@@ -553,5 +553,5 @@ def build_salesforce_definition() -> ConnectorDefinitionV1:
                 "they need a persistent CometD subscriber."
             ),
         },
-        icon="☁️",
+        icon="salesforce",
     )

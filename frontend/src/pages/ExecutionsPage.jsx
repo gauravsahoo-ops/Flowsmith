@@ -86,7 +86,7 @@ export default function ExecutionsPage() {
       {error && <div className="banner-inline err">{error}</div>}
 
       {loading ? <LoadingSkeleton rows={8} /> : execs.length === 0 ? (
-        <EmptyState icon="🕘" title="No executions" description={status || workflowId ? "No executions match the current filters." : "Run a workflow to see executions here."} action={status || workflowId ? <button className="ghost" onClick={() => updateFilters('', '')}>Clear filters</button> : <button className="ghost" onClick={() => navigate('/workflows')}>Go to workflows</button>} />
+        <EmptyState icon="executions" title="No executions" description={status || workflowId ? "No executions match the current filters." : "Run a workflow to see executions here."} action={status || workflowId ? <button className="ghost" onClick={() => updateFilters('', '')}>Clear filters</button> : <button className="ghost" onClick={() => navigate('/workflows')}>Go to workflows</button>} />
       ) : (
         <>
           <div className="table-wrap">

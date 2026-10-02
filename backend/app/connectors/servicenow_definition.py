@@ -121,5 +121,5 @@ def build_servicenow_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_records", "get_record", "create_record", "update_record", "delete_record"], "auth": "Basic or OAuth2 Bearer (Table API)"},
-        icon="🎫",
+        icon="servicenow",
     )

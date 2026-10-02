@@ -135,7 +135,7 @@ export default function WaitNodeEditor({
                       <span className="wait-select-item-title">{m.title}</span>
                       <span className="wait-select-item-desc">{m.desc}</span>
                     </div>
-                    {isSelected && <span className="wait-select-check">✓</span>}
+                    {isSelected && <span className="wait-select-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>}
                   </button>
                 )
               })}
@@ -200,7 +200,7 @@ export default function WaitNodeEditor({
                         }}
                       >
                         <span className="wait-select-item-title">{u.label}</span>
-                        {isSelected && <span className="wait-select-check">✓</span>}
+                        {isSelected && <span className="wait-select-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>}
                       </button>
                     )
                   })}

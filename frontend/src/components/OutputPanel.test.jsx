@@ -36,8 +36,8 @@ describe('OutputPanel Error & Server Response Suite', () => {
     expect(html).toContain('Server Response Body')
     expect(html).toContain('invalid_token')
     expect(html).toContain('Bearer token expired')
-    expect(html).toContain('⚡ AI Auto-Repair')
-    expect(html).toContain('🔄 Re-test')
+    expect(html).toContain('AI Auto-Repair')
+    expect(html).toContain('Re-test')
   })
 
   it('renders standard ErrorState when non-HTTP error is passed', () => {
@@ -59,7 +59,7 @@ describe('OutputPanel Error & Server Response Suite', () => {
 
     expect(html).toContain('Execution Failed')
     expect(html).toContain('Division by zero in formula expression')
-    expect(html).toContain('⚡ Flowsmith AI Self-Healing Diagnostic')
+    expect(html).toContain('Flowsmith AI Self-Healing Diagnostic')
   })
 
   it('renders JSON error payload when view is json', () => {

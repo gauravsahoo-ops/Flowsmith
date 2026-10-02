@@ -29,7 +29,7 @@ class AggregateNode(BaseNode[AggregateParams]):
     version = 1
     description = "Collect multiple items into a single list."
     category = "Transform"
-    icon = "📦"
+    icon = "aggregate"
     parameters_schema = AggregateParams
 
     async def run(

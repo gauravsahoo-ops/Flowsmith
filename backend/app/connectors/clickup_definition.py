@@ -101,5 +101,5 @@ def build_clickup_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_tasks", "get_task", "create_task", "update_task", "add_comment"], "auth": "API token"},
-        icon="✅",
+        icon="clickup",
     )

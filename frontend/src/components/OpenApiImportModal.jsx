@@ -105,7 +105,9 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
         {/* Header */}
         <div className="oai-modal-header">
           <div className="oai-header-title">
-            <span className="oai-icon">🔌</span>
+            <span className="oai-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6"/><path d="M9 2v4"/><path d="M15 2v4"/><path d="M6 8v4a6 6 0 0 0 12 0V8z"/><path d="M12 18v4"/></svg>
+            </span>
             <div>
               <h3>Import OpenAPI / Swagger Connector</h3>
               <span className="oai-subtitle">
@@ -113,8 +115,8 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
               </span>
             </div>
           </div>
-          <button type="button" className="oai-close-btn" onClick={onClose}>
-            ✕
+          <button type="button" className="oai-close-btn" onClick={onClose} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
@@ -122,7 +124,9 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
         <div className="oai-modal-body">
           {importSuccess ? (
             <div className="oai-success-state">
-              <div className="oai-success-badge">✓</div>
+              <div className="oai-success-badge" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
               <h4>Connector Generated & Registered!</h4>
               <p>{importSuccess}</p>
               <p className="oai-hint">
@@ -203,7 +207,12 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
                 </div>
               )}
 
-              {previewError && <div className="oai-error-banner">⚠️ {previewError}</div>}
+              {previewError && (
+                <div className="oai-error-banner" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <span>{previewError}</span>
+                </div>
+              )}
 
               {/* Spec Details Preview */}
               {previewData && (
@@ -291,7 +300,12 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
                 </div>
               </div>
 
-              {importError && <div className="oai-error-banner">⚠️ {importError}</div>}
+              {importError && (
+                <div className="oai-error-banner" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <span>{importError}</span>
+                </div>
+              )}
             </>
           )}
         </div>

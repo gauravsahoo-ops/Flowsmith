@@ -261,8 +261,10 @@ export default function GoogleOAuthModal({
             className="goog-close-btn"
             onClick={onClose}
             title="Close (Esc)"
+            aria-label="Close"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            ✕
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
@@ -272,24 +274,36 @@ export default function GoogleOAuthModal({
             type="button"
             className={`goog-tab-btn ${tab === 'connection' ? 'active' : ''}`}
             onClick={() => setTab('connection')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>🔑</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21 2-2 2m-1.5 1.5L10 13m-2-2L3.5 15.5a3.536 3.536 0 0 0 5 5L13 16m-2-2 2.5 2.5m1-1 2 2m-7-7 2 2"/><circle cx="7.5" cy="16.5" r=".5" fill="currentColor"/></svg>
             <span>OAuth Client Credentials</span>
           </button>
           <button
             type="button"
             className={`goog-tab-btn ${tab === 'guide' ? 'active' : ''}`}
             onClick={() => setTab('guide')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>📖</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
             <span>Google Cloud Guide</span>
           </button>
         </div>
 
         {/* Body */}
         <div className="goog-modal-body">
-          {error && <div className="goog-alert error"><span>⚠️</span> {error}</div>}
-          {notice && <div className="goog-alert notice"><span>✓</span> {notice}</div>}
+          {error && (
+            <div className="goog-alert error" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>{error}</span>
+            </div>
+          )}
+          {notice && (
+            <div className="goog-alert notice" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>{notice}</span>
+            </div>
+          )}
 
           {connectedUser && (
             <div className="goog-active-account-card">
@@ -347,8 +361,19 @@ export default function GoogleOAuthModal({
                     type="button"
                     className={`goog-input-btn ${copiedKey === 'current' ? 'copied' : ''}`}
                     onClick={() => handleCopyText(redirectUrl, 'current')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
-                    {copiedKey === 'current' ? '✓ Copied' : 'Copy'}
+                    {copiedKey === 'current' ? (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <span>Copy</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -359,9 +384,22 @@ export default function GoogleOAuthModal({
                   className="goog-callbacks-header"
                   onClick={() => setShowAllCallbacks(!showAllCallbacks)}
                 >
-                  <h4>🌐 All Google Service Callback URLs</h4>
-                  <span style={{ fontSize: '12px', color: '#60a5fa' }}>
-                    {showAllCallbacks ? '▲ Hide' : '▼ Show all 5'}
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span>All Google Service Callback URLs</span>
+                  </h4>
+                  <span style={{ fontSize: '12px', color: '#60a5fa', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {showAllCallbacks ? (
+                      <>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                        <span>Hide</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        <span>Show all 5</span>
+                      </>
+                    )}
                   </span>
                 </div>
                 {showAllCallbacks && (
@@ -378,10 +416,20 @@ export default function GoogleOAuthModal({
                           <button
                             type="button"
                             className={`goog-input-btn ${copiedKey === s.key ? 'copied' : ''}`}
-                            style={{ position: 'static' }}
+                            style={{ position: 'static', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                             onClick={() => handleCopyText(url, s.key)}
                           >
-                            {copiedKey === s.key ? '✓ Copied' : 'Copy'}
+                            {copiedKey === s.key ? (
+                              <>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                <span>Copy</span>
+                              </>
+                            )}
                           </button>
                         </div>
                       )
@@ -396,8 +444,9 @@ export default function GoogleOAuthModal({
                   <span>
                     Google Client ID <span style={{ color: '#ef4444' }}>*</span>
                     {serverConfigured && (
-                      <span className="goog-badge-flow" style={{ marginLeft: 8, fontSize: '10px' }}>
-                        ✓ Pre-configured in Flowsmith
+                      <span className="goog-badge-flow" style={{ marginLeft: 8, fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Pre-configured in Flowsmith</span>
                       </span>
                     )}
                   </span>

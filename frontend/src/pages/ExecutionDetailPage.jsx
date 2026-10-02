@@ -69,9 +69,9 @@ export default function ExecutionDetailPage() {
         breadcrumbs={[{ label: 'Executions', href: '/executions' }, { label: id.slice(0,8) }]}
         actions={<>
           <button className="ghost" onClick={() => navigate('/executions')}>Back</button>
-          {data.status === 'failed' && <button className="ghost" onClick={handleExplain} disabled={explaining}>✨ Explain</button>}
+          {data.status === 'failed' && <button className="ghost" onClick={handleExplain} disabled={explaining}>Explain</button>}
           {(data.status === 'running' || data.status === 'waiting_approval' || data.status === 'queued') && <button className="danger" onClick={handleCancel}>Cancel</button>}
-          {terminal && <button className="ghost" onClick={handleRetry}>↻ Retry</button>}
+          {terminal && <button className="ghost" onClick={handleRetry}>Retry</button>}
         </>}
       />
 
@@ -97,7 +97,7 @@ export default function ExecutionDetailPage() {
         </div>
       )}
       {explain && <div className={`banner-inline ${explain.ok ? 'info' : 'err'}`}>{explain.ok && <strong>AI: </strong>}{explain.text}</div>}
-      {data.pause_state && <div className="banner-inline info">⏸ {data.pause_state.message || 'Waiting for approval'}</div>}
+      {data.pause_state && <div className="banner-inline info" style={{ display: "flex", alignItems: "center", gap: 6 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> {data.pause_state.message || "Waiting for approval"}</div>}
 
       <div className="debug-tabs" style={{ marginTop: 16 }}>
         {['timeline','steps','trace'].map(t => (
@@ -112,14 +112,25 @@ export default function ExecutionDetailPage() {
         {tab === 'steps' && (
           <div className="steps-list">
             {steps.length === 0 && <p className="hint">No steps yet.</p>}
-            {steps.map(s => (
               <button key={s.node_id} className={`step-row ${selected === s.node_id ? 'selected':''}`} onClick={() => setSelected(s.node_id)}>
-                <span className="step-icon">{s.status === 'success' ? '✓' : s.status === 'error' || s.status === 'failed' ? '✕' : '•'}</span>
+                <span className="step-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {s.status === 'success' ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : s.status === 'error' || s.status === 'failed' ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  ) : (
+                    <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                  )}
+                </span>
                 <span className="step-name">{s.node_id}</span>
                 <span className="muted">{s.node_type}</span>
                 <span className="step-duration">{s.duration_ms != null ? `${s.duration_ms}ms` : ''}</span>
               </button>
-            ))}
           </div>
         )}
         {tab === 'trace' && (

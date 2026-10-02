@@ -142,5 +142,5 @@ def build_redis_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["get", "set", "delete", "incr", "publish"],
             "auth": "connection URI (falls back to REDIS_URL)",
         },
-        icon="🧱",
+        icon="redis",
     )

@@ -136,7 +136,7 @@ class ScheduleTriggerNode(BaseNode[ScheduleTriggerParams]):
     version = 1
     description = "Runs the workflow on a cron schedule."
     category = "Triggers"
-    icon = "⏰"
+    icon = "schedule"
     parameters_schema = ScheduleTriggerParams
     input_handles: list[str] = []
 

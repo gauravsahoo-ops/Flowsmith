@@ -81,5 +81,5 @@ def build_twilio_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["send_sms", "list_messages", "get_message"], "auth": "Basic"},
-        icon="💬",
+        icon="twilio",
     )

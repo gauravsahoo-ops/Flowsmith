@@ -81,7 +81,7 @@ export default function VariablesPage() {
       )}
 
       {loading ? <LoadingSkeleton rows={5} /> : filtered.length === 0 ? (
-        <EmptyState icon="🌍" title={vars.length === 0 ? "No variables in this workspace." : "No matches"} description={vars.length === 0 ? "Add a variable above. Reference it with {{ $env.KEY }}." : `No variables match “${search}”.`} />
+        <EmptyState icon="variables" title={vars.length === 0 ? "No variables in this workspace." : "No matches"} description={vars.length === 0 ? "Add a variable above. Reference it with {{ $env.KEY }}." : `No variables match “${search}”.`} />
       ) : (
         <div className="table-wrap">
           <table className="data-table">
@@ -94,7 +94,20 @@ export default function VariablesPage() {
                   <td><code>{v.key}</code></td>
                   <td className={v.is_secret ? 'secret' : ''} style={{ fontFamily: 'monospace', fontSize: 12 }}>{v.is_secret ? '••••••' : v.value}</td>
                   <td><span className="badge badge-muted">{v.is_secret ? 'secret' : 'plain'}</span></td>
-                  <td><button className="ghost small" onClick={() => setDeleteTarget(v)} title={isConnStr ? 'Delete connection string' : 'Delete variable'}>{isConnStr ? '🗑 Delete connection string' : '🗑 Delete'}</button></td>
+                  <td>
+                    <button
+                      className="ghost small"
+                      onClick={() => setDeleteTarget(v)}
+                      title={isConnStr ? 'Delete connection string' : 'Delete variable'}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                      <span>{isConnStr ? 'Delete connection string' : 'Delete'}</span>
+                    </button>
+                  </td>
                 </tr>
                 )
               })}

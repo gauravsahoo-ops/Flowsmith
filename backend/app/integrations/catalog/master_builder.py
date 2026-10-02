@@ -1311,7 +1311,7 @@ class MasterCatalogBuilder:
                 "description": getattr(cls, "description", ""),
                 "version": getattr(cls, "version", 1),
                 "category": getattr(cls, "category", "Flow"),
-                "icon": getattr(cls, "icon", "⚡"),
+                "icon": getattr(cls, "icon", "node"),
                 "credential_types": getattr(cls, "credential_types", []),
                 "input_handles": getattr(cls, "input_handles", ["main"]),
                 "output_handles": getattr(cls, "output_handles", ["main"]),
@@ -1375,7 +1375,7 @@ class MasterCatalogBuilder:
         ]
 
         for a in catalog:
-            fs_status = "✓ Native" if a["flowsmith_support"]["support_type"] == "native" else ("⚡ Generated" if a["flowsmith_support"]["support_type"] == "generated" else "❌ Planned")
+            fs_status = "Native" if a["flowsmith_support"]["support_type"] == "native" else ("Generated" if a["flowsmith_support"]["support_type"] == "generated" else "Planned")
             srcs = []
             if a["sources"]["n8n"]["supported"]: srcs.append("n8n")
             if a["sources"]["zapier"]["supported"]: srcs.append("Zapier")

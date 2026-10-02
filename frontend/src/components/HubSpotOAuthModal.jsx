@@ -273,8 +273,10 @@ export default function HubSpotOAuthModal({
             className="hs-close-btn"
             onClick={onClose}
             title="Close (Esc)"
+            aria-label="Close"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            ✕
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
@@ -284,32 +286,45 @@ export default function HubSpotOAuthModal({
             type="button"
             className={`hs-tab-btn ${tab === 'connection' ? 'active' : ''}`}
             onClick={() => setTab('connection')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>🔑</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21 2-2 2m-1.5 1.5L10 13m-2-2L3.5 15.5a3.536 3.536 0 0 0 5 5L13 16m-2-2 2.5 2.5m1-1 2 2m-7-7 2 2"/><circle cx="7.5" cy="16.5" r=".5" fill="currentColor"/></svg>
             <span>OAuth App Credentials</span>
           </button>
           <button
             type="button"
             className={`hs-tab-btn ${tab === 'private_app' ? 'active' : ''}`}
             onClick={() => setTab('private_app')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>🔒</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span>Private App Token</span>
           </button>
           <button
             type="button"
             className={`hs-tab-btn ${tab === 'guide' ? 'active' : ''}`}
             onClick={() => setTab('guide')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>📖</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
             <span>Setup Guide</span>
           </button>
         </div>
 
         {/* Body */}
         <div className="hs-modal-body">
-          {error && <div className="hs-alert error"><span>⚠️</span> {error}</div>}
-          {notice && <div className="hs-alert notice"><span>✓</span> {notice}</div>}
+          {error && (
+            <div className="hs-alert error" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>{error}</span>
+            </div>
+          )}
+          {notice && (
+            <div className="hs-alert notice" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>{notice}</span>
+            </div>
+          )}
 
           {connectedUser && (
             <div className="hs-active-account-card">
@@ -369,8 +384,19 @@ export default function HubSpotOAuthModal({
                     type="button"
                     className={`hs-input-btn ${copied ? 'copied' : ''}`}
                     onClick={handleCopyRedirect}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
-                    {copied ? '✓ Copied' : 'Copy'}
+                    {copied ? (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <span>Copy</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -381,8 +407,9 @@ export default function HubSpotOAuthModal({
                   <span>
                     Client ID (App ID) <span style={{ color: '#ef4444' }}>*</span>
                     {serverConfigured && (
-                      <span className="hs-badge-flow" style={{ marginLeft: 8, fontSize: '10px' }}>
-                        ✓ Pre-configured in Flowsmith
+                      <span className="hs-badge-flow" style={{ marginLeft: 8, fontSize: '10px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Pre-configured in Flowsmith</span>
                       </span>
                     )}
                   </span>
@@ -464,7 +491,10 @@ export default function HubSpotOAuthModal({
               </div>
 
               <div className="hs-step-card" style={{ marginTop: 8 }}>
-                <div className="hs-step-title" style={{ fontSize: 13 }}>💡 What is a Private App Token?</div>
+                <div className="hs-step-title" style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  <span>What is a Private App Token?</span>
+                </div>
                 <p className="hs-step-body" style={{ paddingLeft: 0, fontSize: 12 }}>
                   Private Apps allow you to connect Flowsmith to a single HubSpot portal without creating a developer app or going through OAuth redirects.
                   Generate one in your HubSpot portal under <strong>Settings &gt; Integrations &gt; Private Apps</strong>.

@@ -59,7 +59,7 @@ export default function TokenStoreNodeEditor({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 18 }}>💾</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Token Store Node</div>
               <div style={{ fontSize: 11, color: 'var(--muted)' }}>Encrypted Credential Persistence</div>
@@ -76,7 +76,7 @@ export default function TokenStoreNodeEditor({
               border: '1px solid rgba(34, 197, 94, 0.3)',
             }}
           >
-            🛡️ AES-GCM Encrypted
+            AES-GCM Encrypted
           </span>
         </div>
 
@@ -109,7 +109,7 @@ export default function TokenStoreNodeEditor({
               gap: 6,
             }}
           >
-            <span>⚡</span> Automatic Store (Recommended)
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Automatic Store (Recommended)
           </button>
           <button
             type="button"
@@ -130,7 +130,7 @@ export default function TokenStoreNodeEditor({
               gap: 6,
             }}
           >
-            <span>🛠️</span> Custom Expressions
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Custom Expressions
           </button>
         </div>
 
@@ -148,7 +148,7 @@ export default function TokenStoreNodeEditor({
             }}
           >
             <div style={{ fontWeight: 600, color: '#38bdf8', marginBottom: 2 }}>
-              ✨ 100% Automatic Token Storage
+              Automatic Token Ingestion
             </div>
             <div>
               Automatically detects and extracts <code>access_token</code>, <code>refresh_token</code>, <code>expires_in</code>, and <code>token_type</code> directly from the incoming Login API response.
@@ -187,7 +187,7 @@ export default function TokenStoreNodeEditor({
           >
             <span style={{ color: 'var(--muted)' }}>Last Stored Status:</span>
             <span style={{ color: '#22c55e', fontWeight: 600 }}>
-              ✅ {lastOutput.updated ? 'Updated Existing Record' : 'Created New Record'} ({lastOutput.provider})
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>{lastOutput.updated ? 'Updated Existing Record' : 'Created New Record'} ({lastOutput.provider})</span>
             </span>
           </div>
         )}
