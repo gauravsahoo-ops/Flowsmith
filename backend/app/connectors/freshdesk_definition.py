@@ -100,5 +100,5 @@ def build_freshdesk_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_tickets", "get_ticket", "create_ticket", "update_ticket", "add_note"], "auth": "Email + API key (Basic)"},
-        icon="🎧",
+        icon="freshdesk",
     )

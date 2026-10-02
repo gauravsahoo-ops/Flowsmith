@@ -140,7 +140,7 @@ Replaces generic browser `<select>` elements with an Obsidian Glass searchable d
 
 ### 3.4 Collapsible Field Accordions
 Used in tier-1 enterprise editors (Salesforce, Microsoft Dynamics CRM) for managing complex record schemas:
-* **Header Bar**: Displays `Field N`, localized column title badge, remove (`✕`) icon, and chevron toggle.
+* **Header Bar**: Displays `Field N`, localized column title badge, remove (`x`) icon, and chevron toggle.
 * **Bulk Controls**: `[Expand all | Collapse all]` buttons for reviewing dozens of fields without scrolling fatigue.
 * **Animation**: Hardware-accelerated CSS keyframe slide down (`0.14s ease-out`).
 

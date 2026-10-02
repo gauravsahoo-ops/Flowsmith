@@ -90,5 +90,5 @@ def build_google_docs_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["get_document", "create_document", "append_text", "batch_update"], "auth": "OAuth2 (shared Google app)"},
-        icon="📄",
+        icon="google_docs",
     )

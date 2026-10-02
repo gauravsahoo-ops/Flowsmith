@@ -21,7 +21,7 @@ class ManualTriggerNode(BaseNode[ManualTriggerParams]):
     version = 1
     description = "Runs the workflow when you press Run in the UI."
     category = "Triggers"
-    icon = "▶️"
+    icon = "manual_trigger"
     parameters_schema = ManualTriggerParams
     input_handles: list[str] = []
 

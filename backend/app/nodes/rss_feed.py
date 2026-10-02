@@ -42,7 +42,7 @@ class RssFeedNode(BaseNode[RssFeedParams]):
     version = 1
     description = "Fetch an RSS/Atom feed into items."
     category = "Actions"
-    icon = "📡"
+    icon = "rss_feed"
     parameters_schema = RssFeedParams
     idempotency = "idempotent"
 

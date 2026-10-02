@@ -52,5 +52,5 @@ def build_open_meteo_historical_weather_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types={},
         metadata={"source": "openapi-import", "api_title": "Open-Meteo Historical Weather API"},
-        icon="🧲",
+        icon="openapi",
     )

@@ -101,5 +101,5 @@ def build_httpbin_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types={},
         metadata={"source": "openapi-import", "api_title": "httpbin.org"},
-        icon="🧲",
+        icon="openapi",
     )

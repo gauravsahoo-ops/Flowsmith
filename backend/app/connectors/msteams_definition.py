@@ -129,5 +129,5 @@ def build_msteams_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["send_message", "list_teams", "list_channels"],
             "auth": "client-credentials app (microsoft_graph credential)",
         },
-        icon="👥",
+        icon="msteams",
     )

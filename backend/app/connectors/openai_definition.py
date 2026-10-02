@@ -86,5 +86,5 @@ def build_openai_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_models", "create_embedding", "chat_completion"], "auth": "Bearer API key"},
-        icon="🧠",
+        icon="openai",
     )

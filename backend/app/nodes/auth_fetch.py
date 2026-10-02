@@ -61,7 +61,7 @@ class AuthFetchNode(BaseNode[AuthFetchParams]):
     version = 1
     description = "Fetch stored workflow auth, refreshing once when expired."
     category = "Actions"
-    icon = "🔐"
+    icon = "token_fetch"
     parameters_schema = AuthFetchParams
 
     async def run(

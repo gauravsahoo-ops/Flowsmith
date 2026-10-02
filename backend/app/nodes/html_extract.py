@@ -98,7 +98,7 @@ class HtmlExtractNode(BaseNode[HtmlExtractParams]):
     version = 1
     description = "Extract text, links, images, or tables from HTML."
     category = "Transform"
-    icon = "🔍"
+    icon = "html_extract"
     parameters_schema = HtmlExtractParams
 
     async def run(

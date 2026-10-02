@@ -8,7 +8,7 @@ const API_URL = 'http://127.0.0.1:8000';
 
 async function runAudit() {
   console.log('================================================================');
-  console.log('🚀 FLOWSMITH ELITE IPAAS AUDIT & PLAYWRIGHT TEST');
+  console.log('FLOWSMITH ELITE IPAAS AUDIT & PLAYWRIGHT TEST');
   console.log('Persona: Principal Integration Architect (n8n, Cyclr, Zapier veteran)');
   console.log('================================================================\n');
 
@@ -37,7 +37,7 @@ async function runAudit() {
   if (!token) {
     throw new Error(`Failed to obtain JWT token: ${JSON.stringify(loginData)}`);
   }
-  console.log('  ✓ Authenticated successfully with JWT session vault.');
+  console.log('  [PASS] Authenticated successfully with JWT session vault.');
 
   const authHeaders = {
     Authorization: `Bearer ${token}`,
@@ -156,7 +156,7 @@ return items;`,
   if (!createWf.ok()) {
     throw new Error(`Failed to create workflow: ${await createWf.text()}`);
   }
-  console.log(`  ✓ Workflow '${workflowDefinition.name}' deployed (ID: ${wfId}).`);
+  console.log(`  [PASS] Workflow '${workflowDefinition.name}' deployed (ID: ${wfId}).`);
 
   console.log('[3/6] Launching Playwright Chromium Headless Session (1440x900 viewport)...');
   const browser = await chromium.launch({
@@ -181,17 +181,17 @@ return items;`,
   // Assert nodes rendered
   await page.waitForSelector('.rf-node-card', { timeout: 10000 });
   const renderedNodes = await page.locator('.rf-node-card').count();
-  console.log(`  ✓ Visual Canvas loaded with ${renderedNodes} rendered DAG nodes.`);
+  console.log(`  [PASS] Visual Canvas loaded with ${renderedNodes} rendered DAG nodes.`);
 
   const screen1Path = path.join(ARTIFACT_DIR, 'expert_audit_1_canvas_ready.png');
   await page.screenshot({ path: screen1Path, fullPage: false });
-  console.log(`  📸 Screenshot saved: ${screen1Path}`);
+  console.log(`  [SCREENSHOT] Saved: ${screen1Path}`);
 
   console.log('[4/6] Triggering Live Workflow Execution & Monitoring 60FPS Stream...');
   const runBtn = page.locator('button.primary--run, button[aria-label="Run workflow"]').first();
   await runBtn.waitFor({ state: 'visible', timeout: 5000 });
   await runBtn.click();
-  console.log('  ▶ Run button triggered.');
+  console.log('  Triggered Run button.');
 
   // Wait for running state or completion
   await page.waitForSelector('.run-status, .status-dot-success, .preview-chip.out', { timeout: 15000 });
@@ -205,15 +205,15 @@ return items;`,
   // Check node execution results
   const previewChips = await page.locator('.preview-chip.out').allTextContents();
   const timeChips = await page.locator('.preview-chip.time').allTextContents();
-  console.log(`  ✓ Node Output Counts on Canvas: [ ${previewChips.join(', ')} ]`);
-  console.log(`  ✓ Node Latencies on Canvas: [ ${timeChips.join(', ')} ]`);
+  console.log(`  [PASS] Node Output Counts on Canvas: [ ${previewChips.join(', ')} ]`);
+  console.log(`  [PASS] Node Latencies on Canvas: [ ${timeChips.join(', ')} ]`);
 
   const activeEdges = await page.locator('.exec-edge.exec-completed, .exec-edge.exec-active').count();
-  console.log(`  ✓ Traversed execution edges highlighted: ${activeEdges}`);
+  console.log(`  [PASS] Traversed execution edges highlighted: ${activeEdges}`);
 
   const screen2Path = path.join(ARTIFACT_DIR, 'expert_audit_2_execution_success.png');
   await page.screenshot({ path: screen2Path, fullPage: false });
-  console.log(`  📸 Screenshot saved: ${screen2Path}`);
+  console.log(`  [SCREENSHOT] Saved: ${screen2Path}`);
 
   console.log('[5/6] Inspecting Node Editor (3-Panel Inspector: Input, Config, Output)...');
   // Click on "VIP Accelerated Routing" node
@@ -223,28 +223,28 @@ return items;`,
 
   const modal = page.locator('.node-editor-modal, .node-editor-overlay').first();
   const modalVisible = await modal.isVisible().catch(() => false);
-  console.log(`  ✓ Node Editor Modal open: ${modalVisible}`);
+  console.log(`  [PASS] Node Editor Modal open: ${modalVisible}`);
 
   const hasInputPanel = await page.locator('.nem-input-panel').isVisible().catch(() => false);
   const hasParamsPanel = await page.locator('.nem-params').isVisible().catch(() => false);
   const hasOutputPanel = await page.locator('.nem-output, .output-panel').isVisible().catch(() => false);
-  console.log(`  ✓ 3-Panel Layout Detected: Input(${hasInputPanel}), Parameters(${hasParamsPanel}), Output(${hasOutputPanel})`);
+  console.log(`  [PASS] 3-Panel Layout Detected: Input(${hasInputPanel}), Parameters(${hasParamsPanel}), Output(${hasOutputPanel})`);
 
   // Verify Execute Step inside the modal
   const execStepBtn = page.locator('button:has-text("Execute Step")').first();
   if (await execStepBtn.isVisible()) {
-    console.log('  ▶ Testing single-step execution inside Inspector...');
+    console.log('  Testing single-step execution inside Inspector...');
     await execStepBtn.click();
     await page.waitForTimeout(1500);
-    console.log('  ✓ Step re-executed cleanly in isolation.');
+    console.log('  [PASS] Step re-executed cleanly in isolation.');
   }
 
   const screen3Path = path.join(ARTIFACT_DIR, 'expert_audit_3_node_inspector.png');
   await page.screenshot({ path: screen3Path, fullPage: false });
-  console.log(`  📸 Screenshot saved: ${screen3Path}`);
+  console.log(`  [SCREENSHOT] Saved: ${screen3Path}`);
 
   // Close modal
-  const closeBtn = page.locator('.nem-close, button:has-text("✕")').first();
+  const closeBtn = page.locator('.nem-close, button[aria-label="Close"]').first();
   if (await closeBtn.isVisible()) {
     await closeBtn.click();
     await page.waitForTimeout(500);
@@ -256,17 +256,17 @@ return items;`,
     await consoleBtn.click();
     await page.waitForTimeout(800);
     const traceSteps = await page.locator('.timeline-step, .trace-row, .execution-timeline').count().catch(() => 0);
-    console.log(`  ✓ Execution console open with timeline audit entries.`);
+    console.log(`  [PASS] Execution console open with timeline audit entries.`);
   }
 
   const screen4Path = path.join(ARTIFACT_DIR, 'expert_audit_4_execution_console.png');
   await page.screenshot({ path: screen4Path, fullPage: false });
-  console.log(`  📸 Screenshot saved: ${screen4Path}`);
+  console.log(`  [SCREENSHOT] Saved: ${screen4Path}`);
 
   await browser.close();
 
   console.log('\n================================================================');
-  console.log('🏆 AUDIT COMPLETE — ALL PLAYWRIGHT E2E ASSERTIONS PASSED!');
+  console.log('[SUCCESS] AUDIT COMPLETE — ALL PLAYWRIGHT E2E ASSERTIONS PASSED!');
   console.log('================================================================\n');
 
   return {
@@ -294,6 +294,6 @@ runAudit()
     process.exit(0);
   })
   .catch((err) => {
-    console.error('❌ Audit encountered failure:', err);
+    console.error('[FAIL] Audit encountered failure:', err);
     process.exit(1);
   });

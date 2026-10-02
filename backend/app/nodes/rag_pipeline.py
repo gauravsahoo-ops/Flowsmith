@@ -262,7 +262,7 @@ class RAGPipelineNode(BaseNode[RAGParams]):
     version = 1
     description = "Ingest documents, embed, retrieve relevant chunks, and synthesize answer with LLM."
     category = "AI"
-    icon = "📚"
+    icon = "rag_pipeline"
     parameters_schema = RAGParams
     credential_types = ["llm"]
     # Synthesis spends a model call on every run (spec 35).

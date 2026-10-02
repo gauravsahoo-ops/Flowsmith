@@ -190,7 +190,7 @@ class BaseNode(Generic[ParamsT]):
     version: int = 1
     description: str = ""
     category: str = "Actions"
-    icon: str = "🔧"
+    icon: str = "node"
     parameters_schema: type[BaseModel] = EmptyParams
     credential_types: list[str] = []
     input_handles: list[str] = ["main"]

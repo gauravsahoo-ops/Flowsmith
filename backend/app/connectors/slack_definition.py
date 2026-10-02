@@ -131,5 +131,5 @@ def build_slack_definition() -> ConnectorDefinitionV1:
             "auth": "bot token (xoxb…)",
             "node_type_note": "Legacy webhook-based 'slack' node remains available; this connector is 'slack_api'.",
         },
-        icon="💬",
+        icon="slack",
     )

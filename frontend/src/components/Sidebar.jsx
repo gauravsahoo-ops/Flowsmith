@@ -140,7 +140,7 @@ export default function Sidebar({ onOpenCredentials }) {
     const seen = new Set()
     for (const node of matches) {
       if (node.type === 'loop') continue
-      if (!q && selectedCategory !== 'Connectors' && (node.category === 'Connectors' || node.icon === '\uD83D\uDD0C')) continue
+      if (!q && selectedCategory !== 'Connectors' && (node.category === 'Connectors' || node.icon === 'connector')) continue
       const key = `${node.category || 'Other'}::${node.display_name}`
       if (seen.has(key)) continue
       seen.add(key)

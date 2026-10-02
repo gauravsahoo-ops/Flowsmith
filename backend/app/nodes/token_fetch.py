@@ -84,7 +84,7 @@ class TokenFetchNode(BaseNode[TokenFetchParams]):
     version = 1
     description = "Automatically retrieve stored authentication for the workflow, refreshing once when expired."
     category = "Actions"
-    icon = "🔑"
+    icon = "token_fetch"
     parameters_schema = TokenFetchParams
     idempotency = "conditionally_idempotent"
 

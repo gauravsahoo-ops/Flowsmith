@@ -124,7 +124,7 @@ class StringToolsNode(BaseNode[StringToolsParams]):
     version = 1
     description = "Format, split, match and convert strings and numbers."
     category = "Transform"
-    icon = "🔤"
+    icon = "string_tools"
     parameters_schema = StringToolsParams
 
     async def run(self, ctx: NodeContext, params: StringToolsParams, input_items: list[dict[str, Any]]) -> NodeResult:

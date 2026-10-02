@@ -35,7 +35,7 @@ class SleepStubNode(BaseNode[SleepParams]):
     display_name = "Sleep (test stub)"
     version = 1
     category = "Test"
-    icon = "💤"
+    icon = "sleep"
     parameters_schema = SleepParams
 
     async def run(self, ctx: NodeContext, params: SleepParams, input_items: list[dict[str, Any]]) -> NodeResult:

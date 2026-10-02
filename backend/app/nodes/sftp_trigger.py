@@ -33,7 +33,7 @@ class SftpTriggerNode(BaseNode[SftpTriggerParams]):
     version = 1
     description = "Polls an SFTP directory and triggers workflow when new or updated files arrive"
     category = "Triggers"
-    icon = "📡"
+    icon = "sftp_trigger"
     parameters_schema = SftpTriggerParams
     credential_types = ["ssh"]
     input_handles = ["main"]

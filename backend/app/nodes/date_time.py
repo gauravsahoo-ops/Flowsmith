@@ -73,7 +73,7 @@ class DateTimeNode(BaseNode[DateTimeParams]):
     version = 1
     description = "Now, format, parse, shift, and diff datetimes."
     category = "Transform"
-    icon = "🕒"
+    icon = "date_time"
     parameters_schema = DateTimeParams
 
     async def run(

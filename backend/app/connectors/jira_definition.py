@@ -144,5 +144,5 @@ def build_jira_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["search", "create_issue", "update_issue", "add_comment"],
             "auth": "basic auth (email + API token)",
         },
-        icon="📌",
+        icon="jira",
     )

@@ -32,7 +32,7 @@ class RespondToWebhookNode(BaseNode[RespondToWebhookParams]):
     version = 1
     description = "Return a synchronous HTTP response to the triggering webhook delivery"
     category = "Flow"
-    icon = "↩️"
+    icon = "respond_to_webhook"
     parameters_schema = RespondToWebhookParams
     input_handles = ["main"]
     output_handles = ["main"]

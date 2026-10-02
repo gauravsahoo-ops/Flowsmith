@@ -64,5 +64,5 @@ def build_poke_api_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types={},
         metadata={"source": "openapi-import", "api_title": "Pok\u00e9API"},
-        icon="🧲",
+        icon="openapi",
     )

@@ -587,7 +587,7 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
         "redirects, SSL options, Link-header pagination and response-size limits."
     )
     category = "Actions"
-    icon = "🌐"
+    icon = "http_request"
     parameters_schema = HTTPRequestParams
     credential_types = ["http", "basic_auth", "bearer_auth", "header_auth", "query_auth", "digest_auth", "custom_auth", "oauth2", "oauth1", "api_key", "pat", "jwt", "service_account", "aws_iam", "aws_assume_role", "salesforce", "hubspot", "google_calendar", "google_sheets", "gmail", "google_drive", "slack", "github", "notion", "jira", "discord", "stripe", "mongodb", "redis", "airtable", "shopify", "postgres", "mysql", "database", "smtp", "llm", "telegram", "microsoft_graph"]
     idempotency = CONDITIONALLY_IDEMPOTENT

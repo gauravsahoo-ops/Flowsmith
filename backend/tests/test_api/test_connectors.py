@@ -24,7 +24,7 @@ def test_catalog_includes_connector_only_node_types():
     sf = entries["salesforce"]
     assert sf["display_name"] == "Salesforce"
     assert sf["credential_types"] == ["salesforce"]
-    assert sf["icon"] == "🔌"
+    assert sf["icon"] == "connector"
     assert "operation" in sf["parameters_schema"]["properties"]
     # The catalog enum is derived from the registered definition's
     # operation set (Phase 9 full surface incl. upsert/discovery/bulk).

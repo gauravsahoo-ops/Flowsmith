@@ -98,5 +98,5 @@ def build_mailchimp_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_lists", "get_list", "add_member", "get_member", "update_member"], "auth": "API key (Basic)"},
-        icon="🐵",
+        icon="mailchimp",
     )

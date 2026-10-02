@@ -150,5 +150,5 @@ def build_shopify_definition() -> ConnectorDefinitionV1:
             "auth": "Admin API access token",
             "rate_limits": "leaky-bucket 429 + Retry-After honored",
         },
-        icon="🛍️",
+        icon="shopify",
     )

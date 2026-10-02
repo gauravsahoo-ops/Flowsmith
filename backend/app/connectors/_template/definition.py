@@ -64,5 +64,5 @@ def build_my_connector_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"auth": "Bearer api_key"},
-        icon="🔌",
+        icon="connector",
     )

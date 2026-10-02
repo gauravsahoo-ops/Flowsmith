@@ -122,5 +122,5 @@ def build_outlook_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["send", "list_messages"],
             "auth": "client-credentials app (microsoft_graph credential)",
         },
-        icon="📨",
+        icon="outlook",
     )

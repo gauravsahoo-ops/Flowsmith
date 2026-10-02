@@ -25,7 +25,7 @@ class NoOpNode(BaseNode[NoOpParams]):
     version = 1
     description = "Pass input items through unchanged (does nothing)"
     category = "Flow"
-    icon = "⏭️"
+    icon = "noop"
     parameters_schema = NoOpParams
     input_handles = ["main"]
     output_handles = ["main"]

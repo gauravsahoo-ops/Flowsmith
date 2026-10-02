@@ -152,5 +152,5 @@ def build_google_drive_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["list_files", "upload_file", "get_file"],
             "auth": "OAuth2 (Connect Google Drive)",
         },
-        icon="🚗",
+        icon="google_drive",
     )

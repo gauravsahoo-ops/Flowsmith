@@ -97,7 +97,7 @@ class XmlOpsNode(BaseNode[XmlOpsParams]):
     version = 1
     description = "Parse XML to JSON and build XML from JSON."
     category = "Transform"
-    icon = "🧾"
+    icon = "xml_ops"
     parameters_schema = XmlOpsParams
 
     async def run(

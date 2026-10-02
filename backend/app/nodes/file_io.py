@@ -58,7 +58,7 @@ class FileIONode(BaseNode[FileIOParams]):
     version = 2
     description = "Read from or write to a file on disk with async I/O and binary storage."
     category = "Actions"
-    icon = "📄"
+    icon = "file_io"
     parameters_schema = FileIOParams
     credential_types = []
 

@@ -359,5 +359,5 @@ def build_dynamics_crm_definition() -> ConnectorDefinitionV1:
             "auth": "OAuth2 (Connect Microsoft Dynamics 365) or Azure App Registration Service Principal",
             "api_version": "v9.2",
         },
-        icon="🔷",
+        icon="dynamics_crm",
     )

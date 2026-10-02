@@ -84,5 +84,5 @@ def build_zoom_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_meetings", "get_meeting", "create_meeting", "delete_meeting"], "auth": "Bearer"},
-        icon="🎥",
+        icon="zoom",
     )

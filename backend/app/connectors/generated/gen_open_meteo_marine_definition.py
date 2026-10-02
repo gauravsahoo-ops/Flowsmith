@@ -52,5 +52,5 @@ def build_open_meteo_marine_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types={},
         metadata={"source": "openapi-import", "api_title": "Open-Meteo Marine Weather Forecast API"},
-        icon="🧲",
+        icon="openapi",
     )

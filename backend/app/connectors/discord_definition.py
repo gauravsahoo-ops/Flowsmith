@@ -120,5 +120,5 @@ def build_discord_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["send_message", "send_webhook"],
             "auth": "bot token, or per-call webhook URL",
         },
-        icon="🎮",
+        icon="discord",
     )

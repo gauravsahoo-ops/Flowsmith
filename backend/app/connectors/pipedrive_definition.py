@@ -99,5 +99,5 @@ def build_pipedrive_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_deals", "get_deal", "create_deal", "update_deal", "add_note"], "auth": "API token (query)"},
-        icon="💼",
+        icon="pipedrive",
     )

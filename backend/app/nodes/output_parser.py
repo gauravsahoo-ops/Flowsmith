@@ -71,7 +71,7 @@ class OutputParserNode(BaseNode[OutputParserParams]):
     version = 1
     description = "Parse model text into JSON, lines, or fields."
     category = "AI"
-    icon = "🧩"
+    icon = "output_parser"
     parameters_schema = OutputParserParams
 
     async def run(

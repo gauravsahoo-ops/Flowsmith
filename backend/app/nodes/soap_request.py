@@ -56,7 +56,7 @@ class SoapRequestNode(BaseNode[SoapRequestParams]):
     version = 1
     description = "Call a SOAP 1.1/1.2 operation and parse the XML response."
     category = "Actions"
-    icon = "🧼"
+    icon = "soap_request"
     parameters_schema = SoapRequestParams
     credential_types = ["http"]
     idempotency = "conditionally_idempotent"

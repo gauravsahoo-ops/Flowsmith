@@ -40,7 +40,7 @@ class GraphQLNode(BaseNode[GraphQLParams]):
     version = 1
     description = "Execute a GraphQL query or mutation against any endpoint."
     category = "Actions"
-    icon = "◈"
+    icon = "graphql"
     parameters_schema = GraphQLParams
     credential_types = ["http"]
     idempotency = CONDITIONALLY_IDEMPOTENT

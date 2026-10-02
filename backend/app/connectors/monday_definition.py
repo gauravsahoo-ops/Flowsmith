@@ -94,5 +94,5 @@ def build_monday_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_boards", "get_board", "list_items", "create_item", "add_update"], "auth": "API token"},
-        icon="📊",
+        icon="monday",
     )

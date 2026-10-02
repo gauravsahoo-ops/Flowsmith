@@ -45,7 +45,7 @@ class CsvJsonTransformNode(BaseNode[CsvJsonTransformParams]):
     version = 1
     description = "Transform data between CSV and JSON formats."
     category = "Transform"
-    icon = "🔄"
+    icon = "csv_json_transform"
     parameters_schema = CsvJsonTransformParams
     credential_types = []
 

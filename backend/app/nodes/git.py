@@ -59,7 +59,7 @@ class GitNode(BaseNode[GitParams]):
     version = 1
     description = "Read-only Git inspection: status, log, branches"
     category = "Flow"
-    icon = "🌿"
+    icon = "git"
     parameters_schema = GitParams
     input_handles = ["main"]
     output_handles = ["main"]

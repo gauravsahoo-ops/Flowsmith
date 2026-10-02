@@ -98,5 +98,5 @@ def build_quickbooks_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["query", "get_company", "create_customer", "get_customer", "create_invoice", "get_invoice"], "auth": "OAuth2 Bearer"},
-        icon="🧾",
+        icon="quickbooks",
     )

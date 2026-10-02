@@ -284,7 +284,7 @@ export default function CommandPalette({ open, onClose }) {
           )}
         </ul>
         <footer className="palette-foot hint">
-          ↑↓ navigate · ⏎ run · esc close
+          ↑↓ navigate · Enter run · Esc close
         </footer>
       </div>
     </div>

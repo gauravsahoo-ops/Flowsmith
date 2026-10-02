@@ -87,5 +87,5 @@ def build_google_sheets_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["read", "append", "update"], "auth": "OAuth2 offline access"},
-        icon="📗",
+        icon="google_sheets",
     )

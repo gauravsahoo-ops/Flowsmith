@@ -203,5 +203,5 @@ def build_hubspot_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["search", "get", "create", "update"],
             "auth": "OAuth2 authorization-code (Connect HubSpot) or private-app token",
         },
-        icon="🧡",
+        icon="hubspot",
     )

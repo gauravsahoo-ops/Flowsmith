@@ -56,5 +56,5 @@ def build_frankfurter_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types={},
         metadata={"source": "openapi-import", "api_title": "Frankfurter API"},
-        icon="🧲",
+        icon="openapi",
     )

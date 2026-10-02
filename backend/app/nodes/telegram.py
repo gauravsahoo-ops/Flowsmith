@@ -31,7 +31,7 @@ class TelegramNode(BaseNode[TelegramParams]):
     version = 1
     description = "Send a message to a Telegram chat."
     category = "Communication"
-    icon = "📲"
+    icon = "telegram"
     parameters_schema = TelegramParams
     credential_types = ["telegram"]
 

@@ -33,7 +33,7 @@ def slow_queue_node():
         version = 1
         description = "Hangs until cancelled."
         category = "Test"
-        icon = "🐌"
+        icon = "slow"
         parameters_schema = EmptyParams
 
         async def run(self, ctx: NodeContext, params: EmptyParams, input_items: list[dict[str, Any]]) -> NodeResult:

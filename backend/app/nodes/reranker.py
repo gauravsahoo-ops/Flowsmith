@@ -51,7 +51,7 @@ class RerankerNode(BaseNode[RerankerParams]):
     version = 1
     description = "Score and rerank retrieved documents or search results against a query"
     category = "AI"
-    icon = "⚖️"
+    icon = "reranker"
     parameters_schema = RerankerParams
     input_handles = ["main"]
     output_handles = ["main"]

@@ -57,7 +57,7 @@ class TextSplitterNode(BaseNode[TextSplitterParams]):
     version = 1
     description = "Split text into overlapping chunks for RAG."
     category = "AI"
-    icon = "✂️"
+    icon = "text_splitter"
     parameters_schema = TextSplitterParams
 
     async def run(

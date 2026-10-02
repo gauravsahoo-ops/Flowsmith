@@ -143,5 +143,5 @@ def build_mongodb_definition() -> ConnectorDefinitionV1:
             "initial_operations": ["find", "insert_one", "update_one", "delete_one"],
             "auth": "connection URI stored encrypted",
         },
-        icon="🍃",
+        icon="mongodb",
     )

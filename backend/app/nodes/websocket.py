@@ -59,7 +59,7 @@ class WebSocketNode(BaseNode[WebSocketParams]):
     version = 2
     description = "Send/receive messages via WebSocket with auth headers and retry support."
     category = "Communication"
-    icon = "📡"
+    icon = "websocket"
     parameters_schema = WebSocketParams
     credential_types = []
 

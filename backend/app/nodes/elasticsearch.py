@@ -44,7 +44,7 @@ class ElasticsearchNode(BaseNode[ElasticsearchParams]):
     version = 1
     description = "Execute search queries, index documents, and manage Elasticsearch or OpenSearch clusters"
     category = "Database"
-    icon = "🔍"
+    icon = "elasticsearch"
     parameters_schema = ElasticsearchParams
     credential_types = ["elasticsearch", "http"]
     input_handles = ["main"]

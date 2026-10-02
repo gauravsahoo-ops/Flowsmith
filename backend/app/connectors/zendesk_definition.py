@@ -99,5 +99,5 @@ def build_zendesk_definition() -> ConnectorDefinitionV1:
             )
         },
         metadata={"initial_operations": ["list_tickets", "get_ticket", "create_ticket", "update_ticket", "add_comment"], "auth": "Email + API token (Basic)"},
-        icon="🎫",
+        icon="zendesk",
     )

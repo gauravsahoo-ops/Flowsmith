@@ -27,7 +27,7 @@ class SetDataNode(BaseNode[SetDataParams]):
     version = 1
     description = "Set or replace fields on the data passing through."
     category = "Transform"
-    icon = "✏️"
+    icon = "set_data"
     parameters_schema = SetDataParams
 
     async def run(

@@ -45,7 +45,7 @@ class AINode(BaseNode[AIParams]):
     version = 1
     description = "Chat with an OpenAI-compatible model; optional tool calling."
     category = "AI"
-    icon = "🤖"
+    icon = "ai"
     parameters_schema = AIParams
     credential_types = ["llm", "http", "database"]
     # Every turn spends a model call (spec 35).

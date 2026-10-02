@@ -37,7 +37,7 @@ class AuthStoreNode(BaseNode[AuthStoreParams]):
     version = 1
     description = "Securely store workflow auth tokens (encrypted upsert)."
     category = "Actions"
-    icon = "🔐"
+    icon = "token_store"
     parameters_schema = AuthStoreParams
     idempotency = "conditionally_idempotent"
 

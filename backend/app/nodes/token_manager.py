@@ -589,7 +589,7 @@ class TokenManagerNode(BaseNode[TokenManagerParams]):
     version = 1
     description = "Universal token lifecycle manager: automatically fetches stored credentials, auto-refreshes expired tokens, and saves new logins to database."
     category = "Actions"
-    icon = "🔑"
+    icon = "token_manager"
     parameters_schema = TokenManagerParams
     idempotency = "conditionally_idempotent"
     input_handles = ["main"]
