@@ -215,13 +215,58 @@ Streams bulk CSV or JSON data directly into the table.
 
 ---
 
-### 3.7 AI & Autonomous Agents (`/api/ai`)
+### 3.7 AI, Cognitive Memory & Autonomous Agents (`/api/ai`)
 
 #### `POST /api/ai/chat`
-Proxies a chat completion request to the configured provider (OpenAI, Claude, Gemini, DeepSeek, Groq, Ollama) with optional streaming.
+Live interactive chat with Flowsmith's autonomous AI Agent runtime. Supports cloud LLMs (OpenAI, Anthropic, Gemini, Groq, DeepSeek), local Ollama, and the zero-dependency sovereign **Builtin Local Intelligence Engine**:
+```json
+{
+  "message": "Calculate (450 * 12) + 80 and record result as fiscal_q1 in entity memory",
+  "session_id": "cust_sess_9821",
+  "memory_type": "complete",
+  "allow_builtin": true,
+  "tools": ["calculator", "current_time"]
+}
+```
 
-#### `POST /api/ai/agent/execute`
-Executes an isolated ReAct agent loop against a specified prompt, toolset, and memory configuration.
+#### `GET /api/ai/memory/{session_id}`
+Retrieves session metadata, tier status, active message count, entity keys, and scratchpad tags.
+
+#### `DELETE /api/ai/memory/{session_id}`
+Clears active in-memory state and deletes persisted `.runtime/ai_memory/{session_id}.json` archive.
+
+#### `GET /api/ai/memory/{session_id}/search?q={query}&top_k=5`
+Executes semantic and lexical recall across all 6 memory tiers (vector and zero-embedding BM25 n-gram search).
+
+#### `POST /api/ai/memory/{session_id}/entities`
+Upserts structured entity facts or triggers rule-based fact extraction from raw conversational text.
+
+#### `GET /api/ai/memory/{session_id}/entities`
+Fetches all structured entities and attributes stored for the specified conversation session.
+
+#### `POST /api/ai/memory/{session_id}/notes`
+Creates or updates a tagged scratchpad note or task checkpoint in the session workspace.
+
+#### `GET /api/ai/memory/{session_id}/notes?tag={optional_tag}`
+Lists all scratchpad notes, optionally filtered by tag.
+
+#### `POST /api/ai/intent`
+Extracts structured intent, workflow objectives, parameters, and clarification questions from natural language requirements.
+
+#### `POST /api/ai/compile`
+Compiles an intermediate representation (`WorkflowIR`) into a visual Flowsmith DAG document.
+
+#### `POST /api/ai/validate-pipeline`
+Executes the comprehensive 6-stage validation pipeline across structural DAG, connector schemas, expressions, credentials, runtime bounds, and SSRF security.
+
+#### `POST /api/ai/simulate`
+Simulates workflow execution with synthetic data propagation, expression linting, and step-by-step latency estimation without side effects.
+
+#### `POST /api/ai/repair-workflow`
+Diagnoses execution trace errors and generates a validated before/after diff proposal for human review.
+
+#### `POST /api/ai/modify-workflow`
+Applies surgical natural language modifications to an existing workflow graph and returns an atomic DAG diff.
 
 ---
 

@@ -312,7 +312,7 @@ def test_ai_memory_search_and_entities_endpoints(client):
     """Test multi-tier memory management API: entities, notes, and search."""
     reg = register(client, "mem_tier_user@example.com")
     headers = auth_headers(reg["token"])
-    sess = "tier_sess_99"
+    sess = f"tier_sess_{int(time.time() * 1000)}"
 
     # 1. Upsert entities
     post_ent = client.post(
@@ -350,3 +350,7 @@ def test_ai_memory_search_and_entities_endpoints(client):
     results = search_resp.json()["data"]["results"]
     assert len(results) >= 1
     assert any(r.get("key") == "service" or "kubernetes" in str(r) for r in results)
+
+    # Teardown
+    client.delete(f"/api/ai/memory/{sess}", headers=headers)
+
