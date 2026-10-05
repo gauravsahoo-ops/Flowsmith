@@ -40,11 +40,11 @@ function MonitoringStatCard({ title, value, subtitle, color, icon }) {
   return (
     <div className="monitoring-card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{title}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{title}</span>
         <span style={{ fontSize: 15, width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: `${color}18`, color, border: `1px solid ${color}33` }}>{icon}</span>
       </div>
       <div style={{ fontSize: 32, fontWeight: 800, color, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{value}</div>
-      {subtitle && <div style={{ fontSize: 12, color: '#64748b', marginTop: 8, lineHeight: 1.4 }}>{subtitle}</div>}
+      {subtitle && <div style={{ fontSize: 12, color: 'var(--text-muted, #64748b)', marginTop: 8, lineHeight: 1.4 }}>{subtitle}</div>}
     </div>
   )
 }
@@ -54,9 +54,9 @@ function HealthBar({ label, value, max, color }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, lineHeight: 1.5, marginBottom: 6 }}>
-        <span style={{ color: '#e2e8f0', fontWeight: 500 }}>{label}</span>
-        <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: 12 }}>
-          {value} <span style={{ color: '#64748b', fontWeight: 400 }}>/ {max}</span>
+        <span style={{ color: 'var(--text, #e2e8f0)', fontWeight: 500 }}>{label}</span>
+        <span style={{ color: 'var(--text-muted, #94a3b8)', fontWeight: 600, fontSize: 12 }}>
+          {value} <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 400 }}>/ {max}</span>
         </span>
       </div>
       <div style={{ height: 8, background: 'rgba(255, 255, 255, 0.06)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
@@ -72,11 +72,11 @@ function ExecutionTimeline({ stats }) {
   return (
     <div className="monitoring-card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>Execution Activity</h3>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text, #f8fafc)' }}>Execution Activity</h3>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 14 }}>Last Hour</div>
+        <div style={{ background: 'var(--panel-2, rgba(255,255,255,0.02))', padding: '16px 18px', borderRadius: 10, border: '1px solid var(--border, rgba(255,255,255,0.04))' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 14 }}>Last Hour</div>
           <HealthBar
             label="Success"
             value={stats?.last_hour?.success || 0}
@@ -115,7 +115,7 @@ function QueueStatus({ stats }) {
   return (
     <div className="monitoring-card">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>Queue Status</h3>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text, #f8fafc)' }}>Queue Status</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: isHealthy ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)', border: `1px solid ${isHealthy ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`, padding: '4px 10px', borderRadius: 999 }}>
           <div style={{
             width: 8, height: 8, borderRadius: '50%',
@@ -127,7 +127,7 @@ function QueueStatus({ stats }) {
           </span>
         </div>
       </div>
-      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
+      <div style={{ background: 'var(--panel-2, rgba(255,255,255,0.02))', padding: '16px 18px', borderRadius: 10, border: '1px solid var(--border, rgba(255,255,255,0.04))' }}>
         <HealthBar
           label="Running Concurrency"
           value={stats?.executions?.running || 0}
@@ -213,7 +213,22 @@ export default function MonitoringPage() {
         description="Real-time execution queue metrics, worker throughput, and cluster health."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#94a3b8', cursor: 'pointer', userSelect: 'none' }}>
+            <a
+              href="/api/metrics"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ghost"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', fontSize: 13, color: 'var(--accent, #818cf8)' }}
+              title="View Prometheus / OpenTelemetry text metrics scrape endpoint"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              <span>Prometheus Exporter ↗</span>
+            </a>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted, #94a3b8)', cursor: 'pointer', userSelect: 'none' }}>
               <input
                 type="checkbox"
                 checked={autoRefresh}
