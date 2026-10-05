@@ -5,7 +5,7 @@ import GlobalSearch from '../components/shared/GlobalSearch'
 import { useWorkflowStore, isDirty } from '../stores/workflowStore'
 import { useCredentialStore } from '../stores/credentialStore'
 import { useBrandingStore } from '../stores/brandingStore'
-import { syncUserProfile } from '../utils/userProfile'
+import { syncUserProfile, getDynamicUser } from '../utils/userProfile'
 import { api } from '../api'
 
 export default function AppShell({ onLogout }) {
@@ -17,7 +17,14 @@ export default function AppShell({ onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 900 : false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [user, setUser] = useState(() => getDynamicUser())
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
+
+  useEffect(() => {
+    const onUserUpdate = () => setUser(getDynamicUser())
+    window.addEventListener('flowsmith_user_updated', onUserUpdate)
+    return () => window.removeEventListener('flowsmith_user_updated', onUserUpdate)
+  }, [])
 
   // Global shortcut for search (Ctrl+K or Cmd+K)
   useEffect(() => {
@@ -121,14 +128,70 @@ export default function AppShell({ onLogout }) {
             </button>
           </div>
           <div className="app-topbar-right">
+            <button
+              className="ghost ghost--sm topbar-status-pill"
+              onClick={() => navigate('/monitoring')}
+              title="System Health: 100% Operational (Click to view metrics)"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#34d399', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <span className="app-topbar-context-dot" style={{ width: 6, height: 6, background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+              <span>Operational</span>
+            </button>
+
             {!isCanvas && (
-              <button className="ghost ghost--sm topbar-nav-btn" onClick={() => navigate('/workflows')} title="Go to workflows">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.18" />
+              <button
+                className="primary small topbar-create-btn"
+                onClick={() => navigate('/workflows')}
+                title="Create or manage workflows"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 12px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
+                  borderRadius: 7,
+                  boxShadow: '0 2px 10px rgba(99, 102, 241, 0.35)',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                <span>Workflows</span>
+                <span>New Workflow</span>
               </button>
             )}
+
+            <div
+              className="app-topbar-user-badge"
+              title={`Signed in as ${user.name} (${user.email})`}
+              onClick={() => navigate('/settings')}
+              style={{ cursor: 'pointer' }}
+            >
+              <span
+                className="user-avatar-initials"
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                  color: '#fff',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 8px rgba(99,102,241,0.5)',
+                }}
+              >
+                {user.initials}
+              </span>
+              <span className="user-avatar-text" style={{ fontSize: 12, fontWeight: 600, color: '#f1f5f9' }}>{user.name}</span>
+            </div>
 
             <button className="ghost ghost--sm app-topbar-logout" onClick={() => {
               try { localStorage.removeItem('flowsmith_user') } catch {}
