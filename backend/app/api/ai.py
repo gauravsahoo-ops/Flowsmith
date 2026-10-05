@@ -373,7 +373,7 @@ async def chat_with_agent(
 ) -> dict:
     """Live interactive chat with Flowsmith's autonomous AI Agent and LLM."""
     is_builtin_requested = body.allow_builtin or (
-        body.model is not None and str(body.model).lower() in ("builtin", "local", "local_ai", "offline")
+        body.model is not None and body.model.lower() in ("builtin", "local", "local_ai", "offline")
     )
     if is_builtin_requested:
         try:

@@ -392,6 +392,9 @@ class AIAgentNode(BaseNode[AgentParams]):
             comp_mem.working.add_message("user", user_input)
             comp_mem.working.add_message("assistant", final_answer)
 
+        if params.memory_type != "none":
+            await mem_manager.save_session_to_disk(session_key)
+
         # Assemble clean output item
         output_payload: dict[str, Any] = {
             "result": structured_json if structured_json is not None else final_answer,
