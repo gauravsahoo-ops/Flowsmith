@@ -22,12 +22,18 @@ from app.utils.backup import list_backups, prune_backups
 
 def _postgres_reachable() -> bool:
     try:
-        import psycopg2
-
-        conn = psycopg2.connect(
-            host="127.0.0.1", port=5432, user="automate",
-            password="automate", dbname="postgres", connect_timeout=3,
-        )
+        try:
+            import psycopg
+            conn = psycopg.connect(
+                host="127.0.0.1", port=5432, user="automate",
+                password="automate", dbname="postgres", connect_timeout=3,
+            )
+        except ImportError:
+            import psycopg2
+            conn = psycopg2.connect(
+                host="127.0.0.1", port=5432, user="automate",
+                password="automate", dbname="postgres", connect_timeout=3,
+            )
         conn.close()
         return True
     except Exception:

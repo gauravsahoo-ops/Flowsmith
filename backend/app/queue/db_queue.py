@@ -201,11 +201,14 @@ class DbJobQueue(QueueBackend):
                         "without completing (worker crashes or stalled execution)."
                     ),
                 }
-                import psycopg2.extras as _pgjson  # noqa: F401
+                try:
+                    from psycopg.types.json import Json as _pg_json_wrapper
+                except ImportError:
+                    from psycopg2.extras import Json as _pg_json_wrapper
                 with db.begin_nested():
                     db.execute(
                         FAIL_JOB_SQL,
-                        {"failed": FAILED, "now": now, "error": _pgjson.Json(error),
+                        {"failed": FAILED, "now": now, "error": _pg_json_wrapper(error),
                          "job_ids": exhausted_ids},
                     )
                     from app.models import Execution

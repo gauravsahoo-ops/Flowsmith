@@ -83,16 +83,27 @@ if _isolated_redis:
 
 def _ensure_database(url: str) -> None:
     """Create the test database when missing (local convenience)."""
-    import psycopg2
     from sqlalchemy.engine import make_url
 
     u = make_url(url)
-    admin = u.set(database="postgres", drivername="postgresql+psycopg2")
-    conn = psycopg2.connect(
-        host=admin.host, port=admin.port, user=admin.username,
-        password=admin.password, dbname="postgres",
-    )
-    conn.autocommit = True
+    try:
+        import psycopg
+        conn = psycopg.connect(
+            host=u.host if u.host not in ("localhost", "") else "127.0.0.1",
+            port=u.port or 5432,
+            user=u.username or "automate",
+            password=u.password or "automate",
+            dbname="postgres",
+            autocommit=True,
+        )
+    except ImportError:
+        import psycopg2
+        admin = u.set(database="postgres", drivername="postgresql+psycopg2")
+        conn = psycopg2.connect(
+            host=admin.host, port=admin.port, user=admin.username,
+            password=admin.password, dbname="postgres",
+        )
+        conn.autocommit = True
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (u.database,))

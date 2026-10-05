@@ -137,7 +137,6 @@ def _pick_llm(db: Session, user: User, credential_id: str | None) -> dict:
 def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     creds = _llm_credentials(db, user, None)
     configured = len(creds) > 0
-    active_info = None
     if configured:
         first = creds[0]
         active_info = {
@@ -145,6 +144,13 @@ def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_
             "name": first.get("name") or "LLM Provider",
             "provider": first.get("provider") or first.get("provider_id") or "openai",
             "model": first.get("selected_model") or first.get("model") or "default",
+        }
+    else:
+        active_info = {
+            "id": "builtin",
+            "name": "Built-in Local Engine (Zero-LLM)",
+            "provider": "builtin",
+            "model": "builtin",
         }
     return ok({
         "configured": configured,
@@ -224,7 +230,10 @@ async def generate_workflow(
     client must explicitly create the workflow (user approval), and it
     is born a draft that never auto-activates.
     """
-    llm = _pick_llm(db, user, body.credential_id)
+    try:
+        llm = _pick_llm(db, user, body.credential_id)
+    except HTTPException:
+        llm = {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
     available_credentials = {
         meta["type"] for meta in credential_service.list_for_user(db, user.id)
     }
@@ -716,7 +725,10 @@ async def extract_intent_endpoint(
     """Extract structured intent and clarification questions from natural language requirements."""
     from app.ai.intent import IntentEngine
 
-    llm = _pick_llm(db, user, body.credential_id)
+    try:
+        llm = _pick_llm(db, user, body.credential_id)
+    except HTTPException:
+        llm = None
     intent = await IntentEngine.extract_intent(
         prompt=body.prompt,
         chat=chat_completion,
@@ -832,7 +844,10 @@ async def modify_workflow_endpoint(
     """Apply surgical natural language modification to an existing workflow and return diff."""
     from app.ai.modification import WorkflowModifier
 
-    llm = _pick_llm(db, user, body.credential_id)
+    try:
+        llm = _pick_llm(db, user, body.credential_id)
+    except HTTPException:
+        llm = {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
     user_creds = {meta["type"] for meta in credential_service.list_for_user(db, user.id)}
 
     diff = await WorkflowModifier.modify_workflow(

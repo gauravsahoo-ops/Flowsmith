@@ -42,7 +42,21 @@ def _engine_kwargs() -> dict:
     return kwargs
 
 
-_DEFAULT_URL = get_settings().database_url.strip()
+def _normalize_db_url(url: str) -> str:
+    """Ensure a valid SQLAlchemy dialect driver is selected.
+    If 'postgresql://' is specified without driver, prefer psycopg v3 if installed.
+    """
+    cleaned = url.strip()
+    if cleaned.startswith("postgresql://"):
+        try:
+            import psycopg  # noqa: F401
+            return "postgresql+psycopg://" + cleaned[len("postgresql://"):]
+        except ImportError:
+            pass
+    return cleaned
+
+
+_DEFAULT_URL = _normalize_db_url(get_settings().database_url)
 logger.debug("Using PostgreSQL database: %s", _DEFAULT_URL)
 engine = create_engine(_DEFAULT_URL, **_engine_kwargs())
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
@@ -127,7 +141,7 @@ def init_db(url: str | None = None) -> None:
     """Point the app at a different database (used by tests) and create schema."""
     global engine, SessionLocal
     if url:
-        url = url.strip()
+        url = _normalize_db_url(url)
         engine = create_engine(url, **_engine_kwargs())
         SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     import app.models  # noqa: F401  (register all tables)
