@@ -70,6 +70,7 @@ export default function CredentialsPage() {
   const [llmModalOpen, setLlmModalOpen] = useState(false)
   const [llmModalData, setLlmModalData] = useState(null)
   const [openMenuId, setOpenMenuId] = useState(null)
+  const [menuDirection, setMenuDirection] = useState('down')
 
   const mountedRef = useRef(true)
   const oauthCleanupRef = useRef(null)
@@ -603,7 +604,18 @@ export default function CredentialsPage() {
                           className={`ghost small cred-kebab-trigger ${openMenuId === c.id ? 'is-active' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation()
-                            setOpenMenuId(v => v === c.id ? null : c.id)
+                            if (openMenuId === c.id) {
+                              setOpenMenuId(null)
+                            } else {
+                              try {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                const spaceBelow = (window?.innerHeight || 800) - rect.bottom
+                                setMenuDirection(spaceBelow < 260 ? 'up' : 'down')
+                              } catch {
+                                setMenuDirection('down')
+                              }
+                              setOpenMenuId(c.id)
+                            }
                           }}
                           aria-label="Credential actions"
                           aria-haspopup="menu"
@@ -618,7 +630,7 @@ export default function CredentialsPage() {
                         </button>
 
                         {(openMenuId === c.id || typeof window === 'undefined') && (
-                          <div className={`cred-dropdown-popover ${openMenuId === c.id ? 'is-open' : ''}`} role="menu">
+                          <div className={`cred-dropdown-popover cred-dropdown-${menuDirection} ${openMenuId === c.id ? 'is-open' : ''}`} role="menu">
                             <button
                               type="button"
                               className="ghost small cred-menu-item"

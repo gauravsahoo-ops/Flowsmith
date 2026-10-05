@@ -1332,6 +1332,22 @@ kbd.kbd {
    ========================================================================== */
 .credentials-page .table-wrap {
   overflow: visible !important;
+  position: relative !important;
+  z-index: 20 !important;
+}
+
+.credentials-page .data-table {
+  overflow: visible !important;
+}
+
+.credentials-page .data-table td:last-child {
+  overflow: visible !important;
+  position: relative;
+}
+
+.credentials-page section.card {
+  position: relative;
+  z-index: 1;
 }
 
 .cred-actions-cell {
@@ -1347,6 +1363,7 @@ kbd.kbd {
   position: relative;
   display: inline-flex;
   align-items: center;
+  z-index: 50;
 }
 
 .cred-kebab-trigger {
@@ -1381,28 +1398,53 @@ kbd.kbd {
 /* Super-Premium Floating Glassmorphic Dropdown */
 .cred-dropdown-popover {
   position: absolute;
-  top: calc(100% + 6px);
   right: 0;
   min-width: 205px;
-  z-index: 1000;
+  z-index: 9999 !important;
   background: linear-gradient(155deg, rgba(20, 26, 42, 0.98) 0%, rgba(11, 15, 24, 0.99) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 5px;
   box-shadow: 0 18px 46px -6px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 28px rgba(99, 102, 241, 0.15);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  transform-origin: top right;
-  animation: credDropdownIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes credDropdownIn {
+/* Downward opening */
+.cred-dropdown-popover.cred-dropdown-down,
+.cred-dropdown-popover:not(.cred-dropdown-up) {
+  top: calc(100% + 6px);
+  bottom: auto;
+  transform-origin: top right;
+  animation: credDropdownInDown 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Upward opening (when near bottom of screen or table) */
+.cred-dropdown-popover.cred-dropdown-up {
+  bottom: calc(100% + 6px);
+  top: auto;
+  transform-origin: bottom right;
+  animation: credDropdownInUp 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes credDropdownInDown {
   from {
     opacity: 0;
     transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes credDropdownInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
   }
   to {
     opacity: 1;
