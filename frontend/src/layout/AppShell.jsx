@@ -20,6 +20,14 @@ export default function AppShell({ onLogout }) {
   const [user, setUser] = useState(() => getDynamicUser())
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
 
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed(v => {
+      const next = !v
+      try { localStorage.setItem('flowsmith_sidebar_collapsed', next ? '1' : '0') } catch {}
+      return next
+    })
+  }, [])
+
   useEffect(() => {
     const onUserUpdate = () => setUser(getDynamicUser())
     window.addEventListener('flowsmith_user_updated', onUserUpdate)
@@ -43,14 +51,6 @@ export default function AppShell({ onLogout }) {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [toggleCollapsed])
-
-  const toggleCollapsed = useCallback(() => {
-    setCollapsed(v => {
-      const next = !v
-      try { localStorage.setItem('flowsmith_sidebar_collapsed', next ? '1' : '0') } catch {}
-      return next
-    })
-  }, [])
 
   useEffect(() => {
     const onResize = () => {
