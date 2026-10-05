@@ -54,6 +54,34 @@
 .toolbar-popover h4 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; color: var(--muted); }
 .toolbar-popover ul { margin: 0 0 10px; padding-left: 16px; font-size: 12.5px; }
 .toolbar-popover li { margin-bottom: 4px; }
+
+/* Light mode canvas toolbar & copilot */
+[data-theme="light"] .canvas-toolbar {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+[data-theme="light"] .tool-btn {
+  color: #334155;
+}
+[data-theme="light"] .tool-btn:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+[data-theme="light"] .tool-sep {
+  background: rgba(15, 23, 42, 0.12);
+}
+[data-theme="light"] .in-canvas-copilot-card {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2), 0 0 25px rgba(99, 102, 241, 0.15) !important;
+}
+[data-theme="light"] .copilot-input {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.15) !important;
+  color: #0f172a !important;
+}
+
 .canvas-flash {
   position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
   z-index: 12; background: #2b1f22; color: #ffb4ae;

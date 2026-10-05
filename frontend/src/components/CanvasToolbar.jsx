@@ -4,11 +4,12 @@
 // canvas — undo/redo, auto-layout, comment, group, fit, shortcuts help,
 // and the graph-health indicator (connection validation summary).
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useReactFlow, useViewport } from '@xyflow/react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
 import Tooltip from './shared/Tooltip'
+import InCanvasCopilot from './InCanvasCopilot'
 
 function ToolButton({ onClick, disabled, title, children, className = '' }) {
   return (
@@ -41,6 +42,19 @@ export default function CanvasToolbar() {
   const toggleMiniMap = useUiStore((s) => s.toggleMiniMap)
 
   const [showProblems, setShowProblems] = useState(false)
+  const [copilotOpen, setCopilotOpen] = useState(false)
+
+  // Alt+A toggles In-Canvas AI Copilot
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault()
+        setCopilotOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Lightweight graph check: cycles and duplicate wires are allowed (the
   // engine executes nodes in topological order, each at most once per
@@ -116,6 +130,18 @@ export default function CanvasToolbar() {
         </svg>
       </ToolButton>
       <span className="tool-sep" />
+      <ToolButton
+        title="AI Copilot (Alt+A) — natural language surgical workflow edits"
+        onClick={() => setCopilotOpen((v) => !v)}
+        className={copilotOpen ? 'active' : ''}
+      >
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#c084fc', fontWeight: 600 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+          </svg>
+          Copilot
+        </span>
+      </ToolButton>
       <ToolButton title="Auto-layout (tidy everything)" onClick={onAutoLayout}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -241,6 +267,13 @@ export default function CanvasToolbar() {
           </button>
         </div>
       )}
+
+      <InCanvasCopilot
+        open={copilotOpen}
+        onClose={() => setCopilotOpen(false)}
+        onAutoLayout={onAutoLayout}
+        fitView={fitView}
+      />
     </div>
   )
 }

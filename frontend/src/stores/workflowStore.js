@@ -819,6 +819,23 @@ export const useWorkflowStore = create((set, get) => ({
       throw err
     }
   },
+
+  applyWorkflowModification(modifiedWorkflowJson) {
+    if (!modifiedWorkflowJson) return
+    const { workflow } = get()
+    get().pushHistory('ai-modify')
+    const { nodes, edges } = toReactFlow(modifiedWorkflowJson)
+    const decor = readDecorations(modifiedWorkflowJson)
+    set({
+      workflow: { ...workflow, ...modifiedWorkflowJson },
+      nodes,
+      edges,
+      ...decor,
+      canUndo: true,
+      canRedo: false,
+    })
+    scheduleSave()
+  },
 }))
 
 /** Keep stored group geometry roughly in step while members move. */
