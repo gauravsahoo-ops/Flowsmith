@@ -441,7 +441,7 @@ export default function CredentialsPage() {
       ) : (
         <div className="table-wrap">
           <table className="data-table">
-            <thead><tr><th>Name</th><th>Type</th><th>Auth Method</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>Type</th><th>Auth Method</th><th>Status</th><th style={{ textAlign: 'right', paddingRight: '20px' }}>Actions</th></tr></thead>
             <tbody>
               {filtered.map(c => (
                 <tr key={c.id}>
@@ -552,11 +552,11 @@ export default function CredentialsPage() {
                       </span>
                     )}
                   </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <td style={{ textAlign: 'right', paddingRight: '20px', whiteSpace: 'nowrap' }}>
+                    <div className="cred-actions-toolbar">
                       <button
                         type="button"
-                        className="ghost small"
+                        className="ghost small cred-action-btn cred-btn-test"
                         onClick={async () => {
                           setTestingId(c.id)
                           setTestResult(null)
@@ -571,7 +571,6 @@ export default function CredentialsPage() {
                         }}
                         disabled={testingId === c.id}
                         title="Test connection with live service"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                       >
                         {testingId === c.id ? (
                           <>
@@ -590,7 +589,7 @@ export default function CredentialsPage() {
 
                       <button
                         type="button"
-                        className="ghost small"
+                        className="ghost small cred-action-btn cred-btn-edit"
                         onClick={() => {
                           if (c.type === 'llm') {
                             setLlmModalData(c)
@@ -603,7 +602,6 @@ export default function CredentialsPage() {
                           }
                         }}
                         title={c.type === 'llm' ? "Configure LLM provider & models" : "Rotate secrets or edit credential"}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -615,19 +613,12 @@ export default function CredentialsPage() {
                       {c.type === 'llm' && (
                         <button
                           type="button"
-                          className="ghost small"
+                          className="ghost small cred-action-btn cred-btn-models"
                           onClick={() => {
                             setLlmModalData(c)
                             setLlmModalOpen(true)
                           }}
                           title="Open LLM Model Discovery & Provider Settings"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            color: '#818cf8',
-                            borderColor: 'rgba(99, 102, 241, 0.3)',
-                          }}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polygon points="12 2 2 7 12 12 22 7 12 2" />
@@ -641,16 +632,10 @@ export default function CredentialsPage() {
                       {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                         <button
                           type="button"
-                          className={c.expired ? 'primary small' : 'ghost small'}
+                          className={`${c.expired ? 'primary small cred-btn-expired' : 'ghost small'} cred-action-btn cred-btn-reconnect`}
                           onClick={() => handleReconnect(c)}
                           disabled={reconnectingId === c.id}
                           title={c.expired ? 'Session expired — click Reconnect to re-authenticate or refresh token' : 'Auto-reconnect or renew token'}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            ...(c.expired ? { background: '#f59e0b', borderColor: '#d97706', color: '#000', fontWeight: 600 } : {})
-                          }}
                         >
                           {reconnectingId === c.id ? (
                             <>
@@ -671,19 +656,12 @@ export default function CredentialsPage() {
                       {c.type === 'salesforce' && (
                         <button
                           type="button"
-                          className="ghost small"
+                          className="ghost small cred-action-btn cred-btn-settings"
                           onClick={() => {
                             setSfModalData(c)
                             setSfModalOpen(true)
                           }}
                           title="Open Salesforce OAuth2 settings (Client ID, Secret, Redirect URL, Domains)"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            color: '#38bdf8',
-                            borderColor: 'rgba(56, 189, 248, 0.25)',
-                          }}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <circle cx="12" cy="12" r="3" />
@@ -696,19 +674,12 @@ export default function CredentialsPage() {
                       {c.type === 'hubspot' && (
                         <button
                           type="button"
-                          className="ghost small"
+                          className="ghost small cred-action-btn cred-btn-settings"
                           onClick={() => {
                             setHsModalData(c)
                             setHsModalOpen(true)
                           }}
                           title="Open HubSpot OAuth / App settings (Client ID, Secret, Private Token)"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            color: '#ff7a59',
-                            borderColor: 'rgba(255, 122, 89, 0.25)',
-                          }}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="3" />
@@ -721,19 +692,12 @@ export default function CredentialsPage() {
                       {c.type === 'dynamics_crm' && (
                         <button
                           type="button"
-                          className="ghost small"
+                          className="ghost small cred-action-btn cred-btn-settings"
                           onClick={() => {
                             setDynModalData(c)
                             setDynModalOpen(true)
                           }}
                           title="Open Microsoft Dynamics 365 OAuth / Service Principal settings"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            color: '#0078d4',
-                            borderColor: 'rgba(0, 120, 212, 0.25)',
-                          }}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="3" />
@@ -746,20 +710,13 @@ export default function CredentialsPage() {
                       {(c.type.startsWith('google_') || c.type === 'gmail') && (
                         <button
                           type="button"
-                          className="ghost small"
+                          className="ghost small cred-action-btn cred-btn-settings"
                           onClick={() => {
                             setGoogleModalService(c.type)
                             setGoogleModalData(c)
                             setGoogleModalOpen(true)
                           }}
                           title="Open Google Cloud OAuth2 settings (Client ID, Secret, Redirect URIs)"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            color: '#60a5fa',
-                            borderColor: 'rgba(96, 165, 250, 0.25)',
-                          }}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="3" />
@@ -772,16 +729,9 @@ export default function CredentialsPage() {
                       {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) ? (
                         <button
                           type="button"
-                          className="ghost small"
+                          className="ghost small cred-action-btn cred-btn-danger"
                           onClick={() => setLogoutTarget(c)}
                           title="Revoke session and tokens on provider and disconnect completely"
-                          style={{
-                            color: '#f87171',
-                            borderColor: 'rgba(248, 113, 113, 0.25)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                          }}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
@@ -791,10 +741,9 @@ export default function CredentialsPage() {
                       ) : (
                         <button
                           type="button"
-                          className="ghost small"
+                          className="ghost small cred-action-btn cred-btn-danger"
                           onClick={() => setDeleteTarget(c)}
                           title={['database','postgres','mysql','redis','mongodb'].includes(c.type) ? 'Delete connection string' : 'Delete'}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#f87171' }}
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="3 6 5 6 21 6" />

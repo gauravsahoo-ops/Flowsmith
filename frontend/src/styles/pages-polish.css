@@ -1173,4 +1173,156 @@ kbd.kbd {
   box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
 }
 
+/* ==========================================================================
+   CREDENTIALS TABLE — PREMIUM UNIFIED ACTION TOOLBAR
+   ========================================================================== */
+.cred-actions-toolbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
 
+.cred-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  height: 28px !important;
+  line-height: 1 !important;
+  padding: 0 10px !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #cbd5e1 !important;
+  cursor: pointer !important;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  white-space: nowrap !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.cred-action-btn svg {
+  flex-shrink: 0;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.cred-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.cred-action-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.cred-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Modifier: Test button */
+.cred-btn-test svg {
+  color: #38bdf8;
+}
+.cred-btn-test:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  background: rgba(56, 189, 248, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.18) !important;
+}
+.cred-btn-test:hover:not(:disabled) svg {
+  transform: scale(1.1);
+  color: #7dd3fc;
+}
+
+/* Modifier: Edit button */
+.cred-btn-edit svg {
+  color: #94a3b8;
+}
+.cred-btn-edit:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+.cred-btn-edit:hover:not(:disabled) svg {
+  color: #f1f5f9;
+  transform: rotate(-5deg);
+}
+
+/* Modifier: Models button */
+.cred-btn-models svg {
+  color: #818cf8;
+}
+.cred-btn-models:hover:not(:disabled) {
+  border-color: rgba(129, 140, 248, 0.35) !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.18) !important;
+}
+.cred-btn-models:hover:not(:disabled) svg {
+  transform: scale(1.08);
+}
+
+/* Modifier: Reconnect button (standard) */
+.cred-btn-reconnect svg {
+  color: #34d399;
+}
+.cred-btn-reconnect:hover:not(:disabled) {
+  border-color: rgba(52, 211, 153, 0.35) !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.18) !important;
+}
+.cred-btn-reconnect:hover:not(:disabled) svg {
+  transform: rotate(45deg);
+}
+
+/* Modifier: Reconnect button (expired session pill) */
+.cred-btn-expired {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.28) !important;
+}
+.cred-btn-expired svg {
+  color: #0f172a !important;
+}
+.cred-btn-expired:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  border-color: #f59e0b !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45) !important;
+}
+
+/* Modifier: Settings button */
+.cred-btn-settings svg {
+  color: #94a3b8;
+}
+.cred-btn-settings:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  background: rgba(56, 189, 248, 0.06) !important;
+}
+.cred-btn-settings:hover:not(:disabled) svg {
+  color: #38bdf8;
+  transform: rotate(30deg);
+}
+
+/* Modifier: Danger / Logout / Delete button */
+.cred-btn-danger svg {
+  color: #f87171;
+  opacity: 0.85;
+}
+.cred-btn-danger:hover:not(:disabled) {
+  border-color: rgba(244, 63, 94, 0.35) !important;
+  background: rgba(244, 63, 94, 0.09) !important;
+  color: #fca5a5 !important;
+  box-shadow: 0 2px 10px rgba(244, 63, 94, 0.18) !important;
+}
+.cred-btn-danger:hover:not(:disabled) svg {
+  color: #fb7185;
+  opacity: 1;
+}
