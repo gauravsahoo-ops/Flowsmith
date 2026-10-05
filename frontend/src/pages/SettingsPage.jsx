@@ -4,6 +4,7 @@ import { useBrandingStore } from '../stores/brandingStore'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import FlowsmithBrandMark from '../components/FlowsmithBrandMark'
+import ThemeSwitcher from '../components/shared/ThemeSwitcher'
 import { useUiStore } from '../stores/uiStore'
 import { playChime } from '../utils/soundEffects'
 
@@ -213,8 +214,10 @@ export default function SettingsPage() {
             <div className="settings-attr-value">{Math.floor((health?.uptime_s || 0) / 60)} minutes</div>
           </div>
           <div className="settings-attr">
-            <div className="settings-attr-label">Theme</div>
-            <div className="settings-attr-value">Dark (Default)</div>
+            <div className="settings-attr-label">Theme Mode</div>
+            <div className="settings-attr-value">
+              <ThemeSwitcher variant="segmented" />
+            </div>
           </div>
           <div className="settings-attr">
             <div className="settings-attr-label">API Endpoint Base</div>

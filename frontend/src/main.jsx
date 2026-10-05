@@ -2,7 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { initTheme } from './utils/theme'
 import { useWorkflowStore } from './stores/workflowStore'
+
+// Initialize theme before initial render to prevent theme flashing
+initTheme()
 import { useExecutionStore } from './stores/executionStore'
 import { useUiStore } from './stores/uiStore'
 

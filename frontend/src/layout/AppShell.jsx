@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import AppSidebar from './AppSidebar'
 import GlobalSearch from '../components/shared/GlobalSearch'
+import ThemeSwitcher from '../components/shared/ThemeSwitcher'
 import { useWorkflowStore, isDirty } from '../stores/workflowStore'
 import { useCredentialStore } from '../stores/credentialStore'
 import { useBrandingStore } from '../stores/brandingStore'
@@ -171,6 +172,8 @@ export default function AppShell({ onLogout }) {
                 <span>New Workflow</span>
               </button>
             )}
+
+            <ThemeSwitcher variant="button" className="topbar-theme-btn" />
 
             <div
               className="app-topbar-user-badge"
