@@ -21,7 +21,7 @@ redis>=5.0
 dukpy>=0.4
 
 # Postgres support (Phase 20)
-psycopg2-binary>=2.9
+psycopg[binary]>=3.2,<4
 
 # MySQL connector (Phase 11 business connectors) - SQLAlchemy driver
 pymysql>=1.1
