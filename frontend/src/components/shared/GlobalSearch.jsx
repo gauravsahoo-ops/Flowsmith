@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../../api'
 import { NodeIcon } from '../NodeIcons'
@@ -100,6 +100,10 @@ export default function GlobalSearch({ open, onClose }) {
   const inputRef = useRef(null)
   const listRef = useRef(null)
   const navigate = useNavigate()
+  const go = useCallback((path) => {
+    onClose()
+    navigate(path)
+  }, [onClose, navigate])
 
   useEffect(() => {
     if (open) {
@@ -261,7 +265,7 @@ export default function GlobalSearch({ open, onClose }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose, flatItems, selectedIndex])
+  }, [open, onClose, flatItems, selectedIndex, go])
 
   // Live async search query with debouncing
   useEffect(() => {
@@ -319,11 +323,6 @@ export default function GlobalSearch({ open, onClose }) {
   }, [query])
 
   if (!open) return null
-
-  function go(path) {
-    onClose()
-    navigate(path)
-  }
 
   return (
     <div className="palette-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Global Command Palette">

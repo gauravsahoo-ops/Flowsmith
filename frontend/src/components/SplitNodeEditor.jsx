@@ -230,8 +230,10 @@ export default function SplitNodeEditor({ node, onParamsChange, mapping, onPrevi
                 className="ghost"
                 onClick={() => removeFieldToInclude(idx)}
                 title="Remove field"
-                style={{ padding: '2px 6px', color: 'var(--muted)', fontSize: 12 }}
-               style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                style={{ padding: '2px 6px', color: 'var(--muted)', fontSize: 12, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
           ))}
 
@@ -354,8 +356,10 @@ export default function SplitNodeEditor({ node, onParamsChange, mapping, onPrevi
                     className="ghost"
                     onClick={() => removeOption('destinationFieldName')}
                     title="Remove Destination Field Name"
-                    style={{ padding: '1px 5px', fontSize: 11, color: 'var(--muted)' }}
-                   style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    style={{ padding: '1px 5px', fontSize: 11, color: 'var(--muted)', display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                 </div>
                 <input
                   type="text"
@@ -383,8 +387,10 @@ export default function SplitNodeEditor({ node, onParamsChange, mapping, onPrevi
                   className="ghost"
                   onClick={() => removeOption('disableDotNotation')}
                   title="Remove Disable Dot Notation"
-                  style={{ padding: '1px 5px', fontSize: 11, color: 'var(--muted)' }}
-                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                  style={{ padding: '1px 5px', fontSize: 11, color: 'var(--muted)', display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
             )}
 
@@ -404,8 +410,10 @@ export default function SplitNodeEditor({ node, onParamsChange, mapping, onPrevi
                   className="ghost"
                   onClick={() => removeOption('includeBinary')}
                   title="Remove Include Binary"
-                  style={{ padding: '1px 5px', fontSize: 11, color: 'var(--muted)' }}
-                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                  style={{ padding: '1px 5px', fontSize: 11, color: 'var(--muted)', display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
             )}
           </div>
