@@ -121,6 +121,13 @@ class PgVectorStore(VectorStore):
     # --- VectorStore ------------------------------------------------------
 
     def ensure_collection(self, name: str, dim: int) -> str:
+        try:
+            dim_val = int(dim)
+            if dim_val <= 0 or dim_val > 10000:
+                raise ValueError(f"Collection dimension must be in 1..10000, got {dim_val}")
+        except (TypeError, ValueError) as err:
+            raise ValueError(f"Collection dimension must be a positive integer, got {dim!r}") from err
+
         conn = self._connect()
         try:
             self._ensure_extension(conn)
@@ -129,15 +136,15 @@ class PgVectorStore(VectorStore):
                 text(f"SELECT dim FROM {CATALOG_TABLE} WHERE name = :name"),
                 {"name": name},
             ).fetchone()
-            if row is not None and int(row[0]) != dim:
+            if row is not None and int(row[0]) != dim_val:
                 raise ValueError(
                     f"Collection '{name}' already exists with embedding dimension "
-                    f"{row[0]}; current model produces {dim}."
+                    f"{row[0]}; current model produces {dim_val}."
                 )
             if row is None:
                 conn.execute(
                     text(f"INSERT INTO {CATALOG_TABLE} (name, suffix, dim) VALUES (:n, :s, :d)"),
-                    {"n": name, "s": "", "d": dim},
+                    {"n": name, "s": "", "d": dim_val},
                 )
             suffix = _table_suffix(name)
             table = _table_name(suffix)
@@ -154,10 +161,10 @@ class PgVectorStore(VectorStore):
                     " doc_id TEXT NOT NULL DEFAULT '',"
                     " document TEXT NOT NULL,"
                     " metadata JSONB NOT NULL DEFAULT '{}'::jsonb,"
-                    " embedding vector(:dim) NOT NULL,"
+                    f" embedding vector({dim_val}) NOT NULL,"
                     " created_at TIMESTAMPTZ NOT NULL DEFAULT now()"
                     ")"
-                ), {"dim": dim})
+                ))
             # Cosine-space ANN index (operator class must match <=> usage).
             conn.execute(text(
                 f'CREATE INDEX IF NOT EXISTS "idx_{table}_emb" '
