@@ -93,10 +93,13 @@ def _vec_literal(vector: list[float]) -> str:
 
 
 def _jsonb(value: dict[str, Any]) -> Any:
-    """Wrap a metadata dict for JSONB binding through psycopg2."""
-    import psycopg2.extras
-
-    return psycopg2.extras.Json(value)
+    """Wrap a metadata dict for JSONB binding through psycopg/psycopg2."""
+    try:
+        from psycopg.types.json import Json
+        return Json(value)
+    except ImportError:
+        import psycopg2.extras
+        return psycopg2.extras.Json(value)
 
 
 @register_store

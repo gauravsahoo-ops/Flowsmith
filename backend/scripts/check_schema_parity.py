@@ -35,15 +35,24 @@ def _scratch_url(base_url: str, name: str) -> tuple[str, str]:
 
 
 def _create_drop_db(admin_url: str, db: str, create: bool) -> None:
-    import psycopg2
     from sqlalchemy.engine import make_url
 
     u = make_url(admin_url)
-    conn = psycopg2.connect(
-        host=u.host if u.host not in ("localhost", "") else "127.0.0.1",
-        port=u.port, user=u.username, password=u.password, dbname="postgres",
-    )
-    conn.autocommit = True
+    h = u.host if u.host not in ("localhost", "") else "127.0.0.1"
+    try:
+        import psycopg
+        conn = psycopg.connect(
+            host=h, port=u.port or 5432, user=u.username or "automate",
+            password=u.password or "automate", dbname="postgres",
+            autocommit=True,
+        )
+    except ImportError:
+        import psycopg2
+        conn = psycopg2.connect(
+            host=h, port=u.port or 5432, user=u.username or "automate",
+            password=u.password or "automate", dbname="postgres",
+        )
+        conn.autocommit = True
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db,))

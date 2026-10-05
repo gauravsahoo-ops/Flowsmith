@@ -197,6 +197,80 @@ class BuiltinProvider(BaseLLMProvider):
             content = f"I have committed this to session memory: \"{fact}\". I will retain it across all turns."
             return LLMResponse(content=content)
 
+        # Check if this is a workflow generation request (response_json or workflow prompt)
+        is_workflow_request = (
+            "workflow" in system_instruction.lower()
+            or "user request:" in user_message.lower()
+            or (response_format and response_format.get("type") in ("json_object", "json") and ("workflow" in user_message.lower() or "when a" in user_message.lower() or "build" in user_message.lower() or "salesforce" in user_message.lower()))
+        )
+        if is_workflow_request:
+            clean_prompt = user_message
+            if "USER REQUEST:" in clean_prompt:
+                clean_prompt = clean_prompt.split("USER REQUEST:")[1].split("EXISTING WORKFLOW")[0].strip()
+
+            from app.ai.compiler import WorkflowCompiler
+            from app.ai.intent import IntentEngine
+            from app.ai.ir import IRStep, IRTrigger, WorkflowIR
+
+            intent = IntentEngine._heuristic_intent(clean_prompt or "Automated Workflow", mode="build")
+
+            steps = []
+            step_count = 1
+            if "salesforce" in intent.systems:
+                steps.append(IRStep(
+                    id=f"step_{step_count}",
+                    name="Salesforce Action",
+                    system="salesforce",
+                    operation="get",
+                    parameters={"object_type": "Lead", "record_id": "{{$json.id}}"},
+                ))
+                step_count += 1
+            if intent.ai_tasks:
+                steps.append(IRStep(
+                    id=f"step_{step_count}",
+                    name="AI Scoring & Analysis",
+                    system="ai_agent",
+                    parameters={"instructions": f"Process task: {intent.goal}"},
+                ))
+                step_count += 1
+            if "postgres" in intent.systems or "database" in clean_prompt.lower():
+                steps.append(IRStep(
+                    id=f"step_{step_count}",
+                    name="PostgreSQL Sync",
+                    system="database_query",
+                    parameters={"operation": "execute", "query": "SELECT 1"},
+                ))
+                step_count += 1
+            if "msteams" in intent.systems or "teams" in clean_prompt.lower() or "slack" in intent.systems or "notify" in clean_prompt.lower():
+                dest_name = "Microsoft Teams Notification" if ("teams" in clean_prompt.lower() or "msteams" in intent.systems) else "Slack Notification"
+                steps.append(IRStep(
+                    id=f"step_{step_count}",
+                    name=dest_name,
+                    system="http_request",
+                    parameters={"url": "https://httpbin.org/post", "method": "POST"},
+                ))
+                step_count += 1
+
+            if not steps:
+                steps.append(IRStep(
+                    id="step_1",
+                    name="HTTP Webhook Delivery",
+                    system="http_request",
+                    parameters={"url": "https://httpbin.org/post", "method": "POST"},
+                ))
+
+            trigger_kind = intent.trigger.get("type", "webhook") if isinstance(intent.trigger, dict) else "webhook"
+            trig_params = {"path": "inbound-event", "method": "POST"} if trigger_kind == "webhook" else (
+                {"rule": {"cronExpression": "0 9 * * *", "timezone": "UTC"}} if trigger_kind == "schedule" else {}
+            )
+            ir = WorkflowIR(
+                name=f"{intent.goal[:40] or 'Automated Workflow'}",
+                trigger=IRTrigger(type=trigger_kind, parameters=trig_params),
+                steps=steps,
+            )
+            compiled_wf = WorkflowCompiler.compile_ir(ir)
+            return LLMResponse(content=json.dumps(compiled_wf))
+
         # Case 5: Default helpful response
         content = (
             f"Flowsmith Local Intelligence Engine (Zero-LLM Mode active).\n"

@@ -45,7 +45,12 @@ def _admin_engine(dsn: str):
     from sqlalchemy.engine import make_url
 
     url = make_url(dsn)
-    admin_url = url.set(database="postgres", drivername="postgresql+psycopg2")
+    driver = "postgresql+psycopg"
+    try:
+        import psycopg  # noqa: F401
+    except ImportError:
+        driver = "postgresql+psycopg2"
+    admin_url = url.set(database="postgres", drivername=driver)
     return create_engine(admin_url, isolation_level="AUTOCOMMIT")
 
 
