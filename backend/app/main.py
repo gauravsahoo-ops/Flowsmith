@@ -29,6 +29,7 @@ from app.api.common import ok
 from app.config import get_settings
 from app.db import get_session
 from app.metrics import http_duration, http_requests
+from app.telemetry.middleware import OpenTelemetryMiddleware
 
 logger = logging.getLogger("app.request")
 
@@ -251,6 +252,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(MetricsMiddleware)
+app.add_middleware(OpenTelemetryMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(SPAFallbackMiddleware)
 # CORS: wildcard with credentials is rejected in production (validate_production_settings)

@@ -82,10 +82,13 @@ class RedisJobQueue(QueueBackend):
         added = self._conn.sadd(EXECS_KEY, execution_id)
         if not added:
             return False  # execution already queued (idempotency guard)
+        from app.telemetry.tracer import inject_trace_context
+        payload_to_store = dict(payload)
+        inject_trace_context(payload_to_store)
         meta = {
             "status": _QUEUED,
             "execution_id": execution_id,
-            "payload": json.dumps(payload),
+            "payload": json.dumps(payload_to_store),
             "attempts": "0",
             "claimed_by": "",
             "claimed_at": "",

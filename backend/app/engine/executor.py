@@ -103,10 +103,18 @@ def _add_step(
     note: str | None = None,
     attempts: int = 1,
     retries: int = 0,
+    trace_id: str | None = None,
+    span_id: str | None = None,
+    memory_delta_kb: float | None = None,
 ) -> None:
-    # Phase 13 (workflow debugger): attempts/retries are structured so the
-    # UI can badge them without parsing the note text.
-    result.trace.append({
+    # Phase 13 (workflow debugger) & Roadmap C (Distributed Tracing):
+    # attempts/retries and W3C trace identifiers for execution waterfall
+    from app.telemetry.tracer import get_current_span_id, get_current_trace_id
+
+    current_trace = trace_id or get_current_trace_id()
+    current_span = span_id or get_current_span_id()
+
+    step_data: dict[str, Any] = {
         "node_id": node_id,
         "node_type": node_type,
         "status": status,
@@ -118,7 +126,15 @@ def _add_step(
         "note": note,
         "attempts": max(1, attempts),
         "retries": max(0, retries),
-    })
+    }
+    if current_trace:
+        step_data["trace_id"] = current_trace
+    if current_span:
+        step_data["span_id"] = current_span
+    if memory_delta_kb is not None:
+        step_data["memory_delta_kb"] = memory_delta_kb
+
+    result.trace.append(step_data)
 
 
 def _setting_float(settings: dict[str, Any], key: str) -> float | None:
@@ -303,13 +319,24 @@ async def _run_nodes(
 
     async def run_one(nid: str) -> None:
         gnode = graph[nid]
+        node = gnode.node
+        from app.telemetry.tracer import start_trace_span
+        node_name = getattr(node, "name", "") or getattr(node, "type", nid)
         try:
             async with sem:
                 seed = trigger_items if not gnode.input_connections else None
-                await _run_one(
-                    graph, gnode.node, gnode, seed, results, ctx, result, emit, cancelled,
-                    credential_resolver,
-                )
+                with start_trace_span(
+                    f"node.{node.type}",
+                    attributes={
+                        "node.id": str(node.id),
+                        "node.type": str(node.type),
+                        "node.name": str(node_name),
+                    },
+                ):
+                    await _run_one(
+                        graph, gnode.node, gnode, seed, results, ctx, result, emit, cancelled,
+                        credential_resolver,
+                    )
         except NodeExecutionError as exc:
             # Errors raised before _run_one's own handlers (e.g. credential
             # resolution) must still fail the run, not vanish into the task.
