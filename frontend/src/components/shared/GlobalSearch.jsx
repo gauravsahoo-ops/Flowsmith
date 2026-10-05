@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../../api'
 import { NodeIcon } from '../NodeIcons'
+import { setTheme } from '../../utils/theme'
 
 const QUICK_ACTIONS = [
   {
@@ -71,6 +72,52 @@ const QUICK_ACTIONS = [
     ),
   },
   {
+    id: 'act-theme-light',
+    title: 'Switch to Light Theme',
+    subtitle: 'Crisp high-contrast day mode (WCAG 2.2 AA)',
+    category: 'Theme & Appearance',
+    action: () => setTheme('light'),
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>
+    ),
+  },
+  {
+    id: 'act-theme-dark',
+    title: 'Switch to Dark Theme',
+    subtitle: 'Ultra-modern deep obsidian glass mode',
+    category: 'Theme & Appearance',
+    action: () => setTheme('dark'),
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#818cf8' }}>
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'act-theme-system',
+    title: 'Sync with System Theme',
+    subtitle: 'Automatically follow operating system preference',
+    category: 'Theme & Appearance',
+    action: () => setTheme('system'),
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#38bdf8' }}>
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+    ),
+  },
+  {
     id: 'act-settings',
     title: 'Workspace Settings & White-Label',
     subtitle: 'Custom branding, team, and security tokens',
@@ -100,9 +147,18 @@ export default function GlobalSearch({ open, onClose }) {
   const inputRef = useRef(null)
   const listRef = useRef(null)
   const navigate = useNavigate()
-  const go = useCallback((path) => {
+  const go = useCallback((target) => {
     onClose()
-    navigate(path)
+    if (!target) return
+    if (typeof target === 'function') {
+      target()
+    } else if (typeof target === 'string') {
+      navigate(target)
+    } else if (typeof target.action === 'function') {
+      target.action()
+    } else if (target.path) {
+      navigate(target.path)
+    }
   }, [onClose, navigate])
 
   useEffect(() => {
@@ -125,7 +181,8 @@ export default function GlobalSearch({ open, onClose }) {
 
   // Flatten active items for keyboard navigation (arrows + enter)
   const flatItems = useMemo(() => {
-    if (!query.trim()) {
+    const q = query.trim().toLowerCase()
+    if (!q) {
       return QUICK_ACTIONS.map(a => ({
         id: a.id,
         title: a.title,
@@ -133,10 +190,24 @@ export default function GlobalSearch({ open, onClose }) {
         category: a.category,
         kind: 'Action',
         path: a.path,
+        action: a.action,
         icon: a.icon,
       }))
     }
     const items = []
+    // Include matching quick actions (e.g. searching "light", "theme", "settings")
+    QUICK_ACTIONS.filter(a => `${a.title} ${a.subtitle} ${a.category}`.toLowerCase().includes(q)).forEach(a => {
+      items.push({
+        id: a.id,
+        title: a.title,
+        subtitle: a.subtitle,
+        category: a.category,
+        kind: 'Action',
+        path: a.path,
+        action: a.action,
+        icon: a.icon,
+      })
+    })
     results.workflows.forEach(w => {
       items.push({
         id: `wf-${w.id}`,
@@ -259,7 +330,7 @@ export default function GlobalSearch({ open, onClose }) {
         e.preventDefault()
         const selected = flatItems[selectedIndex]
         if (selected) {
-          go(selected.path)
+          go(selected)
         }
       }
     }
@@ -374,7 +445,7 @@ export default function GlobalSearch({ open, onClose }) {
                     key={item.id}
                     type="button"
                     className={`palette-item ${isSelected ? 'active' : ''}`}
-                    onClick={() => go(item.path)}
+                    onClick={() => go(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     style={{
                       display: 'flex',

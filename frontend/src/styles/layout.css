@@ -826,3 +826,34 @@
   color: #475569;
 }
 
+[data-theme="light"] .palette-overlay {
+  background: rgba(15, 23, 42, 0.45);
+}
+[data-theme="light"] .palette {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+[data-theme="light"] .palette-input {
+  color: #0f172a;
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+[data-theme="light"] .palette-input::placeholder {
+  color: #94a3b8;
+}
+[data-theme="light"] .palette-item {
+  color: #334155;
+}
+[data-theme="light"] .palette-item:hover,
+[data-theme="light"] .palette-item.active {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #0f172a;
+  box-shadow: none;
+}
+[data-theme="light"] .palette-foot {
+  background: #f8fafc;
+  border-top-color: rgba(15, 23, 42, 0.08);
+  color: #64748b;
+}
+
