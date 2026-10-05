@@ -59,7 +59,7 @@ function PortalMenu({ anchorRef, open, onClose, children }) {
       ref={menuRef}
       className="context-menu context-menu--portal"
       role="menu"
-      style={{ position: 'fixed', top: pos.top, left: pos.left, width: 180, maxWidth: '90vw', maxHeight: pos.maxHeight, overflowY: 'auto', zIndex: 40 }}
+      style={{ position: 'fixed', top: pos.top, left: pos.left, width: 185, maxWidth: '90vw', maxHeight: pos.maxHeight, overflowY: 'auto', zIndex: 9999 }}
     >
       {children}
     </div>,
@@ -177,16 +177,22 @@ function WorkflowRow({ wf, isPinned, onTogglePin, onOpen, onDuplicate, onDelete,
           </button>
           <button ref={buttonRef} className="ghost small" onClick={() => setMenuOpen(v => !v)} aria-label="More actions" aria-haspopup="menu" aria-expanded={menuOpen}>⋮</button>
           <PortalMenu anchorRef={buttonRef} open={menuOpen} onClose={() => setMenuOpen(false)}>
-            <button role="menuitem" autoFocus onClick={() => { setMenuOpen(false); onOpen(wf.id) }}>Open</button>
-            <button role="menuitem" onClick={() => { setMenuOpen(false); onTogglePin(wf) }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button role="menuitem" autoFocus onClick={() => { setMenuOpen(false); onOpen(wf.id) }} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              <span>Open</span>
+            </button>
+            <button role="menuitem" onClick={() => { setMenuOpen(false); onTogglePin(wf) }} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: isPinned ? '#fbbf24' : 'currentColor' }}>
                 <line x1="12" y1="17" x2="12" y2="22" />
                 <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6a3 3 0 0 0-6 0v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24Z" />
               </svg>
               <span>{isPinned ? 'Unpin from Top' : 'Pin to Top'}</span>
             </button>
-            <button role="menuitem" onClick={() => { setMenuOpen(false); onToggleActive(wf) }}>{wf.active ? 'Deactivate' : 'Activate'}</button>
-            <button role="menuitem" onClick={() => { setMenuOpen(false); onExport(wf) }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button role="menuitem" onClick={() => { setMenuOpen(false); onToggleActive(wf) }} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>{wf.active ? 'Deactivate' : 'Activate'}</span>
+            </button>
+            <button role="menuitem" onClick={() => { setMenuOpen(false); onExport(wf) }} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
@@ -194,9 +200,15 @@ function WorkflowRow({ wf, isPinned, onTogglePin, onOpen, onDuplicate, onDelete,
               </svg>
               <span>Download (JSON)</span>
             </button>
-            <button role="menuitem" onClick={() => { setMenuOpen(false); onDuplicate(wf) }}>Duplicate</button>
+            <button role="menuitem" onClick={() => { setMenuOpen(false); onDuplicate(wf) }} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>Duplicate</span>
+            </button>
             <div className="ctx-sep" />
-            <button role="menuitem" className="ctx-danger" onClick={() => { setMenuOpen(false); onDelete(wf) }}>Delete</button>
+            <button role="menuitem" className="ctx-danger" onClick={() => { setMenuOpen(false); onDelete(wf) }} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              <span>Delete</span>
+            </button>
           </PortalMenu>
         </div>
       </td>
