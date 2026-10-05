@@ -159,9 +159,26 @@ export default function DataTablesPage() {
               {sorted.map(tbl => (
                 <tr key={tbl.id} className="clickable" onClick={() => navigate(`/data-tables/${tbl.id}`)} tabIndex={0} onKeyDown={e => { if (e.key === 'Enter') navigate(`/data-tables/${tbl.id}`)}}>
                   <td>
-                    <strong>{tbl.name}</strong>
-                    {tbl.description && <div className="hint" style={{ fontSize: 11 }}>{tbl.description.slice(0,80)}</div>}
-                    <div className="hint" style={{ fontSize: 11 }}>{tbl.id.slice(0,8)}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        background: 'rgba(192, 132, 252, 0.12)',
+                        border: '1px solid rgba(192, 132, 252, 0.25)',
+                        display: 'grid', placeItems: 'center', color: '#c084fc', flexShrink: 0
+                      }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="18" height="18" x="3" y="3" rx="2" />
+                          <line x1="3" y1="9" x2="21" y2="9" />
+                          <line x1="3" y1="15" x2="21" y2="15" />
+                          <line x1="9" y1="3" x2="9" y2="21" />
+                        </svg>
+                      </div>
+                      <div>
+                        <strong style={{ color: '#f8fafc', fontSize: 13.5 }}>{tbl.name}</strong>
+                        {tbl.description && <div className="hint" style={{ fontSize: 11, marginTop: 2 }}>{tbl.description.slice(0, 80)}</div>}
+                        <div className="hint" style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', marginTop: 1, color: '#64748b' }}>{tbl.id.slice(0, 8)}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="hint">{tbl.columns?.length ?? 0} columns</td>
                   <td><span className="badge badge-muted">{tbl.row_count ?? 0} rows</span></td>

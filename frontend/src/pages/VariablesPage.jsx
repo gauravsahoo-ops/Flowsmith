@@ -91,9 +91,45 @@ export default function VariablesPage() {
                 const isConnStr = /DATABASE_URL|POSTGRES|MYSQL|MONGODB|REDIS|DSN|CONNECTION_STRING/i.test(v.key)
                 return (
                 <tr key={v.id}>
-                  <td><code>{v.key}</code></td>
-                  <td className={v.is_secret ? 'secret' : ''} style={{ fontFamily: 'monospace', fontSize: 12 }}>{v.is_secret ? '••••••' : v.value}</td>
-                  <td><span className="badge badge-muted">{v.is_secret ? 'secret' : 'plain'}</span></td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 6,
+                        background: v.is_secret ? 'rgba(245, 158, 11, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                        border: v.is_secret ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(99, 102, 241, 0.25)',
+                        display: 'grid', placeItems: 'center',
+                        color: v.is_secret ? '#fbbf24' : '#818cf8',
+                        flexShrink: 0
+                      }}>
+                        {v.is_secret ? (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        ) : (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                        )}
+                      </div>
+                      <code style={{ fontSize: 13, fontWeight: 600, color: '#f8fafc' }}>{v.key}</code>
+                      <button
+                        type="button"
+                        className="ghost small"
+                        title={`Copy snippet: {{ $env.${v.key} }}`}
+                        onClick={() => navigator.clipboard.writeText(`{{ $env.${v.key} }}`)}
+                        style={{ padding: '2px 6px', fontSize: 10, color: '#94a3b8', borderRadius: 4 }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </td>
+                  <td className={v.is_secret ? 'secret' : ''} style={{ fontFamily: 'monospace', fontSize: 12 }}>{v.is_secret ? '••••••••' : v.value}</td>
+                  <td>
+                    <span className={`badge ${v.is_secret ? 'badge-amber' : 'badge-muted'}`} style={{
+                      padding: '2px 7px', borderRadius: 99, fontSize: 10.5, fontWeight: 600,
+                      background: v.is_secret ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                      color: v.is_secret ? '#fbbf24' : '#94a3b8',
+                      border: v.is_secret ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)'
+                    }}>
+                      {v.is_secret ? 'secret' : 'plain'}
+                    </span>
+                  </td>
                   <td>
                     <button
                       className="ghost small"
