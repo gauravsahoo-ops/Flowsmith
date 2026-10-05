@@ -183,7 +183,22 @@ export default function TemplatesPage() {
             return (
               <div key={t.id} className="template-card">
                 <div className="template-card-head">
-                  <strong style={{ fontSize: 14.5, color: '#f8fafc', lineHeight: 1.3 }}>{t.name}</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: `${catColor}18`,
+                      border: `1px solid ${catColor}33`,
+                      display: 'grid', placeItems: 'center',
+                      color: catColor, flexShrink: 0
+                    }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                        <polyline points="2 17 12 22 22 17" />
+                        <polyline points="2 12 12 17 22 12" />
+                      </svg>
+                    </div>
+                    <strong style={{ fontSize: 14.5, color: '#f8fafc', lineHeight: 1.3 }}>{t.name}</strong>
+                  </div>
                   {t.is_mine && <span className="badge badge-muted">yours</span>}
                 </div>
                 {t.description && (
