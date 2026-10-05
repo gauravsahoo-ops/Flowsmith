@@ -26,17 +26,23 @@ export default function AppShell({ onLogout }) {
     return () => window.removeEventListener('flowsmith_user_updated', onUserUpdate)
   }, [])
 
-  // Global shortcut for search (Ctrl+K or Cmd+K)
+  // Global shortcut for search (Ctrl+K or Cmd+K) and sidebar toggle (Ctrl+B or Cmd+B)
   useEffect(() => {
     const onKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setSearchOpen((prev) => !prev)
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b' && !e.shiftKey && !e.altKey) {
+        const tag = document.activeElement?.tagName?.toLowerCase()
+        if (tag !== 'input' && tag !== 'textarea' && !document.activeElement?.isContentEditable) {
+          e.preventDefault()
+          toggleCollapsed()
+        }
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [toggleCollapsed])
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed(v => {
