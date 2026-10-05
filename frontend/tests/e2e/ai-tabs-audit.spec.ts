@@ -26,6 +26,33 @@ test.describe('AI Copilot & Autonomous Agent E2E Audit', () => {
     await page.goto('http://localhost:5173');
     await page.evaluate((t) => localStorage.setItem('mat_token', t), token);
 
+    // Ensure hermetic AI status response
+    await page.route('**/api/ai/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            configured: true,
+            active: {
+              id: 'cred_mock_or',
+              name: 'OpenRouter Production',
+              provider: 'openrouter',
+              model: 'anthropic/claude-3.5-sonnet',
+            },
+            credentials: [
+              {
+                id: 'cred_mock_or',
+                name: 'OpenRouter Production',
+                provider: 'openrouter',
+                model: 'anthropic/claude-3.5-sonnet',
+              },
+            ],
+          },
+        }),
+      });
+    });
+
     // Fallback if upstream external LLM quota is exhausted
     await page.route('**/api/ai/intent', async (route) => {
       try {
