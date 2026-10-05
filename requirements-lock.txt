@@ -123,6 +123,8 @@ pluggy==1.6.0
 propcache==0.5.2
 proto-plus==1.28.1
 protobuf==5.29.6
+psycopg==3.3.6
+psycopg-binary==3.3.6
 psycopg2-binary==2.9.12
 pyarrow==23.0.1
 pyasn1==0.6.4
