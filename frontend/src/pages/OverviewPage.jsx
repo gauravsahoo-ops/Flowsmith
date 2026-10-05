@@ -54,6 +54,18 @@ function Icon({ name, size = 20, color = 'currentColor' }) {
           <line x1="9" y1="11" x2="13" y2="11" />
         </svg>
       )
+    case 'health':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+      )
+    case 'ai':
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+        </svg>
+      )
     case 'plus':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -332,6 +344,36 @@ export default function OverviewPage() {
         </>}
       />
 
+      {/* Executive Quick Launcher Banner */}
+      <section className="overview-hero-card">
+        <div className="overview-hero-left">
+          <div className="overview-hero-badge">
+            <span className="dot pulse" />
+            <span>Autonomous Automation Engine</span>
+          </div>
+          <h2 className="overview-hero-heading">
+            Enterprise Workflow Orchestration
+          </h2>
+          <p className="overview-hero-sub">
+            Connect 88+ multi-system integrations, automate real-time data flows, and build with AI agents.
+          </p>
+          <div className="overview-hero-btn-row">
+            <button className="primary" onClick={() => navigate('/workflows')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>New Workflow</span>
+            </button>
+            <button className="ghost overview-hero-ai-btn" onClick={() => navigate('/ai')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="ai" size={14} color="#a855f7" />
+              <span>AI Workflow Copilot</span>
+            </button>
+            <button className="ghost" onClick={() => navigate('/integrations')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><rect x="8" y="8" width="8" height="8" rx="2"/></svg>
+              <span>88+ Integrations</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section className="stat-grid">
         <StatCard
           iconName="workflows"
@@ -348,6 +390,14 @@ export default function OverviewPage() {
           value={loading ? '…' : executions.length}
           hint={failedRecent ? `${failedRecent} failed` : 'All recent runs fetched'}
           onClick={() => navigate('/executions')}
+        />
+        <StatCard
+          iconName="health"
+          iconColor="#10b981"
+          label="Success Rate"
+          value={loading ? '…' : executions.length ? `${Math.round(((executions.length - failedRecent) / executions.length) * 100)}%` : '100%'}
+          hint="Operational telemetry"
+          onClick={() => navigate('/monitoring')}
         />
         <StatCard
           iconName="credentials"
