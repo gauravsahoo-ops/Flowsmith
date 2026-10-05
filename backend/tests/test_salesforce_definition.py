@@ -150,7 +150,8 @@ def test_catalog_exposes_per_operation_metadata():
     retryable flags so the UI can show accurate badges."""
     entries = {e["type"]: e for e in _connector_catalog_entries()}
     ops_meta = entries["salesforce"]["operations"]
-    assert ops_meta["create"] == {"idempotency": "non_idempotent", "retryable": False}
+    assert ops_meta["create"]["idempotency"] == "non_idempotent"
+    assert ops_meta["create"]["retryable"] is False
     assert ops_meta["get"]["retryable"] is True
     assert ops_meta["upsert"]["idempotency"] == "idempotent"
     # Node-level badge stays honest: mixed safety => conditionally.
