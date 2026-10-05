@@ -465,9 +465,45 @@ export default function WorkflowsPage() {
 
       {loading ? <LoadingSkeleton rows={6} /> : filtered.length === 0 ? (
         workflows.length === 0 ? (
-          <EmptyState icon="workflows" title="No workflows yet" description="Create your first workflow to start automating." action={<button className="primary" onClick={handleCreateBlank}>Create workflow</button>} secondaryAction={<button className="ghost" onClick={() => navigate('/templates')}>Browse templates</button>} />
+          <EmptyState
+            icon="workflows"
+            badge="Workspace Ready"
+            title="Create your first automated workflow"
+            description="Build resilient multi-step pipelines connecting 88+ connectors, REST APIs, and autonomous AI agents."
+            guidance="Start with a blank canvas, create via AI Builder, or clone from pre-built production templates."
+            highlights={[
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2"/></svg>
+                ),
+                title: 'Visual DAG Canvas',
+                desc: 'Drag & drop triggers, conditionals, transforms, and parallel branches.',
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+                ),
+                title: 'AI Copilot & Agents',
+                desc: 'Prompt-to-workflow generation and multi-agent cognitive swarms.',
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><rect x="8" y="8" width="8" height="8" rx="2"/></svg>
+                ),
+                title: '88+ Integrations',
+                desc: 'Native connectors for Slack, Salesforce, HubSpot, Stripe, OpenAI, and more.',
+              },
+            ]}
+            action={<button className="primary" onClick={handleCreateBlank} disabled={busy}>Create blank workflow</button>}
+            secondaryAction={<button className="ghost" onClick={() => navigate('/templates')}>Browse templates</button>}
+          />
         ) : (
-          <EmptyState icon="search" title="No matches" description={`No workflows match “${search}” or the current filter.`} action={<button className="ghost" onClick={() => { setSearch(''); setFilterActive('all') }}>Clear filters</button>} />
+          <EmptyState
+            icon="search"
+            title="No matching workflows"
+            description={`No workflows match “${search}” with the current filter.`}
+            action={<button className="ghost" onClick={() => { setSearch(''); setFilterActive('all') }}>Reset filters</button>}
+          />
         )
       ) : (
         <>

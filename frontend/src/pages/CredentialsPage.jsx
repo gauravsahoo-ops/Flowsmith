@@ -457,7 +457,47 @@ export default function CredentialsPage() {
       )}
 
       {loading ? <LoadingSkeleton rows={4} /> : filtered.length === 0 ? (
-        credentials.length === 0 ? <EmptyState icon="credentials" title="No credentials yet" description="Add a credential to connect workflows to external services. Secrets are encrypted at rest." /> : <EmptyState icon="search" title="No matches" description="No credentials match your search." />
+        credentials.length === 0 ? (
+          <EmptyState
+            icon="credentials"
+            badge="Vault Encrypted"
+            title="No credentials configured yet"
+            description="Securely store API keys, OAuth2 tokens, and database credentials with AES-256 GCM encryption at rest."
+            guidance="Secrets are injected strictly at execution runtime and are never exposed in logs or canvas state."
+            highlights={[
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                ),
+                title: 'AES-256 GCM Storage',
+                desc: 'Hardware-grade cryptographic security for sensitive tokens and passwords.',
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m15.5 7.5 3 3L22 7l-3-3"/><circle cx="7.5" cy="16.5" r="4.5"/><line x1="10.5" y1="13.5" x2="17" y2="7"/></svg>
+                ),
+                title: 'Native OAuth2 Flows',
+                desc: 'One-click consent for Salesforce, HubSpot, Google, and Microsoft.',
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                ),
+                title: 'Automated Token Refresh',
+                desc: 'Silent background refresh before expiration ensures zero pipeline downtime.',
+              },
+            ]}
+            action={<button className="primary" onClick={() => { document.querySelector('.credentials-page section.card:last-of-type')?.scrollIntoView({ behavior: 'smooth' }) }}>Add first credential</button>}
+            secondaryAction={<button className="ghost" onClick={() => navigate('/integrations')}>Explore 88+ integrations</button>}
+          />
+        ) : (
+          <EmptyState
+            icon="search"
+            title="No credentials match"
+            description={`No credentials match “${search}” with type filter “${typeFilter}”.`}
+            action={<button className="ghost" onClick={() => { setSearch(''); setTypeFilter('all') }}>Clear search</button>}
+          />
+        )
       ) : (
         <div className="table-wrap">
           <table className="data-table">

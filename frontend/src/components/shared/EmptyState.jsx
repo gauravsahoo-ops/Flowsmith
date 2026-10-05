@@ -113,17 +113,53 @@ function toSafeText(val) {
   return String(val)
 }
 
-export default function EmptyState({ icon = "inbox", title, description, action, secondaryAction }) {
+export default function EmptyState({
+  icon = "inbox",
+  badge,
+  title,
+  description,
+  guidance,
+  highlights,
+  action,
+  secondaryAction
+}) {
   const safeTitle = toSafeText(title)
   const safeDesc = toSafeText(description)
 
   return (
     <div className="empty-state">
+      {badge && <span className="empty-badge">{badge}</span>}
       <div className="empty-icon-box">
         {getIconComponent(icon, 26)}
       </div>
       <h3 className="empty-title">{safeTitle}</h3>
       {safeDesc && <p className="empty-description">{safeDesc}</p>}
+
+      {guidance && (
+        <div className="empty-guidance-note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1, color: 'var(--accent, #6366f1)' }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <div>{guidance}</div>
+        </div>
+      )}
+
+      {Array.isArray(highlights) && highlights.length > 0 && (
+        <div className="empty-highlights-grid">
+          {highlights.map((item, idx) => (
+            <div key={idx} className="empty-highlight-card">
+              {item.icon && <div className="empty-highlight-icon">{item.icon}</div>}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="empty-highlight-title">{item.title}</div>
+                {item.desc && <div className="empty-highlight-desc">{item.desc}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {(action || secondaryAction) && (
         <div className="empty-actions">
           {action}

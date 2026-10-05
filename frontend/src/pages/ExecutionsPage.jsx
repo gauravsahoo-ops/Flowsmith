@@ -111,7 +111,47 @@ export default function ExecutionsPage() {
       {error && <div className="banner-inline err">{error}</div>}
 
       {loading ? <LoadingSkeleton rows={8} /> : execs.length === 0 ? (
-        <EmptyState icon="executions" title="No executions" description={status || workflowId ? "No executions match the current filters." : "Run a workflow to see executions here."} action={status || workflowId ? <button className="ghost" onClick={() => updateFilters('', '')}>Clear filters</button> : <button className="ghost" onClick={() => navigate('/workflows')}>Go to workflows</button>} />
+        status || workflowId ? (
+          <EmptyState
+            icon="search"
+            title="No matching executions"
+            description="No execution records match the selected status or workflow filter."
+            action={<button className="ghost" onClick={() => updateFilters('', '')}>Clear filters</button>}
+          />
+        ) : (
+          <EmptyState
+            icon="executions"
+            badge="Telemetry Active"
+            title="No workflow executions yet"
+            description="When your workflows run via manual trigger, webhook, cron schedule, or API call, their step traces appear here."
+            guidance="Executions track millisecond step durations, payloads, retries, and full debug error stacks."
+            highlights={[
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                ),
+                title: 'Live Run Tracing',
+                desc: 'Inspect in-flight and completed runs with per-node input/output inspection.',
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                ),
+                title: 'Instant Replay',
+                desc: 'Re-execute failed runs with modified parameters or auto-repair diagnostics.',
+              },
+              {
+                icon: (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                ),
+                title: 'Audit & Compliance',
+                desc: 'Immutable cryptographic execution logs with actor attribution.',
+              },
+            ]}
+            action={<button className="primary" onClick={() => navigate('/workflows')}>Go to workflows to run</button>}
+            secondaryAction={<button className="ghost" onClick={() => navigate('/monitoring')}>View system health</button>}
+          />
+        )
       ) : (
         <>
           <div className="table-wrap">
