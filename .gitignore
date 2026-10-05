@@ -66,3 +66,6 @@ USER_MANUAL.md
 start.bat
 stop.bat
 restart.bat
+
+# User archive / backups
+files.zip
