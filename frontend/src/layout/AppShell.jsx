@@ -156,12 +156,13 @@ export default function AppShell({ onLogout }) {
                   padding: '5px 12px',
                   fontSize: 12,
                   fontWeight: 600,
-                  background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
-                  borderRadius: 7,
-                  boxShadow: '0 2px 10px rgba(99, 102, 241, 0.35)',
-                  border: 'none',
+                  background: 'var(--accent, #6366f1)',
+                  borderRadius: 6,
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
                   color: '#fff',
                   cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
