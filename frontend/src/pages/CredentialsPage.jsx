@@ -659,32 +659,29 @@ export default function CredentialsPage() {
                               <span>{testingId === c.id ? 'Testing connection…' : 'Test Connection'}</span>
                             </button>
 
-                            <button
-                              type="button"
-                              className="ghost small cred-menu-item"
-                              role="menuitem"
-                              onClick={() => {
-                                setOpenMenuId(null)
-                                if (c.type === 'llm') {
-                                  setLlmModalData(c)
-                                  setLlmModalOpen(true)
-                                } else {
+                            {!['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs', 'llm'].includes(c.type) && !c.type.startsWith('google_') && (
+                              <button
+                                type="button"
+                                className="ghost small cred-menu-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
                                   setEditTarget(c)
                                   setEditName(c.name)
                                   setEditData({})
                                   setEditModalOpen(true)
-                                }
-                              }}
-                              title={c.type === 'llm' ? "Configure LLM provider & models" : "Rotate secrets or edit credential"}
-                            >
-                              <span className="cred-menu-item-icon" style={{ color: '#94a3b8' }}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                              </span>
-                              <span>{c.type === 'llm' ? 'Configure Provider' : 'Edit Credential'}</span>
-                            </button>
+                                }}
+                                title="Rotate secrets or edit credential"
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: '#94a3b8' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                  </svg>
+                                </span>
+                                <span>Edit Credential</span>
+                              </button>
+                            )}
 
                             {c.type === 'llm' && (
                               <button
@@ -696,7 +693,7 @@ export default function CredentialsPage() {
                                   setLlmModalData(c)
                                   setLlmModalOpen(true)
                                 }}
-                                title="Open LLM Model Discovery & Provider Settings"
+                                title="Configure LLM provider & discover available models"
                               >
                                 <span className="cred-menu-item-icon" style={{ color: '#818cf8' }}>
                                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -705,7 +702,7 @@ export default function CredentialsPage() {
                                     <polyline points="2 12 12 17 22 12" />
                                   </svg>
                                 </span>
-                                <span>Model Discovery</span>
+                                <span>Configure Provider & Models</span>
                               </button>
                             )}
 
