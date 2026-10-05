@@ -150,7 +150,7 @@ def test_factory_selects_db_by_default(tmp_path, monkeypatch):
     from app.config import get_settings
     from app.queue import reset_queue
 
-    monkeypatch.delenv("QUEUE_BACKEND", raising=False)
+    monkeypatch.setenv("QUEUE_BACKEND", "db")
     get_settings.cache_clear()
     reset_queue()
     try:
