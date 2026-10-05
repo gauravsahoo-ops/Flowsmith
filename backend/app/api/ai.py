@@ -103,20 +103,23 @@ class WorkflowRefRequest(BaseModel):
 
 
 def _llm_credentials(db: Session, user: User, credential_id: str | None) -> list[dict]:
-    metas = [m for m in credential_service.list_for_user(db, user.id) if m["type"] in ("llm", "openai", "anthropic")]
+    allowed_types = ("llm", "openai", "anthropic", "ollama")
+    metas = [m for m in credential_service.list_for_user(db, user.id) if m["type"] in allowed_types]
     if credential_id is not None:
         metas = [m for m in metas if m["id"] == credential_id]
     resolved: list[dict] = []
     for meta in metas:
+        mtype = meta.get("type", "llm")
         try:
-            data = credential_service.resolve_credentials(db, user.id, {"llm": meta["id"]})
-            cred_dict = {"id": meta["id"], "name": meta.get("name"), **data["llm"]}
+            data = credential_service.resolve_credentials(db, user.id, {mtype: meta["id"]})
+            cred_data = data.get(mtype) or data.get("llm") or {}
+            cred_dict = {"id": meta["id"], "name": meta.get("name"), **cred_data}
             # Synchronize model and provider fields with dynamic LLM platform
             sel_model = cred_dict.get("selected_model")
             if sel_model:
                 cred_dict["model"] = sel_model
-            if not cred_dict.get("provider") and cred_dict.get("provider_id"):
-                cred_dict["provider"] = cred_dict["provider_id"]
+            if not cred_dict.get("provider"):
+                cred_dict["provider"] = cred_dict.get("provider_id") or mtype
             resolved.append(cred_dict)
         except credential_service.CredentialError:
             continue
@@ -246,12 +249,34 @@ async def generate_workflow(
             existing_workflow=body.existing_workflow,
             history=body.history,
         )
-    except GenerationError as exc:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
-            {"message": exc.message, "validation": exc.validation},
-        )
-    except LLMError as exc:
+    except (GenerationError, LLMError) as exc:
+        if llm.get("provider") != "builtin":
+            try:
+                builtin_llm = {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
+                result = await generate_workflow_spec(
+                    body.prompt,
+                    available_credentials=available_credentials,
+                    chat=chat_completion,
+                    llm=builtin_llm,
+                    existing_workflow=body.existing_workflow,
+                    history=body.history,
+                )
+                log_event(db, AI_GENERATE, target_type="ai", user_id=user.id,
+                          detail={"prompt": body.prompt[:200], "attempts": result["attempts"], "fallback": "builtin",
+                                  "warnings": len(result["validation"]["warnings"])})
+                return ok({
+                    "workflow": result["workflow"],
+                    "validation": result["validation"],
+                    "attempts": result["attempts"],
+                    "fallback_used": "builtin",
+                })
+            except Exception:
+                pass
+        if isinstance(exc, GenerationError):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                {"message": exc.message, "validation": exc.validation},
+            )
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
     log_event(db, AI_GENERATE, target_type="ai", user_id=user.id,
               detail={"prompt": body.prompt[:200], "attempts": result["attempts"],

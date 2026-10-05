@@ -109,31 +109,56 @@ _prompt_cache: str | None = None
 _prompt_cache_ts: float = 0.0
 
 
-def build_planner_catalog() -> dict[str, Any]:
-    """Build the planner catalog with a 60-second TTL cache."""
+def build_planner_catalog(query: str | None = None) -> dict[str, Any]:
+    """Build the planner catalog with a 60-second TTL cache, optionally focused on query terms."""
     global _catalog_cache, _catalog_cache_ts
     import time
     now = time.monotonic()
-    if _catalog_cache is not None and now - _catalog_cache_ts < 60:
+    if _catalog_cache is None or now - _catalog_cache_ts >= 60:
+        _catalog_cache = {"nodes": build_node_entries(), "connectors": build_connector_entries()}
+        _catalog_cache_ts = now
+
+    if not query:
         return _catalog_cache
-    _catalog_cache = {"nodes": build_node_entries(), "connectors": build_connector_entries()}
-    _catalog_cache_ts = now
-    return _catalog_cache
+
+    q = query.lower()
+    core_types = {
+        "webhook", "manual_trigger", "schedule", "error_trigger",
+        "http_request", "if_condition", "code_javascript", "code_python",
+        "email_send", "ai_agent", "transform", "data_table",
+    }
+    all_nodes = _catalog_cache["nodes"]
+    filtered_nodes = [
+        n for n in all_nodes
+        if n["type"] in core_types or n["type"] in q or n["display_name"].lower() in q
+    ]
+
+    all_connectors = _catalog_cache["connectors"]
+    matched_conns = [
+        c for c in all_connectors
+        if c["connector"] in q or c["display_name"].lower() in q
+    ]
+    if not matched_conns:
+        # Default connectors fallback if no explicit connector name in query
+        default_keys = {"slack", "http", "email", "database", "github"}
+        matched_conns = [c for c in all_connectors if c["connector"] in default_keys]
+
+    return {"nodes": filtered_nodes, "connectors": matched_conns}
 
 
-def render_system_prompt(catalog: dict[str, Any] | None = None) -> str:
+def render_system_prompt(catalog: dict[str, Any] | None = None, query: str | None = None) -> str:
     """The generation system prompt, rendered from live registries.
 
     Rules section pins the anti-invention contract and the response shape.
     """
     global _prompt_cache, _prompt_cache_ts
     import time
-    if catalog is None:
+    if catalog is None and not query:
         now = time.monotonic()
         if _prompt_cache is not None and now - _prompt_cache_ts < 60:
             return _prompt_cache
 
-    actual_catalog = catalog or build_planner_catalog()
+    actual_catalog = catalog or build_planner_catalog(query=query)
     payload = json.dumps(actual_catalog, ensure_ascii=False, sort_keys=True)
     rendered = (
         "You generate workflows for a workflow automation platform.\n"
@@ -158,7 +183,7 @@ def render_system_prompt(catalog: dict[str, Any] | None = None) -> str:
         "- Never invent credentials, connection strings or secrets.\n\n"
         f"AVAILABLE NODES AND CONNECTORS:\n{payload}"
     )
-    if catalog is None:
+    if catalog is None and not query:
         _prompt_cache = rendered
         _prompt_cache_ts = time.monotonic()
     return rendered

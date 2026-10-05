@@ -54,7 +54,7 @@ async def generate_workflow_spec(
     Raises GenerationError (carrying the last validation report) when no
     valid candidate emerges within `max_attempts`.
     """
-    system = render_system_prompt()
+    system = render_system_prompt(query=prompt)
     messages: list[dict[str, str]] = [
         {"role": "system", "content": system},
     ]
@@ -194,28 +194,83 @@ def _parse_candidate(content: str) -> dict[str, Any] | None:
     if not isinstance(parsed, dict) or not isinstance(parsed.get("nodes"), list):
         return None
 
+    # Filter to valid dict nodes
+    parsed["nodes"] = [n for n in parsed["nodes"] if isinstance(n, dict)]
+    if not parsed["nodes"]:
+        return None
+
+    # Ensure all nodes have valid unique IDs
+    seen_ids: set[str] = set()
     for idx, node in enumerate(parsed["nodes"]):
-        if isinstance(node, dict):
-            if "position" not in node or not isinstance(node["position"], dict):
-                node["position"] = {"x": 80 + (idx * 280), "y": 160}
-            if "parameters" not in node or not isinstance(node["parameters"], dict):
-                node["parameters"] = {}
-            if "settings" not in node or not isinstance(node["settings"], dict):
-                node["settings"] = {}
+        nid = str(node.get("id") or "").strip()
+        if not nid or nid in seen_ids:
+            nid = f"node_{idx + 1}_{uuid.uuid4().hex[:6]}"
+            node["id"] = nid
+        seen_ids.add(nid)
 
-            # Ensure trigger node paths meet the 24+ character security entropy
-            ntype = str(node.get("type") or "")
-            if ntype in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
-                params = node["parameters"]
-                curr_path = str(params.get("path") or "")
-                clean_prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr_path)[:12] or "hook"
-                if len(curr_path) < 24:
-                    params["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:18]}"
+    # Ensure at least one trigger node exists
+    trigger_types = {"manual_trigger", "webhook", "schedule", "salesforce_trigger", "error_trigger", "chat_trigger", "form_trigger"}
+    has_trigger = any(n.get("type") in trigger_types for n in parsed["nodes"])
+    if not has_trigger:
+        trig_type = "webhook" if "webhook" in text.lower() else ("schedule" if "schedule" in text.lower() or "every" in text.lower() else "manual_trigger")
+        trig_id = f"trig_{uuid.uuid4().hex[:6]}"
+        trig_node = {
+            "id": trig_id,
+            "type": trig_type,
+            "position": {"x": 80, "y": 160},
+            "parameters": {"path": f"hook-{uuid.uuid4().hex[:18]}"} if trig_type == "webhook" else {},
+            "settings": {},
+        }
+        parsed["nodes"].insert(0, trig_node)
 
+    for idx, node in enumerate(parsed["nodes"]):
+        if "position" not in node or not isinstance(node["position"], dict):
+            node["position"] = {"x": 80 + (idx * 280), "y": 160}
+        if "parameters" not in node or not isinstance(node["parameters"], dict):
+            node["parameters"] = {}
+        if "settings" not in node or not isinstance(node["settings"], dict):
+            node["settings"] = {}
+
+        # Ensure trigger node paths meet the 24+ character security entropy
+        ntype = str(node.get("type") or "")
+        if ntype in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
+            params = node["parameters"]
+            curr_path = str(params.get("path") or "")
+            clean_prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr_path)[:12] or "hook"
+            if len(curr_path) < 24:
+                params["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:18]}"
+
+    # Validate and repair connections
+    valid_ids = {n["id"] for n in parsed["nodes"]}
+    type_to_id = {n["type"]: n["id"] for n in parsed["nodes"] if n.get("type")}
+    raw_conns = parsed.get("connections")
+    fixed_conns: list[dict[str, Any]] = []
+
+    if isinstance(raw_conns, list):
+        for c in raw_conns:
+            if not isinstance(c, dict):
+                continue
+            src = c.get("source")
+            tgt = c.get("target")
+            if src not in valid_ids and src in type_to_id:
+                src = type_to_id[src]
+            if tgt not in valid_ids and tgt in type_to_id:
+                tgt = type_to_id[tgt]
+            if src in valid_ids and tgt in valid_ids and src != tgt:
+                fixed_conns.append({**c, "source": src, "target": tgt})
+
+    # If connections are empty or broke, chain sequentially
+    if not fixed_conns and len(parsed["nodes"]) >= 2:
+        for i in range(len(parsed["nodes"]) - 1):
+            fixed_conns.append({
+                "source": parsed["nodes"][i]["id"],
+                "target": parsed["nodes"][i + 1]["id"],
+            })
+
+    parsed["connections"] = fixed_conns
     if not parsed.get("id"):
         parsed["id"] = f"wf_{uuid.uuid4().hex[:12]}"
     parsed.setdefault("name", "Generated workflow")
-    parsed.setdefault("connections", [])
     parsed.setdefault("settings", {})
     parsed["status"] = "draft"  # never born active
     return parsed

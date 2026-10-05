@@ -79,11 +79,11 @@ async def chat_completion(
     )
     api_key = credential.get("api_key") or ""
     base_url = str(credential.get("base_url") or "").rstrip("/")
-    timeout_s = float(credential.get("timeout_s") or 60.0)
+    timeout_s = float(credential.get("timeout_s") or (120.0 if prov_name == "ollama" else 60.0))
 
     # Route specialized non-OpenAI or local builtin providers via provider classes
     if (
-        prov_name in ("anthropic", "gemini", "builtin", "local_ai", "offline", "mock")
+        prov_name in ("anthropic", "gemini", "ollama", "builtin", "local_ai", "offline", "mock")
         or model.startswith(("claude", "gemini", "builtin"))
         or model in ("builtin", "local-ai")
         or (prov_name == "builtin")
@@ -158,6 +158,9 @@ async def chat_completion(
                 base_url = "https://api.cohere.com/v2"
             else:
                 base_url = "https://api.openai.com/v1"
+
+    if prov_name == "ollama" and not base_url.endswith("/v1"):
+        base_url = f"{base_url}/v1"
 
     payload: dict[str, Any] = {
         "model": model,
