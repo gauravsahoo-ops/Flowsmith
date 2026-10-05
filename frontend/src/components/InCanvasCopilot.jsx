@@ -4,11 +4,11 @@ import { api } from '../api'
 import { toWorkflowJson } from '../mappers'
 
 const QUICK_ACTIONS = [
-  { id: 'layout', label: '📐 Auto-Layout', prompt: 'Auto-layout the canvas graph' },
-  { id: 'slack', label: '💬 Add Slack Alert', prompt: 'Add a Slack notification step on failure' },
-  { id: 'retry', label: '🛡️ Add Retry Policy', prompt: 'Add exponential backoff retries to network calls' },
-  { id: 'explain', label: '💡 Explain Workflow', prompt: 'Explain this workflow in business and technical terms' },
-  { id: 'optimize', label: '⚡ Optimize Reliability', prompt: 'Optimize this workflow for reliability and fault tolerance' },
+  { id: 'layout', label: 'Auto-Layout', prompt: 'Auto-layout the canvas graph' },
+  { id: 'slack', label: 'Add Slack Alert', prompt: 'Add a Slack notification step on failure' },
+  { id: 'retry', label: 'Add Retry Policy', prompt: 'Add exponential backoff retries to network calls' },
+  { id: 'explain', label: 'Explain Workflow', prompt: 'Explain this workflow in business and technical terms' },
+  { id: 'optimize', label: 'Optimize Reliability', prompt: 'Optimize this workflow for reliability and fault tolerance' },
 ]
 
 export default function InCanvasCopilot({ open, onClose, onAutoLayout, fitView }) {
@@ -167,18 +167,16 @@ export default function InCanvasCopilot({ open, onClose, onAutoLayout, fitView }
       <div
         className="in-canvas-copilot-card"
         style={{
-          background: 'var(--panel, rgba(15, 20, 32, 0.95))',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(99, 102, 241, 0.35)',
-          borderRadius: 14,
+          background: 'var(--panel)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg, 10px)',
           padding: '12px 14px',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 25px rgba(99, 102, 241, 0.2)',
+          boxShadow: 'var(--shadow-modal)',
         }}
       >
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
               style={{
                 display: 'inline-flex',
@@ -186,28 +184,29 @@ export default function InCanvasCopilot({ open, onClose, onAutoLayout, fitView }
                 justifyContent: 'center',
                 width: 22,
                 height: 22,
-                borderRadius: 6,
-                background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-                color: '#fff',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.4)',
+                borderRadius: 'var(--radius-xs, 4px)',
+                background: 'var(--accent-subtle, rgba(79, 70, 229, 0.1))',
+                color: 'var(--accent, #6366f1)',
+                border: '1px solid rgba(99, 102, 241, 0.25)',
               }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
               </svg>
             </span>
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text, #f8fafc)' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text)' }}>
               In-Canvas AI Copilot
             </span>
             <span
               style={{
                 fontSize: 10,
-                fontWeight: 600,
+                fontWeight: 500,
                 padding: '1px 6px',
-                borderRadius: 4,
-                background: 'rgba(99, 102, 241, 0.15)',
-                color: 'var(--accent, #818cf8)',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
+                borderRadius: 'var(--radius-xs, 3px)',
+                background: 'var(--panel-2)',
+                color: 'var(--text-muted, #94a3b8)',
+                border: '1px solid var(--border)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
               }}
@@ -222,10 +221,10 @@ export default function InCanvasCopilot({ open, onClose, onAutoLayout, fitView }
               type="button"
               className="ghost small"
               onClick={onClose}
-              style={{ width: 24, height: 24, padding: 0, display: 'grid', placeItems: 'center', borderRadius: 6 }}
+              style={{ width: 22, height: 22, padding: 0, display: 'grid', placeItems: 'center', borderRadius: 'var(--radius-xs, 4px)' }}
               aria-label="Close copilot"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>

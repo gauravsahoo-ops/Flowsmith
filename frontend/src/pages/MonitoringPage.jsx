@@ -38,13 +38,13 @@ function renderStatIcon(type) {
 
 function MonitoringStatCard({ title, value, subtitle, color, icon }) {
   return (
-    <div className="monitoring-card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{title}</span>
-        <span style={{ fontSize: 15, width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: `${color}18`, color, border: `1px solid ${color}33` }}>{icon}</span>
+    <div className="monitoring-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{title}</span>
+        <span style={{ fontSize: 13, width: 28, height: 28, borderRadius: 'var(--radius-xs, 4px)', display: 'grid', placeItems: 'center', background: `${color}14`, color, border: `1px solid ${color}28` }}>{icon}</span>
       </div>
-      <div style={{ fontSize: 32, fontWeight: 800, color, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{value}</div>
-      {subtitle && <div style={{ fontSize: 12, color: 'var(--text-muted, #64748b)', marginTop: 8, lineHeight: 1.4 }}>{subtitle}</div>}
+      <div style={{ fontSize: 24, fontWeight: 600, color, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{value}</div>
+      {subtitle && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>{subtitle}</div>}
     </div>
   )
 }
@@ -52,15 +52,15 @@ function MonitoringStatCard({ title, value, subtitle, color, icon }) {
 function HealthBar({ label, value, max, color }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, lineHeight: 1.5, marginBottom: 6 }}>
-        <span style={{ color: 'var(--text, #e2e8f0)', fontWeight: 500 }}>{label}</span>
-        <span style={{ color: 'var(--text-muted, #94a3b8)', fontWeight: 600, fontSize: 12 }}>
-          {value} <span style={{ color: 'var(--text-muted, #64748b)', fontWeight: 400 }}>/ {max}</span>
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, lineHeight: 1.4, marginBottom: 5 }}>
+        <span style={{ color: 'var(--text)', fontWeight: 500 }}>{label}</span>
+        <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
+          {value} <span style={{ color: 'var(--text-muted)', fontWeight: 400, opacity: 0.7 }}>/ {max}</span>
         </span>
       </div>
-      <div style={{ height: 8, background: 'rgba(255, 255, 255, 0.06)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.4s ease' }} />
+      <div style={{ height: 6, background: 'var(--panel-3)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.3s ease' }} />
       </div>
     </div>
   )
@@ -70,39 +70,39 @@ function ExecutionTimeline({ stats }) {
   const hourTotal = (stats?.last_hour?.success || 0) + (stats?.last_hour?.failed || 0)
   const dayTotal = (stats?.last_24h?.success || 0) + (stats?.last_24h?.failed || 0)
   return (
-    <div className="monitoring-card">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text, #f8fafc)' }}>Execution Activity</h3>
+    <div className="monitoring-card" style={{ padding: '18px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Execution Activity</h3>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-        <div style={{ background: 'var(--panel-2, rgba(255,255,255,0.02))', padding: '16px 18px', borderRadius: 10, border: '1px solid var(--border, rgba(255,255,255,0.04))' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 14 }}>Last Hour</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+        <div style={{ background: 'var(--panel-2)', padding: '14px 16px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>Last Hour</div>
           <HealthBar
             label="Success"
             value={stats?.last_hour?.success || 0}
             max={Math.max(hourTotal, 1)}
-            color="#10b981"
+            color="#059669"
           />
           <HealthBar
             label="Failed"
             value={stats?.last_hour?.failed || 0}
             max={Math.max(hourTotal, 1)}
-            color="#ef4444"
+            color="#e11d48"
           />
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 14 }}>Last 24 Hours</div>
+        <div style={{ background: 'var(--panel-2)', padding: '14px 16px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>Last 24 Hours</div>
           <HealthBar
             label="Success"
             value={stats?.last_24h?.success || 0}
             max={Math.max(dayTotal, 1)}
-            color="#10b981"
+            color="#059669"
           />
           <HealthBar
             label="Failed"
             value={stats?.last_24h?.failed || 0}
             max={Math.max(dayTotal, 1)}
-            color="#ef4444"
+            color="#e11d48"
           />
         </div>
       </div>
@@ -113,32 +113,31 @@ function ExecutionTimeline({ stats }) {
 function QueueStatus({ stats }) {
   const isHealthy = (stats?.executions?.running || 0) < 10 && (stats?.executions?.queued || 0) < 50
   return (
-    <div className="monitoring-card">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text, #f8fafc)' }}>Queue Status</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: isHealthy ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)', border: `1px solid ${isHealthy ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`, padding: '4px 10px', borderRadius: 999 }}>
+    <div className="monitoring-card" style={{ padding: '18px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Queue & Backlog</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: isHealthy ? 'rgba(5, 150, 105, 0.08)' : 'rgba(225, 29, 72, 0.08)', border: `1px solid ${isHealthy ? 'rgba(5, 150, 105, 0.2)' : 'rgba(225, 29, 72, 0.2)'}`, padding: '2px 8px', borderRadius: 'var(--radius-xs, 4px)' }}>
           <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: isHealthy ? '#10b981' : '#ef4444',
-            boxShadow: `0 0 8px ${isHealthy ? '#10b981' : '#ef4444'}`,
+            width: 6, height: 6, borderRadius: '50%',
+            background: isHealthy ? '#059669' : '#e11d48',
           }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: isHealthy ? '#10b981' : '#ef4444' }}>
-            {isHealthy ? 'Cluster Healthy' : 'Backpressure Detected'}
+          <span style={{ fontSize: 11.5, fontWeight: 500, color: isHealthy ? '#059669' : '#e11d48' }}>
+            {isHealthy ? 'Normal' : 'Backpressure'}
           </span>
         </div>
       </div>
-      <div style={{ background: 'var(--panel-2, rgba(255,255,255,0.02))', padding: '16px 18px', borderRadius: 10, border: '1px solid var(--border, rgba(255,255,255,0.04))' }}>
+      <div style={{ background: 'var(--panel-2)', padding: '14px 16px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
         <HealthBar
           label="Running Concurrency"
           value={stats?.executions?.running || 0}
           max={10}
-          color="#38bdf8"
+          color="#0284c7"
         />
         <HealthBar
           label="Queued Backlog"
           value={stats?.executions?.queued || 0}
           max={50}
-          color="#f59e0b"
+          color="#d97706"
         />
       </div>
     </div>
@@ -149,32 +148,32 @@ function SystemInfo({ stats }) {
   const uptimeH = Math.floor((stats?.uptime_seconds || 0) / 3600)
   const uptimeM = Math.floor(((stats?.uptime_seconds || 0) % 3600) / 60)
   return (
-    <div className="monitoring-card" style={{ marginTop: 20 }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>System Infrastructure</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '14px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500, marginBottom: 4 }}>System Uptime</div>
-          <div style={{ fontWeight: 700, fontSize: 18, color: '#f8fafc', lineHeight: 1.3 }}>{uptimeH}h {uptimeM}m</div>
+    <div className="monitoring-card" style={{ marginTop: 18, padding: '18px 20px' }}>
+      <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>System Infrastructure</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+        <div style={{ background: 'var(--panel-2)', padding: '12px 14px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 500, marginBottom: 4 }}>System Uptime</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text)', lineHeight: 1.3 }}>{uptimeH}h {uptimeM}m</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '14px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Total Workflows</div>
-          <div style={{ fontWeight: 700, fontSize: 18, color: '#f8fafc', lineHeight: 1.3 }}>{stats?.workflows?.total || 0}</div>
+        <div style={{ background: 'var(--panel-2)', padding: '12px 14px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 500, marginBottom: 4 }}>Total Workflows</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text)', lineHeight: 1.3 }}>{stats?.workflows?.total || 0}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '14px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Active Workflows</div>
-          <div style={{ fontWeight: 700, fontSize: 18, color: '#10b981', lineHeight: 1.3 }}>{stats?.workflows?.active || 0}</div>
+        <div style={{ background: 'var(--panel-2)', padding: '12px 14px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 500, marginBottom: 4 }}>Active Workflows</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: '#059669', lineHeight: 1.3 }}>{stats?.workflows?.active || 0}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '14px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Total Executions</div>
-          <div style={{ fontWeight: 700, fontSize: 18, color: '#f8fafc', lineHeight: 1.3 }}>{stats?.executions?.total || 0}</div>
+        <div style={{ background: 'var(--panel-2)', padding: '12px 14px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 500, marginBottom: 4 }}>Total Executions</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text)', lineHeight: 1.3 }}>{stats?.executions?.total || 0}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '14px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Webhook Deliveries (1h)</div>
-          <div style={{ fontWeight: 700, fontSize: 18, color: '#f8fafc', lineHeight: 1.3 }}>{stats?.webhooks?.last_hour || 0}</div>
+        <div style={{ background: 'var(--panel-2)', padding: '12px 14px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 500, marginBottom: 4 }}>Webhook Deliveries (1h)</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text)', lineHeight: 1.3 }}>{stats?.webhooks?.last_hour || 0}</div>
         </div>
-        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '14px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Total Deliveries</div>
-          <div style={{ fontWeight: 700, fontSize: 18, color: '#f8fafc', lineHeight: 1.3 }}>{stats?.webhooks?.total || 0}</div>
+        <div style={{ background: 'var(--panel-2)', padding: '12px 14px', borderRadius: 'var(--radius-sm, 6px)', border: '1px solid var(--border)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 11.5, fontWeight: 500, marginBottom: 4 }}>Total Deliveries</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text)', lineHeight: 1.3 }}>{stats?.webhooks?.total || 0}</div>
         </div>
       </div>
     </div>
