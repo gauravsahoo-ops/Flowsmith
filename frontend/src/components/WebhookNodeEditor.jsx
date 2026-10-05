@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Button from './shared/Button'
 import { WebhookDeliveryLog } from './WebhookDeliveryLog'
+import { api } from '../api'
 import './WebhookNodeEditor.css'
 
 const HTTP_METHODS = ['POST', 'GET', 'PUT', 'PATCH', 'DELETE']
@@ -26,6 +27,39 @@ export default function WebhookNodeEditor({ node, onParamsChange, workflowId }) 
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState(null)
   const [viewTab, setViewTab] = useState('config') // config | deliveries
+  const [listening, setListening] = useState(false)
+  const [capturedEvent, setCapturedEvent] = useState(null)
+  const listenStartTimeRef = useRef(null)
+
+  useEffect(() => {
+    if (!listening) return
+    listenStartTimeRef.current = Date.now()
+    const timer = setInterval(async () => {
+      try {
+        const { data } = await api.listWebhookDeliveries({
+          workflow_id: workflowId,
+          page: 1,
+          pageSize: 3,
+        })
+        if (Array.isArray(data) && data.length > 0) {
+          const latest = data[0]
+          const deliveryTime = new Date(latest.created_at).getTime()
+          if (deliveryTime >= (listenStartTimeRef.current || 0) - 2000) {
+            setListening(false)
+            setCapturedEvent(latest)
+            if (latest.request_body) {
+              setTestPayload(
+                typeof latest.request_body === 'string'
+                  ? latest.request_body
+                  : JSON.stringify(latest.request_body, null, 2)
+              )
+            }
+          }
+        }
+      } catch {}
+    }, 1500)
+    return () => clearInterval(timer)
+  }, [listening, workflowId])
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000'
   const webhookUrl = useMemo(() => {
@@ -145,11 +179,11 @@ print(response.status_code, response.json())`
                   placeholder="e.g. stripe-event or customer-leads"
                   onChange={(e) => onParamsChange({ ...params, path: e.target.value })}
                   style={{
-                    background: '#090b10',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: 'var(--panel-2, #090b10)',
+                    border: '1px solid var(--border, rgba(255, 255, 255, 0.12))',
                     borderRadius: 6,
                     padding: '8px 10px',
-                    color: '#fff',
+                    color: 'var(--text, #fff)',
                     fontFamily: 'monospace',
                   }}
                 />
@@ -161,11 +195,11 @@ print(response.status_code, response.json())`
                   value={method}
                   onChange={(e) => onParamsChange({ ...params, method: e.target.value })}
                   style={{
-                    background: '#090b10',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: 'var(--panel-2, #090b10)',
+                    border: '1px solid var(--border, rgba(255, 255, 255, 0.12))',
                     borderRadius: 6,
                     padding: '8px 10px',
-                    color: '#fff',
+                    color: 'var(--text, #fff)',
                   }}
                 >
                   {HTTP_METHODS.map((m) => (
@@ -247,7 +281,7 @@ print(response.status_code, response.json())`
                 placeholder="Enter JSON payload"
               />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <Button
                   variant="primary"
                   onClick={handleSendTest}
@@ -260,10 +294,71 @@ print(response.status_code, response.json())`
                 >
                   {testing ? 'Sending…' : (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Dispatch Test Webhook</span>)}
                 </Button>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    setCapturedEvent(null)
+                    setListening((v) => !v)
+                  }}
+                  disabled={!path}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    borderColor: listening ? 'var(--accent, #6366f1)' : 'var(--border)',
+                    color: listening ? 'var(--accent, #818cf8)' : 'var(--text)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                  }}
+                >
+                  {listening ? (
+                    <>
+                      <span className="app-topbar-context-dot" style={{ background: '#34d399' }} />
+                      <span>Listening for external events…</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+                        <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" />
+                        <circle cx="12" cy="12" r="2" />
+                        <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" />
+                        <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
+                      </svg>
+                      <span>Listen for Test Event</span>
+                    </>
+                  )}
+                </button>
                 {!path && (
                   <span style={{ fontSize: 11, color: '#f87171' }}>Please enter a webhook path suffix first.</span>
                 )}
               </div>
+
+              {capturedEvent && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    color: '#34d399',
+                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <strong>Live payload captured from incoming webhook!</strong> (HTTP {capturedEvent.response_status || 200})
+                  </span>
+                  <button type="button" className="ghost small" onClick={() => setCapturedEvent(null)} style={{ padding: '2px 6px' }}>Dismiss</button>
+                </div>
+              )}
 
               {testResult && (
                 <div
