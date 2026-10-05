@@ -144,6 +144,8 @@ def start_execution(
         "workspace_id": workspace_id,
         **(extra_payload or {}),
     }
+    from app.telemetry.tracer import inject_trace_context
+    inject_trace_context(payload)
     if not get_queue().enqueue(job_id, execution_id, payload):
         # Duplicate delivery guard: another execution for this id already
         # queued (should not happen with fresh ids; keep the row accurate).
@@ -426,6 +428,23 @@ def get_execution_trace(
             if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
                 step["outputs"] = results_outputs[nid]
     return ok({"steps": trace})
+
+
+@router.get("/api/executions/{execution_id}/flamegraph")
+def get_execution_flamegraph_endpoint(
+    execution_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Return hierarchical waterfall/flamegraph data structure for the execution (Roadmap Initiative C)."""
+    from app.telemetry.flamegraph import generate_execution_flamegraph
+
+    rec = db.get(Execution, execution_id)
+    if rec is None or not _can_view_execution(db, rec, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
+    trace = [dict(s) for s in (rec.trace or [])]
+    flamegraph_data = generate_execution_flamegraph(trace)
+    return ok(flamegraph_data)
 
 
 @router.post("/api/executions/{execution_id}/retry", status_code=status.HTTP_202_ACCEPTED)

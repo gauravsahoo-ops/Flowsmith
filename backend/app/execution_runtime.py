@@ -369,26 +369,41 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 mock_token = http_mocks.install(
                     http_mocks.compile_rules(test_spec.get("mocks"))
                 )
-            try:
-                result = await execute_workflow(
-                    workflow,
-                    job.trigger_items,
-                    execution_id=execution_id,
-                    cancel_event=cancel_event,
-                    http_client=_http_client(mocked=test_spec is not None),
-                    event_sink=event_sink,
-                    credential_resolver=resolve_credentials,
-                    env_vars=env_vars,
-                    initial_results=initial_results,
-                    storage_seed=storage_seed,
-                    workspace_id=job.workspace_id,
-                    user_id=job.user_id,
-                )
-            finally:
-                if mock_token is not None:
-                    from app.security import http_mocks
+            from app.telemetry.tracer import extract_trace_context, start_trace_span
 
-                    http_mocks.reset(mock_token)
+            parent_trace_context = extract_trace_context(job.payload or {})
+            wf_title = (job.workflow_data or {}).get("name") or job.workflow_id
+            with start_trace_span(
+                f"workflow.execute {wf_title}",
+                attributes={
+                    "workflow.id": str(job.workflow_id),
+                    "execution.id": str(execution_id),
+                    "user.id": str(job.user_id),
+                    "trigger": str(job.trigger),
+                },
+                parent_context=parent_trace_context,
+            ) as exec_span:
+                try:
+                    result = await execute_workflow(
+                        workflow,
+                        job.trigger_items,
+                        execution_id=execution_id,
+                        cancel_event=cancel_event,
+                        http_client=_http_client(mocked=test_spec is not None),
+                        event_sink=event_sink,
+                        credential_resolver=resolve_credentials,
+                        env_vars=env_vars,
+                        initial_results=initial_results,
+                        storage_seed=storage_seed,
+                        workspace_id=job.workspace_id,
+                        user_id=job.user_id,
+                    )
+                    exec_span.set_attribute("execution.status", result.status)
+                finally:
+                    if mock_token is not None:
+                        from app.security import http_mocks
+
+                        http_mocks.reset(mock_token)
             if test_spec is not None:
                 # Phase 14: PASS/FAIL/DIFF report from the test spec.
                 from app.testing.service import evaluate_test

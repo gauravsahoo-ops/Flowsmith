@@ -78,9 +78,12 @@ class DbJobQueue(QueueBackend):
     name = "db"
 
     def enqueue(self, job_id: str, execution_id: str, payload: dict[str, Any]) -> bool:
+        from app.telemetry.tracer import inject_trace_context
+        payload_to_store = dict(payload)
+        inject_trace_context(payload_to_store)
         db = get_session()
         try:
-            db.add(Job(id=job_id, execution_id=execution_id, status=QUEUED, payload=payload))
+            db.add(Job(id=job_id, execution_id=execution_id, status=QUEUED, payload=payload_to_store))
             db.commit()
             return True
         except Exception as exc:

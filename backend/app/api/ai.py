@@ -127,6 +127,17 @@ def _llm_credentials(db: Session, user: User, credential_id: str | None) -> list
 
 
 def _pick_llm(db: Session, user: User, credential_id: str | None) -> dict:
+    if credential_id in ("builtin", "zero-llm"):
+        return {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
+    if credential_id in ("ollama", "local-ollama"):
+        return {
+            "id": "ollama",
+            "name": "Ollama (Local AI)",
+            "provider": "ollama",
+            "model": "llama3.2:1b",
+            "base_url": "http://localhost:11434/v1",
+            "api_key": "ollama",
+        }
     creds = _llm_credentials(db, user, credential_id)
     if not creds:
         raise HTTPException(
@@ -140,6 +151,33 @@ def _pick_llm(db: Session, user: User, credential_id: str | None) -> dict:
 def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     creds = _llm_credentials(db, user, None)
     configured = len(creds) > 0
+
+    all_models = [
+        {
+            "id": "builtin",
+            "name": "Zero-LLM (Deterministic Engine)",
+            "provider": "builtin",
+            "model": "rule-based",
+            "type": "builtin",
+        },
+        {
+            "id": "ollama",
+            "name": "Local Ollama (Offline AI)",
+            "provider": "ollama",
+            "model": "llama3.2:1b",
+            "type": "local",
+        },
+    ]
+
+    for c in creds:
+        all_models.append({
+            "id": c.get("id"),
+            "name": c.get("name") or c.get("provider") or "LLM Credential",
+            "provider": c.get("provider") or c.get("provider_id") or "openai",
+            "model": c.get("selected_model") or c.get("model") or "default",
+            "type": "cloud",
+        })
+
     if configured:
         first = creds[0]
         active_info = {
@@ -149,12 +187,8 @@ def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_
             "model": first.get("selected_model") or first.get("model") or "default",
         }
     else:
-        active_info = {
-            "id": "builtin",
-            "name": "Built-in Local Engine (Zero-LLM)",
-            "provider": "builtin",
-            "model": "builtin",
-        }
+        active_info = all_models[0]
+
     return ok({
         "configured": configured,
         "credentials": [
@@ -166,6 +200,7 @@ def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_
             }
             for c in creds
         ],
+        "models": all_models,
         "active": active_info,
     })
 

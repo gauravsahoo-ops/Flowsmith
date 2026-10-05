@@ -272,6 +272,7 @@ def test_ai_chat_with_llm_credential_and_memory(client, fake_llm):
         "memory_type": "window",
     }
     headers = auth_headers(reg["token"])
+    client.delete("/api/ai/memory/drawer_sess_42", headers=headers)
     resp = client.post("/api/ai/chat", json=payload, headers=headers)
     assert resp.status_code == 200
     data = resp.json()["data"]

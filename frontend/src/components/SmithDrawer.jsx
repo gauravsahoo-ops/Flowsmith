@@ -97,33 +97,67 @@ export default function SmithDrawer({
   const [applySuccess, setApplySuccess] = useState(false)
 
   // Dynamic LLM Status & Multi-Provider Credentials
-  const [llmStatus, setLlmStatus] = useState({ configured: false, loading: true, active: null, credentials: [] })
+  const [llmStatus, setLlmStatus] = useState({
+    configured: false,
+    loading: true,
+    active: null,
+    credentials: [],
+    models: [],
+  })
   const [selectedCredentialId, setSelectedCredentialId] = useState(null)
 
   useEffect(() => {
     if (typeof api.aiStatus === 'function') {
       api.aiStatus()
         .then((res) => {
+          const fallbackModels = [
+            { id: 'builtin', name: 'Zero-LLM (Deterministic)', provider: 'builtin', model: 'rule-based', type: 'builtin' },
+            { id: 'ollama', name: 'Local Ollama (Offline AI)', provider: 'ollama', model: 'llama3.2:1b', type: 'local' },
+            ...(res?.credentials || []),
+          ]
           setLlmStatus({
             configured: Boolean(res?.configured),
             loading: false,
             active: res?.active || null,
             credentials: res?.credentials || [],
+            models: res?.models || fallbackModels,
           })
           if (res?.active?.id) {
             setSelectedCredentialId((prev) => prev || res.active.id)
+          } else {
+            setSelectedCredentialId((prev) => prev || 'builtin')
           }
         })
         .catch(() => {
-          setLlmStatus({ configured: false, loading: false, active: null, credentials: [] })
+          setLlmStatus({
+            configured: false,
+            loading: false,
+            active: null,
+            credentials: [],
+            models: [
+              { id: 'builtin', name: 'Zero-LLM (Deterministic)', provider: 'builtin', model: 'rule-based', type: 'builtin' },
+              { id: 'ollama', name: 'Local Ollama (Offline AI)', provider: 'ollama', model: 'llama3.2:1b', type: 'local' },
+            ],
+          })
+          setSelectedCredentialId((prev) => prev || 'builtin')
         })
     }
   }, [])
 
+  const availableModels = useMemo(() => {
+    if (llmStatus.models && llmStatus.models.length > 0) {
+      return llmStatus.models
+    }
+    const defaults = [
+      { id: 'builtin', name: 'Zero-LLM (Deterministic)', provider: 'builtin', model: 'rule-based', type: 'builtin' },
+      { id: 'ollama', name: 'Local Ollama (Offline AI)', provider: 'ollama', model: 'llama3.2:1b', type: 'local' },
+    ]
+    return [...defaults, ...(llmStatus.credentials || [])]
+  }, [llmStatus])
+
   const currentCred = useMemo(() => {
-    if (!llmStatus.credentials || llmStatus.credentials.length === 0) return llmStatus.active
-    return llmStatus.credentials.find((c) => c.id === selectedCredentialId) || llmStatus.active
-  }, [llmStatus, selectedCredentialId])
+    return availableModels.find((c) => c.id === selectedCredentialId) || llmStatus.active || availableModels[0] || null
+  }, [availableModels, llmStatus.active, selectedCredentialId])
 
   // Shared References & Timestamps
   const [expandedTraceIndex, setExpandedTraceIndex] = useState(null)
@@ -595,11 +629,11 @@ export default function SmithDrawer({
               <div className="smith-ready-row">
                 <span
                   className="smith-ready-dot"
-                  style={{ background: llmStatus.configured ? '#22c55e' : '#f59e0b' }}
+                  style={{ background: currentCred?.provider === 'builtin' ? '#38bdf8' : '#22c55e' }}
                 />
                 <span className="smith-ready-text">
                   Ready
-                  {llmStatus.configured && currentCred ? (
+                  {currentCred ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '6px' }}>
                       <span style={{ opacity: 0.6 }}>·</span>
                       <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{currentCred.provider}</span>
@@ -640,7 +674,7 @@ export default function SmithDrawer({
               </button>
               {showMoreMenu && (
                 <div className="smith-dropdown-menu">
-                  {llmStatus.credentials && llmStatus.credentials.length > 1 && (
+                  {availableModels && availableModels.length > 0 && (
                     <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '11px' }}>
                       <div style={{ color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>Active LLM Provider:</div>
                       <select
@@ -656,7 +690,7 @@ export default function SmithDrawer({
                           border: '1px solid #3f3f46',
                         }}
                       >
-                        {llmStatus.credentials.map((c) => (
+                        {availableModels.map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.name} ({c.provider} · {c.model})
                           </option>
@@ -710,6 +744,54 @@ export default function SmithDrawer({
             </svg>
             <span>Debug & Analyze</span>
           </button>
+        </div>
+
+        {/* Visual Model Engine Switcher (Zero-LLM vs Local Ollama vs Configured LLMs) */}
+        <div
+          className="smith-model-bar"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '7px 16px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
+            fontSize: '11px',
+            gap: '10px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a10 10 0 1 0 10 10H12V2z" />
+              <path d="M12 12 2.1 12.5" />
+            </svg>
+            <span style={{ fontWeight: 600, color: '#cbd5e1' }}>Model:</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
+            <select
+              aria-label="Model Engine"
+              value={selectedCredentialId || currentCred?.id || 'builtin'}
+              onChange={(e) => setSelectedCredentialId(e.target.value)}
+              style={{
+                maxWidth: '260px',
+                width: '100%',
+                padding: '4px 8px',
+                fontSize: '11px',
+                borderRadius: '6px',
+                background: '#18181b',
+                color: '#f8fafc',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {availableModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name || m.provider} {m.model ? `(${m.model})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Global Feedback Banner */}

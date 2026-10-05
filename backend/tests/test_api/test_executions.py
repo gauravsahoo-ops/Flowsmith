@@ -367,3 +367,19 @@ def test_run_node_reuses_upstream_output_and_trace(client):
     assert step2["inputs"][0]["order_id"] == 42, "Running node inputs must show previous node output"
     assert data2["node_statuses"]["node1"] == "success"
     assert data2["node_statuses"]["node2"] == "success"
+
+
+def test_get_execution_flamegraph(client):
+    headers = _setup(client)
+    client.post("/api/workflows", json=WF_OK, headers=headers)
+    resp = client.post("/api/workflows/wf_1/run", json={"data": {"name": "Ada"}}, headers=headers)
+    assert resp.status_code == 202
+    execution_id = resp.json()["data"]["execution_id"]
+
+    _poll(client, execution_id, headers)
+    fg_resp = client.get(f"/api/executions/{execution_id}/flamegraph", headers=headers)
+    assert fg_resp.status_code == 200
+    fg_data = fg_resp.json()["data"]
+    assert "total_duration_ms" in fg_data
+    assert "spans" in fg_data
+    assert fg_data["step_count"] >= 1

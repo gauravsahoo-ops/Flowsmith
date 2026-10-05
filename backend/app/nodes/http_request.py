@@ -628,8 +628,14 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
     _filter_kwargs = staticmethod(filter_client_kwargs)
 
     async def _do_request(self, ctx, params, url, headers, query, json_body, data, files=None):
+        outbound_headers = dict(headers or {})
+        try:
+            from app.telemetry.tracer import inject_trace_context
+            inject_trace_context(outbound_headers)
+        except Exception:
+            pass
         kwargs: dict[str, Any] = {
-            "headers": headers or None,
+            "headers": outbound_headers or None,
             "params": query or None,
             "json": json_body,
             "timeout": params.timeout_seconds,
@@ -1382,9 +1388,15 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             nxt = _next_link_target(pages[-1].headers.get("Link"))
             if not nxt:
                 break
+            page_headers = dict(headers or {})
+            try:
+                from app.telemetry.tracer import inject_trace_context
+                inject_trace_context(page_headers)
+            except Exception:
+                pass
             try:
                 page = await ctx.http_client.request(
-                    "GET", nxt, headers=headers or None, params=query or None,
+                    "GET", nxt, headers=page_headers or None, params=query or None,
                     timeout=params.timeout_seconds,
                     follow_redirects=params.follow_redirects,
                     max_response_bytes=params.max_response_bytes,
