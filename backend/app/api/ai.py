@@ -59,6 +59,20 @@ class ChatRequest(BaseModel):
     tools: list[str] | None = None
     instructions: str | None = None
     memory_type: str = "window"
+    allow_builtin: bool = False
+
+
+class EntityUpsertRequest(BaseModel):
+    entities: dict[str, Any] = Field(default_factory=dict)
+    text_to_extract: str | None = None
+    workflow_id: str | None = None
+
+
+class NoteUpsertRequest(BaseModel):
+    key: str
+    content: str
+    tags: list[str] | None = None
+    workflow_id: str | None = None
 
 
 class SuggestMappingRequest(BaseModel):
@@ -274,6 +288,83 @@ async def clear_ai_memory(
     return ok({"cleared": True, "session_id": session_id})
 
 
+@router.get("/memory/{session_id}/search")
+async def search_ai_memory(
+    session_id: str,
+    q: str,
+    top_k: int = 5,
+    workflow_id: str | None = None,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Semantic and lexical recall across all memory tiers without requiring an external LLM."""
+    manager = get_memory_manager()
+    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    comp_mem = await manager.get_complete_memory(key)
+    results = await comp_mem.search(q, top_k=top_k)
+    return ok({"session_id": session_id, "query": q, "results": results, "count": len(results)})
+
+
+@router.post("/memory/{session_id}/entities")
+async def upsert_ai_memory_entities(
+    session_id: str,
+    body: EntityUpsertRequest,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Persist structured entity facts or extract entities from text into Complete Memory."""
+    manager = get_memory_manager()
+    key = f"{body.workflow_id}_{session_id}" if body.workflow_id else session_id
+    comp_mem = await manager.get_complete_memory(key)
+    for k, v in body.entities.items():
+        comp_mem.entities.set(k, v)
+    if body.text_to_extract:
+        comp_mem.entities.extract_from_text(body.text_to_extract)
+    await manager._persist_to_disk(key, comp_mem)
+    return ok({"session_id": session_id, "entities": comp_mem.entities.get_all()})
+
+
+@router.get("/memory/{session_id}/entities")
+async def get_ai_memory_entities(
+    session_id: str,
+    workflow_id: str | None = None,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Retrieve all entity facts stored for this session."""
+    manager = get_memory_manager()
+    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    comp_mem = await manager.get_complete_memory(key)
+    return ok({"session_id": session_id, "entities": comp_mem.entities.get_all()})
+
+
+@router.post("/memory/{session_id}/notes")
+async def upsert_ai_memory_note(
+    session_id: str,
+    body: NoteUpsertRequest,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Set working scratchpad note in Complete Memory."""
+    manager = get_memory_manager()
+    key = f"{body.workflow_id}_{session_id}" if body.workflow_id else session_id
+    comp_mem = await manager.get_complete_memory(key)
+    comp_mem.scratchpad.set(body.key, body.content, tags=body.tags)
+    await manager._persist_to_disk(key, comp_mem)
+    return ok({"session_id": session_id, "saved": True, "key": body.key})
+
+
+@router.get("/memory/{session_id}/notes")
+async def list_ai_memory_notes(
+    session_id: str,
+    tag: str | None = None,
+    workflow_id: str | None = None,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """List scratchpad working notes."""
+    manager = get_memory_manager()
+    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    comp_mem = await manager.get_complete_memory(key)
+    notes = comp_mem.scratchpad.list_notes(tag=tag)
+    return ok({"session_id": session_id, "notes": notes, "count": len(notes)})
+
+
 @router.post("/chat")
 async def chat_with_agent(
     body: ChatRequest,
@@ -281,12 +372,22 @@ async def chat_with_agent(
     db: Session = Depends(get_db),
 ) -> dict:
     """Live interactive chat with Flowsmith's autonomous AI Agent and LLM."""
-    llm = _pick_llm(db, user, body.credential_id)
+    is_builtin_requested = body.allow_builtin or (
+        body.model is not None and body.model.lower() in ("builtin", "local", "local_ai", "offline")
+    )
+    if is_builtin_requested:
+        try:
+            llm = _pick_llm(db, user, body.credential_id)
+        except HTTPException:
+            llm = {"provider": "builtin", "model": body.model or "builtin", "api_key": "builtin_local"}
+    else:
+        llm = _pick_llm(db, user, body.credential_id)
 
     param_kwargs: dict[str, Any] = {
         "input": body.message,
         "session_id": body.session_id,
         "memory_type": body.memory_type,
+        "allow_builtin_fallback": body.allow_builtin or is_builtin_requested,
     }
     model_choice = body.model or llm.get("selected_model") or llm.get("model") or llm.get("default_model")
     if model_choice:

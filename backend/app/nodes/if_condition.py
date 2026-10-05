@@ -207,7 +207,7 @@ class IfConditionParams(BaseModel):
                 "equals", "not_equals", "greater_than", "less_than", "starts_with", "exists",
             ]:
                 # Map via LEGACY_OPERATOR_MAP or fallback to 'is equal to'
-                norm = LEGACY_OPERATOR_MAP.get(str(cond.operator).lower().replace("-", "_"))
+                norm = LEGACY_OPERATOR_MAP.get(cond.operator.lower().replace("-", "_"))
                 if norm:
                     cond.operator = norm
                 else:

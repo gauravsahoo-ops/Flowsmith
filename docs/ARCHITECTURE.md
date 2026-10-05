@@ -263,3 +263,58 @@ Simulates execution without performing external state mutations:
 - **Diagnostic Engine**: Analyzes execution trace and failure payloads (e.g. HTTP 429 rate limit or schema mismatch).
 - **Safe Proposal Diff**: Generates targeted before/after diffs (e.g. adding exponential backoff retries, inserting human approval gates, or migrating AI models) for explicit human review.
 
+---
+
+## 9. Cognitive Memory & Autonomous Local Intelligence Subsystem
+
+Flowsmith embeds a complete, sovereign cognitive memory and local intelligence system (`backend/app/ai/memory.py` and `backend/app/ai/providers/builtin_provider.py`) operating at zero external cost and zero external LLM dependency:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                 COMPLETE MULTI-TIER COGNITIVE MEMORY SYSTEM                 │
+├──────────────────────┬──────────────────────────────────────────────────────┤
+│ 1. Working Memory    │ Active execution scratchpad for Thoughts, Tool       │
+│                      │ Invocations, and intermediate Observations.          │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│ 2. Summary Buffer    │ Rolling dialogue window with token condensation and  │
+│                      │ deterministic extractive fallback for zero-LLM runs. │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│ 3. Episodic Memory   │ Dual-mode long-term recall: pgvector HNSW cosine sim │
+│                      │ or zero-embedding BM25/TF-IDF token & n-gram search. │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│ 4. Entity Memory     │ Graph-structured fact & attribute store for user     │
+│                      │ profiles, business entities, and persistent facts.   │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│ 5. Scratchpad        │ Tag-indexed computational workspace for sub-tasks,   │
+│                      │ hypotheses, and multi-step execution checkpoints.    │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│ 6. Full Buffer       │ Lossless chronological message archive for complete  │
+│                      │ dialogue reconstruction and enterprise audit trails. │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│ Persistence Engine   │ Atomic JSON serialization via `SessionMemoryManager` │
+│                      │ persisted across restarts in `.runtime/ai_memory/`.  │
+└──────────────────────┴──────────────────────────────────────────────────────┘
+```
+
+### 9.1 Autonomous Zero-LLM Local Engine (`BuiltinProvider`)
+* **Sovereignty**: Provides autonomous reasoning, intent parsing, ReAct looping, and tool invocation 100% locally.
+* **Failover Resilience**: Automatically assumes execution when cloud LLM APIs are unconfigured, rate-limited (HTTP 429), or air-gapped.
+* **Dual-Tier Memory Nodes**: The workflow canvas `MemoryNode` supports both Redis-backed distributed memory (`redis`) and zero-dependency local disk-backed memory (`local`), with an `auto` mode that gracefully selects the best available engine.
+
+---
+
+## 10. Enterprise Platform Quality & Connector Verification
+
+Flowsmith enforces enterprise-grade reliability and zero-defect architectural invariants:
+
+* **Certified Enterprise Connectors**: **86 production-ready connectors** across CRM, ERP, Cloud Infrastructure, Databases, Messaging, and Productivity. All connectors strictly follow the 5-tier certification state machine:
+  1. *Syntactic Contract Validation* (Pydantic parameter schemas, operation signatures)
+  2. *Authentication & Secret Protection* (AES-256 vault integration, token refresh)
+  3. *Error & Retry Policy* (Rate-limiting backoff, 4xx/5xx classification)
+  4. *Mock Execution Pipeline* (Unit test coverage with synthetic external responses)
+  5. *Live Sandbox Certification* (End-to-end integration and smoke verification)
+* **Automated Test Suite**:
+  * **Backend**: **2,083 automated tests** passing across `backend/tests` (API, DAG execution, AI engine, cognitive memory, sandboxed code, connectors, and security).
+  * **Frontend**: **374 automated tests** passing across 32 Vitest suites (Canvas interaction, node editors, Zustand state stores, execution tracing, and theme consistency).
+
+

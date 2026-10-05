@@ -140,15 +140,15 @@ def _validate_credential_refs(
                     if c_def and getattr(c_def, "operations", None):
                         for op in c_def.operations.values():
                             if getattr(op, "credential_require", None):
-                                supported_cred_types.add(str(op.credential_require))
+                                supported_cred_types.add(op.credential_require)
                 except Exception:
                     pass
 
         for cred_type, cred_id in list(node.credentials.items()):
             is_placeholder = (
                 not cred_id
-                or str(cred_id).startswith("$")
-                or str(cred_id).lower() in ("placeholder", "none", "null", "undefined")
+                or cred_id.startswith("$")
+                or cred_id.lower() in ("placeholder", "none", "null", "undefined")
             )
 
             # If node class explicitly specifies credentials and cred_type is not supported

@@ -269,6 +269,16 @@ export const api = {
     request('GET', `/ai/memory/${encodeURIComponent(sessionId)}${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
   clearAiMemory: (sessionId, workflowId = null) =>
     request('DELETE', `/ai/memory/${encodeURIComponent(sessionId)}${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
+  searchAiMemory: (sessionId, q, topK = 5, workflowId = null) =>
+    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}/search?q=${encodeURIComponent(q)}&top_k=${topK}${workflowId ? `&workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
+  getAiEntities: (sessionId, workflowId = null) =>
+    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}/entities${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
+  upsertAiEntities: (sessionId, payload) =>
+    request('POST', `/ai/memory/${encodeURIComponent(sessionId)}/entities`, payload),
+  getAiNotes: (sessionId, tag = null, workflowId = null) =>
+    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}/notes?${tag ? `tag=${encodeURIComponent(tag)}&` : ''}${workflowId ? `workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
+  upsertAiNote: (sessionId, payload) =>
+    request('POST', `/ai/memory/${encodeURIComponent(sessionId)}/notes`, payload),
   chatWithAgent: (payload, opts) => request('POST', '/ai/chat', payload, opts),
   // Phase 16: AI assistant surfaces (read-only suggestions).
   suggestMapping: (payload) => request('POST', '/ai/suggest-mapping', payload),

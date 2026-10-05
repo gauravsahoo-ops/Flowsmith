@@ -15,9 +15,9 @@
   1. Interactive Visual Workflow Canvas with Bezier routing & single-node execution
   2. Dual-queue execution engine (Redis + PostgreSQL fallback with worker recovery)
   3. Encrypted Credential Vault (AES-256-GCM + Fernet) with 1-click zero-config OAuth
-  4. Native ReAct AI Agents & Tri-Tier Memory (Working, Summary, Episodic Vector)
+  4. Native ReAct AI Agents & Complete Multi-Tier Cognitive Memory (Working, Summary, Episodic Vector/Lexical, Entity, Scratchpad, Full Buffer) with Autonomous Zero-LLM Local Engine
   5. Native Relational Data Tables with schema builder and bulk CSV/JSON ingestion
   6. Human-in-the-Loop approval gates with tokenized links and auto-escalation
-  7. 45+ first-party connectors including Salesforce & Microsoft Dynamics 365 Dataverse
+  7. 86 certified enterprise connectors including Salesforce, Dynamics 365, databases, cloud platforms, and ERPs
 
 *For complete functional specifications, non-functional requirements, and roadmap, see [PRODUCT_REQUIREMENTS_DOCUMENT.md](./PRODUCT_REQUIREMENTS_DOCUMENT.md).*

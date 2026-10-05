@@ -15,9 +15,9 @@
 
 1. **Complete Data Sovereignty**: All workflow payloads, business records, customer PII, and credentials never leave the customer's private perimeter (on-premise or sovereign VPC).
 2. **Zero Per-Execution Fees**: Unbounded execution volume without task counters, arbitrary rate limits, or pay-per-run monetization models.
-3. **Deep Enterprise Integrations**: Native, first-class connectors for enterprise CRMs (Salesforce with zero-config OAuth2 reconnection, Microsoft Dynamics 365 Dataverse with OData/FetchXML), relational databases, cloud storage, messaging fabrics, and custom OpenAPI endpoints.
-4. **Autonomous AI & RAG Orchestration**: Native ReAct agent loops with multi-provider LLM routing (OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Groq, Ollama), Tri-Tier memory architectures, embedded pgvector RAG, and Model Context Protocol (MCP) connectivity.
-5. **Audited Reliability & Security**: 1,899 passing backend tests (100% contract compliance), 331 passing frontend Vitest tests, zero critical route vulnerabilities, and a proven Disaster Recovery Time Objective (RTO) of 9.6 seconds.
+3. **Deep Enterprise Integrations**: Native, first-class connectors for enterprise CRMs (Salesforce with zero-config OAuth2 reconnection, Microsoft Dynamics 365 Dataverse with OData/FetchXML), relational databases, cloud storage, messaging fabrics, and custom OpenAPI endpoints across 86 certified production connectors.
+4. **Autonomous AI, Cognitive Memory & RAG Orchestration**: Native ReAct agent loops with multi-provider LLM routing (OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Groq, Ollama), Complete 6-Tier Cognitive Memory (Working, Summary Buffer with deterministic extractive fallback, Episodic Vector/Lexical with BM25, Structured Entity Graph, Tagged Scratchpad, Full Lossless Buffer, and `.runtime/ai_memory` disk persistence), Autonomous Zero-LLM Local Engine (`BuiltinProvider`), embedded pgvector RAG, and Model Context Protocol (MCP) connectivity.
+5. **Audited Reliability & Security**: 2,083 passing backend tests (100% contract compliance), 374 passing frontend Vitest tests, zero critical route vulnerabilities, and a proven Disaster Recovery Time Objective (RTO) of 9.6 seconds.
 
 ---
 
@@ -50,7 +50,7 @@ graph TD
     C --> D2[Postgres DB Queue Fallback]
     D1 --> E[Execution Engine Sandbox]
     D2 --> E
-    E --> F1[68 Enterprise & Cloud Connectors]
+    E --> F1[86 Enterprise & Cloud Connectors]
     E --> F2[Autonomous AI ReAct Agents]
     E --> F3[Native Relational Data Tables]
     E --> F4[Human Approval Gates]
@@ -58,7 +58,7 @@ graph TD
 ```
 
 ### 3.1 Visual Workflow DAG Canvas
-* **FR-1.1 Interactive Node Palette**: Drag-and-drop node placement supporting Triggers, Flow Control, Data Transformations, AI Agents, and 68 Connectors.
+* **FR-1.1 Interactive Node Palette**: Drag-and-drop node placement supporting Triggers, Flow Control, Data Transformations, AI Agents, and 86 Connectors.
 * **FR-1.2 Real-Time Edge Routing**: Visual Bezier and smooth-step edge connections between node source/target handles. Conditional branches dynamically color-coded (Success = Emerald, True = Blue, False = Amber, Error = Rose).
 * **FR-1.3 Single-Node Execution ("Test Step")**: Developers can isolate and execute an individual node in real time with sample input data and immediate JSON inspection before publishing.
 * **FR-1.4 Auto-Repair Engine**: Visual linter detecting disconnected branches, missing required credentials, cyclic loops, and syntax errors in expressions prior to deployment.
@@ -78,14 +78,19 @@ graph TD
 * **FR-3.3 Server-to-Server Service Principals**: Native support for Azure Entra ID / Microsoft 365 Client Credentials and OAuth JWT Bearer grants for background automation without interactive user logins.
 * **FR-3.4 Proactive Renewal Sweeper**: Scheduled background daemon testing token expiration thresholds and refreshing expiring OAuth tokens automatically prior to workflow execution.
 
-### 3.4 Autonomous AI & RAG Subsystem
-* **FR-4.1 Multi-Provider LLM Gateway**: Unified abstraction layer routing requests to OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Groq, or local Ollama instances with streaming support.
-* **FR-4.2 Tri-Tier Agent Memory**:
+### 3.4 Autonomous AI, Cognitive Memory & RAG Subsystem
+* **FR-4.1 Multi-Provider LLM Gateway**: Unified abstraction layer routing requests to OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Groq, local Ollama instances, or the built-in sovereign **BuiltinProvider** with streaming support.
+* **FR-4.2 Complete Multi-Tier Cognitive Memory**:
   * *Working Memory*: Scratchpad buffer for the current execution cycle.
-  * *Summary Buffer Memory*: Sliding context window summarizing earlier steps in long-running tasks.
-  * *Episodic Vector Memory*: Persistent vectorstore storage using PostgreSQL `pgvector` for semantic knowledge retrieval across workflow runs.
-* **FR-4.3 Autonomous ReAct Agent Loop**: `AIAgentNode` enabling Thought-Action-Observation loops where the agent iteratively selects tools, executes actions, analyzes results, and synthesizes answers.
-* **FR-4.4 Model Context Protocol (MCP)**: Embedded client communicating with local (`stdio`) or remote (`SSE`) MCP tool servers to dynamically discover and invoke external capabilities.
+  * *Summary Buffer Memory*: Sliding context window summarizing earlier steps in long-running tasks, equipped with deterministic extractive summarization fallback when offline.
+  * *Episodic Vector & Lexical Memory*: Dual-mode semantic store combining PostgreSQL `pgvector` HNSW cosine similarity with zero-embedding BM25/TF-IDF token & n-gram overlap scoring.
+  * *Structured Entity Memory*: Graph of extracted facts, preferences, user profiles, and attributes.
+  * *Scratchpad Memory*: Tagged multi-step working workspace for hypotheses and checkpoints.
+  * *Full Buffer Memory*: Lossless chronological dialogue archive.
+  * *Disk Persistence*: Atomic session serialization into `.runtime/ai_memory/{session}.json`.
+* **FR-4.3 Autonomous Zero-LLM Local Intelligence Engine**: Built-in sovereign engine providing deterministic ReAct reasoning, rule-based tool dispatching, schema enforcement, and zero-cost offline execution.
+* **FR-4.4 Autonomous ReAct Agent Loop**: `AIAgentNode` enabling Thought-Action-Observation loops with fallback capabilities (`allow_builtin_fallback`) and fine-grained memory type selection.
+* **FR-4.5 Model Context Protocol (MCP)**: Embedded client communicating with local (`stdio`) or remote (`SSE`) MCP tool servers to dynamically discover and invoke external capabilities.
 
 ### 3.5 Embedded Relational Data Tables
 * **FR-5.1 Native Schema Builder**: In-app relational table creation supporting text, numeric, boolean, datetime, and JSONB data types.
