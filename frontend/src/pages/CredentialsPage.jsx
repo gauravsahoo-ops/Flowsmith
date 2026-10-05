@@ -69,9 +69,28 @@ export default function CredentialsPage() {
   const [googleModalService, setGoogleModalService] = useState('google_calendar')
   const [llmModalOpen, setLlmModalOpen] = useState(false)
   const [llmModalData, setLlmModalData] = useState(null)
+  const [openMenuId, setOpenMenuId] = useState(null)
 
   const mountedRef = useRef(true)
   const oauthCleanupRef = useRef(null)
+
+  useEffect(() => {
+    if (!openMenuId) return
+    const handleOutside = (e) => {
+      if (!e.target.closest || !e.target.closest('.cred-kebab-menu-container')) {
+        setOpenMenuId(null)
+      }
+    }
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setOpenMenuId(null)
+    }
+    document.addEventListener('pointerdown', handleOutside)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [openMenuId])
 
   useEffect(() => {
     mountedRef.current = true
@@ -553,89 +572,14 @@ export default function CredentialsPage() {
                     )}
                   </td>
                   <td style={{ textAlign: 'right', paddingRight: '20px', whiteSpace: 'nowrap' }}>
-                    <div className="cred-actions-toolbar">
-                      <button
-                        type="button"
-                        className="ghost small cred-action-btn cred-btn-test"
-                        onClick={async () => {
-                          setTestingId(c.id)
-                          setTestResult(null)
-                          try {
-                            const r = await api.testCredential(c.id)
-                            setTestResult({ ...r, id: c.id, name: c.name })
-                          } catch (e) {
-                            setTestResult({ ok: false, message: e.message, id: c.id, name: c.name })
-                          } finally {
-                            setTestingId(null)
-                          }
-                        }}
-                        disabled={testingId === c.id}
-                        title="Test connection with live service"
-                      >
-                        {testingId === c.id ? (
-                          <>
-                            <span className="dot status-running" style={{ width: 6, height: 6 }} />
-                            <span>Testing…</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                            </svg>
-                            <span>Test</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        className="ghost small cred-action-btn cred-btn-edit"
-                        onClick={() => {
-                          if (c.type === 'llm') {
-                            setLlmModalData(c)
-                            setLlmModalOpen(true)
-                          } else {
-                            setEditTarget(c)
-                            setEditName(c.name)
-                            setEditData({})
-                            setEditModalOpen(true)
-                          }
-                        }}
-                        title={c.type === 'llm' ? "Configure LLM provider & models" : "Rotate secrets or edit credential"}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                        <span>Edit</span>
-                      </button>
-
-                      {c.type === 'llm' && (
+                    <div className="cred-actions-cell">
+                      {c.expired && ['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
                         <button
                           type="button"
-                          className="ghost small cred-action-btn cred-btn-models"
-                          onClick={() => {
-                            setLlmModalData(c)
-                            setLlmModalOpen(true)
-                          }}
-                          title="Open LLM Model Discovery & Provider Settings"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                            <polyline points="2 17 12 22 22 17" />
-                            <polyline points="2 12 12 17 22 12" />
-                          </svg>
-                          <span>Models</span>
-                        </button>
-                      )}
-
-                      {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
-                        <button
-                          type="button"
-                          className={`${c.expired ? 'primary small cred-btn-expired' : 'ghost small'} cred-action-btn cred-btn-reconnect`}
+                          className="primary small cred-action-btn cred-btn-expired"
                           onClick={() => handleReconnect(c)}
                           disabled={reconnectingId === c.id}
-                          title={c.expired ? 'Session expired — click Reconnect to re-authenticate or refresh token' : 'Auto-reconnect or renew token'}
+                          title="Session expired — click to renew token"
                         >
                           {reconnectingId === c.id ? (
                             <>
@@ -653,105 +597,259 @@ export default function CredentialsPage() {
                         </button>
                       )}
 
-                      {c.type === 'salesforce' && (
+                      <div className="cred-kebab-menu-container">
                         <button
                           type="button"
-                          className="ghost small cred-action-btn cred-btn-settings"
-                          onClick={() => {
-                            setSfModalData(c)
-                            setSfModalOpen(true)
+                          className={`ghost small cred-kebab-trigger ${openMenuId === c.id ? 'is-active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenMenuId(v => v === c.id ? null : c.id)
                           }}
-                          title="Open Salesforce OAuth2 settings (Client ID, Secret, Redirect URL, Domains)"
+                          aria-label="Credential actions"
+                          aria-haspopup="menu"
+                          aria-expanded={openMenuId === c.id}
+                          title="More actions"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="5" cy="12" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="19" cy="12" r="2" />
                           </svg>
-                          <span>Settings</span>
                         </button>
-                      )}
 
-                      {c.type === 'hubspot' && (
-                        <button
-                          type="button"
-                          className="ghost small cred-action-btn cred-btn-settings"
-                          onClick={() => {
-                            setHsModalData(c)
-                            setHsModalOpen(true)
-                          }}
-                          title="Open HubSpot OAuth / App settings (Client ID, Secret, Private Token)"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                          </svg>
-                          <span>Settings</span>
-                        </button>
-                      )}
+                        {(openMenuId === c.id || typeof window === 'undefined') && (
+                          <div className={`cred-dropdown-popover ${openMenuId === c.id ? 'is-open' : ''}`} role="menu">
+                            <button
+                              type="button"
+                              className="ghost small cred-menu-item"
+                              role="menuitem"
+                              onClick={async () => {
+                                setOpenMenuId(null)
+                                setTestingId(c.id)
+                                setTestResult(null)
+                                try {
+                                  const r = await api.testCredential(c.id)
+                                  setTestResult({ ...r, id: c.id, name: c.name })
+                                } catch (e) {
+                                  setTestResult({ ok: false, message: e.message, id: c.id, name: c.name })
+                                } finally {
+                                  setTestingId(null)
+                                }
+                              }}
+                              disabled={testingId === c.id}
+                              title="Test connection with live service"
+                            >
+                              <span className="cred-menu-item-icon" style={{ color: '#38bdf8' }}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                </svg>
+                              </span>
+                              <span>{testingId === c.id ? 'Testing connection…' : 'Test Connection'}</span>
+                            </button>
 
-                      {c.type === 'dynamics_crm' && (
-                        <button
-                          type="button"
-                          className="ghost small cred-action-btn cred-btn-settings"
-                          onClick={() => {
-                            setDynModalData(c)
-                            setDynModalOpen(true)
-                          }}
-                          title="Open Microsoft Dynamics 365 OAuth / Service Principal settings"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                          </svg>
-                          <span>Settings</span>
-                        </button>
-                      )}
+                            <button
+                              type="button"
+                              className="ghost small cred-menu-item"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuId(null)
+                                if (c.type === 'llm') {
+                                  setLlmModalData(c)
+                                  setLlmModalOpen(true)
+                                } else {
+                                  setEditTarget(c)
+                                  setEditName(c.name)
+                                  setEditData({})
+                                  setEditModalOpen(true)
+                                }
+                              }}
+                              title={c.type === 'llm' ? "Configure LLM provider & models" : "Rotate secrets or edit credential"}
+                            >
+                              <span className="cred-menu-item-icon" style={{ color: '#94a3b8' }}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                              </span>
+                              <span>{c.type === 'llm' ? 'Configure Provider' : 'Edit Credential'}</span>
+                            </button>
 
-                      {(c.type.startsWith('google_') || c.type === 'gmail') && (
-                        <button
-                          type="button"
-                          className="ghost small cred-action-btn cred-btn-settings"
-                          onClick={() => {
-                            setGoogleModalService(c.type)
-                            setGoogleModalData(c)
-                            setGoogleModalOpen(true)
-                          }}
-                          title="Open Google Cloud OAuth2 settings (Client ID, Secret, Redirect URIs)"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                          </svg>
-                          <span>Settings</span>
-                        </button>
-                      )}
+                            {c.type === 'llm' && (
+                              <button
+                                type="button"
+                                className="ghost small cred-menu-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  setLlmModalData(c)
+                                  setLlmModalOpen(true)
+                                }}
+                                title="Open LLM Model Discovery & Provider Settings"
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: '#818cf8' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                                    <polyline points="2 17 12 22 22 17" />
+                                    <polyline points="2 12 12 17 22 12" />
+                                  </svg>
+                                </span>
+                                <span>Model Discovery</span>
+                              </button>
+                            )}
 
-                      {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) ? (
-                        <button
-                          type="button"
-                          className="ghost small cred-action-btn cred-btn-danger"
-                          onClick={() => setLogoutTarget(c)}
-                          title="Revoke session and tokens on provider and disconnect completely"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-                          </svg>
-                          <span>Logout</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="ghost small cred-action-btn cred-btn-danger"
-                          onClick={() => setDeleteTarget(c)}
-                          title={['database','postgres','mysql','redis','mongodb'].includes(c.type) ? 'Delete connection string' : 'Delete'}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                          <span>Delete</span>
-                        </button>
-                      )}
+                            {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) && (
+                              <button
+                                type="button"
+                                className={`${c.expired ? 'primary small cred-menu-item-alert' : 'ghost small'} cred-menu-item`}
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  handleReconnect(c)
+                                }}
+                                disabled={reconnectingId === c.id}
+                                title={c.expired ? 'Session expired — click Reconnect to re-authenticate or refresh token' : 'Auto-reconnect or renew token'}
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: c.expired ? '#f59e0b' : '#34d399' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                                  </svg>
+                                </span>
+                                <span>{reconnectingId === c.id ? 'Reconnecting…' : (c.expired ? 'Renew Session (Reconnect)' : 'Reconnect')}</span>
+                              </button>
+                            )}
+
+                            {c.type === 'salesforce' && (
+                              <button
+                                type="button"
+                                className="ghost small cred-menu-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  setSfModalData(c)
+                                  setSfModalOpen(true)
+                                }}
+                                title="Open Salesforce OAuth2 settings (Client ID, Secret, Redirect URL, Domains)"
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: '#38bdf8' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                  </svg>
+                                </span>
+                                <span>Settings</span>
+                              </button>
+                            )}
+
+                            {c.type === 'hubspot' && (
+                              <button
+                                type="button"
+                                className="ghost small cred-menu-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  setHsModalData(c)
+                                  setHsModalOpen(true)
+                                }}
+                                title="Open HubSpot OAuth / App settings (Client ID, Secret, Private Token)"
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: '#fb923c' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                  </svg>
+                                </span>
+                                <span>Settings</span>
+                              </button>
+                            )}
+
+                            {c.type === 'dynamics_crm' && (
+                              <button
+                                type="button"
+                                className="ghost small cred-menu-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  setDynModalData(c)
+                                  setDynModalOpen(true)
+                                }}
+                                title="Open Microsoft Dynamics 365 OAuth / Service Principal settings"
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: '#38bdf8' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                  </svg>
+                                </span>
+                                <span>Settings</span>
+                              </button>
+                            )}
+
+                            {(c.type.startsWith('google_') || c.type === 'gmail') && (
+                              <button
+                                type="button"
+                                className="ghost small cred-menu-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  setGoogleModalService(c.type)
+                                  setGoogleModalData(c)
+                                  setGoogleModalOpen(true)
+                                }}
+                                title="Open Google Cloud OAuth2 settings (Client ID, Secret, Redirect URIs)"
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: '#ea4335' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                  </svg>
+                                </span>
+                                <span>Settings</span>
+                              </button>
+                            )}
+
+                            <div className="cred-menu-divider" />
+
+                            {['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs'].includes(c.type) ? (
+                              <button
+                                type="button"
+                                className="ghost small cred-menu-item cred-menu-item-danger"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  setLogoutTarget(c)
+                                }}
+                                title="Revoke session and tokens on provider and disconnect completely"
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: '#f43f5e' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                                  </svg>
+                                </span>
+                                <span>Logout</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="ghost small cred-menu-item cred-menu-item-danger"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  setDeleteTarget(c)
+                                }}
+                                title={['database','postgres','mysql','redis','mongodb'].includes(c.type) ? 'Delete connection string' : 'Delete credential'}
+                              >
+                                <span className="cred-menu-item-icon" style={{ color: '#f43f5e' }}>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                  </svg>
+                                </span>
+                                <span>Delete</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
