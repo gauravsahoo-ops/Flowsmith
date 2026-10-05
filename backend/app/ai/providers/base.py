@@ -66,7 +66,7 @@ class BaseLLMProvider(ABC):
         ...
 
     @abstractmethod
-    async def stream_chat(
+    def stream_chat(
         self,
         messages: list[dict[str, Any]],
         *,

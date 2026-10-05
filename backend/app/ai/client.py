@@ -303,8 +303,7 @@ async def stream_chat_completion(
                 base_url = "https://api.openai.com/v1"
 
     provider: BaseLLMProvider = get_provider(provider_name=prov_name, model=model)
-
-    async for chunk in provider.stream_chat(
+    stream_iter: Any = provider.stream_chat(
         messages=messages,
         model=model,
         temperature=temperature,
@@ -313,7 +312,8 @@ async def stream_chat_completion(
         api_key=api_key,
         base_url=base_url,
         timeout_s=timeout_s,
-    ):
+    )
+    async for chunk in stream_iter:
         yield chunk
 
 
