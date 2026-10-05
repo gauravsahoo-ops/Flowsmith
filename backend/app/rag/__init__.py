@@ -17,8 +17,10 @@ fallback embedding is available for tests (hash-based, dependency-free).
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import logging
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -370,6 +372,66 @@ def reindex_document(
 # retrieval (+ debugging) & citations
 # ----------------------------------------------------------------------
 
+def bm25_sparse_score(query: str, document_text: str) -> float:
+    """Compute lightweight BM25-style term frequency score between query and document text."""
+    query_tokens = [w for w in re.findall(r"\w+", query.lower()) if len(w) > 2]
+    if not query_tokens:
+        return 0.0
+    doc_tokens = re.findall(r"\w+", document_text.lower())
+    doc_len = len(doc_tokens)
+    if doc_len == 0:
+        return 0.0
+
+    score = 0.0
+    for qt in query_tokens:
+        tf = doc_tokens.count(qt)
+        if tf > 0:
+            k1 = 1.2
+            b = 0.75
+            norm_len = doc_len / 100.0
+            score += (tf * (k1 + 1.0)) / (tf + k1 * (1.0 - b + b * norm_len))
+    return score
+
+
+def reciprocal_rank_fusion(
+    dense_hits: list[dict[str, Any]],
+    sparse_scores: dict[str, float],
+    k: int = 60,
+    dense_weight: float = 0.6,
+    sparse_weight: float = 0.4,
+) -> list[dict[str, Any]]:
+    """Combine dense vector similarity rankings and sparse BM25 scores using Reciprocal Rank Fusion."""
+    sorted_sparse = sorted(sparse_scores.items(), key=lambda x: x[1], reverse=True)
+    sparse_ranks = {doc_id: rank + 1 for rank, (doc_id, score) in enumerate(sorted_sparse) if score > 0}
+
+    fused_scores: dict[str, float] = {}
+    hit_map = {h.get("id") or str(i): h for i, h in enumerate(dense_hits)}
+
+    # Dense RRF contribution
+    for rank, h in enumerate(dense_hits, start=1):
+        h_id = h.get("id") or str(rank - 1)
+        rrf = dense_weight / (k + rank)
+        fused_scores[h_id] = fused_scores.get(h_id, 0.0) + rrf
+
+    # Sparse RRF contribution
+    for h_id, rank in sparse_ranks.items():
+        if h_id in hit_map:
+            rrf = sparse_weight / (k + rank)
+            fused_scores[h_id] = fused_scores.get(h_id, 0.0) + rrf
+
+    # Re-rank hits by fused score
+    re_ranked = []
+    for h_id, fused in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True):
+        if h_id in hit_map:
+            hit = copy.deepcopy(hit_map[h_id])
+            hit["rrf_score"] = round(fused, 5)
+            hit["sparse_score"] = round(sparse_scores.get(h_id, 0.0), 3)
+            hit["hybrid"] = True
+            re_ranked.append(hit)
+
+    return re_ranked or dense_hits
+
+
 def query_collection(
     db: Session,
     collection_id: str,
@@ -379,6 +441,9 @@ def query_collection(
     similarity_threshold: float = 0.3,
     access: RagAccess,
     embed_fn=None,
+    hybrid: bool = False,
+    dense_weight: float = 0.6,
+    sparse_weight: float = 0.4,
 ) -> dict[str, Any]:
     """Scored retrieval with debugging telemetry; citations-ready hits."""
     rec = get_collection(db, collection_id, access)
@@ -395,16 +460,30 @@ def query_collection(
 
     store = get_vector_store()
     handle = store.ensure_collection(rec.store_name, rec.dim)
-    hits = store.query(handle, qvec, top_k)
+    candidate_k = top_k * 2 if hybrid else top_k
+    hits = store.query(handle, qvec, candidate_k)
     t_search = time.perf_counter()
 
-    kept = [h for h in hits if h.get("similarity", 0.0) >= similarity_threshold]
+    if hybrid and hits:
+        sparse_scores = {}
+        for i, h in enumerate(hits):
+            h_id = h.get("id") or str(i)
+            doc_content = str(h.get("content") or "")
+            sparse_scores[h_id] = bm25_sparse_score(query_text, doc_content)
+        fused = reciprocal_rank_fusion(
+            hits, sparse_scores, k=60, dense_weight=dense_weight, sparse_weight=sparse_weight
+        )
+        kept = [h for h in fused[:top_k] if h.get("similarity", 0.0) >= similarity_threshold or h.get("sparse_score", 0.0) > 0.5]
+    else:
+        kept = [h for h in hits[:top_k] if h.get("similarity", 0.0) >= similarity_threshold]
+
     # Citation refs: best hit is [1].
     for ref, hit in enumerate(kept, start=1):
         hit["ref"] = ref
     return {
         "hits": kept,
         "debug": {
+            "mode": "hybrid" if hybrid else "dense",
             "total_candidates": len(hits),
             "after_threshold": len(kept),
             "similarity_threshold": similarity_threshold,
