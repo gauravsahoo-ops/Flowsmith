@@ -376,10 +376,10 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             with start_trace_span(
                 f"workflow.execute {wf_title}",
                 attributes={
-                    "workflow.id": str(job.workflow_id),
-                    "execution.id": str(execution_id),
+                    "workflow.id": job.workflow_id,
+                    "execution.id": execution_id,
                     "user.id": str(job.user_id),
-                    "trigger": str(job.trigger),
+                    "trigger": job.trigger,
                 },
                 parent_context=parent_trace_context,
             ) as exec_span:
