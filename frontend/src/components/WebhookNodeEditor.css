@@ -136,38 +136,3 @@
   color: #6ee7b7;
 }
 
-/* Light mode overrides */
-[data-theme="light"] .webhook-editor {
-  color: var(--text, #0f172a);
-}
-[data-theme="light"] .we-section {
-  background: var(--panel, #ffffff);
-  border-color: var(--border, rgba(15, 23, 42, 0.1));
-}
-[data-theme="light"] .we-url-box {
-  background: var(--panel-2, #f8fafc);
-  border-color: rgba(99, 102, 241, 0.3);
-}
-[data-theme="light"] .we-url-text {
-  color: #0f172a;
-}
-[data-theme="light"] .we-copy-btn {
-  background: rgba(15, 23, 42, 0.05);
-  border-color: rgba(15, 23, 42, 0.12);
-  color: #334155;
-}
-[data-theme="light"] .we-copy-btn:hover {
-  background: rgba(15, 23, 42, 0.1);
-  color: #0f172a;
-}
-[data-theme="light"] .we-code-snippet {
-  background: var(--panel-2, #f8fafc);
-  border-color: var(--border, rgba(15, 23, 42, 0.1));
-  color: #334155;
-}
-[data-theme="light"] .we-test-textarea {
-  background: var(--panel-2, #f8fafc);
-  border-color: var(--border, rgba(15, 23, 42, 0.1));
-  color: #0f172a;
-}
-

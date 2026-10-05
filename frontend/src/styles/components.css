@@ -892,10 +892,6 @@
   align-items: flex-start;
   gap: 10px;
 }
-[data-theme="light"] .empty-highlight-card {
-  background: transparent;
-  border: none;
-}
 .empty-highlight-icon {
   color: var(--accent);
   margin-top: 2px;

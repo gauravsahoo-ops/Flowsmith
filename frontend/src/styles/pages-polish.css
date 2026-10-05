@@ -103,16 +103,6 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
-[data-theme="light"] .monitoring-card {
-  background: #ffffff;
-  border-color: rgba(15, 23, 42, 0.1);
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
-}
-[data-theme="light"] .monitoring-card:hover {
-  border-color: rgba(15, 23, 42, 0.18);
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
-}
-
 
 /* ==========================================================================
    HUMAN APPROVALS — DECISION REVIEW SUITE

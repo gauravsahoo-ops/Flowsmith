@@ -52,32 +52,7 @@
 .toolbar-popover ul { margin: 0 0 10px; padding-left: 16px; font-size: 12.5px; }
 .toolbar-popover li { margin-bottom: 4px; }
 
-/* Light mode canvas toolbar & copilot */
-[data-theme="light"] .canvas-toolbar {
-  background: #ffffff;
-  border-color: rgba(15, 23, 42, 0.12);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-}
-[data-theme="light"] .tool-btn {
-  color: #475569;
-}
-[data-theme="light"] .tool-btn:hover:not(:disabled) {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-[data-theme="light"] .tool-sep {
-  background: rgba(15, 23, 42, 0.1);
-}
-[data-theme="light"] .in-canvas-copilot-card {
-  background: #ffffff !important;
-  border-color: var(--border) !important;
-  box-shadow: var(--shadow-modal) !important;
-}
-[data-theme="light"] .copilot-input {
-  background: #f8fafc !important;
-  border-color: rgba(15, 23, 42, 0.15) !important;
-  color: #0f172a !important;
-}
+
 
 .canvas-flash {
   position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);

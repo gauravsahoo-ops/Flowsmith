@@ -4,7 +4,6 @@ import { useBrandingStore } from '../stores/brandingStore'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import FlowsmithBrandMark from '../components/FlowsmithBrandMark'
-import ThemeSwitcher from '../components/shared/ThemeSwitcher'
 import { useUiStore } from '../stores/uiStore'
 import { playChime } from '../utils/soundEffects'
 
@@ -215,9 +214,7 @@ export default function SettingsPage() {
           </div>
           <div className="settings-attr">
             <div className="settings-attr-label">Theme Mode</div>
-            <div className="settings-attr-value">
-              <ThemeSwitcher variant="segmented" />
-            </div>
+            <div className="settings-attr-value">Dark (Obsidian)</div>
           </div>
           <div className="settings-attr">
             <div className="settings-attr-label">API Endpoint Base</div>
