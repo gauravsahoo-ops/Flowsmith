@@ -82,7 +82,7 @@ Flowsmith uses focused, decoupled Zustand stores to manage canvas, execution, an
 │                      │ dirty tracking, auto-layout engine   │
 ├──────────────────────┼──────────────────────────────────────┤
 │ 2. executionStore.js │ Active execution ID, live step logs, │
-│                      │ execution metrics, output inspector  │
+│                      │ execution metrics, step trace console│
 ├──────────────────────┼──────────────────────────────────────┤
 │ 3. uiStore.js        │ Modal states, active drawer tabs,    │
 │                      │ theme overrides, canvas zoom/pan     │
