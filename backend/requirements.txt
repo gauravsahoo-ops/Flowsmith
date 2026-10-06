@@ -54,6 +54,12 @@ pytest-xdist>=3.5
 respx>=0.21
 fakeredis>=2.23
 
+# Distributed tracing & OpenTelemetry (Phase 30 / Roadmap Initiative C)
+opentelemetry-api>=1.24.0
+opentelemetry-sdk>=1.24.0
+opentelemetry-exporter-otlp-proto-http>=1.24.0
+opentelemetry-exporter-otlp-proto-grpc>=1.24.0
+
 # lint & security audit
 ruff>=0.8.0
 pip-audit>=2.7.0
