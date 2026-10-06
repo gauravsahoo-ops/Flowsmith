@@ -498,7 +498,7 @@ export default function IntegrationsPage() {
                       </span>
                     )}
                   </div>
-                  <span style={{ color: '#38bdf8', fontWeight: 500 }}>Inspect →</span>
+                  <span style={{ color: '#38bdf8', fontWeight: 500 }}>Trace →</span>
                 </div>
               </div>
             )

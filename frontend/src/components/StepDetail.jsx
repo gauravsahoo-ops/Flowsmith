@@ -42,7 +42,7 @@ export default function StepDetail({ execution, step, onRetryNode }) {
   )
 
   if (!step) {
-    return <p className="hint">Select a step to inspect its inputs, outputs and errors.</p>
+    return <p className="hint">Select a step to trace its inputs, outputs and errors.</p>
   }
 
   const branches = deriveBranches(step, execution?.results?.outputs)

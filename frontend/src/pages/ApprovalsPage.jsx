@@ -55,7 +55,7 @@ export default function ApprovalsPage() {
               <span>How Human Approvals Work</span>
             </h4>
             <p className="hint" style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55 }}>
-              Add an <strong>Approval</strong> node to any workflow before critical steps (such as sending emails, deleting records, or updating customer data in Salesforce). The execution pauses safely in <code>waiting_approval</code> state and notifies you here with the payload to inspect, approve, or reject.
+              Add an <strong>Approval</strong> node to any workflow before critical steps (such as sending emails, deleting records, or updating customer data in Salesforce). The execution pauses safely in <code>waiting_approval</code> state and notifies you here with the payload to review, approve, or reject.
             </p>
           </div>
         </>
@@ -89,7 +89,7 @@ export default function ApprovalsPage() {
                   </svg>
                   Reject
                 </button>
-                <button className="ghost small" onClick={() => navigate(`/executions/${e.id}`)}>Inspect trace →</button>
+                <button className="ghost small" onClick={() => navigate(`/executions/${e.id}`)}>Trace run →</button>
               </div>
             </div>
           ))}

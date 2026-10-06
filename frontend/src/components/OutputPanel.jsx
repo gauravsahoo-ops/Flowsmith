@@ -916,7 +916,7 @@ export default function OutputPanel({
             <p className="hint">
               {status === 'success'
                 ? 'This node executed successfully but produced 0 items. The workflow stopped at this point and skipped connected downstream nodes because there was no data to continue.'
-                : 'Execute this step or the entire workflow to inspect live return values.'}
+                : 'Execute this step or the entire workflow to trace live return values.'}
             </p>
             {onExecuteStep && (
               <button

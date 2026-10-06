@@ -48,7 +48,7 @@ const QUICK_ACTIONS = [
   {
     id: 'act-executions',
     title: 'Live Executions & Audit Log',
-    subtitle: 'Inspect runs, step duration and live traces',
+    subtitle: 'Trace runs, step duration and live telemetry',
     path: '/executions',
     category: 'Navigation',
     icon: (

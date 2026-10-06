@@ -225,7 +225,7 @@ const CONVERGENCE_PILLARS = [
     color: '#ec4899',
     bg: 'rgba(236, 72, 153, 0.08)',
     border: 'rgba(236, 72, 153, 0.3)',
-    summary: 'Subprocess-sandboxed Python & Node.js code execution, raw HTTP request node with custom headers/queries, sub-workflows, DAG looping, and full JSON inspection.',
+    summary: 'Subprocess-sandboxed Python & Node.js code execution, raw HTTP request node with custom headers/queries, sub-workflows, DAG looping, and full JSON payload tracing.',
   },
   {
     id: 'ipaas',
@@ -636,7 +636,7 @@ export default function AIArchitectureSection() {
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="primary" onClick={() => navigate('/workflows')} style={{ fontSize: '12.5px', padding: '0.45rem 0.85rem', background: '#7c3aed', borderColor: '#a855f7' }}>
-              Inspect in Workflow Editor →
+              Trace in Workflow Editor →
             </button>
             <a
               href="#repair-simulator"
@@ -674,7 +674,7 @@ export default function AIArchitectureSection() {
             </p>
           </div>
           <span style={{ fontSize: '11px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '5px 12px', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.25)', fontWeight: 500 }}>
-            Click any layer to inspect architectural guarantees
+            Click any layer to explore architectural guarantees
           </span>
         </div>
 
@@ -1053,7 +1053,7 @@ export default function AIArchitectureSection() {
               </h3>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#a1a1aa' }}>
-              Test vector similarity queries and inspect retrieved chunks with exact cosine similarity scores.
+              Test vector similarity queries and trace retrieved chunks with exact cosine similarity scores.
             </p>
           </div>
           <button className="ghost" onClick={() => navigate('/knowledge')} style={{ fontSize: '12px' }}>

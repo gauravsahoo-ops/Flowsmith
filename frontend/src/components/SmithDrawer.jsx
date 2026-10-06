@@ -297,9 +297,14 @@ export default function SmithDrawer({
     const lower = rawText.toLowerCase()
 
     // 1. Local specialized handlers for instant responsiveness
-    if (lower === 'inspect this workflow and list all nodes' || lower === '/inspect') {
+    if (
+      lower === 'trace this workflow and list all nodes' ||
+      lower === 'inspect this workflow and list all nodes' ||
+      lower === '/trace' ||
+      lower === '/inspect'
+    ) {
       setTimeout(() => {
-        let content = `### Canvas Workflow Inspection\n\n`
+        let content = `### Canvas Workflow Trace\n\n`
         if (nodes.length === 0) {
           content += `The canvas is currently empty. You can build a workflow via chat (e.g. \`/generate\`) or open the **AI Workflow Builder Studio**.`
         } else {
@@ -316,7 +321,7 @@ export default function SmithDrawer({
           {
             role: 'assistant',
             content,
-            trace: [{ tool: 'canvas_inspector', output: `Inspected ${nodes.length} nodes` }],
+            trace: [{ tool: 'canvas_tracer', output: `Traced ${nodes.length} nodes` }],
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           },
         ])
@@ -566,7 +571,7 @@ export default function SmithDrawer({
         {
           role: 'assistant',
           content:
-            "I'm operating in localized assistant mode. You can inspect your workflow, explain architecture, debug failures, or synthesize new nodes via `/generate`.",
+            "I'm operating in localized assistant mode. You can trace your workflow, explain architecture, debug failures, or synthesize new nodes via `/generate`.",
           trace: [{ tool: 'local_copilot', output: 'Resolved via built-in catalog' }],
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
@@ -829,7 +834,7 @@ export default function SmithDrawer({
                       <span className="smith-msg-time">{currentTimeString}</span>
                     </div>
                     <div className="smith-greeting-text">
-                      {`Hi ${userName}! I can inspect, synthesize, debug, and optimize your workflows with direct grounding into active canvas topology, schemas, and execution telemetry.`}
+                      {`Hi ${userName}! I can trace, synthesize, debug, and optimize your workflows with direct grounding into active canvas topology, schemas, and execution telemetry.`}
                     </div>
 
                     {/* Section 1: Quick Canvas Tasks */}
@@ -838,7 +843,7 @@ export default function SmithDrawer({
                       <button
                         type="button"
                         className="smith-action-card"
-                        onClick={() => handleSendMessage('Inspect this workflow and list all nodes')}
+                        onClick={() => handleSendMessage('Trace this workflow and list all nodes')}
                       >
                         <div className="smith-card-icon" style={{ color: '#38bdf8' }}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -846,7 +851,7 @@ export default function SmithDrawer({
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                           </svg>
                         </div>
-                        <div className="smith-card-text">Inspect this workflow and list all nodes</div>
+                        <div className="smith-card-text">Trace this workflow and list all nodes</div>
                       </button>
 
                       <button
@@ -947,7 +952,7 @@ export default function SmithDrawer({
                         { label: '/ explain', cmd: '/explain ' },
                         { label: '/ debug', cmd: '/debug ' },
                         { label: '/ optimize', cmd: '/optimize ' },
-                        { label: '/ inspect', cmd: '/inspect' },
+                        { label: '/ trace', cmd: '/trace' },
                         { label: '/ generate', cmd: '/generate ' },
                         { label: '/ add node', cmd: '/add node ' },
                         { label: '/ search connectors', cmd: '/search connectors ' },
@@ -1150,10 +1155,10 @@ export default function SmithDrawer({
                 style={{ padding: '8px 12px', minHeight: 'unset' }}
                 onClick={() => {
                   setActiveTab('chat')
-                  handleSendMessage('Inspect this workflow and list all nodes')
+                  handleSendMessage('Trace this workflow and list all nodes')
                 }}
               >
-                Inspect Graph
+                Trace Graph
               </button>
             </div>
 

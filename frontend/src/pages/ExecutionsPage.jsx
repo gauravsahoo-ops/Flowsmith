@@ -68,7 +68,7 @@ export default function ExecutionsPage() {
 
   return (
     <div className="page executions-page">
-      <PageHeader title="Executions" description="History of workflow runs. Click any execution to inspect its debug trace." actions={<button className="ghost" onClick={() => load(1)}>↻ Refresh</button>} />
+      <PageHeader title="Executions" description="History of workflow runs. Click any execution to trace its execution history." actions={<button className="ghost" onClick={() => load(1)}>↻ Refresh</button>} />
       <WorkspaceTabs />
 
       <div className="exec-filter-bar">
@@ -131,7 +131,7 @@ export default function ExecutionsPage() {
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 ),
                 title: 'Live Run Tracing',
-                desc: 'Inspect in-flight and completed runs with per-node input/output inspection.',
+                desc: 'Trace in-flight and completed runs with per-node input/output telemetry.',
               },
               {
                 icon: (

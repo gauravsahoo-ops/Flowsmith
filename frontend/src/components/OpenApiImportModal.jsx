@@ -177,7 +177,7 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
                       onClick={handlePreview}
                       disabled={previewing || !specUrl.trim()}
                     >
-                      {previewing ? 'Inspecting…' : 'Inspect Spec'}
+                      {previewing ? 'Tracing…' : 'Trace Spec'}
                     </button>
                   </div>
                   <span className="oai-hint">
@@ -201,7 +201,7 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
                       onClick={handlePreview}
                       disabled={previewing || !specRaw.trim()}
                     >
-                      {previewing ? 'Inspecting…' : 'Inspect Spec'}
+                      {previewing ? 'Tracing…' : 'Trace Spec'}
                     </button>
                   </div>
                 </div>

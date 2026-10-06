@@ -259,7 +259,7 @@ function RecentExecutions({ executions, loading }) {
                 </span>
               </td>
               <td style={{ textAlign: 'right' }}>
-                <span style={{ color: '#6366f1', fontSize: 12, fontWeight: 500 }}>Inspect →</span>
+                <span style={{ color: '#6366f1', fontSize: 12, fontWeight: 500 }}>Trace →</span>
               </td>
             </tr>
           ))}

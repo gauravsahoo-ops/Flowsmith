@@ -6,7 +6,7 @@ const DOCS = [
   { id: 'expressions', title: 'Expressions & Syntax', desc: 'Use {{ $json }}, {{ $node.* }}, {{ $env.* }}, {{ $cred.* }}', to: '/variables' },
   { id: 'credentials', title: 'Credentials & Auth', desc: 'Encrypted at rest, injected securely as $cred', to: '/credentials' },
   { id: 'triggers', title: 'Triggers', desc: 'Manual triggers, webhook listeners, and cron schedules', to: '/workflows' },
-  { id: 'executions', title: 'Executions & Console', desc: 'Timeline, step payload inspection, retry, and trace console', to: '/executions' },
+  { id: 'executions', title: 'Executions & Console', desc: 'Timeline, step payload tracing, retry, and trace console', to: '/executions' },
   { id: 'variables', title: 'Variables & Environment', desc: 'Workspace-scoped variables, secret masking, and {{ $env.KEY }}', to: '/variables' },
   { id: 'templates', title: 'Templates Gallery', desc: 'Production-ready starter workflows and team sharing', to: '/templates' },
   { id: 'knowledge', title: 'RAG & Knowledge', desc: 'Vector collections, document chunking, and similarity search', to: '/knowledge' },
@@ -154,9 +154,9 @@ export default function HelpPage() {
         <ol className="hint" style={{ lineHeight: 1.8, paddingLeft: 20, margin: 0, fontSize: 13.5 }}>
           <li>Navigate to <Link to="/workflows" style={{ color: '#818cf8', fontWeight: 600 }}>Workflows</Link> → click <strong>＋ Create workflow</strong>.</li>
           <li>Drag nodes from the left palette onto the visual canvas and connect them with edges.</li>
-          <li>Click any node to open the inspector dialog (Inputs → Parameters → Live outputs).</li>
+          <li>Click any node to open the configuration dialog (Inputs → Parameters → Live outputs).</li>
           <li>Configure credentials in <Link to="/credentials" style={{ color: '#818cf8', fontWeight: 600 }}>Credentials</Link> for external services like Salesforce, Slack, or databases.</li>
-          <li>Click <strong>▶ Run</strong> to execute your flow, monitor real-time node outputs, and inspect full traces in <Link to="/executions" style={{ color: '#818cf8', fontWeight: 600 }}>Executions</Link>.</li>
+          <li>Click <strong>▶ Run</strong> to execute your flow, monitor real-time node outputs, and trace full executions in <Link to="/executions" style={{ color: '#818cf8', fontWeight: 600 }}>Executions</Link>.</li>
         </ol>
       </section>
 

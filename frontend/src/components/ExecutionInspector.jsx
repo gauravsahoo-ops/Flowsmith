@@ -219,7 +219,7 @@ export default function ExecutionInspector({ onClose }) {
             </div>
             <h4 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 600 }}>No Active Execution</h4>
             <p style={{ margin: 0, fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>
-              Run your workflow to inspect real-time execution steps, console outputs, and trace errors.
+              Run your workflow to trace real-time execution steps, console outputs, and debug errors.
             </p>
             <button
               className="primary"
@@ -256,7 +256,7 @@ export default function ExecutionInspector({ onClose }) {
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                   Past Executions ({recentExecutions.length})
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Click to inspect</span>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Click to trace</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {recentExecutions.map((exec) => (

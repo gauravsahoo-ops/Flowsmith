@@ -33,7 +33,7 @@ describe('AI Components Suite', () => {
       const html = renderToStaticMarkup(
         React.createElement(AICopilotModal, { isOpen: true, onClose: () => {} })
       )
-      expect(html).toContain('Inspect this workflow and list all nodes')
+      expect(html).toContain('Trace this workflow and list all nodes')
       expect(html).toContain('Explain how this workflow works')
       expect(html).toContain('Debug last execution failure')
       expect(html).toContain('Optimize this workflow')
@@ -98,7 +98,7 @@ describe('AI Components Suite', () => {
       )
       expect(html).toContain('Smith')
       expect(html).toContain('Use current canvas')
-      expect(html).toContain('Inspect this workflow and list all nodes')
+      expect(html).toContain('Trace this workflow and list all nodes')
     })
 
     it('renders diagnostics and smart tools when multi-node workflow loaded', () => {

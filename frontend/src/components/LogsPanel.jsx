@@ -309,7 +309,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
               e.stopPropagation()
               handleTabClick('input')
             }}
-            title="Inspect Input data for the active node"
+            title="Trace Input data for the active node"
           >
             Input
           </button>
@@ -322,7 +322,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
               e.stopPropagation()
               handleTabClick('output')
             }}
-            title="Inspect Output data for the active node"
+            title="Trace Output data for the active node"
           >
             Output
           </button>
@@ -334,7 +334,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                 className="logs-step-select"
                 value={activeStep?.node_id || ''}
                 onChange={(e) => selectNode(e.target.value)}
-                title="Select node to inspect"
+                title="Select node to trace"
               >
                 {trace.map((s, idx) => {
                   const n = nodeMap.get(s.node_id) || {}
@@ -653,7 +653,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
             <div className="logs-data-body">
               {stepData.items.length === 0 && !running ? (
                 <div className="logs-empty-state">
-                  <span>No {activeTab} data for this step yet. Execute the workflow to inspect data.</span>
+                  <span>No {activeTab} data for this step yet. Execute the workflow to trace data.</span>
                 </div>
               ) : (
                 <>

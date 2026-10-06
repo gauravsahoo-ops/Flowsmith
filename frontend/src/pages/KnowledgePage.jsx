@@ -91,7 +91,7 @@ export default function KnowledgePage() {
               badge="Cognitive RAG Engine"
               title="Vector Knowledge Base & Embeddings"
               description="Ingest PDFs, enterprise docs, and API specs for semantic similarity and hybrid retrieval across your AI workflows."
-              guidance="Select an existing collection from the sidebar to inspect documents and query embeddings, or create a new collection above."
+              guidance="Select an existing collection from the sidebar to explore documents and query embeddings, or create a new collection above."
               highlights={[
                 {
                   icon: (
