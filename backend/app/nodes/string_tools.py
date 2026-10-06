@@ -1,7 +1,7 @@
 """String Tools node (Phase 7 Data Transformation).
 
 Deterministic string/number/regex toolkit covering the most common
-n8n/Zapier formatter operations without resorting to Code nodes:
+formatter operations without resorting to Code nodes:
 
 - case: upper / lower / title / trim / slug
 - slice / replace / split / join / length

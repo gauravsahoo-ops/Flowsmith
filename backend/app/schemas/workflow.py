@@ -183,7 +183,7 @@ class Workflow(BaseModel):
         elif raw_nodes is None:
             d["nodes"] = []
 
-        # Normalize connections if dict (e.g., n8n connections structure or keyed map)
+        # Normalize connections if dict (e.g., nested connections structure or keyed map)
         raw_conns = d.get("connections")
         if isinstance(raw_conns, dict):
             normalized_conns = []

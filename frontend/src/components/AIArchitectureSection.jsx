@@ -155,7 +155,7 @@ const ARCH_PIPELINE = [
     layer: 'Layer 1',
     title: '1. Natural Language',
     desc: 'Intent ingestion, user prompts, and conversational workflow chat.',
-    badge: 'Zapier Simplicity',
+    badge: 'Frictionless Simplicity',
     details: 'Frictionless entry point capturing user intent in plain English with multi-turn chat refinement and automatic parameter extraction without manual schema deciphering.',
   },
   {
@@ -211,8 +211,8 @@ const ARCH_PIPELINE = [
 const CONVERGENCE_PILLARS = [
   {
     id: 'simplicity',
-    competitor: 'Zapier',
-    pillar: "Zapier's Simplicity",
+    category: 'Intuitive UX',
+    pillar: 'Frictionless Workflow Simplicity',
     color: '#f97316',
     bg: 'rgba(249, 115, 22, 0.08)',
     border: 'rgba(249, 115, 22, 0.3)',
@@ -220,8 +220,8 @@ const CONVERGENCE_PILLARS = [
   },
   {
     id: 'control',
-    competitor: 'n8n',
-    pillar: "n8n's Technical Control",
+    category: 'Engine Depth',
+    pillar: 'Technical Runtime & Code Control',
     color: '#ec4899',
     bg: 'rgba(236, 72, 153, 0.08)',
     border: 'rgba(236, 72, 153, 0.3)',
@@ -229,8 +229,8 @@ const CONVERGENCE_PILLARS = [
   },
   {
     id: 'ipaas',
-    competitor: 'Cyclr',
-    pillar: "Cyclr's iPaaS Architecture",
+    category: 'Modular iPaaS',
+    pillar: 'Embedded Enterprise Architecture',
     color: '#06b6d4',
     bg: 'rgba(6, 182, 212, 0.08)',
     border: 'rgba(6, 182, 212, 0.3)',
@@ -238,7 +238,7 @@ const CONVERGENCE_PILLARS = [
   },
   {
     id: 'sovereignty',
-    competitor: 'Flowsmith',
+    category: 'Flowsmith Moat',
     pillar: "Flowsmith's Sovereign Moat",
     color: '#8b5cf6',
     bg: 'rgba(139, 92, 246, 0.08)',
@@ -670,7 +670,7 @@ export default function AIArchitectureSection() {
               </span>
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', maxWidth: '850px', lineHeight: 1.5 }}>
-              Flowsmith transcends the vanity race of shallow connector counts. Instead, it converges <strong>Zapier&apos;s simplicity</strong>, <strong>n8n&apos;s technical control</strong>, <strong>Cyclr&apos;s embedded iPaaS architecture</strong>, and <strong>Flowsmith&apos;s sovereign enterprise AI moat</strong> into a single self-hosted foundation.
+              Flowsmith transcends the vanity race of shallow connector counts. Instead, it converges <strong>frictionless visual simplicity</strong>, <strong>deep technical runtime control</strong>, <strong>embedded enterprise iPaaS architecture</strong>, and <strong>Flowsmith&apos;s sovereign enterprise AI moat</strong> into a single unified self-hosted foundation.
             </p>
           </div>
           <span style={{ fontSize: '11px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '5px 12px', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.25)', fontWeight: 500 }}>
@@ -703,7 +703,7 @@ export default function AIArchitectureSection() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <ArchIcon name={p.id} size={20} color={p.color} />
                 <span style={{ fontSize: '10px', fontWeight: 700, color: p.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {p.competitor} Virtue
+                  {p.category}
                 </span>
               </div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>

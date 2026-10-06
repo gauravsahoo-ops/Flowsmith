@@ -107,7 +107,8 @@ def test_api_integrations_endpoints(client):
     res_cert = client.get("/api/integrations/certification", headers=headers)
     assert res_cert.status_code == 200
     cert_data = res_cert.json()["data"]
-    assert len(cert_data) >= 68
+    cert_connectors = cert_data["connectors"] if isinstance(cert_data, dict) and "connectors" in cert_data else cert_data
+    assert len(cert_connectors) >= 68
 
     # 5. Canonical nodes endpoint
     res_nodes = client.get("/api/integrations/canonical-nodes", headers=headers)

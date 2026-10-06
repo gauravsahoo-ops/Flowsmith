@@ -47,9 +47,9 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
   }
 
   const benchmarks = coverage?.benchmarks || {
-    n8n: { coverage_pct: 100, core_nodes_parity: '100% of standard primitives' },
-    zapier: { coverage_pct: 100, instant_triggers_parity: '100% of Tier-1/Tier-2 enterprise SaaS' },
-    cyclr: { coverage_pct: 100, connector_methods_parity: 'Full parity with methods, auth, dynamic schemas' },
+    core_primitives: { coverage_pct: 100, core_nodes_parity: '100% of standard primitives' },
+    enterprise_saas: { coverage_pct: 100, instant_triggers_parity: '100% of Tier-1/Tier-2 enterprise SaaS' },
+    ipaas_architecture: { coverage_pct: 100, connector_methods_parity: 'Full parity with methods, auth, dynamic schemas' },
   }
 
   const capabilities = coverage?.capabilities || {
@@ -105,7 +105,7 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #6366f1' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Discovered</div>
               <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0' }}>{summary.total_external_discovered}</div>
-              <div style={{ fontSize: '12px', color: '#6366f1' }}>Across n8n, Zapier & Cyclr</div>
+              <div style={{ fontSize: '12px', color: '#6366f1' }}>Enterprise Ecosystem Scope</div>
             </div>
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Supported by FlowSmith</div>
@@ -131,22 +131,22 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
 
           {/* Benchmark Comparison Matrix */}
           <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600 }}>External Platform Parity Analysis</h3>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600 }}>Enterprise Automation Capability Analysis</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
               <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: 600 }}>n8n Parity</span>
-                  <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: 4, fontSize: '12px' }}>{benchmarks.n8n?.coverage_pct || 100}% Core Overlap</span>
+                  <span style={{ fontWeight: 600 }}>Core Execution Primitives</span>
+                  <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: 4, fontSize: '12px' }}>{benchmarks.core_primitives?.coverage_pct || 100}% Standard Primitives</span>
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
-                  Full parity with core execution primitives: IF, Switch, Loop, Code (Python/JS), Sub-workflow, RAG, and AI Agents.
+                  Full coverage of core execution primitives: IF, Switch, Loop, Code (Python/JS), Sub-workflow, RAG, and AI Agents.
                 </p>
               </div>
 
               <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: 600 }}>Zapier Parity</span>
-                  <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: 4, fontSize: '12px' }}>{benchmarks.zapier?.coverage_pct || 100}% Top SaaS</span>
+                  <span style={{ fontWeight: 600 }}>Enterprise SaaS Connectors</span>
+                  <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: 4, fontSize: '12px' }}>{benchmarks.enterprise_saas?.coverage_pct || 100}% Top SaaS</span>
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
                   High-priority enterprise SaaS coverage (Salesforce, HubSpot, Slack, GitHub). Long-tail SaaS via OpenAPI Importer and Universal HTTP.
@@ -155,7 +155,7 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
 
               <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: 600 }}>Cyclr Parity</span>
+                  <span style={{ fontWeight: 600 }}>Modular iPaaS Architecture</span>
                   <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: 4, fontSize: '12px' }}>Full Architecture Parity</span>
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>

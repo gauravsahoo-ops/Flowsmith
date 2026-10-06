@@ -287,7 +287,7 @@ export default function IntegrationsPage() {
             <line x1="12" y1="20" x2="12" y2="4" />
             <line x1="6" y1="20" x2="6" y2="14" />
           </svg>
-          Coverage & Parity Engine (n8n / Zapier / Cyclr)
+          Enterprise Capability & Coverage Matrix
         </button>
       </div>
 

@@ -1282,7 +1282,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
         </div>
       </ToggleSection>
 
-      {/* Lifecycle Hooks (Cyclr Style: on_init, on_success, on_error) */}
+      {/* Lifecycle Hooks: on_init, on_success, on_error */}
       <ToggleSection
         label="Method Lifecycle Hooks (on_init, on_success, on_error)"
         checked={Boolean(params.on_init_headers || params.on_success_expression || (params.on_error_action && params.on_error_action !== 'fail'))}

@@ -33,7 +33,7 @@ class IfConditionParams(BaseModel):
             return data
         d = dict(data)
 
-        # Unpack nested dict conditions (e.g., n8n dialect or wrapper dicts)
+        # Unpack nested dict conditions (e.g., nested condition dialect or wrapper dicts)
         if isinstance(d.get("conditions"), dict):
             cond_dict = d["conditions"]
             if "combinator" in cond_dict and isinstance(cond_dict["combinator"], str):
