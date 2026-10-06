@@ -231,24 +231,6 @@ export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, 
           )}
         </div>
         <span className="app-sidebar-brand-name">{appName}</span>
-        {!collapsed && !isMobile && (
-          <span className="app-sidebar-tier-badge">PRO</span>
-        )}
-        {!collapsed && !isMobile && (
-          <button
-            type="button"
-            className="app-sidebar-collapse-btn"
-            onClick={onToggle}
-            aria-label="Collapse sidebar (Ctrl+B)"
-            title="Collapse sidebar (Ctrl+B)"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-              <path d="M14 9l-3 3 3 3" />
-            </svg>
-          </button>
-        )}
         {isMobile && (
           <button
             type="button"
