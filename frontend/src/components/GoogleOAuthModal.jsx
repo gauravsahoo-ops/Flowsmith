@@ -127,7 +127,7 @@ export default function GoogleOAuthModal({
           </html>
         `)
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/GoogleOAuthModal.jsx', err) }
 
     try {
       const { api } = await import('../api')
@@ -183,7 +183,7 @@ export default function GoogleOAuthModal({
               onConnected?.()
               setTimeout(() => onClose(), 1200)
             }
-          } catch {}
+          } catch (err) { console.error('[flowsmith] components/GoogleOAuthModal.jsx', err) }
         }
       }
 

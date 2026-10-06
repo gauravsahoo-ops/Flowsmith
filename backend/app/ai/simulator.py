@@ -11,13 +11,11 @@ Performs safe, non-destructive mock execution of a workflow:
 
 from __future__ import annotations
 
-import time
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
 from app.ai.pipeline_validator import PipelineValidator
-from app.engine.expressions import resolve as resolve_expr
 from app.engine.graph import build_graph, topological_sort
 from app.schemas.workflow import Workflow
 

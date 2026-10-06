@@ -88,13 +88,16 @@ function applyToDom(branding) {
 }
 
 function getStoredBranding() {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return DEFAULT_BRANDING
+  }
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       const parsed = JSON.parse(saved)
       return { ...DEFAULT_BRANDING, ...parsed }
     }
-  } catch {}
+  } catch (err) { console.error('[flowsmith] stores/brandingStore.js', err) }
   return DEFAULT_BRANDING
 }
 
@@ -138,7 +141,7 @@ export const useBrandingStore = create((set) => ({
         applyToDom(next)
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-        } catch {}
+        } catch (err) { console.error('[flowsmith] stores/brandingStore.js', err) }
       }
     } catch (err) {
       set({ error: err.message })
@@ -179,7 +182,7 @@ export const useBrandingStore = create((set) => ({
       applyToDom(next)
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {}
+      } catch (err) { console.error('[flowsmith] stores/brandingStore.js', err) }
       return next
     } catch (err) {
       set({ error: err.message })
@@ -209,7 +212,7 @@ export const useBrandingStore = create((set) => ({
       applyToDom(next)
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {}
+      } catch (err) { console.error('[flowsmith] stores/brandingStore.js', err) }
       return next
     } catch (err) {
       set({ error: err.message })

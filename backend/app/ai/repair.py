@@ -7,12 +7,9 @@ concrete, validated repairs with visual diffs for explicit user approval.
 from __future__ import annotations
 
 import copy
-import json
-import re
 from typing import Any, Awaitable, Callable, Optional
 from pydantic import BaseModel, Field
 
-from app.ai.pipeline_validator import PipelineValidator
 from app.ai.simulator import WorkflowSimulator
 
 ChatFn = Callable[..., Awaitable[dict[str, Any]]]

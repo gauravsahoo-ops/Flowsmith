@@ -220,11 +220,13 @@ def validate_candidate(candidate: dict[str, Any], *, available_credentials: set[
         workflow = Workflow.model_validate({**candidate, "id": candidate.get("id") or "wf_ai"})
     except (ValidationError, ValueError, Exception) as exc:
         raw_issues = getattr(exc, "issues", None)
+        errors_fn: Any = getattr(exc, "errors", None)
         if raw_issues:
             for raw in raw_issues:
                 errors.append(_issue("INVALID_PARAMETER", node_id=raw.get("node_id"), field=raw.get("field"), message=raw.get("message") or str(raw)))
-        elif hasattr(exc, "errors") and callable(exc.errors):
-            for err in exc.errors():
+        elif callable(errors_fn):
+            errs: Any = errors_fn()
+            for err in errs:
                 loc = ".".join(str(p) for p in err.get("loc", []))
                 errors.append(_issue("INVALID_PARAMETER", field=loc, message=err.get("msg", str(err))))
         else:

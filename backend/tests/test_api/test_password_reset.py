@@ -1,8 +1,8 @@
 """Self-service password reset (Phase 42).
 
-Covers: dev-link issuance, unknown-email anti-enumeration, password
-change + single-use tokens, expiry, weak-password policy, and lockout
-clearing on successful reset.
+Covers: email issuance (the response never carries the link), unknown-
+email anti-enumeration, password change + single-use tokens, expiry,
+weak-password policy, and lockout clearing on successful reset.
 """
 
 from __future__ import annotations
@@ -12,6 +12,26 @@ import time
 import pytest
 
 from tests.test_api.conftest import auth_headers, register
+
+
+@pytest.fixture(autouse=True)
+def reset_links(monkeypatch):
+    """Capture reset links delivered to _send_reset_email.
+
+    The API no longer returns the link in its response (audit fix), and
+    the DB stores only the SHA-256 hash — so tests intercept the email
+    hand-off instead.
+    """
+    from app.api import auth as auth_module
+
+    links: list[str] = []
+
+    def _capture(to: str, link: str) -> bool:
+        links.append(link)
+        return True
+
+    monkeypatch.setattr(auth_module, "_send_reset_email", _capture)
+    return links
 
 
 def _request_reset(client, email: str):
@@ -62,23 +82,26 @@ def test_forgot_password_always_200_even_for_unknown_email(client):
     assert "dev_reset_link" not in body
 
 
-def test_forgot_password_returns_dev_link(client):
+def test_forgot_password_emails_link_without_returning_it(client, reset_links):
     register(client, email="resetme@flowsmith.dev")
     r = _request_reset(client, "resetme@flowsmith.dev")
     assert r.status_code == 200
-    link = r.json()["data"].get("dev_reset_link")
-    assert link and "token=" in link
+    body = r.json()["data"]
+    assert body["sent"] is True
+    assert "dev_reset_link" not in body
+    assert reset_links and "token=" in reset_links[-1]
 
 
 # ----------------------------------------------------------------------
 # Reset flow
 # ----------------------------------------------------------------------
 
-def test_reset_changes_password_and_single_use(client):
+def test_reset_changes_password_and_single_use(client, reset_links):
     email = "cycle@flowsmith.dev"
     register(client, email=email)
 
-    token = _request_reset(client, email).json()["data"]["dev_reset_link"].split("token=")[1]
+    _request_reset(client, email)
+    token = reset_links[-1].split("token=")[1]
 
     new = client.post("/api/auth/reset-password", json={"token": token, "new_password": "BrandNew2!"})
     assert new.status_code == 200
@@ -100,7 +123,7 @@ def test_reset_changes_password_and_single_use(client):
     assert replay.status_code == 400
 
 
-def test_expired_token_rejected(client):
+def test_expired_token_rejected(client, reset_links):
     from datetime import UTC, datetime, timedelta
 
     from app.db import get_session
@@ -108,8 +131,8 @@ def test_expired_token_rejected(client):
 
     email = "expired@flowsmith.dev"
     register(client, email=email)
-    r = _request_reset(client, email)
-    token = r.json()["data"]["dev_reset_link"].split("token=")[1]
+    _request_reset(client, email)
+    token = reset_links[-1].split("token=")[1]
 
     db = get_session()
     try:
@@ -129,10 +152,11 @@ def test_expired_token_rejected(client):
     assert resp.status_code == 400
 
 
-def test_weak_new_password_rejected(client):
+def test_weak_new_password_rejected(client, reset_links):
     email = "weak@flowsmith.dev"
     register(client, email=email)
-    token = _request_reset(client, email).json()["data"]["dev_reset_link"].split("token=")[1]
+    _request_reset(client, email)
+    token = reset_links[-1].split("token=")[1]
 
     resp = client.post(
         "/api/auth/reset-password", json={"token": token, "new_password": "short"}
@@ -140,7 +164,7 @@ def test_weak_new_password_rejected(client):
     assert resp.status_code == 422
 
 
-def test_reset_clears_login_lockout(client):
+def test_reset_clears_login_lockout(client, reset_links):
     from app.api.auth import login_throttle
     from app.config import get_settings
 
@@ -156,8 +180,8 @@ def test_reset_clears_login_lockout(client):
     )
     assert locked.status_code == 429
 
-    r = _request_reset(client, email)
-    token = r.json()["data"]["dev_reset_link"].split("token=")[1]
+    _request_reset(client, email)
+    token = reset_links[-1].split("token=")[1]
     resp = client.post(
         "/api/auth/reset-password", json={"token": token, "new_password": "Fresh4!x"}
     )

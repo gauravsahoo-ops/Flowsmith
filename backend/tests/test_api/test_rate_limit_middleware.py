@@ -146,13 +146,14 @@ def test_redis_backend_enforces_limit(mini_app, monkeypatch):
     assert codes == [200, 200, 429]
 
 
-def test_redis_failure_fails_open(mini_app, monkeypatch):
+def test_redis_failure_falls_back_to_memory(mini_app, monkeypatch):
+    """A Redis outage must degrade to the in-memory limiter, not fail open."""
     class _Boom:
         def pipeline(self):
             raise RuntimeError("redis down")
 
-    monkeypatch.setattr(rl, "get_settings", lambda: _settings())
+    monkeypatch.setattr(rl, "get_settings", lambda: _settings(per_minute=3))
     mini_app.add_middleware(rl.RateLimitMiddleware, redis_client=_Boom())
     client = TestClient(mini_app)
-    for _ in range(10):
-        assert client.get("/ping", headers=_bearer(3)).status_code == 200
+    codes = [client.get("/ping", headers=_bearer(3)).status_code for _ in range(5)]
+    assert codes == [200, 200, 200, 429, 429]

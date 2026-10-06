@@ -33,5 +33,5 @@ class ExecutionEvent(Base):
     status: Mapped[str | None] = mapped_column(String(16), nullable=True)
     error: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.now, server_default=func.now()
+        DateTime(timezone=True), default=datetime.now, server_default=func.now(), index=True
     )

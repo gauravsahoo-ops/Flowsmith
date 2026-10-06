@@ -83,3 +83,38 @@ def test_factory_returns_memory_without_redis(monkeypatch):
     monkeypatch.setattr(rl, "get_shared_redis", lambda: None)
     t = rl.get_login_throttle()
     assert isinstance(t, rl.FailureThrottle)
+
+
+class _BrokenRedis:
+    """Simulates a Redis outage: every command raises."""
+
+    def __getattr__(self, name):
+        def _boom(*args, **kwargs):
+            raise ConnectionError("redis down")
+
+        return _boom
+
+
+def test_outage_falls_back_to_memory_lockout():
+    throttle = RedisFailureThrottle(_BrokenRedis(), max_failures=3, window_s=60, lockout_s=120)
+    assert throttle.is_locked("k") is False
+    assert throttle.retry_after("k") == 0
+    for _ in range(3):
+        throttle.record_failure("k")
+    assert throttle.is_locked("k") is True
+    assert throttle.retry_after("k") > 0
+    throttle.clear("k")
+    assert throttle.is_locked("k") is False
+    assert throttle.retry_after("k") == 0
+
+
+def test_outage_window_limiter_falls_back_to_memory():
+    from app.security.ratelimit import RedisWindowLimiter
+
+    limiter = RedisWindowLimiter(_BrokenRedis(), capacity=2, window_s=60)
+    assert limiter.allow("hook") == (True, 0.0)
+    assert limiter.allow("hook") == (True, 0.0)
+    allowed, retry_after = limiter.allow("hook")
+    assert allowed is False
+    assert retry_after > 0
+    limiter.reset()  # must not raise either (redis gone)

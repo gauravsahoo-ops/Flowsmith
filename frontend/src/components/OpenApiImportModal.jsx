@@ -88,7 +88,7 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
         if (Array.isArray(nodes)) {
           useWorkflowStore.setState({ catalog: nodes })
         }
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/OpenApiImportModal.jsx', err) }
       if (typeof onImportSuccess === 'function') {
         onImportSuccess(data)
       }

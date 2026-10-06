@@ -121,7 +121,7 @@ export default function HubSpotOAuthModal({
           </html>
         `)
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/HubSpotOAuthModal.jsx', err) }
 
     try {
       const { api } = await import('../api')
@@ -177,7 +177,7 @@ export default function HubSpotOAuthModal({
               onConnected?.()
               setTimeout(() => onClose(), 1200)
             }
-          } catch {}
+          } catch (err) { console.error('[flowsmith] components/HubSpotOAuthModal.jsx', err) }
         }
       }
 

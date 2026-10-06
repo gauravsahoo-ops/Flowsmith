@@ -16,7 +16,6 @@ from starlette.types import ASGIApp
 from app.telemetry.tracer import (
     extract_trace_context,
     get_current_trace_id,
-    get_tracer,
     inject_trace_context,
     start_trace_span,
 )

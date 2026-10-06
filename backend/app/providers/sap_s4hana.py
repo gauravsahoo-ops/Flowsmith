@@ -11,10 +11,9 @@ Supports:
 from __future__ import annotations
 
 import base64
-import json
 import logging
-from typing import Any, Dict, Optional, Tuple
-from urllib.parse import quote, urlencode
+from typing import Any, Dict, Tuple
+from urllib.parse import quote
 
 import httpx
 
@@ -195,6 +194,8 @@ class SapS4HanaProviderClient(BaseProviderClient):
 
         res = await self.request_sap(creds, "GET", path, params=params, timeout=timeout)
         results = res.get("results") if isinstance(res, dict) and "results" in res else (res if isinstance(res, list) else [res])
+        if results is None:
+            results = []
         return {
             "service": service_clean,
             "entity_set": entity_clean,

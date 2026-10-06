@@ -158,7 +158,7 @@ export default function App() {
             try {
               localStorage.setItem('flowsmith_user', JSON.stringify(u))
               window.dispatchEvent(new CustomEvent('flowsmith_user_updated', { detail: u }))
-            } catch {}
+            } catch (err) { console.error('[flowsmith] App.jsx', err) }
           }
         })
         .catch((err) => {

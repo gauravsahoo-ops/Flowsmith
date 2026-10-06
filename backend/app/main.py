@@ -128,8 +128,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["X-XSS-Protection"] = "0"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         host = request.url.hostname or ""
         if host and host not in ("127.0.0.1", "localhost", "::1"):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
@@ -255,6 +255,21 @@ app.add_middleware(MetricsMiddleware)
 app.add_middleware(OpenTelemetryMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(SPAFallbackMiddleware)
+
+
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    """Reject request bodies larger than 50 MB."""
+
+    MAX_BODY_SIZE = 50 * 1024 * 1024
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.MAX_BODY_SIZE:
+            return Response(status_code=413, content="Request body too large")
+        return await call_next(request)
+
+
+app.add_middleware(RequestSizeLimitMiddleware)
 # CORS: wildcard with credentials is rejected in production (validate_production_settings)
 # and downgraded to non-credentialed in development.
 _cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]

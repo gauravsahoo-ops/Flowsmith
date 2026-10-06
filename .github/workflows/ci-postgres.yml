@@ -56,8 +56,8 @@ jobs:
         env:
           DATABASE_URL: postgresql://app:testpass@localhost:5432/automation
           REDIS_URL: redis://localhost:6379/0
-          JWT_SECRET: test-secret-0123456789abcdef0123456789abcdef
-          CREDENTIALS_ENCRYPTION_KEY: YcUnzpKJ_p_IXRh5b_uXEx3I3wh7BkWD5WFfl5pJX_o=
+          JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+          CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.CI_CREDENTIALS_ENCRYPTION_KEY }}
           QUEUE_EMBEDDED_CONSUMER: "true"
         run: |
           .venv/bin/pytest -q

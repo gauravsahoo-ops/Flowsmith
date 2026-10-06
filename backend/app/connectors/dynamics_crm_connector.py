@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 
 from app.connectors import (
     ConnectorSDK,
-    ConnectorError,
     ConnectorCategory,
     ConnectorStatus,
     ConnectorErrorCode,
@@ -117,10 +116,9 @@ class DynamicsCrmConnector(ConnectorSDK, ConnectorOperations):
             self.status = ConnectorStatus.ERROR
             return False
 
-    async def disconnect(self) -> bool:
+    async def disconnect(self) -> None:
         self._provider.reset()
         self.status = ConnectorStatus.DISCONNECTED
-        return True
 
     async def test_connection(self, config: dict[str, Any]) -> dict[str, Any]:
         """Test connection by calling WhoAmI on the Dataverse instance."""
@@ -139,10 +137,11 @@ class DynamicsCrmConnector(ConnectorSDK, ConnectorOperations):
     async def op_execute(
         self,
         operation: str,
-        params: dict[str, Any],
-        context: dict[str, Any],
+        payload: dict[str, Any],
+        context: dict[str, Any] | None = None,
     ) -> Any:
         """Dispatch operation to DynamicsCrmProviderClient with resolved credentials."""
+        context = context or {}
         creds = (
             context.get("credentials", {}).get("dynamics_crm")
             or context.get("credentials", {})
@@ -156,20 +155,20 @@ class DynamicsCrmConnector(ConnectorSDK, ConnectorOperations):
             )
 
         # Resolve real operation: Flowsmith engine calls connector.op_execute("execute", payload, context),
-        # so prefer params["operation"] whenever operation is "execute" or blank.
+        # so prefer payload["operation"] whenever operation is "execute" or blank.
         raw_op = (operation or "").lower().strip()
-        payload_op = str(params.get("operation") or "").lower().strip()
+        payload_op = str(payload.get("operation") or "").lower().strip()
         effective_op = payload_op if (raw_op in ("", "execute") and payload_op) else (raw_op or payload_op or "query")
 
         # Merge top-level params
-        parsed_params = DynamicsCrmConnectorParams(**{**params, "operation": effective_op})
+        parsed_params = DynamicsCrmConnectorParams(**{**payload, "operation": effective_op})
         op = effective_op
         entity = normalize_entity_set(parsed_params.entity)
 
         if op in ("query", "search"):
             filter_expr = parsed_params.filter
             if op == "search" and not filter_expr:
-                term = str(params.get("query") or params.get("search_term") or params.get("term") or "").strip()
+                term = str(payload.get("query") or payload.get("search_term") or payload.get("term") or "").strip()
                 if term:
                     if entity in ("contacts", "systemusers"):
                         filter_expr = f"contains(fullname, '{term}') or contains(emailaddress1, '{term}')"
@@ -216,19 +215,19 @@ class DynamicsCrmConnector(ConnectorSDK, ConnectorOperations):
             return extra or {}
 
         if op == "create":
-            data = _extract_data(parsed_params, params)
+            data = _extract_data(parsed_params, payload)
             result = await self._provider.create_record(creds, entity, data)
             return result
 
         if op == "update":
-            data = _extract_data(parsed_params, params)
+            data = _extract_data(parsed_params, payload)
             result = await self._provider.update_record(
                 creds, entity, parsed_params.record_id, data
             )
             return result
 
         if op == "upsert":
-            data = _extract_data(parsed_params, params)
+            data = _extract_data(parsed_params, payload)
             result = await self._provider.upsert_record(
                 creds,
                 entity,

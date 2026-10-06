@@ -18,6 +18,19 @@ from typing import Any, Iterator, Optional
 
 logger = logging.getLogger("telemetry")
 
+# Declared up-front with stable types so call sites type-check whether or not
+# the OpenTelemetry SDK is installed (fallback values are None at runtime).
+trace: Any
+Resource: Any
+TracerProvider: Any
+SimpleSpanProcessor: Any
+InMemorySpanExporter: Any
+Span: Any
+Status: Any
+StatusCode: Any
+TraceContextTextMapPropagator: Any
+HAS_OTEL: bool = False
+
 try:
     from opentelemetry import trace
     from opentelemetry.sdk.resources import Resource

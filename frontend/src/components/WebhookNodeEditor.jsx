@@ -56,7 +56,7 @@ export default function WebhookNodeEditor({ node, onParamsChange, workflowId }) 
             }
           }
         }
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/WebhookNodeEditor.jsx', err) }
     }, 1500)
     return () => clearInterval(timer)
   }, [listening, workflowId])
@@ -119,7 +119,7 @@ print(response.status_code, response.json())`
       let parsed = text
       try {
         parsed = JSON.parse(text)
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/WebhookNodeEditor.jsx', err) }
       setTestResult({
         status: res.status,
         statusText: res.statusText,

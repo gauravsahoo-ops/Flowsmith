@@ -16,7 +16,7 @@ import hmac
 import logging
 import secrets
 import time
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -170,6 +170,8 @@ class NetSuiteProviderClient(BaseProviderClient):
         body = {"q": query}
         res = await self.request_netsuite(creds, "POST", path, params=params, json_body=body, timeout=timeout)
         items = res.get("items") if isinstance(res, dict) and "items" in res else ([res] if isinstance(res, dict) else [])
+        if items is None:
+            items = []
         total = res.get("totalResults", len(items)) if isinstance(res, dict) else len(items)
         return {
             "query": query,
@@ -198,6 +200,8 @@ class NetSuiteProviderClient(BaseProviderClient):
             params["q"] = q
         res = await self.request_netsuite(creds, "GET", path, params=params, timeout=timeout)
         items = res.get("items") if isinstance(res, dict) and "items" in res else ([res] if isinstance(res, dict) else [])
+        if items is None:
+            items = []
         return {
             "record_type": record_type,
             "count": len(items),

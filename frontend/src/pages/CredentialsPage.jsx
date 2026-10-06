@@ -158,7 +158,7 @@ export default function CredentialsPage() {
           </html>
         `)
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
 
     try {
       const res = await api.reconnectCredential(c.id)
@@ -187,7 +187,7 @@ export default function CredentialsPage() {
       }
       if (err && err.status === 404) {
         setError('Credential not found. Refreshing list…')
-        try { await load() } catch {}
+        try { await load() } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
         return
       }
       const msg = (err && err.message) || ''
@@ -224,7 +224,7 @@ export default function CredentialsPage() {
           const u = new URL(apiBase)
           backendOrigin = u.origin
         }
-      } catch {}
+      } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
 
       let bc = null
       let pollClosed = null
@@ -282,7 +282,7 @@ export default function CredentialsPage() {
           if (!isExpected && origin !== 'null') {
             console.warn('OAuth message from unexpected origin', origin)
           }
-        } catch {}
+        } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
         processResult(event.data)
       }
 
@@ -290,7 +290,7 @@ export default function CredentialsPage() {
         if (event.key === 'flowsmith_oauth_result' && event.newValue) {
           try {
             processResult(JSON.parse(event.newValue))
-          } catch {}
+          } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
         }
       }
 
@@ -303,7 +303,7 @@ export default function CredentialsPage() {
             if (event?.data) processResult(event.data)
           }
         }
-      } catch {}
+      } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
 
       if (!w) {
         if (mountedRef.current) {

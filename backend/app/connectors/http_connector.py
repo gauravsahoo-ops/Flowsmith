@@ -9,9 +9,7 @@ Uses SafeHTTPClient for all external API calls (spec 37.28).
 
 import asyncio
 import logging
-import re
-from typing import Any, Dict, List, Literal, Optional
-from urllib.parse import urlencode
+from typing import Any, Literal, Optional
 
 from app.security.safe_http_client import get_safe_http_client
 import httpx
@@ -66,7 +64,7 @@ class HTTPConnectorParams(BaseModel):
     body: Any = None
     form_data: Optional[dict[str, Any]] = None
     content_type: Optional[str] = None
-    
+
     # GraphQL specific
     graphql_query: Optional[str] = None
     graphql_variables: Optional[dict[str, Any]] = None
@@ -170,7 +168,7 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
         # Resolve credentials from context or params
         creds = (context or {}).get("credentials", {}).get("http", {}) if context else {}
         auth_type = params.auth_type or creds.get("auth_type")
-        
+
         # Query params dict
         query_params: dict[str, Any] = dict(params.query_params)
 
@@ -187,7 +185,7 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
             req_headers["Authorization"] = f"Basic {token}"
         elif auth_type == "api_key" and (params.auth_token or creds.get("api_key")):
             key_name = params.auth_key_name or "X-API-Key"
-            token = params.auth_token or creds.get("api_key")
+            token = params.auth_token or creds.get("api_key") or ""
             if params.auth_key_in == "query":
                 query_params[key_name] = token
             else:

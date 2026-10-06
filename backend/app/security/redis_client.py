@@ -4,8 +4,9 @@ One lazy connection factory used by the API rate limiter (and reusable
 by future cross-process features). Returns ``None`` when Redis is not
 configured, so callers fall back to their in-process behaviour.
 
-Connection failures surface to the caller: the rate limiter treats them
-as fail-open (availability over strictness).
+Connection failures surface to the caller: the rate limiters catch
+them and fall back to their per-process in-memory limiters (never
+unbounded).
 """
 
 from __future__ import annotations

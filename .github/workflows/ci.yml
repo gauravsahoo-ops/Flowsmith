@@ -34,8 +34,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://automate:automate@localhost:5432/automate
       REDIS_URL: redis://localhost:6379/0
-      JWT_SECRET: ci-test-secret-0123456789abcdef0123456789abcdef
-      CREDENTIALS_ENCRYPTION_KEY: YcUnzpKJ_p_IXRh5b_uXEx3I3wh7BkWD5WFfl5pJX_o=
+      JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+      CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.CI_CREDENTIALS_ENCRYPTION_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -44,7 +44,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - name: Install
-        run: pip install -r requirements.txt pyright
+        run: pip install -r requirements.txt pyright ruff
       - name: Lint (ruff)
         run: ruff check app
       - name: Security audit (pip-audit)
@@ -52,9 +52,16 @@ jobs:
       - name: Typecheck
         run: pyright
       - name: Tests (fast pass)
-        run: pytest -q -m "not timing"
+        run: pytest -q -m "not timing" --cov=app --cov-report=term --cov-report=xml:coverage.xml
       - name: Tests (timing pass)
         run: pytest -q -m timing
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          if-no-files-found: ignore
       - name: Schema parity (alembic == models)
         run: python scripts/check_schema_parity.py
 
@@ -74,6 +81,15 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Unit Tests
+        run: npx vitest run --coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
       - name: Build
         run: npm run build
 
@@ -104,8 +120,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://automate:automate@localhost:5432/automate
       REDIS_URL: redis://localhost:6379/0
-      JWT_SECRET: ci-test-secret-0123456789abcdef0123456789abcdef
-      CREDENTIALS_ENCRYPTION_KEY: YcUnzpKJ_p_IXRh5b_uXEx3I3wh7BkWD5WFfl5pJX_o=
+      JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
+      CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.CI_CREDENTIALS_ENCRYPTION_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -172,7 +188,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://automate:automate@localhost:5432/automate
       REDIS_URL: redis://localhost:6379/0
-      JWT_SECRET: ci-test-secret-0123456789abcdef0123456789abcdef
+      JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - name: Build image
@@ -180,8 +196,8 @@ jobs:
       - name: Run container
         run: |
           docker run -d --name mat --network host \
-            -e JWT_SECRET=ci-test-secret-0123456789abcdef \
-            -e CREDENTIALS_ENCRYPTION_KEY=YcUnzpKJ_p_IXRh5b_uXEx3I3wh7BkWD5WFfl5pJX_o= \
+            -e JWT_SECRET=${{ secrets.CI_JWT_SECRET }} \
+            -e CREDENTIALS_ENCRYPTION_KEY=${{ secrets.CI_CREDENTIALS_ENCRYPTION_KEY }} \
             -e DATABASE_URL=postgresql://automate:automate@localhost:5432/automate \
             -e REDIS_URL=redis://localhost:6379/0 \
             -e PUBLIC_URL=http://127.0.0.1:8000 \

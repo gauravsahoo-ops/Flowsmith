@@ -184,7 +184,7 @@ function MapField({ schema, value, onChange, path }) {
     try {
       setRawJson(JSON.stringify(current, null, 2))
       setJsonError(null)
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/JsonForm.jsx', err) }
   }
 
   const handleKeyRename = (oldKey, newKey) => {
@@ -196,7 +196,7 @@ function MapField({ schema, value, onChange, path }) {
     try {
       setRawJson(JSON.stringify(current, null, 2))
       setJsonError(null)
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/JsonForm.jsx', err) }
   }
 
   const handleRemove = (key) => {
@@ -206,7 +206,7 @@ function MapField({ schema, value, onChange, path }) {
     try {
       setRawJson(JSON.stringify(current, null, 2))
       setJsonError(null)
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/JsonForm.jsx', err) }
   }
 
   const handleAddField = () => {
@@ -222,7 +222,7 @@ function MapField({ schema, value, onChange, path }) {
     try {
       setRawJson(JSON.stringify(current, null, 2))
       setJsonError(null)
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/JsonForm.jsx', err) }
   }
 
   const handleJsonChange = (e) => {

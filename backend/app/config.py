@@ -44,6 +44,14 @@ class Settings(BaseSettings):
             return v.strip()
         return v
 
+    @field_validator("jwt_algorithm")
+    @classmethod
+    def _validate_jwt_algorithm(cls, v: str) -> str:
+        allowed = {"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512"}
+        if v not in allowed:
+            raise ValueError(f"Invalid JWT algorithm '{v}'. Must be one of: {', '.join(sorted(allowed))}")
+        return v
+
     # Database (spec 17: make PostgreSQL authoritative). Default matches
     # docker-compose.yml (postgres service, user/db `automate`).
     database_url: str = "postgresql://automate:automate@localhost:5432/automate"
@@ -60,10 +68,10 @@ class Settings(BaseSettings):
     safe_http_allowed_hosts: str = ""
     safe_http_allowed_ports: str = ""
 
-    jwt_secret: str = "dev-only-secret-change-me"
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 60 * 24
-    cors_origins: str = "*"
+    cors_origins: str = "http://localhost:5173"
     page_size_max: int = 100
     credentials_encryption_key: str = ""
 
@@ -277,7 +285,7 @@ def validate_production_settings(settings: Settings | None = None) -> None:
     if not settings.credentials_encryption_key:
         missing.append("CREDENTIALS_ENCRYPTION_KEY")
     if not settings.jwt_secret or settings.jwt_secret == "dev-only-secret-change-me":
-        missing.append("JWT_SECRET (dev default)")
+        missing.append("JWT_SECRET (must be set to a secure random value)")
     if "sqlite" in (settings.database_url or "").lower():
         missing.append("DATABASE_URL (must be PostgreSQL in production)")
     origins = [o.strip() for o in (settings.cors_origins or "").split(",") if o.strip()]

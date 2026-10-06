@@ -59,7 +59,7 @@ class ElasticsearchNode(BaseNode[ElasticsearchParams]):
     ) -> NodeResult:
         creds = (ctx.credentials or {}).get("elasticsearch") or (ctx.credentials or {}).get("http") or {}
         base_url = (creds.get("base_url") or creds.get("endpoint") or "http://localhost:9200").rstrip("/")
-        
+
         headers: dict[str, str] = {"Content-Type": "application/json"}
         api_key = creds.get("api_key")
         bearer_token = creds.get("bearer_token") or creds.get("token")
@@ -94,7 +94,7 @@ class ElasticsearchNode(BaseNode[ElasticsearchParams]):
 
                 if op == "search":
                     url = f"{base_url}/{params.index}/_search"
-                    query_body = params.query
+                    query_body: Any = params.query
                     if isinstance(query_body, str):
                         query_body = json.loads(query_body) if query_body.strip() else {"query": {"match_all": {}}}
                     if "size" not in query_body:

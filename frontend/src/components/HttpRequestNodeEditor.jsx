@@ -188,7 +188,7 @@ function parseCurlFrontend(curlStr) {
         for (const [k,v] of u.searchParams.entries()) query[k]=v
         url = `${u.protocol}//${u.host}${u.pathname}${u.hash||''}`
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/HttpRequestNodeEditor.jsx', err) }
     result.url = url
   }
   if (method) result.method = method

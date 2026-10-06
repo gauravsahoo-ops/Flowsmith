@@ -17,10 +17,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from app.ai.capabilities import CapabilityRegistry
 from app.ai.validation import validate_candidate, lint_expressions
-from app.engine.graph import build_graph, topological_sort, validate_graph
-from app.schemas.workflow import Workflow
 
 
 PROHIBITED_SECRET_PATTERNS = [

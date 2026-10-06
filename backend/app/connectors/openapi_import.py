@@ -254,7 +254,7 @@ def parse_spec(source: str | dict[str, Any], *, include: str | None = None) -> A
     spec = load_spec(source)
     info = spec.get("info") or {}
     openapi_ver = str(spec.get("openapi") or spec.get("swagger") or "3.0.0")
-    
+
     # Collect unique tags
     all_tags = []
     for t in (spec.get("tags") or []):

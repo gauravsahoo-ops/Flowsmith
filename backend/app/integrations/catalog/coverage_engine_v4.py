@@ -192,7 +192,7 @@ def generate_coverage_matrix_v4() -> Dict[str, Any]:
 
 def run_coverage_engine_v4() -> None:
     data = generate_coverage_matrix_v4()
-    
+
     # Write JSON
     json_path = DOCS_DIR / "COVERAGE_MATRIX_V4.json"
     with open(json_path, "w", encoding="utf-8") as f:
@@ -203,17 +203,17 @@ def run_coverage_engine_v4() -> None:
     with open(md_path, "w", encoding="utf-8") as f:
         f.write("# FlowSmith Coverage Matrix V4 (Phase 41 Production Certification)\n\n")
         f.write("> **Strict Certification Standard**: Binary claims like \"100% Auth Coverage\" or \"100% Production Ready\" are replaced with disaggregated, verifiable certification states. Connectors without authenticated live external API execution are never labeled as Live Validated.\n\n")
-        
+
         f.write("## 1. Application Scope & Strategy Coverage\n\n")
         f.write(f"- **External Applications Discovered:** {data['ecosystem_scope']['external_applications_discovered']}\n")
         f.write(f"- **Canonical Deduplicated Applications:** {data['ecosystem_scope']['canonical_applications']}\n")
         f.write(f"- **FlowSmith Supported Applications:** {data['application_coverage']['flowsmith_supported_total']} / {data['application_coverage']['canonical_applications_total']} (100.0% architectural reach)\n\n")
-        
+
         f.write("| Implementation Strategy | Canonical Apps | Percentage | Description |\n")
         f.write("| :--- | :---: | :---: | :--- |\n")
         for strat, details in data["application_coverage"]["by_implementation_strategy"].items():
             f.write(f"| `{strat}` | {details['count']} | {details['percentage']:.2f}% | {details['description']} |\n")
-        
+
         f.write("\n## 2. Infrastructure Inventory\n\n")
         f.write(f"- **Total Registered Connectors:** {data['connector_infrastructure']['total_registered_connectors']}\n")
         f.write(f"  - Native Python Connectors: {data['connector_infrastructure']['native_connectors']}\n")
@@ -231,7 +231,7 @@ def run_coverage_engine_v4() -> None:
         f.write(f"| **Search** | {data['search_certification']['total_implemented']} | 20 Automated Tests | 0 | Filtered search and SOQL/SQL queries |\n")
         f.write(f"| **Webhooks** | {data['webhook_certification']['total_implemented']} | 14 HMAC Verified | 0 | Replay protection & constant-time signature comparison |\n")
         f.write(f"| **Pagination** | {data['pagination_certification']['total_implemented']} | 45 Automated Tests | 1 | Cursor, Offset, Page, Token, Link Header mechanisms |\n")
-        f.write(f"| **Dynamic Schema** | 9 (8 Live + 1 Dyn) | 9 Verified | 0 | Salesforce describe, OData EDMX, SuiteQL, information_schema |\n\n")
+        f.write("| **Dynamic Schema** | 9 (8 Live + 1 Dyn) | 9 Verified | 0 | Salesforce describe, OData EDMX, SuiteQL, information_schema |\n\n")
 
         f.write("## 4. Certification State Breakdown\n\n")
         f.write(f"- **`LIVE_API_VALIDATED`**: {data['certification_summary']['LIVE_API_VALIDATED']} (`http` Universal HTTP Connector verified against `httpbin.org`)\n")

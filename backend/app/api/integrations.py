@@ -138,6 +138,6 @@ def get_canonical_nodes(
     canonical_list = []
     for node_cls in NODE_REGISTRY.values():
         canonical_list.append(from_base_node(node_cls).model_dump())
-    
+
     canonical_list.sort(key=lambda x: (x["category"], x["slug"]))
     return ok(canonical_list)

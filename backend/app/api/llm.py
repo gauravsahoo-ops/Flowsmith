@@ -10,15 +10,14 @@ import json
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.ai.llm_adapters import get_adapter_for_provider, get_model_cache
-from app.ai.llm_registry import LLMModel, get_llm_registry
+from app.ai.llm_registry import get_llm_registry
 from app.api.auth import get_current_user
 from app.api.common import ok
-from app.credentials import service as credential_service
 from app.db import get_db
 from app.models import User
 from app.models.credential import Credential
@@ -27,18 +26,6 @@ from app.security.crypto import decrypt_text
 logger = logging.getLogger("api.llm")
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
-
-
-def get_optional_user(
-    authorization: str | None = Header(default=None),
-    x_authorization: str | None = Header(default=None),
-    db: Session = Depends(get_db),
-) -> Optional[User]:
-    """Allow public access to provider metadata while resolving authenticated user when available."""
-    try:
-        return get_current_user(authorization, x_authorization, db)
-    except Exception:
-        return None
 
 
 class ConnectionTestRequest(BaseModel):
@@ -99,7 +86,7 @@ def list_providers(
     q: str = Query(default="", description="Search query across name, alias, category, variant"),
     category: Optional[str] = Query(default=None, description="Filter by category"),
     status: Optional[str] = Query(default=None, description="Filter by support status"),
-    user: Optional[User] = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """List all registered LLM providers with metadata and search filtering."""
     registry = get_llm_registry()
@@ -137,7 +124,7 @@ def list_providers(
 @router.get("/providers/{provider_id}")
 def get_provider(
     provider_id: str,
-    user: Optional[User] = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Retrieve detailed provider definition and static catalog."""
     registry = get_llm_registry()
@@ -169,7 +156,7 @@ def get_provider(
 @router.post("/test-connection")
 async def test_connection(
     body: ConnectionTestRequest,
-    user: Optional[User] = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """Test connection using ephemeral form data or an existing saved credential."""
@@ -201,7 +188,7 @@ async def test_connection(
 @router.post("/discover-models")
 async def discover_models(
     body: ModelDiscoveryRequest,
-    user: Optional[User] = Depends(get_optional_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """Fetch and normalize models for a provider with server-side caching."""

@@ -122,18 +122,15 @@ def get_file_meta(
     return {"data": _to_dict(rec)}
 
 
-def _get_user_from_header_or_query(
+def _get_user_from_header(
     authorization: str | None = Header(default=None),
     x_authorization: str | None = Header(default=None),
-    token: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> User:
     raw_token = None
     header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
     if header_val and header_val.startswith("Bearer "):
         raw_token = header_val.removeprefix("Bearer ").strip()
-    elif token:
-        raw_token = token.strip()
 
     if not raw_token:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing authentication token.")
@@ -154,7 +151,7 @@ def _get_user_from_header_or_query(
 @router.get("/{file_id}/download")
 def download_file(
     file_id: str,
-    user: User = Depends(_get_user_from_header_or_query),
+    user: User = Depends(_get_user_from_header),
     db: Session = Depends(get_db),
 ):
     rec = db.get(FileRecord, file_id)
@@ -179,7 +176,7 @@ def download_file(
 @router.get("/{file_id}/view")
 def view_file(
     file_id: str,
-    user: User = Depends(_get_user_from_header_or_query),
+    user: User = Depends(_get_user_from_header),
     db: Session = Depends(get_db),
 ):
     """Stream file with inline disposition for in-browser image/PDF/text preview."""

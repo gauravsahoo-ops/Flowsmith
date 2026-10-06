@@ -50,6 +50,16 @@ class HTTPCredential(BaseModel):
     password: str = Field(default="", description="Basic-auth password (optional).")
 
 
+class ElasticsearchCredential(BaseModel):
+    base_url: str = Field(default="", description="Cluster URL (https://host:9200).")
+    endpoint: str = Field(default="", description="Alias for base_url (import compatibility).")
+    api_key: str = Field(default="", description="Elasticsearch API key.")
+    bearer_token: str = Field(default="", description="Bearer token for the Authorization header.")
+    token: str = Field(default="", description="Alias for bearer_token (import compatibility).")
+    username: str = Field(default="", description="Basic-auth username (optional).")
+    password: str = Field(default="", description="Basic-auth password (optional).")
+
+
 class LLMCredential(BaseModel):
     provider: str = Field(default="openai", description="Selected LLM provider ID.")
     variant: str = Field(default="", description="Provider regional or plan variant.")
@@ -803,6 +813,7 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "imap": IMAPCredential,
     "database": DatabaseCredential,
     "http": HTTPCredential,
+    "elasticsearch": ElasticsearchCredential,
     "llm": LLMCredential,
     "salesforce": SalesforceCredential,
     "hubspot": HubSpotCredential,
@@ -904,6 +915,7 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "imap": frozenset({"password"}),
     "database": frozenset({"dsn"}),  # DSNs embed passwords
     "http": frozenset({"api_key", "password"}),
+    "elasticsearch": frozenset({"api_key", "password", "bearer_token", "token"}),
     "llm": frozenset({"api_key"}),
     "salesforce": frozenset({"client_secret", "password", "refresh_token"}),
     "hubspot": frozenset({"refresh_token", "private_token"}),
@@ -1003,6 +1015,7 @@ TYPE_META: dict[str, dict[str, str]] = {
     "imap": {"name": "IMAP", "description": "Mailbox connection for the Read Email node."},
     "database": {"name": "Database", "description": "Connection string for the Database Query node."},
     "http": {"name": "HTTP", "description": "API credentials injectable into HTTP Request headers."},
+    "elasticsearch": {"name": "Elasticsearch", "description": "Elasticsearch / OpenSearch cluster connection for the Elasticsearch node."},
     "llm": {"name": "LLM", "description": "OpenAI-compatible model endpoint for the AI nodes."},
     "salesforce": {"name": "Salesforce", "description": "Salesforce org connection (OAuth2 password or refresh-token grant)."},
     "hubspot": {"name": "HubSpot", "description": "HubSpot CRM connection (Connect HubSpot OAuth or private-app token)."},
@@ -1116,6 +1129,7 @@ CREDENTIAL_PROVIDER: dict[str, str] = {
     "aws_assume_role": "aws_assume_role",
     # Legacy http maps to header/bearer depending on auth_type — resolved at runtime
     "http": "header",
+    "elasticsearch": "header",
     "salesforce": "salesforce",
     "hubspot": "oauth2",
     "dynamics_crm": "oauth2",
@@ -1172,6 +1186,7 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "imap": True,
     "database": True,
     "http": True,
+    "elasticsearch": True,
     "llm": True,
     "salesforce": True,
     "hubspot": True,
@@ -1264,7 +1279,10 @@ def get_provider_for_type(cred_type: str) -> str | None:
 
 
 def is_implemented(cred_type: str) -> bool:
-    return CREDENTIAL_IMPLEMENTED.get(cred_type, False)
+    # Unknown types are blocked; types registered into CREDENTIAL_TYPES
+    # (including dynamically registered connectors) are implemented unless
+    # CREDENTIAL_IMPLEMENTED explicitly marks them pending.
+    return CREDENTIAL_IMPLEMENTED.get(cred_type, cred_type in CREDENTIAL_TYPES)
 
 
 def list_types() -> list[dict[str, Any]]:

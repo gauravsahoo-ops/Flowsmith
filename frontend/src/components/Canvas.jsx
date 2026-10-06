@@ -207,6 +207,18 @@ function CanvasInner() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [flash, setFlash] = useState(null)
+  const flashTimerRef = useRef(null)
+  const initFitTimerRef = useRef(null)
+
+  // Clear pending timers on unmount so callbacks never fire against a
+  // destroyed canvas (flash toast, deferred initial fitView).
+  useEffect(
+    () => () => {
+      clearTimeout(flashTimerRef.current)
+      clearTimeout(initFitTimerRef.current)
+    },
+    []
+  )
   const [edgeMenu, setEdgeMenu] = useState(null)
   const { getNodes, screenToFlowPosition, fitView, zoomIn, zoomOut, setViewport } = useReactFlow()
   const workflow = useWorkflowStore((s) => s.workflow)
@@ -281,7 +293,8 @@ function CanvasInner() {
 
   function flashMessage(text) {
     setFlash(text)
-    setTimeout(() => setFlash(null), 2200)
+    clearTimeout(flashTimerRef.current)
+    flashTimerRef.current = setTimeout(() => setFlash(null), 2200)
   }
 
   const onDrop = useCallback(
@@ -563,7 +576,8 @@ function CanvasInner() {
         onInit={(instance) => {
           const safeMaxZoom = nodes.length <= 2 ? 0.85 : 1.0
           if (nodes.length > 0) {
-            setTimeout(() => instance.fitView({ padding: 0.25, maxZoom: safeMaxZoom }), 50)
+            clearTimeout(initFitTimerRef.current)
+            initFitTimerRef.current = setTimeout(() => instance.fitView({ padding: 0.25, maxZoom: safeMaxZoom }), 50)
           } else {
             instance.setViewport({ x: 0, y: 0, zoom: 1 })
           }

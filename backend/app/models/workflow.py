@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from datetime import datetime
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -39,7 +40,7 @@ class WorkflowRecord(Base):
         String(64), ForeignKey("workspaces.id"), index=True, nullable=True
     )
     active: Mapped[bool] = mapped_column(Boolean, default=False, index=True, nullable=False)
-    data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    data: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), nullable=False)
     # Soft-delete marker (Phase: workflow delete). Deleted workflows are
     # hidden from every access path but their rows stay: versions,
     # shares, and — critically — execution history remain auditable, and

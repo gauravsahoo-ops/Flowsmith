@@ -54,7 +54,7 @@ pipeline {
                 sshagent([env.SSH_CRED_ID]) {
                     // 1. Prepare directory structure on remote
                     sh """
-                    ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -o StrictHostKeyChecking=accept-new ${REMOTE_USER}@${REMOTE_HOST} '
                     '
                     """
 
@@ -67,29 +67,27 @@ pipeline {
                         --exclude='.env' \
                         --exclude='.claude' \
                         --exclude='.vscode' \
-                        --exclude='docker-compose.yml' \
                         --exclude='deployment_requirements.md' \
                         --exclude='Jenkinsfile' \
-                        -e "ssh -o StrictHostKeyChecking=no" \
+                        -e "ssh -o StrictHostKeyChecking=accept-new" \
                         ./ \
                         ${REMOTE_USER}@${REMOTE_HOST}:${BASE_PATH}/
                     """
 
                     // 3. Cd into release dir, trigger Compose & cleanup
                     sh """
-                    ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -o StrictHostKeyChecking=accept-new ${REMOTE_USER}@${REMOTE_HOST} '
                         cd ${BASE_PATH}
 
-                        # Remove the currentl compose file if exists
-                        if [ -f "docker-compose.yml" ]; then
-                            rm -rf docker-compose.yml
+                        # Fail fast with an actionable message when required
+                        # compose env vars are missing from .env
+                        if ! docker compose config -q 2>/dev/null; then
+                            echo "ERROR: docker compose config invalid."
+                            echo "Set required vars (GRAFANA_USER, GRAFANA_PASSWORD, ...) in ${BASE_PATH}/.env:"
+                            docker compose config -q || true
+                            exit 1
                         fi
 
-                        # Rename the compose file if it exists 
-                        if [ -f "docker-compose.staging.yml" ]; then
-                            mv docker-compose.staging.yml docker-compose.yml
-                        fi
-                        
                         # Build and launch new containers
                         docker compose up -d --build --force-recreate app worker
                                                 

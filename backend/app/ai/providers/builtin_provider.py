@@ -11,7 +11,6 @@ Features:
 
 from __future__ import annotations
 
-import datetime
 import json
 import re
 import uuid
@@ -222,7 +221,7 @@ class BuiltinProvider(BaseLLMProvider):
                     name="Salesforce Action",
                     system="salesforce",
                     operation="get",
-                    parameters={"object_type": "Lead", "record_id": "{{$json.id}}"},
+                    inputs={"object_type": "Lead", "record_id": "{{$json.id}}"},
                 ))
                 step_count += 1
             if intent.ai_tasks:
@@ -230,7 +229,7 @@ class BuiltinProvider(BaseLLMProvider):
                     id=f"step_{step_count}",
                     name="AI Scoring & Analysis",
                     system="ai_agent",
-                    parameters={"instructions": f"Process task: {intent.goal}"},
+                    inputs={"instructions": f"Process task: {intent.goal}"},
                 ))
                 step_count += 1
             if "postgres" in intent.systems or "database" in clean_prompt.lower():
@@ -238,7 +237,8 @@ class BuiltinProvider(BaseLLMProvider):
                     id=f"step_{step_count}",
                     name="PostgreSQL Sync",
                     system="database_query",
-                    parameters={"operation": "execute", "query": "SELECT 1"},
+                    operation="execute",
+                    inputs={"operation": "execute", "query": "SELECT 1"},
                 ))
                 step_count += 1
             if "msteams" in intent.systems or "teams" in clean_prompt.lower() or "slack" in intent.systems or "notify" in clean_prompt.lower():
@@ -247,7 +247,7 @@ class BuiltinProvider(BaseLLMProvider):
                     id=f"step_{step_count}",
                     name=dest_name,
                     system="http_request",
-                    parameters={"url": "https://httpbin.org/post", "method": "POST"},
+                    inputs={"url": "https://httpbin.org/post", "method": "POST"},
                 ))
                 step_count += 1
 
@@ -256,7 +256,7 @@ class BuiltinProvider(BaseLLMProvider):
                     id="step_1",
                     name="HTTP Webhook Delivery",
                     system="http_request",
-                    parameters={"url": "https://httpbin.org/post", "method": "POST"},
+                    inputs={"url": "https://httpbin.org/post", "method": "POST"},
                 ))
 
             trigger_kind = intent.trigger.get("type", "webhook") if isinstance(intent.trigger, dict) else "webhook"
@@ -265,7 +265,7 @@ class BuiltinProvider(BaseLLMProvider):
             )
             ir = WorkflowIR(
                 name=f"{intent.goal[:40] or 'Automated Workflow'}",
-                trigger=IRTrigger(type=trigger_kind, parameters=trig_params),
+                trigger=IRTrigger(kind=trigger_kind, system=trigger_kind, config=trig_params),
                 steps=steps,
             )
             compiled_wf = WorkflowCompiler.compile_ir(ir)

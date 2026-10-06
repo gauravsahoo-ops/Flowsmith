@@ -14,8 +14,6 @@ import uuid
 from typing import Any, Awaitable, Callable, Optional
 from pydantic import BaseModel, Field
 
-from app.ai.capabilities import CapabilityRegistry
-from app.ai.pipeline_validator import PipelineValidator
 
 ChatFn = Callable[..., Awaitable[dict[str, Any]]]
 

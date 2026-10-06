@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import ast
 import logging
+import os
+import threading
 from typing import Any, List
 
 from pydantic import BaseModel, Field, model_validator
@@ -45,6 +47,7 @@ class CodeParams(BaseModel):
     jsCode: str | None = Field(default=None, description="Alias for code (import compatibility).")
     language: str = Field(default="javascript", description="javascript or python")
     mode: str = Field(default="runOnceForAllItems", description="Run Once for All Items or Run Once for Each Item")
+    max_memory_mb: int = Field(default=64, ge=16, le=512, description="Memory budget (MB) for JS execution. Enforced in the child process on platforms that support setrlimit.")
 
     @model_validator(mode="before")
     @classmethod
@@ -79,9 +82,11 @@ _SAFE_BUILTINS = {
     "all": all,
     "round": round,
     "reversed": reversed,
-    "isinstance": isinstance,
-    "hasattr": hasattr,
-    "type": type,
+    # NOTE: isinstance/hasattr/type are intentionally NOT provided.
+    # type() returns live class objects and hasattr/introspection helpers
+    # are classic sandbox-escape primitives (class traversal, attribute
+    # probing). User code that needs type checks should compare via
+    # __name__-style checks on already-exposed values or explicit equality.
     "print": print,
     "True": True,
     "False": False,
@@ -179,6 +184,10 @@ DANGEROUS_NAMES = {
     "getattr",
     "setattr",
     "delattr",
+    "vars",
+    "dir",
+    "globals",
+    "locals",
     "__builtins__",
     "__import__",
 }
@@ -327,6 +336,197 @@ def _prepare_js_code(code: str, mode: str) -> str:
     return code
 
 
+# Sandbox daemon bootstrap executed via `python -c`. Kept deliberately
+# standalone (no `app.*` imports) so process startup is fast and immune to
+# __main__ re-import pitfalls that multiprocessing spawn has under
+# console-script launchers. The daemon stays alive and serves eval requests
+# over stdin/stdout lines: a cold spawn + dukpy import costs ~190ms, which
+# would dominate small jobs if paid per evaluation. Each request builds a
+# fresh JSInterpreter, so no state leaks between evaluations.
+_DAEMON_PROGRAM = """
+import json, sys
+
+# Best-effort memory cap before the JS engine loads (POSIX only).
+try:
+    import resource
+    mem_mb = int(sys.argv[1])
+    vsz = 0
+    try:
+        with open("/proc/self/status") as fh:
+            for line in fh:
+                if line.startswith("VmSize:"):
+                    vsz = int(line.split()[1]) * 1024
+                    break
+    except Exception:
+        pass
+    limit = vsz + mem_mb * 1024 * 1024
+    if limit > 0:
+        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+except Exception:
+    pass
+
+try:
+    sys.stdin.reconfigure(encoding="utf-8")
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
+import dukpy
+
+for _line in sys.stdin:
+    _line = _line.strip()
+    if not _line:
+        continue
+    _result = {}
+    try:
+        _req = json.loads(_line)
+        _interp = dukpy.JSInterpreter()
+        _result["ok"] = _interp.evaljs(_req.get("code", ""))
+    except BaseException as _exc:
+        _result["err"] = repr(_exc)
+    try:
+        sys.stdout.write(json.dumps(_result, default=str) + "\\n")
+        sys.stdout.flush()
+    except Exception:
+        break
+"""
+
+# Spawn + dukpy import take time before user JS runs; give the child a
+# small allowance on top of the user-facing timeout so startup never eats it.
+_DUKPY_STARTUP_GRACE = 3.0
+
+
+# Persistent sandbox daemon state (guarded by _DAEMON_LOCK). Spawned lazily
+# on the first eval, killed on timeout/crash, transparently respawned by the
+# next call. Each request runs in a fresh JSInterpreter inside the child, so
+# no JS state crosses evaluations.
+_daemon_proc: Any = None
+_daemon_queue: Any = None
+_daemon_mem_mb: int | None = None
+_DAEMON_LOCK = threading.Lock()
+
+
+def _spawn_daemon(mem_limit_mb: int) -> None:
+    global _daemon_proc, _daemon_queue, _daemon_mem_mb
+    import queue as _queue
+    import subprocess
+    import sys
+
+    backend_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    proc = subprocess.Popen(
+        [sys.executable, "-c", _DAEMON_PROGRAM, str(mem_limit_mb)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        cwd=backend_root,
+        text=True,
+        encoding="utf-8",
+        bufsize=1,
+    )
+    out_q: _queue.Queue = _queue.Queue()
+
+    def _reader() -> None:
+        stdout = proc.stdout
+        try:
+            if stdout is None:
+                return
+            for line in stdout:
+                out_q.put(line)
+        finally:
+            out_q.put(None)  # EOF sentinel: the daemon died
+
+    threading.Thread(target=_reader, name="dukpy-daemon-reader", daemon=True).start()
+    _daemon_proc = proc
+    _daemon_queue = out_q
+    _daemon_mem_mb = mem_limit_mb
+
+
+def _kill_daemon() -> None:
+    global _daemon_proc, _daemon_queue, _daemon_mem_mb
+    proc, _daemon_proc = _daemon_proc, None
+    _daemon_queue = None
+    _daemon_mem_mb = None
+    if proc is not None:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            pass
+
+
+def _run_dukpy(js_wrapper: str, timeout: float, mem_limit_mb: int = 64) -> Any:
+    """Execute dukpy JS in a killable subprocess.
+
+    dukpy.evaljs blocks at the C level, so a thread + join(timeout) can never
+    interrupt a runaway script. A child process can be terminated reliably on
+    every platform, and the child applies a best-effort RLIMIT_AS memory cap
+    where the OS supports it.
+
+    The child is a long-lived daemon serving requests over stdin/stdout
+    (per-eval cold spawn + dukpy import costs ~190ms, which would dominate
+    small jobs). On timeout or crash it is killed and respawned by the next
+    call; a fresh JSInterpreter per request keeps evaluations isolated.
+    """
+    import json as _json
+    import queue as _queue
+
+    with _DAEMON_LOCK:
+        global _daemon_proc, _daemon_queue, _daemon_mem_mb
+        if _daemon_proc is None or _daemon_proc.poll() is not None or _daemon_mem_mb != mem_limit_mb:
+            _kill_daemon()
+            _spawn_daemon(mem_limit_mb)
+
+        def _checked() -> tuple[Any, Any, Any]:
+            proc, q = _daemon_proc, _daemon_queue
+            if proc is None or q is None or proc.stdin is None:
+                raise RuntimeError("JS sandbox daemon unavailable.")
+            return proc, q, proc.stdin
+
+        payload_line = _json.dumps({"code": js_wrapper})
+        proc, daemon_q, stdin = _checked()
+        try:
+            stdin.write(payload_line + "\n")
+            stdin.flush()
+        except (BrokenPipeError, OSError, ValueError):
+            # Daemon died mid-write: retry once with a fresh one.
+            _kill_daemon()
+            _spawn_daemon(mem_limit_mb)
+            proc, daemon_q, stdin = _checked()
+            stdin.write(payload_line + "\n")
+            stdin.flush()
+
+        try:
+            line = daemon_q.get(timeout=timeout + _DUKPY_STARTUP_GRACE)
+        except _queue.Empty:
+            _kill_daemon()
+            raise NodeExecutionError(
+                f"Code execution timed out after {timeout}s",
+                code="CODE_TIMEOUT",
+                node_id="code",
+                retryable=False,
+            )
+
+        if line is None:
+            # EOF without a result: the daemon died (e.g. OOM-killed by
+            # RLIMIT_AS) while evaluating this script.
+            returncode = proc.poll()
+            _kill_daemon()
+            raise RuntimeError(
+                f"JavaScript execution terminated unexpectedly (exit code {returncode}). "
+                "The script may have exceeded the memory budget (max_memory_mb)."
+            )
+
+        payload = _json.loads(line)
+        if "err" in payload:
+            raise RuntimeError(payload["err"])
+        return payload.get("ok")
+
+
 def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout: float = 5.0, language: str = "javascript") -> List[dict[str, Any]]:
     """Execute JavaScript code with $input API via dukpy/js2py."""
     logs: List[str] = []
@@ -339,8 +539,9 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
     _safe_print(f"CODE JS exec: mode={mode} code={code[:200]!r} items={items[:1] if items else []}", flush=True)
 
     # Try dukpy first
+    js_wrapper = ""
     try:
-        import dukpy  # type: ignore[import-untyped]
+        import dukpy  # type: ignore[import-untyped]  # noqa: F401 — presence check only
         import json as _json
         # Use normalized items for JS wrapper (with {json: ...})
         items_json = _json.dumps(input_wrapper._items)
@@ -367,34 +568,14 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         if (typeof __output === 'undefined') {{ try {{ __output = $input.all(); }} catch(e) {{ __output = []; }} }}
         __output;
         """
-        result = {}
         _safe_print(f"CODE DUKPY TRY code={code[:200]!r} items={items[:1]!r} wrapper={js_wrapper[:500]!r}", flush=True)
         logger.info("dukpy try code=%r items=%r", code[:200], items[:1] if items else [])
-        def run_js():
-            try:
-                out = dukpy.evaljs(js_wrapper)
-                result["output"] = out
-                result["logs"] = logs
-                _safe_print(f"CODE DUKPY SUCCESS out={out!r}", flush=True)
-            except Exception as e:
-                result["error"] = e
-                logger.warning("dukpy execution failed for code %r: %s\nJS wrapper: %s", code[:200], e, js_wrapper[:2000], exc_info=True)
-                _safe_print(f"CODE DUKPY FAIL code={code[:200]!r} error={e} wrapper={js_wrapper[:2000]!r}", flush=True)
-        import threading
-        thread = threading.Thread(target=run_js, daemon=True)
-        thread.start()
-        thread.join(timeout)
-        if thread.is_alive():
-            raise NodeExecutionError(f"Code execution timed out after {timeout}s", code="CODE_TIMEOUT", node_id="code", retryable=False)
-        if "error" in result:
-            err = result["error"]
-            logger.warning("dukpy error for code %r: %s\nJS wrapper: %s", code[:200], err, js_wrapper[:2000])
-            _safe_print(f"CODE DUKPY ERROR code={code[:200]!r} error={err} wrapper={js_wrapper[:2000]!r}", flush=True)
-            # Convert JS error to NodeExecutionError with line info
-            msg = str(err)
-            raise NodeExecutionError(f"Code execution failed: {msg}", code="CODE_ERROR", node_id="code", retryable=False, details={"js_wrapper": js_wrapper[:2000], "error": msg}) from err
-        output = result.get("output", items)
-        return _normalize_output(output, logs)
+        # Run in a killable child process: dukpy.evaljs blocks at the C level,
+        # so an in-process thread could never be interrupted on timeout.
+        out = _run_dukpy(js_wrapper, timeout, mem_limit_mb=64)
+        logger.debug("dukpy output for code %r: %r", code[:200], out)
+        _safe_print(f"CODE DUKPY SUCCESS out={out!r}", flush=True)
+        return _normalize_output(out, logs)
     except ImportError as e:
         logger.warning("dukpy not available: %s", e)
         _safe_print(f"CODE DUKPY NOT AVAILABLE {e}", flush=True)
@@ -404,7 +585,14 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
     except Exception as e:
         logger.warning("dukpy failed for code %r: %s", code[:200], e)
         _safe_print(f"CODE DUKPY FAILED code={code[:200]!r} error={e}", flush=True)
-        raise NodeExecutionError(f"Code execution failed: {e}", code="CODE_ERROR", node_id="code", retryable=False) from e
+        msg = str(e)
+        raise NodeExecutionError(
+            f"Code execution failed: {msg}",
+            code="CODE_ERROR",
+            node_id="code",
+            retryable=False,
+            details={"js_wrapper": js_wrapper[:2000] or None, "error": msg},
+        ) from e
 
     # Try js2py
     try:

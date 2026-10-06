@@ -14,12 +14,11 @@ from __future__ import annotations
 
 import re
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from app.ai.capabilities import CapabilityRegistry
-from app.ai.ir import WorkflowIR, IRStep, IRTrigger, IRConnection
+from app.ai.ir import WorkflowIR, IRStep, IRTrigger
 from app.connectors import get_registry as get_connector_registry
-from app.nodes.registry import NODE_REGISTRY
 
 
 class WorkflowCompiler:

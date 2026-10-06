@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 WORKSPACE_ROOT = Path(r"c:\Flowsmith")
 PROFILES_DIR = WORKSPACE_ROOT / "docs" / "integration-platform" / "LIVE_CERTIFICATION_PROFILES"

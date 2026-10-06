@@ -460,10 +460,12 @@ async def call_mcp_tool(
             query = args["query"]
             top_k = int(args.get("top_k", 4))
             access = RagAccess(user_id=user.id)
-            query_res = query_collection(db, collection_id, query, access, top_k=top_k)
+            query_res = query_collection(db, collection_id, query_text=query, access=access, top_k=top_k)
             result = query_res
 
         elif payload.name == "query_data_table":
+            from sqlalchemy import select
+
             from app.models import DataTable, DataTableRow
             from app.api.workspaces import _require_ws_member
             table_id = args["table_id"]

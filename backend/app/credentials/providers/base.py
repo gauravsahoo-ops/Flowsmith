@@ -7,7 +7,7 @@ never contains provider-specific logic.
 from __future__ import annotations
 
 import abc
-from typing import Any, Dict
+from typing import Any, Awaitable, Dict
 
 
 class AuthProvider(abc.ABC):
@@ -61,7 +61,7 @@ class AuthProvider(abc.ABC):
                 out[k] = v
         return out
 
-    def testConnection(self, cred: Dict[str, Any]) -> Dict[str, Any]:
+    def testConnection(self, cred: Dict[str, Any]) -> "Dict[str, Any] | Awaitable[Dict[str, Any]]":
         """Probe credential validity. Default: validate only."""
         try:
             self.validateCredential(cred)

@@ -28,6 +28,7 @@ from app.audit import EXECUTION_CANCEL, EXECUTION_RESUME, EXECUTION_RETRY, EXECU
 from app.credentials.validator import validate_workflow_credentials
 from app.db import get_db
 from app.engine.errors import WorkflowValidationError
+from app.engine.redact import redact_results, redact_sensitive, redact_trace_steps
 from app.metrics import execution_started
 from app.models import Execution, User
 from app.models.workflow import WorkflowRecord
@@ -298,13 +299,14 @@ def get_execution(execution_id: str, user: User = Depends(get_current_user), db:
             nid = step.get("node_id")
             if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
                 step["outputs"] = results_outputs[nid]
+    trace = redact_trace_steps(trace)
 
     data = {
         **_to_dict(rec),
-        "results": rec.results,
+        "results": redact_results(rec.results),
         "node_statuses": rec.node_statuses,
         "trace": trace,
-        "workflow_data": rec.workflow_data,
+        "workflow_data": redact_sensitive(rec.workflow_data),
     }
     return ok(data)
 
@@ -330,13 +332,14 @@ def export_execution(
             nid = step.get("node_id")
             if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
                 step["outputs"] = results_outputs[nid]
+    trace = redact_trace_steps(trace)
 
     data = {
         **_to_dict(rec),
-        "results": rec.results,
+        "results": redact_results(rec.results),
         "node_statuses": rec.node_statuses,
         "trace": trace,
-        "workflow_data": rec.workflow_data,
+        "workflow_data": redact_sensitive(rec.workflow_data),
     }
 
     if format.lower() == "csv":
@@ -398,7 +401,7 @@ def get_execution_items(
     outputs: dict = (rec.results or {}).get("outputs", {})
     statuses: dict = rec.node_statuses or {}
     snapshots = [
-        {"node_id": nid, "status": statuses.get(nid, "success"), "outputs": outputs.get(nid, {})}
+        {"node_id": nid, "status": statuses.get(nid, "success"), "outputs": redact_sensitive(outputs.get(nid, {}))}
         for nid in outputs
     ]
     total = len(snapshots)
@@ -427,7 +430,7 @@ def get_execution_trace(
             nid = step.get("node_id")
             if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
                 step["outputs"] = results_outputs[nid]
-    return ok({"steps": trace})
+    return ok({"steps": redact_trace_steps(trace)})
 
 
 @router.get("/api/executions/{execution_id}/flamegraph")
@@ -547,8 +550,6 @@ def resume_execution(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     if rec.status != "waiting_approval":
         raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not waiting for approval.")
-
-    approved = bool(body.approved) if body is not None else True
     pause = rec.pause_state or {}
     allowed = pause.get("approvers") or []
     if allowed and user.id not in allowed:

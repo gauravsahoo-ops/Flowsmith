@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict
 from app.integrations.catalog import get_master_catalog
-from app.integrations.catalog.schema import SupportType, CertificationLevel
+from app.integrations.catalog.schema import SupportType
 
 
 class CoverageEngine:
@@ -30,7 +30,7 @@ class CoverageEngine:
         openapi_count = sum(1 for i in flowsmith_active if i.flowsmith_support.support_type == SupportType.OPENAPI)
         universal_count = sum(1 for i in flowsmith_active if i.flowsmith_support.support_type == SupportType.UNIVERSAL_HTTP)
         mcp_count = sum(1 for i in flowsmith_active if i.flowsmith_support.support_type == SupportType.MCP)
-        
+
         # Sources breakdown
         n8n_supported = [i for i in items if i.sources.n8n.supported]
         zapier_supported = [i for i in items if i.sources.zapier.supported]
@@ -187,9 +187,12 @@ class CoverageEngine:
 
         for m in missing:
             ext_str = []
-            if m["external_presence"]["n8n"]: ext_str.append("n8n")
-            if m["external_presence"]["zapier"]: ext_str.append("Zapier")
-            if m["external_presence"]["cyclr"]: ext_str.append("Cyclr")
+            if m["external_presence"]["n8n"]:
+                ext_str.append("n8n")
+            if m["external_presence"]["zapier"]:
+                ext_str.append("Zapier")
+            if m["external_presence"]["cyclr"]:
+                ext_str.append("Cyclr")
             lines.append(f"| `{m['id']}` | **{m['name']}** | {m['vendor']} | {m['category']} | {', '.join(ext_str)} | `{m['recommended_implementation']}` |")
 
         lines.extend([

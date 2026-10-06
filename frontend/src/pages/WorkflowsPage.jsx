@@ -251,7 +251,7 @@ export default function WorkflowsPage() {
     setPinnedIds(nextSet)
     try {
       localStorage.setItem('pinned_workflows', JSON.stringify([...nextSet]))
-    } catch {}
+    } catch (err) { console.error('[flowsmith] pages/WorkflowsPage.jsx', err) }
 
     setWorkflows(prev => prev.map(w => w.id === wf.id ? { ...w, pinned: nextPinned, settings: { ...(w.settings || {}), pinned: nextPinned } } : w))
 
@@ -276,7 +276,7 @@ export default function WorkflowsPage() {
       setPinnedIds(mergedSet)
       try {
         localStorage.setItem('pinned_workflows', JSON.stringify([...mergedSet]))
-      } catch {}
+      } catch (err) { console.error('[flowsmith] pages/WorkflowsPage.jsx', err) }
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }

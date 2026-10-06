@@ -153,7 +153,6 @@ class CanonicalNodeDefinition(BaseModel):
 
 def from_base_node(node_cls: type) -> CanonicalNodeDefinition:
     """Introspect an existing BaseNode subclass and compile it into a CanonicalNodeDefinition."""
-    from app.engine.node_base import BaseNode
 
     slug = getattr(node_cls, "node_type", "unknown")
     name = getattr(node_cls, "display_name", slug.replace("_", " ").title())

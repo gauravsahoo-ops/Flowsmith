@@ -7,6 +7,7 @@ and deactivated accounts cannot log in or use tokens.
 
 from __future__ import annotations
 
+import logging
 import re
 
 import jwt as pyjwt
@@ -27,6 +28,8 @@ from app.security.jwt import create_token, decode_token, hash_password, revoke_t
 from app.security.ratelimit import SlidingWindowLimiter, get_login_throttle
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+logger = logging.getLogger("auth")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -138,15 +141,17 @@ RESET_LINK_PATH = "/reset-password"
 
 def _send_reset_email(to: str, link: str) -> bool:
     """Best-effort SMTP delivery; returns False when SMTP is unconfigured
-    or delivery fails (dev mode surfaces the link in the response)."""
-    import logging
+    or delivery fails (non-production logs the link for local dev)."""
     import smtplib
     from email.message import EmailMessage
 
     settings = get_settings()
-    logger = logging.getLogger("auth.reset")
+    reset_logger = logging.getLogger("auth.reset")
     if not settings.smtp_host or not settings.mail_from:
-        logger.warning("password reset for %s: SMTP unconfigured; link: %s", to, link)
+        if settings.app_env == "production":
+            reset_logger.warning("password reset for %s: SMTP unconfigured; link suppressed", to)
+        else:
+            reset_logger.warning("password reset for %s: SMTP unconfigured; dev link: %s", to, link)
         return False
     try:
         msg = EmailMessage()
@@ -172,7 +177,7 @@ def _send_reset_email(to: str, link: str) -> bool:
                 server.send_message(msg)
         return True
     except Exception as exc:  # pragma: no cover - depends on external MTA
-        logger.error("reset email failed for %s: %s", to, exc)
+        reset_logger.error("reset email failed for %s: %s", to, exc)
         return False
 
 
@@ -188,8 +193,8 @@ class ResetPasswordRequest(BaseModel):
 @router.post("/forgot-password")
 def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)) -> dict:
     """Always 200 (no account enumeration). Stores a hashed single-use
-    token and emails the reset link; in non-production the link is also
-    returned so local users can complete the flow without an MTA."""
+    token and emails the reset link; the link is never returned in the
+    response."""
     import hashlib
     import secrets
     from datetime import UTC, datetime, timedelta
@@ -203,7 +208,6 @@ def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session =
 
     email = body.email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
-    dev_link = None
     if user is not None:
         raw_token = secrets.token_urlsafe(32)
         ttl = get_settings().password_reset_ttl_seconds
@@ -216,14 +220,11 @@ def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session =
         base = (get_settings().public_url or str(request.base_url)).rstrip("/")
         link = f"{base}{RESET_LINK_PATH}?token={raw_token}"
         sent = _send_reset_email(email, link)
-        if not sent and get_settings().app_env != "production":
-            dev_link = link
+        if not sent:
+            logger.warning("password reset email not delivered for %s", email)
         log_event(db, PASSWORD_RESET_REQUESTED, target_type="user",
                   target_id=str(user.id), user_id=user.id)
-    resp: dict[str, Any] = {"sent": True}
-    if dev_link:
-        resp["dev_reset_link"] = dev_link
-    return ok(resp)
+    return ok({"sent": True})
 
 
 @router.post("/reset-password")

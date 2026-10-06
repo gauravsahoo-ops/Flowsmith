@@ -16,20 +16,15 @@ Strictly enforces:
 
 from __future__ import annotations
 
-import inspect
 import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List
 
-from app.connectors import ConnectorCategory, get_registry, register_builtin_connectors
+from app.connectors import get_registry, register_builtin_connectors
 from app.integrations.catalog.certification_state_machine import (
     get_certification_summary,
-    CertificationState,
-    AvailabilityState,
-    evaluate_promotion,
-    CertificationEvidenceModel,
 )
 
 
@@ -311,7 +306,7 @@ def run_certification_engine_v2() -> None:
         f.write("- **`MOCK_VALIDATED`**: Operation dispatch, input/output schemas, error handling, and mock responses verified.\n")
         f.write("- **`STATIC_VALIDATED`**: Definition schemas and AST contracts verified.\n")
         f.write("- **`LIVE_TEST_UNAVAILABLE`**: Explicit execution availability state indicating live credentials are not currently configured.\n\n")
-        
+
         f.write("## Certification Summary Metrics (Reconciled)\n\n")
         f.write(f"- **Total Registered Connectors**: {summary['total_connectors']}\n")
         f.write(f"- **Production Certified**: {summary['production_certified']}\n")

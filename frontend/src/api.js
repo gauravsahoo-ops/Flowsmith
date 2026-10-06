@@ -42,7 +42,6 @@ async function requestEnvelope(method, path, body, opts = {}) {
   const token = getToken()
   if (token) {
     headers.Authorization = `Bearer ${token}`
-    headers['X-Authorization'] = `Bearer ${token}`
   }
 
   const controller = new AbortController()
@@ -158,8 +157,8 @@ export const api = {
   getExecution: (id) => request('GET', `/executions/${id}`),
   exportExecution: async (id, format = 'json') => {
     const token = getToken()
-    const res = await fetch(`${BASE_URL}/executions/${id}/export?format=${format}`, {
-      headers: token ? { Authorization: `Bearer ${token}`, 'X-Authorization': `Bearer ${token}` } : {},
+    const res = await fetch(`/api/executions/${id}/export?format=${format}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
     if (!res.ok) throw new Error(`Export failed: ${res.statusText}`)
     const blob = await res.blob()

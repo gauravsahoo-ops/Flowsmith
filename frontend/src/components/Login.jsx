@@ -87,7 +87,7 @@ export default function Login({ onAuthed }) {
         try {
           localStorage.setItem('flowsmith_user', JSON.stringify(result.user))
           window.dispatchEvent(new Event('flowsmith_user_updated'))
-        } catch {}
+        } catch (err) { console.error('[flowsmith] components/Login.jsx', err) }
       }
       onAuthed(result)
     } catch (err) {

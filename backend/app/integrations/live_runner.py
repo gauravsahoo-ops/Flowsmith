@@ -13,22 +13,18 @@ from __future__ import annotations
 import argparse
 import asyncio
 import datetime
-import hashlib
 import json
 import logging
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import httpx
 
 from app.connectors import get_registry, register_builtin_connectors
 from app.connectors.http_connector import HTTPConnector
 from app.connectors.salesforce_connector import SalesforceConnector
 from app.integrations.catalog.certification_state_machine import (
-    CertificationEvidenceModel,
     CertificationState,
     compute_schema_hash,
     evaluate_promotion,

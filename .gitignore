@@ -59,6 +59,15 @@ README.md
 USER_MANUAL.md
 *.md
 **/*.md
+# The project README is required in-repo (audit fix) — keep it trackable.
+!README.md
+
+# Test coverage output
+.coverage
+coverage.xml
+htmlcov/
+frontend/coverage/
+backend/coverage.xml
 
 
 

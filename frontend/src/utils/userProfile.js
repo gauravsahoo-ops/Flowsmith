@@ -32,7 +32,7 @@ export function getDynamicUser() {
             }
           }
         }
-      } catch {}
+      } catch (err) { console.error('[flowsmith] utils/userProfile.js', err) }
     }
 
     // 2. Decode JWT access token

@@ -12,7 +12,7 @@ Supports:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -136,6 +136,8 @@ class WorkdayProviderClient(BaseProviderClient):
         params = {"query": query, "limit": limit, "offset": offset}
         res = await self.request_workday(creds, "GET", path, params=params, timeout=timeout)
         data_items = res.get("data") if isinstance(res, dict) and "data" in res else ([res] if isinstance(res, dict) else [])
+        if data_items is None:
+            data_items = []
         total = res.get("total") if isinstance(res, dict) and "total" in res else len(data_items)
         return {
             "query": query,
@@ -161,6 +163,8 @@ class WorkdayProviderClient(BaseProviderClient):
             params["search"] = search
         res = await self.request_workday(creds, "GET", path, params=params, timeout=timeout)
         items = res.get("data") if isinstance(res, dict) and "data" in res else ([res] if isinstance(res, dict) else [])
+        if items is None:
+            items = []
         return {
             "total": res.get("total", len(items)),
             "count": len(items),

@@ -71,7 +71,7 @@ export default function SmithDrawer({
           }
         }
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/SmithDrawer.jsx', err) }
     return []
   })
   const [input, setInput] = useState('')
@@ -87,7 +87,7 @@ export default function SmithDrawer({
           }
         }
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/SmithDrawer.jsx', err) }
     return `session_${Math.random().toString(36).slice(2, 9)}`
   })
 
@@ -182,7 +182,7 @@ export default function SmithDrawer({
       if (typeof window !== 'undefined' && window.localStorage) {
         localStorage.setItem(storageKey, JSON.stringify({ messages, sessionId }))
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/SmithDrawer.jsx', err) }
   }, [messages, sessionId, storageKey])
 
   // Auto-scroll
@@ -245,7 +245,7 @@ export default function SmithDrawer({
       if (typeof api.clearAiMemory === 'function') {
         await api.clearAiMemory(sessionId, workflow?.id || null).catch(() => {})
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/SmithDrawer.jsx', err) }
     const newSession = `session_${Math.random().toString(36).slice(2, 9)}`
     setSessionId(newSession)
     setMessages([])

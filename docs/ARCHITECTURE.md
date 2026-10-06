@@ -28,7 +28,7 @@ graph TB
     end
 
     subgraph QueueLayer["Dual-Engine Job Queue"]
-        RedisQueue["Redis 7 RQ Job Queue (Primary)"]
+        RedisQueue["Redis 7 Job Queue (Primary, QUEUE_BACKEND=redis)"]
         DBQueue["PostgreSQL Transactional Queue (Fallback)"]
     end
 
@@ -94,9 +94,10 @@ Flowsmith uses focused, decoupled Zustand stores to manage canvas, execution, an
 ## 3. Backend Architecture & API Gateway
 
 ### 3.1 Framework & Concurrency Model
-* **Framework**: FastAPI 0.115 on Python 3.12, running under `uvicorn` with `uvloop` high-performance event loop.
-* **Asynchronous Execution**: Fully non-blocking I/O for network HTTP connectors, database queries (`asyncpg`), and Redis operations (`redis-py` async client).
-* **CPU Sandboxing**: Sandboxed Python and JavaScript code nodes execute in isolated child processes with memory caps, strict execution timeouts (default: 30s), and disabled access to system file/network primitives.
+* **Framework**: FastAPI on Python 3.12, running under `uvicorn` (standard asyncio event loop).
+* **I/O Model**: Endpoints and the execution engine are async (`asyncio`); database access uses synchronous SQLAlchemy 2.0 + psycopg 3, Redis uses `redis-py`, and outbound HTTP uses `httpx`.
+* **Job Queue**: Custom dual-engine queue (`app/queue/`): Redis-backed when `QUEUE_BACKEND=redis`, PostgreSQL-backed fallback. Not Celery/RQ.
+* **Code Node Sandboxing**: Python code nodes execute in-process behind an AST analyzer (imports and dangerous attributes/names rejected), a restricted builtins/globals set (no `open`/`exec`/`eval`/`type`/`hasattr`, …), and a wall-clock timeout. JavaScript (dukpy) code nodes run in a killable child process with a hard timeout, a best-effort `RLIMIT_AS` memory cap, and an output size limit; file and network primitives are denied in both.
 
 ### 3.2 Modular Router Layout
 The backend separates concerns into dedicated domain routers in `backend/app/api/`:
@@ -314,7 +315,7 @@ Flowsmith enforces enterprise-grade reliability and zero-defect architectural in
   4. *Mock Execution Pipeline* (Unit test coverage with synthetic external responses)
   5. *Live Sandbox Certification* (End-to-end integration and smoke verification)
 * **Automated Test Suite**:
-  * **Backend**: **2,083 automated tests** passing across `backend/tests` (API, DAG execution, AI engine, cognitive memory, sandboxed code, connectors, and security).
-  * **Frontend**: **374 automated tests** passing across 32 Vitest suites (Canvas interaction, node editors, Zustand state stores, execution tracing, and theme consistency).
+* **Backend**: **2,075 automated tests** passing across `backend/tests` (API, DAG execution, AI engine, cognitive memory, sandboxed code, connectors, and security), plus 19 environment-dependent skips.
+* **Frontend**: **384 automated tests** passing across 36 Vitest suites (Canvas interaction, node editors, Zustand state stores, execution tracing, and theme consistency).
 
 

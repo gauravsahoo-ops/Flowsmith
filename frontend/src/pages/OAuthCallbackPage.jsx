@@ -36,7 +36,7 @@ export default function OAuthCallbackPage() {
       try {
         window.opener.postMessage(payload, targetOrigin)
         window.opener.postMessage(legacyMessage, targetOrigin)
-      } catch {}
+      } catch (err) { console.error('[flowsmith] pages/OAuthCallbackPage.jsx', err) }
     }
 
     // BroadcastChannel fallback: communicates across tabs/windows even if window.opener was severed by COOP
@@ -46,12 +46,12 @@ export default function OAuthCallbackPage() {
         bc.postMessage(payload)
         bc.close()
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] pages/OAuthCallbackPage.jsx', err) }
 
     // LocalStorage fallback: triggers storage event in parent window
     try {
       localStorage.setItem('flowsmith_oauth_result', JSON.stringify({ ...payload, _ts: Date.now() }))
-    } catch {}
+    } catch (err) { console.error('[flowsmith] pages/OAuthCallbackPage.jsx', err) }
 
     if (isSuccess) {
       setStatus('success')

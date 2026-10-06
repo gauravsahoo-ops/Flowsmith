@@ -52,8 +52,10 @@ class SalesforceAuthProvider(AuthProvider):
             self.validateCredential(cred)
             from app.connectors import get_registry
             sf_conn = get_registry().get("salesforce")
-            if sf_conn and hasattr(sf_conn, "test_connection"):
-                res = await sf_conn.test_connection(cred)
+            test_conn: Any = getattr(sf_conn, "test_connection", None)
+            if callable(test_conn):
+                pending: Any = test_conn(cred)
+                res = await pending
                 return res
             if cred.get("access_token") or cred.get("refresh_token"):
                 return {"ok": True, "message": "Salesforce OAuth credentials present."}

@@ -29,7 +29,7 @@ export default function NodeAutoRepair({
         try {
           const { useWorkflowStore } = await import('../stores/workflowStore')
           await useWorkflowStore.getState().save()
-        } catch {}
+        } catch (err) { console.error('[flowsmith] components/NodeAutoRepair.jsx', err) }
 
         const res = await api.autoFixNode({
           workflow_id: workflowId,

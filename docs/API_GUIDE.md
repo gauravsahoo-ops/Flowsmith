@@ -1,16 +1,16 @@
 # Flowsmith — REST & WebSocket API Specification
 
 > **Base URL**: `/api`  
-> **API Version**: 2.5.0  
+> **Versioning**: Not versioned in the URL (all routes live under `/api`); breaking changes are announced in `CHANGELOG.md`  
 > **Protocol**: HTTPS / WSS  
 > **Data Format**: JSON (`application/json`)  
-> **Authentication**: `Bearer <JWT_TOKEN>` or `X-API-Key: fs_live_...`  
+> **Authentication**: `Bearer <JWT_TOKEN>` or `X-API-Key: <opaque service-account key>`  
 
 ---
 
 ## 1. Overview & Response Conventions
 
-Flowsmith exposes a clean, predictable, RESTful API adhering strictly to RFC standards. All responses are encapsulated in a standard envelope:
+Successful responses use a standard envelope (`{"data": ..., "meta": ...}`, built by `ok()` in `backend/app/api/common.py`); errors use FastAPI's standard `{"detail": "..."}` shape.
 
 ### 1.1 Success Response Envelope
 ```json
@@ -19,22 +19,31 @@ Flowsmith exposes a clean, predictable, RESTful API adhering strictly to RFC sta
     "id": "wf_8f7e6d5c",
     "name": "Lead Synchronization Pipeline",
     "active": true
-  },
-  "error": null
+  }
 }
 ```
 
-### 1.2 Error Response Envelope
+Paginated list responses carry pagination metadata:
+
 ```json
 {
-  "data": null,
-  "error": {
-    "code": "VALIDATION_FAILED",
-    "message": "Node 'dynamics_1' requires parameter 'entity' to be non-empty.",
-    "details": {
-      "field": "parameters.entity"
+  "data": [ { "id": "wf_8f7e6d5c", "name": "Lead Synchronization Pipeline" } ],
+  "meta": { "page": 1, "pageSize": 50, "total": 12 }
+}
+```
+
+### 1.2 Error Response
+Errors are returned as `{"detail": "..."}` with the appropriate HTTP status (`400`, `401`, `403`, `404`, `409`, `422`, `429`, …). Validation errors use FastAPI's standard `loc`/`msg`/`type` item list:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "name"],
+      "msg": "Field required",
+      "type": "missing"
     }
-  }
+  ]
 }
 ```
 
@@ -48,8 +57,8 @@ All private endpoints require an `Authorization` header containing a valid user 
 # User Session Bearer Token:
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# Automation / Service Account API Key:
-X-API-Key: fs_live_a1b2c3d4e5f67890
+# Automation / Service Account API Key (minted via /api/apikeys, shown once):
+X-API-Key: Kx3f9Qz7Tm2pLw8vRb1nHs6Jd4Gy0Uc5
 ```
 
 ---
@@ -121,7 +130,7 @@ Triggers an immediate asynchronous execution of the workflow.
     }
   }
   ```
-* **Response**: `202 Accepted` returning `{"execution_id": "exec_4f3e2d1c"}`.
+* **Response**: `202 Accepted` returning `{"data": {"execution_id": "exec_4f3e2d1c"}}`.
 
 ---
 
@@ -311,7 +320,7 @@ Subscribes to live execution status updates. As nodes execute on distributed wor
 Liveness probe. Returns `200 OK` if the FastAPI gateway process is active.
 
 #### `GET /api/readyz`
-Readiness probe. Checks PostgreSQL database connection, Redis connectivity, and worker heartbeat health:
+Readiness probe. Checks PostgreSQL database connection and (when configured) Redis connectivity; returns `503` while not ready:
 ```json
 {
   "data": {
@@ -321,7 +330,6 @@ Readiness probe. Checks PostgreSQL database connection, Redis connectivity, and 
       "redis": "ok"
     },
     "uptime_s": 9420
-  },
-  "error": null
+  }
 }
 ```

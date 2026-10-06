@@ -179,7 +179,7 @@ export default function SalesforceOAuthModal({
           </html>
         `)
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/SalesforceOAuthModal.jsx', err) }
 
     if (!popup || popup.closed || typeof popup.closed === 'undefined') {
       setBusy(false)
@@ -207,7 +207,7 @@ export default function SalesforceOAuthModal({
           bc = new BroadcastChannel('flowsmith_oauth')
           bc.onmessage = (ev) => handleResult(ev.data)
         }
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/SalesforceOAuthModal.jsx', err) }
 
       const cleanupListeners = () => {
         window.removeEventListener('message', messageHandler)

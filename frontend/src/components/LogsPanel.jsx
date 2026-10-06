@@ -124,7 +124,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
       const next = !prev
       try {
         localStorage.setItem('workflow_logs_open', String(next))
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/LogsPanel.jsx', err) }
       return next
     })
   }
@@ -135,14 +135,14 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
       setOpen(true)
       try {
         localStorage.setItem('workflow_logs_open', 'true')
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/LogsPanel.jsx', err) }
       setActiveTab(tab)
     } else if (activeTab === tab) {
       // If already open on this tab, clicking toggles it closed
       setOpen(false)
       try {
         localStorage.setItem('workflow_logs_open', 'false')
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/LogsPanel.jsx', err) }
     } else {
       // If open on a different tab, immediately switch to the target tab
       setActiveTab(tab)
@@ -154,7 +154,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
       const next = !prev
       try {
         localStorage.setItem('workflow_logs_sync', String(next))
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/LogsPanel.jsx', err) }
       return next
     })
     setMenuOpen(false)
@@ -164,7 +164,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
     setViewMode(mode)
     try {
       localStorage.setItem('workflow_logs_view_mode', mode)
-    } catch {}
+    } catch (err) { console.error('[flowsmith] components/LogsPanel.jsx', err) }
   }
 
   // Close menu on click outside
@@ -220,7 +220,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
       const finalH = Math.max(120, Math.min(window.innerHeight * 0.75, startH + delta))
       try {
         localStorage.setItem('workflow_logs_height', String(Math.round(finalH)))
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/LogsPanel.jsx', err) }
     }
 
     window.addEventListener('pointermove', onPointerMove)

@@ -156,8 +156,7 @@ def test_api_view_and_download_file():
     assert "inline" in vw_res.headers.get("content-disposition", "")
     assert "application/pdf" in vw_res.headers.get("content-type", "")
 
-    # 4. Test view endpoint with query parameter ?token=
+    # 4. Query-string tokens are rejected: URLs leak into logs, browser
+    # history and referrers, so ?token= is no longer accepted auth.
     vw_query_res = client.get(f"/api/files/{file_id}/view?token={token}")
-    assert vw_query_res.status_code == 200
-    assert vw_query_res.content == sample_content
-    assert "inline" in vw_query_res.headers.get("content-disposition", "")
+    assert vw_query_res.status_code == 401

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from app.connectors.openapi_emit import (
     connector_key_for,
@@ -17,7 +17,7 @@ from app.connectors.openapi_emit import (
     emit_definition,
     emit_provider,
 )
-from app.connectors.openapi_import import ApiOperation, ApiSpec, parse_spec
+from app.connectors.openapi_import import parse_spec
 
 logger = logging.getLogger("connectors.openapi_factory")
 

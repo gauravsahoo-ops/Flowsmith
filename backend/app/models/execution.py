@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from datetime import datetime
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, func, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -31,7 +32,9 @@ class Execution(Base):
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"), index=True, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     workflow_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    workflow_data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    # JSONB on PostgreSQL (migration d4a1c7e9f3b5): containment queries and
+    # a smaller on-disk representation for large workflow snapshots.
+    workflow_data: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), nullable=False)
     trigger: Mapped[str] = mapped_column(String(32), default="manual", nullable=False)
     trigger_data: Mapped[list | None] = mapped_column(JSON, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="running", index=True, nullable=False)

@@ -11,6 +11,7 @@ restarts. The Salesforce connector runs through the whole stack.
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from typing import Any
 
@@ -27,6 +28,36 @@ from app.models.job import DONE, FAILED, QUEUED
 from app.queue import get_queue
 from app.queue.worker import ensure_embedded_consumer, stop_embedded_consumer
 from tests.test_api.conftest import auth_headers, register
+
+
+@pytest.fixture(autouse=True)
+def _db_queue_backend():
+    """Pin QUEUE_BACKEND=db for this module.
+
+    The Job-row assertions below are db-backend storage semantics (the
+    redis backend keeps job bookkeeping in TTL'd meta hashes and treats
+    the executions table as authoritative). A local .env may set
+    QUEUE_BACKEND=redis, which would otherwise make these assertions
+    fail while CI (no .env, default db) passes. The embedded consumer
+    captures the queue instance at construction, so it is cycled too.
+    """
+    from app.config import get_settings
+    from app.queue import reset_queue
+
+    had = "QUEUE_BACKEND" in os.environ
+    old = os.environ.get("QUEUE_BACKEND")
+    stop_embedded_consumer()
+    os.environ["QUEUE_BACKEND"] = "db"
+    get_settings.cache_clear()
+    reset_queue()
+    yield
+    stop_embedded_consumer()
+    if had and old is not None:
+        os.environ["QUEUE_BACKEND"] = old
+    else:
+        os.environ.pop("QUEUE_BACKEND", None)
+    get_settings.cache_clear()
+    reset_queue()
 
 SF_DATA = {
     "instance_url": "https://login.salesforce.com",

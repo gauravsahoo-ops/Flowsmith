@@ -104,8 +104,9 @@ class RedisFailureThrottle:
     ``login:lock:{key}`` is set with the lockout TTL.
 
     Availability policy (audit phase 12): a Redis outage must not turn
-    login into a 500. Throttle checks FAIL OPEN (not locked, counters
-    skipped) exactly like the API rate-limit middleware does.
+    login into a 500. Throttle checks FALL BACK to a per-process
+    in-memory :class:`FailureThrottle` (same policy as the API
+    rate-limit middleware) instead of failing open.
     """
 
     def __init__(self, redis: Any, max_failures: int, window_s: float, lockout_s: float) -> None:
@@ -114,6 +115,7 @@ class RedisFailureThrottle:
         self.window_s = int(window_s)
         self.lockout_s = int(lockout_s)
         self._prefix = "login"
+        self._local = FailureThrottle(max_failures, window_s, lockout_s)
 
     def _fail_key(self, key: str) -> str:
         return f"{self._prefix}:fail:{key}"
@@ -124,16 +126,17 @@ class RedisFailureThrottle:
     def is_locked(self, key: str) -> bool:
         try:
             return bool(self._redis.exists(self._lock_key(key)))
-        except Exception as exc:  # redis outage: fail open
-            logger.warning("login throttle unavailable (%s); failing open", exc)
-            return False
+        except Exception as exc:
+            logger.warning("login throttle unavailable (%s); using in-memory fallback", exc)
+            return self._local.is_locked(key)
 
     def retry_after(self, key: str) -> int:
         try:
             ttl = self._redis.ttl(self._lock_key(key))
             return max(0, int(ttl)) if ttl is not None and ttl > 0 else 0
-        except Exception:  # redis outage: nothing to wait for
-            return 0
+        except Exception as exc:
+            logger.warning("login throttle retry-after unavailable (%s); using in-memory fallback", exc)
+            return self._local.retry_after(key)
 
     def record_failure(self, key: str) -> None:
         try:
@@ -144,19 +147,25 @@ class RedisFailureThrottle:
             if count >= self.max_failures:
                 self._redis.set(self._lock_key(key), "1", ex=self.lockout_s)
         except Exception as exc:
-            logger.warning("login throttle record failed (%s); skipping", exc)
+            logger.warning("login throttle record failed (%s); using in-memory fallback", exc)
+            self._local.record_failure(key)
 
     def clear(self, key: str) -> None:
+        self._local.clear(key)
         try:
             self._redis.delete(self._fail_key(key), self._lock_key(key))
         except Exception as exc:
             logger.warning("login throttle clear failed (%s); ignoring", exc)
 
     def reset(self) -> None:
-        for pattern in (f"{self._prefix}:fail:*", f"{self._prefix}:lock:*"):
-            keys = list(self._redis.scan_iter(match=pattern))
-            if keys:
-                self._redis.delete(*keys)
+        self._local.reset()
+        try:
+            for pattern in (f"{self._prefix}:fail:*", f"{self._prefix}:lock:*"):
+                keys = list(self._redis.scan_iter(match=pattern))
+                if keys:
+                    self._redis.delete(*keys)
+        except Exception as exc:
+            logger.warning("login throttle reset failed (%s); in-memory state cleared only", exc)
 
 
 def get_login_throttle():
@@ -181,14 +190,15 @@ class RedisWindowLimiter:
     Same ``allow(key) -> (allowed, retry_after_s)`` contract as
     :class:`SlidingWindowLimiter`, but the counter lives in the shared
     Redis so N API replicas enforce ONE budget per path.
-    Fail-open on Redis errors (availability over strictness), matching
-    the API rate-limit middleware policy."""
+    On Redis errors, falls back to a per-process in-memory sliding
+    window (matching the API rate-limit middleware policy)."""
 
     def __init__(self, redis: Any, capacity: int, window_s: float, prefix: str = "webhookrl") -> None:
         self._redis = redis
         self.capacity = capacity
         self.window_s = max(int(window_s), 1)
         self._prefix = prefix
+        self._local = SlidingWindowLimiter(capacity, self.window_s)
 
     def _bucket_key(self, key: str, bucket: int) -> str:
         return f"{self._prefix}:{key}:{bucket}"
@@ -203,17 +213,21 @@ class RedisWindowLimiter:
             pipe.expire(redis_key, self.window_s + 1)
             count = int(pipe.execute()[0])
         except Exception as exc:
-            logger.warning("path rate limit check failed (%s); failing open", exc)
-            return True, 0.0
+            logger.warning("path rate limit check failed (%s); using in-memory fallback", exc)
+            return self._local.allow(key)
         if count > self.capacity:
             retry_after = max(1, self.window_s - int(now % self.window_s) + 1)
             return False, float(retry_after)
         return True, 0.0
 
     def reset(self) -> None:
-        keys = list(self._redis.scan_iter(match=f"{self._prefix}:*"))
-        if keys:
-            self._redis.delete(*keys)
+        self._local.reset()
+        try:
+            keys = list(self._redis.scan_iter(match=f"{self._prefix}:*"))
+            if keys:
+                self._redis.delete(*keys)
+        except Exception as exc:
+            logger.warning("path rate limit reset failed (%s); in-memory state cleared only", exc)
 
 
 def get_webhook_limiter(capacity: int, window_s: float):

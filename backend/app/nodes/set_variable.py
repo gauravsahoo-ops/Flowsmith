@@ -60,6 +60,7 @@ class SetVariableParams(BaseModel):
 @register
 class SetVariableNode(BaseNode):
     node_type = "set_variable"
+    display_name = "Set Variable"
     parameters_schema = SetVariableParams
     params_class = SetVariableParams
 

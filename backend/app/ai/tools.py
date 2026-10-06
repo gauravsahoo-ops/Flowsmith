@@ -414,7 +414,7 @@ async def _workflow_run_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
 
     from app.db import SessionLocal
     from app.models import WorkflowRecord
-    from app.engine.service import start_execution
+    from app.api.executions import start_execution
 
     with SessionLocal() as db:
         rec = db.get(WorkflowRecord, workflow_id)
@@ -459,7 +459,11 @@ def _workflow_get_execution_handler(ctx: NodeContext, args: dict[str, Any]) -> A
             "id": rec.id,
             "workflow_id": rec.workflow_id,
             "status": rec.status,
-            "duration_ms": rec.duration_ms,
+            "duration_ms": (
+                round((rec.finished_at - rec.started_at).total_seconds() * 1000)
+                if rec.finished_at is not None
+                else None
+            ),
             "error": rec.error,
             "step_count": len(trace),
             "steps": [

@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-automate}
       POSTGRES_DB: automate
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - mat-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -39,7 +39,7 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - mat-redis-data:/data
     healthcheck:
@@ -207,8 +207,10 @@ services:
       MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY:-minioadmin}
     ports:
-      - "9000"
-      - "9001"
+      # Loopback-only: MinIO is a dev/test service. Host ports are left
+      # ephemeral ("" = auto-assign) to avoid collisions.
+      - "127.0.0.1::9000"
+      - "127.0.0.1::9001"
     volumes:
       - mat-minio-data:/data
     healthcheck:
@@ -234,7 +236,8 @@ services:
       - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - mat-prometheus-data:/prometheus
     ports:
-      - "9090"
+      # Loopback-only: Prometheus has no auth.
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     networks:
       - backend
 
@@ -244,8 +247,8 @@ services:
     profiles: ["monitoring"]
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:?GRAFANA_USER must be set}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/flowsmith.json
     volumes:
@@ -253,7 +256,9 @@ services:
       - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
       - mat-grafana-data:/var/lib/grafana
     ports:
-      - "3000"
+      # Loopback-only: admin credentials come from GRAFANA_* env vars
+      # (no defaults — see .env.example).
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
     networks:
       - backend
 

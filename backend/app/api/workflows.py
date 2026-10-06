@@ -11,6 +11,7 @@ users have view or edit, everything else is a 404.
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import UTC, datetime, timezone
 from typing import Any
@@ -41,7 +42,7 @@ from app.api.auth import get_current_user
 from app.api.common import ok, page_params, validate_workflow_payload
 from app.db import get_db
 from app.importexport import WorkflowImportError, build_export, parse_import
-from app.models import AuditEvent, Credential, User, WorkflowRecord, WorkflowShare, WorkflowVersionRecord
+from app.models import AuditEvent, Credential, User, WebhookTrigger, WorkflowRecord, WorkflowShare, WorkflowVersionRecord
 from app.nodes.registry import NODE_REGISTRY
 from app.schemas.workflow import Workflow
 from app.engine.expressions import resolve as resolve_expression
@@ -59,10 +60,6 @@ def _sync_triggers(db: Session) -> None:
 
 def _validate_webhook_paths(workflow: Workflow, db: Session, exclude_id: str | None = None) -> None:
     """Reject webhook paths already claimed by another active workflow."""
-    import re
-
-    from app.models import WebhookTrigger
-
     # Phase 23/38: these paths are the ONLY authentication for the
     # unauthenticated trigger endpoints, so they must have real entropy.
     # 24+ chars of [A-Za-z0-9/_.-] gives ~2^120+ search space for random
@@ -115,9 +112,12 @@ def _validate_credential_refs(
     """Validate credentials referenced by nodes.
 
     If allow_unbound is True (e.g. on import, templates, or AI workflow drafts),
-    unresolvable or placeholder credentials are removed from node.credentials so the
-    workflow can be loaded into the canvas for configuration without raising 422.
-    If the user has a valid credential of the matching type, it is automatically bound.
+    placeholder credentials are removed from node.credentials so the workflow can
+    be loaded into the canvas for configuration without raising 422. Concrete
+    but unresolvable references are kept: run-time validation then rejects them
+    with a typed CREDENTIAL_NOT_FOUND issue instead of silently dropping the
+    binding the user asked for. If the user has a valid credential of the
+    matching type, it is automatically bound.
     """
     for node in workflow.nodes:
         if not node.credentials:
@@ -129,6 +129,7 @@ def _validate_credential_refs(
         else:
             # Check registered connectors
             from app.connectors import ensure_builtin_connectors, get_registry as get_connector_registry
+
             ensure_builtin_connectors()
             c_reg = get_connector_registry()
             p_conn = c_reg.primary_for_node_type(node.type)
@@ -139,8 +140,9 @@ def _validate_credential_refs(
                     c_def = c_reg.get_definition(c_id)
                     if c_def and getattr(c_def, "operations", None):
                         for op in c_def.operations.values():
-                            if getattr(op, "credential_require", None):
-                                supported_cred_types.add(op.credential_require)
+                            cred_require = getattr(op, "credential_require", None)
+                            if cred_require:
+                                supported_cred_types.add(cred_require)
                 except Exception:
                     pass
 
@@ -176,11 +178,11 @@ def _validate_credential_refs(
             )
             if user_cred is not None:
                 node.credentials[cred_type] = user_cred.id
-            elif allow_unbound or is_placeholder:
-                # User has not connected this credential yet: remove unbound reference
-                # so the workflow imports/creates safely and node is ready for config in canvas
+            elif is_placeholder:
+                # Placeholder only: drop it so the node is ready for config
+                # in the canvas.
                 node.credentials.pop(cred_type, None)
-            else:
+            elif not allow_unbound:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_CONTENT,
                     f"Node '{node.id}' references an unknown credential.",
@@ -268,18 +270,15 @@ def import_workflow(
     _validate_credential_refs(workflow, user, db, allow_unbound=True)
 
     # Ensure imported webhook/trigger paths meet 24+ char entropy and uniqueness requirements
-    import re
-    from app.models import WebhookTrigger
-
     for node in workflow.nodes:
         if node.type in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
             curr_path = str(node.parameters.get("path") or "")
             clean_prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr_path)[:12] or "hook"
             if len(curr_path) < 24:
-                node.parameters["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:18]}"
+                node.parameters["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:24]}"
             other = db.scalar(select(WebhookTrigger).where(WebhookTrigger.path == node.parameters["path"]))
             if other is not None:
-                node.parameters["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:18]}"
+                node.parameters["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:24]}"
 
     _validate_webhook_paths(workflow, db, exclude_id=workflow.id)
 
@@ -745,10 +744,15 @@ def list_shares(workflow_id: str, user: User = Depends(get_current_user), db: Se
     shares = db.scalars(
         select(WorkflowShare).where(WorkflowShare.workflow_id == workflow_id)
     ).all()
+    user_ids = {s.user_id for s in shares}
+    users_map = {}
+    if user_ids:
+        users = db.scalars(select(User).where(User.id.in_(user_ids))).all()
+        users_map = {u.id: u.email for u in users}
     return ok([
         {
             "user_id": s.user_id,
-            "email": (u.email if (u := db.get(User, s.user_id)) else "?"),
+            "email": users_map.get(s.user_id, "?"),
             "permission": s.permission,
         }
         for s in shares

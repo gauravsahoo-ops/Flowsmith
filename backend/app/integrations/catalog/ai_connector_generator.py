@@ -11,10 +11,9 @@ from __future__ import annotations
 
 import datetime
 import hashlib
-import json
 import logging
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Literal, Optional
 
 logger = logging.getLogger("integrations.ai_generator")
 
@@ -156,7 +155,7 @@ class AIConnectorGenerator:
         from app.connectors import get_registry
         reg = get_registry()
         is_native = (reg.get_definition(app_id) is not None) or (reg.get(app_id) is not None)
-        
+
         if is_native:
             strategy: ImplementationStrategy = "EXISTING_NATIVE"
         elif openapi_url or custom_spec:

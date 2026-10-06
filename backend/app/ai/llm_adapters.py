@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
 import logging
 import re
 import time
@@ -16,7 +15,7 @@ from typing import Any, Optional
 
 import httpx
 
-from app.ai.llm_registry import LLMModel, LLMProviderDefinition, get_llm_registry
+from app.ai.llm_registry import LLMModel, LLMProviderDefinition
 
 logger = logging.getLogger("ai.llm_adapters")
 
@@ -79,8 +78,9 @@ def normalize_model_capabilities(model_id: str, raw_meta: dict[str, Any] | None 
 def normalize_context_window(model_id: str, raw_meta: dict[str, Any] | None = None) -> Optional[int]:
     """Derive context window token count from metadata or standard architecture specs."""
     meta = raw_meta or {}
-    if meta.get("context_window") or meta.get("context_length") or meta.get("input_token_limit"):
-        return int(meta.get("context_window") or meta.get("context_length") or meta.get("input_token_limit"))
+    raw_limit = meta.get("context_window") or meta.get("context_length") or meta.get("input_token_limit")
+    if raw_limit:
+        return int(raw_limit)
 
     m = model_id.lower()
     if "gemini-1.5-pro" in m or "gemini-2.0-pro" in m:

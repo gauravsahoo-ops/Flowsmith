@@ -33,7 +33,7 @@ def _compute_relevance_score(query: str, doc: str) -> float:
     d_tokens = re.findall(r"\w+", doc.lower())
     if not q_tokens or not d_tokens:
         return 0.0
-    
+
     # Term frequency in document
     tf = sum(1 for t in d_tokens if t in q_tokens)
     # Token coverage

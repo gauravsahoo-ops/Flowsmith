@@ -7,6 +7,43 @@ import { api, getToken } from '../api'
 import { playChime } from '../utils/soundEffects'
 import { useUiStore } from './uiStore'
 
+/**
+ * @typedef {Object} NodePreview
+ * @property {string} [status] - Node execution status
+ * @property {number} [durationMs] - Execution duration in milliseconds
+ * @property {number} [inputCount] - Number of input items
+ * @property {number} [outputCount] - Number of output items
+ * @property {string|null} [note] - Optional note
+ * @property {string|null} [error] - Error message if failed
+ * @property {number} [_startMs] - Internal: timestamp when node started running
+ */
+
+/**
+ * @typedef {Object} ExecutionState
+ * @property {string|null} executionId - Current execution ID
+ * @property {string|null} status - Execution status (running|success|failed|cancelled)
+ * @property {Object.<string, string>} nodeStatuses - Map of node ID to status
+ * @property {Array} trace - Step-by-step run log
+ * @property {string|null} startedAt - Execution start timestamp
+ * @property {string|null} finishedAt - Execution finish timestamp
+ * @property {number|null} version - Workflow version
+ * @property {Object|null} error - Error details
+ * @property {boolean} running - Whether execution is currently running
+ * @property {Object|null} pauseState - Pause state if paused
+ * @property {Object|null} approval - Approval details
+ * @property {Object|null} results - Execution results
+ * @property {WebSocket|null} socket - Active WebSocket connection
+ * @property {number|null} pollTimer - Polling timer ID
+ * @property {Object.<string, NodePreview>} runPreview - Per-node preview data
+ * @property {Array} history - Past executions list
+ * @property {Object} historyMeta - Pagination metadata for history
+ * @property {boolean} historyLoading - Whether history is loading
+ * @property {string|null} historyError - History loading error
+ * @property {Object.<string, NodePreview>} pendingNodeUpdates - Batched node updates awaiting flush
+ * @property {number|null} rafBatchHandle - requestAnimationFrame handle for batching
+ * @property {number} _pollRetryCount - Internal: consecutive poll failure count
+ */
+
 function wsUrl(executionId) {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${proto}//${window.location.host}/api/ws/executions/${executionId}?token=${encodeURIComponent(getToken() || '')}`
@@ -25,8 +62,13 @@ function countItems(payload) {
   return 0
 }
 
-/** Build the per-node canvas preview map from a finished (or partial) trace. */
+/**
+ * Build the per-node canvas preview map from a finished (or partial) trace.
+ * @param {Array} trace - Array of trace steps
+ * @returns {Object.<string, NodePreview>}
+ */
 function deriveRunPreview(trace) {
+  /** @type {Object.<string, NodePreview>} */
   const out = {}
   for (const step of trace || []) {
     if (!step?.node_id) continue
@@ -47,31 +89,39 @@ function deriveRunPreview(trace) {
   return out
 }
 
-let pendingNodeUpdates = {}
-let rafBatchHandle = null
-
-function scheduleNodeBatch(set) {
+/**
+ * Schedule a batched flush of pending node updates via requestAnimationFrame.
+ * @param {Function} set - Zustand set function
+ * @param {Function} get - Zustand get function
+ */
+function scheduleNodeBatch(set, get) {
   if (typeof requestAnimationFrame === 'function') {
-    if (rafBatchHandle) return
-    rafBatchHandle = requestAnimationFrame(() => {
-      rafBatchHandle = null
-      flushNodeBatch(set)
+    if (get().rafBatchHandle) return
+    const handle = requestAnimationFrame(() => {
+      set({ rafBatchHandle: null })
+      flushNodeBatch(set, get)
     })
+    set({ rafBatchHandle: handle })
   } else {
     // Non-browser / test environment: flush synchronously
-    flushNodeBatch(set)
+    flushNodeBatch(set, get)
   }
 }
 
-function flushNodeBatch(set) {
-  if (rafBatchHandle && typeof cancelAnimationFrame === 'function') {
-    cancelAnimationFrame(rafBatchHandle)
-    rafBatchHandle = null
+/**
+ * Flush all pending node updates to the store in a single state update.
+ * @param {Function} set - Zustand set function
+ * @param {Function} get - Zustand get function
+ */
+function flushNodeBatch(set, get) {
+  if (get().rafBatchHandle && typeof cancelAnimationFrame === 'function') {
+    cancelAnimationFrame(get().rafBatchHandle)
+    set({ rafBatchHandle: null })
   }
-  const pending = pendingNodeUpdates
+  const pending = get().pendingNodeUpdates
   const keys = Object.keys(pending)
   if (!keys.length) return
-  pendingNodeUpdates = {}
+  set({ pendingNodeUpdates: {} })
   set((s) => {
     const nextStatuses = { ...s.nodeStatuses }
     const nextPreview = { ...s.runPreview }
@@ -283,11 +333,12 @@ export const useExecutionStore = create((set, get) => ({
       return // malformed message, ignore
     }
     if (ev.type === 'execution.terminal') {
-      if (rafBatchHandle && typeof cancelAnimationFrame === 'function') {
-        cancelAnimationFrame(rafBatchHandle)
-        rafBatchHandle = null
+      const batchHandle = get().rafBatchHandle
+      if (batchHandle && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(batchHandle)
+        set({ rafBatchHandle: null })
       }
-      flushNodeBatch(set)
+      flushNodeBatch(set, get)
       set({ status: ev.status, error: ev.error || null, running: false })
       get().close()
       if (useUiStore.getState().soundEffects) {
@@ -307,16 +358,21 @@ export const useExecutionStore = create((set, get) => ({
         ? (currentPreview._startMs ? now - currentPreview._startMs : currentPreview.durationMs || 0)
         : currentPreview.durationMs || 0
 
-      pendingNodeUpdates[node_id] = {
-        status,
-        durationMs: Math.round(durationMs),
-        _startMs: status === 'running' ? now : currentPreview._startMs,
-        error:
-          ev.error && typeof ev.error !== 'string'
-            ? ev.error.message || JSON.stringify(ev.error)
-            : (ev.error || currentPreview.error || null),
-      }
-      scheduleNodeBatch(set)
+      set({
+        pendingNodeUpdates: {
+          ...get().pendingNodeUpdates,
+          [node_id]: {
+            status,
+            durationMs: Math.round(durationMs),
+            _startMs: status === 'running' ? now : currentPreview._startMs,
+            error:
+              ev.error && typeof ev.error !== 'string'
+                ? ev.error.message || JSON.stringify(ev.error)
+                : (ev.error || currentPreview.error || null),
+          },
+        },
+      })
+      scheduleNodeBatch(set, get)
     }
   },
 
@@ -381,7 +437,13 @@ export const useExecutionStore = create((set, get) => ({
           playChime(data.status === 'success' ? 'success' : 'error')
         }
       }
-    } catch {
+    } catch (err) {
+      const retryCount = (get()._pollRetryCount || 0) + 1
+      set({ _pollRetryCount: retryCount })
+      if (retryCount > 10) {
+        set({ running: false, error: { code: 'POLL_FAILED', message: err.message } })
+        return
+      }
       get().schedulePoll(id)
     }
   },
@@ -406,12 +468,11 @@ export const useExecutionStore = create((set, get) => ({
       set({ socket: null })
     }
     if (pollTimer) clearTimeout(pollTimer)
-    set({ pollTimer: null })
-    if (rafBatchHandle && typeof cancelAnimationFrame === 'function') {
-      cancelAnimationFrame(rafBatchHandle)
-      rafBatchHandle = null
+    const batchHandle = get().rafBatchHandle
+    if (batchHandle && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(batchHandle)
     }
-    pendingNodeUpdates = {}
+    set({ pollTimer: null, rafBatchHandle: null, pendingNodeUpdates: {} })
   },
 }))
 

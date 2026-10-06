@@ -8,7 +8,7 @@ represented by a standardized IntegrationDefinition.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -139,12 +139,13 @@ class IntegrationDefinition(BaseModel):
     vendor: str
     category: IntegrationCategory
     subcategory: str = "General"
+    description: str = ""
     website: str = ""
     official_url: str = ""
     documentation_url: str = ""
     icon: Optional[str] = None
     color: str = "#4F46E5"
-    
+
     authentication: List[AuthType] = Field(default_factory=lambda: [AuthType.API_KEY])
     operations: List[OperationSpec] = Field(default_factory=list)
     actions: List[OperationSpec] = Field(default_factory=list)
@@ -152,16 +153,16 @@ class IntegrationDefinition(BaseModel):
     triggers: List[TriggerSpec] = Field(default_factory=list)
     webhooks: List[TriggerSpec] = Field(default_factory=list)
     capabilities: List[str] = Field(default_factory=list)
-    
+
     pagination: List[str] = Field(default_factory=list)
     special_capabilities: List[str] = Field(default_factory=list)
     ai_capabilities: List[str] = Field(default_factory=list)
     database_capabilities: List[str] = Field(default_factory=list)
     storage_capabilities: List[str] = Field(default_factory=list)
-    
+
     implementation_priority: float = 0.0
     implementation_method: ImplementationMethod = ImplementationMethod.UNVERIFIED
-    
+
     sources: ExternalSources = Field(default_factory=ExternalSources)
     flowsmith_support: FlowsmithSupportStatus = Field(default_factory=FlowsmithSupportStatus)
 

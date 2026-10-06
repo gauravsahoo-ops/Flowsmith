@@ -30,8 +30,8 @@ logger = logging.getLogger("sso")
 
 router = APIRouter(prefix="/api/auth/sso", tags=["sso"])
 
-# In-memory CSRF states with TTL: state -> {provider, created_at}
-_SSO_STATES: dict[str, str] = {}
+_SSO_STATES: dict[str, tuple[str, float]] = {}
+_SSO_STATE_TTL = 600
 
 
 def _get_provider_config(provider: str) -> dict[str, Any] | None:
@@ -106,7 +106,9 @@ def sso_login(provider: str, request: Request) -> Any:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"SSO provider '{provider}' is not configured.")
 
     state = secrets.token_urlsafe(32)
-    _SSO_STATES[state] = provider
+    import time as _time
+    _SSO_STATES[state] = (provider, _time.monotonic())
+    _evict_expired_sso_states()
 
     # Determine callback URL: host header or public URL
     base_url = str(request.base_url).rstrip("/")
@@ -123,6 +125,14 @@ def sso_login(provider: str, request: Request) -> Any:
     return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
 
 
+def _evict_expired_sso_states() -> None:
+    import time as _time
+    now = _time.monotonic()
+    expired = [s for s, (_, ts) in _SSO_STATES.items() if now - ts > _SSO_STATE_TTL]
+    for s in expired:
+        del _SSO_STATES[s]
+
+
 @router.get("/{provider}/callback")
 async def sso_callback(
     provider: str,
@@ -137,8 +147,8 @@ async def sso_callback(
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"SSO provider '{provider}' is not configured.")
 
     # Validate state (CSRF protection)
-    expected_provider = _SSO_STATES.pop(state, None)
-    if not expected_provider or expected_provider != provider:
+    state_entry = _SSO_STATES.pop(state, None)
+    if not state_entry or state_entry[0] != provider:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired SSO state parameter.")
 
     base_url = str(request.base_url).rstrip("/")

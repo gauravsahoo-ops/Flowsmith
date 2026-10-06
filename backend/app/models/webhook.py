@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from datetime import datetime
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -26,7 +27,7 @@ class WebhookTrigger(Base):
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"), index=True, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     workflow_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    workflow_data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    workflow_data: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), nullable=False)
     path: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     method: Mapped[str] = mapped_column(String(16), default="POST", nullable=False)
     status: Mapped[str] = mapped_column(String(16), default="active", nullable=False)
@@ -44,7 +45,7 @@ class ScheduleTrigger(Base):
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"), index=True, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     workflow_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    workflow_data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    workflow_data: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), nullable=False)
     node_id: Mapped[str] = mapped_column(String(64), nullable=False)
     cron: Mapped[str] = mapped_column(String(128), nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", nullable=False)
@@ -67,7 +68,9 @@ class WebhookDelivery(Base):
     workflow_id: Mapped[str] = mapped_column(ForeignKey("workflows.id"), index=True, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     path: Mapped[str] = mapped_column(String(255), nullable=False)
-    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     response_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
     execution_id: Mapped[str | None] = mapped_column(String(64), nullable=True)

@@ -362,7 +362,7 @@ class SafeHTTPClient:
                     addr_infos = await loop.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
                     for _, _, _, _, sockaddr in addr_infos:
                         ip_str = sockaddr[0]
-                        resolved_ip = _parse_literal_ip(ip_str)
+                        resolved_ip = _parse_literal_ip(str(ip_str))
                         if resolved_ip and (
                             (isinstance(resolved_ip, ipaddress.IPv4Address) and _ipv4_blocked(resolved_ip))
                             or (isinstance(resolved_ip, ipaddress.IPv6Address) and _ipv6_blocked(resolved_ip))
@@ -447,6 +447,7 @@ class SafeHTTPClient:
         params: dict[str, Any] | None = None,
         json: Any = None,
         data: Any = None,
+        files: Any = None,
         headers: dict[str, str] | None = None,
         cookies: dict[str, Any] | None = None,
         timeout: float | httpx.Timeout | None = None,
@@ -541,6 +542,7 @@ class SafeHTTPClient:
                     params=params,
                     json=json,
                     data=data,
+                    files=files,
                     headers=request_headers,
                     cookies=cookies,
                     timeout=timeout,
@@ -548,7 +550,7 @@ class SafeHTTPClient:
                 return response
             return await self._request_with_size_cap(
                 client, method, url, cap,
-                params=params, json=json, data=data,
+                params=params, json=json, data=data, files=files,
                 headers=request_headers, cookies=cookies, timeout=timeout,
             )
         except httpx.DecodingError as exc:
@@ -585,6 +587,7 @@ class SafeHTTPClient:
                 params=params,
                 json=json,
                 data=data,
+                files=files,
                 headers=retry_headers,
                 cookies=cookies,
                 timeout=timeout,
@@ -619,6 +622,7 @@ class SafeHTTPClient:
         headers: dict[str, str],
         cookies: dict[str, Any] | None,
         timeout: float | httpx.Timeout | None,
+        files: Any = None,
     ) -> httpx.Response:
         """Stream the response body and enforce the size cap.
 
@@ -631,6 +635,7 @@ class SafeHTTPClient:
             params=params,
             json=json,
             data=data,
+            files=files,
             headers=headers,
             cookies=cookies,
             timeout=timeout,
@@ -667,6 +672,7 @@ class SafeHTTPClient:
         params: dict[str, Any] | None = None,
         json: Any = None,
         data: Any = None,
+        files: Any = None,
         headers: dict[str, str] | None = None,
         cookies: dict[str, Any] | None = None,
         auth: Any = None,
@@ -690,6 +696,7 @@ class SafeHTTPClient:
             params=params,
             json=json,
             data=data,
+            files=files,
             headers=request_headers or None,
             cookies=cookies,
             timeout=timeout,

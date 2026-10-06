@@ -128,8 +128,8 @@ def _wait_terminal(client, headers, execution_id, timeout_s=45.0):
     raise AssertionError("execution did not finish")
 
 
-def test_secrets_unmasked_in_execution_and_trace(client):
-    """Redaction removed from API — real values returned (frontend handles display)."""
+def test_secrets_masked_in_execution_and_trace(client):
+    """Audit: sensitive-keyed values are redacted in execution + trace API responses."""
     headers = _setup(client)
     resp = client.post("/api/workflows", json={
         "id": "wf_secret",
@@ -158,17 +158,17 @@ def test_secrets_unmasked_in_execution_and_trace(client):
     assert data["status"] == "success"
 
     raw = str(data["results"])
-    assert "sk-SUPER-SECRET-1" in raw
-    assert "hunter2" in raw
+    assert "sk-SUPER-SECRET-1" not in raw
+    assert "hunter2" not in raw
     assert "totally fine" in raw
     api_key = data["results"]["outputs"]["leak"]["main"][0]["api_key"]
-    assert api_key == "sk-SUPER-SECRET-1"
+    assert api_key != "sk-SUPER-SECRET-1" and api_key
 
     trace_resp = client.get(f"/api/executions/{exec_id}/trace", headers=headers).json()["data"]
     leak_step = next(s for s in trace_resp["steps"] if s["node_id"] == "leak")
     out_item = leak_step["outputs"]["main"][0]
-    assert out_item["api_key"] == "sk-SUPER-SECRET-1"
-    assert out_item["password"] == "hunter2"
+    assert out_item["api_key"] != "sk-SUPER-SECRET-1"
+    assert out_item["password"] != "hunter2"
     assert out_item["note"] == "totally fine"
 
 

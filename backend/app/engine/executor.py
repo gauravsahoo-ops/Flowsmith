@@ -713,23 +713,23 @@ async def _run_one(
                         raw_result = await op
                         break
                     except asyncio.TimeoutError:
-                        node_error = NodeTimeoutError(node.id, timeout)  # type: ignore[arg-type]
+                        node_error = NodeTimeoutError(node.id, timeout or 0.0)
                         if _retries:
                             node_error.details = {"retries": _retries}
                     except NodeCancelledError:
                         raise
-                    except ConnectorError as ce:  # type: ignore[name-defined]
+                    except ConnectorError as ce:
                         node_error = NodeExecutionError(
                             str(ce), code=getattr(ce, "code", "CONNECTOR_ERROR"),
                             node_id=node.id, retryable=getattr(ce, "retryable", False),
                             details={"retries": _retries} if _retries else None,
                         )
                         if getattr(ce, "retry_after", None) is not None:
-                            node_error.retry_after = ce.retry_after  # type: ignore[attr-defined]
-                    if _retries + 1 >= max_attempts or not node_error.retryable:  # type: ignore[name-defined]
+                            node_error.retry_after = ce.retry_after
+                    if _retries + 1 >= max_attempts or not node_error.retryable:
                         if node.settings.get("continue_on_error"):
                             all_outputs.append({"$error": node_error.to_dict(), "success": False, "item": single_item})
-                            raw_result = None  # type: ignore[assignment]
+                            raw_result = None
                             break
                         raise node_error
                     _retries += 1

@@ -68,7 +68,7 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
       try {
         const parsed = JSON.parse(varData)
         exprToInsert = parsed.expr || ''
-      } catch {}
+      } catch (err) { console.error('[flowsmith] components/MappingField.jsx', err) }
     }
     if (!exprToInsert && textData) {
       exprToInsert = textData

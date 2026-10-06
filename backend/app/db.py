@@ -117,7 +117,7 @@ def _run_alembic_upgrade() -> None:
     if not ini_path.is_file():  # packaged deployments without backend/
         raise RuntimeError(f"alembic.ini not found at {ini_path}; cannot migrate.")
     cfg = Config(str(ini_path))
-    cfg.set_main_option("sqlalchemy.url", engine.url.render_as_string(hide_password=False))
+    cfg.set_main_option("sqlalchemy.url", engine.url.render_as_string(hide_password=True))
     import app.models  # noqa: F401  (register all tables before compare)
 
     inspector = inspect(engine)

@@ -20,10 +20,6 @@ import { createHistory } from '../utils/history'
 
 let saveTimer = null
 let initPromise = null
-let dirty = false // true when unsaved changes exist
-// True while a node-drag gesture is streaming position changes; the
-// pre-drag snapshot is taken once, at gesture start.
-let dragHistoryOpen = false
 
 function isDecorationId(id) {
   return typeof id === 'string' && (id.startsWith('comment_') || id.startsWith('group_'))
@@ -48,11 +44,6 @@ function defaultsFromSchema(schema) {
   }
   return out
 }
-
-let _cachedEdges = null
-let _cachedIncoming = null
-let _cachedNodeMap = null
-let _cachedNodeMapKey = null
 
 export const useWorkflowStore = create((set, get) => ({
   workflow: null, // {id, name, version, active, ...}
@@ -81,6 +72,8 @@ export const useWorkflowStore = create((set, get) => ({
   generated: null, // Phase 15: {workflow, validation, attempts} awaiting approval
 
   _history: createHistory(),
+  _dirty: false,
+  _dragHistoryOpen: false,
 
   // ------------------------------------------------------------------
   // history plumbing
@@ -325,8 +318,8 @@ export const useWorkflowStore = create((set, get) => ({
     const startsDrag = plain.some(
       (c) => c.type === 'position' && c.dragging === true,
     )
-    if (startsDrag && !dragHistoryOpen) {
-      dragHistoryOpen = true
+    if (startsDrag && !get()._dragHistoryOpen) {
+      set({ _dragHistoryOpen: true })
       get().pushHistory()
     }
     const structural = plain.some((c) =>
@@ -342,7 +335,7 @@ export const useWorkflowStore = create((set, get) => ({
       // The gesture's final change arrives in a later batch; close the
       // window then so a fresh gesture re-snapshots.
       queueMicrotask(() => {
-        dragHistoryOpen = false
+        set({ _dragHistoryOpen: false })
       })
     }
   },
@@ -351,7 +344,6 @@ export const useWorkflowStore = create((set, get) => ({
     const hasSelection = changes.some((c) => c.type === 'select' || c.type === 'deselect')
     if (hasStructural) {
       get().pushHistory()
-      _cachedEdges = null
       set({ edges: applyEdgeChanges(changes, get().edges) })
       scheduleSave()
     } else if (hasSelection) {
@@ -366,7 +358,6 @@ export const useWorkflowStore = create((set, get) => ({
     const { edges, canConnect } = get()
     if (!canConnect(connection)) return
     get().pushHistory()
-    _cachedEdges = null // invalidate adjacency cache
     set({
       edges: addEdge(
         { ...connection, id: crypto.randomUUID() },
@@ -486,7 +477,6 @@ export const useWorkflowStore = create((set, get) => ({
       type: 'exec',
     }
 
-    _cachedEdges = null
     get().pushHistory()
     set({ edges: [...currentEdges, edge1, edge2] })
     scheduleSave()
@@ -565,8 +555,7 @@ export const useWorkflowStore = create((set, get) => ({
 
   setName(name) {
     const trimmed = (name || '').slice(0, 255)
-    dirty = true
-    set({ workflow: { ...get().workflow, name: trimmed }, savedAt: null })
+    set({ workflow: { ...get().workflow, name: trimmed }, savedAt: null, _dirty: true })
     scheduleSave()
   },
 
@@ -775,17 +764,17 @@ export const useWorkflowStore = create((set, get) => ({
       const s = new Set(Array.isArray(stored) ? stored : [])
       if (nextPinned) s.add(workflow.id); else s.delete(workflow.id)
       localStorage.setItem('pinned_workflows', JSON.stringify([...s]))
-    } catch {}
+    } catch (err) { console.error('[flowsmith] stores/workflowStore.js', err) }
     set({ workflow: { ...workflow, pinned: nextPinned, settings } })
   },
 
   setWorkflowSettings(patch) {
     const { workflow } = get()
     if (!workflow) return
-    dirty = true
     set({
       workflow: { ...workflow, settings: { ...(workflow.settings || {}), ...patch } },
       savedAt: null,
+      _dirty: true,
     })
     scheduleSave()
   },
@@ -803,19 +792,12 @@ export const useWorkflowStore = create((set, get) => ({
     set({ saving: true, error: null })
     try {
       const saved = await api.saveWorkflow(workflow.id, payload)
-      dirty = false
-      set({ workflow: saved, savedAt: new Date(), saving: false })
+      set({ workflow: saved, savedAt: new Date(), saving: false, _dirty: false })
       return saved
     } catch (err) {
       const msg = err.message || ''
       const isEmptyWorkflow = msg.includes('at least one node')
-      set({ saving: false, error: err.message })
-      if (isEmptyWorkflow) {
-        // Don't treat as crash — keep dirty so user can add a node and save again,
-        // but re-throw so callers (like tests) see the failure
-        dirty = true
-        throw err
-      }
+      set({ saving: false, error: err.message, _dirty: true })
       throw err
     }
   },
@@ -891,7 +873,7 @@ function pruneEmptyGroups(get, set) {
 }
 
 function scheduleSave() {
-  dirty = true
+  useWorkflowStore.setState({ _dirty: true })
   clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
     useWorkflowStore.getState().save().catch((err) => {
@@ -899,7 +881,9 @@ function scheduleSave() {
       if (isEmpty) return
       // Retry once after a short delay on transient failure
       setTimeout(() => {
-        if (dirty) useWorkflowStore.getState().save().catch(() => {})
+        if (useWorkflowStore.getState()._dirty) {
+          useWorkflowStore.getState().save().catch(() => {})
+        }
       }, 2000)
     })
   }, 500)
@@ -911,11 +895,11 @@ export function resetInit() {
 
 /** True when there are unsaved canvas changes. */
 export function isDirty() {
-  return dirty
+  return useWorkflowStore.getState()._dirty
 }
 
 /** Prompt the user if there are unsaved changes; returns false to cancel. */
 export function confirmDiscard() {
-  if (!dirty) return true
+  if (!useWorkflowStore.getState()._dirty) return true
   return window.confirm('You have unsaved changes. Discard them?')
 }

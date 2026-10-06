@@ -15,23 +15,14 @@ from __future__ import annotations
 import datetime
 import json
 import logging
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from app.integrations.catalog.schema import (
-    AuthType,
     CertificationLevel,
-    ExternalSources,
-    FlowsmithSupportStatus,
     ImplementationMethod,
-    IntegrationCategory,
-    IntegrationDefinition,
-    OperationCoverageStatus,
-    OperationSpec,
     SourcePresence,
     SupportType,
-    TriggerSpec,
 )
 
 logger = logging.getLogger("integrations.master_builder")
@@ -678,7 +669,7 @@ class MasterCatalogBuilder:
         self.docs_dir = self.root / "docs" / "integration-platform"
         self.catalog_docs_dir = self.docs_dir / "catalog"
         self.discovery_timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        
+
         # Ensure directories
         self.docs_dir.mkdir(parents=True, exist_ok=True)
         self.catalog_docs_dir.mkdir(parents=True, exist_ok=True)
@@ -695,11 +686,11 @@ class MasterCatalogBuilder:
                 k = defn.connector_key
                 gen_file = self.root / "backend" / "app" / "connectors" / "generated" / f"gen_{k}_connector.py"
                 is_generated = k.startswith("gen_") or gen_file.is_file()
-                
+
                 ops_count = len(defn.operations)
                 trigs_count = len(defn.triggers)
                 searches_count = sum(1 for op_k in defn.operations.keys() if "search" in op_k.lower() or "query" in op_k.lower() or "find" in op_k.lower())
-                
+
                 connectors_info[k] = {
                     "connector_key": k,
                     "display_name": defn.display_name,
@@ -754,7 +745,7 @@ class MasterCatalogBuilder:
 
             # Match with seed item or create new rich definition
             seed = seed_items.get(cid)
-            
+
             # Flowsmith live support status
             fs_active = False
             fs_supp_type = SupportType.UNVERIFIED
@@ -822,7 +813,7 @@ class MasterCatalogBuilder:
 
             # Assign Implementation Method & Priority
             ext_count = (1 if n8n_pres.supported else 0) + (1 if zap_pres.supported else 0) + (1 if cyc_pres.supported else 0)
-            
+
             # Enterprise tier weighting
             is_tier1 = cid in ("salesforce", "dynamics_crm", "hubspot", "servicenow", "workday", "sap", "netsuite", "jira", "zendesk", "slack", "msteams", "postgres", "mysql", "stripe", "shopify", "openai", "http")
             enterprise_weight = 4.0 if is_tier1 else 2.5
@@ -1218,9 +1209,12 @@ class MasterCatalogBuilder:
         backlog = []
         for a in diff["missing_applications"]:
             sources = []
-            if a["sources"]["n8n"]["supported"]: sources.append("n8n")
-            if a["sources"]["zapier"]["supported"]: sources.append("zapier")
-            if a["sources"]["cyclr"]["supported"]: sources.append("cyclr")
+            if a["sources"]["n8n"]["supported"]:
+                sources.append("n8n")
+            if a["sources"]["zapier"]["supported"]:
+                sources.append("zapier")
+            if a["sources"]["cyclr"]["supported"]:
+                sources.append("cyclr")
 
             backlog.append({
                 "application": a["canonical_name"],
@@ -1377,9 +1371,12 @@ class MasterCatalogBuilder:
         for a in catalog:
             fs_status = "Native" if a["flowsmith_support"]["support_type"] == "native" else ("Generated" if a["flowsmith_support"]["support_type"] == "generated" else "Planned")
             srcs = []
-            if a["sources"]["n8n"]["supported"]: srcs.append("n8n")
-            if a["sources"]["zapier"]["supported"]: srcs.append("Zapier")
-            if a["sources"]["cyclr"]["supported"]: srcs.append("Cyclr")
+            if a["sources"]["n8n"]["supported"]:
+                srcs.append("n8n")
+            if a["sources"]["zapier"]["supported"]:
+                srcs.append("Zapier")
+            if a["sources"]["cyclr"]["supported"]:
+                srcs.append("Cyclr")
             src_str = ", ".join(srcs) if srcs else "OpenAPI"
 
             lines.append(f"| `{a['id']}` | **{a['canonical_name']}** | {a['vendor']} | {a['category']} | {fs_status} | {src_str} | `{a['implementation_priority']}` | `{a['implementation_method']}` |")

@@ -152,7 +152,7 @@ def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_
     creds = _llm_credentials(db, user, None)
     configured = len(creds) > 0
 
-    all_models = [
+    all_models: list[dict[str, Any]] = [
         {
             "id": "builtin",
             "name": "Zero-LLM (Deterministic Engine)",

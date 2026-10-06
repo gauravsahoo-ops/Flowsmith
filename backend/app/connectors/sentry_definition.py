@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from app.connectors import (
-    ConnectorCategory,
     ConnectorDefinitionV1,
     ConnectorLifecycle,
     ConnectorOperationV1,

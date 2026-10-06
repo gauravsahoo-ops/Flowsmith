@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Integer, JSON, String, ForeignKey, Text, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -143,7 +144,7 @@ class WorkflowVersionRecord(Base):
     # The workflow this version belongs to (the "parent" workflow name/id)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     # Snapshot of the workflow JSON at the time this version was created
-    data: Mapped[dict] = mapped_column(JSON, nullable=False)
+    data: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), nullable=False)
     # The user who created this version
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     # Whether this is the currently active version

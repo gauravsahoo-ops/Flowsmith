@@ -480,11 +480,13 @@ def use_template(template_id: int, user: User = Depends(get_current_user), db: S
         import re
         import uuid
         for node in data.get("nodes", []):
-            if node.get("type") in ("webhook", "salesforce_trigger"):
+            if node.get("type") in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
                 params = node.setdefault("parameters", {})
                 curr = str(params.get("path") or "hook")
                 prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr)[:12] or "hook"
-                params["path"] = f"{prefix}-{uuid.uuid4().hex[:18]}"
+                # 24+ chars required by _validate_webhook_paths; keep a
+                # comfortable margin above the minimum for any prefix length.
+                params["path"] = f"{prefix}-{uuid.uuid4().hex[:24]}"
 
     return ok({
         "id": tmpl.id,
@@ -511,7 +513,7 @@ def promote_workflow(
     import uuid
     from datetime import datetime, UTC
     from app.api.access import get_workflow
-    from app.models import WorkflowRecord, WorkflowVersionRecord
+    from app.models import WorkflowVersionRecord
     from app.credentials.validator import validate_workflow_credentials
     from app.engine.graph import validate_graph
     from app.schemas.workflow import Workflow

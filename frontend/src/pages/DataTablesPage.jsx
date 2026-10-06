@@ -31,7 +31,7 @@ export default function DataTablesPage() {
         setWsId(prev => prev || data[0].id)
         setNewWs(prev => prev || data[0].id)
       }
-    } catch {}
+    } catch (err) { console.error('[flowsmith] pages/DataTablesPage.jsx', err) }
   }
 
   const loadTables = async () => {

@@ -63,8 +63,12 @@ class CredentialResolver:
         if cred_type in generic_types and provider is None:
             raise ValueError(f"Authentication provider not implemented yet for '{cred_type}'.")
 
-        # Validate
-        if provider is not None:
+        # Validate. Only generic auth types are validated through the HTTP auth
+        # provider: concrete credential types (postgres, stripe, hubspot, ...)
+        # share a provider id in the type registry that does not match their
+        # data shape (e.g. 'header' for {dsn}), so validating them there would
+        # reject every non-header credential at run time.
+        if provider is not None and cred_type in generic_types:
             provider.validateCredential(data)
 
         return data, provider

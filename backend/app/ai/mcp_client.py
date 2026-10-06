@@ -9,7 +9,7 @@ segregates MCP capabilities from native connectors.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -142,14 +142,14 @@ class MCPClient:
         body = resp.json()
         if "error" in body:
             raise RuntimeError(f"MCP tool '{name}' error: {body['error']}")
-        
+
         result = body.get("result") or {}
         content = result.get("content") or []
-        
+
         # Normalize result output
         text_parts = [c.get("text", "") for c in content if c.get("type") == "text"]
         normalized_text = "\n".join(text_parts) if text_parts else ""
-        
+
         return {
             "tool": name,
             "raw_result": result,

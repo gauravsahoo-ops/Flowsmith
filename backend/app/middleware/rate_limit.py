@@ -98,9 +98,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             if count > limit:
                 return True, int(window - (now % window)) + 1
             return False, 0
-        except Exception as e:  # fail open: availability over strictness
+        except Exception as e:
             logger.warning("Rate limit check failed: %s", e)
-            return False, 0
+            return self._check_rate_limit_memory(user_id)
 
     def _check_rate_limit_memory(self, user_id: str) -> tuple[bool, int]:
         """In-memory fixed-window fallback (per-process)."""

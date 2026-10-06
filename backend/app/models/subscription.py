@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -22,7 +22,9 @@ class Subscription(Base):
     __tablename__ = "subscriptions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    organization_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    organization_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("organizations.id"), index=True, nullable=False
+    )
     plan: Mapped[str] = mapped_column(String(32), default=FREE_PLAN, nullable=False)
     # active | trialing | past_due | canceled
     status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)

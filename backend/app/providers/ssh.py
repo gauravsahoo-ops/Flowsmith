@@ -113,6 +113,10 @@ class SshSession:
         except Exception:
             pass
 
+    def sftp(self) -> Any:
+        """Open an SFTP channel on this session (caller owns close())."""
+        return self._client.open_sftp()
+
     def exec(self, command: str, timeout: float = 30.0) -> dict[str, Any]:
         if not str(command or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "exec needs a command.", retryable=False)
