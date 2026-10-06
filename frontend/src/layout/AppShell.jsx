@@ -101,14 +101,22 @@ export default function AppShell({ onLogout }) {
             <button
               className="app-topbar-hamburger"
               onClick={isMobile ? () => setMobileOpen(v => !v) : toggleCollapsed}
-              aria-label={collapsed ? 'Open full tab' : 'Collapse tab'}
-              title={collapsed ? 'Open full tab' : 'Collapse tab'}
+              aria-label={(isMobile ? mobileOpen : !collapsed) ? 'Collapse sidebar (Ctrl+B)' : 'Expand sidebar (Ctrl+B)'}
+              title={(isMobile ? mobileOpen : !collapsed) ? 'Collapse sidebar (Ctrl+B)' : 'Expand sidebar (Ctrl+B)'}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              {(isMobile ? mobileOpen : !collapsed) ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2.5" />
+                  <path d="M9 3v18" />
+                  <path d="m15 9-3 3 3 3" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2.5" />
+                  <path d="M9 3v18" />
+                  <path d="m14 9 3 3-3 3" />
+                </svg>
+              )}
             </button>
             <div className="app-topbar-context" title="Active workspace: Personal">
               <span className="app-topbar-context-dot" aria-hidden="true" />
