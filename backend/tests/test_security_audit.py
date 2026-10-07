@@ -534,3 +534,24 @@ class TestTokenRevocation:
         revoke_token(jti, exp)
         with pytest.raises(Exception):
             decode_token(token)
+
+
+class TestJwtSecretFallback:
+    def test_blank_secret_autogenerates_and_never_signs_with_empty_key(self, monkeypatch):
+        """Regression: compose forwards ``JWT_SECRET: ${JWT_SECRET:-}``, so a
+        missing env var arrives as ``""``. A blank signing key would let anyone
+        forge valid tokens - auto-generation must kick in instead."""
+        import jwt as pyjwt
+        from jwt.exceptions import InvalidKeyError
+
+        settings = get_settings()
+        monkeypatch.setattr(settings, "jwt_secret", "")
+
+        token = create_token(1)
+
+        # A blank key can't verify (PyJWT refuses empty HMAC keys outright)...
+        with pytest.raises(InvalidKeyError):
+            pyjwt.decode(token, "", algorithms=[settings.jwt_algorithm])
+        # ...while the generated key round-trips through our own verify path.
+        assert decode_token(token)["sub"] == "1"
+        assert settings.jwt_secret, "blank secret must be replaced by a generated key"
