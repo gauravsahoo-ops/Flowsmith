@@ -36,6 +36,17 @@ from app.models import Execution, User
 from app.nodes.ai_agent import AIAgentNode, AgentParams
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+logger = logging.getLogger("api.ai")
+
+
+def _client_error(exc: LLMError | NodeExecutionError) -> str:
+    """Sanitize provider/network errors for API responses: strip query
+    strings (they may carry API keys) and cap the length."""
+    msg = exc.message
+    head, sep, _ = msg.partition("?")
+    if sep:
+        msg = head + "?[redacted]"
+    return msg[:400]
 
 
 class ExplainRequest(BaseModel):
@@ -249,7 +260,7 @@ async def explain_failure(
     try:
         message = await chat_completion(llm, messages, temperature=0.2, max_tokens=600)
     except LLMError as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, _client_error(exc))
     return ok({"explanation": message.get("content") or ""})
 
 
@@ -312,7 +323,7 @@ async def generate_workflow(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 {"message": exc.message, "validation": exc.validation},
             )
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, _client_error(exc))
     log_event(db, AI_GENERATE, target_type="ai", user_id=user.id,
               detail={"prompt": body.prompt[:200], "attempts": result["attempts"],
                       "warnings": len(result["validation"]["warnings"])})
@@ -325,6 +336,17 @@ async def generate_workflow(
     })
 
 
+def _mem_key(user_id: int, workflow_id: str | None, session_id: str) -> str:
+    """User-scoped memory namespace.
+
+    Mirrors AIAgentNode's ``workflow_id_session_id`` formula with a ``u{id}:``
+    prefix on the session component so no user can read/write another user's
+    memory (session ids like the default "default" are globally shared).
+    """
+    sid = f"u{user_id}:{session_id}"
+    return f"{workflow_id}_{sid}" if workflow_id else sid
+
+
 @router.get("/memory/{session_id}")
 async def get_ai_memory(
     session_id: str,
@@ -333,10 +355,10 @@ async def get_ai_memory(
 ) -> dict:
     """Inspect active conversation memory for a given session."""
     manager = get_memory_manager()
-    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    key = _mem_key(user.id, workflow_id, session_id)
     info = await manager.get_session_info(key)
     if not info.get("exists") and not workflow_id:
-        default_info = await manager.get_session_info(f"default_{session_id}")
+        default_info = await manager.get_session_info(_mem_key(user.id, "default", session_id))
         if default_info.get("exists"):
             return ok(default_info)
     return ok(info)
@@ -350,10 +372,10 @@ async def clear_ai_memory(
 ) -> dict:
     """Clear active conversation memory for a given session."""
     manager = get_memory_manager()
-    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    key = _mem_key(user.id, workflow_id, session_id)
     await manager.clear_session(key)
     if not workflow_id:
-        await manager.clear_session(f"default_{session_id}")
+        await manager.clear_session(_mem_key(user.id, "default", session_id))
     return ok({"cleared": True, "session_id": session_id})
 
 
@@ -367,7 +389,7 @@ async def search_ai_memory(
 ) -> dict:
     """Semantic and lexical recall across all memory tiers without requiring an external LLM."""
     manager = get_memory_manager()
-    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    key = _mem_key(user.id, workflow_id, session_id)
     comp_mem = await manager.get_complete_memory(key)
     results = await comp_mem.search(q, top_k=top_k)
     return ok({"session_id": session_id, "query": q, "results": results, "count": len(results)})
@@ -381,7 +403,7 @@ async def upsert_ai_memory_entities(
 ) -> dict:
     """Persist structured entity facts or extract entities from text into Complete Memory."""
     manager = get_memory_manager()
-    key = f"{body.workflow_id}_{session_id}" if body.workflow_id else session_id
+    key = _mem_key(user.id, body.workflow_id, session_id)
     comp_mem = await manager.get_complete_memory(key)
     for k, v in body.entities.items():
         comp_mem.entities.set(k, v)
@@ -399,7 +421,7 @@ async def get_ai_memory_entities(
 ) -> dict:
     """Retrieve all entity facts stored for this session."""
     manager = get_memory_manager()
-    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    key = _mem_key(user.id, workflow_id, session_id)
     comp_mem = await manager.get_complete_memory(key)
     return ok({"session_id": session_id, "entities": comp_mem.entities.get_all()})
 
@@ -412,7 +434,7 @@ async def upsert_ai_memory_note(
 ) -> dict:
     """Set working scratchpad note in Complete Memory."""
     manager = get_memory_manager()
-    key = f"{body.workflow_id}_{session_id}" if body.workflow_id else session_id
+    key = _mem_key(user.id, body.workflow_id, session_id)
     comp_mem = await manager.get_complete_memory(key)
     comp_mem.scratchpad.set(body.key, body.content, tags=body.tags)
     await manager._persist_to_disk(key, comp_mem)
@@ -428,7 +450,7 @@ async def list_ai_memory_notes(
 ) -> dict:
     """List scratchpad working notes."""
     manager = get_memory_manager()
-    key = f"{workflow_id}_{session_id}" if workflow_id else session_id
+    key = _mem_key(user.id, workflow_id, session_id)
     comp_mem = await manager.get_complete_memory(key)
     notes = comp_mem.scratchpad.list_notes(tag=tag)
     return ok({"session_id": session_id, "notes": notes, "count": len(notes)})
@@ -454,7 +476,9 @@ async def chat_with_agent(
 
     param_kwargs: dict[str, Any] = {
         "input": body.message,
-        "session_id": body.session_id,
+        # User-scoped session so agent memory lands in this user's namespace
+        # (same formula as _mem_key, matching AIAgentNode's key composition).
+        "session_id": f"u{user.id}:{body.session_id}",
         "memory_type": body.memory_type,
         "allow_builtin_fallback": body.allow_builtin or is_builtin_requested,
     }
@@ -481,9 +505,10 @@ async def chat_with_agent(
         try:
             res = await AIAgentNode().run(ctx, params, [{"input": body.message}])
         except NodeExecutionError as exc:
-            raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
-        except Exception as exc:
-            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Agent error: {exc}")
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, _client_error(exc))
+        except Exception:
+            logger.exception("agent execution failed")
+            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Agent execution failed.")
 
     output_item = (res.output_items or [{}])[0]
     log_event(
@@ -575,7 +600,7 @@ async def suggest_mapping(
     except AssistantError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, exc.message)
     except LLMError as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, _client_error(exc))
     log_event(db, AI_ASSIST, target_type="workflow", target_id=body.workflow_id,
               user_id=user.id, detail={"surface": "mapping", "node_id": body.node_id})
     return ok({**result, "source_fields": source_fields})
@@ -604,7 +629,7 @@ async def suggest_expression_endpoint(
     except AssistantError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, exc.message)
     except LLMError as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, _client_error(exc))
     log_event(db, AI_ASSIST, target_type="ai", target_id="expression", user_id=user.id)
     return ok(result)
 
@@ -635,7 +660,7 @@ async def suggest_node_config(
     except AssistantError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, exc.message)
     except LLMError as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, _client_error(exc))
     log_event(db, AI_ASSIST, target_type="node", target_id=body.node_type,
               user_id=user.id, detail={"surface": "config"})
     return ok(result)
@@ -677,7 +702,7 @@ async def explain_workflow(
     try:
         result = await _impl(rec.data or {}, chat=chat_completion, llm=llm)
     except LLMError as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, _client_error(exc))
     log_event(db, AI_ASSIST, target_type="workflow", target_id=body.workflow_id,
               user_id=user.id, detail={"surface": "explain"})
     return ok(result)

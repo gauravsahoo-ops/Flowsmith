@@ -7,6 +7,7 @@ Workspace ownership is enforced on every operation.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from typing import Any
 from urllib.parse import quote
@@ -23,7 +24,20 @@ from app.objectstore.factory import get_object_store
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
-_INLINE_SAFE_MIME_PREFIXES = ("image/", "application/pdf", "text/plain")
+# Explicit allow-list: a broad "image/" prefix would also inline
+# image/svg+xml (script-capable XSS when served same-origin).
+_INLINE_SAFE_MIME_PREFIXES = (
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
+    "image/avif",
+    "image/bmp",
+    "image/x-icon",
+    "image/vnd.microsoft.icon",
+    "application/pdf",
+    "text/plain",
+)
 
 
 def _disposition_headers(kind: str, filename: str) -> dict[str, str]:
@@ -37,18 +51,15 @@ def _disposition_headers(kind: str, filename: str) -> dict[str, str]:
 
 def _can_access_workspace(db: Session, user_id: int, workspace_id: str | None, *, need_edit: bool = False) -> bool:
     if workspace_id is None:
-        return True  # personal files are owner-scoped
-    row = db.scalar(
-        select(WorkspaceMember).where(
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.user_id == user_id,
-        )
-    )
-    if row is None:
+        # No workspace => no *workspace* grant. Personal files are
+        # owner-scoped; callers must check owner_user_id explicitly
+        # (never treat absence of a workspace as universal access).
         return False
-    if not need_edit:
-        return True
-    return (row.role or "") in ("owner", "admin", "editor") or (row.permission or "") in ("edit", "admin")
+    from app.api.access import workspace_can_edit, workspace_can_view
+
+    if need_edit:
+        return workspace_can_edit(db, workspace_id, user_id)
+    return workspace_can_view(db, workspace_id, user_id)
 
 
 def _workspace_ids_for_user(db: Session, user_id: int) -> set[str]:
@@ -98,9 +109,10 @@ async def upload_file(
         or "application/octet-stream"
     )
     try:
-        store.put(object_key, data, mime_type=mime)
-    except Exception as exc:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Object store write failed: {exc}")
+        # Off-loop: object store writes can be tens of MB of disk/network IO.
+        await asyncio.to_thread(store.put, object_key, data, mime_type=mime)
+    except Exception:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Object store write failed.")
     rec = FileRecord(
         id=file_id,
         workspace_id=workspace_id,
@@ -110,9 +122,13 @@ async def upload_file(
         size=len(data),
         object_key=object_key,
     )
-    db.add(rec)
-    db.commit()
-    db.refresh(rec)
+
+    def _persist() -> None:
+        db.add(rec)
+        db.commit()
+        db.refresh(rec)
+
+    await asyncio.to_thread(_persist)
     return {"data": _to_dict(rec)}
 
 

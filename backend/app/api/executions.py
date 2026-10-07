@@ -618,7 +618,14 @@ async def run_single_node(
     source_exec_id = body.source_execution_id
     source_rec = None
     if source_exec_id:
-        source_rec = db.get(Execution, source_exec_id)
+        # Scope to this workflow: never reuse trigger data from another
+        # tenant's execution (arbitrary-ID IDOR).
+        source_rec = db.scalar(
+            select(Execution).where(
+                Execution.id == source_exec_id,
+                Execution.workflow_id == workflow_id,
+            )
+        )
     if source_rec is None:
         source_rec = db.execute(
             select(Execution)

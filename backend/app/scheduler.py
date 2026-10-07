@@ -51,7 +51,7 @@ class Scheduler:
                 fired = await self.tick()
                 # Refresh tick interval once per tick (not every sleep) to avoid
                 # opening a DB session on every 250ms cancel-poll cycle.
-                self._cached_tick_s = self._compute_tick_interval()
+                self._cached_tick_s = await asyncio.to_thread(self._compute_tick_interval)
             except Exception:
                 logger.exception("scheduler tick failed")
                 fired = 0
@@ -80,6 +80,14 @@ class Scheduler:
         return float(TICK_INTERVAL_S)
 
     async def tick(self, now: datetime | None = None) -> int:
+        """One scan; returns the number of executions fired.
+
+        The whole scan (advisory lock, queries, firing) is synchronous DB
+        work, so it runs on a worker thread instead of the event loop.
+        """
+        return await asyncio.to_thread(self._tick_sync, now)
+
+    def _tick_sync(self, now: datetime | None) -> int:
         """One scan; returns the number of executions fired.
 
         Acquires a PostgreSQL advisory lock so that only ONE scheduler

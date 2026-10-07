@@ -22,6 +22,7 @@ from app.auth_state.adapter import (
 )
 from app.engine.errors import NodeExecutionError
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
+from app.nodes.registry import register
 
 
 class AuthFetchParams(BaseModel):
@@ -55,6 +56,7 @@ def _output(
     }
 
 
+@register
 class AuthFetchNode(BaseNode[AuthFetchParams]):
     node_type = "auth_fetch"
     display_name = "Auth Fetch"
@@ -63,6 +65,7 @@ class AuthFetchNode(BaseNode[AuthFetchParams]):
     category = "Actions"
     icon = "token_fetch"
     parameters_schema = AuthFetchParams
+    idempotency = "conditionally_idempotent"
 
     async def run(
         self,

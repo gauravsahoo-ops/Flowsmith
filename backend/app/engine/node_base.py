@@ -108,6 +108,16 @@ def filter_client_kwargs(client: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
     }
     return {k: v for k, v in kwargs.items() if k in named}
 
+class _CancelState:
+    """Shared mutable cancel flag: survives copy.copy(NodeContext) so a
+    per-node context copy still observes execution-wide cancellation."""
+
+    __slots__ = ("cancelled",)
+
+    def __init__(self) -> None:
+        self.cancelled = False
+
+
 class NodeContext:
     """Carries execution-scoped services into a node (spec 8.1, 36)."""
 
@@ -135,7 +145,7 @@ class NodeContext:
         self.http_client = http_client
         self.storage = storage if storage is not None else MemoryKVStore()
         self._emit_event = emit_event or (lambda *a, **k: None)
-        self._cancelled = False
+        self._cancel_state = _CancelState()
         self.credentials: dict[str, Any] = credentials or {}
         # Workspace environment variables (Phase 31): resolved decrypted
         # values, exposed to expressions as {{ $env.KEY }}.
@@ -157,6 +167,14 @@ class NodeContext:
         # resolves_own_expressions extend it per evaluation
         # (e.g. loop_while adds $iterations / fresh $json).
         self.expression_context: dict[str, Any] | None = None
+
+    @property
+    def _cancelled(self) -> bool:
+        return self._cancel_state.cancelled
+
+    @_cancelled.setter
+    def _cancelled(self, value: bool) -> None:
+        self._cancel_state.cancelled = value
 
     def is_cancelled(self) -> bool:
         """Cooperative cancellation check (spec 36)."""

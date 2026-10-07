@@ -194,3 +194,17 @@ async def test_binary_message():
     assert resp["type"] == "binary"
     # "deadbeef" as UTF-8 bytes → hex is 6465616462656566
     assert resp["echo"] == "6465616462656566"
+
+
+@pytest.mark.asyncio
+async def test_internal_host_blocked_before_connect():
+    """H9: metadata/internal hosts must be rejected before connecting."""
+    node = WebSocketNode()
+    ctx = make_ctx()
+    params = WebSocketParams(
+        url="ws://169.254.169.254/echo",
+        message="hi",
+        timeout_seconds=3.0,
+    )
+    with pytest.raises(NodeExecutionError):
+        await node.run(ctx, params, [])

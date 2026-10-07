@@ -28,6 +28,15 @@ _HTTP_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 class WebhookTriggerParams(BaseModel):
     path: str = Field(min_length=1, description="URL suffix, e.g. 'incoming-email' (letters, digits, - and _).")
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"] = "POST"
+    secret: str | None = Field(
+        default=None,
+        max_length=256,
+        description=(
+            "Optional shared token: callers must send it as a Bearer token, "
+            "x-webhook-token header, or ?token= query parameter. Required in "
+            "production; open in development."
+        ),
+    )
 
     def model_post_init(self, __context: Any) -> None:
         if not _PATH_RE.match(self.path):

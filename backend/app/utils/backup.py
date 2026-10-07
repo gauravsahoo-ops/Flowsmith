@@ -103,9 +103,13 @@ def _base_cmd(tool: str, dsn: str | None, *, stdin: bool = False) -> tuple[list[
         prefix = ["docker", "exec"]
         if stdin:
             prefix.append("-i")
+        docker_env = dict(os.environ)
         if parts["password"]:
-            prefix += ["-e", f"PGPASSWORD={parts['password']}"]
-        return [*prefix, container, tool, *pg_args], dict(os.environ)
+            # Valueless -e takes PGPASSWORD from *our* env (forwarded to the
+            # container); putting the value on argv would expose it via `ps`.
+            prefix += ["-e", "PGPASSWORD"]
+            docker_env["PGPASSWORD"] = parts["password"]
+        return [*prefix, container, tool, *pg_args], docker_env
 
     raise RuntimeError(f"Unknown pg_client_mode '{mode}' (auto|local|docker).")
 
@@ -133,6 +137,17 @@ def create_backup(
     directory.mkdir(parents=True, exist_ok=True)
     if name is None:
         name = f"backup_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
+    # `name` becomes the filename directly and MCP callers can pass
+    # arbitrary text: enforce one safe path segment (no traversal).
+    if not (
+        1 <= len(name) <= 64
+        and name[0].isalnum()
+        and all(c.isalnum() or c in "._-" for c in name)
+    ):
+        raise ValueError(
+            "Invalid backup name: use 1-64 characters starting with a "
+            "letter or digit (letters, digits, '.', '_', '-')."
+        )
 
     filepath = directory / f"{name}.sql.gz"
     # A dump contains every credential in the DB: owner-only perms from creation.

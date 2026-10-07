@@ -52,6 +52,35 @@ async def _git(repo_path: str, *args: str, timeout: float = 30.0) -> str:
     return out.decode(errors="replace")
 
 
+def _validate_repo_path(path: str) -> None:
+    """Containment allowlist: working directory, configured file root, temp."""
+    import os
+    import tempfile
+    from pathlib import Path
+
+    from app.engine.errors import NodeExecutionError
+    from app.nodes.file_io import FileIONode
+
+    resolved = os.path.realpath(path)
+    for prefix in FileIONode._BLOCKED_PREFIXES:
+        if resolved.lower().startswith(prefix.lower()):
+            raise NodeExecutionError(
+                f"Access to '{resolved}' is blocked for security reasons.",
+                code="PATH_BLOCKED", node_id="git", retryable=False,
+            )
+    roots = {Path.cwd().resolve(), Path(tempfile.gettempdir()).resolve()}
+    roots.update(Path(r) for r in FileIONode._allowed_roots())
+    resolved_path = Path(resolved)
+    for root in roots:
+        if resolved_path.is_relative_to(root):
+            return
+    raise NodeExecutionError(
+        f"Access to '{resolved}' is blocked for security reasons. "
+        f"Git operations are restricted to the working directory, the file root, and temp.",
+        code="PATH_BLOCKED", node_id="git", retryable=False,
+    )
+
+
 @register
 class GitNode(BaseNode[GitParams]):
     node_type = "git"
@@ -72,6 +101,7 @@ class GitNode(BaseNode[GitParams]):
     ) -> NodeResult:
         op = (params.operation or "status").lower()
         repo = params.repo_path or "."
+        _validate_repo_path(repo)
         if op == "status":
             out = await _git(repo, "status", "--short", "--branch")
             return NodeResult(output_items=[{"operation": "status", "output": out}])

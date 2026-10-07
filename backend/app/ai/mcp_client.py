@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Optional
-from urllib.parse import urlparse
 
 import httpx
 
@@ -42,16 +41,20 @@ class MCPClient:
         self.allow_private_network = allow_private_network
         self._request_id = 0
 
-    def _validate_security(self, url: str) -> None:
-        """Validate URL to protect against SSRF on private/cloud metadata ranges."""
+    async def _validate_security(self, url: str) -> None:
+        """Validate URL to protect against SSRF on private/cloud metadata ranges.
+
+        Delegates to the shared SSRF policy (literal-IP ranges, metadata
+        hosts, DNS-rebinding, production DNS-failure deny)."""
         if self.allow_private_network:
             return
-        parsed = urlparse(url)
-        host = (parsed.hostname or "").lower()
-        if host in ("169.254.169.254", "169.254.170.2", "metadata.google.internal"):
-            raise MCPSecurityError(f"Access to cloud metadata endpoint '{host}' blocked by MCP security policy.")
-        if host in ("localhost", "127.0.0.1", "::1") and not self.allow_private_network:
-            logger.debug("Localhost MCP allowed in local development environment.")
+        from app.engine.errors import NodeExecutionError
+        from app.security.ssrf import assert_public_url
+
+        try:
+            await assert_public_url(url, node_id="mcp_client")
+        except NodeExecutionError as exc:
+            raise MCPSecurityError(str(exc)) from exc
 
     def _next_id(self) -> int:
         self._request_id += 1
@@ -59,7 +62,7 @@ class MCPClient:
 
     async def ping(self, timeout_s: float = 5.0) -> bool:
         """Ping the MCP server or check connectivity."""
-        self._validate_security(self.server_url)
+        await self._validate_security(self.server_url)
         payload = {
             "jsonrpc": "2.0",
             "id": self._next_id(),
@@ -76,7 +79,7 @@ class MCPClient:
 
     async def list_tools(self, timeout_s: float = 10.0) -> list[dict[str, Any]]:
         """Query the MCP server for declared tools (`tools/list`)."""
-        self._validate_security(self.server_url)
+        await self._validate_security(self.server_url)
         payload = {
             "jsonrpc": "2.0",
             "id": self._next_id(),
@@ -98,7 +101,7 @@ class MCPClient:
 
     async def list_resources(self, timeout_s: float = 10.0) -> list[dict[str, Any]]:
         """Query the MCP server for available resources (`resources/list`)."""
-        self._validate_security(self.server_url)
+        await self._validate_security(self.server_url)
         payload = {
             "jsonrpc": "2.0",
             "id": self._next_id(),
@@ -119,7 +122,7 @@ class MCPClient:
 
     async def call_tool(self, name: str, arguments: dict[str, Any], timeout_s: float = 30.0) -> dict[str, Any]:
         """Call a specific tool on the MCP server (`tools/call`) with normalized output."""
-        self._validate_security(self.server_url)
+        await self._validate_security(self.server_url)
         payload = {
             "jsonrpc": "2.0",
             "id": self._next_id(),

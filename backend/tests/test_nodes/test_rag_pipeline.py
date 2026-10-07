@@ -271,3 +271,13 @@ async def test_passes_embedding_dimension_from_model(monkeypatch):
         store=store,
     )
     assert store.ensure_calls == [("rag_fake_dim", 3)]  # FakeEmbedder produces 3-d vectors
+
+
+def test_url_source_rejects_internal_hosts():
+    """H8: URL ingestion must never fetch internal/metadata hosts."""
+    import asyncio
+
+    from app.nodes.rag_pipeline import _load_source_text
+
+    with pytest.raises(NodeExecutionError):
+        asyncio.run(_load_source_text("url", "http://169.254.169.254/latest/meta-data/"))

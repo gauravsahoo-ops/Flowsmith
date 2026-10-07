@@ -63,7 +63,11 @@ def _already_used(jti: str, exp: int) -> bool:
     for key in [k for k, exp_ts in _used_tickets.items() if exp_ts <= now]:
         _used_tickets.pop(key, None)
     if len(_used_tickets) >= _MAX_USED_TICKETS:
-        _used_tickets.clear()  # bounded: worst case allows a tiny replay window under flood
+        # FIFO: evict the oldest entries instead of clearing wholesale -
+        # clearing would forget still-valid consumed tickets and reopen
+        # them to replay under flood.
+        for key in sorted(_used_tickets, key=lambda k: _used_tickets[k])[:1000]:
+            _used_tickets.pop(key, None)
     if jti in _used_tickets:
         return True
     _used_tickets[jti] = float(exp)

@@ -265,6 +265,11 @@ def stop_embedded_consumer() -> None:
 def main() -> None:
     """Entry point: python -m app.queue.worker"""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # External workers must enforce the same production config gates as
+    # the API process (JWT secret, encryption key, DB, CORS).
+    from app.config import validate_production_settings
+
+    validate_production_settings()
     # Connector-only node types must resolve in external workers too.
     from app.connectors import register_builtin_connectors
 

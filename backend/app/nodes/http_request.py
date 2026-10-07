@@ -1444,7 +1444,10 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 if p_name:
                     filename = p_name
             clean_mime = content_type.split(";")[0].strip() if content_type else "application/octet-stream"
-            binary_meta = prepare_binary_data(response.content, file_name=filename, mime_type=clean_mime)
+            binary_meta = prepare_binary_data(
+                response.content, file_name=filename, mime_type=clean_mime,
+                workspace_id=ctx.workspace_id, user_id=ctx.user_id,
+            )
             return {
                 "json": {
                     "status": response.status_code,
@@ -1482,7 +1485,10 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                     try:
                         from app.engine.binary_data import prepare_binary_data
                         clean_mime = content_type.split(";")[0].strip() if content_type else "application/octet-stream"
-                        binary_meta_auto = prepare_binary_data(response.content, mime_type=clean_mime)
+                        binary_meta_auto = prepare_binary_data(
+                            response.content, mime_type=clean_mime,
+                            workspace_id=ctx.workspace_id, user_id=ctx.user_id,
+                        )
                     except Exception:
                         pass
                 else:

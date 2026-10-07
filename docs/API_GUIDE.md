@@ -55,7 +55,7 @@ All private endpoints require an `Authorization` header containing a valid user 
 
 ```bash
 # User Session Bearer Token:
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <your-user-jwt>
 
 # Automation / Service Account API Key (minted via /api/apikeys, shown once):
 X-API-Key: Kx3f9Qz7Tm2pLw8vRb1nHs6Jd4Gy0Uc5

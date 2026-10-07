@@ -16,6 +16,7 @@ extra beyond the configured PostgreSQL database.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
@@ -154,15 +155,9 @@ async def _load_source_text(source_type: str, source: str, ctx: Any | None = Non
                     if rec.owner_user_id != run_user and rec.workspace_id != run_ws:
                         # Fallback membership check for shared workspaces
                         if rec.workspace_id is not None:
-                            from sqlalchemy import select as _select
-                            from app.models import WorkspaceMember as _WM
-                            member = db.scalar(
-                                _select(_WM).where(
-                                    _WM.workspace_id == rec.workspace_id,
-                                    _WM.user_id == run_user,
-                                )
-                            )
-                            if member is None:
+                            from app.api.access import workspace_can_view
+
+                            if not workspace_can_view(db, rec.workspace_id, run_user):
                                 raise PermissionError(f"No access to file {file_id}.")
                 from app.objectstore.factory import get_object_store
 
@@ -174,12 +169,20 @@ async def _load_source_text(source_type: str, source: str, ctx: Any | None = Non
             finally:
                 db.close()
         path = Path(source)
+        # Containment: raw filesystem reads must stay inside the configured
+        # file root (never .env, /etc, or other server files).
+        from app.nodes.file_io import FileIONode
+
+        FileIONode._validate_path(str(path))
         if not path.exists():
             raise FileNotFoundError(f"File not found: {source}")
         return path.read_text(encoding="utf-8")
     if source_type == "url":
         import httpx
 
+        from app.security.ssrf import assert_public_url
+
+        await assert_public_url(source, node_id="rag_pipeline")
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(source)
             resp.raise_for_status()
@@ -291,8 +294,10 @@ class RAGPipelineNode(BaseNode[RAGParams]):
             )
 
         try:  # optional AI extras (backend/requirements-ai.txt) - embeddings
-            embedding_model = _get_embedding_model(params.embedding_model)
-            query_embedding = _embed_list(embedding_model, [query])[0]
+            # Model load + embedding are CPU-bound/sync: run them off the
+            # event loop so one RAG node cannot stall every other request.
+            embedding_model = await asyncio.to_thread(_get_embedding_model, params.embedding_model)
+            query_embedding = (await asyncio.to_thread(_embed_list, embedding_model, [query]))[0]
         except ImportError:
             raise NodeExecutionError(
                 "The RAG Pipeline node needs the optional AI extras: "
@@ -318,6 +323,11 @@ class RAGPipelineNode(BaseNode[RAGParams]):
             if params.source:
                 source_text = await _load_source_text(params.source_type, params.source, ctx)
                 chunks = _chunk_text(source_text, params.chunk_size, params.chunk_overlap)
+                # Bound ingestion: one huge source must not queue unbounded
+                # CPU-heavy embedding work.
+                max_chunks = 512
+                if len(chunks) > max_chunks:
+                    chunks = chunks[:max_chunks]
                 if chunks:
                     import hashlib
 
@@ -328,7 +338,7 @@ class RAGPipelineNode(BaseNode[RAGParams]):
                     store.add(
                         handle,
                         documents=chunks,
-                        embeddings=_embed_list(embedding_model, chunks),
+                        embeddings=await asyncio.to_thread(_embed_list, embedding_model, chunks),
                         metadatas=[
                             {"chunk_index": i, "source": params.source_type,
                              "document_id": doc_id, **base}

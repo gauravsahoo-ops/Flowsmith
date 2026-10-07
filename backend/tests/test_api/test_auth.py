@@ -118,3 +118,89 @@ def test_x_authorization_header_accepted_with_proxy_basic_auth(client):
     assert resp.status_code == 200
     assert resp.json()["data"]["email"] == "proxy@example.com"
 
+
+def _smtp_settings(monkeypatch):
+    from app.config import get_settings
+
+    s = get_settings()
+    monkeypatch.setattr(s, "smtp_host", "smtp.example.test")
+    monkeypatch.setattr(s, "smtp_port", 587)
+    monkeypatch.setattr(s, "smtp_user", "smtpuser")
+    monkeypatch.setattr(s, "smtp_password", "s3cr3t")
+    monkeypatch.setattr(s, "mail_from", "no-reply@example.test")
+    monkeypatch.setattr(s, "smtp_use_tls", False)
+    monkeypatch.setattr(s, "smtp_starttls", True)
+
+
+def test_starttls_failure_aborts_before_cleartext_auth(monkeypatch):
+    """Regression: a failed STARTTLS negotiation used to be swallowed,
+    then login()+send_message() ran over plaintext (SMTP password and
+    reset link exposed). It must fail fast instead."""
+    import smtplib
+
+    from app.api.auth import _send_reset_email
+
+    _smtp_settings(monkeypatch)
+    calls = {"login": [], "send": []}
+
+    class FailingSMTP:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def starttls(self):
+            raise smtplib.SMTPException("TLS negotiation failed")
+
+        def login(self, user, password):
+            calls["login"].append(user)
+
+        def send_message(self, msg):
+            calls["send"].append(msg)
+
+    monkeypatch.setattr(smtplib, "SMTP", FailingSMTP)
+    sent = _send_reset_email("user@example.test", "http://reset/token")
+    assert sent is False
+    assert calls["login"] == []
+    assert calls["send"] == []
+
+
+def test_starttls_success_still_delivers(monkeypatch):
+    """Control: with STARTTLS succeeding, delivery proceeds normally."""
+    from app.api.auth import _send_reset_email
+
+    _smtp_settings(monkeypatch)
+    calls = {"starttls": 0, "login": [], "send": []}
+
+    class WorkingSMTP:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def starttls(self):
+            calls["starttls"] += 1
+
+        def login(self, user, password):
+            calls["login"].append(user)
+
+        def send_message(self, msg):
+            calls["send"].append(msg)
+
+    import smtplib
+
+    monkeypatch.setattr(smtplib, "SMTP", WorkingSMTP)
+    sent = _send_reset_email("user@example.test", "http://reset/token")
+    assert sent is True
+    assert calls["starttls"] == 1
+    assert calls["login"] == ["smtpuser"]
+    assert len(calls["send"]) == 1
+

@@ -176,12 +176,15 @@ def test_ai_memory_inspect_and_clear(client):
     assert resp.status_code == 200
     assert resp.json()["data"]["exists"] is False
 
-    # Seed messages into memory manager
+    # Seed messages into memory manager (user-scoped key, as the API composes)
+    import jwt as pyjwt
+
+    user_id = int(pyjwt.decode(reg["token"], options={"verify_signature": False}, algorithms=["HS256"])["sub"])
     manager = get_memory_manager()
     import asyncio
     loop = asyncio.new_event_loop()
     try:
-        mem = loop.run_until_complete(manager.get_working_memory("session_test_99"))
+        mem = loop.run_until_complete(manager.get_working_memory(f"u{user_id}:session_test_99"))
         mem.add_message("user", "Hello agent!")
         mem.add_message("assistant", "Hello! How can I help?")
     finally:
@@ -354,4 +357,62 @@ def test_ai_memory_search_and_entities_endpoints(client):
 
     # Teardown
     client.delete(f"/api/ai/memory/{sess}", headers=headers)
+
+
+def test_ai_memory_isolated_between_users(client):
+    """H4: one user's session memory must be invisible to another user."""
+    import asyncio
+
+    import jwt as pyjwt
+
+    from app.ai.memory import get_memory_manager
+
+    a = register(client, "mem_iso_a@x.com")
+    b = register(client, "mem_iso_b@x.com")
+    headers_a = auth_headers(a["token"])
+    headers_b = auth_headers(b["token"])
+
+    user_a = int(pyjwt.decode(a["token"], options={"verify_signature": False}, algorithms=["HS256"])["sub"])
+    manager = get_memory_manager()
+    loop = asyncio.new_event_loop()
+    try:
+        mem = loop.run_until_complete(manager.get_working_memory(f"u{user_a}:shared_session"))
+        mem.add_message("user", "secret from A")
+    finally:
+        loop.close()
+
+    resp = client.get("/api/ai/memory/shared_session", headers=headers_b)
+    assert resp.status_code == 200
+    assert resp.json()["data"]["exists"] is False
+
+    resp_a = client.get("/api/ai/memory/shared_session", headers=headers_a)
+    assert resp_a.status_code == 200
+    assert resp_a.json()["data"]["exists"] is True
+
+    client.delete("/api/ai/memory/shared_session", headers=headers_a)
+
+
+def test_ai_chat_generic_failure_is_static_500(client, monkeypatch):
+    """Unexpected agent exceptions return a static 500 detail; raw
+    exception text (connection strings, internals) never reaches clients."""
+    reg = register(client, "agent_boom@example.com")
+    headers = auth_headers(reg["token"])
+
+    async def boom(self, ctx, params, inputs):
+        raise ValueError("db connection postgres://user:hunter2@internal")
+
+    monkeypatch.setattr("app.api.ai.AIAgentNode.run", boom)
+    resp = client.post(
+        "/api/ai/chat",
+        json={
+            "message": "hi",
+            "session_id": "boom_sess",
+            "allow_builtin": True,
+            "memory_type": "complete",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 500, resp.text
+    assert "Agent execution failed." in resp.text
+    assert "hunter2" not in resp.text
 

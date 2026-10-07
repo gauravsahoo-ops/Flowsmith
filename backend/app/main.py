@@ -130,7 +130,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        # blob: is required for same-origin object-URL previews (images,
+        # sandboxed PDF iframes, and fetch() of fetched file blobs);
+        # fonts.* origins back the Google Fonts <link> in index.html.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' data: https://fonts.gstatic.com; "
+            "img-src 'self' data: blob:; media-src 'self' data: blob:; "
+            "connect-src 'self' blob:; worker-src 'self' blob:; "
+            "frame-src 'self' blob: data:; frame-ancestors 'none'; "
+            "base-uri 'self'; form-action 'self'; object-src 'none'"
+        )
         host = request.url.hostname or ""
         if host and host not in ("127.0.0.1", "localhost", "::1"):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"

@@ -136,7 +136,8 @@ async def start_checkout(
             cancel_url=cancel_url,
         )
     except StripeError as exc:
-        raise HTTPException(exc.status or 502, str(exc))
+        logger.error("stripe checkout failed for org %s: %s", org.id, exc)
+        raise HTTPException(exc.status or 502, "Payment provider error.")
 
     from app.audit import log_event as _log
 

@@ -28,6 +28,24 @@ logger = logging.getLogger("api.llm")
 router = APIRouter(prefix="/api/llm", tags=["llm"])
 
 
+async def _guard_llm_base_url(adapter: Any, cred_data: dict[str, Any], variant: str) -> None:
+    """SSRF guard: provider ``base_url`` is credential/user controlled and is
+    fetched server-side - never allow internal/metadata hosts."""
+    from app.engine.errors import NodeExecutionError
+    from app.security.ssrf import assert_public_url
+
+    try:
+        base = adapter._get_base_url(cred_data, variant=variant or "")
+    except Exception:
+        return
+    if not base:
+        return
+    try:
+        await assert_public_url(base, node_id="llm_connection")
+    except NodeExecutionError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, exc.message) from exc
+
+
 class ConnectionTestRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -181,6 +199,7 @@ async def test_connection(
         )
 
     adapter = get_adapter_for_provider(provider)
+    await _guard_llm_base_url(adapter, cred_data, body.variant)
     result = await adapter.test_connection(cred_data, variant=body.variant)
     return ok(result)
 
@@ -228,6 +247,7 @@ async def discover_models(
             })
 
     adapter = get_adapter_for_provider(provider)
+    await _guard_llm_base_url(adapter, cred_data, body.variant)
     models = await adapter.discover_models(cred_data, variant=body.variant)
 
     # Cache successful discoveries

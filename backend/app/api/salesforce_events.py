@@ -32,6 +32,7 @@ Handling per requirement:
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -213,7 +214,7 @@ async def salesforce_outbound_message(path: str, request: Request) -> Response:
 
     db = get_session()
     try:
-        trigger = get_webhook(db, path)
+        trigger = await asyncio.to_thread(get_webhook, db, path)
         if trigger is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown Salesforce trigger path.")
 
@@ -240,7 +241,8 @@ async def salesforce_outbound_message(path: str, request: Request) -> Response:
 
         parsed = parse_outbound_message(raw)
         if parsed is None or not parsed.message_id:
-            log_event(
+            await asyncio.to_thread(
+                log_event,
                 db, SALESFORCE_TRIGGER_REJECTED,
                 target_type="salesforce_trigger", target_id=path,
                 detail={"reason": "malformed_envelope"},
@@ -249,12 +251,14 @@ async def salesforce_outbound_message(path: str, request: Request) -> Response:
                                 "Payload is not a valid Salesforce outbound message.")
 
         idempotency_key = f"sf:{parsed.message_id}"
-        replay = db.scalars(
-            select(WebhookDelivery).where(
-                WebhookDelivery.path == path,
-                WebhookDelivery.idempotency_key == idempotency_key,
-            )
-        ).first()
+        replay = await asyncio.to_thread(
+            lambda: db.scalars(
+                select(WebhookDelivery).where(
+                    WebhookDelivery.path == path,
+                    WebhookDelivery.idempotency_key == idempotency_key,
+                )
+            ).first()
+        )
         if replay is not None:
             # Duplicate retry from Salesforce after our earlier ACK.
             return ack_response(True, delivery_id=replay.id,
@@ -279,12 +283,12 @@ async def salesforce_outbound_message(path: str, request: Request) -> Response:
                 execution_id=None,
                 idempotency_key=idempotency_key,
             ))
-            db.commit()
+            await asyncio.to_thread(db.commit)
             return ack_response(True, delivery_id=delivery_id, skipped=True)
 
         from app.api.executions import has_running_execution, start_execution, workflow_workspace
 
-        if has_running_execution(db, trigger.workflow_id):
+        if await asyncio.to_thread(has_running_execution, db, trigger.workflow_id):
             webhook_deliveries.inc(("skipped",))
             db.add(WebhookDelivery(
                 id=delivery_id,
@@ -296,11 +300,13 @@ async def salesforce_outbound_message(path: str, request: Request) -> Response:
                 execution_id=None,
                 idempotency_key=idempotency_key,
             ))
-            db.commit()
+            await asyncio.to_thread(db.commit)
             return ack_response(True, delivery_id=delivery_id, skipped=True)
 
         items = [n.as_item(parsed) for n in kept]
-        execution_id = start_execution(
+        ws_id = await asyncio.to_thread(workflow_workspace, db, trigger.workflow_id)
+        execution_id = await asyncio.to_thread(
+            start_execution,
             db,
             workflow_id=trigger.workflow_id,
             user_id=trigger.user_id,
@@ -308,7 +314,7 @@ async def salesforce_outbound_message(path: str, request: Request) -> Response:
             workflow_data=trigger.workflow_data,
             trigger="salesforce_outbound_message",
             trigger_items=items,
-            workspace_id=workflow_workspace(db, trigger.workflow_id),
+            workspace_id=ws_id,
         )
         webhook_deliveries.inc(("queued",))
         db.add(WebhookDelivery(
@@ -321,9 +327,10 @@ async def salesforce_outbound_message(path: str, request: Request) -> Response:
             execution_id=execution_id,
             idempotency_key=idempotency_key,
         ))
-        db.commit()
+        await asyncio.to_thread(db.commit)
 
-        log_event(
+        await asyncio.to_thread(
+            log_event,
             db, SALESFORCE_TRIGGER_RECEIVED,
             target_type="workflow", target_id=trigger.workflow_id,
             user_id=trigger.user_id,

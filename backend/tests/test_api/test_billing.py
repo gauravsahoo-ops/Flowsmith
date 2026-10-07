@@ -284,6 +284,29 @@ def test_enterprise_plan_is_unlimited(client):
     assert report["max"] == -1
 
 
+def test_checkout_stripe_error_returns_static_detail(client, monkeypatch):
+    """Stripe failures surface a static 5xx detail; upstream error text
+    (URLs, request internals) is logged, never returned."""
+    from app.billing import StripeError
+
+    headers = auth_headers(register(client)["token"])
+    org_id = client.post("/api/organizations", json={"name": "Err Org"}, headers=headers).json()["data"]["id"]
+
+    async def boom(**kwargs):
+        raise StripeError("internal-upstream-detail sk_live_LEAK")
+
+    monkeypatch.setattr("app.api.billing.stripe_configured", lambda: True)
+    monkeypatch.setattr("app.api.billing.create_checkout_session", boom)
+    resp = client.post(
+        "/api/billing/checkout",
+        json={"organization_id": org_id, "plan": "pro"},
+        headers=headers,
+    )
+    assert resp.status_code == 502, resp.text
+    assert "Payment provider error." in resp.text
+    assert "LEAK" not in resp.text
+
+
 
 
 

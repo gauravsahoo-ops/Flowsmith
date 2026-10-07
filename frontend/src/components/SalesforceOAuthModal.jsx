@@ -102,6 +102,20 @@ export default function SalesforceOAuthModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
 
+  // Abort any in-flight OAuth watcher when the modal closes or unmounts so
+  // window listeners, BroadcastChannel, and poll intervals never outlive it.
+  const activeFlowRef = React.useRef(null)
+  useEffect(() => {
+    if (isOpen) return
+    activeFlowRef.current?.()
+    activeFlowRef.current = null
+    setBusy(false)
+  }, [isOpen])
+  useEffect(() => () => {
+    activeFlowRef.current?.()
+    activeFlowRef.current = null
+  }, [])
+
   if (!isOpen) return null
 
   const handleCopyRedirect = () => {
@@ -195,6 +209,9 @@ export default function SalesforceOAuthModal({
       if (!authorizeUrl) {
         throw new Error('Failed to retrieve Salesforce authorization URL from server.')
       }
+      if (!/^https?:\/\//i.test(authorizeUrl)) {
+        throw new Error('Server returned an invalid authorization URL.')
+      }
 
       if (popup && !popup.closed) {
         popup.location.href = authorizeUrl
@@ -265,6 +282,13 @@ export default function SalesforceOAuthModal({
           }
         }
       }, 500)
+
+      activeFlowRef.current = () => {
+        cleanupListeners()
+        if (popup && !popup.closed) {
+          try { popup.close() } catch {}
+        }
+      }
 
     } catch (err) {
       if (popup && !popup.closed) {

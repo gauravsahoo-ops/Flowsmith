@@ -81,3 +81,7 @@ files.zip
 
 tmp/
 1/
+
+# Private keys / certificates (never commit)
+*.pem
+*.key

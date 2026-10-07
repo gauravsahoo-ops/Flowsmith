@@ -61,3 +61,17 @@ def test_every_builtin_node_module_is_registered():
         if hasattr(module, "node_type"):
             assert module.node_type in NODE_REGISTRY, f"{module_name} not registered"
     assert "websocket" in NODE_REGISTRY
+
+
+def test_auth_lifecycle_nodes_registered_without_alias_shim():
+    """Regression: auth_fetch/auth_store used to be dead modules silently
+    aliased onto the token nodes in the resolver."""
+    from app.nodes.auth_fetch import AuthFetchNode
+    from app.nodes.auth_store import AuthStoreNode
+    from app.nodes.registry import get as get_node
+
+    assert get_node("auth_fetch") is AuthFetchNode
+    assert get_node("auth_store") is AuthStoreNode
+    catalog = _by_type()
+    assert catalog["auth_fetch"]["display_name"] == "Auth Fetch"
+    assert catalog["auth_store"]["display_name"] == "Auth Store"

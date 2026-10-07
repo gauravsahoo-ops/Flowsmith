@@ -172,7 +172,7 @@ async def sso_callback(
             token_data = token_resp.json()
         except Exception as exc:
             logger.error("Failed to exchange SSO code: %s", exc)
-            raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Failed to exchange SSO authorization code: {exc}") from exc
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Failed to exchange SSO authorization code.") from exc
 
         access_token = token_data.get("access_token")
         if not access_token:
@@ -191,27 +191,32 @@ async def sso_callback(
 
             if provider == "github":
                 name = profile.get("name") or profile.get("login") or ""
-                email = profile.get("email")
-                if not email:
-                    # Fetch primary email from GitHub emails API
-                    emails_resp = await client.get(
-                        "https://api.github.com/user/emails",
-                        headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
-                    )
-                    emails_list = emails_resp.json()
-                    if isinstance(emails_list, list):
-                        primary = next((e for e in emails_list if e.get("primary") and e.get("verified")), None)
-                        if primary:
-                            email = primary.get("email")
-                        elif len(emails_list) > 0:
-                            email = emails_list[0].get("email")
+                # Never trust profile.email blindly - always resolve through
+                # the emails API and require a VERIFIED address (unverified
+                # addresses would allow account takeover).
+                email = None
+                emails_resp = await client.get(
+                    "https://api.github.com/user/emails",
+                    headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+                )
+                emails_list = emails_resp.json()
+                if isinstance(emails_list, list):
+                    primary = next((e for e in emails_list if e.get("primary") and e.get("verified")), None)
+                    if primary:
+                        email = primary.get("email")
+                    else:
+                        verified = next((e for e in emails_list if e.get("verified")), None)
+                        email = verified.get("email") if verified else None
             else:
                 email = profile.get("email")
+                # OIDC/Google: reject explicitly unverified emails.
+                if profile.get("email_verified") is False:
+                    email = None
                 name = profile.get("name") or profile.get("given_name") or ""
 
         except Exception as exc:
             logger.error("Failed to fetch SSO userinfo: %s", exc)
-            raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Failed to fetch profile from SSO provider: {exc}") from exc
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Failed to fetch profile from SSO provider.") from exc
 
     if not email:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not obtain a verified email address from the SSO provider.")

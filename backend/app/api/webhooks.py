@@ -114,6 +114,40 @@ async def _await_webhook_response(
         await asyncio.sleep(0.25)
 
 
+def _webhook_auth_required_in_prod() -> bool:
+    """Production fails closed when a webhook has no configured secret."""
+    from app.config import get_settings
+
+    try:
+        return get_settings().app_env == "production"
+    except Exception:
+        return True
+
+
+def _require_configured_secret(request: Request, params: dict) -> None:
+    """Enforce the node's secret when one is configured (form/chat stay
+    public only while no secret is set)."""
+    import hmac
+
+    secret = str(params.get("secret") or "").strip()
+    if not secret:
+        return
+    provided = ""
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        provided = auth_header[7:].strip()
+    provided = (
+        provided
+        or request.headers.get("x-webhook-token", "")
+        or request.query_params.get("token", "")
+    )
+    if not hmac.compare_digest(provided, secret):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Webhook authentication required: missing or invalid token.",
+        )
+
+
 def _verify_webhook_signature(wh: Any, request: Request, raw: bytes) -> None:
     """Enterprise webhook verification (Phase 13): HMAC, token checks, and replay protection."""
     import hashlib
@@ -128,11 +162,21 @@ def _verify_webhook_signature(wh: Any, request: Request, raw: bytes) -> None:
             break
 
     if not matching_node:
+        if _webhook_auth_required_in_prod():
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "Webhook authentication required: workflow has no matching webhook node.",
+            )
         return
 
     params = matching_node.get("parameters") or {}
     secret = str(params.get("secret") or params.get("secret_token") or params.get("auth_token") or "").strip()
     if not secret:
+        if _webhook_auth_required_in_prod():
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "Webhook authentication required: configure a secret on the webhook node.",
+            )
         return
 
     # 1. Bearer / Token auth check
@@ -213,7 +257,7 @@ async def webhook_receive(
     wait_seconds = max(1.0, min(float(wait_seconds or 30.0), 120.0))
     db = get_session()
     try:
-        wh = get_webhook(db, path)
+        wh = await asyncio.to_thread(get_webhook, db, path)
         if wh is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown webhook path.")
         if request.method != wh.method:
@@ -221,12 +265,14 @@ async def webhook_receive(
 
         idempotency_key = request.headers.get("idempotency-key")
         if idempotency_key:
-            replay = db.scalars(
-                select(WebhookDelivery).where(
-                    WebhookDelivery.path == path,
-                    WebhookDelivery.idempotency_key == idempotency_key,
-                )
-            ).first()
+            replay = await asyncio.to_thread(
+                lambda: db.scalars(
+                    select(WebhookDelivery).where(
+                        WebhookDelivery.path == path,
+                        WebhookDelivery.idempotency_key == idempotency_key,
+                    )
+                ).first()
+            )
             if replay is not None:
                 # Spec 32: duplicate delivery with the same key returns the
                 # original result; no second execution is created.
@@ -254,7 +300,7 @@ async def webhook_receive(
             raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Body exceeds 5 MB limit.")
 
         # Phase 13: Enterprise signature verification & replay protection
-        _verify_webhook_signature(wh, request, raw)
+        await asyncio.to_thread(_verify_webhook_signature, wh, request, raw)
 
         delivery_id = f"dlv_{uuid.uuid4().hex[:12]}"
         trigger_items = [{
@@ -266,7 +312,7 @@ async def webhook_receive(
 
         from app.api.executions import has_running_execution, start_execution, workflow_workspace
 
-        if has_running_execution(db, wh.workflow_id):
+        if await asyncio.to_thread(has_running_execution, db, wh.workflow_id):
             webhook_deliveries.inc(("skipped",))
             db.add(WebhookDelivery(
                 id=delivery_id,
@@ -278,7 +324,7 @@ async def webhook_receive(
                 execution_id=None,
                 idempotency_key=idempotency_key,
             ))
-            db.commit()
+            await asyncio.to_thread(db.commit)
             return ok({
                 "delivery_id": delivery_id,
                 "execution_id": None,
@@ -286,7 +332,9 @@ async def webhook_receive(
             })
 
         try:
-            execution_id = start_execution(
+            ws_id = await asyncio.to_thread(workflow_workspace, db, wh.workflow_id)
+            execution_id = await asyncio.to_thread(
+                start_execution,
                 db,
                 workflow_id=wh.workflow_id,
                 user_id=wh.user_id,
@@ -294,7 +342,7 @@ async def webhook_receive(
                 workflow_data=wh.workflow_data,
                 trigger="webhook",
                 trigger_items=trigger_items,
-                workspace_id=workflow_workspace(db, wh.workflow_id),
+                workspace_id=ws_id,
             )
         except Exception as exc:
             # Credential validation before queue — fail fast with clear 422
@@ -313,7 +361,7 @@ async def webhook_receive(
             execution_id=execution_id,
             idempotency_key=idempotency_key,
         ))
-        db.commit()
+        await asyncio.to_thread(db.commit)
         if respond:
             answered = await _await_webhook_response(execution_id, wh.workflow_data, wait_seconds)
             if answered is not None:
@@ -471,10 +519,11 @@ async def form_submit(slug: str, request: Request) -> dict:
     db = get_session()
     try:
         path = f"{FORM_TRIGGER_PREFIX}{slug}"
-        wh = get_webhook(db, path)
+        wh = await asyncio.to_thread(get_webhook, db, path)
         if wh is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown form.")
         params = _form_node_params(wh.workflow_data) or {}
+        _require_configured_secret(request, params)
 
         allowed, retry_after = _limiter.allow(f"webhook:{path}")
         if not allowed:
@@ -497,7 +546,7 @@ async def form_submit(slug: str, request: Request) -> dict:
         from app.api.executions import has_running_execution, start_execution, workflow_workspace
 
         delivery_id = f"dlv_{uuid.uuid4().hex[:12]}"
-        if has_running_execution(db, wh.workflow_id):
+        if await asyncio.to_thread(has_running_execution, db, wh.workflow_id):
             webhook_deliveries.inc(("skipped",))
             db.add(WebhookDelivery(
                 id=delivery_id,
@@ -508,11 +557,13 @@ async def form_submit(slug: str, request: Request) -> dict:
                 response_code=status.HTTP_202_ACCEPTED,
                 execution_id=None,
             ))
-            db.commit()
+            await asyncio.to_thread(db.commit)
             return ok({"delivery_id": delivery_id, "execution_id": None, "skipped": True})
 
         try:
-            execution_id = start_execution(
+            ws_id = await asyncio.to_thread(workflow_workspace, db, wh.workflow_id)
+            execution_id = await asyncio.to_thread(
+                start_execution,
                 db,
                 workflow_id=wh.workflow_id,
                 user_id=wh.user_id,
@@ -520,7 +571,7 @@ async def form_submit(slug: str, request: Request) -> dict:
                 workflow_data=wh.workflow_data,
                 trigger="webhook",
                 trigger_items=trigger_items,
-                workspace_id=workflow_workspace(db, wh.workflow_id),
+                workspace_id=ws_id,
             )
         except Exception as exc:
             from app.engine.errors import WorkflowValidationError
@@ -537,7 +588,7 @@ async def form_submit(slug: str, request: Request) -> dict:
             response_code=status.HTTP_202_ACCEPTED,
             execution_id=execution_id,
         ))
-        db.commit()
+        await asyncio.to_thread(db.commit)
         return ok({"delivery_id": delivery_id, "execution_id": execution_id, "skipped": False})
     finally:
         db.close()
@@ -615,9 +666,11 @@ async def chat_message(slug: str, request: Request) -> dict:
     db = get_session()
     try:
         path = f"{CHAT_TRIGGER_PREFIX}{slug}"
-        wh = get_webhook(db, path)
+        wh = await asyncio.to_thread(get_webhook, db, path)
         if wh is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown chat.")
+        params = _chat_node_params(wh.workflow_data) or {}
+        _require_configured_secret(request, params)
 
         allowed, retry_after = _limiter.allow(f"webhook:{path}")
         if not allowed:
@@ -653,7 +706,9 @@ async def chat_message(slug: str, request: Request) -> dict:
         from app.models import Execution as _Execution
         trigger_items = [{"message": message, "session_id": session_id, "history": history}]
         try:
-            execution_id = start_execution(
+            ws_id = await asyncio.to_thread(workflow_workspace, db, wh.workflow_id)
+            execution_id = await asyncio.to_thread(
+                start_execution,
                 db,
                 workflow_id=wh.workflow_id,
                 user_id=wh.user_id,
@@ -661,7 +716,7 @@ async def chat_message(slug: str, request: Request) -> dict:
                 workflow_data=wh.workflow_data,
                 trigger="chat",
                 trigger_items=trigger_items,
-                workspace_id=workflow_workspace(db, wh.workflow_id),
+                workspace_id=ws_id,
             )
         except Exception as exc:
             from app.engine.errors import WorkflowValidationError
@@ -679,15 +734,21 @@ async def chat_message(slug: str, request: Request) -> dict:
             response_code=status.HTTP_200_OK,
             execution_id=execution_id,
         ))
-        db.commit()
+        await asyncio.to_thread(db.commit)
 
         deadline = time.monotonic() + CHAT_WAIT_SECONDS
         final = None
         while time.monotonic() < deadline:
-            db.expire_all()
-            exec_rec = db.get(_Execution, execution_id)
-            if exec_rec is not None and exec_rec.status not in ("queued", "running", "cancelling"):
-                final = exec_rec
+
+            def _poll_execution():
+                db.expire_all()
+                rec = db.get(_Execution, execution_id)
+                if rec is not None and rec.status not in ("queued", "running", "cancelling"):
+                    return rec
+                return None
+
+            final = await asyncio.to_thread(_poll_execution)
+            if final is not None:
                 break
             await asyncio.sleep(0.25)
         if final is None:
@@ -695,7 +756,7 @@ async def chat_message(slug: str, request: Request) -> dict:
                 "reply": "", "session_id": session_id, "execution_id": execution_id,
                 "status": "timeout", "timeout": True,
             })
-        _mark_deliveries(db, execution_id, final.status)
+        await asyncio.to_thread(_mark_deliveries, db, execution_id, final.status)
         if final.status != "success":
             err = final.error or {}
             return ok({

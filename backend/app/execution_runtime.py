@@ -40,6 +40,11 @@ CANCEL_POLL_S = 0.25
 EventSink = Callable[[dict[str, Any]], None]
 
 
+async def _commit(db: Session) -> None:
+    """Run the sync-driver commit off the event loop (it blocks otherwise)."""
+    await asyncio.to_thread(db.commit)
+
+
 def _node_statuses(events: list[dict[str, Any]]) -> dict[str, str]:
     statuses: dict[str, str] = {}
     for ev in events:
@@ -187,7 +192,7 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             # table reflect the outcome (spec 37).
             rec.status = "cancelled"
             rec.finished_at = datetime.now(UTC)
-            db.commit()
+            await _commit(db)
             event_sink({
                 "event": "execution.cancelled",
                 "execution_id": execution_id,
@@ -197,12 +202,12 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             })
             return "cancelled"
         rec.status = "running"
-        db.commit()
+        await _commit(db)
 
         monitor = asyncio.create_task(_watch_cancel(execution_id, cancel_event))
         try:
             workflow = Workflow.model_validate(job.workflow_data)
-            env_vars = _resolve_env_vars(db, job)
+            env_vars = await asyncio.to_thread(_resolve_env_vars, db, job)
             # Durable approval resume (Phase 32) + safe node retry
             # (Phase 13): replay persisted node outputs so upstream side
             # effects never re-run.
@@ -247,7 +252,7 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 db.expire(rec)
                 rec.status = "running"
                 rec.error = None
-                db.commit()
+                await _commit(db)
             elif retry_from_node:
                 # Safe node retry: seed every upstream output EXCEPT the
                 # failed node and its descendants — they re-run on fresh
@@ -269,7 +274,7 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 db.expire(rec)
                 rec.status = "running"
                 rec.error = None
-                db.commit()
+                await _commit(db)
             elif run_node:
                 # Single-node execution:
                 # 1. If upstream nodes have cached outputs in run_source_rec,
@@ -306,7 +311,7 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 db.expire(rec)
                 rec.status = "running"
                 rec.error = None
-                db.commit()
+                await _commit(db)
             elif run_to_node:
                 # Run-to-node: execute the chain up to (and including)
                 # the target; seed all downstream nodes as skipped.
@@ -324,11 +329,11 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 db.expire(rec)
                 rec.status = "running"
                 rec.error = None
-                db.commit()
+                await _commit(db)
             else:
                 db.expire(rec)
                 rec.status = "running"
-                db.commit()
+                await _commit(db)
             # Pre-execution credential validation: catch unimplemented
             # providers BEFORE the workflow runs so users get clear errors
             # at queue time rather than opaque runtime failures.
@@ -431,8 +436,8 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 rec.trace = result.trace
                 if not rec.results:
                     rec.results = {"outputs": result.results}
-                db.commit()
-                _mark_deliveries(db, execution_id, "waiting_approval")
+                await _commit(db)
+                await asyncio.to_thread(_mark_deliveries, db, execution_id, "waiting_approval")
                 return "waiting_approval"
             if rec is not None:
                 rec.status = result.status
@@ -498,11 +503,11 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 rec.results = stored
                 rec.error = result.error.to_dict() if result.error else None
                 rec.pause_state = None
-                db.commit()
-            _mark_deliveries(db, execution_id, result.status)
+                await _commit(db)
+            await asyncio.to_thread(_mark_deliveries, db, execution_id, result.status)
             execution_finished(execution_id, result.status, job.trigger)
             if result.status == "failed" and result.error is not None:
-                _maybe_run_error_workflow(db, job, execution_id, result.error.to_dict())
+                await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, result.error.to_dict())
             return result.status
         finally:
             monitor.cancel()
@@ -519,8 +524,8 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             rec.status = "failed"
             rec.finished_at = datetime.now(UTC)
             rec.error = exc.to_dict()
-            db.commit()
-        _mark_deliveries(db, execution_id, "failed")
+            await _commit(db)
+        await asyncio.to_thread(_mark_deliveries, db, execution_id, "failed")
         return "failed"
     except Exception as exc:  # never lose the record (spec 34.1)
         logger.exception("execution %s crashed", execution_id)
@@ -531,9 +536,9 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             rec.status = "failed"
             rec.finished_at = datetime.now(UTC)
             rec.error = crash_error
-            db.commit()
-        _mark_deliveries(db, execution_id, "failed")
-        _maybe_run_error_workflow(db, job, execution_id, crash_error)
+            await _commit(db)
+        await asyncio.to_thread(_mark_deliveries, db, execution_id, "failed")
+        await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, crash_error)
         return "failed"
     finally:
         db.close()

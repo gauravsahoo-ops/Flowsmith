@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, Literal
 
@@ -43,6 +44,11 @@ class DataTableNode(BaseNode[DataTableParams]):
     idempotency = "conditionally_idempotent"
 
     async def run(self, ctx: NodeContext, params: DataTableParams, input_items: list[dict[str, Any]]) -> NodeResult:
+        # The body is entirely synchronous SQLAlchemy work: run it on a
+        # worker thread so one table operation cannot stall the event loop.
+        return await asyncio.to_thread(self._run_sync, ctx, params, input_items)
+
+    def _run_sync(self, ctx: NodeContext, params: DataTableParams, input_items: list[dict[str, Any]]) -> NodeResult:
         # Resolve workspace/table
         from sqlalchemy import select
         from app.db import get_session

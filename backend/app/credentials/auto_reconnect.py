@@ -6,6 +6,7 @@ seamless background reconnection without requiring interactive browser logins.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -30,6 +31,21 @@ logger = logging.getLogger("credentials.auto_reconnect")
 #: ``detail.user_count`` always carries the full cardinality and
 #: ``detail.user_ids_truncated`` tells consumers whether the list is complete.
 MAX_SWEEP_AUDIT_USER_IDS = 50
+
+
+def _load_batch(db: Session, chunk: list[str], use_locking: bool) -> list[Credential]:
+    """Fetch one sweep batch (sync DB) — called via asyncio.to_thread."""
+    if use_locking:
+        try:
+            return list(db.scalars(
+                select(Credential)
+                .where(Credential.id.in_(chunk))
+                .order_by(Credential.id)
+                .with_for_update(skip_locked=True)
+            ).all())
+        except Exception:
+            return [r for r in (db.get(Credential, cid) for cid in chunk) if r is not None]
+    return [r for r in (db.get(Credential, cid) for cid in chunk) if r is not None]
 
 
 def is_credential_expiring(cred_data: dict[str, Any], window_seconds: float = 1800.0) -> bool:
@@ -166,8 +182,8 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
         updated = await reconnect_credential_data(rec.type, data, credential_id=rec.id)
         clean_to_save = {k: v for k, v in updated.items() if not k.startswith("_")}
         rec.data = encrypt_text(json.dumps(clean_to_save))
-        db.commit()
-        db.refresh(rec)
+        await asyncio.to_thread(db.commit)
+        await asyncio.to_thread(db.refresh, rec)
         logger.info("Successfully auto-reconnected credential %s (%s)", rec.id, rec.type)
         return {
             "ok": True,
@@ -182,9 +198,9 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
             try:
                 data["refresh_token_expired"] = True
                 rec.data = encrypt_text(json.dumps(data))
-                db.commit()
+                await asyncio.to_thread(db.commit)
             except Exception:
-                db.rollback()
+                await asyncio.to_thread(db.rollback)
         logger.warning("Background auto-reconnect failed for %s (%s): %s", rec.id, rec.type, exc)
         return {
             "ok": False,
@@ -261,22 +277,13 @@ async def auto_refresh_all_expiring_credentials(
         use_locking = False
 
     # PK-only snapshot: cheap, holds no secrets, immune to paging shifts.
-    all_ids: list[str] = list(db.scalars(select(Credential.id).order_by(Credential.id)).all())
+    all_ids: list[str] = list(await asyncio.to_thread(
+        lambda: db.scalars(select(Credential.id).order_by(Credential.id)).all()
+    ))
 
     for start in range(0, len(all_ids), batch_size):
         chunk = all_ids[start:start + batch_size]
-        if use_locking:
-            try:
-                batch = list(db.scalars(
-                    select(Credential)
-                    .where(Credential.id.in_(chunk))
-                    .order_by(Credential.id)
-                    .with_for_update(skip_locked=True)
-                ).all())
-            except Exception:
-                batch = [r for r in (db.get(Credential, cid) for cid in chunk) if r is not None]
-        else:
-            batch = [r for r in (db.get(Credential, cid) for cid in chunk) if r is not None]
+        batch = await asyncio.to_thread(_load_batch, db, chunk, use_locking)
         # Missing rows are either deleted after the snapshot or (postgres)
         # lock-skipped by a concurrent sweeper. With verify_missing (default)
         # disambiguate via a cheap PK-existence check so stats stay honest;
@@ -290,9 +297,9 @@ async def auto_refresh_all_expiring_credentials(
                 stats["skipped"] += len(missing)
             elif use_locking and missing:
                 try:
-                    still_there = set(
-                        db.scalars(select(Credential.id).where(Credential.id.in_(list(missing)))).all()
-                    )
+                    still_there = set(await asyncio.to_thread(
+                        lambda: db.scalars(select(Credential.id).where(Credential.id.in_(list(missing)))).all()
+                    ))
                 except Exception:
                     still_there = set()
                 n_locked = len(still_there & missing)
@@ -333,12 +340,12 @@ async def auto_refresh_all_expiring_credentials(
                 updated = await reconnect_credential_data(rec.type, fresh, credential_id=rec.id)
                 clean_to_save = {k: v for k, v in updated.items() if not k.startswith("_")}
                 rec.data = encrypt_text(json.dumps(clean_to_save))
-                db.commit()
+                await asyncio.to_thread(db.commit)
                 stats["refreshed"] += 1
                 affected_user_ids.add(rec.user_id)
                 logger.info("Successfully renewed credential %s (%s)", rec.id, rec.type)
             except Exception as exc:
-                db.rollback()
+                await asyncio.to_thread(db.rollback)
                 stats["failed"] += 1
                 try:
                     affected_user_ids.add(rec.user_id)
@@ -349,13 +356,13 @@ async def auto_refresh_all_expiring_credentials(
                     try:
                         fresh["refresh_token_expired"] = True
                         rec.data = encrypt_text(json.dumps(fresh))
-                        db.commit()
+                        await asyncio.to_thread(db.commit)
                         logger.warning(
                             "Auto-refresh for %s (%s) failed due to expired/revoked refresh token. Marked as requiring interactive re-login: %s",
                             rec.id, rec.type, exc
                         )
                     except Exception:
-                        db.rollback()
+                        await asyncio.to_thread(db.rollback)
                         logger.warning("Auto-refresh failed for %s (%s): %s", rec.id, rec.type, exc)
                 else:
                     logger.warning("Auto-refresh failed for %s (%s): %s", rec.id, rec.type, exc)
@@ -400,7 +407,8 @@ async def auto_refresh_all_expiring_credentials(
                     )
                 # target_id always carries the sweep_id so page lookup is an
                 # indexed (action, target_id) equality query — never a scan.
-                log_event(
+                await asyncio.to_thread(
+                    log_event,
                     db,
                     CREDENTIAL_SWEEP,
                     target_type="system",

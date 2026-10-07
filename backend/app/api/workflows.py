@@ -11,6 +11,7 @@ users have view or edit, everything else is a 404.
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from datetime import UTC, datetime, timezone
@@ -20,6 +21,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("workflows")
 
 from app.audit import (
     WORKFLOW_ACTIVATE,
@@ -1150,7 +1153,8 @@ async def refresh_workflow_auth_state(
     except NodeExecutionError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Token refresh failed: {exc.message}") from exc
     except Exception as exc:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Token refresh failed: {str(exc)}") from exc
+        logger.error("Token refresh failed for workflow %s (%s): %s", workflow_id, c_provider, exc)
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Token refresh failed.") from exc
 
     if not fresh:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Could not refresh credentials.")

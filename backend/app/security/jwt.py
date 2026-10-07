@@ -44,6 +44,16 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(digest, expected)
 
 
+# Precomputed-format dummy hash: login runs this for missing/inactive
+# accounts so a bad-password attempt always pays the full pbkdf2 cost
+# (timing-based user enumeration defence).
+DUMMY_PASSWORD_HASH = (
+    f"{_ALGO}${_ITERATIONS}"
+    f"${base64.b64encode(b'\x00' * 16).decode()}"
+    f"${base64.b64encode(b'\x00' * 32).decode()}"
+)
+
+
 def _get_jwt_secret() -> str:
     """Return JWT secret, auto-generating a secure one if unconfigured.
 
@@ -126,6 +136,15 @@ def revoke_token(jti: str, exp: datetime | None = None) -> None:
             return
     except Exception:
         pass
+    # In-memory fallback: per-process only - other workers/API instances
+    # will not see this revocation. Warn once so multi-worker deployments
+    # notice the missing Redis.
+    if not getattr(revoke_token, "_warned_fallback", False):
+        revoke_token._warned_fallback = True  # type: ignore[attr-defined]
+        logger.warning(
+            "JWT revocation is using the in-memory fallback (Redis unavailable): "
+            "revocations are per-process only and will not reach other workers."
+        )
     now_ts = datetime.now(UTC).timestamp()
     expire_at = exp.timestamp() if exp else now_ts + 3600
     if len(_token_blacklist) >= _MAX_BLACKLIST_SIZE:

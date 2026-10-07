@@ -274,7 +274,7 @@ def connect_provider(
             logger.error("Could not self-heal oauth_states schema: %s", retry_exc)
             raise HTTPException(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
-                f"Failed to record OAuth session state: {retry_exc}",
+                "Failed to record OAuth session state.",
             )
 
     prompt = (body.prompt or "").strip() if body else ""

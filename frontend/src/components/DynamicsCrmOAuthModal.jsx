@@ -68,6 +68,9 @@ export default function DynamicsCrmOAuthModal({
 
   // Listen for OAuth callback popup completion
   useEffect(() => {
+    // Only listen while the modal is open; closing it aborts the flow so no
+    // handler outlives the modal.
+    if (!isOpen) return undefined
     function handleMessage(event) {
       if (!isTrustedOAuthOrigin(event.origin)) {
         console.warn('[flowsmith] DynamicsCrmOAuthModal: message from untrusted origin', event.origin)
@@ -86,7 +89,7 @@ export default function DynamicsCrmOAuthModal({
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [onConnected])
+  }, [onConnected, isOpen])
 
   const copyToClipboard = (text) => {
     if (navigator?.clipboard) {
@@ -118,6 +121,9 @@ export default function DynamicsCrmOAuthModal({
       const authorizeUrl = res?.data?.authorize_url || res?.authorize_url
       if (!authorizeUrl) {
         throw new Error('Server did not return an authorization URL.')
+      }
+      if (!/^https?:\/\//i.test(authorizeUrl)) {
+        throw new Error('Server returned an invalid authorization URL.')
       }
 
       const width = 600

@@ -3,9 +3,15 @@
 # Usage: ./deploy/setup.sh [--monitoring]
 set -euo pipefail
 
+# Secrets written below (.env.production) must never be world/group readable.
+umask 077
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$ROOT_DIR"
+
+# Fresh clones/extracts may lose the executable bit.
+chmod +x "$SCRIPT_DIR"/*.sh 2>/dev/null || true
 
 # ── Helpers ───────────────────────────────────────────────────
 red()   { printf '\033[0;31m%s\033[0m\n' "$*"; }
@@ -121,7 +127,7 @@ echo "  Readiness:  http://localhost:${APP_PORT:-8000}/readyz"
 
 if [[ "$*" == *"--monitoring"* ]]; then
   echo "  Prometheus: http://localhost:9090"
-  echo "  Grafana:    http://localhost:3000 (admin / ${GRAFANA_PASSWORD:-admin})"
+  echo "  Grafana:    http://localhost:3000 (user: admin)"
 fi
 
 echo ""

@@ -143,7 +143,10 @@ class FileIONode(BaseNode[FileIOParams]):
                 async with aiofiles.open(resolved_path, "rb") as f:
                     raw = await f.read()
                 filename = os.path.basename(resolved_path)
-                binary_meta = prepare_binary_data(raw, file_name=filename)
+                binary_meta = prepare_binary_data(
+                    raw, file_name=filename,
+                    workspace_id=ctx.workspace_id, user_id=ctx.user_id,
+                )
                 return NodeResult(output_items=[{
                     "json": {
                         "success": True,

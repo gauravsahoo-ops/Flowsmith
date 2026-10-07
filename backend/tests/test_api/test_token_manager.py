@@ -891,4 +891,51 @@ def test_acceptance_17_manual_refresh_api_endpoint(client, respx_mock):
         app.dependency_overrides.pop(get_current_user, None)
 
 
+def test_refresh_rotation_persist_failure_is_logged_not_swallowed(monkeypatch, caplog):
+    """If the rotated refresh token cannot be persisted, the failure must
+    be loud (error log with credential id, no token material) while the
+    in-memory refresh result still succeeds."""
+    from app.credentials.oauth_manager import OAuthManager
+
+    class FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {"access_token": "new-acc", "refresh_token": "new-ref", "expires_in": 3600}
+
+    class FakeClient:
+        async def post(self, *args, **kwargs):
+            return FakeResp()
+
+    cred = {
+        "token_url": "https://provider.example/token",
+        "client_id": "cid",
+        "client_secret": "csec",
+        "refresh_token": "old-ref",
+        "access_token": "old-acc",
+        "_credential_id": "cred-rot-1",
+    }
+
+    import app.db as app_db
+
+    class BoomSession:
+        def __enter__(self):
+            raise RuntimeError("db down")
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(app_db, "get_session", lambda: BoomSession())
+
+    mgr = OAuthManager(http_client=FakeClient())
+    with caplog.at_level(logging.ERROR, logger="credentials.oauth"):
+        result = _run(mgr.refresh(cred))
+
+    assert result["access_token"] == "new-acc"
+    assert result["refresh_token"] == "new-ref"
+    assert "failed to persist rotated OAuth tokens for credential cred-rot-1" in caplog.text
+    assert "new-ref" not in caplog.text
+    assert "old-ref" not in caplog.text
+
+
 

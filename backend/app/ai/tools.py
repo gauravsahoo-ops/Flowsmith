@@ -152,13 +152,78 @@ async def _http_tool_async(ctx: NodeContext, args: dict[str, Any]) -> dict[str, 
         return {"error": f"HTTP request failed: {exc}"}
 
 
+def _strip_sql_noise(sql: str) -> str:
+    """Remove comments and string/identifier literals so keyword scans cannot
+    be fooled by hostile text inside literals or hidden after ``--``."""
+    out: list[str] = []
+    i, n = 0, len(sql)
+    while i < n:
+        ch = sql[i]
+        if ch in ("'", '"', "`"):
+            quote = ch
+            i += 1
+            while i < n:
+                if sql[i] == "\\" and quote != "`" and i + 1 < n:
+                    i += 2
+                    continue
+                if sql[i] == quote:
+                    if i + 1 < n and sql[i + 1] == quote:
+                        i += 2
+                        continue
+                    i += 1
+                    break
+                i += 1
+            out.append(" ")
+        elif ch == "-" and sql.startswith("--", i):
+            nl = sql.find("\n", i)
+            i = n if nl == -1 else nl + 1
+            out.append("\n")
+        elif ch == "/" and sql.startswith("/*", i):
+            end = sql.find("*/", i + 2)
+            i = n if end == -1 else end + 2
+            out.append(" ")
+        elif sql.startswith("$$", i):
+            end = sql.find("$$", i + 2)
+            i = n if end == -1 else end + 2
+            out.append(" ")
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
+
+_SQL_FORBIDDEN = re.compile(
+    r"\b(DELETE|INSERT|UPDATE|MERGE|DROP|CREATE|ALTER|TRUNCATE|RENAME|"
+    r"GRANT|REVOKE|EXECUTE|EXEC|COPY|ATTACH|DETACH|INTO|VACUUM|LOCK\s+TABLE|"
+    r"pg_terminate_backend|pg_cancel_backend|dblink|pg_read_file|pg_ls_dir|"
+    r"pg_stat_file|lo_import|lo_export)\b",
+    re.IGNORECASE,
+)
+
+
+def _check_readonly_sql(sql: str) -> None:
+    """Statement-level read-only gate: single statement, safe first keyword,
+    no modifying keywords anywhere (covers CTE/second-statement bypasses)."""
+    cleaned = _strip_sql_noise(sql)
+    core = cleaned.strip().rstrip("; \t\r\n")
+    if not core:
+        raise ValueError("'sql' is required.")
+    if ";" in core:
+        raise ValueError("Only a single SQL statement is allowed.")
+    first = core.split()[0].upper()
+    if first not in ("SELECT", "EXPLAIN", "PRAGMA", "WITH"):
+        raise ValueError("Only read-only SQL is allowed (SELECT/EXPLAIN/PRAGMA/WITH).")
+    if first == "PRAGMA" and "=" in core:
+        raise ValueError("PRAGMA statements that assign values are not allowed.")
+    if _SQL_FORBIDDEN.search(core):
+        raise ValueError("Only read-only SQL is allowed (modifying keywords found).")
+
+
 def _database_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
     sql = args.get("sql")
     if not sql:
         raise ValueError("'sql' is required.")
-    stripped = sql.lstrip()
-    if stripped[:20].upper().split()[0] not in ("SELECT", "EXPLAIN", "PRAGMA", "WITH"):
-        raise ValueError("Only read-only SQL is allowed (SELECT/EXPLAIN/PRAGMA/WITH).")
+    _check_readonly_sql(sql)
     creds = ctx.credentials.get("database")
     if not creds or not creds.get("dsn"):
         raise RuntimeError("This workflow has no 'database' credential on the AI node.")
@@ -169,7 +234,7 @@ def _database_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
         with engine.connect() as conn:
             result = conn.execute(text(sql))
             if result.returns_rows:
-                rows = [dict(row._mapping) for row in result]
+                rows = [dict(row._mapping) for row in result.fetchmany(1000)]
                 return rows if rows else []
             return {"affected_rows": result.rowcount or 0}
     finally:
@@ -481,11 +546,21 @@ def _workflow_get_execution_handler(ctx: NodeContext, args: dict[str, Any]) -> A
 
 def _datatable_list_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
     from app.db import SessionLocal
-    from app.models.data_table import DataTable
-    from sqlalchemy import select
+    from app.models.data_table import DataTable, DataTableRow
+    from sqlalchemy import func, select
 
     with SessionLocal() as db:
-        tables = db.scalars(select(DataTable)).all()
+        tables = db.scalars(select(DataTable).limit(25)).all()
+        # Count via SQL: touching the lazy `rows` relationship would load
+        # every row of every table into memory just to print a number.
+        counts: dict[str, int] = {}
+        if tables:
+            counted = db.execute(
+                select(DataTableRow.table_id, func.count())
+                .where(DataTableRow.table_id.in_([t.id for t in tables]))
+                .group_by(DataTableRow.table_id)
+            ).all()
+            counts = {tid: cnt for tid, cnt in counted}
         return {
             "tables": [
                 {
@@ -493,9 +568,9 @@ def _datatable_list_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
                     "name": t.name,
                     "description": t.description or "",
                     "columns": [c.name for c in t.columns],
-                    "row_count": len(t.rows),
+                    "row_count": counts.get(t.id, 0),
                 }
-                for t in tables[:25]
+                for t in tables
             ]
         }
 
@@ -509,7 +584,7 @@ def _datatable_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
 
     from app.db import SessionLocal
     from app.models.data_table import DataTable, DataTableRow
-    from sqlalchemy import select
+    from sqlalchemy import func, select
 
     with SessionLocal() as db:
         t = db.get(DataTable, table_id)
@@ -517,7 +592,23 @@ def _datatable_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
             t = db.scalars(select(DataTable).where(DataTable.name == table_id)).first()
         if not t:
             return {"error": f"DataTable '{table_id}' not found."}
-        all_rows = db.scalars(select(DataTableRow).where(DataTableRow.table_id == t.id).order_by(DataTableRow.created_at.desc())).all()
+        # Exact total via SQL; scan a bounded window instead of loading
+        # every row (a large table must not blow up API memory).
+        total = (
+            db.scalar(
+                select(func.count())
+                .select_from(DataTableRow)
+                .where(DataTableRow.table_id == t.id)
+            )
+            or 0
+        )
+        scan_cap = 10_000
+        all_rows = db.scalars(
+            select(DataTableRow)
+            .where(DataTableRow.table_id == t.id)
+            .order_by(DataTableRow.created_at.desc())
+            .limit(scan_cap)
+        ).all()
         result_rows = []
         for r in all_rows:
             row_data = {"id": r.id, **(r.data or {})}
@@ -529,7 +620,7 @@ def _datatable_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
             "table_id": t.id,
             "name": t.name,
             "columns": [{"name": c.name, "type": c.type} for c in t.columns],
-            "total_rows": len(all_rows),
+            "total_rows": total,
             "rows": result_rows,
         }
 

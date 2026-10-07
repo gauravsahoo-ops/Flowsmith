@@ -82,6 +82,20 @@ export default function HubSpotOAuthModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
 
+  // Abort any in-flight OAuth watcher when the modal closes or unmounts so
+  // window listeners and poll intervals never outlive it.
+  const activeFlowRef = React.useRef(null)
+  useEffect(() => {
+    if (isOpen) return
+    activeFlowRef.current?.()
+    activeFlowRef.current = null
+    setBusy(false)
+  }, [isOpen])
+  useEffect(() => () => {
+    activeFlowRef.current?.()
+    activeFlowRef.current = null
+  }, [])
+
   if (!isOpen) return null
 
   const handleCopyRedirect = () => {
@@ -136,6 +150,9 @@ export default function HubSpotOAuthModal({
 
       if (!authorizeUrl) {
         throw new Error('Server did not return an authorization URL.')
+      }
+      if (!/^https?:\/\//i.test(authorizeUrl)) {
+        throw new Error('Server returned an invalid authorization URL.')
       }
 
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
@@ -209,6 +226,13 @@ export default function HubSpotOAuthModal({
 
       window.addEventListener('message', messageHandler)
       window.addEventListener('storage', storageHandler)
+
+      activeFlowRef.current = () => {
+        cleanup()
+        if (popup && !popup.closed) {
+          try { popup.close() } catch {}
+        }
+      }
     } catch (err) {
       setBusy(false)
       if (popup && !popup.closed) {

@@ -13,11 +13,74 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import User, WorkflowRecord, WorkflowShare
+from app.models import (
+    OrganizationMember,
+    User,
+    Workspace,
+    WorkspaceMember,
+    WorkflowRecord,
+    WorkflowShare,
+)
 
 PERMISSION_EDIT = "edit"
 PERMISSION_VIEW = "view"
 SHARE_PERMISSIONS = (PERMISSION_VIEW, PERMISSION_EDIT)
+
+
+def workspace_can_view(db: Session, ws_id: str, user_id: int) -> bool:
+    """View access to a workspace: creator, workspace member, or org member.
+
+    Single source of truth for workspace membership (mirrors the historical
+    ``workspaces._require_ws_member`` rules). Personal/absent workspaces
+    (``ws is None``) grant nothing.
+    """
+    ws = db.get(Workspace, ws_id)
+    if ws is None:
+        return False
+    if ws.creator_id == user_id:
+        return True
+    member = db.scalar(
+        select(WorkspaceMember).where(
+            WorkspaceMember.workspace_id == ws_id,
+            WorkspaceMember.user_id == user_id,
+        )
+    )
+    if member is not None:
+        return True
+    org_member = db.scalar(
+        select(OrganizationMember).where(
+            OrganizationMember.organization_id == ws.organization_id,
+            OrganizationMember.user_id == user_id,
+        )
+    )
+    return org_member is not None
+
+
+def workspace_can_edit(db: Session, ws_id: str, user_id: int) -> bool:
+    """Edit grant for a workspace: creator, member with edit rights, or
+    org member with edit rights. Viewers and non-members get nothing."""
+    ws = db.get(Workspace, ws_id)
+    if ws is None:
+        return False
+    if ws.creator_id == user_id:
+        return True
+    member = db.scalar(
+        select(WorkspaceMember).where(
+            WorkspaceMember.workspace_id == ws_id,
+            WorkspaceMember.user_id == user_id,
+        )
+    )
+    if member is not None:
+        return (member.role or "") in ("owner", "admin", "editor") or (member.permission or "") in ("edit", "admin")
+    org_member = db.scalar(
+        select(OrganizationMember).where(
+            OrganizationMember.organization_id == ws.organization_id,
+            OrganizationMember.user_id == user_id,
+        )
+    )
+    if org_member is None:
+        return False
+    return (org_member.role or "") in ("owner", "admin", "founder") or (org_member.permission or "") in ("edit", "admin")
 
 
 def get_permission(db: Session, workflow_id: str, user: User) -> str | None:

@@ -129,18 +129,44 @@ def _can_edit(rec: RagCollection, access: RagAccess) -> bool:
 
 
 def _resolve_access(db: Session, access: RagAccess) -> None:
-    """Fill workspace sets from membership when the caller did not."""
-    from app.models import WorkspaceMember
+    """Fill workspace sets from membership when the caller did not.
+
+    Mirrors ``app.api.access.workspace_can_view``/``workspace_can_edit``:
+    creators keep full access, member edit = role or permission grant,
+    and org-level grants cover workspaces with no membership row.
+    """
+    from app.models import OrganizationMember, Workspace, WorkspaceMember
 
     if not access.readable_workspaces:
         rows = db.scalars(
             select(WorkspaceMember).where(WorkspaceMember.user_id == access.user_id)
         ).all()
-        for m in rows:
-            access.readable_workspaces.add(m.workspace_id)
-            # Every member can read; role decides edit rights.
-            if (m.role or "") in ("owner", "admin", "editor"):
-                access.editable_workspaces.add(m.workspace_id)
+        member_rows = {m.workspace_id: m for m in rows}
+        access.readable_workspaces.update(member_rows)
+        # Creators retain access even without a membership row.
+        created = list(
+            db.scalars(select(Workspace.id).where(Workspace.creator_id == access.user_id)).all()
+        )
+        access.readable_workspaces.update(created)
+        access.editable_workspaces.update(created)
+        # Member edit: role or explicit permission grant (parity with files/data-tables).
+        for ws_id, m in member_rows.items():
+            if (m.role or "") in ("owner", "admin", "editor") or (m.permission or "") in ("edit", "admin"):
+                access.editable_workspaces.add(ws_id)
+        # Org-level grants for workspaces where the user has no member row
+        # (a member row short-circuits, matching workspace_can_edit).
+        org_rows = db.execute(
+            select(Workspace.id, OrganizationMember.role, OrganizationMember.permission)
+            .join(OrganizationMember, Workspace.organization_id == OrganizationMember.organization_id)
+            .where(
+                OrganizationMember.user_id == access.user_id,
+                Workspace.id.notin_(list(access.readable_workspaces)),
+            )
+        ).all()
+        for ws_id, role, perm in org_rows:
+            access.readable_workspaces.add(ws_id)
+            if (role or "") in ("owner", "admin", "founder") or (perm or "") in ("edit", "admin"):
+                access.editable_workspaces.add(ws_id)
 
 
 # ----------------------------------------------------------------------
@@ -212,7 +238,8 @@ def delete_collection(db: Session, collection_id: str, access: RagAccess) -> dic
     try:
         existed = store.delete_collection(rec.store_name)
     except VectorStoreUnavailable as exc:
-        raise EmbeddingUnavailable(str(exc)) from exc
+        logger.error("vector store unavailable deleting collection %s: %s", rec.store_name, exc)
+        raise EmbeddingUnavailable("Vector store unavailable.") from exc
     db.delete(rec)
     db.commit()
     return {"id": collection_id, "deleted": True, "vectors_dropped": existed}
@@ -226,7 +253,8 @@ def collection_stats(db: Session, collection_id: str, access: RagAccess) -> dict
         chunks = store.count(handle) if hasattr(store, "count") else None
         docs = store.document_ids(handle) if hasattr(store, "document_ids") else []
     except VectorStoreUnavailable as exc:
-        raise EmbeddingUnavailable(str(exc)) from exc
+        logger.error("vector store unavailable for collection %s: %s", rec.store_name, exc)
+        raise EmbeddingUnavailable("Vector store unavailable.") from exc
     except ValueError as exc:
         raise RuntimeError(str(exc)) from exc
     return {

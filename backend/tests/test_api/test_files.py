@@ -66,3 +66,25 @@ def test_workspace_isolation_on_files():
     # Other user should not be able to download it (owner-only)
     resp = client.get(f"/api/files/{fid}/download", headers=other_h)
     assert resp.status_code == 403
+
+
+def test_delete_personal_file_forbidden_for_non_owner():
+    """H1: a personal file (no workspace) must not be deletable by others."""
+    client = TestClient(app)
+    owner_h = _auth_header(client, email="files_del_a@example.com")
+    other_h = _auth_header(client, email="files_del_b@example.com")
+
+    resp = client.post(
+        "/api/files",
+        headers=owner_h,
+        files={"file": ("mine.txt", io.BytesIO(b"mine"), "text/plain")},
+    )
+    assert resp.status_code == 201
+    fid = resp.json()["data"]["id"]
+
+    resp = client.delete(f"/api/files/{fid}", headers=other_h)
+    assert resp.status_code == 403
+
+    # Owner can still delete it
+    resp = client.delete(f"/api/files/{fid}", headers=owner_h)
+    assert resp.status_code == 200

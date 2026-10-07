@@ -57,14 +57,16 @@ class ErrorBoundary extends Component {
         <div className="page" style={{ padding: '2rem', maxWidth: 800 }}>
           <h1 style={{ color: '#ef4444' }}>Something went wrong</h1>
           <p className="hint">The view crashed. Reload or go back to Overview.</p>
-          <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', fontFamily: 'monospace', fontSize: '13px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-            <strong>{this.state.error?.name}: {this.state.error?.message}</strong>
-            {this.state.error?.stack && (
-              <div style={{ marginTop: '0.5rem', opacity: 0.8, maxHeight: 200, overflowY: 'auto' }}>
-                {this.state.error.stack}
-              </div>
-            )}
-          </div>
+          {import.meta.env.DEV && (
+            <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', fontFamily: 'monospace', fontSize: '13px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+              <strong>{this.state.error?.name}: {this.state.error?.message}</strong>
+              {this.state.error?.stack && (
+                <div style={{ marginTop: '0.5rem', opacity: 0.8, maxHeight: 200, overflowY: 'auto' }}>
+                  {this.state.error.stack}
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
             <button className="primary" onClick={() => { this.setState({ error: null }); window.location.reload() }}>Reload</button>
             <Link to="/overview" className="ghost">Go to Overview</Link>
@@ -129,13 +131,17 @@ function tokenLooksExpired(token) {
 // the previous account's cached profile or pinned outputs.
 function purgeUserStorage() {
   try {
-    const prefixes = ['flowsmith_', 'op_pinned_']
+    const prefixes = ['flowsmith_', 'op_pinned_', 'workflow_logs_']
     const doomed = []
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
-      if (k && prefixes.some((p) => k.startsWith(p))) doomed.push(k)
+      if (k && (prefixes.some((p) => k.startsWith(p)) || k === 'pinned_workflows')) doomed.push(k)
     }
     doomed.forEach((k) => localStorage.removeItem(k))
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const k = sessionStorage.key(i)
+      if (k && k.startsWith('op_view_')) sessionStorage.removeItem(k)
+    }
   } catch {
     // storage unavailable — nothing to purge
   }

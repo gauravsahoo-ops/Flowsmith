@@ -41,11 +41,7 @@ export default function Login({ onAuthed }) {
         window.history.replaceState({}, '', window.location.pathname)
       }
     }
-    let ssoToken = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sso_token')
-    if (!ssoToken) {
-      // Legacy query pickup for older links during transition.
-      ssoToken = new URLSearchParams(window.location.search).get('sso_token')
-    }
+    const ssoToken = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sso_token')
     if (ssoToken) {
       setToken(ssoToken)
       window.history.replaceState({}, '', '/')

@@ -266,8 +266,8 @@ def get_oauth_provider_config(
         base = (getattr(settings, "public_url", "") or "").rstrip("/")
         if base:
             s_redirect = f"{base}/api/auth/{spec.key}/callback"
-        else:
-            s_redirect = f"https://flowsmith.dev.idslogic.net/api/auth/{spec.key}/callback"
+        # No hardcoded domain: stays empty until REDIRECT_URI or PUBLIC_URL
+        # is configured (the auth flow itself raises with that hint).
 
     if s_cid:
         masked_cid = f"{s_cid[:8]}...{s_cid[-4:]}" if len(s_cid) > 12 else s_cid
@@ -484,6 +484,15 @@ async def test_credential(
             if prov_def is None:
                 return {"ok": False, "error": f"Unknown LLM provider '{prov_id}'."}
             adapter = get_adapter_for_provider(prov_def)
+            # SSRF guard on credential-controlled base_url before any fetch.
+            from app.engine.errors import NodeExecutionError
+            from app.security.ssrf import assert_public_url
+            try:
+                base = adapter._get_base_url(target_data, variant=target_data.get("variant", "") or "")
+                if base:
+                    await assert_public_url(base, node_id="llm_connection")
+            except NodeExecutionError as exc:
+                return {"ok": False, "error": exc.message}
             live_res = await adapter.test_connection(target_data, variant=target_data.get("variant", ""))
             return {**live_res, "provider": prov_id}
 

@@ -204,6 +204,7 @@ export default function CredentialsPage() {
     try {
       const { authorizeUrl } = await connectOAuth(provider, loginUrl, prompt, extra)
       if (!authorizeUrl) throw new Error('Failed to get authorization URL')
+      if (!/^https?:\/\//i.test(authorizeUrl)) throw new Error('Server returned an invalid authorization URL.')
       setFallbackUrl(authorizeUrl)
 
       let w = popupWindow

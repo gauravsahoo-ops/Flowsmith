@@ -102,9 +102,13 @@ services:
       SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-8000}:8000"
     volumes:
       - mat-app-data:/app/backend/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request, json; data=json.loads(urllib.request.urlopen('http://127.0.0.1:8000/api/readyz', timeout=2).read()); assert data['data']['status']=='ready'\"" ]
       interval: 10s
@@ -172,6 +176,10 @@ services:
     command: [ "python", "-m", "app.queue.worker" ]
     volumes:
       - mat-app-data:/app/backend/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import os; exit(0 if os.path.exists('/app/backend/tmp/worker_alive') else 1)\"" ]
       interval: 15s
@@ -193,17 +201,19 @@ services:
 
   # Optional S3-compatible object storage for local development.
   # Enable with:  docker compose --profile s3 up -d
+  # NOTE: minio/minio was deleted from Docker Hub on 2026-09-11 upstream;
+  # bitnamilegacy/minio is the anonymously-pullable mirror (pinned).
   minio:
-    image: minio/minio:latest
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     container_name: mat-minio
     profiles: [ "s3" ]
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: server /bitnami/minio/data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY:-minioadmin}
     volumes:
-      - mat-minio-data:/data
+      - mat-minio-data:/bitnami/minio/data
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 10s
@@ -215,7 +225,7 @@ services:
   # ── Monitoring (enable with: docker compose --profile monitoring up -d) ──
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.15.0
     container_name: mat-prometheus
     profiles: [ "monitoring" ]
     restart: unless-stopped
@@ -230,7 +240,7 @@ services:
       - backend
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.4.12
     container_name: mat-grafana
     profiles: [ "monitoring" ]
     restart: unless-stopped

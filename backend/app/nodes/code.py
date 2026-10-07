@@ -557,12 +557,16 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         logs.append(" ".join(str(a) for a in args))
     input_wrapper = InputWrapper(items, 0)
     exec_code = _prepare_js_code(code, mode)
-    logger.info("JS exec: mode=%s code=%r items=%r", mode, code[:200], items[:1] if items else [])
-    # Also print to stdout for worker logs
-    _safe_print(f"CODE JS exec: mode={mode} code={code[:200]!r} items={items[:1] if items else []}", flush=True)
+    from app.engine.redact import redact_sensitive
+
+    items_redacted = redact_sensitive(items[:1] if items else [])
+    logger.info("JS exec: mode=%s code=%r items=%r", mode, code[:200], items_redacted)
+    # Also print to stdout for worker logs (redacted: items may hold secrets)
+    _safe_print(f"CODE JS exec: mode={mode} code={code[:200]!r} items={items_redacted!r}", flush=True)
 
     # Try dukpy first
     js_wrapper = ""
+    js_wrapper_redacted = ""
     try:
         import dukpy  # type: ignore[import-untyped]  # noqa: F401 — presence check only
         import json as _json
@@ -591,8 +595,11 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         if (typeof __output === 'undefined') {{ try {{ __output = $input.all(); }} catch(e) {{ __output = []; }} }}
         __output;
         """
-        _safe_print(f"CODE DUKPY TRY code={code[:200]!r} items={items[:1]!r} wrapper={js_wrapper[:500]!r}", flush=True)
-        logger.info("dukpy try code=%r items=%r", code[:200], items[:1] if items else [])
+        js_wrapper_redacted = js_wrapper.replace(
+            items_json, _json.dumps(redact_sensitive(input_wrapper._items)), 1
+        )
+        _safe_print(f"CODE DUKPY TRY code={code[:200]!r} items={items_redacted!r} wrapper={js_wrapper_redacted[:500]!r}", flush=True)
+        logger.info("dukpy try code=%r items=%r", code[:200], items_redacted)
         # Run in a killable child process: dukpy.evaljs blocks at the C level,
         # so an in-process thread could never be interrupted on timeout.
         out = _run_dukpy(js_wrapper, timeout, mem_limit_mb=64)
@@ -614,7 +621,7 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
             code="CODE_ERROR",
             node_id="code",
             retryable=False,
-            details={"js_wrapper": js_wrapper[:2000] or None, "error": msg},
+            details={"js_wrapper": js_wrapper_redacted[:2000] or None, "error": msg},
         ) from e
 
     # Try js2py
@@ -720,6 +727,16 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         "print": console_log,
         "_normalize_output": _normalize_output,
     }
+    # Sandbox gate: the fallback path must pass the same AST security
+    # analyzer as the primary path (defense-in-depth against escapes when
+    # the JS engine is unavailable and code is executed as Python).
+    try:
+        PythonSecurityAnalyzer().visit(ast.parse(py_code, filename="<code_fallback>"))
+    except SyntaxError as exc:
+        raise NodeExecutionError(
+            f"Generated code is not valid Python: {exc}",
+            code="CODE_ERROR", node_id="code", retryable=False,
+        ) from exc
     logger.info("Python fallback: language=%r code=%r py_code=%r", language, code[:200], py_code[:500])
     _safe_print(f"PY_FALLBACK language={language!r} code={code[:200]!r} py_code={py_code[:500]!r}", flush=True)
     try:

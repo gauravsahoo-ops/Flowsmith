@@ -164,10 +164,19 @@ def delete_organization(org_id: str, user: User = Depends(get_current_user), db:
 
 @router.get("/api/organizations/{org_id}/members")
 def list_members(org_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    """List organization members."""
+    """List organization members (members only; 404 hides existence)."""
     org = db.get(Organization, org_id)
     if org is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Organization not found.")
+    if org.founder_id != user.id:
+        member = db.scalar(
+            select(OrganizationMember).where(
+                OrganizationMember.organization_id == org_id,
+                OrganizationMember.user_id == user.id,
+            )
+        )
+        if member is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Organization not found.")
     members = db.execute(
         select(OrganizationMember).where(OrganizationMember.organization_id == org_id)
     ).scalars().all()

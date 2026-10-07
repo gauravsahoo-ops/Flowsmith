@@ -92,3 +92,17 @@ def test_discover_models_endpoint(auth_client):
         models = data["models"]
         r1 = next(m for m in models if m["id"] == "deepseek-reasoner")
         assert r1["capabilities"]["reasoning"] is True
+
+
+def test_test_connection_rejects_internal_base_url(auth_client):
+    """H5: credential-controlled base_url must never target internal hosts."""
+    res = auth_client.post(
+        "/api/llm/test-connection",
+        json={
+            "provider_id": "custom",
+            "data": {"base_url": "http://169.254.169.254/v1", "api_key": "sk-mock"},
+        },
+    )
+    assert res.status_code == 400, res.text
+    detail = str(res.json().get("detail", ""))
+    assert "not allowed" in detail or "SSRF" in detail, detail

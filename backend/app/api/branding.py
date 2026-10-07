@@ -63,7 +63,12 @@ class BrandingUpdateRequest(BaseModel):
     documentation_url: str | None = Field(default=None, max_length=512)
     support_email: str | None = Field(default=None, max_length=255)
     copyright_text: str | None = Field(default=None, max_length=255)
-    custom_css: str | None = Field(default=None, max_length=65536)
+    custom_css: str | None = Field(default=None, max_length=16384)
+
+
+def _require_admin(user: User) -> None:
+    if user.role != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin privileges required.")
 
 
 @router.get("")
@@ -79,7 +84,8 @@ def update_branding(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Update company branding settings (white-labeling)."""
+    """Update company branding settings (white-labeling; admin only)."""
+    _require_admin(user)
     # Validation
     if body.primary_color:
         trimmed_color = body.primary_color.strip()
@@ -119,7 +125,13 @@ def update_branding(
     if body.copyright_text is not None:
         rec.copyright_text = body.copyright_text.strip() if body.copyright_text else None
     if body.custom_css is not None:
-        rec.custom_css = body.custom_css.strip() if body.custom_css else None
+        css = body.custom_css.strip()
+        if re.search(r"</\s*style|<\s*script", css, flags=re.IGNORECASE):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "custom_css must not contain style/script tags.",
+            )
+        rec.custom_css = css or None
 
     db.commit()
     db.refresh(rec)
@@ -141,7 +153,8 @@ def reset_branding(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Reset branding back to Flowsmith defaults."""
+    """Reset branding back to Flowsmith defaults (admin only)."""
+    _require_admin(user)
     rec = db.scalar(select(BrandingSetting).where(BrandingSetting.id == "default"))
     if rec is not None:
         rec.app_name = DEFAULT_BRANDING["app_name"]

@@ -1,7 +1,26 @@
 import { useState, useEffect, useRef } from 'react'
-import Editor from '@monaco-editor/react'
+import Editor, { loader } from '@monaco-editor/react'
+import * as monaco from 'monaco-editor'
+import editorWorker from 'monaco-editor/editor/editor.worker?worker'
+import jsonWorker from 'monaco-editor/language/json/json.worker?worker'
+import cssWorker from 'monaco-editor/language/css/css.worker?worker'
+import htmlWorker from 'monaco-editor/language/html/html.worker?worker'
+import tsWorker from 'monaco-editor/language/typescript/ts.worker?worker'
 import ErrorState from './shared/ErrorState'
 import { getToken } from '../api'
+
+// Self-host Monaco: bundle the editor and its workers from our own origin
+// so the strict CSP (script-src 'self') never falls back to a CDN.
+self.MonacoEnvironment = {
+  getWorker(_id, label) {
+    if (label === 'json') return new jsonWorker()
+    if (label === 'css' || label === 'scss' || label === 'less') return new cssWorker()
+    if (label === 'html' || label === 'handlebars' || label === 'razor') return new htmlWorker()
+    if (label === 'typescript' || label === 'javascript') return new tsWorker()
+    return new editorWorker()
+  },
+}
+loader.config({ monaco })
 
 const MODE_OPTIONS = [
   { value: 'runOnceForAllItems', label: 'Run Once for All Items' },

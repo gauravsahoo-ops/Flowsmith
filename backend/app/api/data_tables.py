@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select, or_
 from sqlalchemy.orm import Session
 
+from app.api.access import workspace_can_edit
 from app.api.auth import get_current_user
 from app.api.common import ok
 from app.api.workspaces import _require_ws_member
@@ -36,19 +37,29 @@ DT_ROW_UPDATED = "data_table.row_updated"
 DT_ROW_DELETED = "data_table.row_deleted"
 
 
-def _require_table_access(db: Session, table_id: str, user: User) -> DataTable:
+def _require_table_access(db: Session, table_id: str, user: User, *, need_edit: bool = False) -> DataTable:
     tbl = db.get(DataTable, table_id)
     if tbl is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Table not found.")
     # workspace membership check (404 hides existence)
     if not _require_ws_member(db, tbl.workspace_id, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Table not found.")
+    # mutations additionally require an edit grant (viewers must not write)
+    if need_edit and not workspace_can_edit(db, tbl.workspace_id, user.id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Edit permission required to modify this table.")
     return tbl
 
 
 def _enforce_ws_member(db: Session, ws_id: str, user: User) -> None:
     if not _require_ws_member(db, ws_id, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workspace not found.")
+
+
+def _enforce_ws_edit(db: Session, ws_id: str, user: User) -> None:
+    if not _require_ws_member(db, ws_id, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workspace not found.")
+    if not workspace_can_edit(db, ws_id, user.id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Edit permission required in this workspace.")
 
 
 def _validate_column_def(col: dict, pos: int) -> dict:
@@ -273,7 +284,7 @@ class BulkRowsDelete(BaseModel):
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_table(payload: TableCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    _enforce_ws_member(db, payload.workspace_id, user)
+    _enforce_ws_edit(db, payload.workspace_id, user)
     # unique name per workspace
     existing = db.scalar(select(DataTable).where(DataTable.workspace_id == payload.workspace_id, DataTable.name == payload.name.strip()))
     if existing:
@@ -366,7 +377,7 @@ def get_table(table_id: str, user: User = Depends(get_current_user), db: Session
 
 @router.patch("/{table_id}")
 def update_table(table_id: str, payload: TableUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     if payload.name is not None:
         name = payload.name.strip()
         if not name:
@@ -386,7 +397,7 @@ def update_table(table_id: str, payload: TableUpdate, user: User = Depends(get_c
 
 @router.delete("/{table_id}", status_code=status.HTTP_200_OK)
 def delete_table(table_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     db.delete(tbl)
     db.commit()
     log_event(db, DT_DELETED, target_type="data_table", target_id=table_id, user_id=user.id)
@@ -397,7 +408,7 @@ def delete_table(table_id: str, user: User = Depends(get_current_user), db: Sess
 
 @router.post("/{table_id}/columns", status_code=status.HTTP_201_CREATED)
 def create_column(table_id: str, payload: ColumnCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     # check name unique
     existing = db.scalar(select(DataTableColumn).where(DataTableColumn.table_id == table_id, DataTableColumn.name == payload.name.strip()))
     if existing:
@@ -432,7 +443,7 @@ def create_column(table_id: str, payload: ColumnCreate, user: User = Depends(get
 
 @router.patch("/{table_id}/columns/{column_id}")
 def update_column(table_id: str, column_id: str, payload: ColumnUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     col = db.get(DataTableColumn, column_id)
     if col is None or col.table_id != table_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Column not found.")
@@ -495,7 +506,7 @@ def update_column(table_id: str, column_id: str, payload: ColumnUpdate, user: Us
 
 @router.delete("/{table_id}/columns/{column_id}")
 def delete_column(table_id: str, column_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     col = db.get(DataTableColumn, column_id)
     if col is None or col.table_id != table_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Column not found.")
@@ -518,7 +529,7 @@ def delete_column(table_id: str, column_id: str, user: User = Depends(get_curren
 
 @router.post("/{table_id}/columns/reorder")
 def reorder_columns(table_id: str, payload: dict, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     order: list[str] = payload.get("order", [])
     if not isinstance(order, list) or not order:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "order must be a non-empty list of column ids.")
@@ -720,7 +731,7 @@ def list_rows(
 
 @router.post("/{table_id}/rows", status_code=status.HTTP_201_CREATED)
 def create_row(table_id: str, payload: RowCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     cols = list(db.scalars(select(DataTableColumn).where(DataTableColumn.table_id == table_id).order_by(DataTableColumn.position)).all())
     cleaned = _validate_row_data(cols, payload.data, partial=False)
     row_id = f"dtr_{uuid.uuid4().hex[:12]}"
@@ -736,7 +747,7 @@ def create_row(table_id: str, payload: RowCreate, user: User = Depends(get_curre
 
 @router.post("/{table_id}/rows/bulk", status_code=status.HTTP_201_CREATED)
 def bulk_create_rows(table_id: str, payload: BulkRowsCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     cols = list(db.scalars(select(DataTableColumn).where(DataTableColumn.table_id == table_id).order_by(DataTableColumn.position)).all())
     if len(payload.rows) > 500:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Bulk limit 500 rows per request.")
@@ -774,7 +785,7 @@ def get_row(table_id: str, row_id: str, user: User = Depends(get_current_user), 
 
 @router.patch("/{table_id}/rows/{row_id}")
 def update_row(table_id: str, row_id: str, payload: RowCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     row = db.get(DataTableRow, row_id)
     if row is None or row.table_id != table_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Row not found.")
@@ -794,7 +805,7 @@ def update_row(table_id: str, row_id: str, payload: RowCreate, user: User = Depe
 
 @router.delete("/{table_id}/rows/{row_id}")
 def delete_row(table_id: str, row_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     row = db.get(DataTableRow, row_id)
     if row is None or row.table_id != table_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Row not found.")
@@ -807,7 +818,7 @@ def delete_row(table_id: str, row_id: str, user: User = Depends(get_current_user
 
 @router.post("/{table_id}/rows/bulk-update")
 def bulk_update_rows(table_id: str, payload: BulkRowsUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     cols = list(db.scalars(select(DataTableColumn).where(DataTableColumn.table_id == table_id).order_by(DataTableColumn.position)).all())
     if len(payload.rows) > 500:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Bulk limit 500.")
@@ -841,7 +852,7 @@ def bulk_update_rows(table_id: str, payload: BulkRowsUpdate, user: User = Depend
 
 @router.post("/{table_id}/rows/bulk-delete")
 def bulk_delete_rows(table_id: str, payload: BulkRowsDelete, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    tbl = _require_table_access(db, table_id, user)
+    tbl = _require_table_access(db, table_id, user, need_edit=True)
     if len(payload.ids) > 500:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Bulk limit 500.")
     for rid in payload.ids:

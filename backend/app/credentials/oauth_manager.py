@@ -6,15 +6,18 @@ and connection testing. Provider-specific configs extend this engine.
 """
 from __future__ import annotations
 
+import logging
 import time
 import json
 from typing import Any, Dict
 
 import httpx
 
-from app.security.crypto import decrypt_text, encrypt_text  # noqa
+from app.security.crypto import encrypt_text, decrypt_text  # noqa
 from app.models.credential import Credential
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("credentials.oauth")
 
 
 class OAuthManager:
@@ -95,7 +98,16 @@ class OAuthManager:
                             c_rec.data = encrypt_text(json.dumps(c_dict))
                             db_sess.commit()
                 except Exception:
-                    pass
+                    # The rotated refresh token was NOT persisted: the stored
+                    # credential now holds a token the provider may already
+                    # consider revoked. Loud log (no token material) so the
+                    # eventual hard refresh failure is diagnosable.
+                    logger.error(
+                        "failed to persist rotated OAuth tokens for credential %s; "
+                        "stored credential will require re-authorization",
+                        cred_data.get("_credential_id"),
+                        exc_info=True,
+                    )
 
             return new_data
         finally:

@@ -21,6 +21,7 @@ cache key is used automatically.
 
 from __future__ import annotations
 
+import logging
 import re
 import time
 from typing import Any
@@ -37,6 +38,7 @@ from app.db import get_db
 from app.models import Credential, User
 
 router = APIRouter(prefix="/api/connectors/salesforce", tags=["connectors"])
+logger = logging.getLogger("salesforce.discovery")
 
 #: Metadata cache TTL (seconds).
 SALESFORCE_DISCOVERY_TTL_S = 300.0
@@ -95,6 +97,9 @@ async def _run_salesforce_op(
             if exc.code in ("CONNECTOR_FORBIDDEN",)
             else status.HTTP_502_BAD_GATEWAY
         )
+        if http_status >= 500:
+            logger.error("salesforce operation %s failed: %s", operation, exc)
+            raise HTTPException(http_status, "Salesforce request failed.") from exc
         raise HTTPException(http_status, detail={"code": exc.code, "message": str(exc)}) from exc
     output = result.get("output")
     if not isinstance(output, dict):

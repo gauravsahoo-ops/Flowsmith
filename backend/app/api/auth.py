@@ -24,7 +24,14 @@ from app.config import get_settings
 from app.db import get_db
 from app.metrics import ratelimit_rejected
 from app.models import PasswordResetToken, User
-from app.security.jwt import create_token, decode_token, hash_password, revoke_token, verify_password
+from app.security.jwt import (
+    DUMMY_PASSWORD_HASH,
+    create_token,
+    decode_token,
+    hash_password,
+    revoke_token,
+    verify_password,
+)
 from app.security.ratelimit import SlidingWindowLimiter, get_login_throttle
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -168,10 +175,9 @@ def _send_reset_email(to: str, link: str) -> bool:
         else:
             with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
                 if settings.smtp_starttls and settings.smtp_port != 25:
-                    try:
-                        server.starttls()
-                    except Exception:
-                        pass
+                    # Fail fast: never fall back to cleartext AUTH after a
+                    # failed/unsupported STARTTLS negotiation.
+                    server.starttls()
                 if settings.smtp_user and settings.smtp_password:
                     server.login(settings.smtp_user, settings.smtp_password)
                 server.send_message(msg)
@@ -217,7 +223,20 @@ def forgot_password(body: ForgotPasswordRequest, request: Request, db: Session =
             expires_at=datetime.now(UTC) + timedelta(seconds=ttl),
         ))
         db.commit()
-        base = (get_settings().public_url or str(request.base_url)).rstrip("/")
+        # Never build the reset link from an attacker-controllable Host header:
+        # prefer the configured PUBLIC_URL; only in development fall back to
+        # the request host. Otherwise suppress the mail (token would be wasted).
+        _settings = get_settings()
+        if _settings.public_url.strip():
+            base = _settings.public_url.strip().rstrip("/")
+        elif _settings.app_env == "development":
+            base = str(request.base_url).rstrip("/")
+        else:
+            logger.error(
+                "password reset suppressed for %s: PUBLIC_URL is not configured "
+                "(reset links must not be derived from the Host header)", email
+            )
+            return ok({"sent": True})  # same shape: no user enumeration
         link = f"{base}{RESET_LINK_PATH}?token={raw_token}"
         sent = _send_reset_email(email, link)
         if not sent:
@@ -283,7 +302,14 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)) -
     if login_throttle.is_locked(email_key) or login_throttle.is_locked(ip_key):
         _raise_locked(email_key)
     user = db.scalar(select(User).where(User.email == body.email.lower()))
-    if user is None or not user.active or not verify_password(body.password, user.password_hash):
+    valid = False
+    if user is not None and user.active:
+        valid = verify_password(body.password, user.password_hash)
+    else:
+        # Constant-work path: missing/inactive accounts must cost the same
+        # as a wrong password (timing-based user enumeration defence).
+        verify_password(body.password, DUMMY_PASSWORD_HASH)
+    if user is None or not user.active or not valid:
         login_throttle.record_failure(email_key)
         login_throttle.record_failure(ip_key)
         log_event(db, LOGIN_FAILED, target_type="user",

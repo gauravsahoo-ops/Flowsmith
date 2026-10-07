@@ -7,12 +7,16 @@ way --- no core changes required.
 
 from __future__ import annotations
 
+from typing import TypeVar
+
 from app.engine.node_base import IDEMPOTENCY_LEVELS, BaseNode
 
 NODE_REGISTRY: dict[str, type[BaseNode]] = {}
 
+NodeType = TypeVar("NodeType", bound=BaseNode)
 
-def register(cls: type[BaseNode]) -> type[BaseNode]:
+
+def register(cls: type[NodeType]) -> type[NodeType]:
     """Decorator that adds a node class to the registry."""
     if not cls.node_type:
         raise ValueError(f"Node class {cls.__name__} has no node_type.")
@@ -26,8 +30,6 @@ def register(cls: type[BaseNode]) -> type[BaseNode]:
 
 
 _ALIASES: dict[str, str] = {
-    "auth_fetch": "token_fetch",
-    "auth_store": "token_store",
     "sub_workflow_trigger": "execute_workflow_trigger",
     "when_executed_by_another_workflow": "execute_workflow_trigger",
     "execute_sub_workflow": "sub_workflow",
@@ -80,6 +82,8 @@ def _load_builtin_nodes() -> None:
         aggregate,
         ai,
         ai_agent,
+        auth_fetch,
+        auth_store,
         chat_trigger,
         code,
         compare_datasets,

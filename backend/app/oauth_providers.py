@@ -123,12 +123,12 @@ class OAuthProviderSpec:
         redirect = redirect or getattr(settings, f"{prefix}_redirect_uri", "")
 
         if not redirect:
-            # Derive from the public URL when not pinned explicitly.
+            # Derive from the public URL when not pinned explicitly; never
+            # fall back to a hardcoded third-party domain (the check below
+            # raises with a clear operator hint instead).
             base = (getattr(settings, "public_url", "") or "").rstrip("/")
             if base:
                 redirect = f"{base}/api/auth/{self.key}/callback"
-            else:
-                redirect = f"https://flowsmith.dev.idslogic.net/api/auth/{self.key}/callback"
 
         if not cid or not csecret:
             raise HTTPException(
@@ -549,8 +549,8 @@ def _google_authorize_url_factory(provider_key: str, config_prefix: str, scopes_
                 base = (getattr(settings, "public_url", "") or "").rstrip("/")
                 if base:
                     r_uri = f"{base}/api/auth/{provider_key}/callback"
-                else:
-                    r_uri = f"https://flowsmith.dev.idslogic.net/api/auth/{provider_key}/callback"
+                # No hardcoded fallback: the guard below raises with an
+                # operator hint to set REDIRECT_URI or PUBLIC_URL.
         if not cid or not r_uri:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,

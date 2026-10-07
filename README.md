@@ -1,13 +1,13 @@
 # Flowsmith
 
-Open-source iPaaS (Integration Platform as a Service) — design, run, and monitor automation workflows on a visual canvas, with 100+ connectors, an embedded AI agent runtime, and a hardened execution engine.
+Open-source iPaaS (Integration Platform as a Service) — design, run, and monitor automation workflows on a visual canvas, with 86 connectors, an embedded AI agent runtime, and a hardened execution engine.
 
 **Stack**: FastAPI · PostgreSQL (pgvector) · Redis · React (Vite) · Docker
 
 ## Features
 
 - **Visual workflow canvas** — drag-and-drop nodes, branching, sub-workflows, versioned history.
-- **200+ connectors** — HTTP, databases, Salesforce, Slack, HubSpot, Google, Microsoft, and more, with an OpenAPI connector factory.
+- **86 connectors** — HTTP, databases, Salesforce, Slack, HubSpot, Google, Microsoft, and more, with an OpenAPI connector factory.
 - **Triggers** — webhooks, schedules (cron), manual runs, environment promotion (dev → staging → production).
 - **AI agent runtime** — multi-provider LLM gateway (OpenAI, Anthropic, Gemini, Ollama, …), ReAct tool-loop, MCP support, multi-tier memory, RAG over pgvector.
 - **Execution engine** — step traces, retries, streaming over WebSocket, durable event log, secret redaction in traces.

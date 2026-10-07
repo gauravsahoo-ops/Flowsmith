@@ -31,6 +31,11 @@ class ChatTriggerParams(BaseModel):
     path: str = Field(min_length=1, description="Public path, e.g. 'chat/support-abcdefgh12345678'.")
     title: str = Field(default="Chat", max_length=120)
     greeting: str = Field(default="How can I help?", max_length=500)
+    secret: str | None = Field(
+        default=None,
+        max_length=256,
+        description="Optional access token (Bearer/x-webhook-token/?token=); enforced when set.",
+    )
 
     def model_post_init(self, __context: Any) -> None:
         if not self.path.startswith(CHAT_TRIGGER_PREFIX):

@@ -204,11 +204,13 @@ def read_mcp_resource(workflow_id: str, user: User = Depends(get_current_user), 
     if perm is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Resource not found.")
     wf = db.get(WorkflowRecord, workflow_id)
+    from app.engine.redact import redact_sensitive
+
     return ok({
         "uri": f"workflow://{wf.id}",
         "name": wf.name,
         "mimeType": "application/json",
-        "text": json.dumps(wf.data),
+        "text": json.dumps(redact_sensitive(wf.data)),
     })
 
 
@@ -310,11 +312,13 @@ async def call_mcp_tool(
             if perm is None:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
             wf = db.get(WorkflowRecord, args["workflow_id"])
+            from app.engine.redact import redact_sensitive
+
             result = {
                 "id": wf.id,
                 "name": wf.name,
                 "active": wf.active,
-                "data": wf.data,
+                "data": redact_sensitive(wf.data),
             }
 
         elif payload.name == "trigger_workflow":
@@ -346,15 +350,17 @@ async def call_mcp_tool(
             if perm is None:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
             outputs = (exec_rec.results or {}).get("outputs")
+            from app.engine.redact import redact_sensitive
+
             result = {
                 "id": exec_rec.id,
                 "status": exec_rec.status,
                 "trigger": exec_rec.trigger,
                 "started_at": str(exec_rec.started_at),
                 "finished_at": str(exec_rec.finished_at) if exec_rec.finished_at else None,
-                "error": exec_rec.error,
+                "error": redact_sensitive(exec_rec.error),
                 "node_statuses": exec_rec.node_statuses or {},
-                "outputs": outputs or {},
+                "outputs": redact_sensitive(outputs or {}),
             }
 
         elif payload.name == "list_executions":
@@ -382,7 +388,19 @@ async def call_mcp_tool(
         elif payload.name == "create_backup":
             if user.role != "admin":
                 raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required.")
-            filepath = create_backup(name=args.get("name"))
+            backup_name = args.get("name")
+            if backup_name is not None and not (
+                isinstance(backup_name, str)
+                and 1 <= len(backup_name) <= 64
+                and backup_name[0].isalnum()
+                and all(c.isalnum() or c in "._-" for c in backup_name)
+            ):
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    "Invalid backup name: use 1-64 characters starting with a "
+                    "letter or digit (letters, digits, '.', '_', '-').",
+                )
+            filepath = create_backup(name=backup_name)
             result = {"filename": filepath.name, "path": str(filepath)}
 
         elif payload.name == "list_backups":
@@ -492,4 +510,4 @@ async def call_mcp_tool(
         raise
     except Exception as e:
         logger.error("MCP tool call failed: %s", e)
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Tool execution failed.")

@@ -3,7 +3,7 @@
 // unavailable or dies mid-run, it falls back to 500ms polling.
 
 import { create } from 'zustand'
-import { api, getToken } from '../api'
+import { api } from '../api'
 import { playChime } from '../utils/soundEffects'
 import { useUiStore } from './uiStore'
 
@@ -46,12 +46,9 @@ import { useUiStore } from './uiStore'
 
 function wsUrl(executionId, ticket) {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  // Preferred: single-use ticket. Fallback: legacy ?token= when the
-  // ticket endpoint is unreachable (server older than this change).
-  const auth = ticket
-    ? `ticket=${encodeURIComponent(ticket)}`
-    : `token=${encodeURIComponent(getToken() || '')}`
-  return `${proto}//${window.location.host}/api/ws/executions/${executionId}?${auth}`
+  // Single-use ticket only. Never fall back to a bearer token in the URL —
+  // query strings leak into server logs, proxies, and Referer headers.
+  return `${proto}//${window.location.host}/api/ws/executions/${executionId}?ticket=${encodeURIComponent(ticket)}`
 }
 
 async function fetchWsTicket() {
@@ -323,6 +320,12 @@ export const useExecutionStore = create((set, get) => ({
     ;(async () => {
       const ticket = await fetchWsTicket()
       if (get()._connectSeq !== seq) return // superseded by close()/newer connect
+      if (!ticket) {
+        // No WS ticket available — degrade to HTTP polling rather than
+        // putting a token in the URL.
+        get().schedulePoll(id)
+        return
+      }
       let socket
       try {
         socket = new WebSocket(wsUrl(id, ticket))

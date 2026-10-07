@@ -573,6 +573,7 @@ async def test_datatable_tools():
 
         # 1. datatable_list
         mock_session.scalars().all.return_value = [mock_table]
+        mock_session.execute.return_value.all.return_value = []  # SQL row-count query
 
         ctx = _make_ctx()
         res_list = await run_tool(ctx, "datatable_list", {})
@@ -584,6 +585,7 @@ async def test_datatable_tools():
         # 2. datatable_query
         mock_session.get.return_value = mock_table
         mock_session.scalars().all.return_value = [mock_row]
+        mock_session.scalar.return_value = 1  # SQL count(*) total
 
         res_query = await run_tool(ctx, "datatable_query", {"table_id": "tbl_1"})
         data_query = json.loads(res_query)

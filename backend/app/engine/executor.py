@@ -8,6 +8,7 @@ errors, skips, timeouts and cancellation.
 from __future__ import annotations
 
 import asyncio
+import copy
 import hashlib
 import json
 import logging
@@ -554,7 +555,12 @@ async def _run_one(
     cancelled: asyncio.Event,
     credential_resolver: Callable[[dict[str, str]], dict[str, Any]] | None = None,
 ) -> None:
-    # The shared context carries the running node's id so nodes can
+    # Per-node context copy: node_id, credentials and expression_context
+    # are mutated below while sibling nodes run concurrently (task-per-
+    # node scheduler) - mutating the shared context raced across nodes.
+    # Cancellation still propagates: copy shares the _cancel_state holder.
+    ctx = copy.copy(ctx)
+    # The context carries the running node's id so nodes can
     # identify themselves (events, pause state, per-node KV keys).
     ctx.node_id = node.id
     # Phase 23: a connector is a fallback for node types that have no

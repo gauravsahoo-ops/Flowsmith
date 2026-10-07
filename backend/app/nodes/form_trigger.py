@@ -37,6 +37,11 @@ class FormTriggerParams(BaseModel):
     path: str = Field(min_length=1, description="Public path, e.g. 'form/contact-abcdefgh12345678'.")
     title: str = Field(default="Form", max_length=120)
     fields: list[FormField] = Field(default_factory=list, max_length=50)
+    secret: str | None = Field(
+        default=None,
+        max_length=256,
+        description="Optional submission token (Bearer/x-webhook-token/?token=); enforced when set.",
+    )
 
     def model_post_init(self, __context: Any) -> None:
         if not self.path.startswith(FORM_TRIGGER_PREFIX):

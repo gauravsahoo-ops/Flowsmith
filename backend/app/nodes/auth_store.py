@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from app.auth_state.adapter import canonical_provider, normalize_expires_at
 from app.engine.errors import NodeExecutionError
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
+from app.nodes.registry import register
 
 
 class AuthStoreParams(BaseModel):
@@ -31,6 +32,7 @@ class AuthStoreParams(BaseModel):
     token_url: str = Field(default="", description="OAuth token endpoint (needed for future refreshes).")
 
 
+@register
 class AuthStoreNode(BaseNode[AuthStoreParams]):
     node_type = "auth_store"
     display_name = "Auth Store"

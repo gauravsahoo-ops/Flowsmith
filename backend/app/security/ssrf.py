@@ -70,7 +70,8 @@ async def assert_public_url(url: str, *, node_id: str, code: str = "SSRF_BLOCKED
         return NodeExecutionError(message, code=code, node_id=node_id, retryable=False)
 
     parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https"):
+    # ws/wss validated with the same host/IP policy (websocket node).
+    if parsed.scheme not in ("http", "https", "ws", "wss"):
         raise _deny(f"SSRF blocked: scheme '{parsed.scheme or '(none)'}' is not allowed.")
     host = (parsed.hostname or "").strip("[]")
     if not host:
@@ -96,7 +97,14 @@ async def assert_public_url(url: str, *, node_id: str, code: str = "SSRF_BLOCKED
     if _is_blocked_host(host):
         raise _deny(f"SSRF blocked: '{host}' is not allowed.")
 
-    for ip in await _resolve_ips(host):
+    resolved = await _resolve_ips(host)
+    if not resolved:
+        # Deny-by-default in production: a host we cannot resolve may be
+        # internal (split-horizon DNS) - dev keeps allow-for-mocks behavior.
+        if not dev:
+            raise _deny(f"SSRF blocked: '{host}' could not be resolved.")
+        return
+    for ip in resolved:
         if not _ip_restricted(ip):
             continue
         if dev and ip.is_loopback:

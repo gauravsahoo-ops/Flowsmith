@@ -18,9 +18,11 @@ legitimately issue hundreds of requests per minute.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import time
+from typing import Any
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -35,9 +37,9 @@ _SKIP_PATHS = frozenset({"/api/health", "/health", "/docs", "/openapi.json"})
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Per-user rate limiting (Redis sliding window, in-memory fallback)."""
 
-    def __init__(self, app, redis_client=None):
+    def __init__(self, app, redis_client: Any | None = None):
         super().__init__(app)
-        self.redis = redis_client
+        self.redis: Any = redis_client
         self._memory_counts: dict[str, int] = {}
 
     async def dispatch(
@@ -87,20 +89,25 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if self.redis is None:
             return self._check_rate_limit_memory(user_id)
         try:
-            now = time.time()
-            window = 60
-            key = f"ratelimit:{user_id}:{int(now // window)}"
-            pipe = self.redis.pipeline()
-            pipe.incr(key)
-            pipe.expire(key, window + 1)
-            count = pipe.execute()[0]
-            limit = self._limit_for(user_id)
-            if count > limit:
-                return True, int(window - (now % window)) + 1
-            return False, 0
+            # The shared client is sync redis: run its pipeline off-loop so
+            # one slow Redis hop cannot stall every in-flight request.
+            return await asyncio.to_thread(self._redis_window_check, user_id)
         except Exception as e:
             logger.warning("Rate limit check failed: %s", e)
             return self._check_rate_limit_memory(user_id)
+
+    def _redis_window_check(self, user_id: str) -> tuple[bool, int]:
+        now = time.time()
+        window = 60
+        key = f"ratelimit:{user_id}:{int(now // window)}"
+        pipe = self.redis.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, window + 1)
+        count = pipe.execute()[0]
+        limit = self._limit_for(user_id)
+        if count > limit:
+            return True, int(window - (now % window)) + 1
+        return False, 0
 
     def _check_rate_limit_memory(self, user_id: str) -> tuple[bool, int]:
         """In-memory fixed-window fallback (per-process)."""

@@ -145,14 +145,6 @@ export const api = {
   resetPassword: (token, newPassword) =>
     request('POST', '/auth/reset-password', { token, new_password: newPassword }),
   listWorkflows: () => request('GET', '/workflows?pageSize=100'),
-  listWorkflowsPaged: (params = {}) => {
-    const q = new URLSearchParams()
-    if (params.page) q.set('page', String(params.page))
-    if (params.pageSize) q.set('pageSize', String(params.pageSize))
-    if (params.search) q.set('search', params.search)
-    const suffix = q.size ? `?${q.toString()}` : ''
-    return requestEnvelope('GET', `/workflows${suffix}`)
-  },
   createWorkflow: (wf) => request('POST', '/workflows', wf),
   getWorkflow: (id) => request('GET', `/workflows/${id}`),
   expressionContext: (workflowId) => request('GET', `/workflows/${workflowId}/expression-context`),
@@ -170,9 +162,6 @@ export const api = {
     request('GET', `/workflows/${workflowId}/upstream-fields?node_id=${encodeURIComponent(nodeId)}`),
   previewExpression: (workflowId, body) =>
     request('POST', `/workflows/${workflowId}/preview-expression`, body),
-  listShares: (workflowId) => request('GET', `/workflows/${workflowId}/shares`),
-  shareWorkflow: (workflowId, body) => request('POST', `/workflows/${workflowId}/shares`, body),
-  unshareWorkflow: (workflowId, userId) => request('DELETE', `/workflows/${workflowId}/shares/${userId}`),
   run: (id) => request('POST', `/workflows/${id}/run`, {}),
   runNode: (workflowId, nodeId, sourceExecutionId = null) =>
     request('POST', `/workflows/${workflowId}/run-node`, {
@@ -181,16 +170,6 @@ export const api = {
     }),
   runToNode: (workflowId, nodeId) =>
     request('POST', `/workflows/${workflowId}/run-to-node`, { node_id: nodeId }),
-  // Phase 14: first-class workflow tests (mock runs, PASS/FAIL/DIFF).
-  listWorkflowTests: (workflowId) => request('GET', `/workflows/${workflowId}/tests`),
-  createWorkflowTest: (workflowId, payload) =>
-    request('POST', `/workflows/${workflowId}/tests`, payload),
-  updateWorkflowTest: (workflowId, testId, payload) =>
-    request('PATCH', `/workflows/${workflowId}/tests/${testId}`, payload),
-  deleteWorkflowTest: (workflowId, testId) =>
-    request('DELETE', `/workflows/${workflowId}/tests/${testId}`),
-  runWorkflowTest: (workflowId, testId) =>
-    request('POST', `/workflows/${workflowId}/tests/${testId}/run`, {}),
   cancel: (id) => request('POST', `/executions/${id}/cancel`),
   // Phase 13: nodeId re-runs safely from one failed node (upstream seeded).
   retry: (id, nodeId) => request('POST', `/executions/${id}/retry`, nodeId ? { node_id: nodeId } : {}),
@@ -235,7 +214,6 @@ export const api = {
   reconnectCredential: (id) => request('POST', `/credentials/${id}/reconnect`),
   updateCredentialConfig: (id, payload) => request('PATCH', `/credentials/${id}/config`, payload),
   updateCredential: (id, payload) => request('PUT', `/credentials/${id}`, payload),
-  getAuthMetadata: () => request('GET', '/credentials/auth-metadata'),
   getOAuthConfig: (provider) => request('GET', `/credentials/oauth-config/${provider}`),
   saveOAuthConfig: (provider, payload) => request('POST', `/credentials/oauth-config/${provider}`, payload),
   logoutCredential: (id) => request('POST', `/credentials/${id}/logout`),
@@ -249,19 +227,10 @@ export const api = {
   listApiKeys: () => request('GET', '/apikeys'),
   createApiKey: (name) => request('POST', '/apikeys', { name }),
   revokeApiKey: (id) => request('DELETE', `/apikeys/${id}`),
-  listUsers: () => request('GET', '/users'),
-  listAudit: (params = {}) => {
-    const q = new URLSearchParams()
-    if (params.page) q.set('page', String(params.page))
-    if (params.pageSize) q.set('pageSize', String(params.pageSize))
-    const s = q.size ? `?${q.toString()}` : ''
-    return requestEnvelope('GET', `/audit${s}`)
-  },
   // Templates gallery (Phase 32/36)
   listTemplates: () => request('GET', '/templates'),
   createTemplate: (payload) => request('POST', '/templates', payload),
   useTemplate: (id) => request('POST', `/templates/${id}/use`, {}),
-  updateTemplate: (id, payload) => request('PATCH', `/templates/${id}`, payload),
   deleteTemplate: (id) => request('DELETE', `/templates/${id}`),
   // Workspace environment variables (Phase 31/32)
   listWorkspaces: () => request('GET', '/workspaces?pageSize=100'),
@@ -313,20 +282,8 @@ export const api = {
       history: opts.history,
       credential_id: opts.credentialId,
     }),
-  getAiMemory: (sessionId, workflowId = null) =>
-    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
   clearAiMemory: (sessionId, workflowId = null) =>
     request('DELETE', `/ai/memory/${encodeURIComponent(sessionId)}${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
-  searchAiMemory: (sessionId, q, topK = 5, workflowId = null) =>
-    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}/search?q=${encodeURIComponent(q)}&top_k=${topK}${workflowId ? `&workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
-  getAiEntities: (sessionId, workflowId = null) =>
-    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}/entities${workflowId ? `?workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
-  upsertAiEntities: (sessionId, payload) =>
-    request('POST', `/ai/memory/${encodeURIComponent(sessionId)}/entities`, payload),
-  getAiNotes: (sessionId, tag = null, workflowId = null) =>
-    request('GET', `/ai/memory/${encodeURIComponent(sessionId)}/notes?${tag ? `tag=${encodeURIComponent(tag)}&` : ''}${workflowId ? `workflow_id=${encodeURIComponent(workflowId)}` : ''}`),
-  upsertAiNote: (sessionId, payload) =>
-    request('POST', `/ai/memory/${encodeURIComponent(sessionId)}/notes`, payload),
   chatWithAgent: (payload, opts) => request('POST', '/ai/chat', payload, opts),
   // Phase 16: AI assistant surfaces (read-only suggestions).
   suggestMapping: (payload) => request('POST', '/ai/suggest-mapping', payload),
@@ -339,7 +296,6 @@ export const api = {
   // AI-Native Workflow Builder API
   getAiCapabilities: (q = '', limit = 15) => request('GET', `/ai/capabilities?q=${encodeURIComponent(q)}&limit=${limit}`),
   extractIntent: (payload) => request('POST', '/ai/intent', payload),
-  compileIR: (payload) => request('POST', '/ai/compile', payload),
   validatePipeline: (workflow, credentialId = null) => request('POST', '/ai/validate-pipeline', { workflow, credential_id: credentialId }),
   simulateWorkflow: (workflow, mockInput = null, credentialId = null) => request('POST', '/ai/simulate', { workflow, mock_input: mockInput, credential_id: credentialId }),
   repairWorkflow: (payload) => request('POST', '/ai/repair-workflow', payload),
@@ -366,7 +322,6 @@ export const api = {
   },
   // Monitoring
   getMonitoringStats: () => request('GET', '/monitoring/stats'),
-  getMonitoringMetrics: () => request('GET', '/monitoring/metrics'),
   createDataTable: (payload) => request('POST', '/data-tables', payload),
   getDataTable: (id) => request('GET', `/data-tables/${id}`),
   updateDataTable: (id, payload) => request('PATCH', `/data-tables/${id}`, payload),
@@ -387,16 +342,13 @@ export const api = {
     return requestEnvelope('GET', `/data-tables/${tableId}/rows${s}`)
   },
   createDataTableRow: (tableId, data) => request('POST', `/data-tables/${tableId}/rows`, { data }),
-  bulkCreateDataTableRows: (tableId, rows) => request('POST', `/data-tables/${tableId}/rows/bulk`, { rows }),
   updateDataTableRow: (tableId, rowId, data) => request('PATCH', `/data-tables/${tableId}/rows/${rowId}`, { data }),
   deleteDataTableRow: (tableId, rowId) => request('DELETE', `/data-tables/${tableId}/rows/${rowId}`),
-  bulkUpdateDataTableRows: (tableId, rows) => request('POST', `/data-tables/${tableId}/rows/bulk-update`, { rows }),
   bulkDeleteDataTableRows: (tableId, ids) => request('POST', `/data-tables/${tableId}/rows/bulk-delete`, { ids }),
   // Phase 18: production RAG (collections, ingestion, retrieval debugging).
   listRagCollections: () => request('GET', '/rag/collections'),
   createRagCollection: (payload) => request('POST', '/rag/collections', payload),
   deleteRagCollection: (id) => request('DELETE', `/rag/collections/${id}`),
-  ragCollectionStats: (id) => request('GET', `/rag/collections/${id}/stats`),
   ragIngest: (id, payload) => request('POST', `/rag/collections/${id}/documents`, payload),
   ragQuery: (id, payload) => request('POST', `/rag/collections/${id}/query`, payload),
   getWorkflowAuthState: (workflowId, provider = '') => {
@@ -414,15 +366,11 @@ export const api = {
   // Connectors & OpenAPI Importer
   listConnectors: () => request('GET', '/connectors'),
   getConnector: (key) => request('GET', `/connectors/${encodeURIComponent(key)}`),
-  getConnectorOperations: (key) => request('GET', `/connectors/${encodeURIComponent(key)}/operations`),
-  getConnectorTriggers: (key) => request('GET', `/connectors/${encodeURIComponent(key)}/triggers`),
   previewOpenApi: (payload) => request('POST', '/connectors/preview-openapi', payload),
   importOpenApi: (payload) => request('POST', '/connectors/import-openapi', payload),
   // Model Context Protocol (MCP)
   listMcpTools: () => request('GET', '/mcp/tools'),
   callMcpTool: (payload) => request('POST', '/mcp/call', payload),
-  listMcpPrompts: () => request('GET', '/mcp/prompts'),
-  listMcpResources: () => request('GET', '/mcp/resources'),
   // Universal Integration Catalog, Coverage & Canonical Nodes (Phase 4, 6, 29)
   listIntegrationCatalog: (params) => {
     const q = new URLSearchParams()
@@ -443,24 +391,10 @@ export const api = {
     const qs = q.toString() ? `?${q.toString()}` : ''
     return request('GET', `/llm/providers${qs}`)
   },
-  getLLMProvider: (providerId) => request('GET', `/llm/providers/${encodeURIComponent(providerId)}`),
   testLLMConnection: (payload) => request('POST', '/llm/test-connection', payload),
   discoverLLMModels: (payload) => request('POST', '/llm/discover-models', payload),
   getLLMCredentialModels: (credId, refresh = false) => request('GET', `/llm/credentials/${credId}/models?refresh=${refresh}`),
-  refreshLLMCredentialModels: (credId) => request('POST', `/llm/credentials/${credId}/refresh-models`),
   // AI Builder Pipeline Methods
-  aiCapabilities: (q = '', category = '') => {
-    const p = new URLSearchParams()
-    if (q) p.set('q', q)
-    if (category) p.set('category', category)
-    const qs = p.toString() ? `?${p.toString()}` : ''
-    return request('GET', `/ai/capabilities${qs}`)
-  },
-  aiIntent: (prompt, credentialId) => request('POST', '/ai/intent', { prompt, credential_id: credentialId }),
-  aiCompile: (ir) => request('POST', '/ai/compile', { ir }),
-  aiValidatePipeline: (workflow) => request('POST', '/ai/validate-pipeline', { workflow }),
-  aiSimulate: (workflow, mockInput = null) => request('POST', '/ai/simulate', { workflow, mock_input: mockInput }),
-  aiRepairWorkflow: (workflow, errorMessage, executionTrace = null) => request('POST', '/ai/repair-workflow', { workflow, error_message: errorMessage, execution_trace: executionTrace }),
   aiModifyWorkflow: (workflow, instruction) => request('POST', '/ai/modify-workflow', { workflow, instruction }),
   aiOptimizeDraft: (workflow, dimension = 'cost') => request('POST', '/ai/optimize-draft', { workflow, dimension }),
   aiExplainDraft: (workflow, failureContext = null) => request('POST', '/ai/explain-draft', { workflow, failure_context: failureContext }),

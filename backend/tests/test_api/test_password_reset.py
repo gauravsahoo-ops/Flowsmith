@@ -223,3 +223,38 @@ def test_reset_clears_login_lockout(client, reset_links):
 
     ok = client.post("/api/auth/login", json={"email": email, "password": "Fresh4!x"})
     assert ok.status_code == 200
+
+
+def test_forgot_password_prefers_public_url_over_host_header(client, reset_links, monkeypatch):
+    """H3: reset links must never be derived from a forged Host header."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "public_url", "https://flowsmith.example")
+    register(client, "reset_host_a@test.com")
+    resp = client.post(
+        "/api/auth/forgot-password",
+        json={"email": "reset_host_a@test.com"},
+        headers={"Host": "evil.example"},
+    )
+    assert resp.status_code == 200
+    assert reset_links, "reset email should be sent"
+    assert reset_links[-1].startswith("https://flowsmith.example/")
+    assert "evil.example" not in reset_links[-1]
+
+
+def test_forgot_password_suppressed_without_public_url_in_production(client, reset_links, monkeypatch):
+    """H3: outside development with no PUBLIC_URL, no link may be built."""
+    from app.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "public_url", "")
+    monkeypatch.setattr(settings, "app_env", "production")
+    register(client, "reset_host_b@test.com")
+    resp = client.post(
+        "/api/auth/forgot-password",
+        json={"email": "reset_host_b@test.com"},
+        headers={"Host": "evil.example"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["sent"] is True
+    assert reset_links == []

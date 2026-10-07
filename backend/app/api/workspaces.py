@@ -56,28 +56,16 @@ def _require_ws_owner(db: Session, ws_id: str, user: User) -> Workspace:
 
 
 def _require_ws_member(db: Session, ws_id: str, user: User) -> bool:
-    """Return True if user is a member of the workspace."""
-    ws = db.get(Workspace, ws_id)
-    if ws is None:
+    """Return True if user has view access to the workspace.
+
+    Rules live in ``app.api.access.workspace_can_view`` (creator, member,
+    or org member); this wrapper only adds the workspace-exists 404.
+    """
+    from app.api.access import workspace_can_view
+
+    if db.get(Workspace, ws_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workspace not found.")
-    if ws.creator_id == user.id:
-        return True
-    member = db.execute(
-        select(WorkspaceMember).where(
-            WorkspaceMember.workspace_id == ws_id,
-            WorkspaceMember.user_id == user.id,
-        )
-    ).scalar_one_or_none()
-    if member is None:
-        # Also check org membership for org-level access
-        org_member = db.execute(
-            select(OrganizationMember).where(
-                OrganizationMember.organization_id == ws.organization_id,
-                OrganizationMember.user_id == user.id,
-            )
-        ).scalar_one_or_none()
-        return org_member is not None
-    return True
+    return workspace_can_view(db, ws_id, user.id)
 
 
 def ensure_personal_workspace(db: Session, user: User) -> Workspace:
@@ -277,9 +265,8 @@ def list_workspace_workflows(ws_id: str, user: User = Depends(get_current_user),
 
 @router.get("/api/workspaces/{ws_id}/members")
 def list_ws_members(ws_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    """List workspace members."""
-    ws = db.get(Workspace, ws_id)
-    if ws is None:
+    """List workspace members (members only; 404 hides existence)."""
+    if not _require_ws_member(db, ws_id, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workspace not found.")
     members = db.execute(
         select(WorkspaceMember).where(WorkspaceMember.workspace_id == ws_id)

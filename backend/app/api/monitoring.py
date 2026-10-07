@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -20,10 +20,12 @@ router = APIRouter(prefix="/api/monitoring", tags=["monitoring"])
 
 @router.get("/stats")
 def get_stats(
-    _: object = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     """Return execution statistics, queue depth, and system health."""
+    if user.role != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required.")
     now = datetime.now(timezone.utc)
     hour_ago = now - timedelta(hours=1)
     day_ago = now - timedelta(days=1)
@@ -93,10 +95,12 @@ def get_stats(
 
 @router.get("/metrics")
 def get_metrics(
-    _: object = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     """Return Prometheus-style metrics as JSON."""
+    if user.role != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required.")
     total_workflows = db.scalar(select(func.count()).select_from(WorkflowRecord)) or 0
     total_executions = db.scalar(select(func.count()).select_from(Execution)) or 0
     running = db.scalar(

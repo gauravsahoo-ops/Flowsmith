@@ -71,6 +71,11 @@ class WebSocketNode(BaseNode[WebSocketParams]):
     ) -> NodeResult:
         ws_url = params.url if params.url.startswith(("ws://", "wss://")) else f"ws://{params.url}"
 
+        # SSRF: never connect to internal/metadata hosts (same policy as HTTP).
+        from app.security.ssrf import assert_public_url
+
+        await assert_public_url(ws_url, node_id="websocket")
+
         output_items: list[dict[str, Any]] = []
         last_error: Exception | None = None
 

@@ -31,12 +31,16 @@ class OpenTelemetryMiddleware(BaseHTTPMiddleware):
         headers_dict = dict(request.headers)
         parent_context = extract_trace_context(headers_dict)
 
-        span_name = f"HTTP {request.method} {request.url.path}"
+        # Query strings can carry tokens/tickets and URLs are attacker-
+        # influenced: record scheme://host/path only, and cap every
+        # string attribute so a long path/query cannot bloat the span.
+        clean_url = f"{request.url.scheme}://{request.url.netloc}{request.url.path}"
+        span_name = f"HTTP {request.method} {request.url.path}"[:256]
         attributes = {
             "http.method": request.method,
-            "http.url": str(request.url),
-            "http.target": request.url.path,
-            "http.client_ip": request.client.host if request.client else "unknown",
+            "http.url": clean_url[:1024],
+            "http.target": request.url.path[:1024],
+            "http.client_ip": (request.client.host if request.client else "unknown")[:64],
             "service.name": self.service_name,
         }
 

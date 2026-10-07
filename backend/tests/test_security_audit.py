@@ -14,20 +14,18 @@ from __future__ import annotations
 
 import json
 import os
-import time
 import uuid
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 
 # Force rate-limit OFF for these tests (conftest does this globally, but be explicit).
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 
 from app.config import get_settings
-from app.db import Base, get_session
+from app.db import get_session
 from app.main import app
-from app.models import Credential, User, WorkflowRecord
+from app.models import Credential
 from app.security.crypto import decrypt_text, encrypt_text
 from app.security.jwt import create_token, decode_token, hash_password, revoke_token, verify_password
 
@@ -386,6 +384,38 @@ class TestCORSHeaders:
 
 
 # ---------------------------------------------------------------------------
+# 10b Security headers (CSP regression — production-serving only)
+# ---------------------------------------------------------------------------
+
+class TestSecurityHeaders:
+    def test_csp_header_hardened(self):
+        r = client.get("/api/health")
+        csp = r.headers.get("Content-Security-Policy", "")
+        assert csp, "CSP header missing"
+        # Strict script policy; Monaco + workers are self-hosted (no CDN).
+        assert "script-src 'self'" in csp
+        assert "jsdelivr" not in csp
+        # Google Fonts <link> in index.html must be allowed to load.
+        assert "https://fonts.googleapis.com" in csp
+        assert "https://fonts.gstatic.com" in csp
+        # Same-origin object-URL previews: <img>, sandboxed PDF iframe,
+        # fetch() of fetched file blobs, and web workers.
+        assert "img-src 'self' data: blob:" in csp
+        assert "frame-src 'self' blob: data:" in csp
+        assert "connect-src 'self' blob:" in csp
+        assert "worker-src 'self' blob:" in csp
+        # Clickjacking / plugin hardening.
+        assert "frame-ancestors 'none'" in csp
+        assert "object-src 'none'" in csp
+
+    def test_hardening_headers_present(self):
+        r = client.get("/api/health")
+        assert r.headers.get("X-Content-Type-Options") == "nosniff"
+        assert r.headers.get("X-Frame-Options") == "DENY"
+        assert r.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+
+
+# ---------------------------------------------------------------------------
 # 11-12  Secret redaction in API responses
 # ---------------------------------------------------------------------------
 
@@ -525,7 +555,7 @@ class TestCredentialEncryption:
 
 class TestTokenRevocation:
     def test_revoked_token_rejected(self):
-        from datetime import UTC, datetime, timedelta
+        from datetime import UTC, datetime
 
         token = create_token(99999)
         payload = decode_token(token)
@@ -555,3 +585,54 @@ class TestJwtSecretFallback:
         # ...while the generated key round-trips through our own verify path.
         assert decode_token(token)["sub"] == "1"
         assert settings.jwt_secret, "blank secret must be replaced by a generated key"
+
+
+class TestSQLReadonlyToolGuard:
+    """H6: the AI database tool's read-only gate must survive smuggling."""
+
+    @staticmethod
+    def _check(sql: str) -> None:
+        from app.ai.tools import _check_readonly_sql
+
+        _check_readonly_sql(sql)
+
+    def test_modifying_first_token_rejected(self):
+        with pytest.raises(ValueError, match="read-only"):
+            self._check("DELETE FROM users WHERE 1=1")
+
+    def test_multi_statement_rejected(self):
+        with pytest.raises(ValueError, match="single SQL statement"):
+            self._check("SELECT 1; DROP TABLE users")
+
+    def test_cte_wrapped_write_rejected(self):
+        with pytest.raises(ValueError, match="modifying keywords"):
+            self._check(
+                "WITH gone AS (SELECT id FROM users) "
+                "DELETE FROM users WHERE id IN (SELECT id FROM gone)"
+            )
+
+    def test_explain_analyze_write_rejected(self):
+        with pytest.raises(ValueError, match="modifying keywords"):
+            self._check("EXPLAIN ANALYZE DELETE FROM users")
+
+    def test_dangerous_function_rejected(self):
+        with pytest.raises(ValueError, match="modifying keywords"):
+            self._check("SELECT pg_terminate_backend(42)")
+
+    def test_pragma_assignment_rejected(self):
+        with pytest.raises(ValueError, match="assign"):
+            self._check("PRAGMA user_version=3")
+
+    def test_literal_and_comment_text_not_flagged(self):
+        self._check("SELECT 'DELETE FROM users' AS s")
+        self._check("SELECT 1 -- DELETE FROM users\n")
+        self._check("SELECT * FROM users;")  # trailing semicolon is fine
+
+    def test_handler_rejects_before_touching_db(self):
+        from types import SimpleNamespace
+
+        from app.ai.tools import _database_query_handler
+
+        ctx = SimpleNamespace(credentials={})
+        with pytest.raises(ValueError):
+            _database_query_handler(ctx, {"sql": "UPDATE users SET x = 1"})

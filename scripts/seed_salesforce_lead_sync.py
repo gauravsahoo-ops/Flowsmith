@@ -21,12 +21,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import urllib.error
 import urllib.request
 from typing import Any
 
-DEMO_EMAIL = "demo.salesforce@example.com"
-DEMO_PASSWORD = "password123"
+DEMO_EMAIL = os.environ.get("SEED_DEMO_EMAIL", "demo.salesforce@example.com")
+DEMO_PASSWORD = os.environ.get("SEED_DEMO_PASSWORD", "")
 
 # Placeholder credential — valid shape, but never touches a real org.
 SF_DATA = {
@@ -146,6 +147,10 @@ def main() -> int:
     parser.add_argument("--base", default="http://127.0.0.1:8000")
     args = parser.parse_args()
     base = args.base
+    if not DEMO_PASSWORD:
+        raise SystemExit(
+            "Set SEED_DEMO_PASSWORD (and optionally SEED_DEMO_EMAIL) before running."
+        )
 
     status, reg = req(base, "POST", "/api/auth/register", {"email": DEMO_EMAIL, "password": DEMO_PASSWORD})
     if status == 201:

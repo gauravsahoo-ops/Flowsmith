@@ -45,8 +45,8 @@ CREDS_FILE = BACKEND / ".env.live-acceptance"
 CREDS_TEMPLATE = BACKEND / ".env.live-acceptance.example"
 PORT = int(os.environ.get("SF_ACCEPTANCE_PORT", "8765"))
 
-EMAIL = "accept@example.com"
-PASSWORD = "Accep+2026!Pass"
+EMAIL = os.environ.get("SF_ACCEPTANCE_APP_EMAIL", "accept@example.com")
+PASSWORD = os.environ.get("SF_ACCEPTANCE_APP_PASSWORD", "")
 CRED_GOOD = "Acceptance Org (valid)"
 CRED_BAD = "Acceptance Org (invalid secret)"
 
@@ -198,6 +198,10 @@ def conn(source: str, target: str, source_handle: str = "main") -> dict:
 
 
 async def register_and_login(client: httpx.AsyncClient) -> str:
+    if not PASSWORD:
+        raise SystemExit(
+            "Set SF_ACCEPTANCE_APP_PASSWORD (local acceptance account) before running."
+        )
     resp = await client.post("/api/auth/register", json={"email": EMAIL, "password": PASSWORD})
     assert resp.status_code in (200, 201), f"register failed: {resp.status_code} {resp.text}"
     resp = await client.post("/api/auth/login", json={"email": EMAIL, "password": PASSWORD})
