@@ -38,7 +38,7 @@ function getErrorIcon(icon) {
   )
 }
 
-export default function ErrorState({ icon = 'alert', title, description, details, action, secondaryAction }) {
+export default function ErrorState({ icon = 'alert', title, description, details, action, secondaryAction, detailsOpen = false }) {
   const safeTitle = toSafeText(title)
   const safeDesc = toSafeText(description)
   const safeDetails = toSafeDetails(details, description)
@@ -59,7 +59,7 @@ export default function ErrorState({ icon = 'alert', title, description, details
       <div className="es-title">{safeTitle}</div>
       {safeDesc && <div className="es-desc">{safeDesc}</div>}
       {safeDetails && (
-        <details className="es-details" open={true}>
+        <details className="es-details" open={detailsOpen}>
           <summary style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
             <span>Technical details</span>
             <button

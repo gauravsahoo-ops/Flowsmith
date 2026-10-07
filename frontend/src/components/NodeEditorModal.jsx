@@ -436,28 +436,56 @@ export default function NodeEditorModal() {
         </nav>
 
         {effectiveError && !showAutoRepair && (
-          <ErrorState
-            title="Execution failed"
-            description={effectiveError}
-            details={typeof rawError === 'object' && rawError !== null ? (rawError.details || rawError) : undefined}
-            action={
-              <Button
-                variant="primary"
+          <div className="nem-error-banner" role="alert">
+            <div className="nem-error-banner-left">
+              <span className="nem-error-banner-icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </span>
+              <div className="nem-error-banner-text">
+                <strong className="nem-error-banner-title">Execution failed:</strong>
+                <span className="nem-error-banner-msg" title={effectiveError}>
+                  {effectiveError}
+                </span>
+              </div>
+            </div>
+
+            <div className="nem-error-banner-actions">
+              <button
+                type="button"
+                className="nem-error-repair-btn"
                 onClick={() => setShowAutoRepair(true)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
+                title="Diagnose root cause with Flowsmith AI"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 <span>Flowsmith AI Self-Healing Diagnostic</span>
-              </Button>
-            }
-          />
+              </button>
+              <button
+                type="button"
+                className="nem-error-view-btn"
+                onClick={() => setNodeEditorTab('output')}
+                title="Open Output tab to see response body, headers, and trace"
+              >
+                <span>View Output</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </button>
+              <button
+                type="button"
+                className="nem-error-dismiss-btn"
+                onClick={() => {
+                  setExecError(null)
+                  useExecutionStore.getState().clearNodeError?.(selectedId)
+                }}
+                title="Dismiss error notice"
+                aria-label="Dismiss error notice"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
         )}
 
         {showAutoRepair && effectiveError && (

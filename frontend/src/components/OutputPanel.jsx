@@ -100,9 +100,6 @@ function extractOutputData(data) {
 }
 
 function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
-  const [activeTab, setActiveTab] = useState('body')
-  const [copied, setCopied] = useState(false)
-
   const isObj = typeof error === 'object' && error !== null
   const message = isObj ? (error.message || 'Execution failed') : (error || 'Unknown error')
   const details = isObj ? error.details : null
@@ -132,6 +129,9 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
       formattedBody = String(rawBody)
     }
   }
+
+  const [activeTab, setActiveTab] = useState(() => (formattedBody !== null ? 'body' : (headers ? 'request' : 'trace')))
+  const [copied, setCopied] = useState(false)
 
   const handleCopyBody = () => {
     if (!formattedBody) return
@@ -295,6 +295,15 @@ function ErrorInspector({ error, onAutoRepair, onExecuteStep, executing }) {
               </button>
             </div>
             <pre className="op-error-pre">{formattedBody}</pre>
+          </div>
+        )}
+
+        {activeTab === 'body' && formattedBody === null && (
+          <div className="op-error-body-view" style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
+            <p style={{ margin: '0 0 6px 0', fontWeight: 600, color: '#f1f5f9' }}>No response body returned</p>
+            <p style={{ margin: 0, fontSize: 11.5, opacity: 0.85, lineHeight: 1.5 }}>
+              The endpoint returned {statusCode ? `HTTP ${statusCode}` : 'an error'} without a body payload. Switch to <strong>Request Info</strong> or <strong>Trace</strong> above to see headers and request details.
+            </p>
           </div>
         )}
 
