@@ -53,8 +53,12 @@ function wsUrl(executionId, ticket) {
 
 async function fetchWsTicket() {
   try {
+    // api.wsTicket() goes through request(), which already unwraps the
+    // {data, meta} envelope — the response IS the {ticket, ...} payload.
+    // (Reading res.data.ticket here always returned null, silently forcing
+    // every run onto the polling fallback with no live node animation.)
     const res = await api.wsTicket()
-    return res?.data?.ticket || null
+    return res?.ticket || null
   } catch {
     return null
   }
@@ -469,6 +473,10 @@ export const useExecutionStore = create((set, get) => ({
         if (prevRunning && useUiStore.getState().soundEffects) {
           playChime(data.status === 'success' ? 'success' : 'error')
         }
+        // The terminal row may have been read before the final commit
+        // landed (trace/node_statuses empty for one tick). loadTrace
+        // retries exactly like the WS path, then stops.
+        get().loadTrace(id)
       }
     } catch (err) {
       const retryCount = (get()._pollRetryCount || 0) + 1

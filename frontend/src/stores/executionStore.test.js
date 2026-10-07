@@ -1,7 +1,7 @@
 // Execution history store tests (M8): fetchHistory pagination and
 // loading a past execution into the inspector.
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useExecutionStore } from './executionStore'
 
@@ -11,6 +11,7 @@ const mockApi = vi.hoisted(() => ({
   retry: vi.fn(),
   cancel: vi.fn(),
   run: vi.fn(),
+  wsTicket: vi.fn(),
 }))
 
 vi.mock('../api', () => ({ api: mockApi, getToken: () => 'tok' }))
@@ -131,5 +132,52 @@ describe('clearNodeError', () => {
     expect(s.runPreview['node_1'].status).toBeNull()
     expect(s.runPreview['node_1'].note).toBeNull()
     expect(s.error).toBeNull()
+  })
+})
+
+describe('connect (WS ticket)', () => {
+  let wsUrls
+  let originalWebSocket
+  let originalWindow
+
+  beforeEach(() => {
+    wsUrls = []
+    originalWebSocket = globalThis.WebSocket
+    originalWindow = globalThis.window
+    globalThis.window = { location: { protocol: 'http:', host: 'localhost:5173' } }
+    globalThis.WebSocket = class FakeWebSocket {
+      constructor(url) {
+        wsUrls.push(url)
+      }
+
+      close() {}
+    }
+  })
+
+  afterEach(() => {
+    useExecutionStore.getState().close()
+    globalThis.WebSocket = originalWebSocket
+    if (originalWindow === undefined) delete globalThis.window
+    else globalThis.window = originalWindow
+  })
+
+  it('puts the single-use ticket in the WS URL (envelope already unwrapped)', async () => {
+    // api.wsTicket() resolves the unwrapped payload {ticket, expires_in};
+    // reading res.data.ticket here once returned null for every run and
+    // silently forced the polling fallback (no live node animation).
+    mockApi.wsTicket.mockResolvedValue({ ticket: 'tk_1', expires_in: 30 })
+    useExecutionStore.getState().connect('exec_9')
+    await vi.waitFor(() => expect(wsUrls).toHaveLength(1))
+    expect(wsUrls[0]).toContain('/api/ws/executions/exec_9?ticket=tk_1')
+    expect(useExecutionStore.getState().socket).toBeTruthy()
+    expect(useExecutionStore.getState().pollTimer).toBeNull()
+  })
+
+  it('degrades to polling when no ticket is available', async () => {
+    mockApi.wsTicket.mockResolvedValue(null)
+    useExecutionStore.getState().connect('exec_9')
+    await vi.waitFor(() => expect(useExecutionStore.getState().pollTimer).toBeTruthy())
+    expect(wsUrls).toHaveLength(0)
+    expect(useExecutionStore.getState().socket).toBeFalsy()
   })
 })
