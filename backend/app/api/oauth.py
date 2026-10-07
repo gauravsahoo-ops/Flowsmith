@@ -145,6 +145,53 @@ def _resolve_login_url(spec, body: ConnectRequest | None, db: Session | None = N
     ).rstrip("/")
 
 
+_SF_LOGIN_HOST_SUFFIXES = (".salesforce.com", ".salesforce.mil")
+_DYN_LOGIN_HOST_SUFFIXES = (
+    ".crm.dynamics.com",
+    ".dynamics.com",
+    ".dynamics365.com",
+    ".microsoftonline.com",
+)
+
+
+def _validate_login_url(spec, raw: str) -> str:
+    """Reject login_url values outside the provider's trusted hosts.
+
+    The Salesforce token exchange POSTs the OAuth client_secret to
+    ``{login_url}/services/oauth2/token``; an attacker-controlled login_url
+    would exfiltrate the Connected App consumer secret, and a rogue Dynamics
+    instance host would receive bearer access tokens.
+    """
+    url = (raw or "").strip()
+    if not url or not spec.uses_login_url:
+        return url
+    host = ""
+    if url.startswith(("http://", "https://")):
+        parsed = urlparse(url)
+        if parsed.scheme != "https":
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "login_url must use https"
+            )
+        host = (parsed.hostname or "").lower()
+    else:
+        if spec.key == "dynamics_crm" and "/" not in url:
+            # Bare Azure AD tenant id ("common", "organizations", a GUID) — no host.
+            return url
+        host = url.split("/")[0].split(":")[0].lower()
+    if spec.key == "salesforce":
+        allowed = _SF_LOGIN_HOST_SUFFIXES
+    elif spec.key == "dynamics_crm":
+        allowed = _DYN_LOGIN_HOST_SUFFIXES
+    else:
+        allowed = ()
+    if not any(host.endswith(suffix) for suffix in allowed):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"login_url host '{host}' is not an allowed {spec.display_name} login host",
+        )
+    return url
+
+
 @router.post("/{provider}/connect")
 def connect_provider(
     provider: str,
@@ -158,7 +205,8 @@ def connect_provider(
     The state is recorded server-side and bound to the user.
     """
     spec = get_provider(provider)
-    assert spec.authorize_url is not None, f"provider {provider} misconfigured"
+    if spec.authorize_url is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"provider {provider} misconfigured")
     purge_stale_states(db)
     body_cid = (body.client_id or "").strip() if body else ""
     body_sec = (body.client_secret or "").strip() if body else ""
@@ -183,6 +231,7 @@ def connect_provider(
     )
     if not login_url:
         login_url = _resolve_login_url(spec, body, db=db, user_id=user.id)
+    login_url = _validate_login_url(spec, login_url)
 
     verifier, challenge = ("", "")
     if spec.supports_pkce:
@@ -319,8 +368,14 @@ async def provider_callback(
         client_secret=decrypted_secret,
     )
     login_url = (row.login_url or "").rstrip("/")
+    try:
+        login_url = _validate_login_url(spec, login_url)
+    except HTTPException:
+        logger.warning("%s rejected stored login_url for user %s", provider, row.user_id)
+        return _fail_redirect(frontend_url, spec, "untrusted login_url")
 
-    assert spec.token_request is not None and spec.token_headers is not None, f'provider {provider} misconfigured'
+    if spec.token_request is None or spec.token_headers is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"provider {provider} misconfigured")
     try:
         url, body = spec.token_request(
             settings,
@@ -385,7 +440,8 @@ async def provider_callback(
         except Exception:
             host = ""
 
-    assert spec.credential_data is not None, f"provider {provider} misconfigured"
+    if spec.credential_data is None:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"provider {provider} misconfigured")
     has_custom = bool(getattr(row, "client_id", None))
     try:
         data = spec.credential_data(

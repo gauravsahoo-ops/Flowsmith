@@ -377,42 +377,37 @@ class TestFileIOPathTraversal:
 
 
 class TestFileIOTemplateBypass:
-    """13. FILE IO TEMPLATE BYPASS: path with {{ expressions }} skips validation.
+    """13. FILE IO TEMPLATE BYPASS: path with {{ expressions }} must not skip validation.
 
-    GAP: When path contains '{{', the _validate_path check is SKIPPED entirely.
-    This means a path like '{{ /etc/passwd }}' would bypass SSRF-like
-    path traversal protection if the expression resolves to a blocked path.
-    The validation runs BEFORE expression resolution in the executor,
-    so the resolved path is never checked.
+    Regression: raw paths (bypassing the executor's template resolution) are
+    validated like any other path — anything outside the allowed roots is
+    refused with PATH_BLOCKED.
     """
 
-    def test_template_path_skips_validation(self):
+    def test_template_path_is_still_validated(self):
         node = FileIONode()
         ctx = _make_ctx()
-        # Use a path that contains {{ AND a known blocked prefix.
-        # On Windows: C:\Windows\...; on Linux: /etc/...
-        # The key: validation is SKIPPED because {{ is in the path.
         if os.name == "nt":
             blocked_path = "{{ C:\\Windows\\System32 }}"
         else:
             blocked_path = "{{ /etc }}"
         params = FileIOParams(path=blocked_path, mode="write", content="test")
-        # This should NOT raise PATH_BLOCKED because validation is skipped
-        # It WILL raise a different error (FileNotFoundError or similar)
-        try:
-            result = _run(node.run(ctx, params, [{}]))
-            # If it succeeds, that confirms the GAP — validation was bypassed
-            assert result.output_items is not None, "Template path bypassed validation (GAP confirmed)"
-        except NodeExecutionError as e:
-            # If it fails, it should be a filesystem error, NOT PATH_BLOCKED
-            assert "blocked" not in str(e).lower(), (
-                f"Template path was blocked (unexpected — validation should be skipped): {e}"
-            )
-            # Got a filesystem error instead — validation was correctly skipped
-        except Exception as e:
-            # Filesystem-level errors (FileNotFoundError, OSError) also confirm
-            # that validation was skipped — the system tried to operate on the path
-            assert "blocked" not in str(e).lower()
+        with pytest.raises(NodeExecutionError) as exc_info:
+            _run(node.run(ctx, params, [{}]))
+        assert "blocked" in str(exc_info.value).lower()
+
+    def test_path_outside_allowed_roots_is_blocked(self):
+        """The containment allowlist refuses app-tree paths such as .env files."""
+        node = FileIONode()
+        ctx = _make_ctx()
+        if os.name == "nt":
+            outside_path = "C:\\Windows\\System32\\drivers\\etc\\hosts"
+        else:
+            outside_path = "/etc/hosts"
+        params = FileIOParams(path=outside_path, mode="read")
+        with pytest.raises(NodeExecutionError) as exc_info:
+            _run(node.run(ctx, params, [{}]))
+        assert "blocked" in str(exc_info.value).lower()
 
 
 class TestLargeFile:

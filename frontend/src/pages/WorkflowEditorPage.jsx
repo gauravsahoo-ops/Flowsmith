@@ -111,6 +111,22 @@ export default function WorkflowEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  // Leave the page: stop following the execution (close the live WebSocket
+  // and any poll timer) so navigating away doesn't leak the connection.
+  useEffect(() => () => {
+    useExecutionStore.getState().close()
+  }, [])
+
+  // Re-entering with a stale "running" state (we closed on unmount):
+  // resync — reconnects if still live, settles if it finished meanwhile.
+  useEffect(() => {
+    const s = useExecutionStore.getState()
+    if (s.executionId && s.running && !s.socket && !s.pollTimer) {
+      s.load(s.executionId).catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Also ensure canvas is visible even if store still loading
   if (loading && !workflow) return <div className="center-message">Loading workflow…</div>
   if (localError) {

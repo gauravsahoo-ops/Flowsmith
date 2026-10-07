@@ -782,21 +782,31 @@ export const useWorkflowStore = create((set, get) => ({
   async save() {
     const { workflow, nodes, edges, comments, groups, edgeLabels } = get()
     if (!workflow) return
-    if (get().saving) return // skip if already in-flight
+    if (get().saving) {
+      // A save is already in flight; queue this one behind it so concurrent
+      // edits are never silently dropped.
+      scheduleSave()
+      return null
+    }
     clearTimeout(saveTimer)
     const payload = withDecorations(toWorkflowJson(workflow, nodes, edges), {
       comments,
       groups,
       edgeLabels,
     })
-    set({ saving: true, error: null })
+    // Consume the dirty flag: any edit made while the request is in flight
+    // re-sets it (and arms a fresh timer), so completion only clears state
+    // if nothing changed underneath us.
+    set({ saving: true, error: null, _dirty: false })
     try {
       const saved = await api.saveWorkflow(workflow.id, payload)
-      set({ workflow: saved, savedAt: new Date(), saving: false, _dirty: false })
+      set((state) =>
+        state._dirty
+          ? { saving: false }
+          : { workflow: saved, savedAt: new Date(), saving: false, _dirty: false },
+      )
       return saved
     } catch (err) {
-      const msg = err.message || ''
-      const isEmptyWorkflow = msg.includes('at least one node')
       set({ saving: false, error: err.message, _dirty: true })
       throw err
     }

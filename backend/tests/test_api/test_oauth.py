@@ -811,5 +811,33 @@ def test_connect_and_callback_with_custom_client_credentials(client):
         db.close()
 
 
+# ----------------------------------------------------------------------
+# login_url allowlist (CRITICAL regression: client_secret exfil via
+# attacker-controlled token endpoint host)
+# ----------------------------------------------------------------------
+
+
+def test_connect_rejects_untrusted_login_url(client):
+    headers = _setup(client)
+    resp = client.post(
+        "/api/auth/salesforce/connect",
+        json={"login_url": "https://evil.example.com"},
+        headers=headers,
+    )
+    assert resp.status_code == 400, resp.text
+    assert "not an allowed" in resp.json()["detail"]
+
+
+def test_connect_rejects_non_https_login_url(client):
+    headers = _setup(client)
+    resp = client.post(
+        "/api/auth/salesforce/connect",
+        json={"login_url": "http://login.salesforce.com"},
+        headers=headers,
+    )
+    assert resp.status_code == 400, resp.text
+    assert "https" in resp.json()["detail"]
+
+
 
 

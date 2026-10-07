@@ -45,13 +45,19 @@ def verify_password(password: str, stored: str) -> bool:
 
 
 def _get_jwt_secret() -> str:
-    """Return JWT secret, auto-generating a secure one if the insecure default is used."""
+    """Return JWT secret, auto-generating a secure one if unconfigured.
+
+    Covers both the shipped insecure default and an empty/blank value —
+    compose passes ``JWT_SECRET: ${JWT_SECRET:-}``, so a missing server
+    env var arrives as ``""``, which would otherwise be used as the
+    signing key and allow token forgery.
+    """
     settings = get_settings()
-    if settings.jwt_secret == "dev-only-secret-change-me":
+    if not (settings.jwt_secret or "").strip() or settings.jwt_secret == "dev-only-secret-change-me":
         # Auto-generate a cryptographically secure secret on first use
         generated = secrets.token_urlsafe(48)
         logger.warning(
-            "JWT_SECRET not configured — auto-generated a secure key for this process. "
+            "JWT_SECRET not configured - auto-generated a secure key for this process. "
             "Set JWT_SECRET in your environment for persistent tokens across restarts."
         )
         # Patch the settings object so subsequent calls use the generated key

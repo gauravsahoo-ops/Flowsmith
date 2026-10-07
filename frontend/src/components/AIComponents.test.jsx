@@ -131,11 +131,27 @@ describe('AI Components Suite', () => {
       expect(html).toContain('/ debug')
     })
 
-    it('has api.chatWithAgent and api.getAiMemory defined', async () => {
+    it('chatWithAgent posts the payload to /api/ai/chat and unwraps the envelope', async () => {
       const { api } = await import('../api.js')
-      expect(typeof api.chatWithAgent).toBe('function')
-      expect(typeof api.getAiMemory).toBe('function')
-      expect(typeof api.clearAiMemory).toBe('function')
+      const calls = []
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = async (url, opts = {}) => {
+        calls.push({ url, opts })
+        return new Response(JSON.stringify({ data: { reply: 'ok' } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      try {
+        const res = await api.chatWithAgent({ message: 'hi', session_id: 's1' })
+        expect(calls).toHaveLength(1)
+        expect(String(calls[0].url)).toContain('/api/ai/chat')
+        expect(calls[0].opts.method).toBe('POST')
+        expect(String(calls[0].opts.body)).toContain('"hi"')
+        expect(res).toEqual({ reply: 'ok' })
+      } finally {
+        globalThis.fetch = originalFetch
+      }
     })
   })
 })

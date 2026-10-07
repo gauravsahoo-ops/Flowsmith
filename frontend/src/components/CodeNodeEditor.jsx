@@ -102,10 +102,20 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
   const [validating, setValidating] = useState(false)
   const [validation, setValidation] = useState(null)
   const editorRef = useRef(null)
+  const providerDisposablesRef = useRef([])
   const paramsRef = useRef(params)
   paramsRef.current = params
   const onParamsChangeRef = useRef(onParamsChange)
   onParamsChangeRef.current = onParamsChange
+
+  // Dispose monaco completion providers registered on mount — they are
+  // process-global and would otherwise accumulate on every editor open.
+  useEffect(() => () => {
+    providerDisposablesRef.current.forEach((d) => {
+      try { d.dispose() } catch { /* already disposed */ }
+    })
+    providerDisposablesRef.current = []
+  }, [])
 
   useEffect(() => {
     setLocalCode(code)
@@ -158,7 +168,7 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
   function handleEditorMount(editor, monaco) {
     editorRef.current = editor
     // Configure autocomplete for $input
-    monaco.languages.registerCompletionItemProvider('javascript', {
+    const jsProvider = monaco.languages.registerCompletionItemProvider('javascript', {
       triggerCharacters: ['$', '.'],
       provideCompletionItems: (model, position) => {
         const word = model.getWordUntilPosition(position)
@@ -214,7 +224,7 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
       },
     })
     // Also for python (simple)
-    monaco.languages.registerCompletionItemProvider('python', {
+    const pyProvider = monaco.languages.registerCompletionItemProvider('python', {
       triggerCharacters: ['$', '.'],
       provideCompletionItems: (model, position) => {
         const word = model.getWordUntilPosition(position)
@@ -236,6 +246,7 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
         }
       },
     })
+    providerDisposablesRef.current.push(jsProvider, pyProvider)
   }
 
   return (

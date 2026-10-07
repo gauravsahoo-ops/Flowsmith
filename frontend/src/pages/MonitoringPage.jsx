@@ -188,7 +188,10 @@ export default function MonitoringPage() {
 
   const fetchStats = useCallback(() => {
     api.getMonitoringStats()
-      .then(setStats)
+      .then((data) => {
+        setStats(data)
+        setError(null)
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
@@ -203,10 +206,15 @@ export default function MonitoringPage() {
   }, [autoRefresh, fetchStats])
 
   if (loading) return <div className="page monitoring-page"><LoadingSkeleton rows={6} /></div>
-  if (error) return <div className="page monitoring-page"><div className="banner-inline err">Error: {error}</div></div>
+  if (error && !stats) return <div className="page monitoring-page"><div className="banner-inline err">Error: {error}</div></div>
 
   return (
     <div className="page monitoring-page">
+      {error && (
+        <div className="banner-inline err" style={{ marginBottom: 12 }}>
+          Refresh failed: {error} — retrying automatically.
+        </div>
+      )}
       <PageHeader
         title="Monitoring Dashboard"
         description="Real-time execution queue metrics, worker throughput, and cluster health."

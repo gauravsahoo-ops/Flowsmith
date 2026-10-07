@@ -1,32 +1,133 @@
-import React, { useState } from 'react'
-import { getToken } from '../api'
+import React, { useEffect, useState } from 'react'
+import { fetchFileObjectUrl, downloadStoredFile } from '../api'
 import './BinaryDataViewModal.css'
 
 export default function BinaryDataViewModal({ binaryEntry, onClose }) {
   const [activeTab, setActiveTab] = useState('preview')
+  const [serverUrl, setServerUrl] = useState(null)
+  const [serverText, setServerText] = useState(null)
+  const [previewError, setPreviewError] = useState(null)
+
+  const id = binaryEntry?.id || null
+  const data = binaryEntry?.data || null
+  const mimeType = binaryEntry?.mimeType || ''
+  const fileExtension = binaryEntry?.fileExtension || ''
+  const isImage = mimeType.startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(fileExtension.toLowerCase())
+  const isPdf = mimeType === 'application/pdf' || fileExtension.toLowerCase() === 'pdf'
+  const isText = mimeType.startsWith('text/') || ['txt', 'csv', 'json', 'log', 'xml', 'md'].includes(fileExtension.toLowerCase())
+  const needsServerPreview = !!id && (isImage || isPdf || (isText && !data))
+
+  useEffect(() => {
+    if (!needsServerPreview) return undefined
+    let objectUrl = null
+    let cancelled = false
+    setServerUrl(null)
+    setServerText(null)
+    setPreviewError(null)
+    fetchFileObjectUrl(id, 'view')
+      .then((url) => {
+        if (cancelled) {
+          URL.revokeObjectURL(url)
+          return
+        }
+        objectUrl = url
+        if (isText && !data) {
+          // Text previews are fetched and rendered as escaped text — never as
+          // a document — so stored HTML can never execute under our origin.
+          return fetch(url)
+            .then((r) => r.text())
+            .then((t) => {
+              if (!cancelled) setServerText(t)
+            })
+        }
+        setServerUrl(url)
+      })
+      .catch((err) => {
+        if (!cancelled) setPreviewError(err?.message || 'Preview failed')
+      })
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [id, needsServerPreview, isText, data])
+
   if (!binaryEntry) return null
-  const { fileName, mimeType, fileSize, bytes, id, data, fileExtension } = binaryEntry
+  const { fileName, fileSize, bytes } = binaryEntry
 
-  const token = getToken() || ''
-  const viewUrl = id ? `/api/files/${id}/view${token ? `?token=${encodeURIComponent(token)}` : ''}` : null
-  const downloadUrl = id ? `/api/files/${id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}` : null
-
-  const isImage = mimeType?.startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(fileExtension?.toLowerCase())
-  const isPdf = mimeType === 'application/pdf' || fileExtension?.toLowerCase() === 'pdf'
-  const isText = mimeType?.startsWith('text/') || ['txt', 'csv', 'json', 'log', 'xml', 'md'].includes(fileExtension?.toLowerCase())
+  const dataUrl = data ? `data:${mimeType || 'application/octet-stream'};base64,${data}` : null
 
   const handleDownload = () => {
-    if (downloadUrl) {
-      window.open(downloadUrl, '_blank')
+    if (id) {
+      downloadStoredFile(id, fileName || 'download.bin').catch(() => {})
     } else if (data) {
-      const bufferString = `data:${mimeType || 'application/octet-stream'};base64,${data}`
       const a = document.createElement('a')
-      a.href = bufferString
+      a.href = dataUrl
       a.download = fileName || 'download.bin'
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
     }
+  }
+
+  const previewSrc = serverUrl || dataUrl
+
+  const previewBody = () => {
+    if (isImage || isPdf) {
+      if (previewSrc) {
+        return isImage ? (
+          <img src={previewSrc} alt={fileName} className="bdv-image-preview" />
+        ) : (
+          // Opaque origin (no allow-same-origin): the document can never
+          // touch app storage/cookies even if the PDF/HTML is hostile.
+          <iframe
+            src={previewSrc}
+            title={fileName}
+            className="bdv-iframe-preview"
+            sandbox="allow-scripts allow-popups"
+          />
+        )
+      }
+      if (previewError) {
+        return <div className="bdv-no-preview"><h4>Preview failed</h4><p>{previewError}</p></div>
+      }
+      return <div className="bdv-no-preview"><p>Loading preview…</p></div>
+    }
+    if (isText) {
+      if (data) {
+        return (
+          <div className="bdv-text-wrapper">
+            <pre className="bdv-text-content">
+              {atob(data)}
+            </pre>
+          </div>
+        )
+      }
+      if (serverText !== null) {
+        return (
+          <div className="bdv-text-wrapper">
+            <pre className="bdv-text-content">
+              {serverText}
+            </pre>
+          </div>
+        )
+      }
+      if (previewError) {
+        return <div className="bdv-no-preview"><h4>Preview failed</h4><p>{previewError}</p></div>
+      }
+      return <div className="bdv-no-preview"><p>Loading preview…</p></div>
+    }
+    return (
+      <div className="bdv-no-preview">
+        <span className="bdv-no-preview-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        </span>
+        <h4>No inline preview available</h4>
+        <p>This file type cannot be previewed directly in the browser.</p>
+        <button type="button" className="bdv-btn-download-center" onClick={handleDownload}>
+          Download {fileName} ({fileSize})
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -90,46 +191,7 @@ export default function BinaryDataViewModal({ binaryEntry, onClose }) {
         <div className="bdv-body">
           {activeTab === 'preview' ? (
             <div className="bdv-preview-container">
-              {isImage ? (
-                <div className="bdv-image-wrapper">
-                  <img
-                    src={viewUrl || `data:${mimeType};base64,${data}`}
-                    alt={fileName}
-                    className="bdv-image-preview"
-                  />
-                </div>
-              ) : isPdf ? (
-                <iframe
-                  src={viewUrl || `data:${mimeType};base64,${data}`}
-                  title={fileName}
-                  className="bdv-iframe-preview"
-                />
-              ) : isText ? (
-                <div className="bdv-text-wrapper">
-                  {data ? (
-                    <pre className="bdv-text-content">
-                      {atob(data)}
-                    </pre>
-                  ) : (
-                    <iframe
-                      src={viewUrl}
-                      title={fileName}
-                      className="bdv-iframe-preview"
-                    />
-                  )}
-                </div>
-              ) : (
-                <div className="bdv-no-preview">
-                  <span className="bdv-no-preview-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-                  </span>
-                  <h4>No inline preview available</h4>
-                  <p>This file type cannot be previewed directly in the browser.</p>
-                  <button type="button" className="bdv-btn-download-center" onClick={handleDownload}>
-                    Download {fileName} ({fileSize})
-                  </button>
-                </div>
-              )}
+              {previewBody()}
             </div>
           ) : (
             <div className="bdv-info-container">
@@ -141,7 +203,7 @@ export default function BinaryDataViewModal({ binaryEntry, onClose }) {
                   </tr>
                   <tr>
                     <th>Extension</th>
-                    <td>{fileExtension || '—'}</td>
+                    <td>{binaryEntry.fileExtension || '—'}</td>
                   </tr>
                   <tr>
                     <th>MIME Type</th>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { NodeIcon } from './NodeIcons'
+import { escapeHtml } from '../utils/escapeHtml'
+import { isTrustedOAuthOrigin } from '../utils/oauthOrigins'
 import './GoogleOAuthModal.css'
 
 const GOOGLE_SERVICES = [
@@ -110,7 +112,7 @@ export default function GoogleOAuthModal({
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Connecting to ${activeService.name}…</title>
+              <title>Connecting to ${escapeHtml(activeService.name)}…</title>
               <style>
                 body { font-family: system-ui, -apple-system, sans-serif; background: #0b0e17; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
                 .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
@@ -122,7 +124,7 @@ export default function GoogleOAuthModal({
             <body>
               <div class="spinner"></div>
               <h3>Connecting to Google…</h3>
-              <p>Please authorize ${activeService.name} permissions in the opened window.</p>
+              <p>Please authorize ${escapeHtml(activeService.name)} permissions in the opened window.</p>
             </body>
           </html>
         `)
@@ -153,6 +155,10 @@ export default function GoogleOAuthModal({
 
       let resolved = false
       const messageHandler = (e) => {
+        if (!isTrustedOAuthOrigin(e.origin)) {
+          console.warn('[flowsmith] GoogleOAuthModal: message from untrusted origin', e.origin)
+          return
+        }
         if (e.data === 'oauth_connected' || e.data === `${serviceType}_connected`) {
           resolved = true
           cleanup()
@@ -190,8 +196,13 @@ export default function GoogleOAuthModal({
       const pollClosed = setInterval(() => {
         if (popup && popup.closed) {
           if (!resolved) {
-            setBusy(false)
-            setTimeout(() => onConnected?.(), 1000)
+            // Give message/storage events a beat to land, then report the
+            // truth: a silently closed popup is NOT a successful connect.
+            setTimeout(() => {
+              if (resolved) return
+              setBusy(false)
+              setError('Popup was closed before authorization completed. Please try connecting again.')
+            }, 1000)
           }
           cleanup()
         }

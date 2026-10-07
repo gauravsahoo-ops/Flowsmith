@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: automate
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-automate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
       POSTGRES_DB: automate
     volumes:
       - mat-postgres-data:/var/lib/postgresql/data
@@ -65,7 +65,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:-automate}@postgres:5432/automate}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/automate}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       QUEUE_BACKEND: redis
@@ -73,7 +73,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-}
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
       PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
-      APP_ENV: ${APP_ENV:-production}
+      APP_ENV: production
       CORS_ORIGINS: ${CORS_ORIGINS:-https://flowsmith.dev.idslogic.net,http://localhost:8000,http://localhost:5173}
       OBJECT_STORE_BACKEND: ${OBJECT_STORE_BACKEND:-local}
       OBJECT_STORE_LOCAL_PATH: ${OBJECT_STORE_LOCAL_PATH:-/app/backend/data/objects}
@@ -134,7 +134,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:-automate}@postgres:5432/automate}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/automate}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       QUEUE_BACKEND: redis
@@ -142,7 +142,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-}
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
       PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
-      APP_ENV: ${APP_ENV:-production}
+      APP_ENV: production
       OBJECT_STORE_BACKEND: ${OBJECT_STORE_BACKEND:-local}
       OBJECT_STORE_LOCAL_PATH: ${OBJECT_STORE_LOCAL_PATH:-/app/backend/data/objects}
       OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-}
@@ -236,7 +236,7 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set in .env}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/flowsmith.json
     volumes:

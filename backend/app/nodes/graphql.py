@@ -76,7 +76,7 @@ class GraphQLNode(BaseNode[GraphQLParams]):
             # S10: SSRF protection — block internal/private IPs
             from app.nodes.http_request import HTTPRequestNode
             if params.url and "{{" not in params.url:
-                HTTPRequestNode._validate_url_ssrf(params.url)  # type: ignore[attr-defined]
+                await HTTPRequestNode._validate_url_ssrf(params.url)  # type: ignore[attr-defined]
             kwargs = filter_client_kwargs(ctx.http_client, {
                 "json": payload,
                 "headers": headers or None,

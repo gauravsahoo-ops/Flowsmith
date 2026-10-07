@@ -268,11 +268,18 @@ export default function WorkflowsPage() {
       const data = await api.listWorkflows()
       const list = Array.isArray(data) ? data : []
       setWorkflows(list)
-      // Merge backend pinned statuses with local cache
-      const mergedSet = new Set(pinnedIds)
+      // Server pin state is authoritative for every workflow it returned —
+      // an add-only union would make an unpin (here or on another device)
+      // silently revert on reload. Local entries survive only for workflows
+      // missing from this response.
+      const serverPinned = new Set()
+      const idsInList = new Set()
       list.forEach(w => {
-        if (w.pinned || w.settings?.pinned) mergedSet.add(w.id)
+        idsInList.add(w.id)
+        if (w.pinned || w.settings?.pinned) serverPinned.add(w.id)
       })
+      const mergedSet = new Set([...pinnedIds].filter(id => !idsInList.has(id)))
+      serverPinned.forEach(id => mergedSet.add(id))
       setPinnedIds(mergedSet)
       try {
         localStorage.setItem('pinned_workflows', JSON.stringify([...mergedSet]))

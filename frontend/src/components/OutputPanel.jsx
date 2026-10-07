@@ -6,7 +6,7 @@ import { TableView } from './DataViewer'
 import BinaryDataViewModal from './BinaryDataViewModal'
 import NodeAutoRepair from './NodeAutoRepair'
 import { useWorkflowStore } from '../stores/workflowStore'
-import { getToken } from '../api'
+import { downloadStoredFile } from '../api'
 import './OutputPanel.css'
 
 function unwrapItem(item) {
@@ -1017,16 +1017,17 @@ export default function OutputPanel({
                           type="button"
                           className="op-btn small ghost"
                           onClick={() => {
-                            const token = getToken() || ''
-                            const url = bin.id
-                              ? `/api/files/${bin.id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`
-                              : `data:${bin.mimeType || 'application/octet-stream'};base64,${bin.data}`
-                            const a = document.createElement('a')
-                            a.href = url
-                            a.download = bin.fileName || 'download.bin'
-                            document.body.appendChild(a)
-                            a.click()
-                            document.body.removeChild(a)
+                            if (bin.id) {
+                              downloadStoredFile(bin.id, bin.fileName || 'download.bin').catch(() => {})
+                            } else {
+                              const url = `data:${bin.mimeType || 'application/octet-stream'};base64,${bin.data}`
+                              const a = document.createElement('a')
+                              a.href = url
+                              a.download = bin.fileName || 'download.bin'
+                              document.body.appendChild(a)
+                              a.click()
+                              document.body.removeChild(a)
+                            }
                           }}
                           title="Download file"
                           aria-label="Download file"

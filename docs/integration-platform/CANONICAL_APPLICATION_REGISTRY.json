@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-06T11:42:20.435228+00:00",
+  "generated_at": "2026-10-07T04:02:00.133461+00:00",
   "summary": {
     "total_external_applications_discovered": 191,
     "total_canonical_applications": 91,
@@ -185,7 +185,7 @@
           "https://zapier.com/apps/activecampaign/integrations",
           "https://cyclr.com/connectors/activecampaign"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "67dafb70563c5f0a"
@@ -355,7 +355,7 @@
           "https://zapier.com/apps/airtable/integrations",
           "https://cyclr.com/connectors/airtable"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "8bd5d0f6664dcf3b"
@@ -487,7 +487,7 @@
           "https://zapier.com/apps/amazon-s3/integrations",
           "https://cyclr.com/connectors/amazon-s3"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "284f91c5069e9845"
@@ -586,7 +586,7 @@
           "https://docs.n8n.io/integrations/builtin/app-nodes/anthropic/",
           "https://zapier.com/apps/anthropic/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "54099496554f55a2"
@@ -756,7 +756,7 @@
           "https://zapier.com/apps/asana/integrations",
           "https://cyclr.com/connectors/asana"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "d86cf6046e368076"
@@ -875,7 +875,7 @@
         "source_urls": [
           "https://docs.n8n.io/integrations/builtin/app-nodes/awsS3/"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "a21770b77432d3ad"
@@ -987,7 +987,7 @@
           "https://docs.n8n.io/integrations/builtin/app-nodes/bigquery/",
           "https://cyclr.com/connectors/bigquery"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "1c3e00ccfd7c20df"
@@ -1122,7 +1122,7 @@
           "https://zapier.com/apps/bitbucket/integrations",
           "https://cyclr.com/connectors/bitbucket"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "7e97886394f4172f"
@@ -1277,7 +1277,7 @@
           "https://zapier.com/apps/box/integrations",
           "https://cyclr.com/connectors/box"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "c3500eda50bc6a81"
@@ -1417,7 +1417,7 @@
           "https://zapier.com/apps/sendinblue/integrations",
           "https://cyclr.com/connectors/brevo"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "63e24e0801590155"
@@ -1559,7 +1559,7 @@
           "https://zapier.com/apps/calendly/integrations",
           "https://cyclr.com/connectors/calendly"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "48e5b13772676210"
@@ -1739,7 +1739,7 @@
           "https://zapier.com/apps/clickup/integrations",
           "https://cyclr.com/connectors/clickup"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "996bb510b9b0fce3"
@@ -1879,7 +1879,7 @@
           "https://zapier.com/apps/coda/integrations",
           "https://cyclr.com/connectors/coda"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "dadd019a81da5233"
@@ -2026,7 +2026,7 @@
         "source_urls": [
           "https://api.coingecko.com/api/v3"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "2129d008d3b1022d"
@@ -2161,7 +2161,7 @@
           "https://zapier.com/apps/discord/integrations",
           "https://cyclr.com/connectors/discord"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "4a0d72d09fcfc732"
@@ -2295,7 +2295,7 @@
         "source_urls": [
           "https://zapier.com/apps/docusign/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "1bd228c1ee65317e"
@@ -2450,7 +2450,7 @@
           "https://zapier.com/apps/dropbox/integrations",
           "https://cyclr.com/connectors/dropbox"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "94ff74f6302a4c7e"
@@ -2577,7 +2577,7 @@
         "source_urls": [
           "https://dummyjson.com"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "c4135900cd47db20"
@@ -2696,7 +2696,7 @@
         "source_urls": [
           "https://docs.n8n.io/integrations/builtin/app-nodes/microsoftDynamicsCrm/"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.131043+00:00",
         "verified": true
       },
       "capability_hash": "22e62fa7e392f2f5"
@@ -2793,7 +2793,7 @@
         "source_urls": [
           "https://api.frankfurter.app"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "158e0b55d553143b"
@@ -2943,7 +2943,7 @@
           "https://zapier.com/apps/freshdesk/integrations",
           "https://cyclr.com/connectors/freshdesk"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "9b0c0dbddb7623d1"
@@ -3083,7 +3083,7 @@
           "https://zapier.com/apps/freshsales/integrations",
           "https://cyclr.com/connectors/freshsales"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.131043+00:00",
         "verified": true
       },
       "capability_hash": "5f415b9029232edb"
@@ -3278,7 +3278,7 @@
           "https://zapier.com/apps/github/integrations",
           "https://cyclr.com/connectors/github"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "6bebb5030e6e4d94"
@@ -3443,7 +3443,7 @@
           "https://zapier.com/apps/gitlab/integrations",
           "https://cyclr.com/connectors/gitlab"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "488a17ce86f45efa"
@@ -3598,7 +3598,7 @@
           "https://zapier.com/apps/gmail/integrations",
           "https://cyclr.com/connectors/gmail"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "0de857df9ca0895b"
@@ -3717,7 +3717,7 @@
         "source_urls": [
           "https://zapier.com/apps/google-bigquery/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "41693cfd02103bbf"
@@ -3882,7 +3882,7 @@
           "https://zapier.com/apps/google-calendar/integrations",
           "https://cyclr.com/connectors/google-calendar"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "3b8d8c76f34d2703"
@@ -3997,7 +3997,7 @@
           "https://zapier.com/apps/google-docs/integrations",
           "https://cyclr.com/connectors/google-docs"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "8008a4fcfebe6391"
@@ -4162,7 +4162,7 @@
           "https://zapier.com/apps/google-drive/integrations",
           "https://cyclr.com/connectors/google-drive"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "29e0e9c393c30cda"
@@ -4337,7 +4337,7 @@
           "https://zapier.com/apps/google-sheets/integrations",
           "https://cyclr.com/connectors/google-sheets"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.131043+00:00",
         "verified": true
       },
       "capability_hash": "a06888585e7bcf8b"
@@ -4443,7 +4443,7 @@
         "source_urls": [
           "https://zapier.com/apps/google-vertex-ai/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "96f0b11d55f57689"
@@ -4610,7 +4610,7 @@
         "source_urls": [
           "https://httpbin.org"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "0cbc3474523be72b"
@@ -4865,7 +4865,7 @@
           "https://zapier.com/apps/hubspot/integrations",
           "https://cyclr.com/connectors/hubspot"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.131043+00:00",
         "verified": true
       },
       "capability_hash": "b479237fc7390a1f"
@@ -5020,7 +5020,7 @@
           "https://zapier.com/apps/intercom/integrations",
           "https://cyclr.com/connectors/intercom"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "cccb091bcc854021"
@@ -5172,7 +5172,7 @@
           "https://docs.n8n.io/integrations/builtin/app-nodes/jira/",
           "https://cyclr.com/connectors/jira"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "a27ca4074b1c1a3d"
@@ -5346,7 +5346,7 @@
         "source_urls": [
           "https://zapier.com/apps/jira-software-cloud/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "662db42252e2a229"
@@ -5453,7 +5453,7 @@
         "source_urls": [
           "https://jsonplaceholder.typicode.com"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "243d9f922d5bd909"
@@ -5593,7 +5593,7 @@
           "https://zapier.com/apps/linear/integrations",
           "https://cyclr.com/connectors/linear"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "586367ba7027a874"
@@ -5773,7 +5773,7 @@
           "https://zapier.com/apps/mailchimp/integrations",
           "https://cyclr.com/connectors/mailchimp"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "aa694fe2e65d1998"
@@ -5881,7 +5881,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434717+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "26539341d4c238d8"
@@ -6034,7 +6034,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "f24e291bd3443b82"
@@ -6262,7 +6262,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/github"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "6ae7c9456a7af8a0"
@@ -6385,7 +6385,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/google-maps"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "31af02a6114847c0"
@@ -6508,7 +6508,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/memory"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "f1b4f1c74e27ffe2"
@@ -6676,7 +6676,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/postgres"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "abf588656bbf5308"
@@ -6814,7 +6814,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "8d8ab44de1d47828"
@@ -6952,7 +6952,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/sentry"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "22d02a68ab45dedf"
@@ -7090,7 +7090,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/slack"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "6393c5a1f782d4b1"
@@ -7228,7 +7228,7 @@
         "source_urls": [
           "https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "bf10a99925b46f35"
@@ -7382,7 +7382,7 @@
         "source_urls": [
           "https://cyclr.com/connectors/microsoft-dynamics-365"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "af7579b5682ab02d"
@@ -7536,7 +7536,7 @@
         "source_urls": [
           "https://zapier.com/apps/microsoft-dynamics-crm/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "fc5a5ddc079e1fc2"
@@ -7695,7 +7695,7 @@
         "source_urls": [
           "https://zapier.com/apps/microsoft-outlook/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "76000df61ce8aeff"
@@ -7832,7 +7832,7 @@
           "https://zapier.com/apps/microsoft-teams/integrations",
           "https://cyclr.com/connectors/microsoft-teams"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "6d6308de829e9929"
@@ -7997,7 +7997,7 @@
           "https://zapier.com/apps/monday/integrations",
           "https://cyclr.com/connectors/monday"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "69a74e3a293c1ce5"
@@ -8094,7 +8094,7 @@
         "source_urls": [
           "https://docs.n8n.io/integrations/builtin/app-nodes/mongoDb/"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "75fa1b1eb4b14d08"
@@ -8203,7 +8203,7 @@
         "source_urls": [
           "https://docs.n8n.io/integrations/builtin/app-nodes/microsoftTeams/"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "a4bd456da3d37fdb"
@@ -8338,7 +8338,7 @@
           "https://zapier.com/apps/mysql/integrations",
           "https://cyclr.com/connectors/mysql"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "ff1f09ac9376c602"
@@ -8488,7 +8488,7 @@
           "https://zapier.com/apps/notion/integrations",
           "https://cyclr.com/connectors/notion"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "f35eb4a0a9472650"
@@ -8622,7 +8622,7 @@
         "source_urls": [
           "https://cyclr.com/connectors/office-365-mail"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "c75b283512604885"
@@ -8749,7 +8749,7 @@
         "source_urls": [
           "https://api.open-meteo.com/v1"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "dc11405c1e0d02a3"
@@ -8836,7 +8836,7 @@
         "source_urls": [
           "http://api.open-notify.org"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "2bdd011d30b39e12"
@@ -8943,7 +8943,7 @@
         "source_urls": [
           "https://openrouter.ai/api/v1"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "e1fd2aad92d70bb1"
@@ -9072,7 +9072,7 @@
           "https://docs.n8n.io/integrations/builtin/app-nodes/openAi/",
           "https://zapier.com/apps/openai/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "59ac8616866e308d"
@@ -9196,7 +9196,7 @@
         "source_urls": [
           "https://docs.n8n.io/integrations/builtin/app-nodes/microsoftOutlook/"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "ff34fa60b808489b"
@@ -9341,7 +9341,7 @@
           "https://zapier.com/apps/pagerduty/integrations",
           "https://cyclr.com/connectors/pagerduty"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "efe96e7f80bb39af"
@@ -9521,7 +9521,7 @@
           "https://zapier.com/apps/pipedrive/integrations",
           "https://cyclr.com/connectors/pipedrive"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.131043+00:00",
         "verified": true
       },
       "capability_hash": "da54ce24ebaaff2b"
@@ -9628,7 +9628,7 @@
         "source_urls": [
           "https://pokeapi.co/api/v2"
         ],
-        "ingested_at": "2026-10-06T11:42:20.435228+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "3e032411ecb2e81c"
@@ -9763,7 +9763,7 @@
           "https://zapier.com/apps/postgresql/integrations",
           "https://cyclr.com/connectors/postgresql"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "42aee386e0a358ee"
@@ -9943,7 +9943,7 @@
           "https://zapier.com/apps/quickbooks/integrations",
           "https://cyclr.com/connectors/quickbooks"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "75add783e894abbb"
@@ -10050,7 +10050,7 @@
         "source_urls": [
           "https://docs.n8n.io/integrations/builtin/app-nodes/redis/"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "9672577be1c367ee"
@@ -10155,7 +10155,7 @@
           "https://zapier.com/apps/resend/integrations",
           "https://cyclr.com/connectors/resend"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "cdf24e1d391fe37a"
@@ -10370,7 +10370,7 @@
           "https://zapier.com/apps/salesforce/integrations",
           "https://cyclr.com/connectors/salesforce"
         ],
-        "ingested_at": "2026-10-06T11:42:20.432681+00:00",
+        "ingested_at": "2026-10-07T04:02:00.131043+00:00",
         "verified": true
       },
       "capability_hash": "68178d35c32b1a26"
@@ -10515,7 +10515,7 @@
           "https://zapier.com/apps/sendgrid/integrations",
           "https://cyclr.com/connectors/sendgrid"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "f2bf5b6d6c3b6a36"
@@ -10655,7 +10655,7 @@
           "https://zapier.com/apps/sentry/integrations",
           "https://cyclr.com/connectors/sentry"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "7d87a5e71aaa8bc4"
@@ -10815,7 +10815,7 @@
           "https://zapier.com/apps/servicenow/integrations",
           "https://cyclr.com/connectors/servicenow"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "5ff5dff09faa92d0"
@@ -11010,7 +11010,7 @@
           "https://zapier.com/apps/shopify/integrations",
           "https://cyclr.com/connectors/shopify"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "49383b10eaacb205"
@@ -11205,7 +11205,7 @@
           "https://zapier.com/apps/slack/integrations",
           "https://cyclr.com/connectors/slack"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "79013b63df71ee38"
@@ -11320,7 +11320,7 @@
           "https://zapier.com/apps/snowflake/integrations",
           "https://cyclr.com/connectors/snowflake"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "340f55f22afb4341"
@@ -11545,7 +11545,7 @@
           "https://zapier.com/apps/stripe/integrations",
           "https://cyclr.com/connectors/stripe"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "6e72a10b0250bc36"
@@ -11692,7 +11692,7 @@
           "https://docs.n8n.io/integrations/builtin/app-nodes/supabase/",
           "https://zapier.com/apps/supabase/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "603084c00e722767"
@@ -11817,7 +11817,7 @@
           "https://zapier.com/apps/telegram/integrations",
           "https://cyclr.com/connectors/telegram"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "37997637e9d3384b"
@@ -11972,7 +11972,7 @@
           "https://zapier.com/apps/todoist/integrations",
           "https://cyclr.com/connectors/todoist"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "705a0173b31dac2f"
@@ -12142,7 +12142,7 @@
           "https://zapier.com/apps/trello/integrations",
           "https://cyclr.com/connectors/trello"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "4040ebb26a22e4a0"
@@ -12277,7 +12277,7 @@
           "https://zapier.com/apps/twilio/integrations",
           "https://cyclr.com/connectors/twilio"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "4a347c1a3f80183c"
@@ -12406,7 +12406,7 @@
         "source_urls": [
           "https://zapier.com/apps/typeform/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "d86ffe1bc1ffd5e6"
@@ -12505,7 +12505,7 @@
         "source_urls": [
           "https://docs.n8n.io/integrations/builtin/app-nodes/whatsapp/"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "90183985fec1617e"
@@ -12604,7 +12604,7 @@
         "source_urls": [
           "https://cyclr.com/connectors/whatsapp-business"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.133461+00:00",
         "verified": true
       },
       "capability_hash": "bd9d80fac439f096"
@@ -12723,7 +12723,7 @@
         "source_urls": [
           "https://zapier.com/apps/whatsapp-notifications/integrations"
         ],
-        "ingested_at": "2026-10-06T11:42:20.434213+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "72298299ab5d5422"
@@ -12888,7 +12888,7 @@
           "https://zapier.com/apps/xero/integrations",
           "https://cyclr.com/connectors/xero"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "f4f554f309a4aa4a"
@@ -13058,7 +13058,7 @@
           "https://zapier.com/apps/zendesk/integrations",
           "https://cyclr.com/connectors/zendesk"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.132066+00:00",
         "verified": true
       },
       "capability_hash": "113eb8bef1370fe6"
@@ -13223,7 +13223,7 @@
           "https://zapier.com/apps/zoho-crm/integrations",
           "https://cyclr.com/connectors/zoho-crm"
         ],
-        "ingested_at": "2026-10-06T11:42:20.433207+00:00",
+        "ingested_at": "2026-10-07T04:02:00.131043+00:00",
         "verified": true
       },
       "capability_hash": "ab34f329cf9c2983"

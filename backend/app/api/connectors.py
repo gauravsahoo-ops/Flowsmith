@@ -17,6 +17,8 @@ writable operations require proper authorization.
 
 from __future__ import annotations
 
+import ast
+
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -218,18 +220,21 @@ def get_connector_credential_types(
     )
 
 
-def _load_source_text(spec: Any) -> str | dict[str, Any]:
-    """Fetch spec from HTTP/HTTPS URL or return raw text or dict."""
+async def _load_source_text(spec: Any) -> str | dict[str, Any]:
+    """Fetch spec from HTTP/HTTPS URL (SSRF-safe, size-capped) or return raw text/dict."""
     if isinstance(spec, dict):
         return spec
     if isinstance(spec, str) and spec.strip().startswith(("http://", "https://")):
-        import urllib.request
+        from app.security.safe_http_client import get_safe_http_client
 
-        request = urllib.request.Request(
-            spec.strip(), headers={"User-Agent": "Flowsmith-Connector-Importer/1.0"}
-        )
-        with urllib.request.urlopen(request, timeout=30) as resp:
-            return resp.read().decode("utf-8", errors="replace")
+        async with get_safe_http_client() as client:
+            resp = await client.get(
+                spec.strip(),
+                headers={"User-Agent": "Flowsmith-Connector-Importer/1.0"},
+                timeout=30.0,
+                max_response_bytes=5 * 1024 * 1024,
+            )
+        return resp.text
     return spec
 
 
@@ -246,7 +251,7 @@ class ImportOpenApiRequest(BaseModel):
 
 
 @router.post("/preview-openapi")
-def preview_openapi(
+async def preview_openapi(
     body: PreviewOpenApiRequest,
     user: User = Depends(get_current_user),
 ) -> dict:
@@ -257,7 +262,7 @@ def preview_openapi(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Spec URL, raw content, or schema object is required.")
 
     try:
-        raw = _load_source_text(body.spec)
+        raw = await _load_source_text(body.spec)
     except Exception as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Failed to load spec: {exc}")
 
@@ -287,7 +292,7 @@ def preview_openapi(
 
 
 @router.post("/import-openapi")
-def import_openapi(
+async def import_openapi(
     body: ImportOpenApiRequest,
     user: User = Depends(get_current_user),
 ) -> dict:
@@ -305,7 +310,7 @@ def import_openapi(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Spec and connector name are required.")
 
     try:
-        raw = _load_source_text(body.spec)
+        raw = await _load_source_text(body.spec)
     except Exception as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Failed to load spec: {exc}")
 
@@ -332,9 +337,26 @@ def import_openapi(
 
     for filename, source in files.items():
         try:
-            compile(source, f"<gen_{key}>", "exec")
+            tree = ast.parse(source, filename=f"<gen_{key}>")
         except SyntaxError as exc:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Generated code syntax error: {exc}")
+        # Generated modules must be exactly: module docstring, then
+        # `from __future__ import annotations`. Anything between them means a
+        # user-controlled docstring breakout tried to inject statements
+        # (defense-in-depth against RCE via info.title / servers.url).
+        nodes = tree.body
+        if (
+            nodes
+            and isinstance(nodes[0], ast.Expr)
+            and isinstance(nodes[0].value, ast.Constant)
+            and isinstance(nodes[0].value.value, str)
+        ):
+            nodes = nodes[1:]
+        if not (nodes and isinstance(nodes[0], ast.ImportFrom) and nodes[0].module == "__future__"):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"Generated code rejected: unexpected statements before the future import in {filename}",
+            )
 
     gen_dir = Path(__file__).resolve().parent.parent / "connectors" / "generated"
     gen_dir.mkdir(parents=True, exist_ok=True)

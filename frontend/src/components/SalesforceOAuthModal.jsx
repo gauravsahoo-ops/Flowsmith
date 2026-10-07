@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { NodeIcon } from './NodeIcons'
 import Button from './shared/Button'
+import { isTrustedOAuthOrigin } from '../utils/oauthOrigins'
 import './SalesforceOAuthModal.css'
 
 export default function SalesforceOAuthModal({
@@ -218,6 +219,10 @@ export default function SalesforceOAuthModal({
       }
 
       const messageHandler = (ev) => {
+        if (!isTrustedOAuthOrigin(ev.origin)) {
+          console.warn('[flowsmith] SalesforceOAuthModal: message from untrusted origin', ev.origin)
+          return
+        }
         handleResult(ev.data)
       }
       window.addEventListener('message', messageHandler)

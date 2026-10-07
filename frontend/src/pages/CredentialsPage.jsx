@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
+import { escapeHtml } from '../utils/escapeHtml'
+import { isTrustedOAuthOrigin } from '../utils/oauthOrigins'
 import { useCredentialStore } from '../stores/credentialStore'
 import PageHeader from '../components/shared/PageHeader'
 import EmptyState from '../components/shared/EmptyState'
@@ -141,7 +143,7 @@ export default function CredentialsPage() {
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Reconnecting ${c.name || 'Account'}…</title>
+              <title>Reconnecting ${escapeHtml(c.name) || 'Account'}…</title>
               <style>
                 body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
                 .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
@@ -152,7 +154,7 @@ export default function CredentialsPage() {
             </head>
             <body>
               <div class="spinner"></div>
-              <h3>Reconnecting ${c.name || 'Account'}…</h3>
+              <h3>Reconnecting ${escapeHtml(c.name) || 'Account'}…</h3>
               <p>Checking active session or preparing authorization…</p>
             </body>
           </html>
@@ -216,15 +218,6 @@ export default function CredentialsPage() {
       }
 
       let handled = false
-      const expectedOrigin = window.location.origin
-      let backendOrigin = null
-      try {
-        const apiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
-        if (apiBase) {
-          const u = new URL(apiBase)
-          backendOrigin = u.origin
-        }
-      } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
 
       let bc = null
       let pollClosed = null
@@ -276,13 +269,10 @@ export default function CredentialsPage() {
       }
 
       const messageHandler = (event) => {
-        try {
-          const origin = event.origin
-          const isExpected = origin === expectedOrigin || origin === backendOrigin
-          if (!isExpected && origin !== 'null') {
-            console.warn('OAuth message from unexpected origin', origin)
-          }
-        } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
+        if (!isTrustedOAuthOrigin(event.origin)) {
+          console.warn('OAuth message from unexpected origin rejected', event.origin)
+          return
+        }
         processResult(event.data)
       }
 

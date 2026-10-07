@@ -135,6 +135,9 @@ def create_backup(
         name = f"backup_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
 
     filepath = directory / f"{name}.sql.gz"
+    # A dump contains every credential in the DB: owner-only perms from creation.
+    fd = os.open(filepath, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+    os.close(fd)
     dbname = _db_name(dsn)
     base, env = _base_cmd("pg_dump", dsn)
     cmd = [*base, "-d", dbname, "--no-owner", "--no-privileges"]

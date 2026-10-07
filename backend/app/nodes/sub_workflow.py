@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import uuid
 from typing import Any, Literal
 
@@ -32,6 +33,25 @@ from app.engine import expressions as _expr
 from app.engine.errors import NodeExecutionError
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
 from app.nodes.registry import register
+
+logger = logging.getLogger("sub_workflow")
+
+# Keep strong refs to fire-and-forget child executions so tasks are never
+# garbage-collected mid-flight, and surface their failures in the log.
+_BG_TASKS: set[asyncio.Task] = set()
+
+
+def _spawn_background(coro: Any) -> asyncio.Task:
+    task = asyncio.create_task(coro)
+    _BG_TASKS.add(task)
+
+    def _done(t: asyncio.Task) -> None:
+        _BG_TASKS.discard(t)
+        if not t.cancelled() and t.exception() is not None:
+            logger.error("background child execution failed: %s", t.exception())
+
+    task.add_done_callback(_done)
+    return task
 
 #: Maximum sub-workflow nesting depth (parent counts as depth 0).
 MAX_SUBWORKFLOW_DEPTH = 5
@@ -219,8 +239,8 @@ class SubWorkflowNode(BaseNode[SubWorkflowParams]):
             if not items_to_send:
                 items_to_send = [params.data] if params.data else [{}]
 
-            # Spawn task in background
-            asyncio.create_task(_exec_child(items_to_send))
+            # Spawn task in background (strong ref + error logging)
+            _spawn_background(_exec_child(items_to_send))
             return NodeResult(
                 output_items=input_items or [{}],
                 metadata={"status": "dispatched", "workflow_id": target_wf_id},

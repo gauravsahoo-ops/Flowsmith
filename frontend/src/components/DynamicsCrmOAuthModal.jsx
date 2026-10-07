@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { NodeIcon } from './NodeIcons'
+import { isTrustedOAuthOrigin } from '../utils/oauthOrigins'
 import './DynamicsCrmOAuthModal.css'
 
 export default function DynamicsCrmOAuthModal({
@@ -68,6 +69,10 @@ export default function DynamicsCrmOAuthModal({
   // Listen for OAuth callback popup completion
   useEffect(() => {
     function handleMessage(event) {
+      if (!isTrustedOAuthOrigin(event.origin)) {
+        console.warn('[flowsmith] DynamicsCrmOAuthModal: message from untrusted origin', event.origin)
+        return
+      }
       if (!event.data || typeof event.data !== 'object') return
       if (event.data.provider === 'dynamics_crm' || event.data.type === 'oauth_callback') {
         if (event.data.ok || event.data.status === 'success') {

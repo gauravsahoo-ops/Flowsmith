@@ -220,7 +220,12 @@ def get_oauth_provider_config(
         db.scalars(query.where(Credential.user_id == user.id).order_by(Credential.created_at.desc())).all()
     )
     if not candidates:
-        candidates = list(db.scalars(query.order_by(Credential.created_at.desc())).all())
+        # Fallback to shared connected-app config only — never other users'
+        # per-connection credential rows.
+        config_types = [t for t in types_to_check if t.endswith("_oauth_config")]
+        candidates = list(
+            db.scalars(query.where(Credential.type.in_(config_types)).order_by(Credential.created_at.desc())).all()
+        )
 
     for cand in candidates:
         try:

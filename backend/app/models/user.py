@@ -36,6 +36,11 @@ class User(Base):
         String(64), ForeignKey("workspaces.id"), index=True, nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Tokens issued before this instant are rejected (set on password reset so
+    # a stolen bearer token dies with the old password).
+    tokens_valid_from: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
 
     # Declared so the unit of work orders inserts by FK dependency.
     organization: Mapped["Organization | None"] = relationship()

@@ -53,18 +53,18 @@ class CollectionCreate(BaseModel):
 
 class DocumentIn(BaseModel):
     id: str | None = None
-    text: str = Field(min_length=1)
+    text: str = Field(min_length=1, max_length=2_000_000)
     metadata: dict[str, Any] | None = None
 
 
 class IngestRequest(BaseModel):
-    documents: list[DocumentIn] = Field(min_length=1)
+    documents: list[DocumentIn] = Field(min_length=1, max_length=200)
     chunk_size: int = Field(default=500, ge=100, le=4000)
     chunk_overlap: int = Field(default=50, ge=0, le=1000)
 
 
 class ReindexRequest(BaseModel):
-    text: str = Field(min_length=1)
+    text: str = Field(min_length=1, max_length=2_000_000)
     metadata: dict[str, Any] | None = None
     chunk_size: int = Field(default=500, ge=100, le=4000)
     chunk_overlap: int = Field(default=50, ge=0, le=1000)

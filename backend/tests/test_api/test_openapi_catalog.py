@@ -97,3 +97,67 @@ def test_import_openapi_endpoint(client, tmp_path, monkeypatch):
                 pass
 
 
+def test_hostile_docstring_fields_cannot_inject_statements():
+    """CRITICAL regression: user-controlled info.title / servers.url must be
+    emitted as literal data inside docstrings - a docstring breakout that put
+    statements between the module docstring and the future import would be RCE
+    when the generated module is imported by the runner."""
+    import ast
+    import copy
+
+    spec = copy.deepcopy(SAMPLE)
+    spec["info"]["title"] = 'Evil" ; __import__("os").system("id") ; x = """'
+    spec["servers"][0]["url"] = 'https://evil.example/" ; import socket ; y = """'
+    api = parse_spec(spec)
+    files = emit_connector_files("evil_api", "Evil", api, "api")
+    assert files
+    for name, source in files.items():
+        tree = ast.parse(source, filename=name)
+        body = tree.body
+        assert (
+            isinstance(body[0], ast.Expr)
+            and isinstance(body[0].value, ast.Constant)
+            and isinstance(body[0].value.value, str)
+        ), f"{name}: module docstring must stay the first statement"
+        assert (
+            isinstance(body[1], ast.ImportFrom) and body[1].module == "__future__"
+        ), f"{name}: injected statements between docstring and future import"
+        assert not any(
+            isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr == "system"
+            for n in ast.walk(tree)
+        ), f"{name}: hostile call leaked into executable code"
+
+
+def test_import_openapi_ast_gate_rejects_breakout_statements(client, monkeypatch):
+    """CRITICAL regression: even if a generated file smuggles statements in
+    (docstring breakout), the AST preamble gate must reject it with 400."""
+    from app.connectors import openapi_emit
+
+    headers = auth_headers(register(client)["token"])
+
+    def _hostile_files(key, display, api, category="api"):
+        return {
+            f"gen_{key}_node.py": (
+                '"""\nHostile module.\n"""\n'
+                '__import__("os").system("id")\n'
+                "from __future__ import annotations\n"
+            ),
+        }
+
+    monkeypatch.setattr(openapi_emit, "emit_connector_files", _hostile_files)
+    res = client.post(
+        "/api/connectors/import-openapi",
+        json={
+            "spec": SAMPLE,
+            "name": "gen_evil_gate",
+            "title": "Evil Gate",
+            "category": "api",
+            "base_url": "https://api.example.com/v1",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 400, res.text
+
+

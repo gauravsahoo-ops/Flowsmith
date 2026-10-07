@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import base64
 import os
+import tempfile
+from pathlib import Path
 from typing import Any, Literal
 
 import aiofiles
@@ -70,8 +72,21 @@ class FileIONode(BaseNode[FileIOParams]):
     )
 
     @classmethod
+    def _allowed_roots(cls) -> list[Path]:
+        """Directories file_io may touch: the configured data root + system temp.
+
+        Anything else (application code, backend/.env, user home dirs, ...)
+        is refused — a containment allowlist rather than a blocklist.
+        """
+        from app.config import get_settings
+
+        configured = (getattr(get_settings(), "file_io_root", "") or "").strip()
+        base = Path(configured) if configured else Path.cwd() / "data" / "files"
+        return [base.resolve(), Path(tempfile.gettempdir()).resolve()]
+
+    @classmethod
     def _validate_path(cls, path: str) -> None:
-        """Block path traversal to sensitive system directories."""
+        """Block everything outside the allowed roots (and system dirs)."""
         resolved = os.path.realpath(path)
         for prefix in cls._BLOCKED_PREFIXES:
             if resolved.lower().startswith(prefix.lower()):
@@ -79,6 +94,15 @@ class FileIONode(BaseNode[FileIOParams]):
                     f"Access to '{resolved}' is blocked for security reasons.",
                     code="PATH_BLOCKED", node_id="file_io", retryable=False,
                 )
+        resolved_path = Path(resolved)
+        for root in cls._allowed_roots():
+            if resolved_path.is_relative_to(root):
+                return
+        raise NodeExecutionError(
+            f"Access to '{resolved}' is blocked for security reasons. "
+            f"File I/O is restricted to the configured file root and the system temp directory.",
+            code="PATH_BLOCKED", node_id="file_io", retryable=False,
+        )
 
     async def run(
         self,

@@ -1,15 +1,28 @@
 import { describe, it, expect } from 'vitest'
-import { matchesCategory, CONNECTOR_CATEGORY_MAP } from './IntegrationsPage'
+import { matchesCategory, CONNECTOR_CATEGORY_MAP, CATEGORIES } from './IntegrationsPage'
 import catalogData from '../all_catalog_items.json'
 
 describe('IntegrationsPage Category Completeness Suite', () => {
   const allConnectors = catalogData.connectors
 
-  it('contains valid categories for all 8 categories in UI', () => {
-    const categories = ['all', 'crm', 'database', 'communication', 'developer', 'ai', 'productivity', 'finance']
-    for (const cat of categories) {
-      expect(typeof cat).toBe('string')
+  it('keeps the test contract in sync with the categories rendered by the UI', () => {
+    const expectedIds = ['all', 'crm', 'database', 'communication', 'developer', 'ai', 'productivity', 'finance']
+    expect(CATEGORIES.map((c) => c.id)).toEqual(expectedIds)
+    for (const cat of CATEGORIES) {
+      expect(cat.id).toMatch(/^[a-z]+$/)
+      expect(cat.label.length).toBeGreaterThan(0)
     }
+  })
+
+  it('only references real UI categories in CONNECTOR_CATEGORY_MAP', () => {
+    const validIds = new Set(CATEGORIES.map((c) => c.id))
+    const invalid = []
+    for (const [connectorKey, cats] of Object.entries(CONNECTOR_CATEGORY_MAP)) {
+      for (const cat of cats) {
+        if (!validIds.has(cat)) invalid.push(`${connectorKey} -> ${cat}`)
+      }
+    }
+    expect(invalid).toEqual([])
   })
 
   it('ensures every single registered connector belongs to at least one category', () => {

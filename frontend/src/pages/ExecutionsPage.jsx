@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
@@ -29,20 +29,37 @@ export default function ExecutionsPage() {
 
   const page = Number(params.get('page') || 1)
 
+  const abortRef = useRef(null)
+
   const load = useCallback(async (p = page, silent = false) => {
-    if (!silent) setLoading(true)
+    // Cancel any in-flight request so a slow older response can never
+    // overwrite a newer one (or setState after unmount).
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+    // Silent refreshes never show the spinner — and clear any spinner left
+    // behind by a non-silent load they just aborted.
+    setLoading(!silent)
     setError(null)
     try {
-      const { data, meta: m } = await api.listExecutions({ workflowId: workflowId || undefined, status: status || undefined, page: p, pageSize: 25 })
+      const { data, meta: m } = await api.listExecutions(
+        { workflowId: workflowId || undefined, status: status || undefined, page: p, pageSize: 25 },
+        { signal: ctrl.signal },
+      )
+      if (ctrl.signal.aborted) return
       setExecs(data || []); if (m) setMeta(m)
     } catch (e) {
+      if (ctrl.signal.aborted) return
       if (!silent) setError(e.message)
     } finally {
-      if (!silent) setLoading(false)
+      if (!ctrl.signal.aborted && !silent) setLoading(false)
     }
   }, [workflowId, status, page])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+    return () => abortRef.current?.abort()
+  }, [load])
   useEffect(() => { api.listWorkflows().then(d => setWorkflows(Array.isArray(d) ? d : [])).catch(()=>{}) }, [])
 
   // Auto-poll every 2s while any execution is running or queued

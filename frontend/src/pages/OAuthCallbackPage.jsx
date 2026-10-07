@@ -14,6 +14,12 @@ export default function OAuthCallbackPage() {
     const error = params.get('error') || (legacyFail ? params.get('error') || 'Authorization failed' : null)
     const isSuccess = ok && !legacyFail && !error
 
+    // Strip oauth result params (provider/ok/error markers) from the URL so
+    // they don't linger in history, referrers, or shared links.
+    try {
+      window.history.replaceState({}, '', window.location.pathname)
+    } catch { /* ignore */ }
+
     // Determine opener origin for secure postMessage
     let targetOrigin = '*'
     try {

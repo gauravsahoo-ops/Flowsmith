@@ -138,3 +138,27 @@ def test_validation_errors_are_422(client):
     blank_query = client.post(f"/api/rag/collections/{rec['id']}/query",
                               json={"query": ""}, headers=token)
     assert blank_query.status_code == 422
+
+
+def test_ingest_bounds_are_422(client):
+    """Unbounded ingest is a DoS vector: doc count and size are capped."""
+    token = _setup(client)
+    rec = _mk_collection(client, token, "bounds")
+    too_many = client.post(
+        f"/api/rag/collections/{rec['id']}/documents",
+        json={"documents": [{"text": f"d{i}"} for i in range(201)]},
+        headers=token,
+    )
+    assert too_many.status_code == 422
+    too_big = client.post(
+        f"/api/rag/collections/{rec['id']}/documents",
+        json={"documents": [{"text": "x" * (2_000_001)}]},
+        headers=token,
+    )
+    assert too_big.status_code == 422
+    oversized_body = client.post(
+        f"/api/rag/collections/{rec['id']}/documents/some_doc/reindex",
+        json={"text": "y" * (2_000_001)},
+        headers=token,
+    )
+    assert oversized_body.status_code == 422

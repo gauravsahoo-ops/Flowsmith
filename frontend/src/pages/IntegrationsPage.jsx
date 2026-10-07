@@ -10,7 +10,7 @@ import { NodeIcon } from '../components/NodeIcons'
 import OpenApiImportModal from '../components/OpenApiImportModal'
 import CoverageDashboard from '../components/CoverageDashboard'
 
-const CATEGORIES = [
+export const CATEGORIES = [
   { id: 'all', label: 'All Integrations' },
   { id: 'crm', label: 'CRM & Sales' },
   { id: 'database', label: 'Databases & Storage' },

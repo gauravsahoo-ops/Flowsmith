@@ -19,7 +19,9 @@ from __future__ import annotations
 import ast
 import logging
 import os
+import sys
 import threading
+import time
 from typing import Any, List
 
 from pydantic import BaseModel, Field, model_validator
@@ -298,7 +300,13 @@ _validate_syntax = validate_code
 
 
 def _exec_with_timeout(code: str, namespace: dict[str, Any], timeout: float = 5.0) -> dict[str, Any]:
-    """Execute code with timeout using asyncio.wait_for and thread."""
+    """Execute code in a worker thread with a hard deadline.
+
+    Python cannot kill threads, so ``join(timeout)`` alone would leak a
+    permanently spinning thread when user code loops forever. A trace hook
+    installed *inside the worker thread* raises at the deadline on the next
+    line event, guaranteeing the thread unwinds and exits.
+    """
     # Enforce AST sandbox security checks before execution
     try:
         tree = ast.parse(code)
@@ -312,19 +320,34 @@ def _exec_with_timeout(code: str, namespace: dict[str, Any], timeout: float = 5.
 
     result = {}
     error = {}
+    deadline = time.monotonic() + timeout
 
     def target():
+        def _deadline_watch(frame, event, arg):
+            if time.monotonic() > deadline:
+                raise NodeExecutionError(
+                    f"Code execution timed out after {timeout}s",
+                    code="CODE_TIMEOUT", node_id="code", retryable=False,
+                )
+            return _deadline_watch
+
+        sys.settrace(_deadline_watch)
         try:
             exec(code, {"__builtins__": _SAFE_BUILTINS}, namespace)
             result["namespace"] = namespace
         except Exception as e:
             error["exception"] = e
+        finally:
+            sys.settrace(None)
 
     thread = threading.Thread(target=target, daemon=True)
     thread.start()
-    thread.join(timeout)
+    # Small grace period so the trace-hook watchdog can fire and unwind the
+    # thread after the deadline instead of hitting the leak path below.
+    thread.join(timeout + 0.25)
     if thread.is_alive():
-        # Timeout - cannot kill thread safely, but we can raise
+        # No line events seen (blocked without executing bytecode); the
+        # watchdog will still kill the thread as soon as one fires.
         raise NodeExecutionError(f"Code execution timed out after {timeout}s", code="CODE_TIMEOUT", node_id="code", retryable=False)
     if "exception" in error:
         raise error["exception"]
@@ -603,6 +626,17 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         context.json = items[0].get("json", items[0]) if items and isinstance(items[0], dict) else {}
         result = {}
         def run_js2():
+            deadline = time.monotonic() + timeout
+
+            def _deadline_watch(frame, event, arg):
+                if time.monotonic() > deadline:
+                    raise NodeExecutionError(
+                        f"Code execution timed out after {timeout}s",
+                        code="CODE_TIMEOUT", node_id="code", retryable=False,
+                    )
+                return _deadline_watch
+
+            sys.settrace(_deadline_watch)
             try:
                 context.execute(exec_code)
                 if hasattr(context, "__output"):
@@ -617,14 +651,18 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
                 result["logs"] = logs
             except Exception as e:
                 result["error"] = e
+            finally:
+                sys.settrace(None)
         import threading
         thread = threading.Thread(target=run_js2, daemon=True)
         thread.start()
-        thread.join(timeout)
+        thread.join(timeout + 0.25)
         if thread.is_alive():
             raise NodeExecutionError(f"Code execution timed out after {timeout}s", code="CODE_TIMEOUT", node_id="code", retryable=False)
         if "error" in result:
             err = result["error"]
+            if isinstance(err, NodeExecutionError):
+                raise err
             raise NodeExecutionError(f"Code execution failed: {err}", code="CODE_ERROR", node_id="code", retryable=False) from err
         output = result.get("output", items)
         return _normalize_output(output, logs)

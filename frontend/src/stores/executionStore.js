@@ -44,9 +44,23 @@ import { useUiStore } from './uiStore'
  * @property {number} _pollRetryCount - Internal: consecutive poll failure count
  */
 
-function wsUrl(executionId) {
+function wsUrl(executionId, ticket) {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${proto}//${window.location.host}/api/ws/executions/${executionId}?token=${encodeURIComponent(getToken() || '')}`
+  // Preferred: single-use ticket. Fallback: legacy ?token= when the
+  // ticket endpoint is unreachable (server older than this change).
+  const auth = ticket
+    ? `ticket=${encodeURIComponent(ticket)}`
+    : `token=${encodeURIComponent(getToken() || '')}`
+  return `${proto}//${window.location.host}/api/ws/executions/${executionId}?${auth}`
+}
+
+async function fetchWsTicket() {
+  try {
+    const res = await api.wsTicket()
+    return res?.data?.ticket || null
+  } catch {
+    return null
+  }
 }
 
 function countItems(payload) {
@@ -247,6 +261,7 @@ export const useExecutionStore = create((set, get) => ({
       error: null,
       pauseState: null,
       approval: null,
+      _pollRetryCount: 0,
     })
     try {
       const { execution_id } = await api.run(workflowId)
@@ -303,19 +318,33 @@ export const useExecutionStore = create((set, get) => ({
 
   connect(id) {
     get().close()
-    let socket
-    try {
-      socket = new WebSocket(wsUrl(id))
-    } catch {
-      get().schedulePoll(id)
-      return
-    }
-    socket.onmessage = (msg) => get().onEvent(id, msg)
-    socket.onerror = () => get().fallback(id)
-    socket.onclose = (e) => {
-      if (e.code !== 1000 && e.code !== 1005) get().fallback(id)
-    }
-    set({ socket })
+    const seq = (get()._connectSeq || 0) + 1
+    set({ _connectSeq: seq })
+    ;(async () => {
+      const ticket = await fetchWsTicket()
+      if (get()._connectSeq !== seq) return // superseded by close()/newer connect
+      let socket
+      try {
+        socket = new WebSocket(wsUrl(id, ticket))
+      } catch {
+        get().schedulePoll(id)
+        return
+      }
+      socket.onmessage = (msg) => get().onEvent(id, msg)
+      socket.onerror = () => get().fallback(id)
+      socket.onclose = (e) => {
+        if (e.code !== 1000 && e.code !== 1005) get().fallback(id)
+      }
+      if (get()._connectSeq !== seq) {
+        try {
+          socket.close()
+        } catch {
+          /* noop */
+        }
+        return
+      }
+      set({ socket })
+    })()
   },
 
   fallback(id) {
@@ -427,6 +456,7 @@ export const useExecutionStore = create((set, get) => ({
         pauseState: data.pause_state || null,
         approval: data.results?.approval || null,
         results: data.results || null,
+        _pollRetryCount: 0,
       })
       if (data.status === 'running' || data.status === 'cancelling' || data.status === 'queued') {
         get().schedulePoll(id)
@@ -455,6 +485,8 @@ export const useExecutionStore = create((set, get) => ({
   },
 
   close() {
+    // Invalidate any in-flight async connect() (it awaits a WS ticket).
+    set({ _connectSeq: (get()._connectSeq || 0) + 1 })
     const { socket, pollTimer } = get()
     if (socket) {
       socket.onmessage = null

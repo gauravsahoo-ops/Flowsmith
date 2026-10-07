@@ -594,36 +594,15 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
     resolves_own_expressions = False  # Let executor handle per-item $json resolution
 
     @staticmethod
-    def _validate_url_ssrf(url: str) -> None:
-        """Block requests to internal/private IPs (S10: SSRF protection)."""
-        import ipaddress
-        from urllib.parse import urlparse
+    async def _validate_url_ssrf(url: str) -> None:
+        """Block requests to internal/private IPs (S10: SSRF protection).
 
-        parsed = urlparse(url)
-        host = (parsed.hostname or "").strip("[]")
-        if not host:
-            return
-        # Allow localhost in development mode
-        from app.config import get_settings
-        if get_settings().app_env != "production" and host in ("localhost", "127.0.0.1", "::1"):
-            return
-        # Check for IP addresses
-        try:
-            ip = ipaddress.ip_address(host)
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-                raise NodeExecutionError(
-                    f"SSRF blocked: '{host}' is a private/internal address.",
-                    code="SSRF_BLOCKED", node_id="http_request", retryable=False,
-                )
-        except ValueError:
-            pass  # Not an IP, check hostname patterns
-        # Block common internal hostnames
-        blocked = ("metadata.google.internal", "169.254.169.254", "localhost")
-        if host.lower() in blocked:
-            raise NodeExecutionError(
-                f"SSRF blocked: '{host}' is not allowed.",
-                code="SSRF_BLOCKED", node_id="http_request", retryable=False,
-            )
+        Delegates to the shared guard (literal + hostname policy + DNS
+        resolution so a public hostname resolving internally is caught).
+        """
+        from app.security.ssrf import assert_public_url
+
+        await assert_public_url(url, node_id="http_request")
 
     _filter_kwargs = staticmethod(filter_client_kwargs)
 
@@ -698,9 +677,9 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 return NodeResult(output_items=[cached])
 
         url = self._build_url(params)
-        # S10: SSRF protection — block internal/private IPs
+        # S10: SSRF protection - block internal/private IPs (incl. DNS)
         if url and "{{" not in url:
-            self._validate_url_ssrf(url)
+            await self._validate_url_ssrf(url)
         # Headers: handle sendHeaders toggle + headerMode (fields vs json)
         headers: dict[str, str] = {}
         if params.sendHeaders:

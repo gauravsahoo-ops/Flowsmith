@@ -316,6 +316,6 @@ Flowsmith enforces enterprise-grade reliability and zero-defect architectural in
   5. *Live Sandbox Certification* (End-to-end integration and smoke verification)
 * **Automated Test Suite**:
 * **Backend**: **2,075 automated tests** passing across `backend/tests` (API, DAG execution, AI engine, cognitive memory, sandboxed code, connectors, and security), plus 19 environment-dependent skips.
-* **Frontend**: **384 automated tests** passing across 36 Vitest suites (Canvas interaction, node editors, Zustand state stores, execution tracing, and theme consistency).
+* **Frontend**: **385 automated tests** passing across 36 Vitest suites (Canvas interaction, node editors, Zustand state stores, execution tracing, and theme consistency).
 
 

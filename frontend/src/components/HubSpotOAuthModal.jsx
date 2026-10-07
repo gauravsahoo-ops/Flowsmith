@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { NodeIcon } from './NodeIcons'
+import { isTrustedOAuthOrigin } from '../utils/oauthOrigins'
 import './HubSpotOAuthModal.css'
 
 export default function HubSpotOAuthModal({
@@ -147,6 +148,10 @@ export default function HubSpotOAuthModal({
 
       let resolved = false
       const messageHandler = (e) => {
+        if (!isTrustedOAuthOrigin(e.origin)) {
+          console.warn('[flowsmith] HubSpotOAuthModal: message from untrusted origin', e.origin)
+          return
+        }
         if (e.data === 'hubspot_connected' || e.data === 'oauth_connected') {
           resolved = true
           cleanup()
@@ -184,8 +189,13 @@ export default function HubSpotOAuthModal({
       const pollClosed = setInterval(() => {
         if (popup && popup.closed) {
           if (!resolved) {
-            setBusy(false)
-            setTimeout(() => onConnected?.(), 1000)
+            // Give message/storage events a beat to land, then report the
+            // truth: a silently closed popup is NOT a successful connect.
+            setTimeout(() => {
+              if (resolved) return
+              setBusy(false)
+              setError('Popup was closed before authorization completed. Please try connecting again.')
+            }, 1000)
           }
           cleanup()
         }

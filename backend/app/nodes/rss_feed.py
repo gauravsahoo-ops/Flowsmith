@@ -59,6 +59,11 @@ class RssFeedNode(BaseNode[RssFeedParams]):
                 "A valid http/https feed URL is required.",
                 code="RSS_BAD_URL", node_id="rss_feed", retryable=False,
             )
+        # S10: SSRF protection - block internal/private targets (incl. DNS).
+        if "{{" not in url:
+            from app.security.ssrf import assert_public_url
+
+            await assert_public_url(url, node_id="rss_feed")
         try:
             kwargs = filter_client_kwargs(ctx.http_client, {"timeout": params.timeout_seconds})
             response = await ctx.http_client.get(url, **kwargs)

@@ -32,7 +32,7 @@ from app.api.auth import get_current_user
 from app.config import get_settings
 from app.db import get_db, get_session
 from app.metrics import ratelimit_rejected, webhook_deliveries
-from app.models import WebhookDelivery
+from app.models import User, WebhookDelivery
 from app.security.ratelimit import get_webhook_limiter
 from app.triggers.registry import CHAT_TRIGGER_PREFIX, FORM_TRIGGER_PREFIX, get_webhook
 
@@ -340,17 +340,20 @@ async def webhook_receive(
 
 @router.get("/deliveries")
 def list_deliveries(
-    _: object = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     workflow_id: str | None = None,
     node_id: str | None = None,
     page: int = 1,
     pageSize: int = 50,
 ) -> dict:
-    """Authenticated endpoint to list webhook deliveries with pagination."""
+    """Authenticated endpoint to list this user's webhook deliveries with pagination."""
     page, size = page_params(page=page, pageSize=pageSize)
-    stmt = select(WebhookDelivery)
-    count_stmt = select(func.count()).select_from(WebhookDelivery)
+    # Tenant isolation: only the caller's own deliveries are ever visible.
+    stmt = select(WebhookDelivery).where(WebhookDelivery.user_id == user.id)
+    count_stmt = select(func.count()).select_from(WebhookDelivery).where(
+        WebhookDelivery.user_id == user.id
+    )
     if workflow_id:
         stmt = stmt.where(WebhookDelivery.workflow_id == workflow_id)
         count_stmt = count_stmt.where(WebhookDelivery.workflow_id == workflow_id)

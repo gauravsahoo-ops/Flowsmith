@@ -123,6 +123,40 @@ def test_reset_changes_password_and_single_use(client, reset_links):
     assert replay.status_code == 400
 
 
+def test_reset_revokes_outstanding_bearer_tokens(client, reset_links):
+    """A password reset must kill sessions issued before it (S2)."""
+    from tests.test_api.conftest import auth_headers
+
+    email = "revoke@flowsmith.dev"
+    reg = register(client, email=email)
+    old_headers = auth_headers(reg["token"])
+
+    # Ensure the old token's iat lands in a strictly earlier second than the
+    # reset (iat is second-granularity).
+    time.sleep(1.1)
+
+    assert client.get("/api/auth/me", headers=old_headers).status_code == 200
+
+    _request_reset(client, email)
+    token = reset_links[-1].split("token=")[1]
+    resp = client.post(
+        "/api/auth/reset-password", json={"token": token, "new_password": "Revoked9!"}
+    )
+    assert resp.status_code == 200
+
+    # Old bearer token: dead on every gated route.
+    assert client.get("/api/auth/me", headers=old_headers).status_code == 401
+
+    # Fresh login works and the new token is valid.
+    login = client.post("/api/auth/login", json={"email": email, "password": "Revoked9!"})
+    assert login.status_code == 200
+    new_token = login.json()["data"]["token"]
+    assert (
+        client.get("/api/auth/me", headers={"Authorization": f"Bearer {new_token}"}).status_code
+        == 200
+    )
+
+
 def test_expired_token_rejected(client, reset_links):
     from datetime import UTC, datetime, timedelta
 

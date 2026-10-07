@@ -6,6 +6,11 @@ docs
 opencode.json
 pyrightconfig.json
 
+# Secrets must never enter image layers (JWT secret, Fernet key, OAuth secrets)
+**/.env
+**/.env.*
+!**/.env.example
+
 **/__pycache__
 **/*.pyc
 **/.pytest_cache
@@ -15,3 +20,13 @@ backend/tests
 frontend/node_modules
 frontend/dist
 **/*.test.js
+
+# Local state and scratch artifacts
+backups
+data
+tmp
+.runtime
+1
+**/*.log
+**/.coverage
+**/automation.db

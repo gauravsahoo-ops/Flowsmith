@@ -148,10 +148,10 @@ def _send_reset_email(to: str, link: str) -> bool:
     settings = get_settings()
     reset_logger = logging.getLogger("auth.reset")
     if not settings.smtp_host or not settings.mail_from:
-        if settings.app_env == "production":
-            reset_logger.warning("password reset for %s: SMTP unconfigured; link suppressed", to)
-        else:
+        if settings.app_env == "development":
             reset_logger.warning("password reset for %s: SMTP unconfigured; dev link: %s", to, link)
+        else:
+            reset_logger.warning("password reset for %s: SMTP unconfigured; link suppressed", to)
         return False
     try:
         msg = EmailMessage()
@@ -250,6 +250,9 @@ def reset_password(body: ResetPasswordRequest, request: Request, db: Session = D
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired reset token.")
 
     user.password_hash = hash_password(new_password)
+    # Kill every outstanding bearer token (password resets assume compromise).
+    from datetime import timezone as _tz
+    user.tokens_valid_from = now if now.tzinfo else now.replace(tzinfo=_tz.utc)
     row.used_at = now
     # Bulk-revoke all other pending reset tokens for this user
     from sqlalchemy import update
@@ -316,6 +319,20 @@ def logout(
     return ok({"message": "Logged out."})
 
 
+def token_is_stale(payload: dict, user: User) -> bool:
+    """True when the token was issued before the user's tokens_valid_from cutoff."""
+    valid_from = getattr(user, "tokens_valid_from", None)
+    if valid_from is None:
+        return False
+    iat = payload.get("iat")
+    if not isinstance(iat, int):
+        return True  # untrusted freshness claim
+    if valid_from.tzinfo is None:
+        from datetime import timezone as _tz
+        valid_from = valid_from.replace(tzinfo=_tz.utc)
+    return iat < int(valid_from.timestamp())
+
+
 def get_current_user(
     authorization: str | None = Header(default=None),
     x_authorization: str | None = Header(default=None),
@@ -333,6 +350,8 @@ def get_current_user(
     user = db.get(User, user_id)
     if user is None or not user.active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token.")
+    if token_is_stale(payload, user):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired. Please log in again.")
     return user
 
 
@@ -346,3 +365,15 @@ def get_me(user: User = Depends(get_current_user)) -> dict:
         "active": user.active,
         "created_at": str(user.created_at) if hasattr(user, "created_at") else None,
     })
+
+
+@router.post("/ws-ticket")
+def post_ws_ticket(user: User = Depends(get_current_user)) -> dict:
+    """One-time, short-TTL ticket for the WebSocket handshake.
+
+    Lets the live-execution socket authenticate via ?ticket= instead of
+    the raw bearer token (?token= leaked JWTs into logs/proxies).
+    """
+    from app.security.ws_ticket import WS_TICKET_TTL_S, issue_ws_ticket
+
+    return ok({"ticket": issue_ws_ticket(user.id), "expires_in": WS_TICKET_TTL_S})

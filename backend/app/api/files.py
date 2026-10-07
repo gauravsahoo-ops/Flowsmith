@@ -9,18 +9,30 @@ from __future__ import annotations
 
 import uuid
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, UploadFile, File, Form, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.auth import get_current_user
+from app.api.auth import get_current_user, token_is_stale
 from app.db import get_db
 from app.models import FileRecord, User, WorkspaceMember
 from app.objectstore.factory import get_object_store
 
 router = APIRouter(prefix="/api/files", tags=["files"])
+
+_INLINE_SAFE_MIME_PREFIXES = ("image/", "application/pdf", "text/plain")
+
+
+def _disposition_headers(kind: str, filename: str) -> dict[str, str]:
+    """Header-safe Content-Disposition (escaped filename + RFC 5987) + nosniff."""
+    safe = "".join(ch for ch in filename if ch.isprintable() and ch not in '"\\')
+    return {
+        "Content-Disposition": f"{kind}; filename=\"{safe}\"; filename*=UTF-8''{quote(filename)}",
+        "X-Content-Type-Options": "nosniff",
+    }
 
 
 def _can_access_workspace(db: Session, user_id: int, workspace_id: str | None, *, need_edit: bool = False) -> bool:
@@ -55,16 +67,36 @@ async def upload_file(
 ) -> dict[str, Any]:
     if workspace_id and not _can_access_workspace(db, user.id, workspace_id, need_edit=True):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "You cannot upload to this workspace.")
-    data = await file.read()
-    if len(data) > 50 * 1024 * 1024:  # 50 MB cap
-        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "File exceeds 50 MB limit.")
+    # Incremental read with a running cap: never buffer more than the limit.
+    max_bytes = 50 * 1024 * 1024
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(1024 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "File exceeds 50 MB limit.")
+        chunks.append(chunk)
+    data = b"".join(chunks)
     filename = file.filename or "upload"
-    # Sanitize filename for object key (keep extension, strip path).
+    # Sanitize filename for object key: drop control chars, keep only the
+    # basename, cap length (extension preserved by the trim).
+    filename = "".join(ch for ch in filename if ch.isprintable())
     safe_name = filename.split("/")[-1].split("\\")[-1][:180] or "file"
     file_id = f"file_{uuid.uuid4().hex[:16]}"
     object_key = f"{workspace_id or 'personal'}/{file_id}_{safe_name}"
     store = get_object_store()
-    mime = file.content_type or "application/octet-stream"
+    import mimetypes
+
+    # Derive the stored MIME from the filename first; the client-supplied
+    # content type is only a fallback (it is attacker-controlled).
+    mime = (
+        mimetypes.guess_type(safe_name)[0]
+        or file.content_type
+        or "application/octet-stream"
+    )
     try:
         store.put(object_key, data, mime_type=mime)
     except Exception as exc:
@@ -145,6 +177,8 @@ def _get_user_from_header(
     user = db.get(User, user_id)
     if user is None or not user.active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User inactive or not found.")
+    if token_is_stale(payload, user):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired. Please log in again.")
     return user
 
 
@@ -169,7 +203,7 @@ def download_file(
     return StreamingResponse(
         iter([data]),
         media_type=rec.mime_type or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{rec.filename}"'},
+        headers=_disposition_headers("attachment", rec.filename),
     )
 
 
@@ -191,10 +225,14 @@ def view_file(
         data = store.get(rec.object_key)
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "File bytes missing from object store.")
+    media = rec.mime_type or "application/octet-stream"
+    # Inline only for browser-safe types; html/svg/xml render as attachment
+    # (the app's own preview modal fetches bytes directly, so preview still works).
+    kind = "inline" if media.startswith(_INLINE_SAFE_MIME_PREFIXES) else "attachment"
     return StreamingResponse(
         iter([data]),
-        media_type=rec.mime_type or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{rec.filename}"'},
+        media_type=media,
+        headers=_disposition_headers(kind, rec.filename),
     )
 
 

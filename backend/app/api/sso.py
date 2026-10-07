@@ -238,6 +238,7 @@ async def sso_callback(
     # Issue Flowsmith JWT
     jwt_token = create_token(user.id, email=user.email)
 
-    # Redirect to frontend root with token in fragment or query for secure pickup
-    redirect_url = f"/?sso_token={jwt_token}"
+    # Redirect to frontend root with the token in the URL *fragment* so it
+    # never reaches server/proxy logs, browser history queries, or Referer.
+    redirect_url = f"/#sso_token={jwt_token}"
     return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)

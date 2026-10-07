@@ -36,6 +36,42 @@ async function request(method, path, body, opts) {
   return data
 }
 
+// Fetch a stored binary file with header auth. Tokens never go in URLs
+// (URLs leak via history/logs/Referer); the Authorization header does not.
+async function fetchFileBlob(fileId, kind = 'view') {
+  const headers = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+  const resp = await fetch(`/api/files/${encodeURIComponent(fileId)}/${kind}`, { headers })
+  if (resp.status === 401) {
+    setToken(null)
+    window.dispatchEvent(new Event('auth:expired'))
+    throw new ApiError(401, 'Session expired')
+  }
+  if (!resp.ok) throw new ApiError(resp.status, `File fetch failed (${resp.status})`)
+  return resp.blob()
+}
+
+export async function fetchFileObjectUrl(fileId, kind = 'view') {
+  const blob = await fetchFileBlob(fileId, kind)
+  return URL.createObjectURL(blob)
+}
+
+export async function downloadStoredFile(fileId, fileName) {
+  const blob = await fetchFileBlob(fileId, 'download')
+  const url = URL.createObjectURL(blob)
+  try {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName || 'download.bin'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
+  }
+}
+
 async function requestEnvelope(method, path, body, opts = {}) {
   const { timeout = DEFAULT_TIMEOUT_MS, signal: userSignal } = opts
   const headers = { 'Content-Type': 'application/json' }
@@ -75,10 +111,15 @@ async function requestEnvelope(method, path, body, opts = {}) {
   }
 
   if (resp.status === 401) {
-    // Only suppress auto-logout if this 401 is from testing a 3rd-party credential,
-    // NOT from Flowsmith user auth failing.
-    const isConnectorTest = path.includes('/test') || path.startsWith('/connectors/')
-    if (!isConnectorTest) {
+    // Suppress auto-logout ONLY when the 401 comes from a *third-party*
+    // credential failing (Salesforce discovery, credential/LLM connection
+    // tests) while the Flowsmith session is still valid. Every other 401
+    // means our session token is bad and the user must be logged out.
+    const isThirdPartyAuth =
+      path.startsWith('/connectors/salesforce/') ||
+      path.includes('/llm/test-connection') ||
+      /^\/credentials\/[^/]+\/test/.test(path)
+    if (!isThirdPartyAuth) {
       setToken(null)
       window.dispatchEvent(new Event('auth:expired'))
     }
@@ -160,6 +201,11 @@ export const api = {
     const res = await fetch(`/api/executions/${id}/export?format=${format}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
+    if (res.status === 401) {
+      setToken(null)
+      window.dispatchEvent(new Event('auth:expired'))
+      throw new ApiError(401, 'Session expired')
+    }
     if (!res.ok) throw new Error(`Export failed: ${res.statusText}`)
     const blob = await res.blob()
     const url = window.URL.createObjectURL(blob)
@@ -171,14 +217,14 @@ export const api = {
     a.remove()
     window.URL.revokeObjectURL(url)
   },
-  listExecutions: (params = {}) => {
+  listExecutions: (params = {}, opts) => {
     const q = new URLSearchParams()
     if (params.workflowId) q.set('workflow_id', params.workflowId)
     if (params.status) q.set('status', params.status)
     if (params.page) q.set('page', String(params.page))
     if (params.pageSize) q.set('pageSize', String(params.pageSize))
     const suffix = q.size ? `?${q.toString()}` : ''
-    return requestEnvelope('GET', `/executions${suffix}`)
+    return requestEnvelope('GET', `/executions${suffix}`, undefined, opts)
   },
   listNodes: () => request('GET', '/nodes'),
   listCredentials: () => request('GET', '/credentials'),
@@ -197,6 +243,9 @@ export const api = {
   deleteCredential: (id) => request('DELETE', `/credentials/${id}`),
   getHealth: () => request('GET', '/health'),
   getMe: () => request('GET', '/auth/me'),
+  // One-time short-TTL ticket for the WebSocket handshake (?ticket= keeps
+  // the bearer JWT out of URLs and access logs).
+  wsTicket: () => request('POST', '/auth/ws-ticket'),
   listApiKeys: () => request('GET', '/apikeys'),
   createApiKey: (name) => request('POST', '/apikeys', { name }),
   revokeApiKey: (id) => request('DELETE', `/apikeys/${id}`),

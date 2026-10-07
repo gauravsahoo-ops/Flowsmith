@@ -25,7 +25,13 @@ class LocalObjectStore(ObjectStore):
         # server (workspace_id/uuid_filename), never user-supplied paths.
         # Still normalize to avoid accidental absolute keys.
         safe = object_key.lstrip("/").replace("..", "_")
-        return (self._base / safe).resolve()
+        p = (self._base / safe).resolve()
+        # Belt-and-braces containment: after resolve(), refuse anything that
+        # escaped the store root (absolute keys, symlinked children, ...).
+        base = self._base.resolve()
+        if p != base and base not in p.parents:
+            raise ValueError(f"object key escapes store root: {object_key!r}")
+        return p
 
     def put(self, object_key: str, data: bytes, mime_type: str = "application/octet-stream") -> None:
         p = self._path(object_key)

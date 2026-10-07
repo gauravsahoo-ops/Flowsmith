@@ -78,3 +78,6 @@ restart.bat
 
 # User archive / backups
 files.zip
+
+tmp/
+1/

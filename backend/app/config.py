@@ -86,6 +86,9 @@ class Settings(BaseSettings):
     public_url: str = ""
     serve_frontend: bool = True
     frontend_dist: str = str(Path(__file__).resolve().parents[2] / "frontend" / "dist")
+    # File I/O node containment root (empty = <cwd>/data/files). Paths outside
+    # this root (or the system temp dir) are refused with PATH_BLOCKED.
+    file_io_root: str = ""
     # Phase 23/38: interactive API docs expose the whole route surface;
     # keep them for development, off in production unless explicitly on.
     api_docs_enabled: bool = False

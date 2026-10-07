@@ -64,6 +64,11 @@ class SoapRequestNode(BaseNode[SoapRequestParams]):
     async def run(self, ctx: NodeContext, params: SoapRequestParams, input_items: list[dict[str, Any]]) -> NodeResult:
         if not params.url.strip():
             raise NodeExecutionError("soap_request needs a url.", code="SOAP_MISSING_URL", node_id=ctx.node_id, retryable=False)
+        # S10: SSRF protection - block internal/private targets (incl. DNS).
+        if "{{" not in params.url:
+            from app.security.ssrf import assert_public_url
+
+            await assert_public_url(params.url.strip(), node_id="soap_request")
         envelope = params.envelope.strip()
         if not envelope:
             if not params.action.strip() and not params.body:

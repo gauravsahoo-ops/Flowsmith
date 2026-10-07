@@ -56,8 +56,15 @@ def _normalize_db_url(url: str) -> str:
     return cleaned
 
 
+def _redact_db_url(url: str) -> str:
+    """Log-safe DSN: password masked out (never log credentials)."""
+    import re
+
+    return re.sub(r"://([^:/@]+):[^@]*@", r"://\1:***@", url)
+
+
 _DEFAULT_URL = _normalize_db_url(get_settings().database_url)
-logger.debug("Using PostgreSQL database: %s", _DEFAULT_URL)
+logger.debug("Using PostgreSQL database: %s", _redact_db_url(_DEFAULT_URL))
 engine = create_engine(_DEFAULT_URL, **_engine_kwargs())
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
@@ -142,8 +149,13 @@ def init_db(url: str | None = None) -> None:
     global engine, SessionLocal
     if url:
         url = _normalize_db_url(url)
+        old_engine = engine
         engine = create_engine(url, **_engine_kwargs())
         SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+        try:
+            old_engine.dispose()
+        except Exception:  # pragma: no cover - best-effort cleanup
+            pass
     import app.models  # noqa: F401  (register all tables)
 
     if get_settings().app_env == "production":

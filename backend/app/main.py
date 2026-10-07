@@ -22,6 +22,7 @@ from sqlalchemy import func, select
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import Message
 
 from app.api import admin, ai, audit, auth, billing, branding, code, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, monitoring, nodes, oauth, organizations, rag, salesforce_events, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
 from app.api.auth import get_current_user
@@ -258,14 +259,43 @@ app.add_middleware(SPAFallbackMiddleware)
 
 
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
-    """Reject request bodies larger than 50 MB."""
+    """Reject request bodies larger than 50 MB (including chunked bodies)."""
 
     MAX_BODY_SIZE = 50 * 1024 * 1024
 
+    class _BodyTooLarge(Exception):
+        pass
+
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > self.MAX_BODY_SIZE:
-            return Response(status_code=413, content="Request body too large")
+        if content_length is not None:
+            try:
+                declared = int(content_length)
+            except ValueError:
+                return Response(status_code=400, content="Invalid Content-Length")
+            if declared > self.MAX_BODY_SIZE:
+                return Response(status_code=413, content="Request body too large")
+            return await call_next(request)
+
+        # No Content-Length (chunked / unknown): count bytes as they stream.
+        if "chunked" in (request.headers.get("transfer-encoding") or "").lower():
+            total = 0
+            inner_receive = request.receive
+
+            async def counting_receive() -> Message:
+                nonlocal total
+                message = await inner_receive()
+                if message["type"] == "http.request":
+                    total += len(message.get("body") or b"")
+                    if total > self.MAX_BODY_SIZE:
+                        raise RequestSizeLimitMiddleware._BodyTooLarge()
+                return message
+
+            try:
+                return await call_next(Request(request.scope, counting_receive))
+            except RequestSizeLimitMiddleware._BodyTooLarge:
+                return Response(status_code=413, content="Request body too large")
+
         return await call_next(request)
 
 

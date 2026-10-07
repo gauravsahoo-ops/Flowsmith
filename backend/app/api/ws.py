@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from typing import Any
 
 import jwt as pyjwt
@@ -37,13 +38,62 @@ TERMINAL_STATUS = {
     "execution.timeout": "timeout",
 }
 
+# Connection caps / idle limits (per process; best-effort resource guard).
+_MAX_WS_CONNECTIONS = int(os.environ.get("WS_MAX_CONNECTIONS", "200"))
+_MAX_WS_PER_USER = int(os.environ.get("WS_MAX_CONNECTIONS_PER_USER", "20"))
+_WS_IDLE_TIMEOUT_S = float(os.environ.get("WS_IDLE_TIMEOUT_S", "1800"))
+_WS_MAX_LIFETIME_S = float(os.environ.get("WS_MAX_LIFETIME_S", "14400"))
 
-def _auth_user(token: str | None, db: Session) -> User | None:
+_ws_conns_total = 0
+_ws_conns_per_user: dict[int, int] = {}
+
+
+def _ws_try_acquire(user_id: int) -> bool:
+    global _ws_conns_total
+    if _ws_conns_total >= _MAX_WS_CONNECTIONS:
+        return False
+    if _ws_conns_per_user.get(user_id, 0) >= _MAX_WS_PER_USER:
+        return False
+    _ws_conns_total += 1
+    _ws_conns_per_user[user_id] = _ws_conns_per_user.get(user_id, 0) + 1
+    return True
+
+
+def _ws_release(user_id: int) -> None:
+    global _ws_conns_total
+    if _ws_conns_total > 0:
+        _ws_conns_total -= 1
+    left = _ws_conns_per_user.get(user_id, 0) - 1
+    if left > 0:
+        _ws_conns_per_user[user_id] = left
+    else:
+        _ws_conns_per_user.pop(user_id, None)
+
+
+def _auth_user(token: str | None, ticket: str | None, db: Session) -> User | None:
+    if ticket:
+        # Preferred path: single-use short-TTL ticket (?ticket=), so the
+        # bearer JWT never appears in URLs/logs.
+        from app.security.ws_ticket import consume_ws_ticket
+
+        user_id = consume_ws_ticket(ticket)
+        if user_id is None:
+            return None
+        user = db.get(User, user_id)
+        if user is None or not user.active:
+            return None
+        return user
     if not token:
         return None
     try:
         payload = decode_token(token)
-        return db.get(User, int(payload["sub"]))
+        user = db.get(User, int(payload["sub"]))
+        if user is None or not user.active:
+            return None
+        from app.api.auth import token_is_stale
+        if token_is_stale(payload, user):
+            return None
+        return user
     except (pyjwt.InvalidTokenError, KeyError, ValueError):
         return None
 
@@ -76,10 +126,11 @@ async def ws_execution_stream(
     execution_id: str,
     websocket: WebSocket,
     token: str | None = None,
+    ticket: str | None = None,
 ) -> None:
     db = get_session()
     try:
-        user = _auth_user(token, db)
+        user = _auth_user(token, ticket, db)
         if user is None:
             await websocket.close(code=4401)
             return
@@ -94,6 +145,13 @@ async def ws_execution_stream(
 
     await websocket.accept()
 
+    if not _ws_try_acquire(user_id):
+        try:
+            await websocket.send_json({"type": "error", "error": "Connection limit reached."})
+        finally:
+            await websocket.close(code=4429)
+        return
+
     # Drain both event sources: the in-process bus (embedded consumer,
     # dev default) and the durable events table (external workers).
     # Only one is ever active per execution, so the two
@@ -102,11 +160,20 @@ async def ws_execution_stream(
     db_after = 0   # watermark: durable events
     last_error: dict | None = None
     last_auth_check = asyncio.get_event_loop().time()
+    connected_at = last_auth_check
+    last_activity = last_auth_check
     idle_ticks = 0
     try:
         while True:
-            # Re-validate user every 60 seconds (WebSocket re-validation)
             now = asyncio.get_event_loop().time()
+            if now - connected_at >= _WS_MAX_LIFETIME_S:
+                await websocket.send_json({"type": "error", "error": "Connection lifetime limit reached."})
+                break
+            if now - last_activity >= _WS_IDLE_TIMEOUT_S:
+                await websocket.send_json({"type": "error", "error": "Idle timeout."})
+                break
+
+            # Re-validate user every 60 seconds (WebSocket re-validation)
             if now - last_auth_check >= 60:
                 with get_session() as poll_db:
                     u = poll_db.get(User, user_id)
@@ -159,6 +226,7 @@ async def ws_execution_stream(
                 break
 
             if events:
+                last_activity = now
                 idle_ticks = 0
                 await asyncio.sleep(DRAIN_INTERVAL_S)
             else:
@@ -167,6 +235,7 @@ async def ws_execution_stream(
     except WebSocketDisconnect:
         pass
     finally:
+        _ws_release(user_id)
         try:
             await websocket.close()
         except Exception:

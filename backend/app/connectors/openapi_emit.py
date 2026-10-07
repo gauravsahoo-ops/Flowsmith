@@ -72,8 +72,8 @@ def emit_provider(key: str, api: ApiSpec) -> str:
     lines = [
         '"""Generated provider — do not hand-edit, regenerate from the OpenAPI spec.',
         "",
-        f"Source API: {api.title}",
-        f"Base URL: {api.base_url or '(none declared)'}",
+        f"Source API: {_py_str(api.title)}",
+        f"Base URL: {_py_str(api.base_url or '(none declared)')}",
         '"""',
         "",
         "from __future__ import annotations",
@@ -210,7 +210,7 @@ def emit_definition(key: str, display_name: str, api: ApiSpec, category: str = "
     lines = [
         '"""Generated definition — do not hand-edit, regenerate from the OpenAPI spec.',
         "",
-        f"Source API: {api.title}",
+        f"Source API: {_py_str(api.title)}",
         '"""',
         "",
         "from __future__ import annotations",
@@ -308,7 +308,7 @@ def emit_connector(key: str, display_name: str, api: ApiSpec) -> str:
     return "\n".join([
         '"""Generated connector — do not hand-edit, regenerate from the OpenAPI spec.',
         "",
-        f"Source API: {api.title}",
+        f"Source API: {_py_str(api.title)}",
         '"""',
         "",
         "from __future__ import annotations",

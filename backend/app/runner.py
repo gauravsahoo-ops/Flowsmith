@@ -18,6 +18,18 @@ T = TypeVar("T")
 CoroFactory = Callable[[], Coroutine[Any, Any, T]]
 
 
+async def _ssrf_request_hook(request: Any) -> None:
+    """SSRF guard for the shared execution client.
+
+    httpx fires request hooks for the initial request AND every redirect
+    hop, so a public URL that 302s to an internal address is re-validated
+    and blocked. Raises NodeExecutionError (SSRF_BLOCKED).
+    """
+    from app.security.ssrf import assert_public_url
+
+    await assert_public_url(str(request.url), node_id="http_request")
+
+
 class BackgroundRunner:
     def __init__(self) -> None:
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -114,7 +126,10 @@ class BackgroundRunner:
             if self._http_client is None:
                 import httpx
 
-                self._http_client = httpx.AsyncClient(timeout=httpx.Timeout(30.0))
+                self._http_client = httpx.AsyncClient(
+                    timeout=httpx.Timeout(30.0),
+                    event_hooks={"request": [_ssrf_request_hook]},
+                )
             return self._http_client
 
 

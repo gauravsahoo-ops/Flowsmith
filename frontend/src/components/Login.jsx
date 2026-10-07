@@ -30,7 +30,7 @@ export default function Login({ onAuthed }) {
   const [ssoProviders, setSsoProviders] = useState([])
 
   // Detect reset links: /reset-password?token=...
-  // Detect SSO callback: /?sso_token=...
+  // Detect SSO callback: /#sso_token=... (fragment: never in logs/Referer)
   useEffect(() => {
     if (window.location.pathname === '/reset-password') {
       const params = new URLSearchParams(window.location.search)
@@ -41,8 +41,11 @@ export default function Login({ onAuthed }) {
         window.history.replaceState({}, '', window.location.pathname)
       }
     }
-    const params = new URLSearchParams(window.location.search)
-    const ssoToken = params.get('sso_token')
+    let ssoToken = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sso_token')
+    if (!ssoToken) {
+      // Legacy query pickup for older links during transition.
+      ssoToken = new URLSearchParams(window.location.search).get('sso_token')
+    }
     if (ssoToken) {
       setToken(ssoToken)
       window.history.replaceState({}, '', '/')

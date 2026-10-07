@@ -448,8 +448,12 @@ def update_column(table_id: str, column_id: str, payload: ColumnUpdate, user: Us
         # This is transactional
         old_name = col.name
         if old_name != name:
-            rows = db.scalars(select(DataTableRow).where(DataTableRow.table_id == table_id)).all()
-            for r in rows:
+            rows_stmt = (
+                select(DataTableRow)
+                .where(DataTableRow.table_id == table_id)
+                .execution_options(yield_per=500)
+            )
+            for r in db.scalars(rows_stmt):
                 if old_name in r.data:
                     r.data[name] = r.data.pop(old_name)
                     # mark as modified for JSON
@@ -495,9 +499,13 @@ def delete_column(table_id: str, column_id: str, user: User = Depends(get_curren
     col = db.get(DataTableColumn, column_id)
     if col is None or col.table_id != table_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Column not found.")
-    # Remove column from all rows
-    rows = db.scalars(select(DataTableRow).where(DataTableRow.table_id == table_id)).all()
-    for r in rows:
+    # Remove column from all rows (streamed to keep memory bounded)
+    rows_stmt = (
+        select(DataTableRow)
+        .where(DataTableRow.table_id == table_id)
+        .execution_options(yield_per=500)
+    )
+    for r in db.scalars(rows_stmt):
         if col.name in r.data:
             del r.data[col.name]
             from sqlalchemy.orm.attributes import flag_modified
@@ -568,15 +576,57 @@ def list_rows(
     if filters:
         try:
             filter_list = json.loads(filters)
-            if not isinstance(filter_list, list):
+            if isinstance(filter_list, list):
+                pass
+            elif isinstance(filter_list, dict):
+                filter_list = [filter_list]
+            else:
                 filter_list = [filter_list]
         except:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "filters must be valid JSON")
 
-    # For performance, we fetch all rows and filter in python for MVP
-    # This is okay for tables up to a few thousand rows. For larger, we would push to DB.
-    # We also need to handle search: case-insensitive contains across all string columns
-    all_rows = list(db.scalars(select(DataTableRow).where(DataTableRow.table_id == table_id)).all())
+    page = max(1, page)
+    size = min(pageSize, 100)
+
+    # Fast path: plain browsing (no search/filter/custom sort) pages in SQL —
+    # O(page) memory regardless of table size.
+    if not (search and search.strip()) and not filter_list and not sort_by:
+        count_stmt = select(func.count()).select_from(DataTableRow).where(DataTableRow.table_id == table_id)
+        total = db.scalar(count_stmt) or 0
+        rows_stmt = (
+            select(DataTableRow)
+            .where(DataTableRow.table_id == table_id)
+            .order_by(DataTableRow.created_at.desc())
+            .offset((page - 1) * size)
+            .limit(size)
+        )
+        paged = db.scalars(rows_stmt).all()
+        data = [
+            {
+                "id": r.id,
+                "data": r.data,
+                "created_at": r.created_at,
+                "updated_at": r.updated_at,
+            }
+            for r in paged
+        ]
+        return ok(data, {"page": page, "pageSize": size, "total": total})
+
+    # Filtered/search path still runs in Python, but the scan is hard-capped so
+    # a single request cannot force an unbounded full-table load.
+    _SCAN_CAP = 50_000
+    scan_stmt = (
+        select(DataTableRow)
+        .where(DataTableRow.table_id == table_id)
+        .limit(_SCAN_CAP + 1)
+        .execution_options(yield_per=500)
+    )
+    all_rows = list(db.scalars(scan_stmt).all())
+    if len(all_rows) > _SCAN_CAP:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            f"Table has more than {_SCAN_CAP} rows; narrow the query with filters or delete old rows.",
+        )
 
     # Apply search
     if search and search.strip():

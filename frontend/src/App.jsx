@@ -112,6 +112,35 @@ function AuthenticatedRoutes({ onLogout }) {
   )
 }
 
+// Client-side token expiry pre-check (guarded decode: malformed tokens are
+// left for the server to reject via 401 rather than crashing the app).
+function tokenLooksExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    if (typeof payload.exp !== 'number') return false
+    // 30s skew allowance for clock differences.
+    return payload.exp * 1000 <= Date.now() - 30000
+  } catch {
+    return false
+  }
+}
+
+// Purge per-user client state on logout so a shared browser never shows
+// the previous account's cached profile or pinned outputs.
+function purgeUserStorage() {
+  try {
+    const prefixes = ['flowsmith_', 'op_pinned_']
+    const doomed = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && prefixes.some((p) => k.startsWith(p))) doomed.push(k)
+    }
+    doomed.forEach((k) => localStorage.removeItem(k))
+  } catch {
+    // storage unavailable — nothing to purge
+  }
+}
+
 function handleOAuthPopup() {
   const params = new URLSearchParams(window.location.search)
   const legacyOk = params.get('salesforce_connected') === '1'
@@ -143,6 +172,7 @@ export default function App() {
     // Handle OAuth popup callback even when not authed (popup window has no token)
     if (handleOAuthPopup()) return
     function onExpired() {
+      purgeUserStorage()
       setToken(null)
       setAuthed(false)
     }
@@ -150,7 +180,11 @@ export default function App() {
 
     // Validate stored token against the server on startup
     const token = getToken()
-    if (token) {
+    if (token && tokenLooksExpired(token)) {
+      // Expired locally: clear without a doomed round-trip.
+      setToken(null)
+      setAuthed(false)
+    } else if (token) {
       api.getMe()
         .then((data) => {
           const u = data?.data || data
@@ -196,6 +230,7 @@ export default function App() {
             ) : (
               <AuthenticatedRoutes
                 onLogout={() => {
+                  purgeUserStorage()
                   setToken(null)
                   setAuthed(false)
                 }}
