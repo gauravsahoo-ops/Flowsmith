@@ -91,3 +91,14 @@ def test_request_log_line_emitted(client, caplog):
         client.get("/api/health")
     assert any("request GET /api/health -> 200" in r.getMessage() for r in caplog.records)
     assert any(r.fields["status"] == 200 and "duration_ms" in r.fields for r in caplog.records)
+
+
+def test_monitoring_stats_accessible_by_standard_user(client):
+    reg = register(client)
+    resp = client.get("/api/monitoring/stats", headers=auth_headers(reg["token"]))
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert "workflows" in data
+    assert "executions" in data
+    assert "uptime_seconds" in data
+    assert "last_hour" in data

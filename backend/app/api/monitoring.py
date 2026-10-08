@@ -24,8 +24,6 @@ def get_stats(
     db: Session = Depends(get_db),
 ) -> dict:
     """Return execution statistics, queue depth, and system health."""
-    if user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required.")
     now = datetime.now(timezone.utc)
     hour_ago = now - timedelta(hours=1)
     day_ago = now - timedelta(days=1)
@@ -99,8 +97,6 @@ def get_metrics(
     db: Session = Depends(get_db),
 ) -> dict:
     """Return Prometheus-style metrics as JSON."""
-    if user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required.")
     total_workflows = db.scalar(select(func.count()).select_from(WorkflowRecord)) or 0
     total_executions = db.scalar(select(func.count()).select_from(Execution)) or 0
     running = db.scalar(
