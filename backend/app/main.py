@@ -25,7 +25,7 @@ from starlette.responses import Response
 from starlette.types import Message
 
 from app.api import admin, ai, audit, auth, billing, branding, code, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, monitoring, nodes, oauth, organizations, rag, salesforce_events, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
-from app.api.auth import get_current_user
+from app.api.auth import get_current_user, get_metrics_user
 from app.api.common import ok
 from app.config import get_settings
 from app.db import get_session
@@ -448,7 +448,7 @@ def readyz() -> Any:
 
 
 @app.get("/api/metrics", tags=["metrics"], response_class=PlainTextResponse)
-def metrics_endpoint(user: Any = Depends(get_current_user)) -> str:
+def metrics_endpoint(user: Any = Depends(get_metrics_user)) -> str:
     """Prometheus text format. Authenticated (Phase 23/38 audit): the
     counters include per-route traffic volumes, which an attacker could
     use for recon. Scrapers authenticate with a service user token;

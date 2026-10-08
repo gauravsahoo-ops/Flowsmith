@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { api } from '../api'
+import { api, getToken } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 
@@ -183,27 +183,35 @@ function SystemInfo({ stats }) {
 export default function MonitoringPage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
 
-  const fetchStats = useCallback(() => {
+  const fetchStats = useCallback((isManual = false) => {
+    if (isManual) setRefreshing(true)
     api.getMonitoringStats()
       .then((data) => {
         setStats(data)
         setError(null)
       })
       .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+      .finally(() => {
+        setLoading(false)
+        if (isManual) setRefreshing(false)
+      })
   }, [])
 
   useEffect(() => {
-    fetchStats()
+    fetchStats(false)
     let timer
     if (autoRefresh) {
-      timer = setInterval(fetchStats, 15000)
+      timer = setInterval(() => fetchStats(false), 15000)
     }
     return () => clearInterval(timer)
   }, [autoRefresh, fetchStats])
+
+  const token = getToken()
+  const metricsHref = token ? `/api/metrics?token=${encodeURIComponent(token)}` : '/api/metrics'
 
   if (loading) return <div className="page monitoring-page"><LoadingSkeleton rows={6} /></div>
   if (error && !stats) return <div className="page monitoring-page"><div className="banner-inline err">Error: {error}</div></div>
@@ -221,7 +229,7 @@ export default function MonitoringPage() {
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <a
-              href="/api/metrics"
+              href={metricsHref}
               target="_blank"
               rel="noopener noreferrer"
               className="ghost"
@@ -243,12 +251,27 @@ export default function MonitoringPage() {
               />
               Auto-refresh (15s)
             </label>
-            <button className="ghost" onClick={fetchStats} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <button
+              className="ghost"
+              onClick={() => fetchStats(true)}
+              disabled={refreshing || loading}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={refreshing ? { animation: 'spin 1s linear infinite' } : undefined}
+              >
                 <polyline points="23 4 23 10 17 10" />
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
               </svg>
-              Refresh
+              {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
         }
