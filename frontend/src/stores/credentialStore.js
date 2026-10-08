@@ -16,9 +16,13 @@ export const useCredentialStore = create((set, get) => ({
         api.listCredentials(),
         api.listCredentialTypes(),
       ])
-      set({ credentials, types, loaded: true, error: null })
+      const safeCreds = Array.isArray(credentials) ? credentials : []
+      const safeTypes = Array.isArray(types) ? types : []
+      set({ credentials: safeCreds, types: safeTypes, loaded: true, error: null })
+      return safeCreds
     } catch (err) {
       set({ error: err.message })
+      return []
     }
   },
 

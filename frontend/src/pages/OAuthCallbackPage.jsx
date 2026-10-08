@@ -42,6 +42,13 @@ export default function OAuthCallbackPage() {
       try {
         window.opener.postMessage(payload, targetOrigin)
         window.opener.postMessage(legacyMessage, targetOrigin)
+        if (isSuccess) {
+          window.opener.postMessage('oauth_connected', targetOrigin)
+          window.opener.postMessage(`${provider}_connected`, targetOrigin)
+        } else {
+          window.opener.postMessage('oauth_connect_failed', targetOrigin)
+          window.opener.postMessage(`${provider}_connect_failed`, targetOrigin)
+        }
       } catch (err) { console.error('[flowsmith] pages/OAuthCallbackPage.jsx', err) }
     }
 
@@ -50,6 +57,9 @@ export default function OAuthCallbackPage() {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('flowsmith_oauth')
         bc.postMessage(payload)
+        if (isSuccess) {
+          bc.postMessage({ provider, ok: true, source: 'oauth' })
+        }
         bc.close()
       }
     } catch (err) { console.error('[flowsmith] pages/OAuthCallbackPage.jsx', err) }
@@ -57,6 +67,11 @@ export default function OAuthCallbackPage() {
     // LocalStorage fallback: triggers storage event in parent window
     try {
       localStorage.setItem('flowsmith_oauth_result', JSON.stringify({ ...payload, _ts: Date.now() }))
+      if (isSuccess) {
+        localStorage.setItem('oauth_success', JSON.stringify({ provider, ok: true, _ts: Date.now() }))
+      } else {
+        localStorage.setItem('oauth_error', JSON.stringify({ provider, ok: false, error: error || 'Authorization failed', _ts: Date.now() }))
+      }
     } catch (err) { console.error('[flowsmith] pages/OAuthCallbackPage.jsx', err) }
 
     if (isSuccess) {

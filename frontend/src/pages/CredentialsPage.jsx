@@ -29,9 +29,9 @@ function defaultsFromSchema(schema) {
 
 export default function CredentialsPage() {
   const storeCreds = useCredentialStore(s => s.credentials)
-  const credentials = (storeCreds && storeCreds.length) ? storeCreds : useCredentialStore.getState().credentials
+  const credentials = (storeCreds && storeCreds.length > 0) ? storeCreds : useCredentialStore.getState().credentials
   const storeTypes = useCredentialStore(s => s.types)
-  const types = (storeTypes && storeTypes.length) ? storeTypes : useCredentialStore.getState().types
+  const types = (storeTypes && storeTypes.length > 0) ? storeTypes : useCredentialStore.getState().types
   const load = useCredentialStore(s => s.load)
   const create = useCredentialStore(s => s.create)
   const remove = useCredentialStore(s => s.remove)
@@ -114,6 +114,77 @@ export default function CredentialsPage() {
     api.listCredentialProviders().then(d => setProviders(Array.isArray(d) ? d : [])).catch(()=>{})
     api.listPredefinedCredentials().then(d => setPredefined(Array.isArray(d) ? d : [])).catch(()=>{})
   }, [])
+
+  // Global listener for OAuth completions from any modal, popup, or tab
+  useEffect(() => {
+    const handleOAuthCompletion = async (data) => {
+      let isSuccess = false
+      let providerName = 'Account'
+
+      if (typeof data === 'string') {
+        if (data.includes('connected') && !data.includes('failed')) {
+          isSuccess = true
+          const parts = data.split('_')
+          if (parts.length > 1 && parts[0] !== 'oauth') providerName = parts[0]
+        }
+      } else if (data && typeof data === 'object') {
+        const isOAuth = data.source === 'oauth' || data.source === 'salesforce-oauth' || data.provider
+        if (isOAuth && (data.ok === true || data.type === 'salesforce-oauth-success' || data.status === 'success')) {
+          isSuccess = true
+          if (data.provider) providerName = data.provider
+        }
+      }
+
+      if (isSuccess) {
+        if (mountedRef.current) {
+          setNotice(`${providerName.replace(/_/g, ' ')} connected successfully.`)
+          setError(null)
+          setOauthBusy('')
+          setFallbackUrl('')
+          setSfModalOpen(false)
+          setHsModalOpen(false)
+          setGoogleModalOpen(false)
+          setDynModalOpen(false)
+        }
+        await load()
+        setTimeout(() => {
+          if (mountedRef.current) load()
+        }, 400)
+      }
+    }
+
+    const onMessage = (e) => {
+      if (!isTrustedOAuthOrigin(e.origin)) return
+      handleOAuthCompletion(e.data)
+    }
+
+    const onStorage = (e) => {
+      if ((e.key === 'flowsmith_oauth_result' || e.key === 'oauth_success') && e.newValue) {
+        try {
+          handleOAuthCompletion(JSON.parse(e.newValue))
+        } catch {}
+      }
+    }
+
+    let bc = null
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('flowsmith_oauth')
+        bc.onmessage = (ev) => handleOAuthCompletion(ev.data)
+      }
+    } catch {}
+
+    window.addEventListener('message', onMessage)
+    window.addEventListener('storage', onStorage)
+
+    return () => {
+      window.removeEventListener('message', onMessage)
+      window.removeEventListener('storage', onStorage)
+      if (bc) {
+        try { bc.close() } catch {}
+      }
+    }
+  }, [load])
 
   const filtered = credentials.filter(c => {
     if (typeFilter !== 'all' && c.type !== typeFilter) return false
@@ -263,7 +334,9 @@ export default function CredentialsPage() {
           setFallbackUrl('')
         }
         cleanupListeners()
-        load()
+        load().finally(() => {
+          setTimeout(() => { if (mountedRef.current) load() }, 400)
+        })
         if (w && !w.closed) {
           try { w.close() } catch {}
         }
@@ -278,7 +351,7 @@ export default function CredentialsPage() {
       }
 
       const storageHandler = (event) => {
-        if (event.key === 'flowsmith_oauth_result' && event.newValue) {
+        if ((event.key === 'flowsmith_oauth_result' || event.key === 'oauth_success') && event.newValue) {
           try {
             processResult(JSON.parse(event.newValue))
           } catch (err) { console.error('[flowsmith] pages/CredentialsPage.jsx', err) }
@@ -1638,6 +1711,7 @@ export default function CredentialsPage() {
         initialData={sfModalData}
         onConnected={async () => {
           await load()
+          setTimeout(() => { if (mountedRef.current) load() }, 400)
           setNotice('Salesforce account connected successfully.')
         }}
         onSave={async (saved) => {
@@ -1659,6 +1733,7 @@ export default function CredentialsPage() {
               setNotice('Salesforce Connected App saved.')
             }
             await load()
+            setTimeout(() => { if (mountedRef.current) load() }, 400)
           } catch (err) {
             setError(err?.message || 'Failed to save Salesforce configuration.')
           }
@@ -1674,6 +1749,7 @@ export default function CredentialsPage() {
         initialData={hsModalData}
         onConnected={async () => {
           await load()
+          setTimeout(() => { if (mountedRef.current) load() }, 400)
           setNotice('HubSpot account connected successfully.')
         }}
         onSave={async (saved) => {
@@ -1708,6 +1784,7 @@ export default function CredentialsPage() {
               setNotice('HubSpot Developer App saved.')
             }
             await load()
+            setTimeout(() => { if (mountedRef.current) load() }, 400)
           } catch (err) {
             setError(err?.message || 'Failed to save HubSpot configuration.')
           }
@@ -1724,6 +1801,7 @@ export default function CredentialsPage() {
         initialData={googleModalData}
         onConnected={async () => {
           await load()
+          setTimeout(() => { if (mountedRef.current) load() }, 400)
           setNotice('Google account connected successfully.')
         }}
         onSave={async (saved) => {
@@ -1743,6 +1821,7 @@ export default function CredentialsPage() {
               setNotice('Google Cloud App saved for all Google services.')
             }
             await load()
+            setTimeout(() => { if (mountedRef.current) load() }, 400)
           } catch (err) {
             setError(err?.message || 'Failed to save Google configuration.')
           }
@@ -1758,6 +1837,7 @@ export default function CredentialsPage() {
         initialData={dynModalData}
         onConnected={async () => {
           await load()
+          setTimeout(() => { if (mountedRef.current) load() }, 400)
           setNotice('Microsoft Dynamics 365 account connected successfully.')
         }}
         onSave={async (saved) => {

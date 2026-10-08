@@ -142,12 +142,16 @@ export default function SalesforceOAuthModal({
     const extra = {
       clientId: clientId.trim(),
       clientSecret: clientSecret.trim(),
+      client_id: clientId.trim(),
+      client_secret: clientSecret.trim(),
       name: name.trim() || 'Salesforce account',
       allowedDomains: allowedDomainsValue,
+      allowed_domains: allowedDomainsValue,
     }
 
     if (initialData?.id) {
       extra.credentialId = initialData.id
+      extra.credential_id = initialData.id
     }
 
     // Open popup window immediately on click gesture to prevent browser popup blockers
@@ -220,6 +224,63 @@ export default function SalesforceOAuthModal({
       }
 
       let bc = null
+      let handled = false
+
+      const handleResult = async (data) => {
+        if (!data) return
+        let isSuccess = false
+        let isFail = false
+        let errorMsg = ''
+
+        if (typeof data === 'string') {
+          if (data === 'salesforce_connected' || data === 'oauth_connected') {
+            isSuccess = true
+          } else if (data === 'salesforce_connect_failed' || data === 'oauth_connect_failed') {
+            isFail = true
+            errorMsg = 'Salesforce authorization failed.'
+          }
+        } else if (typeof data === 'object') {
+          const isOAuth = data.source === 'oauth' || data.source === 'salesforce-oauth'
+          if (isOAuth) {
+            if (!data.provider || data.provider === 'salesforce') {
+              if (data.type === 'salesforce-oauth-success' || data.ok === true) {
+                isSuccess = true
+              } else if (data.type === 'salesforce-oauth-error' || data.ok === false) {
+                isFail = true
+                errorMsg = data.error || 'Salesforce authorization failed.'
+              }
+            }
+          }
+        }
+
+        if (isSuccess && !handled) {
+          handled = true
+          cleanupListeners()
+          setBusy(false)
+
+          if (popup && !popup.closed) {
+            try { popup.close() } catch {}
+          }
+
+          setNotice('Salesforce account authorized and connected successfully.')
+          setConnectedAccount(typeof data === 'object' ? (data.account || name) : name)
+          if (onConnected) {
+            onConnected(data)
+          }
+          setTimeout(() => onClose?.(), 1200)
+        } else if (isFail && !handled) {
+          handled = true
+          cleanupListeners()
+          setBusy(false)
+
+          if (popup && !popup.closed) {
+            try { popup.close() } catch {}
+          }
+
+          setError(errorMsg || 'Salesforce authorization failed.')
+        }
+      }
+
       try {
         if (typeof BroadcastChannel !== 'undefined') {
           bc = new BroadcastChannel('flowsmith_oauth')
@@ -227,8 +288,17 @@ export default function SalesforceOAuthModal({
         }
       } catch (err) { console.error('[flowsmith] components/SalesforceOAuthModal.jsx', err) }
 
+      const storageHandler = (e) => {
+        if ((e.key === 'flowsmith_oauth_result' || e.key === 'oauth_success') && e.newValue) {
+          try {
+            handleResult(JSON.parse(e.newValue))
+          } catch (err) { console.error('[flowsmith] components/SalesforceOAuthModal.jsx', err) }
+        }
+      }
+
       const cleanupListeners = () => {
         window.removeEventListener('message', messageHandler)
+        window.removeEventListener('storage', storageHandler)
         if (bc) {
           try { bc.close() } catch {}
         }
@@ -243,34 +313,7 @@ export default function SalesforceOAuthModal({
         handleResult(ev.data)
       }
       window.addEventListener('message', messageHandler)
-
-      let handled = false
-      const handleResult = async (data) => {
-        if (!data || typeof data !== 'object') return
-        const isOAuth = data.source === 'oauth' || data.source === 'salesforce-oauth'
-        const isSuccess = data.type === 'salesforce-oauth-success' || data.ok === true
-        const isError = data.type === 'salesforce-oauth-error' || data.ok === false
-        if (!isOAuth || (!isSuccess && !isError)) return
-        if (data.provider && data.provider !== 'salesforce') return
-
-        handled = true
-        cleanupListeners()
-        setBusy(false)
-
-        if (popup && !popup.closed) {
-          try { popup.close() } catch {}
-        }
-
-        if (isSuccess || data.ok) {
-          setNotice('Salesforce account authorized and connected successfully.')
-          setConnectedAccount(data.account || name)
-          if (onConnected) {
-            onConnected(data)
-          }
-        } else {
-          setError(data.error || 'Salesforce authorization failed.')
-        }
-      }
+      window.addEventListener('storage', storageHandler)
 
       // Detect if user manually closed the popup
       const timer = setInterval(() => {

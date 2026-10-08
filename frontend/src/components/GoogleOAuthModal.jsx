@@ -171,44 +171,75 @@ export default function GoogleOAuthModal({
       popup.location.href = authorizeUrl
 
       let resolved = false
-      const messageHandler = (e) => {
-        if (!isTrustedOAuthOrigin(e.origin)) {
-          console.warn('[flowsmith] GoogleOAuthModal: message from untrusted origin', e.origin)
-          return
+      let bc = null
+
+      const handleResult = (data) => {
+        if (!data) return
+        let isSuccess = false
+        let isFail = false
+        let errorMsg = ''
+
+        if (typeof data === 'string') {
+          if (data === 'oauth_connected' || data === `${serviceType}_connected`) {
+            isSuccess = true
+          } else if (data === 'oauth_connect_failed' || data === `${serviceType}_connect_failed`) {
+            isFail = true
+            errorMsg = 'Google authorization was cancelled or failed.'
+          }
+        } else if (typeof data === 'object') {
+          const isOAuth = data.source === 'oauth' || data.source === 'salesforce-oauth' || data.provider
+          if (isOAuth) {
+            const matchesProvider = !data.provider || data.provider === serviceType || data.provider?.startsWith('google')
+            if (matchesProvider) {
+              if (data.ok === true || data.type === 'salesforce-oauth-success') {
+                isSuccess = true
+              } else if (data.ok === false || data.type === 'salesforce-oauth-error') {
+                isFail = true
+                errorMsg = data.error || 'Google authorization was cancelled or failed.'
+              }
+            }
+          }
         }
-        if (e.data === 'oauth_connected' || e.data === `${serviceType}_connected`) {
+
+        if (isSuccess && !resolved) {
           resolved = true
           cleanup()
           setNotice(`${activeService.name} authorized and connected successfully.`)
           setBusy(false)
           try { popup.close() } catch {}
           onConnected?.()
-          setTimeout(() => onClose(), 1200)
-        } else if (e.data === 'oauth_connect_failed' || e.data === `${serviceType}_connect_failed`) {
+          setTimeout(() => onClose?.(), 1200)
+        } else if (isFail && !resolved) {
           resolved = true
           cleanup()
-          setError('Google authorization was cancelled or failed.')
+          setError(errorMsg || 'Google authorization was cancelled or failed.')
           setBusy(false)
           try { popup.close() } catch {}
         }
       }
 
+      const messageHandler = (e) => {
+        if (!isTrustedOAuthOrigin(e.origin)) {
+          console.warn('[flowsmith] GoogleOAuthModal: message from untrusted origin', e.origin)
+          return
+        }
+        handleResult(e.data)
+      }
+
       const storageHandler = (e) => {
-        if (e.key === 'oauth_success' && e.newValue) {
+        if ((e.key === 'oauth_success' || e.key === 'flowsmith_oauth_result') && e.newValue) {
           try {
-            const parsed = JSON.parse(e.newValue)
-            if (parsed.provider === serviceType || parsed.provider?.startsWith('google')) {
-              resolved = true
-              cleanup()
-              setNotice(`${activeService.name} account authorized successfully.`)
-              setBusy(false)
-              try { popup.close() } catch {}
-              onConnected?.()
-              setTimeout(() => onClose(), 1200)
-            }
+            handleResult(JSON.parse(e.newValue))
           } catch (err) { console.error('[flowsmith] components/GoogleOAuthModal.jsx', err) }
         }
       }
+
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          bc = new BroadcastChannel('flowsmith_oauth')
+          bc.onmessage = (ev) => handleResult(ev.data)
+        }
+      } catch (err) { console.error('[flowsmith] components/GoogleOAuthModal.jsx', err) }
 
       const pollClosed = setInterval(() => {
         if (popup && popup.closed) {
@@ -228,6 +259,10 @@ export default function GoogleOAuthModal({
       const cleanup = () => {
         window.removeEventListener('message', messageHandler)
         window.removeEventListener('storage', storageHandler)
+        if (bc) {
+          try { bc.close() } catch {}
+          bc = null
+        }
         clearInterval(pollClosed)
       }
 

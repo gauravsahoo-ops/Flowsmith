@@ -71,25 +71,81 @@ export default function DynamicsCrmOAuthModal({
     // Only listen while the modal is open; closing it aborts the flow so no
     // handler outlives the modal.
     if (!isOpen) return undefined
+
+    let resolved = false
+    function handleResult(data) {
+      if (!data) return
+      let isSuccess = false
+      let isFail = false
+      let errorMsg = ''
+
+      if (typeof data === 'string') {
+        if (data === 'dynamics_crm_connected' || data === 'oauth_connected') {
+          isSuccess = true
+        } else if (data === 'dynamics_crm_connect_failed' || data === 'oauth_connect_failed') {
+          isFail = true
+          errorMsg = 'OAuth authorization failed.'
+        }
+      } else if (typeof data === 'object') {
+        if (data.provider === 'dynamics_crm' || data.type === 'oauth_callback' || data.source === 'oauth') {
+          if (data.ok || data.status === 'success' || data.type === 'salesforce-oauth-success') {
+            isSuccess = true
+          } else if (data.ok === false || data.error) {
+            isFail = true
+            errorMsg = data.error || 'OAuth authorization failed.'
+          }
+        }
+      }
+
+      if (isSuccess && !resolved) {
+        resolved = true
+        setNotice('Microsoft Dynamics 365 account connected successfully!')
+        setConnectedUser(data.user || data.username || 'Authorized User')
+        setBusy(false)
+        if (onConnected) onConnected(data)
+        setTimeout(() => onClose?.(), 1200)
+      } else if (isFail && !resolved) {
+        resolved = true
+        setError(errorMsg || 'OAuth authorization failed.')
+        setBusy(false)
+      }
+    }
+
     function handleMessage(event) {
       if (!isTrustedOAuthOrigin(event.origin)) {
         console.warn('[flowsmith] DynamicsCrmOAuthModal: message from untrusted origin', event.origin)
         return
       }
-      if (!event.data || typeof event.data !== 'object') return
-      if (event.data.provider === 'dynamics_crm' || event.data.type === 'oauth_callback') {
-        if (event.data.ok || event.data.status === 'success') {
-          setNotice('Microsoft Dynamics 365 account connected successfully!')
-          setConnectedUser(event.data.user || event.data.username || 'Authorized User')
-          if (onConnected) onConnected(event.data)
-        } else if (event.data.error) {
-          setError(event.data.error || 'OAuth authorization failed.')
-        }
+      handleResult(event.data)
+    }
+
+    function handleStorage(event) {
+      if ((event.key === 'flowsmith_oauth_result' || event.key === 'oauth_success') && event.newValue) {
+        try {
+          handleResult(JSON.parse(event.newValue))
+        } catch (err) { console.error('[flowsmith] components/DynamicsCrmOAuthModal.jsx', err) }
       }
     }
+
+    let bc = null
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('flowsmith_oauth')
+        bc.onmessage = (event) => handleResult(event?.data)
+      }
+    } catch (err) { console.error('[flowsmith] components/DynamicsCrmOAuthModal.jsx', err) }
+
     window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [onConnected, isOpen])
+    window.addEventListener('storage', handleStorage)
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      window.removeEventListener('storage', handleStorage)
+      if (bc) {
+        try { bc.close() } catch {}
+        bc = null
+      }
+    }
+  }, [onConnected, onClose, isOpen])
 
   const copyToClipboard = (text) => {
     if (navigator?.clipboard) {

@@ -32,7 +32,7 @@ from app.credentials.service import create_for_user
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
@@ -59,6 +59,11 @@ _AUDIT_MAP = {"salesforce": (SALESFORCE_CONNECT, SALESFORCE_CONNECT_FAILED)}
 
 
 class ConnectRequest(BaseModel):
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore",
+    }
+
     login_url: str | None = Field(
         default=None,
         description="Provider-specific org base (Salesforce only; defaults to SALESFORCE_LOGIN_URL).",
@@ -91,6 +96,26 @@ class ConnectRequest(BaseModel):
         default=None,
         description="Optional tenant ID override (for Microsoft Dynamics 365 / Azure Entra).",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _remap_camel_case(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            mapped = dict(data)
+            if "clientId" in mapped and "client_id" not in mapped:
+                mapped["client_id"] = mapped["clientId"]
+            if "clientSecret" in mapped and "client_secret" not in mapped:
+                mapped["client_secret"] = mapped["clientSecret"]
+            if "loginUrl" in mapped and "login_url" not in mapped:
+                mapped["login_url"] = mapped["loginUrl"]
+            if "credentialId" in mapped and "credential_id" not in mapped:
+                mapped["credential_id"] = mapped["credentialId"]
+            if "allowedDomains" in mapped and "allowed_domains" not in mapped:
+                mapped["allowed_domains"] = mapped["allowedDomains"]
+            if "tenantId" in mapped and "tenant_id" not in mapped:
+                mapped["tenant_id"] = mapped["tenantId"]
+            return mapped
+        return data
 
 
 def _audit_names(provider_key: str) -> tuple[str, str]:
