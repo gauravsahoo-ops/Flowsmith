@@ -137,3 +137,63 @@ export function autoLayout(nodes, edges, direction = 'LR') {
 }
 
 export const AUTO_LAYOUT_METRICS = { NODE_W, NODE_H, GAP_X, GAP_Y };
+
+/**
+ * Smoothly interpolates node positions to targetPositions using requestAnimationFrame.
+ * Creates a fluid 60fps glide animation across the canvas instead of an abrupt jump.
+ */
+export function animateAutoLayout(store, targetPositions, duration = 280, onComplete) {
+  if (!store || !targetPositions || targetPositions.size === 0) {
+    if (onComplete) onComplete();
+    return;
+  }
+  const currentNodes = store.nodes || [];
+  const startPositions = new Map();
+  for (const n of currentNodes) {
+    if (targetPositions.has(n.id) && n.position) {
+      startPositions.set(n.id, { x: n.position.x, y: n.position.y });
+    }
+  }
+
+  if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+    store.onNodesChange(
+      [...targetPositions.entries()].map(([id, position]) => ({
+        id,
+        type: 'position',
+        position,
+        dragging: false,
+      }))
+    );
+    if (onComplete) onComplete();
+    return;
+  }
+
+  const startTime = performance.now();
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    const ease = 1 - Math.pow(1 - progress, 3);
+
+    const changes = [];
+    for (const [id, target] of targetPositions.entries()) {
+      const start = startPositions.get(id) || target;
+      changes.push({
+        id,
+        type: 'position',
+        position: {
+          x: Math.round(start.x + (target.x - start.x) * ease),
+          y: Math.round(start.y + (target.y - start.y) * ease),
+        },
+        dragging: false,
+      });
+    }
+    store.onNodesChange(changes);
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else if (onComplete) {
+      onComplete();
+    }
+  }
+  requestAnimationFrame(step);
+}

@@ -130,22 +130,29 @@ export default function CommandPalette({ open, onClose }) {
         svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="6" height="6" rx="1" /><rect x="15" y="3" width="6" height="6" rx="1" /><rect x="9" y="15" width="6" height="6" rx="1" /><line x1="6" y1="9" x2="12" y2="15" /><line x1="18" y1="9" x2="12" y2="15" /></svg>,
         enabled: true,
         perform: () => {
-          import('../utils/autoLayout').then(({ autoLayout }) => {
+          import('../utils/autoLayout').then(({ autoLayout, animateAutoLayout }) => {
             const store = useWorkflowStore.getState()
+            if (store.nodes.length < 2) return
             store.pushHistory('autolayout')
             const positions = autoLayout(
               store.nodes.filter((n) => n.type === 'custom'),
               store.edges,
             )
-            useWorkflowStore.getState().onNodesChange(
-              [...positions.entries()].map(([id, position]) => ({
-                id,
-                type: 'position',
-                position,
-                dragging: false,
-              })),
-            )
-            setTimeout(() => fitView({ duration: 400, padding: 0.15, maxZoom: 1 }), 60)
+            if (typeof animateAutoLayout === 'function') {
+              animateAutoLayout(store, positions, 280, () => {
+                fitView({ duration: 400, padding: 0.15, maxZoom: 1 })
+              })
+            } else {
+              useWorkflowStore.getState().onNodesChange(
+                [...positions.entries()].map(([id, position]) => ({
+                  id,
+                  type: 'position',
+                  position,
+                  dragging: false,
+                })),
+              )
+              setTimeout(() => fitView({ duration: 400, padding: 0.15, maxZoom: 1 }), 60)
+            }
           })
         },
       },

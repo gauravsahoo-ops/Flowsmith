@@ -639,6 +639,27 @@
 .react-flow__edge-textwrapper .react-flow__edge-text { fill: var(--text); }
 .react-flow__edge-textwrapper .react-flow__edge-textbg { fill: #262a33; }
 
+/* ---------- 60fps hardware accelerated canvas layers ---------- */
+.react-flow__viewport {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+.react-flow__pane {
+  cursor: grab;
+}
+.react-flow__pane.dragging {
+  cursor: grabbing;
+}
+.react-flow__node {
+  contain: layout style;
+  will-change: transform;
+}
+.react-flow__node.dragging,
+.react-flow__node.dragging * {
+  cursor: grabbing !important;
+}
+
 /* ---------- handles (connection points) ---------- */
 .react-flow__handle {
   width: 12px !important;
@@ -655,8 +676,18 @@
   transform: scale(1.35) !important;
 }
 .react-flow__connection-line {
-  stroke: var(--accent) !important;
-  stroke-width: 2 !important;
+  stroke: #6366f1 !important;
+  stroke-width: 2.5 !important;
+}
+.react-flow__connection-path {
+  stroke: #6366f1 !important;
+  stroke-width: 2.5 !important;
+  stroke-dasharray: 6 4 !important;
+  animation: connectionPulse 0.8s linear infinite !important;
+}
+@keyframes connectionPulse {
+  from { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 0; }
 }
 
 /* ---------- comments ---------- */

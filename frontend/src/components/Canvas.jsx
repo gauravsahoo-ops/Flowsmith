@@ -70,17 +70,26 @@ function useLabeledStatefulEdges(edges, edgeLabels, nodeStatuses, running) {
       const sourceStatus = nodeStatuses[e.source]
       const targetStatus = nodeStatuses[e.target]
 
-      if (targetStatus === 'failed' || targetStatus === 'error') {
+      if (
+        targetStatus === 'failed' ||
+        targetStatus === 'error' ||
+        sourceStatus === 'failed' ||
+        sourceStatus === 'error'
+      ) {
         state = 'error'
       } else if (targetStatus === 'skipped') {
         state = 'skipped'
+      } else if (
+        targetStatus === 'waiting_approval' ||
+        targetStatus === 'waiting' ||
+        sourceStatus === 'waiting_approval'
+      ) {
+        state = 'waiting'
       } else if (anyRunning) {
         // While running: animate active data flow leading into running nodes or between active steps
         if (
           sourceStatus === 'running' ||
           targetStatus === 'running' ||
-          sourceStatus === 'waiting_approval' ||
-          targetStatus === 'waiting_approval' ||
           (sourceStatus === 'success' && (targetStatus === 'running' || !targetStatus))
         ) {
           state = 'active'
@@ -576,12 +585,12 @@ function CanvasInner() {
         maxZoom={1.5}
         elevateEdgesOnSelect
         fitView={nodes.length > 0}
-        fitViewOptions={{ padding: 0.25, includeHiddenNodes: true, maxZoom: nodes.length <= 2 ? 0.85 : 1.0 }}
+        fitViewOptions={{ padding: 0.25, includeHiddenNodes: true, maxZoom: nodes.length <= 2 ? 0.85 : 1.0, duration: 450 }}
         onInit={(instance) => {
           const safeMaxZoom = nodes.length <= 2 ? 0.85 : 1.0
           if (nodes.length > 0) {
             clearTimeout(initFitTimerRef.current)
-            initFitTimerRef.current = setTimeout(() => instance.fitView({ padding: 0.25, maxZoom: safeMaxZoom }), 50)
+            initFitTimerRef.current = setTimeout(() => instance.fitView({ padding: 0.25, maxZoom: safeMaxZoom, duration: 450 }), 50)
           } else {
             instance.setViewport({ x: 0, y: 0, zoom: 1 })
           }

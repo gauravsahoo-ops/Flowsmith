@@ -49,6 +49,9 @@
     0 0 0 1px rgba(255, 255, 255, 0.08),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
   animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 /* Header */
@@ -633,9 +636,14 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   border-color: color-mix(in srgb, var(--node-accent, var(--accent)) 60%, transparent);
 }
-.rf-node:active {
+.rf-node:active:not(.is-dragging) {
   transform: translateY(0) scale(0.98);
   transition-duration: 0.08s;
+}
+.react-flow__node.dragging .rf-node,
+.react-flow__node.dragging .rf-node-card {
+  transform: none !important;
+  transition: none !important;
 }
 .rf-node.is-running {
   animation: nodePulse 1.5s ease-in-out infinite;

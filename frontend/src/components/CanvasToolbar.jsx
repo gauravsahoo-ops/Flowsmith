@@ -72,7 +72,7 @@ export default function CanvasToolbar() {
   }, [nodes, edges])
 
   function onAutoLayout() {
-    import('../utils/autoLayout').then(({ autoLayout }) => {
+    import('../utils/autoLayout').then(({ autoLayout, animateAutoLayout }) => {
       const store = useWorkflowStore.getState()
       if (store.nodes.length < 2) return
       store.pushHistory('autolayout')
@@ -80,15 +80,21 @@ export default function CanvasToolbar() {
         store.nodes.filter((n) => n.type === 'custom'),
         store.edges,
       )
-      useWorkflowStore.getState().onNodesChange(
-        [...positions.entries()].map(([id, position]) => ({
-          id,
-          type: 'position',
-          position,
-          dragging: false,
-        })),
-      )
-      setTimeout(() => fitView({ duration: 400, padding: 0.15, maxZoom: 1 }), 60)
+      if (typeof animateAutoLayout === 'function') {
+        animateAutoLayout(store, positions, 280, () => {
+          fitView({ duration: 400, padding: 0.15, maxZoom: 1 })
+        })
+      } else {
+        useWorkflowStore.getState().onNodesChange(
+          [...positions.entries()].map(([id, position]) => ({
+            id,
+            type: 'position',
+            position,
+            dragging: false,
+          })),
+        )
+        setTimeout(() => fitView({ duration: 400, padding: 0.15, maxZoom: 1 }), 60)
+      }
     })
   }
 

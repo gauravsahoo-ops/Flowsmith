@@ -45,9 +45,14 @@ select { transition: border-color .12s ease, box-shadow .12s ease; }
 .searchable-select button { transition: border-color .12s ease, box-shadow .12s ease; }
 
 /* --- Node Cards: cleaner, subtle states --- */
-.rf-node { transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
+.rf-node { transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; will-change: transform; }
 .rf-node:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,.32); }
 .rf-node.selected { box-shadow: 0 0 0 2px rgba(79,140,255,.22), 0 8px 24px rgba(0,0,0,.35); }
+.react-flow__node.dragging .rf-node,
+.react-flow__node.dragging .rf-node-card {
+  transition: none !important;
+  transform: none !important;
+}
 .rf-node.has-error { animation: shake .22s ease; }
 @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-2px)} 75%{transform:translateX(2px)} }
 .status-dot { transition: background .15s ease, transform .15s ease; }
