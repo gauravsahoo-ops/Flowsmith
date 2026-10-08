@@ -411,22 +411,30 @@
 .exec-edge.exec-active,
 .exec-edge.exec-running {
   stroke: #38bdf8;
-  stroke-width: 3;
-  stroke-dasharray: 9 6;
+  stroke-width: 3.2;
+  stroke-dasharray: 8 5;
   stroke-linecap: round;
-  animation: dashflow 0.8s linear infinite;
-  filter: drop-shadow(0 0 9px rgba(56, 189, 248, 0.85));
+  animation: dashflow 0.75s linear infinite;
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.9));
   will-change: stroke-dashoffset;
 }
 .exec-edge.exec-completed {
   stroke: #10b981;
-  stroke-width: 2.4;
-  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.5));
+  stroke-width: 2.6;
+  stroke-dasharray: 8 6;
+  stroke-linecap: round;
+  animation: dashflow 1.4s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.65));
+  will-change: stroke-dashoffset;
 }
 .exec-edge.exec-error {
   stroke: #f43f5e;
   stroke-width: 2.8;
-  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.75));
+  stroke-dasharray: 8 6;
+  stroke-linecap: round;
+  animation: dashflow 1.4s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.8));
+  will-change: stroke-dashoffset;
 }
 .exec-edge.exec-skipped {
   stroke: #64748b;
@@ -437,12 +445,14 @@
 .exec-edge.exec-waiting {
   stroke: #f59e0b;
   stroke-width: 2.6;
-  stroke-dasharray: 7 5;
+  stroke-dasharray: 8 5;
+  stroke-linecap: round;
   animation: dashflow 1.2s linear infinite;
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+  filter: drop-shadow(0 0 7px rgba(245, 158, 11, 0.7));
+  will-change: stroke-dashoffset;
 }
 @keyframes dashflow {
-  from { stroke-dashoffset: 30; }
+  from { stroke-dashoffset: 28; }
   to { stroke-dashoffset: 0; }
 }
 .exec-edge-hit { pointer-events: stroke; cursor: pointer; }
