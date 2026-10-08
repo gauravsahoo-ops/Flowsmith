@@ -166,10 +166,15 @@ function ExecutionEdge({
         className={`exec-edge exec-${state}`}
       />
 
-      {state === 'active' && (
-        <circle r={3} fill="#10b981" style={{ filter: 'drop-shadow(0 0 5px #34d399)' }} pointerEvents="none">
-          <animateMotion dur="0.9s" repeatCount="indefinite" path={path} />
-        </circle>
+      {(state === 'active' || state === 'running') && (
+        <>
+          <circle r={4.5} fill="#38bdf8" style={{ filter: 'drop-shadow(0 0 8px #38bdf8)' }} pointerEvents="none">
+            <animateMotion dur="1.1s" repeatCount="indefinite" path={path} />
+          </circle>
+          <circle r={3} fill="#10b981" style={{ filter: 'drop-shadow(0 0 6px #34d399)' }} pointerEvents="none">
+            <animateMotion dur="1.1s" begin="-0.55s" repeatCount="indefinite" path={path} />
+          </circle>
+        </>
       )}
 
       <EdgeLabelRenderer>

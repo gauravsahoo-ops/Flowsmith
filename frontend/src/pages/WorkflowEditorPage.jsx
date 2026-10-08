@@ -107,9 +107,77 @@ export default function WorkflowEditorPage() {
       }
     }
     setLocalError(null)
-    load(id).catch(e => setLocalError(e.message))
+    load(id).then(async () => {
+      // When opening a workflow (active or draft), immediately check for any active running execution
+      // or the latest execution so the canvas displays the live run or recent execution across the entire workflow!
+      try {
+        const { api } = await import('../api')
+        const { data } = await api.listExecutions({ workflowId: id, pageSize: 5 })
+        if (Array.isArray(data) && data.length > 0) {
+          const active = data.find(
+            (e) =>
+              e.status === 'running' ||
+              e.status === 'queued' ||
+              e.status === 'waiting' ||
+              e.status === 'waiting_approval'
+          )
+          const target = active || data[0]
+          if (target?.id) {
+            await useExecutionStore.getState().load(target.id)
+          }
+        }
+      } catch {
+        // non-blocking
+      }
+    }).catch(e => setLocalError(e.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  // Live execution monitor: when viewing an active workflow (or any workflow on screen),
+  // continuously detect if an execution was triggered in background (e.g. by webhook, schedule, or external event)
+  // and sync the live running execution right onto the entire canvas!
+  useEffect(() => {
+    if (!id) return
+    let active = true
+
+    const syncLiveExecution = async () => {
+      if (!active) return
+      const cur = useExecutionStore.getState()
+      // If already tracking an active live execution via socket or pollTimer, let it stream
+      if (cur.running && (cur.socket || cur.pollTimer)) {
+        return
+      }
+
+      try {
+        const { api } = await import('../api')
+        const { data } = await api.listExecutions({ workflowId: id, pageSize: 3 })
+        if (!active || !Array.isArray(data) || !data.length) return
+
+        const runningExec = data.find(
+          (e) =>
+            e.status === 'running' ||
+            e.status === 'queued' ||
+            e.status === 'waiting' ||
+            e.status === 'waiting_approval'
+        )
+
+        if (runningExec) {
+          // If a new execution is running in the background, attach immediately!
+          if (runningExec.id !== cur.executionId || !cur.running) {
+            await useExecutionStore.getState().load(runningExec.id)
+          }
+        }
+      } catch {
+        // non-blocking
+      }
+    }
+
+    const timer = setInterval(syncLiveExecution, 2500)
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
+  }, [id, workflow?.active])
 
   // Leave the page: stop following the execution (close the live WebSocket
   // and any poll timer) so navigating away doesn't leak the connection.

@@ -229,9 +229,12 @@ function CustomNode({ id, data, selected }) {
   const skipped = status === 'skipped'
   const running = status === 'running' || status === 'waiting' || status === 'waiting_approval'
   const showPreview =
-    preview &&
-    (status === 'success' || status === 'failed' || status === 'skipped' || status === 'error' || running) &&
-    (preview.outputCount != null || preview.error || preview.durationMs != null || status === 'skipped')
+    running ||
+    Boolean(
+      preview &&
+      (status === 'success' || status === 'failed' || status === 'skipped' || status === 'error') &&
+      (preview.outputCount != null || preview.error || preview.durationMs != null || status === 'skipped')
+    )
 
   // Derive dynamic subtitle (matching node configuration)
   let subtitle = ''
@@ -354,6 +357,9 @@ function CustomNode({ id, data, selected }) {
     >
       {/* Modern Square Card */}
       <div className={`rf-node-card ${running ? 'running' : ''} ${failed ? 'error' : ''}`}>
+        {/* Animated glowing border beam for running state */}
+        {running && <div className="rf-node-running-beam" />}
+
         {inputHandles.map((h, i) => (
           <Handle
             key={`in-${h}`}
@@ -370,8 +376,12 @@ function CustomNode({ id, data, selected }) {
           <NodeIcon type={data.node.type} icon={settings.icon} size={36} color={accent} />
         </div>
 
-        {/* Status indicator dot */}
-        {status && <span className={`status-dot status-${status}`} />}
+        {/* Status indicator dot with radar wave */}
+        {status && (
+          <span className={`status-dot status-${status}`}>
+            {running && <span className="status-radar-ring" />}
+          </span>
+        )}
 
         {/* Pinned mock data badge */}
         {isPinned && (
@@ -414,7 +424,12 @@ function CustomNode({ id, data, selected }) {
       {/* Execution chips below info */}
       {showPreview && (
         <div className="rf-node-preview">
-          {skipped ? (
+          {running ? (
+            <span className="preview-chip running-chip">
+              <span className="running-spin-ring" />
+              Running…
+            </span>
+          ) : skipped ? (
             <span
               className="preview-chip skip"
               title={preview?.note || 'Skipped: No input data arrived from upstream; step was not executed.'}
@@ -435,14 +450,13 @@ function CustomNode({ id, data, selected }) {
               </span>
             )
           )}
-          {preview.durationMs != null && (
+          {!running && preview?.durationMs != null && (
             <span className="preview-chip time">
               {preview.durationMs < 1000
                 ? `${Math.round(preview.durationMs)}ms`
                 : `${(preview.durationMs / 1000).toFixed(1)}s`}
             </span>
           )}
-          {running && !preview.durationMs && <span className="preview-chip time">…</span>}
         </div>
       )}
 

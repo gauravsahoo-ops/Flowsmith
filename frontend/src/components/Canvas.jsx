@@ -62,7 +62,7 @@ function useDecoratedNodes(nodes, comments, groups) {
 function useLabeledStatefulEdges(edges, edgeLabels, nodeStatuses, running) {
   return useMemo(() => {
     const hasLabels = Object.keys(edgeLabels).length > 0
-    const anyRunning = running || Object.values(nodeStatuses).some((s) => s === 'running' || s === 'waiting_approval')
+    const anyRunning = running || Object.values(nodeStatuses).some((s) => s === 'running' || s === 'waiting' || s === 'waiting_approval')
     const hasAnyStatus = Object.keys(nodeStatuses).length > 0
     if (!hasLabels && !anyRunning && !hasAnyStatus) return edges
     return edges.map((e) => {
@@ -75,13 +75,17 @@ function useLabeledStatefulEdges(edges, edgeLabels, nodeStatuses, running) {
       } else if (targetStatus === 'skipped') {
         state = 'skipped'
       } else if (anyRunning) {
-        // While running: animate active data flow leading into running nodes
-        if (sourceStatus === 'running' || sourceStatus === 'waiting_approval' || (sourceStatus === 'success' && targetStatus === 'running')) {
+        // While running: animate active data flow leading into running nodes or between active steps
+        if (
+          sourceStatus === 'running' ||
+          targetStatus === 'running' ||
+          sourceStatus === 'waiting_approval' ||
+          targetStatus === 'waiting_approval' ||
+          (sourceStatus === 'success' && (targetStatus === 'running' || !targetStatus))
+        ) {
           state = 'active'
         } else if (sourceStatus === 'success' && targetStatus === 'success') {
           state = 'completed'
-        } else if (sourceStatus === 'success' && !targetStatus) {
-          state = 'active'
         }
       } else if (hasAnyStatus) {
         // After run finishes: smoothly show completed edges with clean crisp glow

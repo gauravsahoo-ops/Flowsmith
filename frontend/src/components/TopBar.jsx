@@ -194,6 +194,18 @@ export default function TopBar({
     }
   }, [menuOpen])
 
+  const handleToggleActive = async () => {
+    await toggleActive()
+    if (workflow?.id) {
+      try {
+        const { data } = await api.listExecutions({ workflowId: workflow.id, pageSize: 2 })
+        if (Array.isArray(data) && data[0]?.id) {
+          useExecutionStore.getState().load(data[0].id).catch(() => {})
+        }
+      } catch {}
+    }
+  }
+
   return (
     <header className="topbar topbar--workflow">
       <div className="topbar-left">
@@ -242,7 +254,7 @@ export default function TopBar({
             </span>
           )}
         </span>
-        <button className={`toggle toggle--active ${workflow?.active ? 'is-active' : ''}`} onClick={toggleActive} title={workflow?.active ? 'Active — triggers armed' : 'Inactive — triggers disarmed'}>
+        <button className={`toggle toggle--active ${workflow?.active ? 'is-active' : ''}`} onClick={handleToggleActive} title={workflow?.active ? 'Active — triggers armed' : 'Inactive — triggers disarmed'}>
           <span className="toggle-dot" />
           {workflow?.active ? 'Active' : 'Inactive'}
         </button>

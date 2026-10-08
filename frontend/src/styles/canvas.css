@@ -82,30 +82,79 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  will-change: transform, border-color, box-shadow;
+  backface-visibility: hidden;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .rf-node-wrapper:hover .rf-node-card {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
 }
 
 .rf-node-wrapper.selected .rf-node-card {
   border-color: var(--accent);
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  box-shadow: var(--shadow-md);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 .rf-node-wrapper.has-error .rf-node-card,
 .rf-node-card.error {
   border-color: var(--red);
   outline: 1.5px solid var(--red);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.3);
 }
 
+/* Vivid live execution running animation with breathing glow and orbital halo */
 .rf-node-wrapper.is-running .rf-node-card,
 .rf-node-card.running {
-  border-color: var(--blue);
+  border-color: #38bdf8;
+  animation: nodeRunningPulse 1.4s ease-in-out infinite;
+}
+
+.rf-node-running-beam {
+  position: absolute;
+  inset: -3px;
+  border-radius: calc(var(--radius-md, 8px) + 3px);
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.8), rgba(14, 165, 233, 0.1) 70%);
+  opacity: 0.75;
+  filter: blur(4px);
+  pointer-events: none;
+  z-index: -1;
+  animation: beamGlow 1.4s ease-in-out infinite alternate;
+}
+
+.rf-node-card.running .rf-node-icon-wrap {
+  animation: iconBreathing 1.4s ease-in-out infinite;
+}
+
+@keyframes nodeRunningPulse {
+  0% {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5), 0 0 16px rgba(56, 189, 248, 0.45), inset 0 0 12px rgba(56, 189, 248, 0.2);
+  }
+  50% {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.3), 0 0 28px rgba(56, 189, 248, 0.8), inset 0 0 18px rgba(56, 189, 248, 0.35);
+  }
+  100% {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5), 0 0 16px rgba(56, 189, 248, 0.45), inset 0 0 12px rgba(56, 189, 248, 0.2);
+  }
+}
+
+@keyframes beamGlow {
+  from { opacity: 0.4; transform: scale(0.98); }
+  to { opacity: 0.9; transform: scale(1.04); }
+}
+
+@keyframes iconBreathing {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.5)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.9)); }
 }
 
 .rf-node-icon-wrap {
@@ -126,11 +175,31 @@
   border-radius: 50%;
   border: 1.5px solid var(--panel);
   background: var(--muted);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.rf-node-card .status-dot.status-success { background: #059669; }
-.rf-node-card .status-dot.status-running { background: #0284c7; animation: pulse 0.9s infinite; }
+.rf-node-card .status-dot.status-success { background: #059669; box-shadow: 0 0 6px rgba(5, 150, 105, 0.6); }
+.rf-node-card .status-dot.status-running {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: pulse 0.9s infinite;
+}
+.status-radar-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 1.5px solid #38bdf8;
+  animation: radarRipple 1.4s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+  pointer-events: none;
+}
+@keyframes radarRipple {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
 .rf-node-card .status-dot.status-failed,
-.rf-node-card .status-dot.status-error { background: #e11d48; }
+.rf-node-card .status-dot.status-error { background: #e11d48; box-shadow: 0 0 6px rgba(225, 29, 72, 0.6); }
 
 .rf-node-card .rf-node-pin-badge {
   position: absolute;
@@ -231,6 +300,31 @@
 }
 .preview-chip.out { color: #34d399; border-color: rgba(52, 211, 153, 0.35); }
 .preview-chip.time { color: #93c5fd; border-color: rgba(147, 197, 253, 0.25); }
+.preview-chip.running-chip {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(14, 165, 233, 0.16);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.running-spin-ring {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(56, 189, 248, 0.3);
+  border-top-color: #38bdf8;
+  animation: spinSlow 0.75s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .preview-chip.stopped {
   color: #fbbf24;
   border-color: rgba(251, 191, 36, 0.4);
@@ -309,41 +403,46 @@
 .exec-edge {
   stroke: #475569;
   stroke-width: 2.2;
-  transition: stroke 0.25s cubic-bezier(0.16, 1, 0.3, 1), stroke-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: stroke 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              stroke-width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .exec-edge.exec-active,
 .exec-edge.exec-running {
-  stroke: #10b981;
-  stroke-width: 2.8;
-  stroke-dasharray: 7 5;
+  stroke: #38bdf8;
+  stroke-width: 3;
+  stroke-dasharray: 9 6;
   stroke-linecap: round;
-  animation: dashflow 0.75s linear infinite;
-  filter: drop-shadow(0 0 7px rgba(16, 185, 129, 0.75));
+  animation: dashflow 0.8s linear infinite;
+  filter: drop-shadow(0 0 9px rgba(56, 189, 248, 0.85));
   will-change: stroke-dashoffset;
 }
 .exec-edge.exec-completed {
   stroke: #10b981;
-  stroke-width: 2.2;
-  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.45));
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.5));
 }
 .exec-edge.exec-error {
   stroke: #f43f5e;
-  stroke-width: 2.6;
-  filter: drop-shadow(0 0 7px rgba(244, 63, 94, 0.7));
+  stroke-width: 2.8;
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.75));
 }
 .exec-edge.exec-skipped {
   stroke: #64748b;
   stroke-width: 1.6;
   stroke-dasharray: 4 6;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 .exec-edge.exec-waiting {
   stroke: #f59e0b;
-  stroke-width: 2.4;
-  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.5));
+  stroke-width: 2.6;
+  stroke-dasharray: 7 5;
+  animation: dashflow 1.2s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
 }
 @keyframes dashflow {
-  from { stroke-dashoffset: 24; }
+  from { stroke-dashoffset: 30; }
   to { stroke-dashoffset: 0; }
 }
 .exec-edge-hit { pointer-events: stroke; cursor: pointer; }
