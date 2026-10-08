@@ -227,51 +227,70 @@ export default function MonitoringPage() {
         title="Monitoring Dashboard"
         description="Real-time execution queue metrics, worker throughput, and cluster health."
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="monitoring-toolbar" role="toolbar" aria-label="Monitoring controls">
             <a
               href={metricsHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="ghost"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', fontSize: 13, color: 'var(--accent, #818cf8)' }}
-              title="View Prometheus / OpenTelemetry text metrics scrape endpoint"
+              className="monitoring-btn-exporter"
+              title="Open raw Prometheus & OpenTelemetry text scrape endpoint"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
-              <span>Prometheus Exporter ↗</span>
+              <span>Prometheus Exporter</span>
+              <span className="monitoring-exporter-badge">↗</span>
             </a>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted, #94a3b8)', cursor: 'pointer', userSelect: 'none' }}>
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-              />
-              Auto-refresh (15s)
-            </label>
+
+            <div className="monitoring-toolbar-divider" />
+
+            <div
+              className={`monitoring-toggle-pill ${autoRefresh ? 'active' : ''}`}
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              role="switch"
+              aria-checked={autoRefresh}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setAutoRefresh(!autoRefresh)
+                }
+              }}
+              title={autoRefresh ? 'Auto-refresh active (polls every 15s)' : 'Auto-refresh paused'}
+            >
+              <div className={`monitoring-switch ${autoRefresh ? 'checked' : ''}`}>
+                <div className="monitoring-switch-knob" />
+              </div>
+              <span className="monitoring-toggle-text">
+                {autoRefresh && <span className="monitoring-pulse-dot" />}
+                <span>Auto-refresh</span>
+                <span className="monitoring-rate-tag">15s</span>
+              </span>
+            </div>
+
+            <div className="monitoring-toolbar-divider" />
+
             <button
-              className="ghost"
+              className="monitoring-btn-refresh"
               onClick={() => fetchStats(true)}
               disabled={refreshing || loading}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              title="Refresh telemetry statistics"
             >
               <svg
-                width="13"
-                height="13"
+                width="14"
+                height="14"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                style={refreshing ? { animation: 'spin 1s linear infinite' } : undefined}
+                className={`monitoring-refresh-icon ${refreshing ? 'spinning' : ''}`}
               >
                 <polyline points="23 4 23 10 17 10" />
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
               </svg>
-              {refreshing ? 'Refreshing...' : 'Refresh'}
+              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
         }
