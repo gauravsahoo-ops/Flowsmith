@@ -171,6 +171,25 @@
   border-radius: 4px;
 }
 
+/* Live Telemetry Status Badge */
+.monitoring-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  height: 32px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #34d399;
+  letter-spacing: -0.01em;
+  user-select: none;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
 /* Auto-Refresh Toggle Pill */
 .monitoring-toggle-pill {
   display: inline-flex;

@@ -183,32 +183,38 @@ function SystemInfo({ stats }) {
 export default function MonitoringPage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
-  const [autoRefresh, setAutoRefresh] = useState(true)
 
-  const fetchStats = useCallback((isManual = false) => {
-    if (isManual) setRefreshing(true)
+  const fetchStats = useCallback(() => {
     api.getMonitoringStats()
       .then((data) => {
         setStats(data)
         setError(null)
       })
       .catch((err) => setError(err.message))
-      .finally(() => {
-        setLoading(false)
-        if (isManual) setRefreshing(false)
-      })
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
-    fetchStats(false)
-    let timer
-    if (autoRefresh) {
-      timer = setInterval(() => fetchStats(false), 15000)
+    fetchStats()
+    // Automatic live background telemetry refresh (10s interval)
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      fetchStats()
+    }, 10000)
+
+    const handleVisibility = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchStats()
+      }
     }
-    return () => clearInterval(timer)
-  }, [autoRefresh, fetchStats])
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [fetchStats])
 
   const token = getToken()
   const metricsHref = token ? `/api/metrics?token=${encodeURIComponent(token)}` : '/api/metrics'
@@ -220,7 +226,7 @@ export default function MonitoringPage() {
     <div className="page monitoring-page">
       {error && (
         <div className="banner-inline err" style={{ marginBottom: 12 }}>
-          Refresh failed: {error} — retrying automatically.
+          Live telemetry update paused: {error} — retrying automatically.
         </div>
       )}
       <PageHeader
@@ -228,6 +234,13 @@ export default function MonitoringPage() {
         description="Real-time execution queue metrics, worker throughput, and cluster health."
         actions={
           <div className="monitoring-toolbar" role="toolbar" aria-label="Monitoring controls">
+            <div className="monitoring-live-badge" title="Live telemetry: auto-updating continuously in background">
+              <span className="monitoring-pulse-dot" />
+              <span>Live Telemetry</span>
+            </div>
+
+            <div className="monitoring-toolbar-divider" />
+
             <a
               href={metricsHref}
               target="_blank"
@@ -241,57 +254,6 @@ export default function MonitoringPage() {
               <span>Prometheus Exporter</span>
               <span className="monitoring-exporter-badge">↗</span>
             </a>
-
-            <div className="monitoring-toolbar-divider" />
-
-            <div
-              className={`monitoring-toggle-pill ${autoRefresh ? 'active' : ''}`}
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              role="switch"
-              aria-checked={autoRefresh}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  setAutoRefresh(!autoRefresh)
-                }
-              }}
-              title={autoRefresh ? 'Auto-refresh active (polls every 15s)' : 'Auto-refresh paused'}
-            >
-              <div className={`monitoring-switch ${autoRefresh ? 'checked' : ''}`}>
-                <div className="monitoring-switch-knob" />
-              </div>
-              <span className="monitoring-toggle-text">
-                {autoRefresh && <span className="monitoring-pulse-dot" />}
-                <span>Auto-refresh</span>
-                <span className="monitoring-rate-tag">15s</span>
-              </span>
-            </div>
-
-            <div className="monitoring-toolbar-divider" />
-
-            <button
-              className="monitoring-btn-refresh"
-              onClick={() => fetchStats(true)}
-              disabled={refreshing || loading}
-              title="Refresh telemetry statistics"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`monitoring-refresh-icon ${refreshing ? 'spinning' : ''}`}
-              >
-                <polyline points="23 4 23 10 17 10" />
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-              </svg>
-              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
           </div>
         }
       />
