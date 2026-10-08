@@ -48,7 +48,7 @@ from app.importexport import WorkflowImportError, build_export, parse_import
 from app.models import AuditEvent, Credential, User, WebhookTrigger, WorkflowRecord, WorkflowShare, WorkflowVersionRecord
 from app.nodes.registry import NODE_REGISTRY
 from app.schemas.workflow import Workflow
-from app.engine.expressions import resolve as resolve_expression
+from app.engine.expressions import resolve as resolve_expression, build_node_name_map
 from app.triggers.registry import sync_webhooks
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
@@ -470,10 +470,24 @@ def upstream_fields(
     fields = []
     for nid in upstream:
         by_handle = outputs.get(nid) or {}
-        items = by_handle.get("main") or []
+        items = []
+        if isinstance(by_handle, dict):
+            for h in ("main", "true", "false", "default", "0", "1", "success"):
+                if by_handle.get(h):
+                    items = by_handle[h]
+                    break
+            if not items:
+                for val in by_handle.values():
+                    if isinstance(val, list) and val:
+                        items = val
+                        break
+        elif isinstance(by_handle, list):
+            items = by_handle
         if not items:
             continue
         first = items[0]
+        if isinstance(first, dict) and "json" in first and isinstance(first["json"], dict):
+            first = first["json"]
         for f in _flatten_item(first):
             fields.append({"node_id": nid, **f})
     return ok({
@@ -513,11 +527,13 @@ def _uf_impl(db: Session, workflow_data: dict, node_id: str) -> dict:
         if not isinstance(row.results, dict):
             continue
         candidate = row.results.get("outputs") or {}
-        # Skip executions where every node has empty items
+        # Check all handles (main, true, false, default, etc.)
         has_data = any(
-            items
+            bool(items)
             for handles in candidate.values()
-            for items in ((handles.get("main") or []) if isinstance(handles, dict) else [])
+            for items in (
+                handles.values() if isinstance(handles, dict) else [handles] if isinstance(handles, list) else []
+            )
             if items
         )
         if has_data:
@@ -569,28 +585,36 @@ def preview_expression(
     uf = _uf_impl(db, rec.data or {}, body.node_id)
     node_ctx: dict[str, Any] = {}
     json_first: dict[str, Any] | None = None
-    # Build node name→id map for $('Node Name') expressions
-    node_name_map: dict[str, str] = {}
-    for n in (rec.data or {}).get("nodes") or []:
-        nid = n.get("id", "")
-        # Priority: explicit name > settings.label > display_name from registry
-        node_name = n.get("name", "") or ""
-        if not node_name:
-            node_name = (n.get("settings") or {}).get("label", "") or ""
-        if not node_name:
-            node_cls = NODE_REGISTRY.get(n.get("type", ""))
-            if node_cls is not None:
-                node_name = getattr(node_cls, "display_name", "") or ""
-        if node_name:
-            node_name_map[node_name] = nid
-            node_name_map[node_name.lower()] = nid
+    node_name_map = build_node_name_map((rec.data or {}).get("nodes") or [])
+
     for nid in uf["upstream_nodes"]:
         by_handle = uf["outputs"].get(nid) or {}
-        items = by_handle.get("main") or []
-        if items:
-            node_ctx[nid] = {"json": items[0]}
+        items = []
+        if isinstance(by_handle, dict):
+            for h in ("main", "true", "false", "default", "0", "1", "success"):
+                if by_handle.get(h):
+                    items = by_handle[h]
+                    break
+            if not items:
+                for val in by_handle.values():
+                    if isinstance(val, list) and val:
+                        items = val
+                        break
+        elif isinstance(by_handle, list):
+            items = by_handle
+
+        if items and isinstance(items, list):
+            first_item = items[0]
+            if isinstance(first_item, dict) and "json" in first_item and isinstance(first_item["json"], dict):
+                first_item = first_item["json"]
+            node_ctx[nid] = {"json": first_item}
             if json_first is None:
-                json_first = items[0]
+                json_first = first_item
+
+    # Also populate alias keys in node_ctx so $node['Login Api'] or $node.Login Api works directly
+    for alias, target_nid in node_name_map.items():
+        if target_nid in node_ctx and alias not in node_ctx:
+            node_ctx[alias] = node_ctx[target_nid]
 
     context: dict[str, Any] = {
         "$json": json_first or {},

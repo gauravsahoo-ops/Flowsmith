@@ -93,6 +93,7 @@ export function toWorkflowJson(workflow, nodes, edges) {
     ...workflow,
     nodes: nodes.map((n) => {
       const node = n.data?.node || {}
+      const nodeName = node.settings?.label || n.settings?.label || n.data?.label || node.label || node.name || n.data?.node?.name || ''
       const out = {
         id: n.id,
         type: node.type ?? n.type,
@@ -100,6 +101,7 @@ export function toWorkflowJson(workflow, nodes, edges) {
         parameters: node.parameters || n.parameters || {},
         settings: node.settings || n.settings || {},
       }
+      if (nodeName) out.name = nodeName
       if (node.credentials) out.credentials = node.credentials
       if (node.version) out.version = node.version
       return out

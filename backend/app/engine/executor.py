@@ -661,20 +661,7 @@ async def _run_one(
     # can propagate credential resolution to child executions.
     ctx._credential_resolver = credential_resolver
     # Build node name→id mapping for $('Node Name') expressions
-    node_name_map: dict[str, str] = {}
-    for nid, gnode in graph.items():
-        # Priority: explicit name > settings.label > display_name from registry
-        node_name = getattr(gnode.node, 'name', '') or ''
-        if not node_name:
-            settings = getattr(gnode.node, 'settings', {}) or {}
-            node_name = settings.get('label', '') or ''
-        if not node_name:
-            node_cls_ref = NODE_REGISTRY.get(gnode.node.type)
-            if node_cls_ref is not None:
-                node_name = getattr(node_cls_ref, 'display_name', '') or ''
-        if node_name:
-            node_name_map[node_name] = nid
-            node_name_map[node_name.lower()] = nid
+    node_name_map = expressions.build_node_name_map(graph)
     context = expressions.build_context(
         input_items, results, ctx.workflow_id, ctx.execution_id, ctx.credentials,
         ctx.env_vars, node_name_map,

@@ -55,8 +55,12 @@ _TERNARY_RE = re.compile(
 _ARITH_RE = re.compile(
     r"^(.+?)\s*([+\-*/%])\s*(.+)$"
 )
-# Named node reference: $('Node Name').item.json.field or $('Node Name').first.json.field
-_NAMED_NODE_RE = re.compile(r"\$\(\s*['\"](.+?)['\"]\s*\)\s*\.\s*(?:item|first)\s*\.")
+# Named node reference: $('Node Name').item.json.field, $('Node Name').first.json.field, or $('Node Name').json.field
+_NAMED_NODE_RE = re.compile(
+    r"\$\(\s*['\"](.+?)['\"]\s*\)"
+    r"(?:\s*\.\s*(?:item(?:\(\d*\))?|first(?:\(\))?))?"
+    r"\s*\.\s*"
+)
 
 _ARITH_OPS = {
     "+": operator.add,
@@ -268,6 +272,87 @@ def _apply_pipe(func_name: str, value: Any, args_str: str = "") -> Any:
     return s
 
 
+def build_node_name_map(nodes: Any) -> dict[str, str]:
+    """Build a comprehensive mapping of all names, labels, types, and IDs to node_id.
+
+    Accepts:
+      - list of node dicts or WorkflowNode objects
+      - dict of nid -> GraphNode (executor graph) or nid -> dict
+    
+    Priority order:
+      Generic types / registry names -> explicit name -> custom settings.label -> node_id
+      (Custom labels and node_id have top priority so they are never overshadowed by generic types).
+    """
+    name_map: dict[str, str] = {}
+    if not nodes:
+        return name_map
+
+    node_list = []
+    if isinstance(nodes, dict):
+        for nid, val in nodes.items():
+            if hasattr(val, "node"):
+                node_list.append(val.node)
+            else:
+                node_list.append(val)
+    elif isinstance(nodes, list):
+        node_list = list(nodes)
+
+    try:
+        from app.nodes.registry import NODE_REGISTRY
+    except ImportError:
+        NODE_REGISTRY = {}
+
+    for n in node_list:
+        if isinstance(n, dict):
+            nid = n.get("id", "")
+            data_obj = n.get("data") if isinstance(n.get("data"), dict) else {}
+            inner_node = data_obj.get("node") if isinstance(data_obj.get("node"), dict) else {}
+            ntype = inner_node.get("type") or n.get("type", "")
+            explicit_name = n.get("name", "") or inner_node.get("name", "")
+            settings_obj = n.get("settings") or inner_node.get("settings") or {}
+            custom_label = settings_obj.get("label") or data_obj.get("label") or ""
+        else:
+            nid = getattr(n, "id", "")
+            ntype = getattr(n, "type", "")
+            explicit_name = getattr(n, "name", "")
+            settings_obj = getattr(n, "settings", {}) or {}
+            if isinstance(settings_obj, dict):
+                custom_label = settings_obj.get("label", "")
+            else:
+                custom_label = getattr(settings_obj, "label", "") or ""
+
+        node_cls = NODE_REGISTRY.get(ntype) if NODE_REGISTRY else None
+        reg_name = getattr(node_cls, "display_name", "") if node_cls else ""
+
+        # Candidates in ascending priority order (lowest priority first, highest overwrites)
+        candidates: list[str] = []
+        if ntype:
+            candidates.append(ntype)
+        if reg_name:
+            candidates.append(reg_name)
+        if explicit_name:
+            candidates.append(explicit_name)
+        if custom_label:
+            candidates.append(custom_label)
+        if nid:
+            candidates.append(nid)
+
+        for c in candidates:
+            if not c:
+                continue
+            c_str = str(c).strip()
+            if not c_str:
+                continue
+            name_map[c_str] = nid
+            name_map[c_str.lower()] = nid
+            name_map[c_str.replace(" ", "")] = nid
+            name_map[c_str.lower().replace(" ", "")] = nid
+            name_map[c_str.lower().replace(" ", "_")] = nid
+            name_map[c_str.lower().replace("-", "_")] = nid
+
+    return name_map
+
+
 def build_context(
     input_items: list[dict[str, Any]],
     node_results: dict[str, dict[str, list[dict[str, Any]]]],
@@ -286,8 +371,31 @@ def build_context(
     first = input_items[0] if input_items else {}
     node_ctx: dict[str, Any] = {}
     for node_id, by_handle in node_results.items():
-        main_items = by_handle.get("main") or []
-        node_ctx[node_id] = {"json": main_items[0] if main_items else None}
+        items = []
+        if isinstance(by_handle, dict):
+            for h in ("main", "true", "false", "default", "0", "1", "success"):
+                if by_handle.get(h):
+                    items = by_handle[h]
+                    break
+            if not items:
+                for val in by_handle.values():
+                    if isinstance(val, list) and val:
+                        items = val
+                        break
+        elif isinstance(by_handle, list):
+            items = by_handle
+
+        first_item = items[0] if items and isinstance(items, list) else None
+        if isinstance(first_item, dict) and "json" in first_item and isinstance(first_item["json"], dict):
+            first_item = first_item["json"]
+        node_ctx[node_id] = {"json": first_item}
+
+    # Populate alias names in node_ctx so $node["Login Api"] or $node.Login Api works directly
+    if node_name_map:
+        for alias, target_id in node_name_map.items():
+            if target_id in node_ctx and alias not in node_ctx:
+                node_ctx[alias] = node_ctx[target_id]
+
     return {
         "$json": first,
         "$node": node_ctx,
@@ -323,18 +431,25 @@ def _convert_named_node_expressions(expr: str, context: dict[str, Any]) -> str:
         return expr
 
     def _replace_named(m: re.Match) -> str:
-        node_name = m.group(1)
+        node_name = m.group(1).strip()
         # 1. Exact match
         node_id = name_map.get(node_name) or name_map.get(node_name.lower())
         if not node_id:
-            # 2. Case-insensitive scan
+            # 2. Match without spaces or with underscores
+            node_id = (
+                name_map.get(node_name.replace(" ", ""))
+                or name_map.get(node_name.lower().replace(" ", ""))
+                or name_map.get(node_name.lower().replace(" ", "_"))
+            )
+        if not node_id:
+            # 3. Case-insensitive scan
             lower_name = node_name.lower()
             for key, val in name_map.items():
                 if key.lower() == lower_name:
                     node_id = val
                     break
         if not node_id:
-            # 3. Fuzzy match: find closest name (edit distance <= 3)
+            # 4. Fuzzy match: find closest name (edit distance <= 3)
             lower_name = node_name.lower()
             best_dist = 4  # max threshold
             for key, val in name_map.items():
