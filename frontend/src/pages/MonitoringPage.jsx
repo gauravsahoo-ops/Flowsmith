@@ -184,10 +184,19 @@ function SystemInfo({ stats }) {
 
 export default function MonitoringPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialTab = searchParams.get('tab') === 'telemetry' ? 'telemetry' : 'alerts'
-  const [tab, setTab] = useState(initialTab)
+  const currentTab = searchParams.get('tab') === 'telemetry' ? 'telemetry' : 'alerts'
+  const [tab, setTab] = useState(currentTab)
   const highlightedEventId = searchParams.get('event_id')
   const [alertStats, setAlertStats] = useState({ unresolved_count: 0, critical_count: 0 })
+
+  useEffect(() => {
+    const qTab = searchParams.get('tab')
+    if (qTab === 'telemetry') {
+      setTab('telemetry')
+    } else if (qTab === 'alerts' || !qTab) {
+      setTab('alerts')
+    }
+  }, [searchParams])
 
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)

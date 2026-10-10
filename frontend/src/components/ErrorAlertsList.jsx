@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 
 function SeverityBadge({ severity }) {
@@ -299,18 +299,25 @@ export default function ErrorAlertsList({ highlightedEventId }) {
           </label>
         </div>
 
-        <button
-          className="ghost ghost--sm"
-          onClick={fetchEvents}
-          title="Refresh alerts"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="23 4 23 10 17 10" />
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-          </svg>
-          <span>Refresh</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="hint" style={{ fontSize: 12 }}>
+            {filteredEvents.length < total
+              ? `${filteredEvents.length} of ${total} alerts`
+              : `${total} ${total === 1 ? 'alert' : 'alerts'}`}
+          </span>
+          <button
+            className="ghost ghost--sm"
+            onClick={fetchEvents}
+            title="Refresh alerts"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -475,7 +482,7 @@ export default function ErrorAlertsList({ highlightedEventId }) {
                   ) : ev.execution_id ? (
                     <button
                       className="secondary small"
-                      onClick={() => navigate(`/monitoring`)}
+                      onClick={() => navigate(`/executions/${ev.execution_id}`)}
                       style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
                     >
                       Review Execution →
