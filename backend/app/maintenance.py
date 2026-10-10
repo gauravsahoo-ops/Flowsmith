@@ -41,19 +41,21 @@ def mark_execution_failed(execution_id: str, error: dict[str, Any]) -> None:
 
 
 def recover_orphaned_executions(grace_seconds: float) -> int:
-    """Re-enqueue executions stuck in ``queued`` beyond the grace period.
+    """Re-enqueue executions stuck in a non-terminal state beyond the grace period.
 
-    Repairs Redis-loss scenarios: the execution row (authoritative) says
-    queued but its transport job vanished (flush / volume loss). The
-    enqueue idempotency guard makes concurrent sweeps across API/worker
-    replicas safe: when the job still exists in the store, enqueue is a
-    no-op; only genuinely lost jobs are recreated from the execution's
-    own workflow snapshot. Returns the number re-enqueued."""
+    Repairs Redis-loss and worker-crash scenarios: the execution row
+    (authoritative) says queued/running/cancelling but its transport job
+    vanished or closed without a terminal write. The enqueue idempotency
+    guard makes concurrent sweeps across API/worker replicas safe: when
+    the job still exists in the store, enqueue is a no-op; terminal job
+    rows are reset via the guarded requeue (fresh claims belong to a live
+    worker and are refused). Returns the number re-enqueued."""
     from uuid import uuid4
 
     from sqlalchemy import select
 
     from app.api.executions import workflow_workspace
+    from app.models.job import DONE, FAILED
     from app.queue import get_queue
 
     cutoff = datetime.now(UTC) - timedelta(seconds=grace_seconds)
@@ -61,7 +63,10 @@ def recover_orphaned_executions(grace_seconds: float) -> int:
     requeued = 0
     try:
         stuck = db.scalars(
-            select(Execution).where(Execution.status == "queued", Execution.started_at < cutoff)
+            select(Execution).where(
+                Execution.status.in_(("queued", "running", "cancelling")),
+                Execution.started_at < cutoff,
+            )
         ).all()
         for rec in stuck:
             payload = {
@@ -76,15 +81,29 @@ def recover_orphaned_executions(grace_seconds: float) -> int:
             job_id = f"job_{uuid4().hex[:12]}"
             enqueued = False
             try:
-                enqueued = get_queue().enqueue(job_id, rec.id, payload)
+                q = get_queue()
+                from app.models import Job
+
+                job = db.scalar(select(Job).where(Job.execution_id == rec.id))
+                if job is None:
+                    # No transport row (Redis backend or lost job): enqueue
+                    # is a no-op when the job still lives in the store.
+                    enqueued = q.enqueue(job_id, rec.id, payload)
+                elif job.status in (DONE, FAILED):
+                    # Terminal job under a live execution = crashed before
+                    # the terminal write; reset the job for a re-run.
+                    enqueued = q.requeue(rec.id, payload)
+                else:
+                    # queued/claimed: live worker or awaiting recover_stale.
+                    enqueued = False
             except Exception:
                 logger.exception("orphan sweep: enqueue failed for %s", rec.id)
             if enqueued:
                 requeued += 1
                 logger.warning(
-                    "orphan sweep: execution %s was queued since %s with no live "
-                    "queue job — re-enqueued as %s",
-                    rec.id, rec.started_at.isoformat(), job_id,
+                    "orphan sweep: execution %s was %s since %s with no live "
+                    "queue job - re-enqueued as %s",
+                    rec.id, rec.status, rec.started_at.isoformat(), job_id,
                 )
         return requeued
     finally:

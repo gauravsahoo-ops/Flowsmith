@@ -19,7 +19,7 @@ from defusedxml.ElementTree import fromstring as _safe_fromstring
 from pydantic import BaseModel, Field
 
 from app.engine.errors import NodeExecutionError
-from app.engine.node_base import BaseNode, NodeContext, NodeResult, filter_client_kwargs
+from app.engine.node_base import BaseNode, NodeContext, NodeResult, request_with_size_cap
 from app.nodes.registry import register
 from app.nodes.xml_ops import MAX_XML_BYTES, _element_to_json, _local
 
@@ -82,14 +82,20 @@ class SoapRequestNode(BaseNode[SoapRequestParams]):
         if params.soap_action:
             headers["SOAPAction"] = params.soap_action
         try:
-            resp = await ctx.http_client.post(
-                params.url,
-                **filter_client_kwargs(ctx.http_client, {
-                    "content": envelope.encode("utf-8"),
-                    "headers": headers,
-                    "timeout": params.timeout_seconds,
-                }),
+            # H19: the cap is enforced while streaming for real httpx
+            # clients; the post-read check below still covers verb-only
+            # test doubles that cannot stream.
+            resp = await request_with_size_cap(
+                ctx.http_client, "POST", params.url,
+                max_response_bytes=params.max_response_bytes,
+                node_id=ctx.node_id or "soap_request",
+                code="SOAP_TOO_LARGE",
+                content=envelope.encode("utf-8"),
+                headers=headers,
+                timeout=params.timeout_seconds,
             )
+        except NodeExecutionError:
+            raise
         except Exception as exc:
             raise NodeExecutionError(f"SOAP request failed: {exc}", code="SOAP_NETWORK", node_id=ctx.node_id, retryable=True) from exc
         raw = resp.text or ""

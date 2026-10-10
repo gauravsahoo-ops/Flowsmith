@@ -129,7 +129,7 @@ export default function CredentialsPage() {
         }
       } else if (data && typeof data === 'object') {
         const isOAuth = data.source === 'oauth' || data.source === 'salesforce-oauth' || data.provider
-        if (isOAuth && (data.ok === true || data.type === 'salesforce-oauth-success' || data.status === 'success')) {
+        if (isOAuth && (data.ok === true || data.type === 'salesforce-oauth-success' || data.status === 'success' || (typeof data.type === 'string' && data.type.endsWith('-oauth-success')))) {
           isSuccess = true
           if (data.provider) providerName = data.provider
         }
@@ -317,28 +317,53 @@ export default function CredentialsPage() {
       const processResult = (msg) => {
         if (!msg || typeof msg !== 'object') return
         const isOAuth = msg.source === 'oauth' || msg.source === 'salesforce-oauth'
-        const isSuccess = msg.type === 'salesforce-oauth-success' || (msg.ok === true)
-        const isError = msg.type === 'salesforce-oauth-error' || (msg.ok === false)
+        const isSuccess = msg.type === 'salesforce-oauth-success' || (typeof msg.type === 'string' && msg.type.endsWith('-oauth-success')) || (msg.ok === true) || msg.status === 'success'
+        const isError = msg.type === 'salesforce-oauth-error' || (typeof msg.type === 'string' && msg.type.endsWith('-oauth-error')) || (msg.ok === false) || msg.status === 'error'
         if (!isOAuth || (!isSuccess && !isError)) return
         if (msg.provider && msg.provider !== provider) return
         handled = true
-        if (mountedRef.current) {
-          if (isSuccess || msg.ok) {
+
+        if (isSuccess || msg.ok) {
+          if (mountedRef.current) {
             setNotice(`${msg.provider || provider} connected successfully.`)
             setError(null)
-          } else {
-            setError(msg.error || 'Authorization failed.')
-            setNotice(null)
+            setOauthBusy('')
+            setFallbackUrl('')
           }
-          setOauthBusy('')
-          setFallbackUrl('')
-        }
-        cleanupListeners()
-        load().finally(() => {
-          setTimeout(() => { if (mountedRef.current) load() }, 400)
-        })
-        if (w && !w.closed) {
-          try { w.close() } catch {}
+          cleanupListeners()
+          load().finally(() => {
+            setTimeout(() => { if (mountedRef.current) load() }, 400)
+          })
+          if (w && !w.closed) {
+            try { w.close() } catch {}
+          }
+        } else {
+          // Double-check if the credential actually got created/connected on the backend
+          // before showing an error banner to the user.
+          setTimeout(async () => {
+            try {
+              const resCreds = await load()
+              const target = msg.provider || provider
+              const exists = Array.isArray(resCreds) && resCreds.some(c => c.type === target || (target?.startsWith('google') && c.type.startsWith('google')))
+              if (exists && mountedRef.current) {
+                setNotice(`${(target || 'Account').replace(/_/g, ' ')} connected successfully.`)
+                setError(null)
+                setOauthBusy('')
+                setFallbackUrl('')
+                return
+              }
+            } catch {}
+            if (mountedRef.current) {
+              setError(msg.error || 'Authorization failed.')
+              setNotice(null)
+              setOauthBusy('')
+              setFallbackUrl('')
+            }
+          }, 800)
+          cleanupListeners()
+          if (w && !w.closed) {
+            try { w.close() } catch {}
+          }
         }
       }
 
@@ -376,13 +401,22 @@ export default function CredentialsPage() {
         return
       }
 
-      // Detect popup closed without success
+      // Detect popup closed
       pollClosed = setInterval(() => {
         if (w.closed) {
           if (!handled && mountedRef.current) {
             setOauthBusy('')
             // Check if backend completed connection in the background
-            setTimeout(() => { if (mountedRef.current) load() }, 1000)
+            setTimeout(async () => {
+              if (mountedRef.current) {
+                const creds = await load()
+                const exists = Array.isArray(creds) && creds.some(c => c.type === provider || (provider.startsWith('google') && c.type.startsWith('google')))
+                if (exists) {
+                  setNotice(`${provider.replace(/_/g, ' ')} connected successfully.`)
+                  setError(null)
+                }
+              }
+            }, 800)
           }
           cleanupListeners()
         }

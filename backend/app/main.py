@@ -24,8 +24,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
 
-from app.api import admin, ai, audit, auth, billing, branding, code, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, monitoring, nodes, oauth, organizations, rag, salesforce_events, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
-from app.api.auth import get_current_user, get_metrics_user
+from app.api import admin, ai, audit, auth, billing, branding, code, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, monitoring, nodes, notifications, oauth, organizations, rag, salesforce_events, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
+from app.api.auth import get_metrics_user
 from app.api.common import ok
 from app.config import get_settings
 from app.db import get_session
@@ -370,6 +370,8 @@ app.include_router(salesforce_discovery_router.router)
 app.include_router(salesforce_events.router)
 # White-labeling and custom company branding
 app.include_router(branding.router)
+# Error monitoring and notifications
+app.include_router(notifications.router)
 
 
 @app.get("/api/health", tags=["health"])

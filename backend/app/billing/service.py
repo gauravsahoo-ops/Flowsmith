@@ -111,14 +111,21 @@ def workspace_usage(db: Session, workspace_id: str) -> dict[str, int]:
 
 
 def check_within_limit(db: Session, workspace_id: str | None, limit_type: str) -> dict[str, Any]:
-    """Limit check without raising — used by the check-limit endpoint."""
+    """Limit check without raising — used by the check-limit endpoint.
+
+    Policy (audit H9): a missing workspace is NEVER within limit. Usage
+    for ``workspace_id=None`` counts as 0, so treating it as "free plan,
+    0 used" would hand any workspace-less workflow an unlimited quota
+    bypass. Quota checks therefore deny instead of silently passing;
+    raising still only happens when BILLING_ENFORCEMENT=true.
+    """
     plan_key, plan = plan_for_workspace(db, workspace_id)
     usage = workspace_usage(db, workspace_id) if workspace_id else {"executions_month": 0, "workflows_total": 0}
     current, max_limit = {
         "executions": (usage["executions_month"], plan["max_executions_month"]),
         "workflows": (usage["workflows_total"], plan["max_workflows"]),
     }.get(limit_type, (0, -1))
-    within = max_limit == -1 or current < max_limit
+    within = bool(workspace_id) and (max_limit == -1 or current < max_limit)
     return {
         "limit_type": limit_type,
         "current": current,
@@ -135,11 +142,24 @@ def enforce_plan_limit(db: Session, workspace_id: str | None, limit_type: str) -
 
     Returns the limit report when within limits. No-op entirely when
     BILLING_ENFORCEMENT=false (self-host mode).
+
+    When enforcement is on and no workspace can be resolved, the check is
+    denied with a 402 as well (audit H9): there is no plan to meter the
+    usage against, so allowing it would be an unbounded bypass.
     """
     from app.config import get_settings
 
     if not get_settings().billing_enforcement:
         return None
+    if not workspace_id:
+        raise HTTPException(
+            status.HTTP_402_PAYMENT_REQUIRED,
+            detail=(
+                f"Plan limit reached: {limit_type} requires a workspace, but this "
+                "workflow has no workspace to bill the quota against. Move it into "
+                "a workspace to continue."
+            ),
+        )
     report = check_within_limit(db, workspace_id, limit_type)
     if report["within_limit"]:
         return report
@@ -150,6 +170,18 @@ def enforce_plan_limit(db: Session, workspace_id: str | None, limit_type: str) -
             f"on the {report['plan']} plan. Upgrade to continue."
         ),
     )
+
+
+def enforce_can_start_execution(db: Session, workspace_id: str | None) -> dict[str, Any] | None:
+    """Single quota gate every execution start must pass (audit H9).
+
+    Wraps ``enforce_plan_limit(..., "executions")`` so API runs, retries,
+    webhooks and the scheduler share one check (and one policy for
+    workspace-less workflows) before an Execution row is created.
+    Raises HTTP 402 when the monthly quota is exhausted; no-op when
+    BILLING_ENFORCEMENT=false.
+    """
+    return enforce_plan_limit(db, workspace_id, "executions")
 
 
 def _apply_subscription_update(

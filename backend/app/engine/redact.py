@@ -76,7 +76,7 @@ def redact_trace_steps(steps: list[dict[str, Any]] | None) -> list[dict[str, Any
         if not isinstance(step, dict):
             continue
         scrubbed = dict(step)
-        for field in ("inputs", "outputs", "error"):
+        for field in ("inputs", "outputs", "full_inputs", "full_outputs", "error"):
             if field in scrubbed and scrubbed[field] is not None:
                 scrubbed[field] = redact_sensitive(scrubbed[field])
         out.append(scrubbed)

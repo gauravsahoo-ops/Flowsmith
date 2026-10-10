@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+import zlib
 from typing import Any, Callable, Generic, TypeVar, cast
 
 import httpx
@@ -26,11 +27,15 @@ __all__ = [
     "IDEMPOTENT",
     "CONDITIONALLY_IDEMPOTENT",
     "NON_IDEMPOTENT",
+    "DEFAULT_MAX_RESPONSE_BYTES",
+    "request_with_size_cap",
 ]
 
 IDEMPOTENT = "idempotent"
 CONDITIONALLY_IDEMPOTENT = "conditionally_idempotent"
 NON_IDEMPOTENT = "non-idempotent"
+#: Fallback response-size cap when a node does not set its own (H19).
+DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 #: Valid values for BaseNode.idempotency (spec 35).
 IDEMPOTENCY_LEVELS = frozenset({IDEMPOTENT, CONDITIONALLY_IDEMPOTENT, NON_IDEMPOTENT})
 
@@ -107,6 +112,254 @@ def filter_client_kwargs(client: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
         if pr.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
     }
     return {k: v for k, v in kwargs.items() if k in named}
+
+
+async def request_with_size_cap(
+    client: Any,
+    method: str,
+    url: str,
+    *,
+    max_response_bytes: int | None,
+    node_id: str,
+    code: str = "RESPONSE_TOO_LARGE",
+    **kwargs: Any,
+) -> httpx.Response:
+    """Issue a request that can never buffer more than the size cap (H19).
+
+    Clients that understand ``max_response_bytes`` (SafeHTTPClient) get the
+    kwarg through the normal filter and enforce it themselves. Plain httpx
+    clients silently drop the unknown kwarg — which is what made the node
+    cap a no-op — so we stream the body here and abort the moment the cap
+    is exceeded, before a hostile endpoint can stream gigabytes into memory.
+
+    Also mirrors SafeHTTPClient's handling of the Salesforce/F5 quirk: a
+    response advertising ``Content-Encoding`` over a body it never
+    compressed fails to decode ("Error -3 while decompressing data:
+    incorrect header check"). ``_stream_capped`` recovers that leniently;
+    a genuinely corrupt compressed body is replayed once with
+    ``Accept-Encoding: identity`` — but only for methods that are safe to
+    replay, because a POST may already have executed server-side.
+    """
+    cap = (
+        max_response_bytes
+        if max_response_bytes and max_response_bytes > 0
+        else DEFAULT_MAX_RESPONSE_BYTES
+    )
+    try:
+        return await _dispatch_capped(
+            client, method, url, cap=cap, node_id=node_id, code=code, kwargs=kwargs
+        )
+    except httpx.DecodingError as exc:
+        upper = method.upper()
+        original_headers = kwargs.get("headers") or {}
+        already_identity = any(
+            k.lower() == "accept-encoding" and str(v).strip().lower() == "identity"
+            for k, v in original_headers.items()
+        )
+        if upper not in ("GET", "HEAD", "OPTIONS") or already_identity:
+            raise NodeExecutionError(
+                f"HTTP {upper} request failed: response body could not be decoded.",
+                code="HTTP_REQUEST_FAILED", node_id=node_id, retryable=False,
+            ) from exc
+        retry_headers = {
+            k: v for k, v in original_headers.items() if k.lower() != "accept-encoding"
+        }
+        retry_headers["Accept-Encoding"] = "identity"
+        retry_kwargs = {**kwargs, "headers": retry_headers}
+        try:
+            return await _dispatch_capped(
+                client, method, url, cap=cap, node_id=node_id, code=code,
+                kwargs=retry_kwargs,
+            )
+        except httpx.DecodingError as exc2:
+            raise NodeExecutionError(
+                "HTTP request failed: response body could not be decoded even "
+                "with Accept-Encoding: identity.",
+                code="HTTP_REQUEST_FAILED", node_id=node_id, retryable=True,
+            ) from exc2
+
+
+async def _dispatch_capped(
+    client: Any,
+    method: str,
+    url: str,
+    *,
+    cap: int,
+    node_id: str,
+    code: str,
+    kwargs: dict[str, Any],
+) -> httpx.Response:
+    """Single attempt of ``request_with_size_cap``, split out so the
+    decode-failure handler can replay it with modified headers."""
+    filtered = filter_client_kwargs(client, {**kwargs, "max_response_bytes": cap})
+    if "max_response_bytes" in filtered:
+        response = await client.request(method, url, **filtered)
+        await _assert_redirects_public(response, node_id)
+    elif isinstance(client, httpx.AsyncClient):
+        response = await _stream_capped(
+            client, method, url, filtered, cap, node_id=node_id, code=code
+        )
+    else:
+        request_fn = getattr(client, "request", None)
+        if request_fn is None:
+            # Test double exposing only verb helpers (post/get/...).
+            response = await getattr(client, method.lower())(url, **filtered)
+        else:
+            response = await request_fn(method, url, **filtered)
+        await _assert_redirects_public(response, node_id)
+    return response
+
+
+async def _assert_redirects_public(response: httpx.Response, node_id: str) -> None:
+    """Re-validate every redirect hop before its body is consumed.
+
+    The shared execution client does this in a request hook, but a bare
+    client does not — without it a public URL that 302s to an internal
+    address would be fetched and surfaced.
+    """
+    # Test doubles (and any response built without httpx internals) may not
+    # carry `.history`; treat it as "no redirects" rather than crashing.
+    history = getattr(response, "history", None) or ()
+    if not history:
+        return
+    from app.security.ssrf import assert_public_url
+
+    for hop in (*history, response):
+        await assert_public_url(str(hop.url), node_id=node_id)
+
+
+async def _stream_capped(
+    client: httpx.AsyncClient,
+    method: str,
+    url: str,
+    kwargs: dict[str, Any],
+    cap: int,
+    *,
+    node_id: str,
+    code: str,
+) -> httpx.Response:
+    """Stream the response body, failing fast once *cap* is exceeded and
+    rebuilding the response so callers see a normal fully-read httpx.Response
+    (content, headers, request and redirect history intact).
+
+    ``gzip``/``deflate`` bodies are captured raw and decoded leniently
+    (bounded by *cap*) instead of through httpx's built-in decoder, so a
+    server that advertises compression it did not apply — or violates the
+    deflate framing rules — yields the plain body instead of a
+    decompression failure."""
+    async with client.stream(method, url, **kwargs) as response:
+        await _assert_redirects_public(response, node_id)
+        ce = (response.headers.get("content-encoding") or "").strip().lower()
+        if any(enc in ce for enc in ("gzip", "deflate", "compress")):
+            raw = bytearray()
+            async for chunk in response.aiter_raw():
+                raw += chunk
+                if len(raw) > cap + 65536:
+                    raise NodeExecutionError(
+                        f"Response exceeded the maximum allowed size ({cap} bytes).",
+                        code=code, node_id=node_id, retryable=False,
+                    )
+            content = _decode_content_lenient(
+                bytes(raw), ce, cap, node_id=node_id, code=code
+            )
+        else:
+            chunks: list[bytes] = []
+            total = 0
+            async for chunk in response.aiter_bytes():
+                total += len(chunk)
+                if total > cap:
+                    raise NodeExecutionError(
+                        f"Response exceeded the maximum allowed size ({cap} bytes).",
+                        code=code, node_id=node_id, retryable=False,
+                    )
+                chunks.append(chunk)
+            content = b"".join(chunks)
+        # The body is already decoded: drop Content-Encoding (httpx re-reads
+        # a `content=` response during construction and would re-apply the
+        # codec to the decoded bytes — the "Error -3 while decompressing
+        # data" crash) plus the now-stale framing headers.
+        rebuilt_headers = httpx.Headers(
+            [(k, v) for k, v in response.headers.items() if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")]
+        )
+        return httpx.Response(
+            status_code=response.status_code,
+            headers=rebuilt_headers,
+            content=content,
+            request=response.request,
+            history=response.history,
+        )
+
+
+def _decode_content_lenient(
+    raw: bytes, content_encoding: str, cap: int, *, node_id: str, code: str
+) -> bytes:
+    """Decode *raw* under *content_encoding*, tolerating servers that lie.
+
+    * Valid compressed data decodes normally (output bounded by *cap*).
+    * A body without the advertised framing (the Salesforce/F5
+      ``Content-Encoding: gzip`` over a plain body bug) is returned
+      as-is — the header was simply wrong.
+    * Data that DOES carry the framing but is corrupt raises
+      ``httpx.DecodingError`` so the caller can replay with
+      ``Accept-Encoding: identity``.
+    """
+    ce = content_encoding.strip().lower()
+    if "deflate" in ce and "gzip" not in ce:
+        candidates: tuple[int, ...] = (15, -15, 47)
+    else:
+        candidates = (47, 31, 15, -15)
+    last_err: zlib.error | None = None
+    for wbits in candidates:
+        try:
+            return _decompress_bounded(raw, wbits, cap, node_id=node_id, code=code)
+        except zlib.error as exc:
+            last_err = exc
+    if _looks_compressed(raw, ce):
+        raise httpx.DecodingError(
+            str(last_err) or "response body could not be decompressed"
+        ) from last_err
+    # Header advertised compression that never happened: the body IS the
+    # payload (already bounded by the caller's raw-byte cap).
+    return raw
+
+
+def _decompress_bounded(
+    raw: bytes, wbits: int, cap: int, *, node_id: str, code: str
+) -> bytes:
+    """zlib-decompress *raw*, aborting as soon as the output exceeds *cap*."""
+    obj = zlib.decompressobj(wbits)
+    out = bytearray()
+    buf = raw
+    while buf:
+        piece = obj.decompress(buf, max_length=cap + 1 - len(out))
+        out += piece
+        if len(out) > cap:
+            raise NodeExecutionError(
+                f"Response exceeded the maximum allowed size ({cap} bytes).",
+                code=code, node_id=node_id, retryable=False,
+            )
+        buf = obj.unconsumed_tail
+        if not piece and buf:
+            # No progress without hitting the cap: corrupt input.
+            raise zlib.error("decompression made no progress")
+    out += obj.flush()
+    if len(out) > cap:
+        raise NodeExecutionError(
+            f"Response exceeded the maximum allowed size ({cap} bytes).",
+            code=code, node_id=node_id, retryable=False,
+        )
+    return bytes(out)
+
+
+def _looks_compressed(raw: bytes, ce: str) -> bool:
+    """Does *raw* actually carry the framing *ce* advertises?"""
+    if "gzip" in ce:
+        return raw.startswith(b"\x1f\x8b")
+    # zlib wrapper: CMF/FLG header check (RFC 1950 §2.2).
+    if len(raw) >= 2 and (raw[0] & 0x0F) == 8:
+        return ((raw[0] << 8) | raw[1]) % 31 == 0
+    return False
+
 
 class _CancelState:
     """Shared mutable cancel flag: survives copy.copy(NodeContext) so a

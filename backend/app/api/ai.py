@@ -16,12 +16,13 @@ import logging
 from typing import Any
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.ai.client import LLMError, chat_completion
+from app.ai.assistant import scrub_secrets
 from app.ai.generation import GenerationError, generate_workflow_spec
 from app.ai.memory import get_memory_manager
 from app.api.access import get_permission
@@ -49,6 +50,17 @@ def _client_error(exc: LLMError | NodeExecutionError) -> str:
     return msg[:400]
 
 
+def _release_db(db: Session) -> None:
+    """Close the request-scoped session BEFORE any provider network call.
+
+    An open SQLAlchemy transaction would otherwise pin a pooled connection
+    for the whole provider round-trip (pool starvation when providers are
+    slow). Safe to call early: get_db closes it again on teardown (close is
+    idempotent) and trailing writes such as log_event re-open it after the
+    I/O has finished."""
+    db.close()
+
+
 class ExplainRequest(BaseModel):
     execution_id: str = Field(min_length=1)
     credential_id: str | None = None
@@ -68,20 +80,21 @@ class ChatRequest(BaseModel):
     credential_id: str | None = None
     model: str | None = None
     tools: list[str] | None = None
-    instructions: str | None = None
+    # Bounded like `message`: instructions are echoed verbatim to the provider.
+    instructions: str | None = Field(default=None, max_length=10000)
     memory_type: str = "window"
     allow_builtin: bool = False
 
 
 class EntityUpsertRequest(BaseModel):
     entities: dict[str, Any] = Field(default_factory=dict)
-    text_to_extract: str | None = None
+    text_to_extract: str | None = Field(default=None, max_length=20000)
     workflow_id: str | None = None
 
 
 class NoteUpsertRequest(BaseModel):
     key: str
-    content: str
+    content: str = Field(max_length=10000)
     tags: list[str] | None = None
     workflow_id: str | None = None
 
@@ -89,7 +102,7 @@ class NoteUpsertRequest(BaseModel):
 class SuggestMappingRequest(BaseModel):
     workflow_id: str
     node_id: str
-    intent: str = ""
+    intent: str = Field(default="", max_length=4000)
     credential_id: str | None = None
 
 
@@ -255,8 +268,10 @@ async def explain_failure(
                 "step and how to fix it. Do not invent details."
             ),
         },
-        {"role": "user", "content": json.dumps(preview, ensure_ascii=False)},
+        {"role": "user", "content": json.dumps(scrub_secrets(preview), ensure_ascii=False)},
     ]
+    # DB reads are done; release the session before the provider call.
+    _release_db(db)
     try:
         message = await chat_completion(llm, messages, temperature=0.2, max_tokens=600)
     except LLMError as exc:
@@ -286,6 +301,8 @@ async def generate_workflow(
     available_credentials = {
         meta["type"] for meta in credential_service.list_for_user(db, user.id)
     }
+    # All DB reads done; the session must not span the provider round-trip.
+    _release_db(db)
     try:
         result = await generate_workflow_spec(
             body.prompt,
@@ -383,7 +400,7 @@ async def clear_ai_memory(
 async def search_ai_memory(
     session_id: str,
     q: str,
-    top_k: int = 5,
+    top_k: int = Query(default=5, ge=1, le=50),
     workflow_id: str | None = None,
     user: User = Depends(get_current_user),
 ) -> dict:
@@ -474,6 +491,23 @@ async def chat_with_agent(
     else:
         llm = _pick_llm(db, user, body.credential_id)
 
+    # The agent's tools run with the caller's identity: only workflows the
+    # caller may already view are usable as context (404 hides existence).
+    if body.workflow_id:
+        from app.api.access import get_workflow
+
+        get_workflow(db, body.workflow_id, user)
+    # Server-side tool allowlist — never accept arbitrary tool names.
+    if body.tools is not None:
+        from app.ai.tools import TOOLS as _AVAILABLE_TOOLS
+
+        unknown = [t for t in body.tools if t not in _AVAILABLE_TOOLS]
+        if unknown:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                f"Unknown tool(s): {', '.join(sorted(set(unknown)))}.",
+            )
+
     param_kwargs: dict[str, Any] = {
         "input": body.message,
         # User-scoped session so agent memory lands in this user's namespace
@@ -491,6 +525,10 @@ async def chat_with_agent(
         param_kwargs["instructions"] = body.instructions
 
     params = AgentParams(**param_kwargs)
+
+    # Identity/workflow/credential reads are done; the agent may run tool
+    # loops for minutes — never keep a DB transaction open across that.
+    _release_db(db)
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         ctx = NodeContext(
@@ -588,6 +626,7 @@ async def suggest_mapping(
         target_fields = sorted((node.parameters or {}).keys())
 
     llm = _pick_llm(db, user, body.credential_id)
+    _release_db(db)
     try:
         result = await suggest_field_mapping(
             target_node_type=node.type,
@@ -621,6 +660,7 @@ async def suggest_expression_endpoint(
         sample = next(iter(_upstream_fields(db, get_workflow_read(
             db, body.workflow_id, user).data or {}, body.node_id)), {})
     llm = _pick_llm(db, user, body.credential_id)
+    _release_db(db)
     try:
         result = await suggest_expression(
             description=body.description, sample_item=sample,
@@ -648,6 +688,7 @@ async def suggest_node_config(
         meta["type"] for meta in credential_service.list_for_user(db, user.id)
     }
     llm = _pick_llm(db, user, body.credential_id)
+    _release_db(db)
     try:
         result = await _impl(
             node_type=body.node_type,
@@ -678,10 +719,12 @@ async def optimize_workflow(
     from app.ai.assistant import analyze_workflow, suggest_optimizations
 
     rec = get_workflow_read(db, body.workflow_id, user)
+    workflow_data = rec.data or {}
     # Deterministic findings are the ground truth; the LLM only narrates.
     llm = _pick_llm(db, user, body.credential_id)
-    result = await suggest_optimizations(rec.data or {}, chat=chat_completion, llm=llm)
-    result.setdefault("findings", analyze_workflow(rec.data or {}))
+    _release_db(db)
+    result = await suggest_optimizations(workflow_data, chat=chat_completion, llm=llm)
+    result.setdefault("findings", analyze_workflow(workflow_data))
     log_event(db, AI_ASSIST, target_type="workflow", target_id=body.workflow_id,
               user_id=user.id, detail={"surface": "optimize",
                                        "findings": len(result["findings"])})
@@ -698,9 +741,11 @@ async def explain_workflow(
     from app.ai.assistant import explain_workflow as _impl
 
     rec = get_workflow_read(db, body.workflow_id, user)
+    workflow_data = rec.data or {}
     llm = _pick_llm(db, user, body.credential_id)
+    _release_db(db)
     try:
-        result = await _impl(rec.data or {}, chat=chat_completion, llm=llm)
+        result = await _impl(workflow_data, chat=chat_completion, llm=llm)
     except LLMError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, _client_error(exc))
     log_event(db, AI_ASSIST, target_type="workflow", target_id=body.workflow_id,
@@ -719,12 +764,14 @@ async def document_workflow(
     from app.ai.assistant import document_workflow as _impl
 
     rec = get_workflow_read(db, body.workflow_id, user)
+    workflow_data = rec.data or {}
     llm: dict | None
     try:
         llm = _pick_llm(db, user, body.credential_id)
     except HTTPException:
         llm = None  # documentation works without an LLM credential
-    result = await _impl(rec.data or {}, chat=chat_completion, llm=llm)
+    _release_db(db)
+    result = await _impl(workflow_data, chat=chat_completion, llm=llm)
     log_event(db, AI_ASSIST, target_type="workflow", target_id=body.workflow_id,
               user_id=user.id, detail={"surface": "document"})
     return ok(result)
@@ -733,7 +780,7 @@ async def document_workflow(
 class AutoFixRequest(BaseModel):
     workflow_id: str
     node_id: str
-    error_message: str
+    error_message: str = Field(max_length=10000)
     credential_id: str | None = None
 
 
@@ -762,6 +809,7 @@ async def auto_fix_endpoint(
     except HTTPException:
         llm = None
 
+    _release_db(db)
     result = await repair_node_failure(
         node_type=node.type,
         operation=(node.parameters or {}).get("operation"),
@@ -814,6 +862,7 @@ async def extract_intent_endpoint(
         llm = _pick_llm(db, user, body.credential_id)
     except HTTPException:
         llm = None
+    _release_db(db)
     intent = await IntentEngine.extract_intent(
         prompt=body.prompt,
         chat=chat_completion,
@@ -886,8 +935,8 @@ def simulate_endpoint(
 
 class RepairWorkflowRequest(BaseModel):
     workflow: dict[str, Any]
-    error_message: str
-    execution_trace: list[dict[str, Any]] | None = None
+    error_message: str = Field(max_length=10000)
+    execution_trace: list[dict[str, Any]] | None = Field(default=None, max_length=200)
     credential_id: str | None = None
 
 
@@ -903,9 +952,10 @@ async def repair_workflow_endpoint(
     llm = _pick_llm(db, user, body.credential_id)
     user_creds = {meta["type"] for meta in credential_service.list_for_user(db, user.id)}
 
+    _release_db(db)
     proposal = await WorkflowRepairer.analyze_and_repair(
         workflow_doc=body.workflow,
-        error_context=body.error_message,
+        error_context=scrub_secrets(body.error_message),
         execution_trace=body.execution_trace,
         chat=chat_completion,
         llm=llm,
@@ -916,7 +966,7 @@ async def repair_workflow_endpoint(
 
 class ModifyWorkflowRequest(BaseModel):
     workflow: dict[str, Any]
-    instruction: str
+    instruction: str = Field(max_length=10000)
     credential_id: str | None = None
 
 
@@ -935,6 +985,7 @@ async def modify_workflow_endpoint(
         llm = {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
     user_creds = {meta["type"] for meta in credential_service.list_for_user(db, user.id)}
 
+    _release_db(db)
     diff = await WorkflowModifier.modify_workflow(
         current_workflow=body.workflow,
         instruction=body.instruction,

@@ -203,11 +203,28 @@ export default function HubSpotOAuthModal({
           onConnected?.()
           setTimeout(() => onClose?.(), 1200)
         } else if (isFail && !resolved) {
-          resolved = true
-          cleanup()
-          setError(errorMsg || 'HubSpot authorization failed or was declined.')
-          setBusy(false)
-          try { popup.close() } catch {}
+          import('../api').then(async ({ api }) => {
+            try {
+              const creds = await api.listCredentials()
+              const found = Array.isArray(creds) && creds.find(c => c.type === 'hubspot')
+              if (found) {
+                resolved = true
+                cleanup()
+                setNotice('HubSpot account authorized and connected successfully.')
+                setBusy(false)
+                try { popup.close() } catch {}
+                onConnected?.()
+                setTimeout(() => onClose?.(), 1200)
+                return
+              }
+            } catch {}
+            resolved = true
+            cleanup()
+            setError(errorMsg || 'HubSpot authorization failed or was declined.')
+            setBusy(false)
+            try { popup.close() } catch {}
+          })
+          return
         }
       }
 
@@ -237,13 +254,24 @@ export default function HubSpotOAuthModal({
       const pollClosed = setInterval(() => {
         if (popup && popup.closed) {
           if (!resolved) {
-            // Give message/storage events a beat to land, then report the
-            // truth: a silently closed popup is NOT a successful connect.
-            setTimeout(() => {
+            setTimeout(async () => {
               if (resolved) return
+              try {
+                const { api } = await import('../api')
+                const creds = await api.listCredentials()
+                const found = Array.isArray(creds) && creds.find(c => c.type === 'hubspot')
+                if (found) {
+                  resolved = true
+                  setNotice('HubSpot account authorized and connected successfully.')
+                  setBusy(false)
+                  onConnected?.()
+                  setTimeout(() => onClose?.(), 1200)
+                  return
+                }
+              } catch {}
               setBusy(false)
               setError('Popup was closed before authorization completed. Please try connecting again.')
-            }, 1000)
+            }, 800)
           }
           cleanup()
         }

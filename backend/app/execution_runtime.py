@@ -201,7 +201,36 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 "status": "cancelled",
             })
             return "cancelled"
-        rec.status = "running"
+        # CAS into "running": a cancel landing between the check above and
+        # this write must win instead of being clobbered by an
+        # unconditional read-modify-write (same guard class as the API-side
+        # resume/cancel paths — spec 36).
+        flipped = (
+            db.query(ExecutionModel)
+            .filter(
+                ExecutionModel.id == execution_id,
+                ExecutionModel.status.in_(("queued", "running")),
+            )
+            .update({"status": "running"}, synchronize_session=False)
+        )
+        if flipped == 0:
+            db.rollback()
+            db.expire(rec)
+            if rec.status == "cancelling":
+                rec.status = "cancelled"
+                rec.finished_at = datetime.now(UTC)
+                await _commit(db)
+                event_sink({
+                    "event": "execution.cancelled",
+                    "execution_id": execution_id,
+                    "workflow_id": job.workflow_data.get("id"),
+                    "node_id": None,
+                    "status": "cancelled",
+                })
+                return "cancelled"
+            # Row moved to a terminal state between claim and start — there
+            # is nothing left to run; report its current status.
+            return rec.status
         await _commit(db)
 
         monitor = asyncio.create_task(_watch_cancel(execution_id, cancel_event))
@@ -442,7 +471,10 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             if rec is not None:
                 rec.status = result.status
                 rec.finished_at = datetime.now(UTC)
-                stored: dict[str, Any] = {"outputs": dict(result.results or {})}
+                stored: dict[str, Any] = {
+                    "outputs": dict(result.results or {}),
+                    "inputs": dict(getattr(result, "inputs", {}) or {}),
+                }
                 # Surface the human decision with the run record (Phase 36).
                 if decision is not None:
                     stored["approval"] = {
@@ -457,11 +489,16 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
 
                 source_rec_for_merge = run_source_rec if run_node else (retry_source_rec if retry_from_node else None)
                 if source_rec_for_merge and source_rec_for_merge.id != rec.id:
-                    # Merge prior outputs
+                    # Merge prior outputs & inputs
                     prior_outputs = (source_rec_for_merge.results or {}).get("outputs", {})
                     merged_outputs = dict(prior_outputs)
                     merged_outputs.update(result.results or {})
                     stored["outputs"] = merged_outputs
+
+                    prior_inputs = (source_rec_for_merge.results or {}).get("inputs", {})
+                    merged_inputs = dict(prior_inputs)
+                    merged_inputs.update(getattr(result, "inputs", {}) or {})
+                    stored["inputs"] = merged_inputs
 
                     # Determine which upstream nodes to inherit traces and statuses from
                     target_upstream = upstream if run_node else {
@@ -499,6 +536,8 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                     for uid in upstream:
                         if uid not in prior_outputs and uid in stored.get("outputs", {}):
                             del stored["outputs"][uid]
+                        if uid not in (prior_inputs if 'prior_inputs' in locals() else {}) and uid in stored.get("inputs", {}):
+                            del stored["inputs"][uid]
 
                 rec.results = stored
                 rec.error = result.error.to_dict() if result.error else None
@@ -506,12 +545,34 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 await _commit(db)
             await asyncio.to_thread(_mark_deliveries, db, execution_id, result.status)
             execution_finished(execution_id, result.status, job.trigger)
-            if result.status == "failed" and result.error is not None:
-                await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, result.error.to_dict())
+            if result.status in ("failed", "timeout"):
+                err_dict = result.error.to_dict() if result.error else {"code": "EXECUTION_FAILED", "message": "Workflow execution failed."}
+                try:
+                    from app.services.error_monitoring import ErrorMonitoringService
+                    await asyncio.to_thread(ErrorMonitoringService.capture_execution_error, None, execution_id, job, err_dict, rec)
+                except Exception:
+                    logger.exception("Failed to capture error for execution %s", execution_id)
+                if result.error is not None:
+                    await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, result.error.to_dict())
             return result.status
         finally:
             monitor.cancel()
     except asyncio.CancelledError:
+        # Worker-level cancellation (shutdown/stop) must still reach a
+        # terminal row — re-raising alone left executions "running" forever
+        # (spec 34.1: executions are authoritative).
+        logger.warning("execution %s cancelled at worker level", execution_id)
+        try:
+            execution_finished(execution_id, "cancelled", job.trigger)
+            rec = db.get(ExecutionModel, execution_id)
+            if rec is not None and rec.status not in ("success", "failed", "cancelled", "timeout"):
+                rec.status = "cancelled"
+                rec.finished_at = datetime.now(UTC)
+                rec.error = {"code": "WORKER_STOPPED", "message": "Worker stopped mid-execution."}
+                await _commit(db)
+            await asyncio.to_thread(_mark_deliveries, db, execution_id, "cancelled")
+        except Exception:
+            logger.exception("failed to record worker-level cancellation of %s", execution_id)
         raise
     except WorkflowValidationError as exc:
         # The workflow snapshot is invalid (bad params, unknown nodes,
@@ -526,6 +587,11 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             rec.error = exc.to_dict()
             await _commit(db)
         await asyncio.to_thread(_mark_deliveries, db, execution_id, "failed")
+        try:
+            from app.services.error_monitoring import ErrorMonitoringService
+            await asyncio.to_thread(ErrorMonitoringService.capture_execution_error, None, execution_id, job, exc.to_dict(), rec)
+        except Exception:
+            logger.exception("Failed to capture validation error for execution %s", execution_id)
         return "failed"
     except Exception as exc:  # never lose the record (spec 34.1)
         logger.exception("execution %s crashed", execution_id)
@@ -538,6 +604,11 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             rec.error = crash_error
             await _commit(db)
         await asyncio.to_thread(_mark_deliveries, db, execution_id, "failed")
+        try:
+            from app.services.error_monitoring import ErrorMonitoringService
+            await asyncio.to_thread(ErrorMonitoringService.capture_execution_error, None, execution_id, job, crash_error, rec)
+        except Exception:
+            logger.exception("Failed to capture crash error for execution %s", execution_id)
         await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, crash_error)
         return "failed"
     finally:

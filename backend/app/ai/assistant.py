@@ -22,6 +22,7 @@ import json
 import re
 from typing import Any, Awaitable, Callable
 
+from app.ai.pipeline_validator import PROHIBITED_SECRET_PATTERNS
 from app.ai.validation import (
     lint_expressions,
     validate_node_parameters,
@@ -37,6 +38,64 @@ class AssistantError(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.message = message
+
+
+_SECRET_FIELD_RE = re.compile(
+    r"token|secret|passw|api[_-]?key|authorization|credential|private[_-]?key|"
+    r"bearer|cookie|signature|session[_-]?key|access[_-]?key",
+    re.IGNORECASE,
+)
+_URL_USERINFO_RE = re.compile(r"://[^/\s:@]+:[^/\s@]+@")
+REDACTED = "[redacted]"
+
+
+def scrub_text(text: str) -> str:
+    """Mask credential material embedded in free text (error strings, DSNs)
+    before it is embedded in a provider-bound prompt."""
+    out = _URL_USERINFO_RE.sub("://[redacted]@", text)
+    for pattern in PROHIBITED_SECRET_PATTERNS:
+        out = pattern.sub(REDACTED, out)
+    return out
+
+
+def scrub_secrets(value: Any, *, _depth: int = 0) -> Any:
+    """Recursively replace secret-looking values in structures that leave
+    for an external provider. Keys are preserved: models and
+    ``{{ $json.<field> }}`` bindings need names, never raw values."""
+    if isinstance(value, str):
+        return scrub_text(value)
+    if _depth > 8:
+        return value
+    if isinstance(value, dict):
+        out: dict[Any, Any] = {}
+        for key, sub in value.items():
+            if _SECRET_FIELD_RE.search(str(key)) and sub not in (None, "", [], {}):
+                out[key] = REDACTED
+            else:
+                out[key] = scrub_secrets(sub, _depth=_depth + 1)
+        return out
+    if isinstance(value, list):
+        return [scrub_secrets(item, _depth=_depth + 1) for item in value]
+    return value
+
+
+def _restore_redacted(original: Any, candidate: Any) -> Any:
+    """Put original values back wherever the model echoed the ``[redacted]``
+    placeholder so a suggested fix never wipes a real credential."""
+    if isinstance(original, dict) and isinstance(candidate, dict):
+        out: dict[Any, Any] = {}
+        for key, sub in candidate.items():
+            if sub == REDACTED and key in original:
+                out[key] = original[key]
+            else:
+                out[key] = _restore_redacted(original.get(key), sub)
+        return out
+    if isinstance(original, list) and isinstance(candidate, list):
+        return [
+            _restore_redacted(original[i] if i < len(original) else None, item)
+            for i, item in enumerate(candidate)
+        ]
+    return candidate
 
 
 def _parse_json(content: str) -> Any:
@@ -103,7 +162,7 @@ async def suggest_field_mapping(
     }
     parsed = await _complete_json(chat, llm, [
         {"role": "system", "content": system},
-        {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
+        {"role": "user", "content": json.dumps(scrub_secrets(user_payload), ensure_ascii=False)},
     ])
     raw_mapping = parsed.get("mapping") if isinstance(parsed, dict) else None
     if not isinstance(raw_mapping, dict):
@@ -160,10 +219,12 @@ async def suggest_expression(
     )
     parsed = await _complete_json(chat, llm, [
         {"role": "system", "content": system},
-        {"role": "user", "content": json.dumps({
+        # The preview below evaluates the ORIGINAL sample; only the copy
+        # sent to the provider is scrubbed.
+        {"role": "user", "content": json.dumps(scrub_secrets({
             "description": description,
             "sample_item": sample_item or {},
-        }, ensure_ascii=False)},
+        }), ensure_ascii=False)},
     ], max_tokens=400)
     expression = str(parsed.get("expression") or "") if isinstance(parsed, dict) else ""
     explanation = str(parsed.get("explanation") or "") if isinstance(parsed, dict) else ""
@@ -495,13 +556,13 @@ async def repair_node_failure(
                 },
                 {
                     "role": "user",
-                    "content": json.dumps({
+                    "content": json.dumps(scrub_secrets({
                         "node_type": node_type,
                         "operation": operation,
                         "current_parameters": current_parameters,
                         "error_message": error_message,
                         "upstream_sample": upstream_sample,
-                    }, ensure_ascii=False),
+                    }), ensure_ascii=False),
                 },
             ], max_tokens=900)
             if isinstance(parsed, dict) and "suggested_parameters" in parsed:
@@ -510,6 +571,10 @@ async def repair_node_failure(
                 summary = parsed.get("changes_summary", summary)
         except Exception:
             pass
+
+    # The provider saw scrubbed secrets; put real values back wherever the
+    # model echoed the placeholder so applying a fix cannot wipe them.
+    suggested = _restore_redacted(current_parameters, suggested)
 
     return {
         "root_cause": cause,

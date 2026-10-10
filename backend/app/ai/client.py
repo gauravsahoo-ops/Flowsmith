@@ -39,14 +39,21 @@ def is_json_response_format(value: str) -> bool:
 
 
 def _raise_provider_error(status: int, text: str, model: str) -> None:
-    detail = text[:300]
+    detail = ""
     try:
         parsed = json.loads(text)
-        detail = parsed.get("error", {}).get("message") or detail
-    except (ValueError, AttributeError):
-        pass
+        detail = str(parsed.get("error", {}).get("message") or "")
+    except (ValueError, AttributeError, TypeError):
+        detail = ""
+    detail = " ".join(detail.split())[:200]
+    # Never echo raw upstream bodies to clients (they may be internal error
+    # pages); full text goes to the server log only, and 5xx collapses to a
+    # generic status. A short structured 4xx message stays for UX.
+    if status >= 500 or not detail:
+        logger.warning("LLM upstream error %s from model '%s': %s", status, model, text[:300])
+        detail = f"provider returned HTTP {status}"
     raise LLMError(
-        f"LLM request to '{model}' failed with {status}: {detail}",
+        f"LLM request to '{model}' failed: {detail}",
         code="LLM_HTTP_ERROR",
     )
 
@@ -80,6 +87,18 @@ async def chat_completion(
     api_key = credential.get("api_key") or ""
     base_url = str(credential.get("base_url") or "").rstrip("/")
     timeout_s = float(credential.get("timeout_s") or (120.0 if prov_name == "ollama" else 60.0))
+
+    # SSRF: a credential-supplied base_url is fetched server-side and must
+    # never reach internal/metadata hosts. Local-only providers (ollama/
+    # builtin/offline) are exempt by design; dev keeps loopback for mocks.
+    if base_url and prov_name not in ("ollama", "builtin", "local_ai", "offline", "mock"):
+        from app.engine.errors import NodeExecutionError
+        from app.security.ssrf import assert_public_url
+
+        try:
+            await assert_public_url(base_url, node_id="llm_base_url")
+        except NodeExecutionError as exc:
+            raise LLMError(f"LLM base_url rejected: {exc.message}", code="LLM_SSRF_BLOCKED") from exc
 
     # Route specialized non-OpenAI or local builtin providers via provider classes
     if (

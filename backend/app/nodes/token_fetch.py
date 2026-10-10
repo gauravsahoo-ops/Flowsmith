@@ -94,10 +94,10 @@ class TokenFetchNode(BaseNode[TokenFetchParams]):
         params: TokenFetchParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
-        from app.auth_state.service import get_state, locked_refresh, mark_failed
+        from app.auth_state.service import get_state, locked_refresh, mark_failed, resolve_workflow_scope
         from app.db import get_session
 
-        wf_id = (params.workflow_id or ctx.workflow_id or "").strip()
+        wf_id = resolve_workflow_scope(params.workflow_id, ctx)
         provider = canonical_provider(params.provider)
         if not provider:
             raise NodeExecutionError(

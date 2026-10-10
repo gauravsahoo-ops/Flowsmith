@@ -278,7 +278,7 @@ def build_node_name_map(nodes: Any) -> dict[str, str]:
     Accepts:
       - list of node dicts or WorkflowNode objects
       - dict of nid -> GraphNode (executor graph) or nid -> dict
-    
+
     Priority order:
       Generic types / registry names -> explicit name -> custom settings.label -> node_id
       (Custom labels and node_id have top priority so they are never overshadowed by generic types).
@@ -287,7 +287,7 @@ def build_node_name_map(nodes: Any) -> dict[str, str]:
     if not nodes:
         return name_map
 
-    node_list = []
+    node_list: list[Any] = []
     if isinstance(nodes, dict):
         for nid, val in nodes.items():
             if hasattr(val, "node"):
@@ -305,8 +305,10 @@ def build_node_name_map(nodes: Any) -> dict[str, str]:
     for n in node_list:
         if isinstance(n, dict):
             nid = n.get("id", "")
-            data_obj = n.get("data") if isinstance(n.get("data"), dict) else {}
-            inner_node = data_obj.get("node") if isinstance(data_obj.get("node"), dict) else {}
+            raw_data = n.get("data")
+            data_obj: dict = raw_data if isinstance(raw_data, dict) else {}
+            raw_inner = data_obj.get("node")
+            inner_node: dict = raw_inner if isinstance(raw_inner, dict) else {}
             ntype = inner_node.get("type") or n.get("type", "")
             explicit_name = n.get("name", "") or inner_node.get("name", "")
             settings_obj = n.get("settings") or inner_node.get("settings") or {}
@@ -340,7 +342,7 @@ def build_node_name_map(nodes: Any) -> dict[str, str]:
         for c in candidates:
             if not c:
                 continue
-            c_str = str(c).strip()
+            c_str = c.strip()
             if not c_str:
                 continue
             name_map[c_str] = nid

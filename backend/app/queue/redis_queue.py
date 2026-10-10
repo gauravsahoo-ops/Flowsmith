@@ -79,6 +79,8 @@ class RedisJobQueue(QueueBackend):
         self._conn = redis.Redis.from_url(settings.redis_url, decode_responses=True)
 
     def enqueue(self, job_id: str, execution_id: str, payload: dict[str, Any]) -> bool:
+        # SADD is both the idempotency guard and the first write: if it
+        # fails we never touch the rest of the keys.
         added = self._conn.sadd(EXECS_KEY, execution_id)
         if not added:
             return False  # execution already queued (idempotency guard)
@@ -95,9 +97,31 @@ class RedisJobQueue(QueueBackend):
             "heartbeat_at": "",
             "error": "",
         }
-        self._conn.hset(_meta_key(job_id), mapping=cast(Any, meta))
-        self._conn.hset(f"{META_PREFIX}exec_to_job", execution_id, job_id)
-        self._conn.lpush(QUEUE_KEY, job_id)
+        # The remaining writes go out as one MULTI/EXEC so a mid-enqueue
+        # failure cannot leave meta/exec_to_job half-written with the
+        # idempotency guard already set (audit H17: a bare guard without a
+        # queue entry wedges that execution forever — every later retry
+        # sees "already queued"). On failure the guard is released and
+        # False is returned, matching DbJobQueue.enqueue's behaviour.
+        try:
+            pipe = self._conn.pipeline(transaction=True)
+            pipe.hset(_meta_key(job_id), mapping=cast(Any, meta))
+            pipe.hset(f"{META_PREFIX}exec_to_job", execution_id, job_id)
+            pipe.lpush(QUEUE_KEY, job_id)
+            pipe.execute()
+        except Exception:
+            logger.exception(
+                "queue.redis: enqueue failed for execution %s; releasing idempotency guard",
+                execution_id,
+            )
+            try:
+                self._conn.srem(EXECS_KEY, execution_id)
+            except Exception:
+                logger.warning(
+                    "queue.redis: could not release guard for execution %s",
+                    execution_id,
+                )
+            return False
         return True
 
     def requeue(self, execution_id: str, payload: dict[str, Any]) -> bool:

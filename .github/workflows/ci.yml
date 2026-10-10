@@ -54,7 +54,10 @@ jobs:
       - name: Lint (ruff)
         run: ruff check app
       - name: Security audit (pip-audit)
-        run: pip-audit -r requirements.txt
+        working-directory: .
+        run: |
+          grep -v " @ file://" requirements-lock.txt > "$RUNNER_TEMP/requirements-audit.txt"
+          pip-audit -r "$RUNNER_TEMP/requirements-audit.txt" --no-deps --disable-pip
       - name: Typecheck
         run: pyright
       - name: Tests (fast pass)
@@ -88,6 +91,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install
         run: npm ci
+      - name: Dependency audit (npm audit)
+        run: npm audit --audit-level=high
       - name: Lint
         run: npm run lint
       - name: Unit Tests

@@ -214,8 +214,8 @@ services:
     restart: unless-stopped
     command: server /bitnami/minio/data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${OBJECT_STORE_ACCESS_KEY:-flowsmith-dev-minio}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORE_SECRET_KEY:-flowsmith-dev-minio-local-only}
     ports:
       # Loopback-only: MinIO is a dev/test service. Host ports are left
       # ephemeral ("" = auto-assign) to avoid collisions.

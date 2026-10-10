@@ -142,6 +142,13 @@ async def refresh_bundle(provider: str, bundle: dict[str, Any]) -> dict[str, Any
     client_id = str(bundle.get("client_id") or "").strip()
     client_secret = str(bundle.get("client_secret") or "").strip()
 
+    # Stored bundle URLs are attacker-influencable (token_store params):
+    # refuse refresh against internal/loopback targets in production.
+    if token_url:
+        from app.security.ssrf import assert_public_url
+
+        await assert_public_url(token_url, node_id="auth_fetch")
+
     if spec.get("json") or not (client_id and client_secret):
         if not token_url:
             raise NodeExecutionError(

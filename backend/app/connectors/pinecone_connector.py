@@ -59,14 +59,40 @@ class PineconeConnector(ConnectorSDK, ConnectorOperations):
                 message="Missing Pinecone API Key",
             )
         headers = self._get_headers(self.credentials)
+        # H4: shared SSRF guard runs before every outbound call.
+        from app.security.ssrf import assert_public_url
+
+        url = "https://api.pinecone.io/indexes"
         try:
+            await assert_public_url(url, node_id="pinecone")
             async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.get("https://api.pinecone.io/indexes", headers=headers)
+                res = await client.get(url, headers=headers)
                 if res.status_code == 200:
                     return ConnectorHealthCheck(healthy=True, message="Pinecone connection active")
                 return ConnectorHealthCheck(healthy=False, message=f"HTTP {res.status_code}")
         except Exception as e:
             return ConnectorHealthCheck(healthy=False, message=str(e))
+
+    @staticmethod
+    async def _index_host(host: str) -> str:
+        """Normalize and validate a user-supplied index host (H4).
+
+        Pinecone serves index hosts over https only — an http:// URL would
+        send the API key in cleartext — and the result is handed to the
+        shared SSRF guard before any request is built from it.
+        """
+        from app.security.ssrf import assert_public_url
+
+        if not host.startswith("http"):
+            host = f"https://{host}"
+        if not host.startswith("https://"):
+            raise make_connector_error(
+                ConnectorErrorCode.VALIDATION_FAILED,
+                "Pinecone index host must use https:// (the API key would be sent in cleartext).",
+                retryable=False,
+            )
+        await assert_public_url(host, node_id="pinecone")
+        return host
 
     async def op_execute(
         self,
@@ -88,10 +114,21 @@ class PineconeConnector(ConnectorSDK, ConnectorOperations):
         host = (params.get("host") or creds.get("host") or "").rstrip("/")
         timeout = float(params.get("timeout_seconds", 30.0))
 
+        # H4: normalize + validate every outbound URL before any request is
+        # built; the guards sit outside the try so NodeExecutionError
+        # propagates unwrapped (the executor understands it directly).
+        control_plane_url = "https://api.pinecone.io/indexes"
+        if operation == "list_indexes":
+            from app.security.ssrf import assert_public_url
+
+            await assert_public_url(control_plane_url, node_id="pinecone")
+        elif host:
+            host = await self._index_host(host)
+
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
                 if operation == "list_indexes":
-                    res = await client.get("https://api.pinecone.io/indexes", headers=headers)
+                    res = await client.get(control_plane_url, headers=headers)
                     res.raise_for_status()
                     return res.json()
 
@@ -101,9 +138,6 @@ class PineconeConnector(ConnectorSDK, ConnectorOperations):
                         "Pinecone Index host URL is required for vector operations.",
                         retryable=False,
                     )
-
-                if not host.startswith("http"):
-                    host = f"https://{host}"
 
                 if operation == "upsert_vectors":
                     vectors = params.get("vectors") or []

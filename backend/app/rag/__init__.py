@@ -277,6 +277,11 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]
     text = text.strip()
     if not text:
         return []
+    if chunk_size < 1:
+        return [text]
+    # Overlap must leave forward progress (overlap >= chunk_size made
+    # `start = end - overlap` rewind to 0 forever -> unbounded loop/DoS).
+    overlap = max(0, min(overlap, chunk_size - 1))
     if len(text) <= chunk_size:
         return [text]
     chunks: list[str] = []
@@ -286,9 +291,7 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]
         chunks.append(text[start:end])
         if end == len(text):
             break
-        start = max(end - overlap, 0)
-        if start >= len(text):
-            break
+        start = max(end - overlap, start + 1)
     return chunks
 
 
@@ -477,6 +480,10 @@ def query_collection(
     rec = get_collection(db, collection_id, access)
     if not query_text.strip():
         raise ValueError("Empty query.")
+    # Not every caller is schema-validated (e.g. MCP tool args): bound the
+    # candidate set so one query cannot pull an unbounded result window.
+    top_k = max(1, min(int(top_k), 50))
+    similarity_threshold = min(max(float(similarity_threshold), 0.0), 1.0)
     _embed = embed_fn or embed_texts
 
     t0 = time.perf_counter()
@@ -525,16 +532,30 @@ def query_collection(
     }
 
 
+# Bound the retrieved context that callers send to providers: per-hit and
+# total caps keep one giant document from blowing up the prompt budget.
+_CITED_MAX_HIT_CHARS = 4000
+_CITED_MAX_CONTEXT_CHARS = 20000
+
+
 def build_cited_context(hits: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
     """Format hits as numbered context blocks for grounded LLM answers."""
     blocks: list[str] = []
     citations: list[dict[str, Any]] = []
+    total = 0
     for hit in hits:
         ref = hit.get("ref")
         meta = hit.get("metadata") or {}
         source = meta.get("source_url") or meta.get("source") or meta.get("document_id")
         label = f"[{ref}]" if ref is not None else "[?]"
-        blocks.append(f"{label} {hit.get('content', '')}")
+        content = str(hit.get("content", ""))
+        if len(content) > _CITED_MAX_HIT_CHARS:
+            content = content[:_CITED_MAX_HIT_CHARS] + "... (truncated)"
+        block = f"{label} {content}"
+        if blocks and total + len(block) > _CITED_MAX_CONTEXT_CHARS:
+            break
+        blocks.append(block)
+        total += len(block) + 4  # "\n\n---\n\n" separator
         citations.append({
             "ref": ref,
             "similarity": hit.get("similarity"),

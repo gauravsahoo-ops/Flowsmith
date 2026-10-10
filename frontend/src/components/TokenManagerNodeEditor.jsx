@@ -96,8 +96,8 @@ export default function TokenManagerNodeEditor({
     }
 
     const step = trace?.find((s) => s.node_id === node.id)
-    if (step?.outputs) {
-      const o = step.outputs
+    const o = step?.full_outputs ?? step?.outputs
+    if (o) {
       if (Array.isArray(o) && o.length > 0) return o[0]
       if (Array.isArray(o.main) && o.main.length > 0) return o.main[0]
       if (Array.isArray(o.login) && o.login.length > 0) return o.login[0]

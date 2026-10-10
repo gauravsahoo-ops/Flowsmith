@@ -52,6 +52,27 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
             "Prefer": "return=representation",
         }
 
+    @staticmethod
+    async def _project_url(url: str) -> str:
+        """Normalize and validate a user-supplied project URL (H4).
+
+        Supabase serves PostgREST over https only — an http:// URL would
+        send the service-role key in cleartext — and the result is handed
+        to the shared SSRF guard before any request is built from it.
+        """
+        from app.security.ssrf import assert_public_url
+
+        if not url.startswith("http"):
+            url = f"https://{url}"
+        if not url.startswith("https://"):
+            raise make_connector_error(
+                ConnectorErrorCode.VALIDATION_FAILED,
+                "Supabase URL must use https:// (the service-role key would be sent in cleartext).",
+                retryable=False,
+            )
+        await assert_public_url(url, node_id="supabase")
+        return url
+
     async def op_health_check(self) -> ConnectorHealthCheck:
         url = (self.credentials.get("url") or self.credentials.get("supabase_url") or "").rstrip("/")
         if not url:
@@ -61,6 +82,10 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
             )
         headers = self._get_headers(self.credentials)
         try:
+            # H4: normalize + shared SSRF guard before the outbound call;
+            # inside the try so failures surface as unhealthy=True/False
+            # rather than raising out of the health check.
+            url = await self._project_url(url)
             async with httpx.AsyncClient(timeout=10.0) as client:
                 res = await client.get(f"{url}/rest/v1/", headers=headers)
                 if res.status_code in (200, 404):
@@ -83,6 +108,9 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
                 "Supabase URL is required.",
                 retryable=False,
             )
+        # H4: normalize + shared SSRF guard before any request is built;
+        # outside the try so NodeExecutionError propagates unwrapped.
+        url = await self._project_url(url)
         headers = self._get_headers(creds)
         params = payload or {}
         table = params.get("table", "").strip()

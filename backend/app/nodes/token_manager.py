@@ -601,10 +601,10 @@ class TokenManagerNode(BaseNode[TokenManagerParams]):
         params: TokenManagerParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
-        from app.auth_state.service import get_state, locked_refresh, mark_failed, upsert_state
+        from app.auth_state.service import get_state, locked_refresh, mark_failed, resolve_workflow_scope, upsert_state
         from app.db import get_session
 
-        wf_id = (params.workflow_id or ctx.workflow_id or "").strip()
+        wf_id = resolve_workflow_scope(params.workflow_id, ctx, require_edit=True)
         provider = canonical_provider(params.provider or "salesforce")
         if not provider:
             raise NodeExecutionError(

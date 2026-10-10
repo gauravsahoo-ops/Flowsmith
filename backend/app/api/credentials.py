@@ -220,12 +220,20 @@ def get_oauth_provider_config(
         db.scalars(query.where(Credential.user_id == user.id).order_by(Credential.created_at.desc())).all()
     )
     if not candidates:
-        # Fallback to shared connected-app config only — never other users'
-        # per-connection credential rows.
+        # Fallback to connected-app config from the SAME organization only -
+        # the save endpoint stores rows per user, so an unfiltered fallback
+        # would hand out another tenant's client_id/secret. Org-less users
+        # fall through to the server (.env) configuration below.
         config_types = [t for t in types_to_check if t.endswith("_oauth_config")]
-        candidates = list(
-            db.scalars(query.where(Credential.type.in_(config_types)).order_by(Credential.created_at.desc())).all()
-        )
+        if user.organization_id:
+            org_q = (
+                query.where(Credential.type.in_(config_types))
+                .join(User, Credential.user_id == User.id)
+                .where(User.organization_id == user.organization_id)
+            )
+            candidates = list(db.scalars(org_q.order_by(Credential.created_at.desc())).all())
+        else:
+            candidates = []
 
     for cand in candidates:
         try:

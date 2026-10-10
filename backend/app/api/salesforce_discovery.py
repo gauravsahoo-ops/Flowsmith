@@ -83,6 +83,10 @@ async def _run_salesforce_op(
             "Salesforce connector is not registered.",
         )
     creds = await _resolve_creds(user, db)
+    # Credential reads/decryption are the only DB work here; release the
+    # session so a slow Salesforce round-trip never pins a pooled connection
+    # (get_db closes it again on teardown).
+    db.close()
     try:
         result = await connector.op_execute(
             operation, payload, {"credentials": {"salesforce": creds}}

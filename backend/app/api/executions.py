@@ -192,9 +192,9 @@ async def run_workflow(
 ) -> dict:
     rec = get_workflow(db, workflow_id, user, require_edit=True)
     # Plan quota (Phase 34): monthly execution budget per workspace plan.
-    from app.billing.service import enforce_plan_limit
+    from app.billing.service import enforce_can_start_execution
 
-    enforce_plan_limit(db, rec.workspace_id, "executions")
+    enforce_can_start_execution(db, rec.workspace_id)
     raw = body.data if body is not None else None
     trigger_items: list[dict[str, Any]]
     if isinstance(raw, dict):
@@ -293,12 +293,19 @@ def get_execution(execution_id: str, user: User = Depends(get_current_user), db:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
     results_outputs = (rec.results or {}).get("outputs") if isinstance(rec.results, dict) else {}
+    results_inputs = (rec.results or {}).get("inputs") if isinstance(rec.results, dict) else {}
     trace = [dict(s) for s in (rec.trace or [])]
-    if results_outputs and isinstance(results_outputs, dict):
+    if (results_outputs and isinstance(results_outputs, dict)) or (results_inputs and isinstance(results_inputs, dict)):
         for step in trace:
             nid = step.get("node_id")
-            if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
-                step["outputs"] = results_outputs[nid]
+            if results_outputs and isinstance(results_outputs, dict) and nid in results_outputs and results_outputs[nid]:
+                step["full_outputs"] = results_outputs[nid]
+                if not step.get("outputs"):
+                    step["outputs"] = results_outputs[nid]
+            if results_inputs and isinstance(results_inputs, dict) and nid in results_inputs and results_inputs[nid]:
+                step["full_inputs"] = results_inputs[nid]
+                if not step.get("inputs"):
+                    step["inputs"] = results_inputs[nid]
     trace = redact_trace_steps(trace)
 
     data = {
@@ -424,12 +431,19 @@ def get_execution_trace(
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     results_outputs = (rec.results or {}).get("outputs") if isinstance(rec.results, dict) else {}
+    results_inputs = (rec.results or {}).get("inputs") if isinstance(rec.results, dict) else {}
     trace = [dict(s) for s in (rec.trace or [])]
-    if results_outputs and isinstance(results_outputs, dict):
+    if (results_outputs and isinstance(results_outputs, dict)) or (results_inputs and isinstance(results_inputs, dict)):
         for step in trace:
             nid = step.get("node_id")
-            if nid in results_outputs and results_outputs[nid] and not step.get("outputs"):
-                step["outputs"] = results_outputs[nid]
+            if results_outputs and isinstance(results_outputs, dict) and nid in results_outputs and results_outputs[nid]:
+                step["full_outputs"] = results_outputs[nid]
+                if not step.get("outputs"):
+                    step["outputs"] = results_outputs[nid]
+            if results_inputs and isinstance(results_inputs, dict) and nid in results_inputs and results_inputs[nid]:
+                step["full_inputs"] = results_inputs[nid]
+                if not step.get("inputs"):
+                    step["inputs"] = results_inputs[nid]
     return ok({"steps": redact_trace_steps(trace)})
 
 
@@ -490,6 +504,11 @@ async def retry_execution(
         extra_payload = {"_retry_from_node": node_id, "_retry_source": execution_id}
 
     trigger_items = rec.trigger_data or [{}]
+    # Plan quota (audit H9): retries create new executions too.
+    from app.billing.service import enforce_can_start_execution
+
+    workspace_id = workflow_workspace(db, rec.workflow_id)
+    enforce_can_start_execution(db, workspace_id)
     new_id = start_execution(
         db,
         workflow_id=rec.workflow_id,
@@ -498,7 +517,7 @@ async def retry_execution(
         workflow_data=rec.workflow_data,
         trigger="node_retry" if node_id else "retry",
         trigger_items=trigger_items,
-        workspace_id=workflow_workspace(db, rec.workflow_id),
+        workspace_id=workspace_id,
         extra_payload=extra_payload,
     )
     log_event(db, EXECUTION_RETRY, target_type="execution", target_id=execution_id, user_id=user.id,
@@ -516,16 +535,30 @@ def cancel_execution(execution_id: str, user: User = Depends(get_current_user), 
     # Durable cooperative cancel (spec 36): mark it in the DB; the
     # worker's monitor flips the engine's cancel event. A waiting
     # execution has no active run — the flag itself is terminal.
+    # CAS on status: a concurrent cancel/resume/completion wins instead of
+    # being clobbered by a stale read-modify-write.
     was_waiting = rec.status == "waiting_approval"
-    rec.status = "cancelling" if not was_waiting else "cancelled"
+    values: dict[Any, Any] = {"status": "cancelled" if was_waiting else "cancelling"}
     if was_waiting:
-        rec.finished_at = datetime.now(UTC)
-        rec.pause_state = None
+        values["finished_at"] = datetime.now(UTC)
+        values["pause_state"] = None
         if rec.error is None:
-            rec.error = {"code": "CANCELLED_WHILE_WAITING", "message": "Cancelled while waiting for approval."}
+            values["error"] = {"code": "CANCELLED_WHILE_WAITING", "message": "Cancelled while waiting for approval."}
+    if was_waiting:
+        guard = Execution.status == "waiting_approval"
+    else:
+        guard = Execution.status.in_(IN_PROGRESS_STATUSES)
+    flipped = (
+        db.query(Execution)
+        .filter(Execution.id == execution_id, guard)
+        .update(values)
+    )
+    if flipped == 0:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not running.")
     db.commit()
     log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
-    return ok({"id": execution_id, "status": rec.status})
+    return ok({"id": execution_id, "status": values["status"]})
 
 
 @router.post("/api/executions/{execution_id}/resume")
@@ -573,12 +606,27 @@ def resume_execution(
             "node_id": pause.get("node_id"),
         },
     }
+    # CAS: claim the resume atomically (only waiting_approval → queued) so
+    # a concurrent cancel/decision or a worker that already started is never
+    # clobbered by a stale read-modify-write.
+    flipped = (
+        db.query(Execution)
+        .filter(Execution.id == execution_id, Execution.status == "waiting_approval")
+        .update({"status": "queued"})
+    )
+    if flipped == 0:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is no longer waiting for approval.")
+    db.commit()
     if not queue.requeue(execution_id, payload):
         job_id = f"job_{uuid.uuid4().hex[:12]}"
         if not queue.enqueue(job_id, execution_id, payload):
+            # No transport job could be created: restore the waiting state.
+            db.query(Execution).filter(
+                Execution.id == execution_id, Execution.status == "queued"
+            ).update({"status": "waiting_approval"})
+            db.commit()
             raise HTTPException(status.HTTP_409_CONFLICT, "Execution is already queued.")
-    rec.status = "queued"
-    db.commit()
     log_event(db, EXECUTION_RESUME, target_type="execution", target_id=execution_id, user_id=user.id,
               detail={"approved": approved})
     return ok({"id": execution_id, "status": "queued"})
@@ -608,9 +656,9 @@ async def run_single_node(
     the target node runs with real inputs. Useful for step-by-step debugging.
     """
     rec = get_workflow(db, workflow_id, user, require_edit=True)
-    from app.billing.service import enforce_plan_limit
+    from app.billing.service import enforce_can_start_execution
 
-    enforce_plan_limit(db, rec.workspace_id, "executions")
+    enforce_can_start_execution(db, rec.workspace_id)
     workflow_nodes = {n.get("id") for n in (rec.data or {}).get("nodes", [])}
     if body.node_id not in workflow_nodes:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown node '{body.node_id}'.")
@@ -673,9 +721,9 @@ async def run_to_node(
     chain leading to (and including) the target.
     """
     rec = get_workflow(db, workflow_id, user, require_edit=True)
-    from app.billing.service import enforce_plan_limit
+    from app.billing.service import enforce_can_start_execution
 
-    enforce_plan_limit(db, rec.workspace_id, "executions")
+    enforce_can_start_execution(db, rec.workspace_id)
     workflow_nodes = {n.get("id") for n in (rec.data or {}).get("nodes", [])}
     if body.node_id not in workflow_nodes:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown node '{body.node_id}'.")

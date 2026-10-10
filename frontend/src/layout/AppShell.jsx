@@ -6,6 +6,7 @@ import { useWorkflowStore, isDirty } from '../stores/workflowStore'
 import { useCredentialStore } from '../stores/credentialStore'
 import { useBrandingStore } from '../stores/brandingStore'
 import { syncUserProfile, getDynamicUser } from '../utils/userProfile'
+import NotificationBell from '../components/NotificationBell'
 import { api } from '../api'
 
 export default function AppShell({ onLogout }) {
@@ -142,6 +143,8 @@ export default function AppShell({ onLogout }) {
             </button>
           </div>
           <div className="app-topbar-right">
+            <NotificationBell />
+
             <button
               className="ghost ghost--sm topbar-status-pill"
               onClick={() => navigate('/monitoring')}

@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field, model_validator
 logger = logging.getLogger(__name__)
 
 from app.engine.errors import NodeExecutionError
-from app.engine.node_base import CONDITIONALLY_IDEMPOTENT, BaseNode, NodeContext, NodeResult, filter_client_kwargs
+from app.engine.node_base import CONDITIONALLY_IDEMPOTENT, BaseNode, NodeContext, NodeResult, request_with_size_cap
 from app.nodes.registry import register
 from app.engine import expressions
 from app.credentials.http_auth_builder import get_http_auth_builder
@@ -604,8 +604,6 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
 
         await assert_public_url(url, node_id="http_request")
 
-    _filter_kwargs = staticmethod(filter_client_kwargs)
-
     async def _do_request(self, ctx, params, url, headers, query, json_body, data, files=None):
         outbound_headers = dict(headers or {})
         try:
@@ -619,7 +617,6 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
             "json": json_body,
             "timeout": params.timeout_seconds,
             "follow_redirects": params.follow_redirects,
-            "max_response_bytes": params.max_response_bytes,
         }
         if data is not None:
             kwargs["data"] = data
@@ -632,10 +629,20 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
         if not params.follow_redirects:
             kwargs["follow_redirects"] = False
         # max_redirects is mostly handled by client config; filter will drop if unsupported
-        filtered = self._filter_kwargs(ctx.http_client, kwargs)
         # For plain httpx client, max_redirects is in client setup, not per-request.
         # We handle it by checking response history length after.
-        return await ctx.http_client.request(params.method, url, **filtered)
+        # H19: request_with_size_cap enforces max_response_bytes while
+        # streaming — plain httpx clients drop the kwarg, which left the cap
+        # (and every response mode fed from it) unenforced. It also
+        # re-validates redirect targets before the body is consumed.
+        return await request_with_size_cap(
+            ctx.http_client,
+            params.method,
+            url,
+            max_response_bytes=params.max_response_bytes,
+            node_id=self.node_type,
+            **kwargs,
+        )
 
     async def run(self, ctx: NodeContext, params: HTTPRequestParams, input_items: list[dict[str, Any]]) -> NodeResult:
         if not input_items:
@@ -1373,13 +1380,21 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
                 inject_trace_context(page_headers)
             except Exception:
                 pass
+            # The next link comes from the upstream server's Link header —
+            # an unvalidated target would let it steer us at internal hosts.
+            if "{{" not in nxt:
+                await self._validate_url_ssrf(nxt)
             try:
-                page = await ctx.http_client.request(
-                    "GET", nxt, headers=page_headers or None, params=query or None,
+                page = await request_with_size_cap(
+                    ctx.http_client, "GET", nxt,
+                    max_response_bytes=params.max_response_bytes,
+                    node_id=self.node_type,
+                    headers=page_headers or None, params=query or None,
                     timeout=params.timeout_seconds,
                     follow_redirects=params.follow_redirects,
-                    max_response_bytes=params.max_response_bytes,
                 )
+            except NodeExecutionError:
+                raise
             except httpx.TimeoutException as exc:
                 raise NodeExecutionError("Pagination request timed out.", code="HTTP_TIMEOUT", node_id=self.node_type, retryable=True) from exc
             except httpx.RequestError as exc:

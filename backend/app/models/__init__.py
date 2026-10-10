@@ -26,6 +26,7 @@ from app.models.workflow import WorkflowRecord
 from app.models.workflow_auth import WorkflowAuthState
 from app.models.workflow_test import WorkflowTest
 from app.models.branding import BrandingSetting
+from app.models.error_event import ErrorEvent, NotificationPreference, NotificationRecord
 
 __all__ = [
     "User",
@@ -58,5 +59,8 @@ __all__ = [
     "DataTableColumn",
     "DataTableRow",
     "BrandingSetting",
+    "ErrorEvent",
+    "NotificationRecord",
+    "NotificationPreference",
 ]
 

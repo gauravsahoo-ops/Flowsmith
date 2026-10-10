@@ -83,24 +83,31 @@ def workspace_can_edit(db: Session, ws_id: str, user_id: int) -> bool:
     return (org_member.role or "") in ("owner", "admin", "founder") or (org_member.permission or "") in ("edit", "admin")
 
 
+def permission_for_user_id(db: Session, workflow_id: str, user_id: int) -> str | None:
+    """id-only mirror of ``get_permission`` (worker/tool contexts have no
+    ``User`` object). Identical rules: owner, then explicit workflow share;
+    soft-deleted workflows are invisible."""
+    rec = db.get(WorkflowRecord, workflow_id)
+    if rec is None or rec.deleted_at is not None:
+        return None
+    if rec.user_id == user_id:
+        return "owner"
+    share = db.scalar(
+        select(WorkflowShare).where(
+            WorkflowShare.workflow_id == workflow_id,
+            WorkflowShare.user_id == user_id,
+        )
+    )
+    return share.permission if share is not None else None
+
+
 def get_permission(db: Session, workflow_id: str, user: User) -> str | None:
     """'owner' | 'edit' | 'view' | None (no access).
 
     Deleted (soft-deleted) workflows are invisible: None, so every
     caller 404s instead of seeing or mutating a dead workflow.
     """
-    rec = db.get(WorkflowRecord, workflow_id)
-    if rec is None or rec.deleted_at is not None:
-        return None
-    if rec.user_id == user.id:
-        return "owner"
-    share = db.scalar(
-        select(WorkflowShare).where(
-            WorkflowShare.workflow_id == workflow_id,
-            WorkflowShare.user_id == user.id,
-        )
-    )
-    return share.permission if share is not None else None
+    return permission_for_user_id(db, workflow_id, user.id)
 
 
 def get_workflow(db: Session, workflow_id: str, user: User, *, require_edit: bool = False) -> WorkflowRecord:

@@ -12,6 +12,10 @@ def _prod_settings(**overrides):
         jwt_secret="prod-secret-that-is-long-enough-32-bytes!!",
         database_url="postgresql://u:p@localhost:5432/db",
         cors_origins="http://localhost:8000",
+        # Hermetic: the ambient backend\.env sets a dev SSRF allowlist that
+        # would otherwise trip the production bypass gate.
+        safe_http_allowed_hosts="",
+        safe_http_allowed_ports="",
     )
     base.update(overrides)
     return Settings(**base)

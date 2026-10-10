@@ -105,6 +105,7 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   const running = useExecutionStore((s) => s.running)
   const executionError = useExecutionStore((s) => s.error)
   const clearExecution = useExecutionStore((s) => s.clear)
+  const results = useExecutionStore((s) => s.results)
 
   const nodes = useWorkflowStore((s) => s.nodes)
   const selectNode = useUiStore((s) => s.selectNode)
@@ -241,10 +242,12 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   // Active data for Input or Output
   const stepData = useMemo(() => {
     if (!activeStep) return { raw: null, items: [] }
-    const raw = activeTab === 'input' ? activeStep.inputs : activeStep.outputs
+    const raw = activeTab === 'input'
+      ? (activeStep.full_inputs ?? results?.inputs?.[activeStep.node_id] ?? activeStep.inputs)
+      : (activeStep.full_outputs ?? results?.outputs?.[activeStep.node_id] ?? activeStep.outputs)
     const items = unrollItems(raw)
     return { raw, items }
-  }, [activeStep, activeTab])
+  }, [activeStep, activeTab, results])
 
   // Filter items by search query
   const displayItems = useMemo(() => {
@@ -615,7 +618,9 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                       <span className="logs-col-duration">{fmtDuration(step.duration_ms)}</span>
 
                       <span className="logs-col-items">
-                        {Array.isArray(step.outputs) ? `${step.outputs.length} items` : (step.output_count != null ? `${step.output_count} items` : '')}
+                        {Array.isArray(step.full_outputs ?? step.outputs)
+                          ? `${(step.full_outputs ?? step.outputs).length} items`
+                          : (step.output_count != null ? `${step.output_count} items` : '')}
                       </span>
 
                       <span className="logs-col-msg">

@@ -87,8 +87,8 @@ function deriveRunPreview(trace) {
   const out = {}
   for (const step of trace || []) {
     if (!step?.node_id) continue
-    const outCount = countItems(step.outputs)
-    const inCount = countItems(step.inputs)
+    const outCount = countItems(step.full_outputs ?? step.outputs)
+    const inCount = countItems(step.full_inputs ?? step.inputs)
     out[step.node_id] = {
       status: step.status,
       durationMs: step.duration_ms,

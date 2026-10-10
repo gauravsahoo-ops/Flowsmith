@@ -46,6 +46,13 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Install backend deps
         working-directory: ./backend
         run: |
@@ -76,4 +83,5 @@ jobs:
         working-directory: ./frontend
         run: |
           npm run lint
+          npx vitest run --coverage
           npm run build

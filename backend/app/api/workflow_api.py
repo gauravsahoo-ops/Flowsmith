@@ -106,6 +106,10 @@ async def execute_workflow_api(
     trigger_items = payload if isinstance(payload, list) else [payload if isinstance(payload, dict) else {"value": payload}]
 
     from app.api.executions import start_execution, workflow_workspace
+    from app.billing.service import enforce_can_start_execution
+
+    workspace_id = workflow_workspace(db, rec.id)
+    enforce_can_start_execution(db, workspace_id)
 
     try:
         execution_id = start_execution(
@@ -116,7 +120,7 @@ async def execute_workflow_api(
             workflow_data=rec.data,
             trigger="api",
             trigger_items=trigger_items,
-            workspace_id=workflow_workspace(db, rec.id),
+            workspace_id=workspace_id,
         )
     except Exception as exc:
         from app.engine.errors import WorkflowValidationError

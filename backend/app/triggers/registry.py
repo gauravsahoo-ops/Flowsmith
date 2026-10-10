@@ -50,6 +50,39 @@ def workflow_trigger_nodes(workflow: Workflow) -> list[dict[str, Any]]:
     ]
 
 
+def schedule_rule_dicts(params: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize a schedule node's params into a list of rule dicts.
+
+    Every shape the codebase can produce is accepted (audit H16):
+
+    - canonical ``rules`` list (registry/UI source of truth),
+    - legacy single ``cron`` + ``timezone`` pair,
+    - AI compiler/copilot shape ``rule.cronExpression`` (+ ``rule.timezone``).
+
+    Rule ids are preserved when present and otherwise derived from the
+    rule's position, so both sync passes compute the same row ids — a
+    mismatch would delete and recreate the row on every save, resetting
+    ``last_fired_at`` (and, for id-less rules, meant the schedule was
+    never registered at all).
+    """
+    rules = params.get("rules")
+    if isinstance(rules, list) and rules:
+        out: list[dict[str, Any]] = []
+        for idx, r in enumerate(rules):
+            d = dict(r) if isinstance(r, dict) else {}
+            if not str(d.get("id") or "").strip():
+                d["id"] = f"rule{idx}"
+            out.append(d)
+        return out
+    raw_nested = params.get("rule")
+    nested = raw_nested if isinstance(raw_nested, dict) else {}
+    timezone = params.get("timezone") or nested.get("timezone") or "UTC"
+    cron = params.get("cron") or nested.get("cronExpression") or nested.get("cron")
+    if isinstance(cron, str) and cron.strip():
+        return [{"id": "legacy", "interval": "cron", "cron": cron.strip(), "timezone": timezone}]
+    return []
+
+
 def sync_webhooks(db: Session) -> None:
     """Reconcile webhook + schedule rows with active workflows."""
     recs = db.scalars(
@@ -62,7 +95,14 @@ def sync_webhooks(db: Session) -> None:
         for trig in workflow_trigger_nodes(workflow):
             if trig["type"] == "webhook":
                 path = trig["params"].get("path")
-                method = trig["params"].get("method", "POST")
+                # The AI compiler writes `http_method`; canonical is `method`
+                # (webhook node schema). Register whichever is present so a
+                # GET webhook is not silently registered as POST (audit H16).
+                # Upper-cased: the route compares against the upper-case
+                # ASGI request method.
+                method = str(
+                    trig["params"].get("method") or trig["params"].get("http_method") or "POST"
+                ).upper()
                 if not path or path.startswith(SALESFORCE_TRIGGER_PREFIX):
                     # Reserved for the Salesforce Outbound Message endpoint.
                     continue
@@ -145,16 +185,11 @@ def sync_webhooks(db: Session) -> None:
                     existing.status = "active"
 
             if trig["type"] == "schedule":
-                # Multi-rule: params.rules is source of truth, fallback to legacy cron
-                rules = trig["params"].get("rules")
+                # Multi-rule: params.rules is source of truth, with fallbacks
+                # to legacy cron and the AI shape rule.cronExpression (H16).
+                rules = schedule_rule_dicts(trig["params"])
                 if not rules:
-                    # Legacy single cron
-                    cron = trig["params"].get("cron")
-                    timezone = trig["params"].get("timezone", "UTC")
-                    if cron:
-                        rules = [{"id": "legacy", "cron": cron, "timezone": timezone, "interval": "cron"}]
-                    else:
-                        continue
+                    continue
                 # Normalize each rule to cron/timezone via TriggerRule.to_cron()
                 from app.nodes.schedule import TriggerRule
                 normalized = []
@@ -165,8 +200,8 @@ def sync_webhooks(db: Session) -> None:
                     except Exception:
                         # Fallback: treat as cron
                         cron = r.get("cron") or r.get("value") and f"*/{r.get('value')} * * * *" or "*/5 * * * *"
-                        tz = r.get("timezone", "UTC")
-                        normalized.append(TriggerRule(id=r.get("id", uuid.uuid4().hex[:8]), interval="cron", cron=cron, timezone=tz))
+                        tz = r.get("timezone") or "UTC"
+                        normalized.append(TriggerRule(id=r.get("id") or uuid.uuid4().hex[:8], interval="cron", cron=cron, timezone=tz))
                 for rule in normalized:
                     cron = rule.to_cron()
                     timezone = rule.timezone
@@ -212,21 +247,15 @@ def sync_webhooks(db: Session) -> None:
         if wanted_webhook_paths
         else delete(WebhookTrigger)
     )
-    # Multi-rule: one row per rule
+    # Multi-rule: one row per rule (ids from the SAME normalization as the
+    # create/update pass above, so both passes agree on the row id — audit H16)
     wanted_schedule_ids: set[str] = set()
     for rec in recs:
         for trig in workflow_trigger_nodes(Workflow.model_validate(rec.data)):
             if trig["type"] != "schedule":
                 continue
-            rules = trig["params"].get("rules")
-            if not rules:
-                cron = trig["params"].get("cron")
-                if cron:
-                    rules = [{"id": "legacy"}]
-                else:
-                    continue
-            for r in rules:
-                rule_id = r.get("id", "legacy")
+            for r in schedule_rule_dicts(trig["params"]):
+                rule_id = str(r.get("id") or "legacy")
                 wanted_schedule_ids.add(f"sch_{rec.id}_{trig['node_id']}_{rule_id}")
     for row in db.scalars(select(ScheduleTrigger)).all():
         if row.id not in wanted_schedule_ids:

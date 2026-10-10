@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { api, getToken } from '../api'
+import { useSearchParams } from 'react-router-dom'
+import { api, getToken, setToken } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
+import ErrorAlertsList from '../components/ErrorAlertsList'
 
 function renderStatIcon(type) {
   switch (type) {
@@ -181,6 +183,12 @@ function SystemInfo({ stats }) {
 }
 
 export default function MonitoringPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab') === 'telemetry' ? 'telemetry' : 'alerts'
+  const [tab, setTab] = useState(initialTab)
+  const highlightedEventId = searchParams.get('event_id')
+  const [alertStats, setAlertStats] = useState({ unresolved_count: 0, critical_count: 0 })
+
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -195,17 +203,28 @@ export default function MonitoringPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const fetchAlertStats = useCallback(() => {
+    api.getNotificationStats()
+      .then((data) => {
+        if (data) setAlertStats(data)
+      })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     fetchStats()
+    fetchAlertStats()
     // Automatic live background telemetry refresh (10s interval)
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return
       fetchStats()
+      fetchAlertStats()
     }, 10000)
 
     const handleVisibility = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
         fetchStats()
+        fetchAlertStats()
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -214,13 +233,34 @@ export default function MonitoringPage() {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', handleVisibility)
     }
-  }, [fetchStats])
+  }, [fetchStats, fetchAlertStats])
 
-  const token = getToken()
-  const metricsHref = token ? `/api/metrics?token=${encodeURIComponent(token)}` : '/api/metrics'
+  // Fetch the scrape endpoint with the bearer header and open the blob —
+  // a plain href would need ?token= and leak the JWT into history/Referer.
+  const openMetricsExporter = async (e) => {
+    e.preventDefault()
+    const bearer = getToken()
+    try {
+      const res = await fetch('/api/metrics', {
+        headers: bearer ? { Authorization: `Bearer ${bearer}` } : {},
+      })
+      if (res.status === 401) {
+        setToken(null)
+        window.dispatchEvent(new Event('auth:expired'))
+        return
+      }
+      if (!res.ok) throw new Error(`Export failed: ${res.statusText}`)
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000)
+    } catch (err) {
+      console.error('metrics exporter open failed', err)
+    }
+  }
 
-  if (loading) return <div className="page monitoring-page"><LoadingSkeleton rows={6} /></div>
-  if (error && !stats) return <div className="page monitoring-page"><div className="banner-inline err">Error: {error}</div></div>
+  if (loading && !stats && tab === 'telemetry') return <div className="page monitoring-page"><LoadingSkeleton rows={6} /></div>
+  if (error && !stats && tab === 'telemetry') return <div className="page monitoring-page"><div className="banner-inline err">Error: {error}</div></div>
 
   return (
     <div className="page monitoring-page">
@@ -230,19 +270,20 @@ export default function MonitoringPage() {
         </div>
       )}
       <PageHeader
-        title="Monitoring Dashboard"
-        description="Real-time execution queue metrics, worker throughput, and cluster health."
+        title="Central Monitoring & Alert Center"
+        description="Global error monitoring, automatic email alerts, worker throughput, and cluster telemetry."
         actions={
           <div className="monitoring-toolbar" role="toolbar" aria-label="Monitoring controls">
             <div className="monitoring-live-badge" title="Live telemetry: auto-updating continuously in background">
               <span className="monitoring-pulse-dot" />
-              <span>Live Telemetry</span>
+              <span>Live Engine</span>
             </div>
 
             <div className="monitoring-toolbar-divider" />
 
             <a
-              href={metricsHref}
+              href="/api/metrics"
+              onClick={openMetricsExporter}
               target="_blank"
               rel="noopener noreferrer"
               className="monitoring-btn-exporter"
@@ -258,19 +299,85 @@ export default function MonitoringPage() {
         }
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
-        <MonitoringStatCard title="Running Executions" value={stats?.executions?.running || 0} color="#38bdf8" icon={renderStatIcon('running')} subtitle="Currently active in runtime" />
-        <MonitoringStatCard title="Queued Runs" value={stats?.executions?.queued || 0} color="#f59e0b" icon={renderStatIcon('queued')} subtitle="Waiting for available worker" />
-        <MonitoringStatCard title="Success (Past 1h)" value={stats?.last_hour?.success || 0} color="#10b981" icon={renderStatIcon('success')} subtitle="Completed without error" />
-        <MonitoringStatCard title="Failed (Past 1h)" value={stats?.last_hour?.failed || 0} color="#ef4444" icon={renderStatIcon('failed')} subtitle="Errored execution runs" />
+      {/* Primary Tab Navigation */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
+        <button
+          type="button"
+          onClick={() => {
+            setTab('alerts')
+            setSearchParams(p => { p.set('tab', 'alerts'); return p })
+          }}
+          style={{
+            padding: '10px 18px',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            borderBottom: tab === 'alerts' ? '2px solid #6366f1' : '2px solid transparent',
+            color: tab === 'alerts' ? '#6366f1' : 'var(--text-muted)',
+            background: 'transparent',
+            borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span>Error Monitoring & Alerts</span>
+          {alertStats.unresolved_count > 0 && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '1px 7px',
+                borderRadius: 999,
+                background: alertStats.critical_count > 0 ? '#e11d48' : '#f59e0b',
+                color: '#fff',
+              }}
+            >
+              {alertStats.unresolved_count}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setTab('telemetry')
+            setSearchParams(p => { p.set('tab', 'telemetry'); return p })
+          }}
+          style={{
+            padding: '10px 18px',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            borderBottom: tab === 'telemetry' ? '2px solid #6366f1' : '2px solid transparent',
+            color: tab === 'telemetry' ? '#6366f1' : 'var(--text-muted)',
+            background: 'transparent',
+            borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+          }}
+        >
+          Cluster & Runtime Telemetry
+        </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 18, marginBottom: 20 }}>
-        <ExecutionTimeline stats={stats} />
-        <QueueStatus stats={stats} />
-      </div>
+      {tab === 'alerts' ? (
+        <ErrorAlertsList highlightedEventId={highlightedEventId} />
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
+            <MonitoringStatCard title="Running Executions" value={stats?.executions?.running || 0} color="#38bdf8" icon={renderStatIcon('running')} subtitle="Currently active in runtime" />
+            <MonitoringStatCard title="Queued Runs" value={stats?.executions?.queued || 0} color="#f59e0b" icon={renderStatIcon('queued')} subtitle="Waiting for available worker" />
+            <MonitoringStatCard title="Success (Past 1h)" value={stats?.last_hour?.success || 0} color="#10b981" icon={renderStatIcon('success')} subtitle="Completed without error" />
+            <MonitoringStatCard title="Failed (Past 1h)" value={stats?.last_hour?.failed || 0} color="#ef4444" icon={renderStatIcon('failed')} subtitle="Errored execution runs" />
+          </div>
 
-      <SystemInfo stats={stats} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 18, marginBottom: 20 }}>
+            <ExecutionTimeline stats={stats} />
+            <QueueStatus stats={stats} />
+          </div>
+
+          <SystemInfo stats={stats} />
+        </>
+      )}
     </div>
   )
 }

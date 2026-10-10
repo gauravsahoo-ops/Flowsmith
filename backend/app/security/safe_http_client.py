@@ -640,10 +640,32 @@ class SafeHTTPClient:
             cookies=cookies,
             timeout=timeout,
         ) as response:
-            content = await self._read_limited(response, cap)
+            ce = (response.headers.get("content-encoding") or "").strip().lower()
+            if any(enc in ce for enc in ("gzip", "deflate", "compress")):
+                raw = bytearray()
+                async for chunk in response.aiter_raw():
+                    raw += chunk
+                    if len(raw) > cap + 65536:
+                        raise make_connector_error(
+                            ConnectorErrorCode.UNAVAILABLE,
+                            f"Response exceeded the maximum allowed size ({cap} bytes).",
+                            retryable=False,
+                        )
+                from app.engine.node_base import _decode_content_lenient
+                content = _decode_content_lenient(bytes(raw), ce, cap, node_id="safe_http", code="RESPONSE_TOO_LARGE")
+            else:
+                content = await self._read_limited(response, cap)
+            # The body is already decoded: drop
+            # Content-Encoding (httpx re-reads a `content=` response during
+            # construction and would re-apply the codec to the decoded
+            # bytes — the "Error -3 while decompressing data" crash) plus
+            # the now-stale framing headers.
+            rebuilt_headers = httpx.Headers(
+                [(k, v) for k, v in response.headers.items() if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")]
+            )
             return httpx.Response(
                 status_code=response.status_code,
-                headers=response.headers,
+                headers=rebuilt_headers,
                 content=content,
                 request=response.request,
                 history=response.history,

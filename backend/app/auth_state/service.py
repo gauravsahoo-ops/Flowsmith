@@ -27,6 +27,42 @@ _BUNDLE_KEYS = (
 )
 
 
+def resolve_workflow_scope(requested: str | None, ctx: Any, *, require_edit: bool = False) -> str:
+    """Which workflow's auth state a token node may touch.
+
+    Own-workflow requests always pass. A cross-workflow override is granted
+    only when the run's initiating user can already access the target
+    workflow (``view`` for reads, ``edit`` when the node writes), so one
+    workflow's OAuth tokens can never be read or stored against another.
+    Runs without an initiating user (scheduled/webhook) are locked to their
+    own workflow, and denials raise instead of silently redirecting.
+    """
+    base = (getattr(ctx, "workflow_id", None) or "").strip()
+    target = (requested or "").strip() or base
+    if not target or target == base:
+        return target
+
+    from app.api.access import PERMISSION_VIEW, permission_for_user_id
+    from app.db import get_session
+    from app.engine.errors import NodeExecutionError
+
+    perm: str | None = None
+    user_id = getattr(ctx, "user_id", None)
+    if user_id is not None:
+        with get_session() as db:
+            perm = permission_for_user_id(db, target, user_id)
+    allowed = perm in ("owner", "edit") or (not require_edit and perm == PERMISSION_VIEW)
+    if not allowed:
+        raise NodeExecutionError(
+            f"Token node may not target workflow '{target}': the run's user "
+            "does not have access to it.",
+            code="AUTH_WORKFLOW_SCOPE_DENIED",
+            node_id=getattr(ctx, "node_id", None),
+            retryable=False,
+        )
+    return target
+
+
 def _encode(bundle: dict[str, Any]) -> bytes:
     slim = {k: bundle.get(k) for k in _BUNDLE_KEYS if bundle.get(k) not in (None, "")}
     return encrypt_text(json.dumps(slim, ensure_ascii=False))

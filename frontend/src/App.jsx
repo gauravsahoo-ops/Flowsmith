@@ -100,6 +100,10 @@ function AuthenticatedRoutes({ onLogout }) {
           <Route path="approvals" element={<ApprovalsPage />} />
           <Route path="shared" element={<SharedPage />} />
           <Route path="monitoring" element={<MonitoringPage />} />
+          <Route path="notifications" element={<Navigate to="/monitoring?tab=alerts" replace />} />
+          <Route path="alerts" element={<Navigate to="/monitoring?tab=alerts" replace />} />
+          <Route path="monitoring/alerts" element={<Navigate to="/monitoring?tab=alerts" replace />} />
+          <Route path="settings/notifications" element={<Navigate to="/settings" replace />} />
           <Route path="ai" element={<AIPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="help" element={<HelpPage />} />

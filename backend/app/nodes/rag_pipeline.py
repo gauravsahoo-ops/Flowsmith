@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 
 from app.ai.client import chat_completion, LLMError
 from app.engine.errors import NodeExecutionError
-from app.engine.node_base import NON_IDEMPOTENT, BaseNode, NodeContext, NodeResult
+from app.engine.node_base import DEFAULT_MAX_RESPONSE_BYTES, NON_IDEMPOTENT, BaseNode, NodeContext, NodeResult, request_with_size_cap
 from app.nodes.registry import register
 from app.vectorstores import VectorStoreUnavailable, get_vector_store
 
@@ -184,7 +184,13 @@ async def _load_source_text(source_type: str, source: str, ctx: Any | None = Non
 
         await assert_public_url(source, node_id="rag_pipeline")
         async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get(source)
+            # H19: cap the ingest read so a hostile URL cannot stream
+            # gigabytes into memory before we get to parse it.
+            resp = await request_with_size_cap(
+                client, "GET", source,
+                max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES,
+                node_id="rag_pipeline",
+            )
             resp.raise_for_status()
             return resp.text
     raise ValueError(f"Unknown source_type: {source_type}")

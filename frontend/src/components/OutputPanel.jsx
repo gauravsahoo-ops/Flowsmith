@@ -762,9 +762,20 @@ export default function OutputPanel({
             </div>
           )}
 
-          {/* Multi-item Pager Bar (e.g. for Split, Search or Multi-record nodes) */}
+          {/* Multi-item Pager Bar with direct jump input */}
           {totalItemsCount > 1 && (
             <div className="nem-item-pager" style={{ marginBottom: 0, paddingBottom: 0 }}>
+              <button
+                type="button"
+                className="nem-pager-btn"
+                disabled={safeItemIdx <= 0}
+                onClick={() => setCurrentItemIdx(0)}
+                title="First item"
+                aria-label="First item"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="11 18 5 12 11 6"/><line x1="19" y1="6" x2="19" y2="18"/></svg>
+              </button>
               <button
                 type="button"
                 className="nem-pager-btn"
@@ -776,9 +787,35 @@ export default function OutputPanel({
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
-              <span className="nem-pager-label">
-                Item {safeItemIdx + 1} of {totalItemsCount}
-              </span>
+              <div className="nem-pager-jump" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span className="nem-pager-label">Item</span>
+                <input
+                  type="number"
+                  className="nem-pager-input"
+                  min={1}
+                  max={totalItemsCount}
+                  value={safeItemIdx + 1}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10)
+                    if (!isNaN(val) && val >= 1 && val <= totalItemsCount) {
+                      setCurrentItemIdx(val - 1)
+                    }
+                  }}
+                  style={{
+                    width: Math.max(38, String(totalItemsCount).length * 9 + 18),
+                    textAlign: 'center',
+                    padding: '2px 4px',
+                    fontSize: 11.5,
+                    fontFamily: 'ui-monospace, monospace',
+                    background: 'var(--panel-2, #181c24)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 4,
+                    color: 'var(--text)',
+                  }}
+                  title="Type item number to jump directly"
+                />
+                <span className="nem-pager-label">of {totalItemsCount}</span>
+              </div>
               <button
                 type="button"
                 className="nem-pager-btn"
@@ -789,6 +826,17 @@ export default function OutputPanel({
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+              <button
+                type="button"
+                className="nem-pager-btn"
+                disabled={safeItemIdx >= totalItemsCount - 1}
+                onClick={() => setCurrentItemIdx(totalItemsCount - 1)}
+                title="Last item"
+                aria-label="Last item"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="13 18 19 12 13 6"/><line x1="5" y1="6" x2="5" y2="18"/></svg>
               </button>
             </div>
           )}
@@ -1096,19 +1144,22 @@ function OutputSchemaTree({ item, nodeLabel, onCopy, filter }) {
   const entries = Object.entries(item)
 
   return (
-    <div className="nem-schema-list" style={{ padding: '6px 8px' }}>
-      {entries.map(([key, val]) => (
-        <OutputSchemaRow
-          key={key}
-          keyName={key}
-          value={val}
-          path={key}
-          depth={0}
-          nodeLabel={nodeLabel}
-          onCopy={onCopy}
-          filter={filter}
-        />
-      ))}
+    <div className="nem-schema-list" style={{ padding: '4px 6px' }}>
+      {entries.map(([key, val]) => {
+        const rootPath = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `['${key.replace(/'/g, "\\'")}']`
+        return (
+          <OutputSchemaRow
+            key={key}
+            keyName={key}
+            value={val}
+            path={rootPath}
+            depth={0}
+            nodeLabel={nodeLabel}
+            onCopy={onCopy}
+            filter={filter}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -1124,6 +1175,8 @@ function OutputSchemaRow({
 }) {
   const [expanded, setExpanded] = useState(depth === 0)
   const [showAllItems, setShowAllItems] = useState(false)
+  const [chunkLimit, setChunkLimit] = useState(25)
+  const [copied, setCopied] = useState(false)
   const isObj = value !== null && typeof value === 'object'
   const isArr = Array.isArray(value)
 
@@ -1140,19 +1193,37 @@ function OutputSchemaRow({
 
   // Expression syntax for output: {{ $json.field }} or {{ $('NodeName').item.json.field }}
   const cleanLabel = (nodeLabel || '').replace(/'/g, "\\'")
-  const expr = cleanLabel ? `{{ $('${cleanLabel}').item.json.${path} }}` : `{{ $json.${path} }}`
+  const pathExpr = path.startsWith('[') ? path : `.${path}`
+  const expr = cleanLabel ? `{{ $('${cleanLabel}').item.json${pathExpr} }}` : `{{ $json${pathExpr} }}`
 
   const matches =
     !filter ||
     keyName.toLowerCase().includes(filter.toLowerCase()) ||
     String(valPreview).toLowerCase().includes(filter.toLowerCase())
 
+  const handleCopy = (e) => {
+    e?.stopPropagation()
+    onCopy(expr)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
   return (
     <div className="nem-schema-field-wrap">
       {matches && (
         <div
-          className="nem-schema-row"
-          style={{ paddingLeft: `${depth * 14 + 6}px` }}
+          className="nem-schema-row draggable-variable"
+          draggable={true}
+          onDragStart={(e) => {
+            e.stopPropagation()
+            e.dataTransfer.setData('text/plain', expr)
+            e.dataTransfer.setData('application/flowsmith-variable', JSON.stringify({ expr, path, key: keyName }))
+            e.dataTransfer.effectAllowed = 'copy'
+            e.currentTarget.classList.add('is-dragging')
+          }}
+          onDragEnd={(e) => {
+            e.currentTarget.classList.remove('is-dragging')
+          }}
           onClick={(e) => {
             if (
               isObj &&
@@ -1160,18 +1231,32 @@ function OutputSchemaRow({
             ) {
               setExpanded(!expanded)
             } else {
-              onCopy(expr)
+              handleCopy(e)
             }
           }}
-          title={`Click to copy: ${expr}`}
+          title={`Drag into parameter input or click to copy: ${expr}`}
         >
+          <span className="nem-schema-drag-handle" title="Drag variable into parameter fields">
+            <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+              <circle cx="2" cy="2" r="1.2" />
+              <circle cx="6" cy="2" r="1.2" />
+              <circle cx="2" cy="6" r="1.2" />
+              <circle cx="6" cy="6" r="1.2" />
+              <circle cx="2" cy="10" r="1.2" />
+              <circle cx="6" cy="10" r="1.2" />
+            </svg>
+          </span>
+
           {isObj ? (
-            <span
+            <button
+              type="button"
               className={`nem-schema-expand-btn ${expanded ? 'is-open' : ''}`}
               onClick={(e) => {
                 e.stopPropagation()
                 setExpanded(!expanded)
               }}
+              title={expanded ? 'Collapse' : 'Expand'}
+              aria-label={expanded ? 'Collapse' : 'Expand'}
             >
               <svg
                 width="10"
@@ -1183,31 +1268,42 @@ function OutputSchemaRow({
               >
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-            </span>
+            </button>
           ) : (
             <span className="nem-schema-expand-spacer" />
           )}
 
-          <span className="nem-schema-key">{keyName}</span>
-          <span className="nem-schema-colon">:</span>
-          <span className={`nem-schema-type type-${isArr ? 'array' : isObj ? 'object' : typeof value}`}>
-            {typeStr}
-          </span>
-          {valPreview && (
-            <span className="nem-schema-val-preview" title={valPreview}>
-              {valPreview}
+          <div className="nem-schema-main-content">
+            <span className="nem-schema-key" title={keyName}>{keyName}</span>
+            <span className="nem-schema-colon">:</span>
+            <span className={`nem-schema-type type-${isArr ? 'array' : isObj ? 'object' : typeof value}`}>
+              {typeStr}
             </span>
-          )}
+            {valPreview && (
+              <span className="nem-schema-val-preview" title={valPreview}>
+                {valPreview}
+              </span>
+            )}
+          </div>
+
           <button
             type="button"
-            className="nem-schema-copy-hint"
-            onClick={(e) => {
-              e.stopPropagation()
-              onCopy(expr)
-            }}
+            className={`nem-schema-copy-hint ${copied ? 'is-copied' : ''}`}
+            onClick={handleCopy}
             tabIndex={-1}
+            title={`Copy ${expr}`}
           >
-            Copy
+            {copied ? (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                <span>Copied</span>
+              </>
+            ) : (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                <span>Copy</span>
+              </>
+            )}
           </button>
         </div>
       )}
@@ -1216,7 +1312,7 @@ function OutputSchemaRow({
       {isObj && expanded && (
         <div className="nem-schema-children">
           {isArr
-            ? (showAllItems ? value : value.slice(0, 10)).map((subItem, idx) => (
+            ? (showAllItems ? value : value.slice(0, chunkLimit)).map((subItem, idx) => (
                 <OutputSchemaRow
                   key={idx}
                   keyName={`[${idx}]`}
@@ -1228,61 +1324,77 @@ function OutputSchemaRow({
                   filter={filter}
                 />
               ))
-            : Object.entries(value).map(([k, v]) => (
-                <OutputSchemaRow
-                  key={k}
-                  keyName={k}
-                  value={v}
-                  path={`${path}.${k}`}
-                  depth={depth + 1}
-                  nodeLabel={nodeLabel}
-                  onCopy={onCopy}
-                  filter={filter}
-                />
-              ))}
-          {isArr && value.length > 10 && !showAllItems && (
-            <div
-              className="nem-schema-more-hint clickable"
-              style={{
-                paddingLeft: `${(depth + 1) * 14 + 20}px`,
-                cursor: 'pointer',
-                color: '#818cf8',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                paddingTop: 4,
-                paddingBottom: 4,
-                fontWeight: 500,
-              }}
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowAllItems(true)
-              }}
-              title="Click to show all items"
-            >
-              <span>+ {value.length - 10} more {value.length - 10 === 1 ? 'item' : 'items'}</span>
-              <span style={{ fontSize: 10, textDecoration: 'underline', color: '#a5b4fc' }}>Show all ({value.length})</span>
+            : Object.entries(value).map(([k, v]) => {
+                const childPath = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k)
+                  ? `${path}.${k}`
+                  : `${path}['${k.replace(/'/g, "\\'")}']`
+                return (
+                  <OutputSchemaRow
+                    key={k}
+                    keyName={k}
+                    value={v}
+                    path={childPath}
+                    depth={depth + 1}
+                    nodeLabel={nodeLabel}
+                    onCopy={onCopy}
+                    filter={filter}
+                  />
+                )
+              })}
+          {isArr && value.length > chunkLimit && !showAllItems && (
+            <div className="nem-schema-more-hint" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px' }}>
+              <span>Showing {chunkLimit} of {value.length} items —</span>
+              <button
+                type="button"
+                className="nem-schema-chunk-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setChunkLimit((c) => Math.min(c + 25, value.length))
+                }}
+                style={{
+                  background: 'var(--panel-2, #1e293b)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  fontSize: 10.5,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                }}
+              >
+                + Show {Math.min(25, value.length - chunkLimit)} more
+              </button>
+              <button
+                type="button"
+                className="nem-schema-chunk-btn text-accent"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowAllItems(true)
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  color: '#818cf8',
+                  fontSize: 10.5,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Show all ({value.length})
+              </button>
             </div>
           )}
-          {isArr && value.length > 10 && showAllItems && (
+          {isArr && (showAllItems || chunkLimit > 25) && (
             <div
               className="nem-schema-more-hint clickable"
-              style={{
-                paddingLeft: `${(depth + 1) * 14 + 20}px`,
-                cursor: 'pointer',
-                color: '#94a3b8',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                paddingTop: 4,
-                paddingBottom: 4,
-                fontSize: 11,
-              }}
               onClick={(e) => {
                 e.stopPropagation()
                 setShowAllItems(false)
+                setChunkLimit(25)
               }}
               title="Click to collapse"
+              style={{ cursor: 'pointer', color: 'var(--muted)', fontSize: 11, padding: '4px 6px' }}
             >
               <span>↑ Show less</span>
             </div>

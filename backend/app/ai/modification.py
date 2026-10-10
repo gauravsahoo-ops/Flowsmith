@@ -124,7 +124,21 @@ class WorkflowModifier:
             sched_node = next((n for n in nodes if n.get("type") == "schedule"), None)
             cron = "0 9 * * 1" if "monday" in low else "0 9 * * *"
             if sched_node:
-                sched_node.setdefault("parameters", {}).setdefault("rule", {})["cronExpression"] = cron
+                params = sched_node.setdefault("parameters", {})
+                existing_rules = params.get("rules") if isinstance(params.get("rules"), list) else []
+                rule_id = (
+                    existing_rules[0].get("id")
+                    if existing_rules and isinstance(existing_rules[0], dict) and existing_rules[0].get("id")
+                    else "r1"
+                )
+                nested = params.get("rule") if isinstance(params.get("rule"), dict) else {}
+                tz = str(params.get("timezone") or nested.get("timezone") or "UTC")
+                # Canonical shape so the registry registers the schedule on
+                # activation; `rule` kept for older UI readers (audit H16).
+                params["rules"] = [{"id": rule_id, "interval": "cron", "cron": cron, "timezone": tz}]
+                params["cron"] = cron
+                params["timezone"] = tz
+                params["rule"] = {"cronExpression": cron, "timezone": tz}
                 modified_nodes.append(sched_node)
                 summary = f"Updated schedule cron expression to '{cron}'."
             else:
@@ -133,7 +147,12 @@ class WorkflowModifier:
                     "type": "schedule",
                     "name": "Weekly Schedule Trigger",
                     "position": {"x": 80, "y": 180},
-                    "parameters": {"rule": {"cronExpression": cron, "timezone": "UTC"}},
+                    "parameters": {
+                        "rules": [{"id": "r1", "interval": "cron", "cron": cron, "timezone": "UTC"}],
+                        "cron": cron,
+                        "timezone": "UTC",
+                        "rule": {"cronExpression": cron, "timezone": "UTC"},
+                    },
                     "settings": {},
                     "credentials": {},
                 }

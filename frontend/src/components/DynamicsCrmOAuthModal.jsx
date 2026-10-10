@@ -82,13 +82,14 @@ export default function DynamicsCrmOAuthModal({
       if (typeof data === 'string') {
         if (data === 'dynamics_crm_connected' || data === 'oauth_connected') {
           isSuccess = true
-        } else if (data === 'dynamics_crm_connect_failed' || data === 'oauth_connect_failed') {
+        } else if (data === 'dynamics_crm_connect_failed') {
           isFail = true
           errorMsg = 'OAuth authorization failed.'
         }
       } else if (typeof data === 'object') {
-        if (data.provider === 'dynamics_crm' || data.type === 'oauth_callback' || data.source === 'oauth') {
-          if (data.ok || data.status === 'success' || data.type === 'salesforce-oauth-success') {
+        const matches = !data.provider || data.provider === 'dynamics_crm' || data.provider === 'oauth'
+        if (matches) {
+          if (data.ok === true || data.status === 'success' || data.type === 'dynamics_crm-oauth-success' || (data.type === 'salesforce-oauth-success' && (!data.provider || data.provider === 'dynamics_crm'))) {
             isSuccess = true
           } else if (data.ok === false || data.error) {
             isFail = true
@@ -105,9 +106,25 @@ export default function DynamicsCrmOAuthModal({
         if (onConnected) onConnected(data)
         setTimeout(() => onClose?.(), 1200)
       } else if (isFail && !resolved) {
-        resolved = true
-        setError(errorMsg || 'OAuth authorization failed.')
-        setBusy(false)
+        // Double check if credential actually saved in backend before showing error
+        import('../api').then(async ({ api }) => {
+          try {
+            const creds = await api.listCredentials()
+            const found = Array.isArray(creds) && creds.find(c => c.type === 'dynamics_crm')
+            if (found) {
+              resolved = true
+              setNotice('Microsoft Dynamics 365 account connected successfully!')
+              setConnectedUser(found.name || 'Authorized User')
+              setBusy(false)
+              if (onConnected) onConnected(found)
+              setTimeout(() => onClose?.(), 1200)
+              return
+            }
+          } catch {}
+          resolved = true
+          setError(errorMsg || 'OAuth authorization failed.')
+          setBusy(false)
+        })
       }
     }
 
@@ -194,10 +211,33 @@ export default function DynamicsCrmOAuthModal({
 
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         window.location.href = authorizeUrl
+        return
       }
+
+      // Keep monitoring popup closure with backend verification fallback
+      const pollTimer = setInterval(async () => {
+        if (popup && popup.closed) {
+          clearInterval(pollTimer)
+          setTimeout(async () => {
+            try {
+              const { api } = await import('../api')
+              const creds = await api.listCredentials()
+              const found = Array.isArray(creds) && creds.find(c => c.type === 'dynamics_crm')
+              if (found) {
+                setNotice('Microsoft Dynamics 365 account connected successfully!')
+                setConnectedUser(found.name || 'Authorized User')
+                setBusy(false)
+                if (onConnected) onConnected(found)
+                setTimeout(() => onClose?.(), 1200)
+                return
+              }
+            } catch {}
+            setBusy(false)
+          }, 800)
+        }
+      }, 500)
     } catch (err) {
       setError(err?.message || 'Failed to initiate Microsoft Dynamics 365 OAuth authorization.')
-    } finally {
       setBusy(false)
     }
   }

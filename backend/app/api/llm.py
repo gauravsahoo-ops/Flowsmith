@@ -199,6 +199,10 @@ async def test_connection(
         )
 
     adapter = get_adapter_for_provider(provider)
+    # All DB reads (credential decryption) are done; release the session so
+    # the SSRF DNS guard and provider HTTP call never hold a pooled
+    # connection open (get_db closes it again on teardown).
+    db.close()
     await _guard_llm_base_url(adapter, cred_data, body.variant)
     result = await adapter.test_connection(cred_data, variant=body.variant)
     return ok(result)
@@ -234,6 +238,10 @@ async def discover_models(
     # Cache key uses user ID + credential ID or secret hash (never raw secret)
     user_prefix = str(user.id) if user else "anon"
     cache_id = body.credential_id or f"{user_prefix}_{hash(json.dumps(cred_data, sort_keys=True, default=str))}"
+
+    # All DB reads are done; everything below is network I/O (Redis cache,
+    # SSRF DNS guard, provider HTTP) and must not hold a DB connection.
+    db.close()
 
     if not body.refresh:
         cached = await cache.get(provider.provider_id, body.variant, cache_id)

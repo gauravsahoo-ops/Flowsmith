@@ -39,7 +39,7 @@ export default function SettingsPage() {
   const [orgs, setOrgs] = useState([])
   const [apikeys, setApikeys] = useState([])
   const [health, setHealth] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [newKeyName, setNewKeyName] = useState('')
   const [newKey, setNewKey] = useState(null)
@@ -63,6 +63,22 @@ export default function SettingsPage() {
   })
   const [brandNotice, setBrandNotice] = useState(null)
   const [brandBusy, setBrandBusy] = useState(false)
+
+  // Error Monitoring & Notification Preferences state
+  const [notifPrefs, setNotifPrefs] = useState({
+    email_enabled: true,
+    notify_on_failure: true,
+    notify_on_auth_expired: true,
+    notify_on_rate_limit: true,
+    notify_on_warning: false,
+    cooldown_minutes: 15,
+    custom_email: '',
+    default_email: '',
+  })
+  const [notifBusy, setNotifBusy] = useState(false)
+  const [notifNotice, setNotifNotice] = useState(null)
+  const [testEmailBusy, setTestEmailBusy] = useState(false)
+  const [testEmailNotice, setTestEmailNotice] = useState(null)
 
   useEffect(() => {
     setBrandForm({
@@ -131,6 +147,52 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleSaveNotifPrefs(e) {
+    if (e) e.preventDefault()
+    setNotifBusy(true)
+    setNotifNotice(null)
+    try {
+      const res = await api.updateNotificationPreferences({
+        email_enabled: notifPrefs.email_enabled,
+        notify_on_failure: notifPrefs.notify_on_failure,
+        notify_on_auth_expired: notifPrefs.notify_on_auth_expired,
+        notify_on_rate_limit: notifPrefs.notify_on_rate_limit,
+        notify_on_warning: notifPrefs.notify_on_warning,
+        cooldown_minutes: Number(notifPrefs.cooldown_minutes),
+        custom_email: notifPrefs.custom_email,
+      })
+      if (res) {
+        setNotifPrefs(prev => ({ ...prev, ...res }))
+        setNotifNotice({ ok: true, text: 'Notification preferences saved successfully.' })
+        setTimeout(() => setNotifNotice(null), 4000)
+      }
+    } catch (err) {
+      setNotifNotice({ ok: false, text: err.message || 'Failed to update preferences.' })
+    } finally {
+      setNotifBusy(false)
+    }
+  }
+
+  async function handleSendTestEmail() {
+    setTestEmailBusy(true)
+    setTestEmailNotice(null)
+    try {
+      const res = await api.sendTestNotificationEmail()
+      setTestEmailNotice({
+        ok: true,
+        text: res?.message || 'Test email dispatched successfully! Check your inbox.',
+      })
+      setTimeout(() => setTestEmailNotice(null), 6000)
+    } catch (err) {
+      setTestEmailNotice({
+        ok: false,
+        text: err.message || 'Failed to send test email.',
+      })
+    } finally {
+      setTestEmailBusy(false)
+    }
+  }
+
   useEffect(() => {
     let alive = true
     setLoading(true)
@@ -140,12 +202,14 @@ export default function SettingsPage() {
       api.listWorkspaces().catch(() => []),
       api.listOrganizations().catch(() => []),
       api.listApiKeys().catch(() => []),
-    ]).then(([hl, me, ws, og, ak]) => {
+      api.getNotificationPreferences().catch(() => null),
+    ]).then(([hl, me, ws, og, ak, np]) => {
       if (!alive) return
       if (hl.status === 'fulfilled' && hl.value) setHealth(hl.value)
       if (ws.status === 'fulfilled') setWorkspaces(Array.isArray(ws.value) ? ws.value : [])
       if (og.status === 'fulfilled') setOrgs(Array.isArray(og.value) ? og.value : [])
       if (ak.status === 'fulfilled') setApikeys(Array.isArray(ak.value) ? ak.value : [])
+      if (np.status === 'fulfilled' && np.value) setNotifPrefs(np.value)
 
       if (me.status === 'fulfilled' && me.value) {
         setProfile(me.value)
@@ -530,7 +594,7 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Preferences" description="Audio cues, canvas display, and interface behavior.">
-        <div className="settings-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
           <div className="settings-attr" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
             <div>
               <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>Execution Audio Cues</div>
@@ -575,6 +639,344 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+      </Section>
+
+      <Section
+        title="Error Monitoring & Email Notification Preferences"
+        description="Configure automatic email delivery, failure alerts, OAuth session expiry notifications, and alert deduplication cooldown."
+      >
+        <form onSubmit={handleSaveNotifPrefs} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {notifNotice && (
+            <div
+              className={`banner-inline ${notifNotice.ok ? 'ok' : 'err'}`}
+              style={{ padding: '10px 14px', borderRadius: 8 }}
+            >
+              {notifNotice.text}
+            </div>
+          )}
+
+          {testEmailNotice && (
+            <div
+              className={`banner-inline ${testEmailNotice.ok ? 'ok' : 'err'}`}
+              style={{ padding: '10px 14px', borderRadius: 8 }}
+            >
+              {testEmailNotice.text}
+            </div>
+          )}
+
+          {/* Master Toggle Banner */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderRadius: 10,
+              background: notifPrefs.email_enabled
+                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%)'
+                : 'rgba(255, 255, 255, 0.02)',
+              border: notifPrefs.email_enabled
+                ? '1px solid rgba(99, 102, 241, 0.3)'
+                : '1px solid rgba(255, 255, 255, 0.08)',
+              gap: 16,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                <div style={{ fontWeight: 650, color: '#f8fafc', fontSize: 14.5 }}>Automatic Email Alerts</div>
+                <span
+                  className="badge"
+                  style={{
+                    background: notifPrefs.email_enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.12)',
+                    color: notifPrefs.email_enabled ? '#34d399' : '#94a3b8',
+                    border: notifPrefs.email_enabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(148, 163, 184, 0.2)',
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  {notifPrefs.email_enabled ? 'Active' : 'Disabled'}
+                </span>
+              </div>
+              <div className="hint" style={{ fontSize: 12.5, lineHeight: 1.4, color: '#94a3b8' }}>
+                Automatically send diagnostic emails when errors disrupt workflows, connectors, or scheduled operations.
+              </div>
+            </div>
+            <div>
+              <input
+                type="checkbox"
+                checked={notifPrefs.email_enabled}
+                onChange={e => setNotifPrefs(f => ({ ...f, email_enabled: e.target.checked }))}
+                style={{ width: 20, height: 20, accentColor: '#6366f1', cursor: 'pointer' }}
+                aria-label="Toggle email notifications"
+              />
+            </div>
+          </div>
+
+          {/* Alert Trigger Rules Card */}
+          <div
+            style={{
+              borderRadius: 10,
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              overflow: 'hidden',
+              opacity: notifPrefs.email_enabled ? 1 : 0.6,
+              transition: 'opacity 0.2s ease',
+            }}
+          >
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', background: 'rgba(255, 255, 255, 0.015)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>
+                Alert Trigger Categories
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {/* Workflow & Node Failures */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  gap: 16,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                  <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>Workflow &amp; Node Execution Failures</div>
+                  <div className="hint" style={{ fontSize: 12, marginTop: 3 }}>
+                    Alert when executions fail, retries are exhausted, or runtime steps crash
+                  </div>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.notify_on_failure}
+                    disabled={!notifPrefs.email_enabled}
+                    onChange={e => setNotifPrefs(f => ({ ...f, notify_on_failure: e.target.checked }))}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                    aria-label="Toggle failure alerts"
+                  />
+                </div>
+              </div>
+
+              {/* Expired Credentials & OAuth Sessions */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  gap: 16,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                  <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>OAuth Session &amp; Credential Expiry</div>
+                  <div className="hint" style={{ fontSize: 12, marginTop: 3 }}>
+                    Actionable re-authorization alert when external connectors (Salesforce, Dynamics 365, HubSpot, Google) fail token refresh
+                  </div>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.notify_on_auth_expired}
+                    disabled={!notifPrefs.email_enabled}
+                    onChange={e => setNotifPrefs(f => ({ ...f, notify_on_auth_expired: e.target.checked }))}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                    aria-label="Toggle session expiry alerts"
+                  />
+                </div>
+              </div>
+
+              {/* Rate Limits */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  gap: 16,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                  <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>API Rate Limit Warnings</div>
+                  <div className="hint" style={{ fontSize: 12, marginTop: 3 }}>
+                    Notify when third-party connectors reject requests with HTTP 429 Too Many Requests
+                  </div>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.notify_on_rate_limit}
+                    disabled={!notifPrefs.email_enabled}
+                    onChange={e => setNotifPrefs(f => ({ ...f, notify_on_rate_limit: e.target.checked }))}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                    aria-label="Toggle rate limit alerts"
+                  />
+                </div>
+              </div>
+
+              {/* Non-fatal Warnings */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                  gap: 16,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                  <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>Non-Fatal Warnings &amp; Exceptions</div>
+                  <div className="hint" style={{ fontSize: 12, marginTop: 3 }}>
+                    Send email notifications for warning-level events and non-terminal retry failures
+                  </div>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.notify_on_warning}
+                    disabled={!notifPrefs.email_enabled}
+                    onChange={e => setNotifPrefs(f => ({ ...f, notify_on_warning: e.target.checked }))}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                    aria-label="Toggle warning alerts"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Delivery & Alert Throttling Card */}
+          <div
+            style={{
+              borderRadius: 10,
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              overflow: 'hidden',
+              opacity: notifPrefs.email_enabled ? 1 : 0.6,
+              transition: 'opacity 0.2s ease',
+            }}
+          >
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', background: 'rgba(255, 255, 255, 0.015)' }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>
+                Alert Throttling &amp; Delivery Routing
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {/* Deduplication Cooldown Window */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  padding: '16px 18px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  gap: 16,
+                }}
+              >
+                <div style={{ flex: '1 1 320px', minWidth: 260 }}>
+                  <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>Alert Deduplication Cooldown</div>
+                  <div className="hint" style={{ fontSize: 12, marginTop: 3, maxWidth: 640 }}>
+                    Suppresses identical failure emails within this window to prevent alert flooding.
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  <select
+                    value={notifPrefs.cooldown_minutes}
+                    disabled={!notifPrefs.email_enabled}
+                    onChange={e => setNotifPrefs(f => ({ ...f, cooldown_minutes: Number(e.target.value) }))}
+                    style={{
+                      minWidth: 210,
+                      padding: '8px 14px',
+                      borderRadius: 7,
+                      background: 'var(--panel-2, #0f172a)',
+                      border: '1px solid var(--border, #334155)',
+                      color: 'var(--text, #f1f5f9)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: notifPrefs.email_enabled ? 'pointer' : 'not-allowed',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+                    }}
+                  >
+                    <option value={5}>5 minutes</option>
+                    <option value={15}>15 minutes (recommended)</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={60}>60 minutes</option>
+                    <option value={120}>2 hours</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Custom Notification Email */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  padding: '16px 18px',
+                  gap: 16,
+                }}
+              >
+                <div style={{ flex: '1 1 320px', minWidth: 260 }}>
+                  <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>Alert Recipient Email Override</div>
+                  <div className="hint" style={{ fontSize: 12, marginTop: 3, maxWidth: 640 }}>
+                    Default: <code>{notifPrefs.default_email || profile?.email || 'Your account email'}</code>. Specify a different address or distribution list if desired.
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, minWidth: 260, maxWidth: 380, width: '100%' }}>
+                  <input
+                    type="email"
+                    placeholder="alerts@yourcompany.com"
+                    value={notifPrefs.custom_email || ''}
+                    disabled={!notifPrefs.email_enabled}
+                    onChange={e => setNotifPrefs(f => ({ ...f, custom_email: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 14px',
+                      borderRadius: 7,
+                      background: 'var(--panel-2, #0f172a)',
+                      border: '1px solid var(--border, #334155)',
+                      color: 'var(--text, #f1f5f9)',
+                      fontSize: 13,
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>
+            <button
+              type="submit"
+              className="primary"
+              disabled={notifBusy}
+              style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600 }}
+            >
+              {notifBusy ? 'Saving…' : 'Save Notification Preferences'}
+            </button>
+
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleSendTestEmail}
+              disabled={testEmailBusy || !notifPrefs.email_enabled}
+              style={{ padding: '8px 16px', fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              <span>{testEmailBusy ? 'Sending…' : 'Send Test Alert Email'}</span>
+            </button>
+          </div>
+        </form>
       </Section>
 
       <Section title="Account" description="Your authenticated identity.">

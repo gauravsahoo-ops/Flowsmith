@@ -269,15 +269,33 @@ export default function SalesforceOAuthModal({
           }
           setTimeout(() => onClose?.(), 1200)
         } else if (isFail && !handled) {
-          handled = true
-          cleanupListeners()
-          setBusy(false)
-
-          if (popup && !popup.closed) {
-            try { popup.close() } catch {}
-          }
-
-          setError(errorMsg || 'Salesforce authorization failed.')
+          import('../api').then(async ({ api }) => {
+            try {
+              const creds = await api.listCredentials()
+              const found = Array.isArray(creds) && creds.find(c => c.type === 'salesforce')
+              if (found) {
+                handled = true
+                cleanupListeners()
+                setBusy(false)
+                if (popup && !popup.closed) {
+                  try { popup.close() } catch {}
+                }
+                setNotice('Salesforce account authorized and connected successfully.')
+                setConnectedAccount(found.name || name)
+                if (onConnected) onConnected(found)
+                setTimeout(() => onClose?.(), 1200)
+                return
+              }
+            } catch {}
+            handled = true
+            cleanupListeners()
+            setBusy(false)
+            if (popup && !popup.closed) {
+              try { popup.close() } catch {}
+            }
+            setError(errorMsg || 'Salesforce authorization failed.')
+          })
+          return
         }
       }
 
@@ -320,8 +338,26 @@ export default function SalesforceOAuthModal({
         if (popup && popup.closed) {
           clearInterval(timer)
           if (!handled) {
-            cleanupListeners()
-            setBusy(false)
+            setTimeout(async () => {
+              if (handled) return
+              try {
+                const { api } = await import('../api')
+                const creds = await api.listCredentials()
+                const found = Array.isArray(creds) && creds.find(c => c.type === 'salesforce')
+                if (found) {
+                  handled = true
+                  cleanupListeners()
+                  setBusy(false)
+                  setNotice('Salesforce account authorized and connected successfully.')
+                  setConnectedAccount(found.name || name)
+                  if (onConnected) onConnected(found)
+                  setTimeout(() => onClose?.(), 1200)
+                  return
+                }
+              } catch {}
+              cleanupListeners()
+              setBusy(false)
+            }, 800)
           }
         }
       }, 500)

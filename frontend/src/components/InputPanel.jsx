@@ -22,7 +22,7 @@ function extractOutputs(step, incomingEdge, fallbackOutputs) {
     return { hasData: false, isSkipped: true, branches: {}, defaultBranch: 'main' }
   }
 
-  const raw = step?.outputs ?? fallbackOutputs
+  const raw = step?.full_outputs ?? fallbackOutputs ?? step?.outputs
   if (raw == null) {
     return { hasData: false, isSkipped: false, branches: {}, defaultBranch: 'main' }
   }
@@ -120,6 +120,35 @@ export default function InputPanel({
   const [copiedSnippet, setCopiedSnippet] = useState(null)
   const [nodeBranches, setNodeBranches] = useState({})
   const [nodeItemIndices, setNodeItemIndices] = useState({})
+  const [directItemIdx, setDirectItemIdx] = useState(0)
+
+  // Current node reference and direct step inputs (e.g. trigger seeds, webhook payloads, or executed node inputs)
+  const currentNode = useMemo(() => {
+    const raw = nodes.find((n) => n.id === currentNodeId)
+    return raw?.data?.node || raw || {}
+  }, [nodes, currentNodeId])
+
+  const currentStep = useMemo(() => {
+    return trace?.find((s) => s.node_id === currentNodeId)
+  }, [trace, currentNodeId])
+
+  const directInputsRaw = currentStep?.full_inputs ?? results?.inputs?.[currentNodeId] ?? currentStep?.inputs
+  const directInputItems = useMemo(() => {
+    if (directInputsRaw == null) return []
+    if (Array.isArray(directInputsRaw)) {
+      return directInputsRaw.map(unwrapItem)
+    }
+    if (typeof directInputsRaw === 'object') {
+      return [unwrapItem(directInputsRaw)]
+    }
+    return [{ value: directInputsRaw }]
+  }, [directInputsRaw])
+
+  const safeDirectItemIdx = Math.min(
+    directItemIdx,
+    Math.max(0, directInputItems.length - 1)
+  )
+  const currentDirectItem = directInputItems[safeDirectItemIdx] || directInputItems[0] || {}
 
   // Traverse DAG backwards from currentNodeId to find all ancestor nodes
   const upstreamNodes = useMemo(() => {
@@ -176,10 +205,11 @@ export default function InputPanel({
   useEffect(() => {
     if (prevNodeIdRef.current !== currentNodeId) {
       prevNodeIdRef.current = currentNodeId
+      setDirectItemIdx(0)
       if (detailedUpstreamNodes.length > 0) {
         setExpandedNodes({ [detailedUpstreamNodes[0].id]: true })
       } else {
-        setExpandedNodes({})
+        setExpandedNodes({ direct_inputs: true })
       }
     } else if (detailedUpstreamNodes.length > 0) {
       setExpandedNodes((prev) => {
@@ -301,9 +331,152 @@ export default function InputPanel({
         </div>
       )}
 
-      {/* Body List of Previous Nodes */}
+      {/* Body List of Previous Nodes & Step Inputs */}
       <div className="nem-input-body">
-        {detailedUpstreamNodes.length === 0 ? (
+        {/* If current step has direct inputs (e.g. trigger seed payload, webhook body, or executed step inputs) */}
+        {directInputItems.length > 0 && (
+          <div
+            className={`nem-upstream-node-card direct-inputs-card ${
+              expandedNodes['direct_inputs'] !== false ? 'is-open' : 'is-collapsed'
+            }`}
+          >
+            <div
+              className="nem-upstream-node-header"
+              onClick={() => toggleNode('direct_inputs')}
+              title={expandedNodes['direct_inputs'] !== false ? 'Click to collapse' : 'Click to expand'}
+            >
+              <span className={`nem-upstream-arrow ${expandedNodes['direct_inputs'] !== false ? 'open' : ''}`}>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+
+              <span className="nem-upstream-icon">
+                <NodeIcon type={currentNode.type || 'webhook'} size={15} />
+              </span>
+
+              <span className="nem-upstream-label" title={detailedUpstreamNodes.length === 0 ? 'Trigger / Initial Input Payload' : 'Direct Step Inputs'}>
+                {detailedUpstreamNodes.length === 0
+                  ? (currentNode.settings?.label || currentNode.name || 'Trigger / Initial Input Payload')
+                  : 'Direct Step Inputs'}
+              </span>
+
+              <span className="nem-upstream-badge">
+                {directInputItems.length} {directInputItems.length === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+
+            {expandedNodes['direct_inputs'] !== false && (
+              <div className="nem-upstream-node-content">
+                <div className="nem-upstream-data-viewer">
+                  {directInputItems.length > 1 && (
+                    <div className="nem-item-pager" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        type="button"
+                        className="nem-pager-btn"
+                        disabled={safeDirectItemIdx <= 0}
+                        onClick={() => setDirectItemIdx(0)}
+                        title="First item"
+                        aria-label="First item"
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="11 18 5 12 11 6"/><line x1="19" y1="6" x2="19" y2="18"/></svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="nem-pager-btn"
+                        disabled={safeDirectItemIdx <= 0}
+                        onClick={() => setDirectItemIdx((p) => Math.max(0, p - 1))}
+                        title="Previous item"
+                        aria-label="Previous item"
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                      </button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span className="nem-pager-label">Item</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={directInputItems.length}
+                          value={safeDirectItemIdx + 1}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10)
+                            if (!isNaN(val) && val >= 1 && val <= directInputItems.length) {
+                              setDirectItemIdx(val - 1)
+                            }
+                          }}
+                          style={{
+                            width: Math.max(38, String(directInputItems.length).length * 9 + 18),
+                            textAlign: 'center',
+                            padding: '2px 4px',
+                            fontSize: 11.5,
+                            fontFamily: 'ui-monospace, monospace',
+                            background: 'var(--panel-2, #181c24)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 4,
+                            color: 'var(--text)',
+                          }}
+                          title="Type item number to jump directly"
+                        />
+                        <span className="nem-pager-label">of {directInputItems.length}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="nem-pager-btn"
+                        disabled={safeDirectItemIdx >= directInputItems.length - 1}
+                        onClick={() => setDirectItemIdx((p) => Math.min(directInputItems.length - 1, p + 1))}
+                        title="Next item"
+                        aria-label="Next item"
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="nem-pager-btn"
+                        disabled={safeDirectItemIdx >= directInputItems.length - 1}
+                        onClick={() => setDirectItemIdx(directInputItems.length - 1)}
+                        title="Last item"
+                        aria-label="Last item"
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="13 18 19 12 13 6"/><line x1="5" y1="6" x2="5" y2="18"/></svg>
+                      </button>
+                    </div>
+                  )}
+                  {viewMode === 'schema' && (
+                    <SchemaNodeView
+                      item={currentDirectItem}
+                      nodeLabel={currentNode.settings?.label || currentNode.name || 'Input'}
+                      isDirectParent={true}
+                      onCopy={handleCopyExpression}
+                      filter={searchTerm}
+                    />
+                  )}
+                  {viewMode === 'table' && <TableView data={directInputItems} />}
+                  {viewMode === 'json' && (
+                    <JsonTree
+                      value={directInputItems.length === 1 ? directInputItems[0] : directInputItems}
+                      search={searchTerm}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {detailedUpstreamNodes.length === 0 && directInputItems.length === 0 && (
           <div className="nem-empty-state">
             <div className="nem-empty-icon-wrap">
               <svg
@@ -326,7 +499,9 @@ export default function InputPanel({
               This trigger or root node has no previous steps feeding into it.
             </p>
           </div>
-        ) : (
+        )}
+
+        {detailedUpstreamNodes.length > 0 && (
           <>
             {filteredNodes.map((up) => {
               const isOpen = !!expandedNodes[up.id]
@@ -392,7 +567,7 @@ export default function InputPanel({
                       {up.isSkipped ? (
                         <div className="nem-upstream-no-data">
                           <p className="hint" style={{ color: '#fbbf24', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                             <span>{up.skipNote || 'This node was skipped in the execution flow.'}</span>
                           </p>
                         </div>
@@ -423,7 +598,7 @@ export default function InputPanel({
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                   >
                                     {bKey === 'true' ? (
-                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                                     ) : bKey === 'false' ? (
                                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                     ) : null}
@@ -436,7 +611,23 @@ export default function InputPanel({
 
                           {/* Multi-item Pager (if node output has multiple items) */}
                           {items.length > 1 && (
-                            <div className="nem-item-pager">
+                            <div className="nem-item-pager" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <button
+                                type="button"
+                                className="nem-pager-btn"
+                                disabled={currentItemIdx <= 0}
+                                onClick={() =>
+                                  setNodeItemIndices((prev) => ({
+                                    ...prev,
+                                    [up.id]: 0,
+                                  }))
+                                }
+                                title="First item"
+                                aria-label="First item"
+                                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="11 18 5 12 11 6"/><line x1="19" y1="6" x2="19" y2="18"/></svg>
+                              </button>
                               <button
                                 type="button"
                                 className="nem-pager-btn"
@@ -453,9 +644,39 @@ export default function InputPanel({
                               >
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                               </button>
-                              <span className="nem-pager-label">
-                                Item {currentItemIdx + 1} of {items.length}
-                              </span>
+
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span className="nem-pager-label">Item</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={items.length}
+                                  value={currentItemIdx + 1}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10)
+                                    if (!isNaN(val) && val >= 1 && val <= items.length) {
+                                      setNodeItemIndices((prev) => ({
+                                        ...prev,
+                                        [up.id]: val - 1,
+                                      }))
+                                    }
+                                  }}
+                                  style={{
+                                    width: Math.max(38, String(items.length).length * 9 + 18),
+                                    textAlign: 'center',
+                                    padding: '2px 4px',
+                                    fontSize: 11.5,
+                                    fontFamily: 'ui-monospace, monospace',
+                                    background: 'var(--panel-2, #181c24)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: 4,
+                                    color: 'var(--text)',
+                                  }}
+                                  title="Type item number to jump directly"
+                                />
+                                <span className="nem-pager-label">of {items.length}</span>
+                              </div>
+
                               <button
                                 type="button"
                                 className="nem-pager-btn"
@@ -471,6 +692,22 @@ export default function InputPanel({
                                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                               >
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                              </button>
+                              <button
+                                type="button"
+                                className="nem-pager-btn"
+                                disabled={currentItemIdx >= items.length - 1}
+                                onClick={() =>
+                                  setNodeItemIndices((prev) => ({
+                                    ...prev,
+                                    [up.id]: items.length - 1,
+                                  }))
+                                }
+                                title="Last item"
+                                aria-label="Last item"
+                                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="13 18 19 12 13 6"/><line x1="5" y1="6" x2="5" y2="18"/></svg>
                               </button>
                             </div>
                           )}
@@ -523,77 +760,109 @@ export default function InputPanel({
                 </div>
               )
             })}
-
-            {/* Variables and Context Accordion Section */}
-            <div
-              className={`nem-upstream-node-card variables-card ${
-                expandedNodes['vars'] ? 'is-open' : 'is-collapsed'
-              }`}
-            >
-              <div
-                className="nem-upstream-node-header"
-                onClick={() => toggleNode('vars')}
-              >
-                <span
-                  className={`nem-upstream-arrow ${
-                    expandedNodes['vars'] ? 'open' : ''
-                  }`}
-                >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </span>
-                <span className="nem-upstream-label">Variables and context</span>
-              </div>
-
-              {expandedNodes['vars'] && (
-                <div className="nem-upstream-node-content variables-content">
-                  <div className="nem-vars-list">
-                    <div
-                      className="nem-var-row"
-                      onClick={() => handleCopyExpression('{{ $env }}')}
-                      title="Click to copy {{ $env }}"
-                    >
-                      <span className="nem-var-key">$env</span>
-                      <span className="nem-var-desc">
-                        Workspace environment variables
-                      </span>
-                    </div>
-                    <div
-                      className="nem-var-row"
-                      onClick={() => handleCopyExpression('{{ $workflow }}')}
-                      title="Click to copy {{ $workflow }}"
-                    >
-                      <span className="nem-var-key">$workflow</span>
-                      <span className="nem-var-desc">
-                        Current workflow metadata
-                      </span>
-                    </div>
-                    <div
-                      className="nem-var-row"
-                      onClick={() => handleCopyExpression('{{ $execution }}')}
-                      title="Click to copy {{ $execution }}"
-                    >
-                      <span className="nem-var-key">$execution</span>
-                      <span className="nem-var-desc">
-                        Current execution context & ID
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
           </>
         )}
+
+        {/* Variables and Context Accordion Section — Always available */}
+        <div
+          className={`nem-upstream-node-card variables-card ${
+            expandedNodes['vars'] ? 'is-open' : 'is-collapsed'
+          }`}
+        >
+          <div
+            className="nem-upstream-node-header"
+            onClick={() => toggleNode('vars')}
+          >
+            <span
+              className={`nem-upstream-arrow ${
+                expandedNodes['vars'] ? 'open' : ''
+              }`}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </span>
+            <span className="nem-upstream-label">Variables and context</span>
+          </div>
+
+          {expandedNodes['vars'] && (
+            <div className="nem-upstream-node-content variables-content">
+              <div className="nem-vars-list">
+                {[
+                  { key: '$env', desc: 'Workspace environment variables' },
+                  { key: '$workflow', desc: 'Current workflow metadata' },
+                  { key: '$execution', desc: 'Current execution context & ID' },
+                  { key: '$now', desc: 'Current UTC timestamp / ISO string' },
+                ].map((item) => (
+                  <div
+                    key={item.key}
+                    className="nem-var-row draggable-variable"
+                    draggable={true}
+                    onDragStart={(e) => {
+                      e.stopPropagation()
+                      const expr = `{{ ${item.key} }}`
+                      e.dataTransfer.setData('text/plain', expr)
+                      e.dataTransfer.setData('application/flowsmith-variable', JSON.stringify({ expr, path: item.key, key: item.key }))
+                      e.dataTransfer.effectAllowed = 'copy'
+                      e.currentTarget.classList.add('is-dragging')
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.classList.remove('is-dragging')
+                    }}
+                    onClick={() => handleCopyExpression(`{{ ${item.key} }}`)}
+                    title={`Drag into parameter input or click to copy {{ ${item.key} }}`}
+                  >
+                    <span className="nem-schema-drag-handle" title="Drag variable into parameter fields">
+                      <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+                        <circle cx="2" cy="2" r="1.2" />
+                        <circle cx="6" cy="2" r="1.2" />
+                        <circle cx="2" cy="6" r="1.2" />
+                        <circle cx="6" cy="6" r="1.2" />
+                        <circle cx="2" cy="10" r="1.2" />
+                        <circle cx="6" cy="10" r="1.2" />
+                      </svg>
+                    </span>
+                    <div className="nem-var-info">
+                      <span className="nem-var-key">{item.key}</span>
+                      <span className="nem-var-desc">{item.desc}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`nem-schema-copy-hint ${copiedSnippet === `{{ ${item.key} }}` ? 'is-copied' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCopyExpression(`{{ ${item.key} }}`)
+                      }}
+                      tabIndex={-1}
+                      title={`Copy {{ ${item.key} }}`}
+                    >
+                      {copiedSnippet === `{{ ${item.key} }}` ? (
+                        <>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -609,19 +878,22 @@ function SchemaNodeView({ item, nodeLabel, isDirectParent, onCopy, filter }) {
 
   return (
     <div className="nem-schema-list">
-      {entries.map(([key, val]) => (
-        <SchemaFieldRow
-          key={key}
-          keyName={key}
-          value={val}
-          path={key}
-          depth={0}
-          nodeLabel={nodeLabel}
-          isDirectParent={isDirectParent}
-          onCopy={onCopy}
-          filter={filter}
-        />
-      ))}
+      {entries.map(([key, val]) => {
+        const rootPath = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `['${key.replace(/'/g, "\\'")}']`
+        return (
+          <SchemaFieldRow
+            key={key}
+            keyName={key}
+            value={val}
+            path={rootPath}
+            depth={0}
+            nodeLabel={nodeLabel}
+            isDirectParent={isDirectParent}
+            onCopy={onCopy}
+            filter={filter}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -638,6 +910,8 @@ function SchemaFieldRow({
 }) {
   const [expanded, setExpanded] = useState(depth === 0)
   const [showAllItems, setShowAllItems] = useState(false)
+  const [chunkLimit, setChunkLimit] = useState(25)
+  const [copied, setCopied] = useState(false)
   const isObj = value !== null && typeof value === 'object'
   const isArr = Array.isArray(value)
 
@@ -654,12 +928,20 @@ function SchemaFieldRow({
 
   // Expression syntax: direct upstream parent can simply use $json.path
   const cleanLabel = (nodeLabel || '').replace(/'/g, "\\'")
-  const expr = (!isDirectParent && cleanLabel) ? `{{ $('${cleanLabel}').item.json.${path} }}` : `{{ $json.${path} }}`
+  const pathExpr = path.startsWith('[') ? path : `.${path}`
+  const expr = (!isDirectParent && cleanLabel) ? `{{ $('${cleanLabel}').item.json${pathExpr} }}` : `{{ $json${pathExpr} }}`
 
   const matches =
     !filter ||
     keyName.toLowerCase().includes(filter.toLowerCase()) ||
     String(valPreview).toLowerCase().includes(filter.toLowerCase())
+
+  const handleCopy = (e) => {
+    e?.stopPropagation()
+    onCopy(expr)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
 
   return (
     <div className="nem-schema-field-wrap">
@@ -677,55 +959,76 @@ function SchemaFieldRow({
           onDragEnd={(e) => {
             e.currentTarget.classList.remove('is-dragging')
           }}
-          style={{ paddingLeft: `${depth * 14 + 6}px` }}
           onClick={(e) => {
             if (isObj && (e.target.closest('.nem-schema-expand-btn') || !e.target.closest('.nem-schema-copy-hint'))) {
               setExpanded(!expanded)
             } else {
-              onCopy(expr)
+              handleCopy(e)
             }
           }}
           title={`Drag into parameter input or click to copy: ${expr}`}
         >
           <span className="nem-schema-drag-handle" title="Drag variable into parameter fields">
-            ⋮⋮
+            <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+              <circle cx="2" cy="2" r="1.2" />
+              <circle cx="6" cy="2" r="1.2" />
+              <circle cx="2" cy="6" r="1.2" />
+              <circle cx="6" cy="6" r="1.2" />
+              <circle cx="2" cy="10" r="1.2" />
+              <circle cx="6" cy="10" r="1.2" />
+            </svg>
           </span>
+
           {isObj ? (
-            <span
+            <button
+              type="button"
               className={`nem-schema-expand-btn ${expanded ? 'is-open' : ''}`}
               onClick={(e) => {
                 e.stopPropagation()
                 setExpanded(!expanded)
               }}
+              title={expanded ? 'Collapse' : 'Expand'}
+              aria-label={expanded ? 'Collapse' : 'Expand'}
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-            </span>
+            </button>
           ) : (
             <span className="nem-schema-expand-spacer" />
           )}
 
-          <span className="nem-schema-key">{keyName}</span>
-          <span className="nem-schema-colon">:</span>
-          <span className={`nem-schema-type type-${isArr ? 'array' : isObj ? 'object' : typeof value}`}>
-            {typeStr}
-          </span>
-          {valPreview && (
-            <span className="nem-schema-val-preview" title={valPreview}>
-              {valPreview}
+          <div className="nem-schema-main-content">
+            <span className="nem-schema-key" title={keyName}>{keyName}</span>
+            <span className="nem-schema-colon">:</span>
+            <span className={`nem-schema-type type-${isArr ? 'array' : isObj ? 'object' : typeof value}`}>
+              {typeStr}
             </span>
-          )}
+            {valPreview && (
+              <span className="nem-schema-val-preview" title={valPreview}>
+                {valPreview}
+              </span>
+            )}
+          </div>
+
           <button
             type="button"
-            className="nem-schema-copy-hint"
-            onClick={(e) => {
-              e.stopPropagation()
-              onCopy(expr)
-            }}
+            className={`nem-schema-copy-hint ${copied ? 'is-copied' : ''}`}
+            onClick={handleCopy}
             tabIndex={-1}
+            title={`Copy ${expr}`}
           >
-            Copy
+            {copied ? (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                <span>Copied</span>
+              </>
+            ) : (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                <span>Copy</span>
+              </>
+            )}
           </button>
         </div>
       )}
@@ -734,7 +1037,7 @@ function SchemaFieldRow({
       {isObj && expanded && (
         <div className="nem-schema-children">
           {isArr
-            ? (showAllItems ? value : value.slice(0, 10)).map((subItem, idx) => (
+            ? (showAllItems ? value : value.slice(0, chunkLimit)).map((subItem, idx) => (
                 <SchemaFieldRow
                   key={idx}
                   keyName={`[${idx}]`}
@@ -747,60 +1050,80 @@ function SchemaFieldRow({
                   filter={filter}
                 />
               ))
-            : Object.entries(value).map(([k, v]) => (
-                <SchemaFieldRow
-                  key={k}
-                  keyName={k}
-                  value={v}
-                  path={`${path}.${k}`}
-                  depth={depth + 1}
-                  nodeLabel={nodeLabel}
-                  isDirectParent={isDirectParent}
-                  onCopy={onCopy}
-                  filter={filter}
-                />
-              ))}
-          {isArr && value.length > 10 && !showAllItems && (
-            <div
-              className="nem-schema-more-hint clickable"
-              style={{
-                paddingLeft: `${(depth + 1) * 14 + 20}px`,
-                cursor: 'pointer',
-                color: '#818cf8',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                paddingTop: 4,
-                paddingBottom: 4,
-                fontWeight: 500,
-              }}
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowAllItems(true)
-              }}
-              title="Click to show all items"
-            >
-              <span>+ {value.length - 10} more {value.length - 10 === 1 ? 'item' : 'items'}</span>
-              <span style={{ fontSize: 10, textDecoration: 'underline', color: '#a5b4fc' }}>Show all ({value.length})</span>
+            : Object.entries(value).map(([k, v]) => {
+                const childPath = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k)
+                  ? `${path}.${k}`
+                  : `${path}['${k.replace(/'/g, "\\'")}']`
+                return (
+                  <SchemaFieldRow
+                    key={k}
+                    keyName={k}
+                    value={v}
+                    path={childPath}
+                    depth={depth + 1}
+                    nodeLabel={nodeLabel}
+                    isDirectParent={isDirectParent}
+                    onCopy={onCopy}
+                    filter={filter}
+                  />
+                )
+              })}
+          {isArr && value.length > chunkLimit && !showAllItems && (
+            <div className="nem-schema-more-hint" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px' }}>
+              <span>Showing {chunkLimit} of {value.length} items —</span>
+              <button
+                type="button"
+                className="nem-schema-chunk-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setChunkLimit((c) => Math.min(c + 25, value.length))
+                }}
+                style={{
+                  background: 'var(--panel-2, #1e293b)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  fontSize: 10.5,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                }}
+              >
+                + Show {Math.min(25, value.length - chunkLimit)} more
+              </button>
+              <button
+                type="button"
+                className="nem-schema-chunk-btn text-accent"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowAllItems(true)
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(99, 102, 241, 0.4)',
+                  color: '#818cf8',
+                  fontSize: 10.5,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Show all ({value.length})
+              </button>
             </div>
           )}
-          {isArr && value.length > 10 && showAllItems && (
+          {isArr && (showAllItems || chunkLimit > 25) && (
             <div
               className="nem-schema-more-hint clickable"
-              style={{
-                paddingLeft: `${(depth + 1) * 14 + 20}px`,
-                cursor: 'pointer',
-                color: 'var(--muted)',
-                fontSize: 11,
-                paddingTop: 4,
-                paddingBottom: 4,
-              }}
               onClick={(e) => {
                 e.stopPropagation()
                 setShowAllItems(false)
+                setChunkLimit(25)
               }}
+              title="Click to collapse"
+              style={{ cursor: 'pointer', color: 'var(--muted)', fontSize: 11, padding: '4px 6px' }}
             >
-              ↑ Show less
+              <span>↑ Show less</span>
             </div>
           )}
         </div>

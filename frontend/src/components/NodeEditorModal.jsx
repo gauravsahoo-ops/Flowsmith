@@ -167,14 +167,15 @@ export default function NodeEditorModal() {
     }
     const step = trace.find((s) => s.node_id === selectedId)
     const fullOutput = (results?.outputs && results.outputs[selectedId]) || null
-    if (step || fullOutput) {
-      setUpstreamData(step?.inputs || null)
-      setOutputData(fullOutput || step?.outputs || null)
+    const fullInput = (results?.inputs && results.inputs[selectedId]) || null
+    if (step || fullOutput || fullInput) {
+      setUpstreamData(step?.full_inputs || fullInput || step?.inputs || null)
+      setOutputData(step?.full_outputs || fullOutput || step?.outputs || null)
     } else {
       if (upstreamNode) {
         const upStep = trace.find((s) => s.node_id === upstreamNode.id)
         const upFull = (results?.outputs && results.outputs[upstreamNode.id]) || null
-        setUpstreamData(upFull || upStep?.outputs || null)
+        setUpstreamData(upStep?.full_outputs || upFull || upStep?.outputs || null)
       } else {
         setUpstreamData(null)
       }

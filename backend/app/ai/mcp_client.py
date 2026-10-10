@@ -18,6 +18,15 @@ from app.ai.tools import ToolSpec
 logger = logging.getLogger("ai.mcp_client")
 
 
+def _log_url(url: str) -> str:
+    """Log-safe URL: userinfo and query strings may carry access tokens."""
+    from urllib.parse import urlsplit, urlunsplit
+
+    parts = urlsplit(url)
+    netloc = parts.netloc.rsplit("@", 1)[-1]
+    return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
+
+
 class MCPSecurityError(Exception):
     """Raised when an MCP operation violates security policies."""
     pass
@@ -74,7 +83,7 @@ class MCPClient:
                 resp = await client.post(self.server_url, headers=self.headers, json=payload)
             return resp.status_code < 400
         except Exception as exc:
-            logger.debug("MCP ping failed for %s: %s", self.server_url, exc)
+            logger.debug("MCP ping failed for %s: %s", _log_url(self.server_url), exc)
             return False
 
     async def list_tools(self, timeout_s: float = 10.0) -> list[dict[str, Any]]:
@@ -90,13 +99,13 @@ class MCPClient:
             async with httpx.AsyncClient(timeout=httpx.Timeout(timeout_s)) as client:
                 resp = await client.post(self.server_url, headers=self.headers, json=payload)
             if resp.status_code >= 400:
-                logger.error("MCP server %s error (%d): %s", self.server_url, resp.status_code, resp.text[:200])
+                logger.error("MCP server %s error (%d): %s", _log_url(self.server_url), resp.status_code, resp.text[:200])
                 return []
             body = resp.json()
             result = body.get("result") or {}
             return result.get("tools") or []
         except Exception as exc:
-            logger.warning("Failed to list tools from MCP server %s: %s", self.server_url, exc)
+            logger.warning("Failed to list tools from MCP server %s: %s", _log_url(self.server_url), exc)
             return []
 
     async def list_resources(self, timeout_s: float = 10.0) -> list[dict[str, Any]]:

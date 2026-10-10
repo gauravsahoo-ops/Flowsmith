@@ -51,6 +51,9 @@ class OAuthManager:
         refresh_token = cred_data.get("refresh_token")
         if not token_url or not client_id or not client_secret or not refresh_token:
             raise ValueError("OAuth2 refresh requires token_url, client_id, client_secret, refresh_token")
+        from app.security.ssrf import assert_public_url
+
+        await assert_public_url(token_url, node_id="oauth_refresh")
         client = self.http_client or httpx.AsyncClient()
         close = self.http_client is None
         try:
@@ -66,7 +69,21 @@ class OAuthManager:
                 timeout=15.0,
             )
             if resp.status_code != 200:
-                raise ValueError(f"Token refresh failed {resp.status_code}: {resp.text[:200]}")
+                err_msg = f"Token refresh failed {resp.status_code}: {resp.text[:200]}"
+                try:
+                    from app.services.error_monitoring import ErrorMonitoringService
+                    cred_id = str(cred_data.get("_credential_id") or "")
+                    user_id = cred_data.get("user_id") or cred_data.get("_user_id")
+                    provider = cred_data.get("provider") or cred_data.get("type") or "oauth"
+                    ErrorMonitoringService.capture_credential_error(
+                        user_id=user_id,
+                        credential_id=cred_id,
+                        connector_type=provider,
+                        error_message=err_msg,
+                    )
+                except Exception:
+                    logger.exception("Failed to monitor OAuth token refresh failure")
+                raise ValueError(err_msg)
             payload = resp.json()
             new_data = dict(cred_data)
             new_data["access_token"] = payload.get("access_token", cred_data.get("access_token"))

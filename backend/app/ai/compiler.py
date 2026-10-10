@@ -100,21 +100,31 @@ class WorkflowCompiler:
         """Map IR trigger to concrete Flowsmith trigger node."""
         kind = trigger.kind.lower()
         if kind == "schedule":
+            raw_nested = trigger.config.get("rule")
+            nested = raw_nested if isinstance(raw_nested, dict) else {}
+            cron = str(trigger.config.get("cron") or nested.get("cronExpression") or "0 9 * * 1-5")
+            tz = str(trigger.config.get("timezone") or nested.get("timezone") or "UTC")
+            # Emit the canonical trigger params (rules + cron + timezone):
+            # the trigger registry only registers schedules it can parse, so
+            # a node the registry does not understand never fires (audit H16).
+            # `rule` is kept for UIs/LLM prompts still using the old shape.
             return {
                 "id": "schedule_1",
                 "type": "schedule",
                 "name": "Schedule Trigger",
                 "parameters": {
-                    "rule": {
-                        "cronExpression": trigger.config.get("cron", "0 9 * * 1-5"),
-                        "timezone": trigger.config.get("timezone", "UTC"),
-                    }
+                    "rules": [{"id": "r1", "interval": "cron", "cron": cron, "timezone": tz}],
+                    "cron": cron,
+                    "timezone": tz,
+                    "rule": {"cronExpression": cron, "timezone": tz},
                 },
                 "settings": {},
                 "credentials": {},
             }
         elif kind == "webhook" or trigger.system != "system":
-            path_entropy = uuid.uuid4().hex[:18]
+            # 24+ chars: _validate_webhook_paths rejects anything shorter
+            # (webhook paths are the only auth on the trigger endpoint).
+            path_entropy = uuid.uuid4().hex[:24]
             clean_name = re.sub(r"[^A-Za-z0-9_.-]", "", trigger.system.lower())[:10] or "hook"
             return {
                 "id": "webhook_1",

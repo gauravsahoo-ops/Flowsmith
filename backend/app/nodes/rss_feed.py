@@ -15,7 +15,7 @@ from defusedxml.ElementTree import fromstring as _safe_fromstring
 from pydantic import BaseModel, Field
 
 from app.engine.errors import NodeExecutionError
-from app.engine.node_base import BaseNode, NodeContext, NodeResult, filter_client_kwargs
+from app.engine.node_base import BaseNode, NodeContext, NodeResult, request_with_size_cap
 from app.nodes.registry import register
 
 MAX_BYTES = 1_000_000
@@ -65,8 +65,16 @@ class RssFeedNode(BaseNode[RssFeedParams]):
 
             await assert_public_url(url, node_id="rss_feed")
         try:
-            kwargs = filter_client_kwargs(ctx.http_client, {"timeout": params.timeout_seconds})
-            response = await ctx.http_client.get(url, **kwargs)
+            # H19: MAX_BYTES is enforced while streaming for real httpx
+            # clients — otherwise the whole feed lands in memory first.
+            response = await request_with_size_cap(
+                ctx.http_client, "GET", url,
+                max_response_bytes=MAX_BYTES,
+                node_id="rss_feed",
+                timeout=params.timeout_seconds,
+            )
+        except NodeExecutionError:
+            raise
         except Exception as exc:
             raise NodeExecutionError(
                 f"Feed fetch failed: {exc}",

@@ -20,26 +20,41 @@ export default defineConfig({
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('monaco-editor') || id.includes('@monaco-editor')) {
-              return 'vendor-monaco'
-            }
-            if (id.includes('@xyflow')) {
-              return 'vendor-flow'
-            }
-            if (
-              id.includes('react') ||
-              id.includes('react-dom') ||
-              id.includes('react-router-dom') ||
-              id.includes('zustand')
-            ) {
-              return 'vendor-react'
-            }
-            // Split remaining third-party deps out of the main chunk
-            // to keep the initial bundle lean.
-            return 'vendor-misc'
-          }
+        // Rolldown-native chunk groups. The `\0`-prefixed Vite virtual
+        // modules (preload helper + modulepreload polyfill) must sit in
+        // their own tiny chunk: the entry chunk statically imports the
+        // helper for React.lazy() routes, and if it is merged into
+        // vendor-monaco the whole 4.3 MB Monaco chunk gets modulepreloaded
+        // on first paint. High priority so no vendor group captures them.
+        advancedChunks: {
+          groups: [
+            {
+              name: 'vite-runtime',
+              test: (id) => id.includes('vite/preload-helper') || id.includes('vite/modulepreload-polyfill'),
+              priority: 100,
+            },
+            {
+              name: 'vendor-react',
+              test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|zustand)[\\/]/,
+              priority: 50,
+            },
+            {
+              name: 'vendor-monaco',
+              test: /node_modules[\\/](monaco-editor|@monaco-editor)[\\/]/,
+              priority: 40,
+            },
+            {
+              name: 'vendor-flow',
+              test: /node_modules[\\/]@xyflow[\\/]/,
+              priority: 40,
+            },
+            {
+              // Split remaining third-party deps out of the main chunk
+              // to keep the initial bundle lean.
+              name: 'vendor-misc',
+              test: /node_modules/,
+            },
+          ],
         },
       },
     },

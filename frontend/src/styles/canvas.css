@@ -1090,18 +1090,120 @@
 .sd-retry.caution .hint { font-size: 11.5px; }
 
 /* json tree */
-.json-tree { max-height: 260px; overflow: auto; background: #16181d; border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; }
+.json-tree-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.jt-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: var(--panel-2, #1e222b);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  font-size: 11px;
+}
+.jt-count-badge {
+  color: var(--muted);
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+}
+.jt-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.jt-tool-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted, #94a3b8);
+  font-size: 10.5px;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.jt-tool-btn:hover {
+  background: var(--panel-3, #334155);
+  color: #fff;
+  border-color: var(--accent, #6366f1);
+}
+.json-tree { max-height: 380px; overflow: auto; background: #16181d; border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; }
+.json-tree-container .json-tree { border-radius: 0 0 7px 7px; }
 .jt-node, .jt-row { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 11.5px; line-height: 1.55; }
-.jt-node summary { cursor: pointer; list-style: none; }
+.jt-node summary { cursor: pointer; list-style: none; user-select: none; }
 .jt-node summary::before { content: "▸ "; color: var(--muted); }
 .jt-node[open] > summary::before { content: "▾ "; }
-.jt-key { color: #9db8ee; }
-.jt-str { color: #b9ecc9; word-break: break-all; }
-.jt-num { color: #ffd60a; }
-.jt-bool { color: #ff9f0a; }
+.jt-key { color: #9db8ee; cursor: pointer; transition: color 0.12s; }
+.jt-key:hover { color: #c7d2fe; text-decoration: underline; }
+.jt-str { color: #b9ecc9; word-break: break-all; cursor: pointer; }
+.jt-num { color: #ffd60a; cursor: pointer; }
+.jt-bool { color: #ff9f0a; cursor: pointer; }
 .jt-null { color: var(--muted); font-style: italic; }
-.jt-brace { color: var(--muted); }
+.jt-brace { color: var(--muted); margin-left: 2px; }
 .jt-empty { margin: 2px 0; }
+.jt-str-wrap { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.jt-expand-text-btn {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #818cf8;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.jt-expand-text-btn:hover {
+  background: rgba(99, 102, 241, 0.3);
+  color: #fff;
+}
+.jt-copy-val-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.jt-copy-val-btn:hover { color: #fff; border-color: var(--accent); }
+.jt-copied-pill {
+  margin-left: 6px;
+  padding: 1px 5px;
+  font-size: 9.5px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.jt-chunk-more {
+  margin: 4px 0 6px 0;
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.jt-chunk-btn {
+  background: var(--panel-2, #1e293b);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.jt-chunk-btn:hover {
+  background: var(--panel-3);
+  border-color: var(--accent);
+}
+.jt-chunk-btn.text-accent {
+  color: #818cf8;
+  font-weight: 600;
+}
 
 /* steps list (debugger flavour) */
 .step-row {

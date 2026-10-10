@@ -464,6 +464,8 @@ async def test_workflow_canvas_tools():
     mock_wf.id = "wf_canvas_test"
     mock_wf.name = "Canvas Workflow"
     mock_wf.version = 1
+    mock_wf.deleted_at = None
+    mock_wf.user_id = 1
     mock_wf.data = {
         "nodes": [
             {"id": "node_1", "type": "manual_trigger", "name": "Start", "parameters": {}, "position": {"x": 100, "y": 100}}
@@ -560,6 +562,7 @@ async def test_datatable_tools():
     mock_table.id = "tbl_1"
     mock_table.name = "CustomerLeads"
     mock_table.description = "Leads from marketing"
+    mock_table.workspace_id = "ws_1"
     mock_table.columns = [mock_col]
     mock_table.rows = []
 
@@ -576,6 +579,7 @@ async def test_datatable_tools():
         mock_session.execute.return_value.all.return_value = []  # SQL row-count query
 
         ctx = _make_ctx()
+        ctx.workspace_id = "ws_1"
         res_list = await run_tool(ctx, "datatable_list", {})
         data_list = json.loads(res_list)
         assert "tables" in data_list

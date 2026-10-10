@@ -311,6 +311,7 @@ async def webhook_receive(
         }]
 
         from app.api.executions import has_running_execution, start_execution, workflow_workspace
+        from app.billing.service import enforce_can_start_execution
 
         if await asyncio.to_thread(has_running_execution, db, wh.workflow_id):
             webhook_deliveries.inc(("skipped",))
@@ -333,6 +334,9 @@ async def webhook_receive(
 
         try:
             ws_id = await asyncio.to_thread(workflow_workspace, db, wh.workflow_id)
+            # Plan quota (audit H9): checked after signature verification,
+            # before the execution is enqueued; a 402 propagates to the caller.
+            await asyncio.to_thread(enforce_can_start_execution, db, ws_id)
             execution_id = await asyncio.to_thread(
                 start_execution,
                 db,
@@ -544,6 +548,7 @@ async def form_submit(slug: str, request: Request) -> dict:
         trigger_items = [{"form": form, "query": dict(request.query_params)}]
 
         from app.api.executions import has_running_execution, start_execution, workflow_workspace
+        from app.billing.service import enforce_can_start_execution
 
         delivery_id = f"dlv_{uuid.uuid4().hex[:12]}"
         if await asyncio.to_thread(has_running_execution, db, wh.workflow_id):
@@ -562,6 +567,8 @@ async def form_submit(slug: str, request: Request) -> dict:
 
         try:
             ws_id = await asyncio.to_thread(workflow_workspace, db, wh.workflow_id)
+            # Plan quota (audit H9): form submissions meter like any run.
+            await asyncio.to_thread(enforce_can_start_execution, db, ws_id)
             execution_id = await asyncio.to_thread(
                 start_execution,
                 db,
@@ -702,11 +709,14 @@ async def chat_message(slug: str, request: Request) -> dict:
         history = history[-50:]
 
         from app.api.executions import start_execution, workflow_workspace
+        from app.billing.service import enforce_can_start_execution
         from app.execution_runtime import _mark_deliveries
         from app.models import Execution as _Execution
         trigger_items = [{"message": message, "session_id": session_id, "history": history}]
         try:
             ws_id = await asyncio.to_thread(workflow_workspace, db, wh.workflow_id)
+            # Plan quota (audit H9): chat rounds are executions too.
+            await asyncio.to_thread(enforce_can_start_execution, db, ws_id)
             execution_id = await asyncio.to_thread(
                 start_execution,
                 db,

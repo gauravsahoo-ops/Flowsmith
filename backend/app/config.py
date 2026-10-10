@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     # process environment. Production deployments should leave these empty.
     safe_http_allowed_hosts: str = ""
     safe_http_allowed_ports: str = ""
+    # Explicit opt-in for validate_production_settings: the allowlists above
+    # disable the SSRF guard, so production refuses to boot with them set
+    # unless ALLOW_SSRF_BYPASS is truthy. A Settings field (not os.getenv)
+    # so .env-file values are honoured too.
+    allow_ssrf_bypass: str = ""
 
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
@@ -235,6 +240,13 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = False
     smtp_starttls: bool = True
 
+    # Error Monitoring & Alert System
+    error_monitoring_enabled: bool = True
+    error_notification_cooldown_minutes: int = 15
+    error_notification_max_retries: int = 3
+    error_notification_admin_email: str = ""
+    app_base_url: str = "http://localhost:5173"  # Frontend URL for actionable email links
+
     # Billing / SaaS (Phase 34). With STRIPE_SECRET_KEY unset the app runs
     # in self-host mode: plan data exists, checkout/webhooks are disabled.
     # BILLING_ENFORCEMENT=false disables quota checks entirely (self-host).
@@ -302,4 +314,16 @@ def validate_production_settings(settings: Settings | None = None) -> None:
             "Refusing to start in production mode: missing "
             + ", ".join(missing)
             + "."
+        )
+    # SSRF escape hatches must be a conscious, separate opt-in: the exact-
+    # host/port allowlists silently disable the guard for every request, so
+    # production refuses to boot with them set unless explicitly overridden.
+    # (Read from Settings — a plain os.getenv would miss .env-file values.)
+    if (settings.safe_http_allowed_hosts.strip() or settings.safe_http_allowed_ports.strip()) and (
+        settings.allow_ssrf_bypass.strip().lower() not in ("1", "true", "yes")
+    ):
+        raise ConfigError(
+            "Refusing to start in production mode: SAFE_HTTP_ALLOWED_HOSTS / "
+            "SAFE_HTTP_ALLOWED_PORTS enable an SSRF bypass. Unset them, or set "
+            "ALLOW_SSRF_BYPASS=true explicitly if this deployment intends it."
         )

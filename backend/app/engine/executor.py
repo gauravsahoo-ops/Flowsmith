@@ -8,6 +8,7 @@ errors, skips, timeouts and cancellation.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import copy
 import hashlib
 import json
@@ -52,6 +53,7 @@ class ExecutionResult:
     node_errors: dict[str, NodeExecutionError] = field(default_factory=dict)
     trace: list[dict[str, Any]] = field(default_factory=list)
     events: list[dict[str, Any]] = field(default_factory=list)
+    inputs: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     error: NodeExecutionError | None = None
     started_at: float = field(default_factory=time.monotonic)
     finished_at: float | None = None
@@ -243,15 +245,18 @@ async def execute_workflow(
     emit_all("execution.started")
 
     monitor = asyncio.create_task(_monitor_cancel(ctx, cancelled))
+    run: asyncio.Task[None] | None = None
     try:
-        run = _run_nodes(
+        # Own task handle: shield()/bare awaits detach on cancellation and
+        # leave the node graph running after the caller saw "cancelled".
+        run = asyncio.create_task(_run_nodes(
             graph, trigger_items, ctx, result, emit_all, cancelled,
             credential_resolver, max_parallelism, initial_results,
-        )
+        ))
         if workflow_timeout:
             await asyncio.wait_for(run, timeout=workflow_timeout)
         else:
-            await asyncio.shield(run)
+            await run
     except asyncio.TimeoutError:
         cancelled.set()
         ctx._cancelled = True
@@ -263,6 +268,13 @@ async def execute_workflow(
         result.status = "cancelled"
         emit_all("execution.cancelled", status="cancelled")
     finally:
+        # Never leave the graph detached: cancel + bounded drain (a stuck
+        # blocking node must not hang shutdown; the cooperative flag plus
+        # task.cancel() cover everything that is awaiting).
+        if run is not None and not run.done():
+            run.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await asyncio.wait({run}, timeout=5.0)
         monitor.cancel()
         if owns_client:
             try:
@@ -597,6 +609,8 @@ async def _run_one(
         return
 
     input_items = _gather_input(gnode, results) if gnode.input_connections else (seed_items or [])
+    if hasattr(result, "inputs"):
+        result.inputs[node.id] = input_items
 
     if gnode.input_connections and not input_items:
         result.skipped.append(node.id)

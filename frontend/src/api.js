@@ -398,6 +398,26 @@ export const api = {
   aiModifyWorkflow: (workflow, instruction) => request('POST', '/ai/modify-workflow', { workflow, instruction }),
   aiOptimizeDraft: (workflow, dimension = 'cost') => request('POST', '/ai/optimize-draft', { workflow, dimension }),
   aiExplainDraft: (workflow, failureContext = null) => request('POST', '/ai/explain-draft', { workflow, failure_context: failureContext }),
+  // Error Monitoring & Notification Alerts
+  listNotifications: (params) => {
+    const q = new URLSearchParams()
+    if (params?.severity) q.set('severity', params.severity)
+    if (params?.category) q.set('category', params.category)
+    if (params?.workflow_id) q.set('workflow_id', params.workflow_id)
+    if (params?.status) q.set('status', params.status)
+    if (params?.resolved !== undefined) q.set('resolved', params.resolved)
+    if (params?.limit) q.set('limit', params.limit)
+    if (params?.offset) q.set('offset', params.offset)
+    const qs = q.toString() ? `?${q.toString()}` : ''
+    return request('GET', `/notifications${qs}`)
+  },
+  getNotificationStats: () => request('GET', '/notifications/stats'),
+  getNotificationDetail: (id) => request('GET', `/notifications/${encodeURIComponent(id)}`),
+  acknowledgeNotification: (id) => request('POST', `/notifications/${encodeURIComponent(id)}/acknowledge`),
+  resolveNotification: (id) => request('POST', `/notifications/${encodeURIComponent(id)}/resolve`),
+  getNotificationPreferences: () => request('GET', '/notifications/preferences'),
+  updateNotificationPreferences: (data) => request('PUT', '/notifications/preferences', data),
+  sendTestNotificationEmail: () => request('POST', '/notifications/test-email'),
 }
 
 

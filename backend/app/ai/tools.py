@@ -9,12 +9,14 @@ Supports:
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import datetime
 import inspect
 import json
 import logging
 import math
+import operator
 import re
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -72,19 +74,95 @@ def _current_time_handler(ctx: NodeContext, args: dict[str, Any]) -> str:
     return datetime.datetime.now(datetime.UTC).isoformat()
 
 
+# Calculator sandbox limits: expression length / AST size / exponent size /
+# result magnitude each bound a different resource (CPU, memory, big ints).
+_CALC_MAX_EXPR_CHARS = 500
+_CALC_MAX_AST_NODES = 500
+_CALC_MAX_POW_EXPONENT = 1000
+# Every value flowing through the evaluator is capped to this magnitude, so
+# the pow() base is bounded too and chained exponentiation cannot blow up.
+_CALC_MAX_RESULT = 1e308
+
+_CALC_BINOPS: dict[type, Any] = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+}
+_CALC_UNARYOPS: dict[type, Any] = {ast.UAdd: operator.pos, ast.USub: operator.neg}
+_CALC_FUNCS: dict[str, Any] = {"abs": abs, "min": min, "max": max, "round": round, "sqrt": math.sqrt}
+
+
+class _CalcSyntaxError(ValueError):
+    """Syntax outside the calculator allow-list (maps to the legacy
+    'Invalid math expression' message)."""
+
+
+def _calc_number(value: Any) -> int | float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("only numbers are supported.")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("result is not a finite number.")
+    if abs(value) > _CALC_MAX_RESULT:
+        raise ValueError(f"result magnitude exceeds {_CALC_MAX_RESULT:g}.")
+    return value
+
+
+def _calc_eval(node: ast.AST) -> int | float:
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, bool) or not isinstance(node.value, (int, float)):
+            raise _CalcSyntaxError()
+        return _calc_number(node.value)
+    if isinstance(node, ast.BinOp):
+        op = _CALC_BINOPS.get(type(node.op))
+        if op is None:
+            raise _CalcSyntaxError()
+        left = _calc_eval(node.left)
+        right = _calc_eval(node.right)
+        if isinstance(node.op, ast.Pow) and abs(right) > _CALC_MAX_POW_EXPONENT:
+            raise ValueError(f"exponent must be within +/-{_CALC_MAX_POW_EXPONENT}.")
+        return _calc_number(op(left, right))
+    if isinstance(node, ast.UnaryOp):
+        op = _CALC_UNARYOPS.get(type(node.op))
+        if op is None:
+            raise _CalcSyntaxError()
+        return _calc_number(op(_calc_eval(node.operand)))
+    if isinstance(node, ast.Call):
+        if not isinstance(node.func, ast.Name) or node.func.id not in _CALC_FUNCS:
+            raise _CalcSyntaxError()
+        if node.keywords or any(isinstance(a, ast.Starred) for a in node.args):
+            raise _CalcSyntaxError()
+        return _calc_number(_CALC_FUNCS[node.func.id](*[_calc_eval(a) for a in node.args]))
+    # Rejects names, attributes, subscripts, lambdas, comprehensions,
+    # comparisons, boolean ops, etc. — nothing outside the allow-list runs.
+    raise _CalcSyntaxError()
+
+
+def _safe_calc(expr: str) -> int | float:
+    if len(expr) > _CALC_MAX_EXPR_CHARS:
+        raise ValueError(f"expression exceeds {_CALC_MAX_EXPR_CHARS} characters.")
+    try:
+        tree = ast.parse(expr.replace("^", "**"), mode="eval")
+    except (SyntaxError, ValueError, MemoryError, RecursionError) as exc:
+        raise _CalcSyntaxError() from exc
+    if sum(1 for _ in ast.walk(tree)) > _CALC_MAX_AST_NODES:
+        raise ValueError("expression is too complex.")
+    return _calc_eval(tree.body)
+
+
 def _calculator_handler(ctx: NodeContext, args: dict[str, Any]) -> str:
     expr = str(args.get("expression", "")).strip()
     if not expr:
         return "Error: Empty expression"
-    # Safe math evaluation supporting basic operators
-    allowed_chars = re.compile(r"^[0-9+\-*/()., %^eE\s]+$")
-    if not allowed_chars.match(expr):
-        return "Error: Invalid math expression. Only digits and operators (+, -, *, /, %, ^, parentheses) allowed."
-    safe_expr = expr.replace("^", "**")
+    # AST allow-list evaluation instead of eval(): arbitrary code can never
+    # execute, and every limit failure below surfaces as an error string.
     try:
-        # Limited math globals
-        result = eval(safe_expr, {"__builtins__": {}}, {"math": math, "sqrt": math.sqrt, "pi": math.pi})
-        return str(result)
+        return str(_safe_calc(expr))
+    except _CalcSyntaxError:
+        return "Error: Invalid math expression. Only digits and operators (+, -, *, /, %, ^, parentheses) allowed."
     except Exception as exc:
         return f"Error calculating: {exc}"
 
@@ -246,15 +324,55 @@ def _database_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
 # Platform, Canvas & Workflow Supercomputer Tools
 # ---------------------------------------------------------------------------
 
+def _workflow_perm(db, workflow_id: str, ctx: NodeContext) -> str | None:
+    """Caller's permission on a workflow for AI tools: 'owner'|'edit'|'view'|None.
+
+    Delegates the owner/share lookup to ``app.api.access.permission_for_user_id``
+    (single source of truth). Runs without an initiating user
+    (scheduled/webhook) may only touch the workflow they are executing.
+    """
+    from app.api.access import permission_for_user_id
+
+    user_id = getattr(ctx, "user_id", None)
+    if user_id is None:
+        return "owner" if workflow_id and workflow_id == getattr(ctx, "workflow_id", None) else None
+    return permission_for_user_id(db, workflow_id, user_id)
+
+
+def _require_workflow(db, workflow_id: str, ctx: NodeContext, *, edit: bool = False):
+    """Workflow record if the tool caller may access it, else None
+    (absence hides existence, matching the REST 404 convention)."""
+    perm = _workflow_perm(db, workflow_id, ctx)
+    if perm is None or (edit and perm == "view"):
+        return None
+    from app.models import WorkflowRecord
+
+    return db.get(WorkflowRecord, workflow_id)
+
+
+def _datatable_allowed(db, table, ctx: NodeContext, *, need_edit: bool) -> bool:
+    """Workspace ACL mirror of api.data_tables._require_table_access for
+    id-only tool contexts (view via workspace_can_view, writes need edit)."""
+    user_id = getattr(ctx, "user_id", None)
+    ws_id = table.workspace_id
+    if user_id is None:
+        # Unattributed runs act only inside their own execution workspace.
+        return bool(ws_id) and ws_id == getattr(ctx, "workspace_id", None)
+    from app.api.access import workspace_can_edit, workspace_can_view
+
+    if not workspace_can_view(db, ws_id, user_id):
+        return False
+    return not need_edit or workspace_can_edit(db, ws_id, user_id)
+
+
 def _workflow_get_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
     workflow_id = args.get("workflow_id") or getattr(ctx, "workflow_id", None)
     if not workflow_id:
         return {"error": "No workflow_id provided or active in context."}
     from app.db import SessionLocal
-    from app.models import WorkflowRecord
 
     with SessionLocal() as db:
-        rec = db.get(WorkflowRecord, workflow_id)
+        rec = _require_workflow(db, workflow_id, ctx)
         if not rec:
             return {"error": f"Workflow '{workflow_id}' not found."}
         data = rec.data or {}
@@ -355,10 +473,9 @@ def _workflow_update_node_handler(ctx: NodeContext, args: dict[str, Any]) -> Any
     new_name = args.get("name")
 
     from app.db import SessionLocal
-    from app.models import WorkflowRecord
 
     with SessionLocal() as db:
-        rec = db.get(WorkflowRecord, workflow_id)
+        rec = _require_workflow(db, workflow_id, ctx, edit=True)
         if not rec:
             return {"error": f"Workflow '{workflow_id}' not found."}
         data = dict(rec.data or {})
@@ -414,10 +531,9 @@ def _workflow_connect_nodes_handler(ctx: NodeContext, args: dict[str, Any]) -> A
     }
 
     from app.db import SessionLocal
-    from app.models import WorkflowRecord
 
     with SessionLocal() as db:
-        rec = db.get(WorkflowRecord, workflow_id)
+        rec = _require_workflow(db, workflow_id, ctx, edit=True)
         if not rec:
             return {"error": f"Workflow '{workflow_id}' not found."}
         data = dict(rec.data or {})
@@ -447,10 +563,9 @@ def _workflow_delete_node_handler(ctx: NodeContext, args: dict[str, Any]) -> Any
         return {"error": "'workflow_id' and 'node_id' are required."}
 
     from app.db import SessionLocal
-    from app.models import WorkflowRecord
 
     with SessionLocal() as db:
-        rec = db.get(WorkflowRecord, workflow_id)
+        rec = _require_workflow(db, workflow_id, ctx, edit=True)
         if not rec:
             return {"error": f"Workflow '{workflow_id}' not found."}
         data = dict(rec.data or {})
@@ -478,11 +593,10 @@ async def _workflow_run_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
     trigger_items = [trigger_data] if trigger_data else [{}]
 
     from app.db import SessionLocal
-    from app.models import WorkflowRecord
     from app.api.executions import start_execution
 
     with SessionLocal() as db:
-        rec = db.get(WorkflowRecord, workflow_id)
+        rec = _require_workflow(db, workflow_id, ctx, edit=True)
         if not rec:
             return {"error": f"Workflow '{workflow_id}' not found."}
         user_id = getattr(ctx, "user_id", None) or rec.user_id
@@ -519,6 +633,8 @@ def _workflow_get_execution_handler(ctx: NodeContext, args: dict[str, Any]) -> A
         rec = db.get(Execution, execution_id)
         if not rec:
             return {"error": f"Execution '{execution_id}' not found."}
+        if _workflow_perm(db, rec.workflow_id, ctx) is None:
+            return {"error": f"Execution '{execution_id}' not found."}
         trace = rec.trace or []
         return {
             "id": rec.id,
@@ -550,7 +666,10 @@ def _datatable_list_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
     from sqlalchemy import func, select
 
     with SessionLocal() as db:
-        tables = db.scalars(select(DataTable).limit(25)).all()
+        # Only tables in workspaces the caller can see (mirrors the REST
+        # data-table ACL); scan a wider window, then cap at 25 visible.
+        candidates = db.scalars(select(DataTable).limit(200)).all()
+        tables = [t for t in candidates if _datatable_allowed(db, t, ctx, need_edit=False)][:25]
         # Count via SQL: touching the lazy `rows` relationship would load
         # every row of every table into memory just to print a number.
         counts: dict[str, int] = {}
@@ -591,6 +710,8 @@ def _datatable_query_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
         if not t:
             t = db.scalars(select(DataTable).where(DataTable.name == table_id)).first()
         if not t:
+            return {"error": f"DataTable '{table_id}' not found."}
+        if not _datatable_allowed(db, t, ctx, need_edit=False):
             return {"error": f"DataTable '{table_id}' not found."}
         # Exact total via SQL; scan a bounded window instead of loading
         # every row (a large table must not blow up API memory).
@@ -641,6 +762,8 @@ def _datatable_insert_row_handler(ctx: NodeContext, args: dict[str, Any]) -> Any
         if not t:
             t = db.scalars(select(DataTable).where(DataTable.name == table_id)).first()
         if not t:
+            return {"error": f"DataTable '{table_id}' not found."}
+        if not _datatable_allowed(db, t, ctx, need_edit=True):
             return {"error": f"DataTable '{table_id}' not found."}
         row_id = f"row_{uuid.uuid4().hex[:12]}"
         clean_data = {k: v for k, v in row_data.items() if k != "id"}

@@ -14,6 +14,10 @@ def _settings(**overrides) -> Settings:
         "jwt_secret": "prod-secret-that-is-long-enough-32-bytes",
         "database_url": "postgresql://u:p@localhost:5432/db",
         "cors_origins": "https://app.example.com",
+        # Hermetic: the ambient backend\.env sets a dev SSRF allowlist that
+        # would otherwise trip the production bypass gate.
+        "safe_http_allowed_hosts": "",
+        "safe_http_allowed_ports": "",
     }
     base.update(overrides)
     return Settings(**base)
@@ -54,5 +58,25 @@ def test_development_skips_all_guards() -> None:
             app_env="development",
             credentials_encryption_key="",
             jwt_secret="dev-only-secret-change-me",
+        )
+    )
+
+
+def test_production_rejects_ssrf_allowlist_without_opt_in() -> None:
+    """SAFE_HTTP_ALLOWED_HOSTS / PORTS silently disable the SSRF guard, so
+    production refuses them unless ALLOW_SSRF_BYPASS opts in explicitly."""
+    with pytest.raises(ConfigError, match="ALLOW_SSRF_BYPASS"):
+        validate_production_settings(
+            _settings(safe_http_allowed_hosts="127.0.0.1,localhost")
+        )
+    with pytest.raises(ConfigError, match="ALLOW_SSRF_BYPASS"):
+        validate_production_settings(_settings(safe_http_allowed_ports="8181"))
+
+
+def test_production_allows_ssrf_allowlist_with_explicit_opt_in() -> None:
+    validate_production_settings(
+        _settings(
+            safe_http_allowed_hosts="127.0.0.1,localhost",
+            allow_ssrf_bypass="true",
         )
     )

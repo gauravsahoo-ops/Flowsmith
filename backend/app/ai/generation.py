@@ -218,7 +218,7 @@ def _parse_candidate(content: str) -> dict[str, Any] | None:
             "id": trig_id,
             "type": trig_type,
             "position": {"x": 80, "y": 160},
-            "parameters": {"path": f"hook-{uuid.uuid4().hex[:18]}"} if trig_type == "webhook" else {},
+            "parameters": {"path": f"hook-{uuid.uuid4().hex[:24]}"} if trig_type == "webhook" else {},
             "settings": {},
         }
         parsed["nodes"].insert(0, trig_node)
@@ -231,14 +231,31 @@ def _parse_candidate(content: str) -> dict[str, Any] | None:
         if "settings" not in node or not isinstance(node["settings"], dict):
             node["settings"] = {}
 
-        # Ensure trigger node paths meet the 24+ character security entropy
+        # Ensure trigger node paths pass _validate_webhook_paths: 24+ chars
+        # of [A-Za-z0-9/_.-] (the path is the only authentication on the
+        # unauthenticated trigger endpoint).
         ntype = str(node.get("type") or "")
         if ntype in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
             params = node["parameters"]
             curr_path = str(params.get("path") or "")
             clean_prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr_path)[:12] or "hook"
-            if len(curr_path) < 24:
-                params["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:18]}"
+            if len(curr_path) < 24 or not re.fullmatch(r"[A-Za-z0-9/_.\-]+", curr_path):
+                params["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:24]}"
+
+        # Schedule nodes must carry registry-compatible params (rules +
+        # cron + timezone) or the trigger is skipped on activation and the
+        # workflow never fires (audit H16).
+        if ntype == "schedule":
+            params = node["parameters"]
+            if not params.get("rules"):
+                raw_nested = params.get("rule")
+                nested = raw_nested if isinstance(raw_nested, dict) else {}
+                cron = str(params.get("cron") or nested.get("cronExpression") or "0 9 * * 1-5")
+                tz = str(params.get("timezone") or nested.get("timezone") or "UTC")
+                params["rules"] = [{"id": "r1", "interval": "cron", "cron": cron, "timezone": tz}]
+                params["cron"] = cron
+                params["timezone"] = tz
+                params["rule"] = {"cronExpression": cron, "timezone": tz}
 
     # Validate and repair connections
     valid_ids = {n["id"] for n in parsed["nodes"]}

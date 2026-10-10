@@ -199,10 +199,37 @@ export default function StepDetail({ execution, step, onRetryNode }) {
         </div>
       )}
 
-      <h5>Inputs</h5>
-      <JsonTree value={step.inputs} />
-      <h5>Outputs</h5>
-      <JsonTree value={step.outputs} />
+      {(() => {
+        const effectiveInputs = step.full_inputs ?? execution?.results?.inputs?.[step.node_id] ?? step.inputs
+        const effectiveOutputs = step.full_outputs ?? execution?.results?.outputs?.[step.node_id] ?? step.outputs
+        return (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 4 }}>
+              <h5 style={{ margin: 0 }}>Inputs</h5>
+              {effectiveInputs != null && (
+                <span className="muted" style={{ fontSize: 11 }}>
+                  {Array.isArray(effectiveInputs)
+                    ? `${effectiveInputs.length} item${effectiveInputs.length !== 1 ? 's' : ''}`
+                    : (typeof effectiveInputs === 'object' && effectiveInputs !== null ? `${Object.keys(effectiveInputs).length} field${Object.keys(effectiveInputs).length !== 1 ? 's' : ''}` : '')}
+                </span>
+              )}
+            </div>
+            <JsonTree value={effectiveInputs} defaultExpandDepth={2} />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 4 }}>
+              <h5 style={{ margin: 0 }}>Outputs</h5>
+              {effectiveOutputs != null && (
+                <span className="muted" style={{ fontSize: 11 }}>
+                  {Array.isArray(effectiveOutputs)
+                    ? `${effectiveOutputs.length} item${effectiveOutputs.length !== 1 ? 's' : ''}`
+                    : (typeof effectiveOutputs === 'object' && effectiveOutputs !== null ? `${Object.keys(effectiveOutputs).length} field${Object.keys(effectiveOutputs).length !== 1 ? 's' : ''}` : '')}
+                </span>
+              )}
+            </div>
+            <JsonTree value={effectiveOutputs} defaultExpandDepth={2} />
+          </>
+        )
+      })()}
     </div>
   )
 }

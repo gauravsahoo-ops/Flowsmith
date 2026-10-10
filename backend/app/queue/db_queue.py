@@ -51,7 +51,7 @@ REQUEUE_SQL = text(
     UPDATE jobs
     SET status = :queued, claimed_by = NULL, claimed_at = NULL,
         heartbeat_at = NULL, next_retry_at = :next_retry_at
-    WHERE id = ANY(:job_ids)
+    WHERE id = ANY(:job_ids) AND status = :claimed
     """
 )
 
@@ -101,6 +101,15 @@ class DbJobQueue(QueueBackend):
             row = db.query(Job).filter(Job.execution_id == execution_id).first()
             if row is None:
                 return False
+            # Never reset a job a live worker is actively heartbeating —
+            # that would double-execute. Fresh claims refuse the resume;
+            # stale claims are recover_stale's territory.
+            if (
+                row.status == CLAIMED
+                and row.heartbeat_at is not None
+                and row.heartbeat_at > datetime.now(UTC) - timedelta(seconds=60)
+            ):
+                return False
             row.status = QUEUED
             row.payload = payload
             row.claimed_by = None
@@ -149,6 +158,15 @@ class DbJobQueue(QueueBackend):
         try:
             row = db.get(Job, job_id)
             if row is not None and row.status not in (DONE, FAILED):
+                # Fence: if a stale claim was requeued and re-claimed by
+                # another worker, the old worker must not close the job out
+                # from under the new run.
+                if row.status == CLAIMED and row.claimed_by is not None and row.claimed_by != get_worker_id():
+                    logger.warning(
+                        "queue.db: refusing stale complete of %s (owned by %s)",
+                        job_id, row.claimed_by,
+                    )
+                    return
                 row.status = status
                 row.finished_at = datetime.now(UTC)
                 row.error = error
@@ -160,7 +178,13 @@ class DbJobQueue(QueueBackend):
         db = get_session()
         try:
             row = db.get(Job, job_id)
-            if row is not None and row.status == CLAIMED:
+            # Only the current owner refreshes: a pre-stale worker must not
+            # heartbeat a claim that was requeued and re-claimed elsewhere.
+            if (
+                row is not None
+                and row.status == CLAIMED
+                and (row.claimed_by is None or row.claimed_by == get_worker_id())
+            ):
                 row.heartbeat_at = datetime.now(UTC)
                 db.commit()
         finally:
@@ -237,7 +261,7 @@ class DbJobQueue(QueueBackend):
                 # Row-wise next_retry_at via executemany-style binding.
                 db.execute(
                     REQUEUE_SQL,
-                    [{"queued": QUEUED, "job_ids": [jid], "next_retry_at": at} for jid, at in zip(ids, next_at)],
+                    [{"queued": QUEUED, "claimed": CLAIMED, "job_ids": [jid], "next_retry_at": at} for jid, at in zip(ids, next_at)],
                 )
                 db.commit()
                 requeued_count = len(ids)

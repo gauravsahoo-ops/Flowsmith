@@ -22,6 +22,10 @@ def main() -> None:
         host=settings.host,
         port=settings.port,
         log_config=None,  # our root handler owns logging; uvicorn logs propagate
+        # Access logs duplicate MetricsMiddleware's structured line but add
+        # the full query string — webhook `?token=` secrets would land in
+        # container logs. Path-only app logging is the single source.
+        access_log=False,
     )
 
 

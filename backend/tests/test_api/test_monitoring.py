@@ -41,12 +41,11 @@ def test_metrics_endpoint_is_prometheus_format(client):
     assert "# TYPE process_uptime_seconds gauge" in text
 
 
-def test_metrics_endpoint_accepts_query_token(client):
+def test_metrics_endpoint_rejects_query_token(client):
+    """JWTs in URLs are gone: ?token= must 401 even when the JWT is valid."""
     reg = register(client)
     resp = client.get(f"/api/metrics?token={reg['token']}")
-    assert resp.status_code == 200
-    assert "text/plain" in resp.headers["content-type"]
-    assert "# HELP http_requests_total" in resp.text
+    assert resp.status_code == 401
 
 
 def test_metrics_include_db_gauges_and_request_counter(client):

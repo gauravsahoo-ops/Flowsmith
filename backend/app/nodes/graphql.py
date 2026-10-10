@@ -14,7 +14,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from app.engine.errors import NodeExecutionError
-from app.engine.node_base import CONDITIONALLY_IDEMPOTENT, BaseNode, NodeContext, NodeResult, filter_client_kwargs
+from app.engine.node_base import CONDITIONALLY_IDEMPOTENT, BaseNode, NodeContext, NodeResult, request_with_size_cap
 from app.nodes.registry import register
 
 
@@ -77,13 +77,18 @@ class GraphQLNode(BaseNode[GraphQLParams]):
             from app.nodes.http_request import HTTPRequestNode
             if params.url and "{{" not in params.url:
                 await HTTPRequestNode._validate_url_ssrf(params.url)  # type: ignore[attr-defined]
-            kwargs = filter_client_kwargs(ctx.http_client, {
-                "json": payload,
-                "headers": headers or None,
-                "timeout": params.timeout_seconds,
-                "max_response_bytes": params.max_response_bytes,
-            })
-            response = await ctx.http_client.request("POST", params.url, **kwargs)
+            # H19: enforce max_response_bytes while streaming — plain httpx
+            # clients drop the kwarg, which left the cap a no-op.
+            response = await request_with_size_cap(
+                ctx.http_client, "POST", params.url,
+                max_response_bytes=params.max_response_bytes,
+                node_id=self.node_type,
+                json=payload,
+                headers=headers or None,
+                timeout=params.timeout_seconds,
+            )
+        except NodeExecutionError:
+            raise
         except httpx.TimeoutException as exc:
             raise NodeExecutionError(
                 f"GraphQL endpoint did not respond within {params.timeout_seconds}s.",

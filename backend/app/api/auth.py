@@ -13,7 +13,7 @@ import re
 import jwt as pyjwt
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -388,19 +388,19 @@ def get_current_user(
 def get_metrics_user(
     authorization: str | None = Header(default=None),
     x_authorization: str | None = Header(default=None),
-    token: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> User:
-    """Authentication for /api/metrics: accepts Bearer header or ?token= query parameter."""
+    """Authentication for /api/metrics: Bearer header only.
+
+    The legacy ``?token=`` query form is removed: JWTs in URLs leak into
+    access logs, proxies, browser history and Referer headers. Scrapers
+    send ``Authorization: Bearer``; the dashboard exporter link fetches
+    via XHR and opens the response blob.
+    """
     header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
-    token_str = (
-        header_val.removeprefix("Bearer ").strip()
-        if (header_val and header_val.startswith("Bearer "))
-        else (token.strip() if token else None)
-    )
-    if not token_str:
+    if not header_val or not header_val.startswith("Bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token.")
-    return authenticate_token(token_str, db)
+    return authenticate_token(header_val.removeprefix("Bearer ").strip(), db)
 
 
 @router.get("/me")
