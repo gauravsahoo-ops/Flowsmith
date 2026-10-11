@@ -6,7 +6,6 @@ for workflow, credential, worker, and platform errors.
 
 from __future__ import annotations
 
-import asyncio
 import concurrent.futures
 import logging
 import uuid
@@ -26,7 +25,6 @@ from app.services.email_notifications import send_email_notification_sync
 from app.services.error_classification import (
     classify_error,
     compute_fingerprint,
-    sanitize_payload,
 )
 
 logger = logging.getLogger("monitoring.errors")
@@ -247,10 +245,10 @@ class ErrorMonitoringService:
     @classmethod
     def capture_execution_error(
         cls,
-        db: Session,
-        execution_id: str,
-        job: Any,
-        error_data: Any,
+        db: Session | None = None,
+        execution_id: str = "",
+        job: Any = None,
+        error_data: Any = None,
         execution_rec: Execution | None = None,
     ) -> ErrorEvent | None:
         """Capture terminal workflow execution error."""

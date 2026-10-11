@@ -533,10 +533,11 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                     rec.trace = result.trace
                 if run_node:
                     prior_outputs = (run_source_rec.results or {}).get("outputs", {}) if run_source_rec else {}
+                    prior_inputs = (run_source_rec.results or {}).get("inputs", {}) if run_source_rec else {}
                     for uid in upstream:
                         if uid not in prior_outputs and uid in stored.get("outputs", {}):
                             del stored["outputs"][uid]
-                        if uid not in (prior_inputs if 'prior_inputs' in locals() else {}) and uid in stored.get("inputs", {}):
+                        if uid not in prior_inputs and uid in stored.get("inputs", {}):
                             del stored["inputs"][uid]
 
                 rec.results = stored

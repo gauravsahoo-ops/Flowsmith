@@ -7,7 +7,6 @@ actionable ErrorEvent metadata with strict secret redaction.
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 from typing import Any
 
@@ -50,7 +49,7 @@ def sanitize_string(value: str) -> str:
 
 
 def is_sensitive_key(key: str) -> bool:
-    k_lower = str(key).lower()
+    k_lower = key.lower()
     if any(k_lower.endswith(sfx) for sfx in ("_count", "_usage", "_list", "_length", "_items")):
         return False
     if k_lower in ("total_tokens", "prompt_tokens", "completion_tokens", "token_count"):

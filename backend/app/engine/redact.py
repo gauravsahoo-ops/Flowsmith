@@ -44,7 +44,7 @@ _MAX_DEPTH = 12
 
 
 def _is_sensitive_key(key: str) -> bool:
-    lowered = str(key).lower()
+    lowered = key.lower()
     return any(marker in lowered for marker in SENSITIVE_KEY_MARKERS)
 
 

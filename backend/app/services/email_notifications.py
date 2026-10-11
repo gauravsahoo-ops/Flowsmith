@@ -11,7 +11,6 @@ import smtplib
 from datetime import datetime, timezone
 from email.message import EmailMessage
 from email.utils import formataddr
-from typing import Any
 
 from app.config import get_settings
 from app.db import get_session
@@ -317,7 +316,7 @@ def send_email_notification_sync(record_id: str) -> bool:
             msg.set_content(plain_text)
             msg.add_alternative(html_content, subtype="html")
 
-            use_ssl = bool(settings.smtp_use_tls or settings.smtp_port == 465)
+            use_ssl = settings.smtp_use_tls or settings.smtp_port == 465
             if use_ssl:
                 with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=15) as server:
                     if settings.smtp_user and settings.smtp_password:
