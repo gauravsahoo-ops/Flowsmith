@@ -112,6 +112,7 @@ export default function ExecutionDetailPage() {
         {tab === 'steps' && (
           <div className="steps-list">
             {steps.length === 0 && <p className="hint">No steps yet.</p>}
+            {steps.map(s => (
               <button key={s.node_id} className={`step-row ${selected === s.node_id ? 'selected':''}`} onClick={() => setSelected(s.node_id)}>
                 <span className="step-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   {s.status === 'success' ? (
@@ -131,6 +132,7 @@ export default function ExecutionDetailPage() {
                 <span className="muted">{s.node_type}</span>
                 <span className="step-duration">{s.duration_ms != null ? `${s.duration_ms}ms` : ''}</span>
               </button>
+            ))}
           </div>
         )}
         {tab === 'trace' && (

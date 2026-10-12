@@ -144,7 +144,7 @@ describe('CredentialsPage & Reconnection Suite', () => {
     expect(html).toContain('Logout')
   })
 
-  it('renders Session Expired status pill and highlighted reconnect button when credential has expired session', () => {
+  it('renders Reconnect Required status pill and highlighted reconnect button when credential has expired session', () => {
     useCredentialStore.setState({
       credentials: [
         {
@@ -160,7 +160,7 @@ describe('CredentialsPage & Reconnection Suite', () => {
       loaded: true,
     })
     const html = renderToStaticMarkup(React.createElement(CredentialsPage))
-    expect(html).toContain('Session Expired')
+    expect(html).toContain('Reconnect Required')
     expect(html).not.toContain('App Config')
     expect(html).toContain('primary small')
     expect(html).toContain('Reconnect')
