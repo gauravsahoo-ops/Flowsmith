@@ -68,6 +68,13 @@ class RegisterRequest(_StrippedBody):
 class LoginRequest(_StrippedBody):
     email: EmailStr
     password: str
+    remember_device: bool = False
+    auto_renew: bool = True
+
+
+class SessionSettingsRequest(BaseModel):
+    auto_renew: bool | None = None
+    remember_device: bool | None = None
 
 
 def _validate_password_complexity(password: str) -> None:
@@ -89,11 +96,39 @@ def _validate_password_complexity(password: str) -> None:
         )
 
 
-def _auth_payload(user: User) -> dict:
-    return {
-        "token": create_token(user.id, email=user.email),
+def _auth_payload(
+    user: User,
+    db: Session | None = None,
+    ip_address: str = "unknown",
+    user_agent: str = "",
+    remember_device: bool = False,
+    auto_renew: bool = True,
+) -> dict:
+    token = create_token(user.id, email=user.email)
+    session_id = None
+    if db is not None:
+        try:
+            from app.security.session_manager import SessionManager
+
+            session = SessionManager.create_session(
+                db=db,
+                user=user,
+                token=token,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                auto_renew=auto_renew,
+                remember_device=remember_device,
+            )
+            session_id = session.id
+        except Exception:
+            logger.exception("Failed to create AuthSession for user %s", user.email)
+    payload = {
+        "token": token,
         "user": {"id": user.id, "email": user.email, "role": user.role},
     }
+    if session_id:
+        payload["session_id"] = session_id
+    return payload
 
 
 def _client_key(request: Request) -> str:
@@ -134,7 +169,8 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     db.refresh(user)
     log_event(db, REGISTER, target_type="user", target_id=str(user.id), user_id=user.id)
     log_event(db, LOGIN, target_type="user", target_id=str(user.id), user_id=user.id)
-    return ok(_auth_payload(user))
+    ua = request.headers.get("user-agent", "")
+    return ok(_auth_payload(user, db=db, ip_address=ip, user_agent=ua))
 
 
 
@@ -319,7 +355,16 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)) -
     login_throttle.clear(email_key)
     login_throttle.clear(ip_key)
     log_event(db, LOGIN, target_type="user", target_id=str(user.id), user_id=user.id)
-    return ok(_auth_payload(user))
+    ip = _client_key(request)
+    ua = request.headers.get("user-agent", "")
+    return ok(_auth_payload(
+        user,
+        db=db,
+        ip_address=ip,
+        user_agent=ua,
+        remember_device=body.remember_device,
+        auto_renew=body.auto_renew,
+    ))
 
 
 @router.post("/logout")
@@ -328,7 +373,7 @@ def logout(
     x_authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Revoke the current token (S2: token revocation)."""
+    """Revoke the current token and invalidate its AuthSession."""
     header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
     if not header_val or not header_val.startswith("Bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token.")
@@ -340,6 +385,14 @@ def logout(
             from datetime import datetime, timezone
             exp_dt = datetime.fromtimestamp(exp_ts, tz=timezone.utc) if exp_ts else None
             revoke_token(jti, exp_dt)
+            # Invalidate session in DB
+            from app.models.auth_session import AuthSession
+            now = datetime.now(timezone.utc)
+            session = db.scalar(select(AuthSession).where(AuthSession.token_jti == jti))
+            if session:
+                session.is_active = False
+                session.revoked_at = now
+                db.commit()
     except Exception:
         pass  # Best-effort revocation
     return ok({"message": "Logged out."})
@@ -390,17 +443,152 @@ def get_metrics_user(
     x_authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> User:
-    """Authentication for /api/metrics: Bearer header only.
-
-    The legacy ``?token=`` query form is removed: JWTs in URLs leak into
-    access logs, proxies, browser history and Referer headers. Scrapers
-    send ``Authorization: Bearer``; the dashboard exporter link fetches
-    via XHR and opens the response blob.
-    """
+    """Authentication for /api/metrics: Bearer header only."""
     header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
     if not header_val or not header_val.startswith("Bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token.")
     return authenticate_token(header_val.removeprefix("Bearer ").strip(), db)
+
+
+@router.get("/sessions")
+def list_sessions(
+    request: Request,
+    user: User = Depends(get_current_user),
+    authorization: str | None = Header(default=None),
+    x_authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """List all active Flowsmith login sessions for the current user."""
+    header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
+    current_jti = None
+    if header_val and header_val.startswith("Bearer "):
+        try:
+            payload = decode_token(header_val.removeprefix("Bearer ").strip())
+            current_jti = payload.get("jti")
+        except Exception:
+            pass
+    from app.security.session_manager import SessionManager
+
+    sessions = SessionManager.list_user_sessions(db, user.id, current_jti=current_jti)
+    return ok({"sessions": sessions})
+
+
+@router.post("/sessions/renew")
+def renew_session(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Renew the current application session using sliding expiration."""
+    header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
+    if not header_val or not header_val.startswith("Bearer "):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token.")
+    token_str = header_val.removeprefix("Bearer ").strip()
+    from app.security.session_manager import SessionManager
+
+    ip = _client_key(request)
+    ua = request.headers.get("user-agent", "")
+    try:
+        res = SessionManager.renew_session(db, token_str, ip_address=ip, user_agent=ua)
+        return ok(res)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(exc))
+
+
+@router.post("/sessions/{session_id}/revoke")
+def revoke_single_session(
+    session_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Revoke a specific active session."""
+    from app.security.session_manager import SessionManager
+
+    success = SessionManager.revoke_session(db, user.id, session_id)
+    if not success:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session not found.")
+    return ok({"revoked": True, "session_id": session_id})
+
+
+@router.post("/sessions/revoke-all")
+def revoke_all_user_sessions(
+    user: User = Depends(get_current_user),
+    authorization: str | None = Header(default=None),
+    x_authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Revoke all sessions for this user, sparing the current session."""
+    header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
+    current_jti = None
+    if header_val and header_val.startswith("Bearer "):
+        try:
+            payload = decode_token(header_val.removeprefix("Bearer ").strip())
+            current_jti = payload.get("jti")
+        except Exception:
+            pass
+    from app.security.session_manager import SessionManager
+
+    count = SessionManager.revoke_all_sessions(db, user.id, except_jti=current_jti)
+    return ok({"revoked_count": count})
+
+
+@router.get("/sessions/settings")
+def get_user_session_settings(
+    user: User = Depends(get_current_user),
+    authorization: str | None = Header(default=None),
+    x_authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Get active session preferences for the current device and user."""
+    header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
+    current_jti = None
+    if header_val and header_val.startswith("Bearer "):
+        try:
+            payload = decode_token(header_val.removeprefix("Bearer ").strip())
+            current_jti = payload.get("jti")
+        except Exception:
+            pass
+    from app.models.auth_session import AuthSession
+
+    session = None
+    if current_jti:
+        session = db.scalar(select(AuthSession).where(AuthSession.token_jti == current_jti, AuthSession.user_id == user.id))
+    return ok({
+        "auto_renew": session.auto_renew if session else True,
+        "remember_device": session.remember_device if session else False,
+        "idle_timeout_minutes": session.idle_timeout_minutes if session else 1440,
+        "max_lifetime_minutes": session.max_lifetime_minutes if session else 10080,
+    })
+
+
+@router.put("/sessions/settings")
+def update_user_session_settings(
+    body: SessionSettingsRequest,
+    user: User = Depends(get_current_user),
+    authorization: str | None = Header(default=None),
+    x_authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Update auto_renew and remember_device preferences."""
+    header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
+    current_jti = None
+    if header_val and header_val.startswith("Bearer "):
+        try:
+            payload = decode_token(header_val.removeprefix("Bearer ").strip())
+            current_jti = payload.get("jti")
+        except Exception:
+            pass
+    from app.security.session_manager import SessionManager
+
+    res = SessionManager.update_session_settings(
+        db,
+        user_id=user.id,
+        auto_renew=body.auto_renew,
+        remember_device=body.remember_device,
+        current_jti=current_jti,
+    )
+    return ok(res)
 
 
 @router.get("/me")

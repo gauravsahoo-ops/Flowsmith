@@ -418,6 +418,25 @@ export const api = {
   getNotificationPreferences: () => request('GET', '/notifications/preferences'),
   updateNotificationPreferences: (data) => request('PUT', '/notifications/preferences', data),
   sendTestNotificationEmail: () => request('POST', '/notifications/test-email'),
+  // Session Recovery & Multi-Device Management
+  listSessions: () => request('GET', '/auth/sessions'),
+  renewSession: async () => {
+    const res = await request('POST', '/auth/sessions/renew')
+    if (res?.token) {
+      setToken(res.token)
+    }
+    return res
+  },
+  revokeSession: (sessionId) => request('POST', `/auth/sessions/${encodeURIComponent(sessionId)}/revoke`),
+  revokeAllSessions: () => request('POST', '/auth/sessions/revoke-all'),
+  getSessionSettings: () => request('GET', '/auth/sessions/settings'),
+  updateSessionSettings: (data) => request('PUT', '/auth/sessions/settings', data),
+  // Connection Authentication Policy & Recovery
+  getCredentialPolicy: (credId) => request('GET', `/credentials/${encodeURIComponent(credId)}/policy`),
+  updateCredentialPolicy: (credId, data) => request('PATCH', `/credentials/${encodeURIComponent(credId)}/policy`, data),
+  recoverCredential: (credId) => request('POST', `/credentials/${encodeURIComponent(credId)}/recover`),
+  getCredentialHistory: (credId) => request('GET', `/credentials/${encodeURIComponent(credId)}/history`),
 }
+
 
 

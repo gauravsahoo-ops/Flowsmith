@@ -33,18 +33,43 @@ class CredentialError(Exception):
         self.message = message
 
 
-def to_meta(rec: Credential) -> dict[str, str]:
-    return {"id": rec.id, "name": rec.name, "type": rec.type}
+def to_meta(rec: Credential, policy: Any = None) -> dict[str, Any]:
+    meta: dict[str, Any] = {"id": rec.id, "name": rec.name, "type": rec.type}
+    if policy is not None:
+        meta["state"] = policy.state
+        meta["mode"] = policy.mode
+        meta["last_authenticated_at"] = policy.last_authenticated_at.isoformat() if policy.last_authenticated_at else None
+        meta["expires_at"] = policy.expires_at.isoformat() if policy.expires_at else None
+        meta["consecutive_failures"] = policy.consecutive_failures
+        meta["last_error_code"] = policy.last_error_code
+        meta["expired"] = bool(policy.state in ("EXPIRING_SOON", "REAUTHORIZATION_REQUIRED", "AUTHENTICATION_FAILED", "MANUAL_ACTION_REQUIRED"))
+    else:
+        meta["state"] = "CONNECTED"
+        meta["mode"] = "automatic"
+        meta["expired"] = False
+    return meta
 
 
-def list_for_user(db: Session, user_id: int) -> list[dict[str, str]]:
+def list_for_user(db: Session, user_id: int) -> list[dict[str, Any]]:
     recs = db.scalars(
         select(Credential).where(
             Credential.user_id == user_id,
             ~Credential.type.endswith("_oauth_config"),
         ).order_by(Credential.created_at.desc())
     ).all()
-    return [to_meta(r) for r in recs]
+    if not recs:
+        return []
+
+    from app.models.connection_auth_policy import ConnectionAuthPolicy
+
+    cred_ids = [r.id for r in recs]
+    policies = {
+        p.credential_id: p
+        for p in db.scalars(
+            select(ConnectionAuthPolicy).where(ConnectionAuthPolicy.credential_id.in_(cred_ids))
+        ).all()
+    }
+    return [to_meta(r, policies.get(r.id)) for r in recs]
 
 
 def create_for_user(db: Session, user_id: int, name: str, cred_type: str, data: dict[str, Any]) -> dict[str, str]:

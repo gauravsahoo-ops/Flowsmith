@@ -85,6 +85,7 @@ class SalesforceProviderClient:
         self.api_version = api_version
         self._token_ttl_s = token_ttl_s
         self._token: str | None = None
+        self._refresh_token: str | None = None
         self._token_key: str = ""
         self._token_expires_at: float = 0.0
         self._instance_url: str = ""
@@ -97,6 +98,7 @@ class SalesforceProviderClient:
     def reset(self) -> None:
         """Drop cached token/instance state (e.g. on disconnect)."""
         self._token = None
+        self._refresh_token = None
         self._token_key = ""
         self._token_expires_at = 0.0
         self._instance_url = ""
@@ -282,10 +284,12 @@ class SalesforceProviderClient:
             self._token_expires_at = time.monotonic() + self._token_ttl_s
             if instance_url:
                 self._instance_url = instance_url
+            new_rt = payload.get("refresh_token")
+            if new_rt:
+                self._refresh_token = new_rt
 
             # Update caller's in-memory dictionary in place so downstream callers within
             # the same execution or context hold the latest rotated tokens immediately.
-            new_rt = payload.get("refresh_token")
             exp_at = time.time() + 7200
             creds["access_token"] = token
             creds["expires_at"] = exp_at

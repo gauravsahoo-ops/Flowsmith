@@ -530,22 +530,22 @@ def cancel_execution(execution_id: str, user: User = Depends(get_current_user), 
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_edit_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
-    if rec.status not in IN_PROGRESS_STATUSES | {"waiting_approval"}:
+    if rec.status not in IN_PROGRESS_STATUSES | {"waiting_approval", "waiting_auth"}:
         raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not running.")
     # Durable cooperative cancel (spec 36): mark it in the DB; the
     # worker's monitor flips the engine's cancel event. A waiting
     # execution has no active run — the flag itself is terminal.
     # CAS on status: a concurrent cancel/resume/completion wins instead of
     # being clobbered by a stale read-modify-write.
-    was_waiting = rec.status == "waiting_approval"
+    was_waiting = rec.status in ("waiting_approval", "waiting_auth")
     values: dict[Any, Any] = {"status": "cancelled" if was_waiting else "cancelling"}
     if was_waiting:
         values["finished_at"] = datetime.now(UTC)
         values["pause_state"] = None
         if rec.error is None:
-            values["error"] = {"code": "CANCELLED_WHILE_WAITING", "message": "Cancelled while waiting for approval."}
+            values["error"] = {"code": "CANCELLED_WHILE_WAITING", "message": "Cancelled while waiting for action."}
     if was_waiting:
-        guard = Execution.status == "waiting_approval"
+        guard = Execution.status.in_(("waiting_approval", "waiting_auth"))
     else:
         guard = Execution.status.in_(IN_PROGRESS_STATUSES)
     flipped = (
@@ -569,66 +569,76 @@ def resume_execution(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Resume a paused execution with an approve/reject decision.
-
-    Accepts the decision as a JSON body (`{"approved": false}`) or, for
-    backward compatibility, as the `approved` query parameter. The
-    requester must be able to edit the workflow; when the approval node
-    restricts ``approvers``, the requester must be listed. Replaying
-    persisted node outputs means upstream nodes never re-run (Phase 32).
-    """
+    """Resume a paused execution with an approve/reject decision or after authentication reconnect."""
     approved = bool(approved) if approved is not None else (bool(body.approved) if body is not None else True)
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_edit_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
-    if rec.status != "waiting_approval":
-        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not waiting for approval.")
+    if rec.status not in ("waiting_approval", "waiting_auth"):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not waiting for approval or authentication.")
+    
     pause = rec.pause_state or {}
-    allowed = pause.get("approvers") or []
-    if allowed and user.id not in allowed:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You are not a listed approver for this step.")
+    is_auth_pause = rec.status == "waiting_auth"
 
-    # Re-queue for the worker to pick up. The jobs table is unique per
-    # execution, so this resets the original job row (durable resume).
+    if not is_auth_pause:
+        allowed = pause.get("approvers") or []
+        if allowed and user.id not in allowed:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "You are not a listed approver for this step.")
+
+    # Re-queue for the worker to pick up.
     queue = get_queue()
-    payload = {
-        "workflow_data": rec.workflow_data,
-        "trigger_items": rec.trigger_data or [{}],
-        "trigger": rec.trigger,
-        "user_id": rec.user_id,
-        "workflow_id": rec.workflow_id,
-        "version": rec.workflow_version,
-        "workspace_id": workflow_workspace(db, rec.workflow_id),
-        "_approval_data": {
-            "approved": approved,
-            "approved_by": user.id,
-            "approved_at": datetime.now(UTC).isoformat(),
-            "node_id": pause.get("node_id"),
-        },
-    }
-    # CAS: claim the resume atomically (only waiting_approval → queued) so
-    # a concurrent cancel/decision or a worker that already started is never
-    # clobbered by a stale read-modify-write.
+    if is_auth_pause:
+        # Re-run from the paused node seeding prior upstream results
+        paused_node = pause.get("node_id")
+        payload = {
+            "workflow_data": rec.workflow_data,
+            "trigger_items": rec.trigger_data or [{}],
+            "trigger": rec.trigger,
+            "user_id": rec.user_id,
+            "workflow_id": rec.workflow_id,
+            "version": rec.workflow_version,
+            "workspace_id": workflow_workspace(db, rec.workflow_id),
+            "_retry_from_node": paused_node,
+            "_retry_source": execution_id,
+        }
+    else:
+        payload = {
+            "workflow_data": rec.workflow_data,
+            "trigger_items": rec.trigger_data or [{}],
+            "trigger": rec.trigger,
+            "user_id": rec.user_id,
+            "workflow_id": rec.workflow_id,
+            "version": rec.workflow_version,
+            "workspace_id": workflow_workspace(db, rec.workflow_id),
+            "_approval_data": {
+                "approved": approved,
+                "approved_by": user.id,
+                "approved_at": datetime.now(UTC).isoformat(),
+                "node_id": pause.get("node_id"),
+            },
+        }
+
+    # CAS: claim the resume atomically
+    target_status = rec.status
     flipped = (
         db.query(Execution)
-        .filter(Execution.id == execution_id, Execution.status == "waiting_approval")
+        .filter(Execution.id == execution_id, Execution.status == target_status)
         .update({"status": "queued"})
     )
     if flipped == 0:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is no longer waiting for approval.")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is no longer waiting.")
     db.commit()
     if not queue.requeue(execution_id, payload):
         job_id = f"job_{uuid.uuid4().hex[:12]}"
         if not queue.enqueue(job_id, execution_id, payload):
-            # No transport job could be created: restore the waiting state.
             db.query(Execution).filter(
                 Execution.id == execution_id, Execution.status == "queued"
-            ).update({"status": "waiting_approval"})
+            ).update({"status": target_status})
             db.commit()
             raise HTTPException(status.HTTP_409_CONFLICT, "Execution is already queued.")
     log_event(db, EXECUTION_RESUME, target_type="execution", target_id=execution_id, user_id=user.id,
-              detail={"approved": approved})
+              detail={"resumed_from": target_status, "approved": approved})
     return ok({"id": execution_id, "status": "queued"})
 
 

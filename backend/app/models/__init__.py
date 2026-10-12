@@ -25,8 +25,14 @@ from app.models.data_table import DataTable, DataTableColumn, DataTableRow
 from app.models.workflow import WorkflowRecord
 from app.models.workflow_auth import WorkflowAuthState
 from app.models.workflow_test import WorkflowTest
-from app.models.branding import BrandingSetting
 from app.models.error_event import ErrorEvent, NotificationPreference, NotificationRecord
+from app.models.auth_session import AuthSession
+from app.models.connection_auth_policy import (
+    ConnectionAuthPolicy,
+    CredentialRecoveryJob,
+    CredentialAuditEvent,
+)
+from app.models.recovery_state import ConnectionState, RecoveryMode
 
 __all__ = [
     "User",
@@ -62,5 +68,11 @@ __all__ = [
     "ErrorEvent",
     "NotificationRecord",
     "NotificationPreference",
+    "AuthSession",
+    "ConnectionAuthPolicy",
+    "CredentialRecoveryJob",
+    "CredentialAuditEvent",
+    "ConnectionState",
+    "RecoveryMode",
 ]
 

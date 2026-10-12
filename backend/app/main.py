@@ -43,6 +43,7 @@ async def lifespan(_app: FastAPI):
     from app.queue.worker import ensure_embedded_consumer, stop_embedded_consumer
     from app.runner import runner
     from app.scheduler import scheduler
+    from app.services.connection_health_monitor import connection_health_monitor
     from app.triggers.registry import sync_webhooks
 
     validate_production_settings()
@@ -55,6 +56,7 @@ async def lifespan(_app: FastAPI):
         db.close()
     runner.submit(scheduler.ensure_started)
     runner.submit(maintenance.ensure_started)
+    runner.submit(connection_health_monitor.ensure_started)
     ensure_embedded_consumer()
     # Register built-in connectors (connector-only node types; built-in
     # node classes always take precedence at execution time).
@@ -65,6 +67,10 @@ async def lifespan(_app: FastAPI):
     yield
 
     stop_embedded_consumer()
+    try:
+        await connection_health_monitor.stop()
+    except Exception:
+        logger.exception("connection_health_monitor stop failed")
     try:
         await maintenance.stop()
     except Exception:

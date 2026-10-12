@@ -80,6 +80,17 @@ export default function SettingsPage() {
   const [testEmailBusy, setTestEmailBusy] = useState(false)
   const [testEmailNotice, setTestEmailNotice] = useState(null)
 
+  // Smart Session Recovery & Multi-Device Management state
+  const [sessions, setSessions] = useState([])
+  const [sessionSettings, setSessionSettings] = useState({
+    auto_renew: true,
+    remember_device: false,
+    idle_timeout_minutes: 1440,
+    max_lifetime_minutes: 10080,
+  })
+  const [sessionBusy, setSessionBusy] = useState(false)
+  const [sessionNotice, setSessionNotice] = useState(null)
+
   useEffect(() => {
     setBrandForm({
       appName: branding.appName || 'Flowsmith',
@@ -203,13 +214,17 @@ export default function SettingsPage() {
       api.listOrganizations().catch(() => []),
       api.listApiKeys().catch(() => []),
       api.getNotificationPreferences().catch(() => null),
-    ]).then(([hl, me, ws, og, ak, np]) => {
+      api.listSessions().catch(() => ({ sessions: [] })),
+      api.getSessionSettings().catch(() => null),
+    ]).then(([hl, me, ws, og, ak, np, ss, st]) => {
       if (!alive) return
       if (hl.status === 'fulfilled' && hl.value) setHealth(hl.value)
       if (ws.status === 'fulfilled') setWorkspaces(Array.isArray(ws.value) ? ws.value : [])
       if (og.status === 'fulfilled') setOrgs(Array.isArray(og.value) ? og.value : [])
       if (ak.status === 'fulfilled') setApikeys(Array.isArray(ak.value) ? ak.value : [])
       if (np.status === 'fulfilled' && np.value) setNotifPrefs(np.value)
+      if (ss.status === 'fulfilled' && ss.value?.sessions) setSessions(ss.value.sessions)
+      if (st.status === 'fulfilled' && st.value) setSessionSettings(st.value)
 
       if (me.status === 'fulfilled' && me.value) {
         setProfile(me.value)
@@ -253,6 +268,82 @@ export default function SettingsPage() {
       await api.revokeApiKey(id)
       const updated = await api.listApiKeys().catch(() => [])
       setApikeys(updated || [])
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function reloadSessions() {
+    try {
+      const res = await api.listSessions()
+      if (res?.sessions) setSessions(res.sessions)
+    } catch (err) {
+      console.error('[flowsmith] reloadSessions error', err)
+    }
+  }
+
+  async function handleToggleAutoRenew(checked) {
+    setSessionBusy(true)
+    setSessionNotice(null)
+    try {
+      await api.updateSessionSettings({ auto_renew: checked })
+      setSessionSettings(s => ({ ...s, auto_renew: checked }))
+      setSessionNotice(`Automatic session renewal ${checked ? 'enabled' : 'disabled'}.`)
+      setTimeout(() => setSessionNotice(null), 3500)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSessionBusy(false)
+    }
+  }
+
+  async function handleToggleRememberDevice(checked) {
+    setSessionBusy(true)
+    setSessionNotice(null)
+    try {
+      await api.updateSessionSettings({ remember_device: checked })
+      setSessionSettings(s => ({ ...s, remember_device: checked }))
+      setSessionNotice('Device recognition settings updated.')
+      setTimeout(() => setSessionNotice(null), 3500)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSessionBusy(false)
+    }
+  }
+
+  async function handleRenewSessionNow() {
+    setSessionBusy(true)
+    setSessionNotice(null)
+    try {
+      const res = await api.renewSession()
+      setSessionNotice(`Session successfully renewed. New expiry: ${res?.expires_at ? new Date(res.expires_at).toLocaleTimeString() : 'extended'}.`)
+      await reloadSessions()
+      setTimeout(() => setSessionNotice(null), 4000)
+    } catch (err) {
+      setError(`Renewal failed: ${err.message}`)
+    } finally {
+      setSessionBusy(false)
+    }
+  }
+
+  async function handleRevokeSession(sessionId) {
+    if (!window.confirm('Revoke this session? That device will be signed out immediately.')) return
+    try {
+      await api.revokeSession(sessionId)
+      await reloadSessions()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleRevokeAllOtherSessions() {
+    if (!window.confirm('Sign out from all other devices? This will invalidate all active sessions except your current device.')) return
+    try {
+      const res = await api.revokeAllSessions()
+      setSessionNotice(`Signed out from ${res?.revoked_count || 0} other sessions.`)
+      await reloadSessions()
+      setTimeout(() => setSessionNotice(null), 4000)
     } catch (err) {
       setError(err.message)
     }
@@ -1073,6 +1164,171 @@ export default function SettingsPage() {
             </table>
           </div>
         )}
+      </Section>
+
+      <Section title="Security & Sessions" description="Manage active login sessions, automatic session renewal, multi-device access, and session revocation.">
+        {sessionNotice && <div className="banner-inline ok" style={{ marginBottom: 14 }}>{sessionNotice}</div>}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, marginBottom: 20 }}>
+          {/* Automatic Session Renewal Card */}
+          <div className="settings-attr" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Automatic Session Renewal</span>
+                <span className="badge" style={{ background: sessionSettings.auto_renew ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)', color: sessionSettings.auto_renew ? '#34d399' : '#94a3b8' }}>
+                  {sessionSettings.auto_renew ? 'Active' : 'Disabled'}
+                </span>
+              </div>
+              <div className="hint" style={{ fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>
+                Silently extends your Flowsmith application session while you work so your automations and unsaved edits are never lost.
+              </div>
+            </div>
+            <div>
+              <input
+                type="checkbox"
+                checked={sessionSettings.auto_renew}
+                disabled={sessionBusy}
+                onChange={e => handleToggleAutoRenew(e.target.checked)}
+                style={{ width: 20, height: 20, accentColor: '#6366f1', cursor: 'pointer' }}
+                aria-label="Toggle automatic session renewal"
+              />
+            </div>
+          </div>
+
+          {/* Remember Device Card */}
+          <div className="settings-attr" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Remember This Device</span>
+                <span className="badge" style={{ background: sessionSettings.remember_device ? 'rgba(99, 102, 241, 0.15)' : 'rgba(148, 163, 184, 0.15)', color: sessionSettings.remember_device ? '#818cf8' : '#94a3b8' }}>
+                  {sessionSettings.remember_device ? 'Trusted' : 'Standard'}
+                </span>
+              </div>
+              <div className="hint" style={{ fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>
+                Extends inactivity idle timeout to 7 days and session lifetime to 30 days for this trusted browser.
+              </div>
+            </div>
+            <div>
+              <input
+                type="checkbox"
+                checked={sessionSettings.remember_device}
+                disabled={sessionBusy}
+                onChange={e => handleToggleRememberDevice(e.target.checked)}
+                style={{ width: 20, height: 20, accentColor: '#6366f1', cursor: 'pointer' }}
+                aria-label="Toggle remember this device"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Action Toolbar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              type="button"
+              className="secondary small"
+              onClick={handleRenewSessionNow}
+              disabled={sessionBusy}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+              <span>{sessionBusy ? 'Renewing…' : 'Renew Current Session'}</span>
+            </button>
+            <span className="hint" style={{ fontSize: 12 }}>
+              Idle timeout: {sessionSettings.idle_timeout_minutes / 60}h • Max lifetime: {Math.round(sessionSettings.max_lifetime_minutes / 1440)}d
+            </span>
+          </div>
+
+          {sessions.filter(s => !s.is_current).length > 0 && (
+            <button
+              type="button"
+              className="ghost small"
+              onClick={handleRevokeAllOtherSessions}
+              style={{ color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+            >
+              Sign Out from All Other Devices
+            </button>
+          )}
+        </div>
+
+        {/* Active Sessions List */}
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Device &amp; Browser</th>
+                <th>IP Address</th>
+                <th>Last Active</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="hint" style={{ textAlign: 'center', padding: '20px' }}>
+                    Current active session loaded.
+                  </td>
+                </tr>
+              ) : (
+                sessions.map(s => (
+                  <tr key={s.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: s.is_current ? '#6366f1' : '#94a3b8' }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                          </svg>
+                        </span>
+                        <div>
+                          <strong style={{ color: '#f8fafc', fontSize: 13 }}>{s.device_name || 'Web Browser'}</strong>
+                          {s.remember_device && (
+                            <span className="badge" style={{ marginLeft: 6, fontSize: 10, background: 'rgba(99,102,241,0.12)', color: '#818cf8' }}>
+                              Trusted Device
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td><code style={{ fontSize: 12 }}>{s.ip_address || 'unknown'}</code></td>
+                    <td className="muted" style={{ fontSize: 12 }}>
+                      {s.is_current ? 'Active now' : (s.last_active_at ? new Date(s.last_active_at).toLocaleString() : '—')}
+                    </td>
+                    <td>
+                      {s.is_current ? (
+                        <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+                          Current Session
+                        </span>
+                      ) : (
+                        <span className="badge" style={{ background: 'rgba(148, 163, 184, 0.1)', color: '#94a3b8' }}>
+                          Active
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {!s.is_current && (
+                        <button
+                          type="button"
+                          className="ghost small"
+                          style={{ color: '#ef4444' }}
+                          onClick={() => handleRevokeSession(s.id)}
+                          title="Revoke session and sign out device"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </Section>
 
       <Section title="Security & Compliance" description="Security architecture and credential storage.">

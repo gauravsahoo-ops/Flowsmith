@@ -587,3 +587,169 @@ async def delete_credential(
         raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
     log_event(db, CREDENTIAL_DELETE, target_type="credential", target_id=credential_id, user_id=user.id)
 
+
+class ConnectionPolicyUpdate(BaseModel):
+    mode: str | None = None
+    notify_in_app: bool | None = None
+    notify_email: bool | None = None
+    notify_on_recovery_failure: bool | None = None
+    notify_on_upcoming_expiry: bool | None = None
+
+
+@router.get("/{credential_id}/policy")
+def get_credential_policy(
+    credential_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Get connection authentication policy, health status, and provider capabilities."""
+    from app.credentials.provider_capabilities import get_provider_capability
+    from app.models.credential import Credential
+    from app.services.recovery_state_machine import RecoveryStateMachine
+
+    rec = db.get(Credential, credential_id)
+    if rec is None or rec.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Credential not found.")
+
+    policy = RecoveryStateMachine.get_or_create_policy(db, credential_id, user.id, rec.type)
+    cap = get_provider_capability(rec.type)
+
+    return ok({
+        "credential_id": credential_id,
+        "name": rec.name,
+        "provider": rec.type,
+        "mode": policy.mode,
+        "state": policy.state,
+        "notify_in_app": policy.notify_in_app,
+        "notify_email": policy.notify_email,
+        "notify_on_recovery_failure": policy.notify_on_recovery_failure,
+        "notify_on_upcoming_expiry": policy.notify_on_upcoming_expiry,
+        "last_authenticated_at": policy.last_authenticated_at.isoformat() if policy.last_authenticated_at else None,
+        "last_recovery_at": policy.last_recovery_at.isoformat() if policy.last_recovery_at else None,
+        "next_recovery_at": policy.next_recovery_at.isoformat() if policy.next_recovery_at else None,
+        "expires_at": policy.expires_at.isoformat() if policy.expires_at else None,
+        "consecutive_failures": policy.consecutive_failures,
+        "last_error_code": policy.last_error_code,
+        "last_error_message": policy.last_error_message,
+        "capabilities": {
+            "supports_refresh": cap.supports_refresh,
+            "supports_rotation": cap.supports_rotation,
+            "supports_client_credentials": cap.supports_client_credentials,
+            "requires_interactive_reauth": cap.requires_interactive_reauth,
+            "supports_health_check": cap.supports_health_check,
+            "supports_revocation_detection": cap.supports_revocation_detection,
+            "default_recovery_mode": cap.default_recovery_mode.value,
+        },
+    })
+
+
+@router.patch("/{credential_id}/policy")
+def update_credential_policy(
+    credential_id: str,
+    body: ConnectionPolicyUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Update connection recovery mode and notification preferences."""
+    from app.models.credential import Credential
+    from app.models.recovery_state import RecoveryMode
+    from app.services.recovery_state_machine import RecoveryStateMachine
+
+    rec = db.get(Credential, credential_id)
+    if rec is None or rec.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Credential not found.")
+
+    policy = RecoveryStateMachine.get_or_create_policy(db, credential_id, user.id, rec.type)
+
+    if body.mode is not None:
+        valid_modes = {m.value for m in RecoveryMode}
+        if body.mode.lower() not in valid_modes:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Invalid recovery mode. Must be one of: {sorted(valid_modes)}")
+        policy.mode = body.mode.lower()
+
+    if body.notify_in_app is not None:
+        policy.notify_in_app = bool(body.notify_in_app)
+    if body.notify_email is not None:
+        policy.notify_email = bool(body.notify_email)
+    if body.notify_on_recovery_failure is not None:
+        policy.notify_on_recovery_failure = bool(body.notify_on_recovery_failure)
+    if body.notify_on_upcoming_expiry is not None:
+        policy.notify_on_upcoming_expiry = bool(body.notify_on_upcoming_expiry)
+
+    db.commit()
+    db.refresh(policy)
+    return ok({
+        "credential_id": credential_id,
+        "mode": policy.mode,
+        "state": policy.state,
+        "notify_in_app": policy.notify_in_app,
+        "notify_email": policy.notify_email,
+        "notify_on_recovery_failure": policy.notify_on_recovery_failure,
+        "notify_on_upcoming_expiry": policy.notify_on_upcoming_expiry,
+    })
+
+
+@router.post("/{credential_id}/recover")
+async def recover_credential_endpoint(
+    credential_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Manually trigger background credential recovery and token renewal."""
+    from app.models.credential import Credential
+    from app.services.credential_recovery_service import CredentialRecoveryService
+
+    rec = db.get(Credential, credential_id)
+    if rec is None or rec.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Credential not found.")
+
+    res = await CredentialRecoveryService.recover_credential(
+        db=db,
+        user_id=user.id,
+        credential_id=credential_id,
+        force=True,
+        actor=f"user:{user.id}",
+        trigger="manual_api_trigger",
+    )
+    return ok(res)
+
+
+@router.get("/{credential_id}/history")
+def get_credential_recovery_history(
+    credential_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Return sanitized audit trail of credential recovery events."""
+    from sqlalchemy import select
+    from app.models.connection_auth_policy import CredentialAuditEvent
+    from app.models.credential import Credential
+
+    rec = db.get(Credential, credential_id)
+    if rec is None or rec.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Credential not found.")
+
+    events = db.scalars(
+        select(CredentialAuditEvent)
+        .where(
+            CredentialAuditEvent.credential_id == credential_id,
+            CredentialAuditEvent.user_id == user.id,
+        )
+        .order_by(CredentialAuditEvent.created_at.desc())
+        .limit(50)
+    ).all()
+
+    items = [
+        {
+            "id": ev.id,
+            "event_type": ev.event_type,
+            "previous_state": ev.previous_state,
+            "new_state": ev.new_state,
+            "actor": ev.actor,
+            "details": ev.details or {},
+            "created_at": ev.created_at.isoformat() if ev.created_at else None,
+        }
+        for ev in events
+    ]
+    return ok({"history": items})
+

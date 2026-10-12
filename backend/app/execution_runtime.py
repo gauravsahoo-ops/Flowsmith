@@ -468,6 +468,68 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 await _commit(db)
                 await asyncio.to_thread(_mark_deliveries, db, execution_id, "waiting_approval")
                 return "waiting_approval"
+            if rec is not None and result.status == "failed":
+                err_code = getattr(result.error, "code", None) if result.error else None
+                err_msg = str(getattr(result.error, "message", "")) if result.error else ""
+                auth_codes = {"AUTH_FAILED", "CONNECTOR_AUTH_FAILED", "REAUTHORIZATION_REQUIRED", "MANUAL_ACTION_REQUIRED", "CREDENTIALS_REQUIRED", "EXPIRED_TOKEN"}
+                is_auth_error = err_code in auth_codes or any(k in err_msg.lower() for k in ("token expired", "authentication", "unauthorized", "invalid_grant", "credentials required"))
+
+                failed_node_id = getattr(result.error, "node_id", None) if result.error else None
+                if not failed_node_id and result.trace:
+                    last_step = result.trace[-1]
+                    if last_step.get("status") == "error":
+                        failed_node_id = last_step.get("node_id")
+
+                failed_cred_id = None
+                failed_cred_name = "Integration"
+                if failed_node_id and job.workflow_data:
+                    for node_def in (job.workflow_data.get("nodes") or []):
+                        if node_def.get("id") == failed_node_id:
+                            creds = node_def.get("credentials") or {}
+                            if creds:
+                                failed_cred_id = next((cid for cid in creds.values() if cid), None)
+                            failed_cred_name = node_def.get("name") or node_def.get("label") or failed_node_id
+                            break
+
+                if is_auth_error and failed_cred_id:
+                    from app.models.connection_auth_policy import ConnectionAuthPolicy
+                    from app.services.recovery_notifications import RecoveryNotificationService
+
+                    policy = db.scalar(select(ConnectionAuthPolicy).where(ConnectionAuthPolicy.credential_id == failed_cred_id))
+                    logger.info("Pausing execution %s in waiting_auth for credential %s (node: %s)", execution_id, failed_cred_id, failed_node_id)
+                    rec.status = "waiting_auth"
+                    rec.pause_state = {
+                        "type": "auth_required",
+                        "credential_id": failed_cred_id,
+                        "node_id": failed_node_id,
+                        "node_name": failed_cred_name,
+                        "message": f"Execution paused: authentication required for connection '{failed_cred_name}'. Reconnect integration to resume.",
+                        "paused_at": datetime.now(UTC).isoformat(),
+                    }
+                    merged = dict(rec.node_statuses or {})
+                    for nid, st in _node_statuses(result.events).items():
+                        merged[nid] = "waiting_auth" if nid == failed_node_id else st
+                    rec.node_statuses = merged
+                    rec.trace = result.trace
+                    rec.results = {"outputs": result.results}
+                    await _commit(db)
+                    await asyncio.to_thread(_mark_deliveries, db, execution_id, "waiting_auth")
+
+                    event_sink({
+                        "event": "execution.waiting_auth",
+                        "execution_id": execution_id,
+                        "workflow_id": job.workflow_data.get("id"),
+                        "node_id": failed_node_id,
+                        "status": "waiting_auth",
+                        "credential_id": failed_cred_id,
+                    })
+
+                    if policy and (policy.notify_in_app or policy.notify_email):
+                        RecoveryNotificationService.notify_manual_action_required(
+                            db=db, policy=policy, credential_name=failed_cred_name
+                        )
+                    return "waiting_auth"
+
             if rec is not None:
                 rec.status = result.status
                 rec.finished_at = datetime.now(UTC)

@@ -15,6 +15,78 @@ import HubSpotOAuthModal from '../components/HubSpotOAuthModal'
 import GoogleOAuthModal from '../components/GoogleOAuthModal'
 import DynamicsCrmOAuthModal from '../components/DynamicsCrmOAuthModal'
 import LLMCredentialModal from '../components/LLMCredentialModal'
+import ConnectionAuthSettingsModal from '../components/ConnectionAuthSettingsModal'
+
+function renderConnectionStatusPill(c) {
+  const state = (c.state || (c.expired ? 'REAUTHORIZATION_REQUIRED' : 'CONNECTED')).toUpperCase()
+  switch (state) {
+    case 'CONNECTED':
+      return (
+        <span className="status-pill status-success" title="Active connection encrypted at rest" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+          <span style={{ color: '#34d399', fontWeight: 600 }}>Connected</span>
+        </span>
+      )
+    case 'EXPIRING_SOON':
+      return (
+        <span className="status-pill" style={{ background: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
+          <span style={{ color: '#f59e0b', fontWeight: 600 }}>Expiring Soon</span>
+        </span>
+      )
+    case 'REFRESH_PENDING':
+    case 'REFRESHING':
+      return (
+        <span className="status-pill" style={{ background: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot status-running" style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8' }} />
+          <span style={{ color: '#38bdf8', fontWeight: 600 }}>Refreshing…</span>
+        </span>
+      )
+    case 'MANUAL_ACTION_REQUIRED':
+      return (
+        <span className="status-pill" style={{ background: 'rgba(249, 115, 22, 0.12)', borderColor: 'rgba(249, 115, 22, 0.3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#f97316' }} />
+          <span style={{ color: '#f97316', fontWeight: 600 }}>Manual Mode</span>
+        </span>
+      )
+    case 'REAUTHORIZATION_REQUIRED':
+      return (
+        <span className="status-pill status-warning" style={{ background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.35)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
+          <span style={{ color: '#f59e0b', fontWeight: 600 }}>Reconnect Required</span>
+        </span>
+      )
+    case 'PROVIDER_UNAVAILABLE':
+      return (
+        <span className="status-pill" style={{ background: 'rgba(168, 85, 247, 0.12)', borderColor: 'rgba(168, 85, 247, 0.3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7' }} />
+          <span style={{ color: '#c084fc', fontWeight: 600 }}>Provider Unavailable</span>
+        </span>
+      )
+    case 'AUTHENTICATION_FAILED':
+      return (
+        <span className="status-pill status-danger" style={{ background: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
+          <span style={{ color: '#f87171', fontWeight: 600 }}>Auth Failed</span>
+        </span>
+      )
+    case 'DISCONNECTED':
+    case 'REVOKED':
+      return (
+        <span className="status-pill" style={{ background: 'rgba(148, 163, 184, 0.12)', borderColor: 'rgba(148, 163, 184, 0.25)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#94a3b8' }} />
+          <span style={{ color: '#94a3b8', fontWeight: 600 }}>Disconnected</span>
+        </span>
+      )
+    default:
+      return (
+        <span className="status-pill status-success" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+          <span style={{ color: '#34d399', fontWeight: 600 }}>Connected</span>
+        </span>
+      )
+  }
+}
 
 function defaultsFromSchema(schema) {
   const out = {}
@@ -71,6 +143,8 @@ export default function CredentialsPage() {
   const [googleModalService, setGoogleModalService] = useState('google_calendar')
   const [llmModalOpen, setLlmModalOpen] = useState(false)
   const [llmModalData, setLlmModalData] = useState(null)
+  const [authSettingsModalOpen, setAuthSettingsModalOpen] = useState(false)
+  const [authSettingsTarget, setAuthSettingsTarget] = useState(null)
   const [openMenuId, setOpenMenuId] = useState(null)
   const [menuDirection, setMenuDirection] = useState('down')
 
@@ -679,36 +753,17 @@ export default function CredentialsPage() {
                     )}
                   </td>
                   <td>
-                    <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>
-                      {types.find(t => t.type === c.type)?.auth_method || 'API Key'}
+                    <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span>{types.find(t => t.type === c.type)?.auth_method || 'API Key'}</span>
+                      {c.mode === 'manual' ? (
+                        <span className="badge" style={{ fontSize: 10, background: 'rgba(249, 115, 22, 0.12)', color: '#f97316' }}>Manual</span>
+                      ) : (
+                        <span className="badge" style={{ fontSize: 10, background: 'rgba(16, 185, 129, 0.12)', color: '#34d399' }}>Auto-renew</span>
+                      )}
                     </span>
                   </td>
                   <td>
-                    {c.expired ? (
-                      <span
-                        className="status-pill status-warning"
-                        title="Session expired or token revoked — click Reconnect to renew"
-                        style={{
-                          background: 'rgba(245, 158, 11, 0.12)',
-                          borderColor: 'rgba(245, 158, 11, 0.3)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6
-                        }}
-                      >
-                        <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
-                        <span style={{ color: '#f59e0b', fontWeight: 600 }}>Session Expired</span>
-                      </span>
-                    ) : (
-                      <span
-                        className="status-pill status-success"
-                        title="Active connection encrypted at rest with AES-256 / Fernet"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                      >
-                        <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-                        <span style={{ color: '#34d399' }}>Connected</span>
-                      </span>
-                    )}
+                    {renderConnectionStatusPill(c)}
                   </td>
                   <td style={{ textAlign: 'right', paddingRight: '20px', whiteSpace: 'nowrap' }}>
                     <div className="cred-actions-cell">
@@ -795,6 +850,25 @@ export default function CredentialsPage() {
                                 </svg>
                               </span>
                               <span>{testingId === c.id ? 'Testing connection…' : 'Test Connection'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="ghost small cred-menu-item"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuId(null)
+                                setAuthSettingsTarget(c)
+                                setAuthSettingsModalOpen(true)
+                              }}
+                              title="Configure automatic vs. manual recovery, notifications, and view audit events"
+                            >
+                              <span className="cred-menu-item-icon" style={{ color: '#818cf8' }}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                </svg>
+                              </span>
+                              <span>Authentication Settings</span>
                             </button>
 
                             {!['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs', 'llm'].includes(c.type) && !c.type.startsWith('google_') && (
@@ -2010,6 +2084,16 @@ export default function CredentialsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {authSettingsModalOpen && authSettingsTarget && (
+        <ConnectionAuthSettingsModal
+          isOpen={authSettingsModalOpen}
+          onClose={() => setAuthSettingsModalOpen(false)}
+          credential={authSettingsTarget}
+          onReconnected={load}
+          onTested={load}
+        />
       )}
     </div>
   )
