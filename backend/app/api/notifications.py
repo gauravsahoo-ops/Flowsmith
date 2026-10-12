@@ -10,8 +10,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
@@ -38,7 +38,7 @@ class UpdatePreferencesRequest(BaseModel):
 
 
 def _serialize_event(ev: ErrorEvent, include_tech: bool = False) -> dict[str, Any]:
-    data = {
+    data: dict[str, Any] = {
         "id": ev.id,
         "created_at": ev.created_at.isoformat() if ev.created_at else None,
         "severity": ev.severity,
@@ -273,10 +273,15 @@ def acknowledge_notification(
     if not _can_access_event(user, ev):
         raise HTTPException(status_code=403, detail="Forbidden")
 
+    now_utc = datetime.now(timezone.utc)
     ev.status = "ACKNOWLEDGED"
-    ev.acknowledged_at = datetime.now(timezone.utc)
+    ev.acknowledged_at = now_utc
     db.commit()
-    return ok({"id": ev.id, "status": ev.status, "acknowledged_at": ev.acknowledged_at.isoformat()})
+    return ok({
+        "id": ev.id,
+        "status": ev.status,
+        "acknowledged_at": ev.acknowledged_at.isoformat() if ev.acknowledged_at else now_utc.isoformat(),
+    })
 
 
 @router.post("/{event_id}/resolve")
@@ -293,10 +298,15 @@ def resolve_notification(
     if not _can_access_event(user, ev):
         raise HTTPException(status_code=403, detail="Forbidden")
 
+    now_utc = datetime.now(timezone.utc)
     ev.status = "RESOLVED"
-    ev.resolved_at = datetime.now(timezone.utc)
+    ev.resolved_at = now_utc
     db.commit()
-    return ok({"id": ev.id, "status": ev.status, "resolved_at": ev.resolved_at.isoformat()})
+    return ok({
+        "id": ev.id,
+        "status": ev.status,
+        "resolved_at": ev.resolved_at.isoformat() if ev.resolved_at else now_utc.isoformat(),
+    })
 
 
 @router.post("/test-email")
