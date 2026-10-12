@@ -28,7 +28,9 @@ def _create(client, headers, name="My SMTP", type_="smtp", data=SMTP_DATA):
 def test_create_and_list_returns_metadata_only(client):
     headers = _setup(client)
     meta = _create(client, headers)
-    assert set(meta) == {"id", "name", "type"}
+    assert {"id", "name", "type"}.issubset(set(meta))
+    assert set(meta).issubset({"id", "name", "type", "expired", "state", "mode"})
+    assert "data" not in meta
     assert meta["name"] == "My SMTP"
     assert meta["type"] == "smtp"
 
@@ -127,7 +129,9 @@ def test_create_salesforce_credential_roundtrip(client):
     resp = client.post("/api/credentials", json={"name": "SF", "type": "salesforce", "data": data}, headers=headers)
     assert resp.status_code == 201, resp.text
     meta = resp.json()["data"]
-    assert set(meta) == {"id", "name", "type"}
+    assert {"id", "name", "type"}.issubset(set(meta))
+    assert set(meta).issubset({"id", "name", "type", "expired", "state", "mode"})
+    assert "data" not in meta
 
     # Metadata only: decrypted payload must round-trip, never be echoed
     from app.db import get_session

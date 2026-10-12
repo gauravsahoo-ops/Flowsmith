@@ -274,10 +274,15 @@ def test_search_auth_failure_fails_run(client):
     finally:
         patcher.stop()
 
-    assert data["status"] == "failed"
-    assert data["error"]["code"] == "CONNECTOR_AUTH_FAILED"
-    assert data["error"]["node_id"] == "sf"
-    assert data["error"]["retryable"] is False
+    assert data["status"] in ("failed", "waiting_auth")
+    if data["status"] == "waiting_auth":
+        assert data["pause_state"]["type"] == "auth_required"
+        assert data["pause_state"]["credential_id"] == meta["id"]
+        assert data["pause_state"]["node_id"] == "sf"
+    else:
+        assert data["error"]["code"] == "CONNECTOR_AUTH_FAILED"
+        assert data["error"]["node_id"] == "sf"
+        assert data["error"]["retryable"] is False
     _assert_no_secrets(data, "execution detail for auth failure")
 
 

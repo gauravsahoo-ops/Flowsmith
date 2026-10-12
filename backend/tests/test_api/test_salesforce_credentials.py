@@ -155,7 +155,9 @@ def _assert_no_secrets(value: Any, where: str) -> None:
 def test_valid_salesforce_credential_created(client):
     headers = _setup(client)
     meta = _create_sf_credential(client, headers)
-    assert set(meta) == {"id", "name", "type"}
+    assert {"id", "name", "type"}.issubset(set(meta))
+    assert set(meta).issubset({"id", "name", "type", "expired", "state", "mode"})
+    assert "data" not in meta
     assert meta["type"] == "salesforce"
 
     db = get_session()

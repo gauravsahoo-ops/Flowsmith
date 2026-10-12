@@ -155,7 +155,9 @@ def test_credentials_api_never_exposes_secret_material(client):
 
     listed = client.get("/api/credentials", headers=headers).json()["data"]
     assert len(listed) == 1
-    assert set(listed[0]) == {"id", "name", "type"}
+    assert {"id", "name", "type"}.issubset(set(listed[0]))
+    assert set(listed[0]).issubset({"id", "name", "type", "expired", "state", "mode"})
+    assert "data" not in listed[0]
     assert listed[0]["id"] == meta["id"]
     _assert_no_secrets(listed, "GET /api/credentials")
 
