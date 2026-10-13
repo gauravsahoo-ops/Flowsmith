@@ -332,10 +332,18 @@ export const useWorkflowStore = create((set, get) => ({
       ['remove', 'add'].includes(c.type),
     )
     if (structural) get().pushHistory()
+    const hasUserEdit = plain.some(
+      (c) =>
+        c.type === 'remove' ||
+        c.type === 'add' ||
+        (c.type === 'position' && (c.dragging === false || (!c.dragging && c.position)))
+    )
     if (plain.length) {
       set({ nodes: applyNodeChanges(plain, get().nodes) })
       syncGroupBounds(get, set)
-      scheduleSave()
+      if (hasUserEdit) {
+        scheduleSave()
+      }
     }
     if (startsDrag) {
       // The gesture's final change arrives in a later batch; close the
@@ -803,14 +811,10 @@ export const useWorkflowStore = create((set, get) => ({
     // Consume the dirty flag: any edit made while the request is in flight
     // re-sets it (and arms a fresh timer), so completion only clears state
     // if nothing changed underneath us.
-    set({ saving: true, error: null, _dirty: false })
+    set({ saving: true, error: null })
     try {
       const saved = await api.saveWorkflow(workflow.id, payload)
-      set((state) =>
-        state._dirty
-          ? { saving: false }
-          : { workflow: saved, savedAt: new Date(), saving: false, _dirty: false },
-      )
+      set({ workflow: saved, savedAt: new Date(), saving: false, _dirty: false })
       return saved
     } catch (err) {
       set({ saving: false, error: err.message, _dirty: true })

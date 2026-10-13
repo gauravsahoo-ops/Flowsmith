@@ -441,5 +441,31 @@ describe('autoSave & manual save', () => {
     useWorkflowStore.getState().setAutoSave(false)
     expect(useWorkflowStore.getState().autoSave).toBe(false)
   })
+
+  it('does not mark workflow dirty when React Flow sends dimensions or select changes after save', async () => {
+    const wf = { id: 'wf_test', name: 'Test Wf', version: 1, active: false, nodes: [], connections: [] }
+    useWorkflowStore.setState({ workflow: wf, savedAt: null, saving: false, _dirty: false, autoSave: false })
+    add('set_data', 0)
+    const node = useWorkflowStore.getState().nodes[0]
+
+    mockApi.saveWorkflow.mockResolvedValue({ ...wf, version: 2 })
+    await useWorkflowStore.getState().save()
+    expect(useWorkflowStore.getState()._dirty).toBe(false)
+    expect(useWorkflowStore.getState().savedAt).not.toBeNull()
+
+    // Simulate React Flow sending dimensions measuring event
+    useWorkflowStore.getState().onNodesChange([
+      { id: node.id, type: 'dimensions', dimensions: { width: 180, height: 80 } },
+    ])
+    expect(useWorkflowStore.getState()._dirty).toBe(false)
+    expect(useWorkflowStore.getState().savedAt).not.toBeNull()
+
+    // Simulate clicking node (select event)
+    useWorkflowStore.getState().onNodesChange([
+      { id: node.id, type: 'select', selected: true },
+    ])
+    expect(useWorkflowStore.getState()._dirty).toBe(false)
+    expect(useWorkflowStore.getState().savedAt).not.toBeNull()
+  })
 })
 
