@@ -75,6 +75,45 @@ def _coerce_record_id(value) -> str:
     return str(value).strip().strip("'\"") if value is not None else ""
 
 
+_US_STATE_NAMES: dict[str, str] = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas", "CA": "California",
+    "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware", "FL": "Florida", "GA": "Georgia",
+    "HI": "Hawaii", "ID": "Idaho", "IL": "Illinois", "IN": "Indiana", "IA": "Iowa",
+    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland",
+    "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MO": "Missouri",
+    "MT": "Montana", "NE": "Nebraska", "NV": "Nevada", "NH": "New Hampshire", "NJ": "New Jersey",
+    "NM": "New Mexico", "NY": "New York", "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio",
+    "OK": "Oklahoma", "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina",
+    "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah", "VT": "Vermont",
+    "VA": "Virginia", "WA": "Washington", "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
+    "DC": "District of Columbia",
+}
+
+
+def _normalize_salesforce_record(rec: dict[str, Any]) -> dict[str, Any]:
+    """Strip internal metadata keys and normalize address picklist values.
+
+    Salesforce orgs with 'State and Country/Territory Picklists' enabled reject
+    2-letter state abbreviations in MailingState with FIELD_INTEGRITY_EXCEPTION.
+    We automatically normalize standard US state codes to full names and ensure
+    MailingCountry is set to 'United States' when applicable.
+    """
+    cleaned = {k: v for k, v in rec.items() if not k.startswith("_")}
+    state_val = cleaned.get("MailingState")
+    if isinstance(state_val, str) and state_val.strip().upper() in _US_STATE_NAMES:
+        cleaned["MailingState"] = _US_STATE_NAMES[state_val.strip().upper()]
+        country = cleaned.get("MailingCountry")
+        if not country or country.strip().upper() in ("US", "USA"):
+            cleaned["MailingCountry"] = "United States"
+    other_state = cleaned.get("OtherState")
+    if isinstance(other_state, str) and other_state.strip().upper() in _US_STATE_NAMES:
+        cleaned["OtherState"] = _US_STATE_NAMES[other_state.strip().upper()]
+        country = cleaned.get("OtherCountry")
+        if not country or country.strip().upper() in ("US", "USA"):
+            cleaned["OtherCountry"] = "United States"
+    return cleaned
+
+
 class SalesforceConnectorParams(BaseModel):
     """Parameters for a Salesforce connector operation. Single source for 13 resources."""
 
@@ -491,8 +530,8 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
                 retryable=False,
             )
         self._validate_record_fields(params.record, op="create")
-        # Salesforce rejects create if 'Id' is in the body
-        safe_record = {k: v for k, v in params.record.items() if k.lower() != "id"}
+        # Salesforce rejects create if 'Id' is in the body, and normalize address picklists
+        safe_record = _normalize_salesforce_record({k: v for k, v in params.record.items() if k.lower() != "id"})
         try:
             body = await self._provider.create_record(
                 creds, object_name, safe_record, timeout=params.timeout_seconds
@@ -539,8 +578,8 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
                 retryable=False,
             )
         self._validate_record_fields(params.record, op="update")
-        # Salesforce rejects update if 'Id' is in the sobject data
-        safe_record = {k: v for k, v in params.record.items() if k.lower() != "id"}
+        # Salesforce rejects update if 'Id' is in the sobject data, and normalize address picklists
+        safe_record = _normalize_salesforce_record({k: v for k, v in params.record.items() if k.lower() != "id"})
         await self._provider.update_record(
             creds, params.object_name, record_id, safe_record, timeout=params.timeout_seconds
         )
@@ -566,8 +605,8 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
                 retryable=False,
             )
         self._validate_record_fields(params.record, op="upsert")
-        # Strip Id from record body — external id is in the URL, not the body
-        safe_record = {k: v for k, v in params.record.items() if k.lower() != "id"}
+        # Strip Id from record body — external id is in the URL, not the body, and normalize address picklists
+        safe_record = _normalize_salesforce_record({k: v for k, v in params.record.items() if k.lower() != "id"})
         result = await self._provider.upsert_record(
             creds, params.object_name, params.external_id_field,
             params.external_id, safe_record, timeout=params.timeout_seconds,
@@ -665,9 +704,9 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
                         f"operation=bulk delete requires records[{i}].Id.",
                         retryable=False,
                     )
-        # Strip internal metadata keys (e.g. _row_number) before submitting to Salesforce
+        # Strip internal metadata keys (e.g. _row_number) and normalize address picklists
         clean_records = [
-            {k: v for k, v in rec.items() if not k.startswith("_")}
+            _normalize_salesforce_record(rec)
             for rec in params.records
         ]
         try:
