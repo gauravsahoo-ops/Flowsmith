@@ -12,13 +12,15 @@ from __future__ import annotations
 
 import csv
 import io
+import os
+from pathlib import Path
 import re
 import uuid
 import time
 from typing import Any, Generator, Iterable
 from dataclasses import dataclass, field
 
-from sqlalchemy import select, update
+from sqlalchemy import insert, select, update
 from sqlalchemy.orm import Session
 
 from app.objectstore.factory import get_object_store
@@ -309,113 +311,111 @@ class CsvService:
         dup_rows = duplicate_records or []
         inv_rows = invalid_records or []
 
-        # 1. Insert Valid Records in Bounded Batches
-        staged_batch: list[StagedContactRecord] = []
+        # 1. Insert Valid Records in Bounded Batches (High-Performance Bulk Insert)
+        valid_dicts: list[dict[str, Any]] = []
         for rec in valid_records:
-            stg = StagedContactRecord(
-                id=f"stg_{uuid.uuid4().hex[:16]}",
-                execution_id=execution_id,
-                row_number=rec.get("_row_number", 0),
-                first_name=rec.get("FirstName"),
-                last_name=rec.get("LastName") or "Unknown",
-                email=rec.get("Email"),
-                phone=rec.get("Phone"),
-                department=rec.get("Department"),
-                title=rec.get("Title"),
-                mailing_street=rec.get("MailingStreet"),
-                mailing_city=rec.get("MailingCity"),
-                mailing_state=rec.get("MailingState"),
-                mailing_postal_code=rec.get("MailingPostalCode"),
-                mailing_country=rec.get("MailingCountry"),
-                description=rec.get("Description"),
-                raw_data=rec,
-                status="staged",
-            )
-            staged_batch.append(stg)
-            if len(staged_batch) >= batch_size:
-                db.bulk_save_objects(staged_batch)
+            valid_dicts.append({
+                "id": f"stg_{uuid.uuid4().hex[:16]}",
+                "execution_id": execution_id,
+                "row_number": rec.get("_row_number", 0),
+                "first_name": rec.get("FirstName"),
+                "last_name": rec.get("LastName") or "Unknown",
+                "email": rec.get("Email"),
+                "phone": rec.get("Phone"),
+                "department": rec.get("Department"),
+                "title": rec.get("Title"),
+                "mailing_street": rec.get("MailingStreet"),
+                "mailing_city": rec.get("MailingCity"),
+                "mailing_state": rec.get("MailingState"),
+                "mailing_postal_code": rec.get("MailingPostalCode"),
+                "mailing_country": rec.get("MailingCountry"),
+                "description": rec.get("Description"),
+                "raw_data": rec,
+                "status": "staged",
+                "error_message": None,
+            })
+            if len(valid_dicts) >= batch_size:
+                db.execute(insert(StagedContactRecord), valid_dicts)
                 db.commit()
-                res.inserted_count += len(staged_batch)
-                staged_batch = []
+                res.inserted_count += len(valid_dicts)
+                valid_dicts = []
 
-        if staged_batch:
-            db.bulk_save_objects(staged_batch)
+        if valid_dicts:
+            db.execute(insert(StagedContactRecord), valid_dicts)
             db.commit()
-            res.inserted_count += len(staged_batch)
+            res.inserted_count += len(valid_dicts)
 
         # 2. Record Duplicates (Status: duplicate, skipped)
-        dup_batch: list[StagedContactRecord] = []
+        dup_dicts: list[dict[str, Any]] = []
         for d in dup_rows:
             rec = d.get("record", {})
-            stg = StagedContactRecord(
-                id=f"stg_{uuid.uuid4().hex[:16]}",
-                execution_id=execution_id,
-                row_number=d.get("row_number", 0),
-                first_name=rec.get("FirstName"),
-                last_name=rec.get("LastName") or "Unknown",
-                email=rec.get("Email"),
-                phone=rec.get("Phone"),
-                department=rec.get("Department"),
-                title=rec.get("Title"),
-                mailing_street=rec.get("MailingStreet"),
-                mailing_city=rec.get("MailingCity"),
-                mailing_state=rec.get("MailingState"),
-                mailing_postal_code=rec.get("MailingPostalCode"),
-                mailing_country=rec.get("MailingCountry"),
-                description=rec.get("Description"),
-                raw_data=rec,
-                status="duplicate",
-                error_message=f"Duplicate {d.get('duplicate_key')} ({d.get('duplicate_value')})",
-            )
-            dup_batch.append(stg)
-            if len(dup_batch) >= batch_size:
-                db.bulk_save_objects(dup_batch)
+            dup_dicts.append({
+                "id": f"stg_{uuid.uuid4().hex[:16]}",
+                "execution_id": execution_id,
+                "row_number": d.get("row_number", 0),
+                "first_name": rec.get("FirstName"),
+                "last_name": rec.get("LastName") or "Unknown",
+                "email": rec.get("Email"),
+                "phone": rec.get("Phone"),
+                "department": rec.get("Department"),
+                "title": rec.get("Title"),
+                "mailing_street": rec.get("MailingStreet"),
+                "mailing_city": rec.get("MailingCity"),
+                "mailing_state": rec.get("MailingState"),
+                "mailing_postal_code": rec.get("MailingPostalCode"),
+                "mailing_country": rec.get("MailingCountry"),
+                "description": rec.get("Description"),
+                "raw_data": rec,
+                "status": "duplicate",
+                "error_message": f"Duplicate {d.get('duplicate_key')} ({d.get('duplicate_value')})",
+            })
+            if len(dup_dicts) >= batch_size:
+                db.execute(insert(StagedContactRecord), dup_dicts)
                 db.commit()
-                res.duplicate_count += len(dup_batch)
-                res.skipped_count += len(dup_batch)
-                dup_batch = []
+                res.duplicate_count += len(dup_dicts)
+                res.skipped_count += len(dup_dicts)
+                dup_dicts = []
 
-        if dup_batch:
-            db.bulk_save_objects(dup_batch)
+        if dup_dicts:
+            db.execute(insert(StagedContactRecord), dup_dicts)
             db.commit()
-            res.duplicate_count += len(dup_batch)
-            res.skipped_count += len(dup_batch)
+            res.duplicate_count += len(dup_dicts)
+            res.skipped_count += len(dup_dicts)
 
         # 3. Record Invalid Rows (Status: invalid, skipped)
-        inv_batch: list[StagedContactRecord] = []
+        inv_dicts: list[dict[str, Any]] = []
         for inv in inv_rows:
             rec = inv.get("record", {})
-            stg = StagedContactRecord(
-                id=f"stg_{uuid.uuid4().hex[:16]}",
-                execution_id=execution_id,
-                row_number=inv.get("row_number", 0),
-                first_name=rec.get("FirstName"),
-                last_name=rec.get("LastName") or "Unknown",
-                email=rec.get("Email"),
-                phone=rec.get("Phone"),
-                department=rec.get("Department"),
-                title=rec.get("Title"),
-                mailing_street=rec.get("MailingStreet"),
-                mailing_city=rec.get("MailingCity"),
-                mailing_state=rec.get("MailingState"),
-                mailing_postal_code=rec.get("MailingPostalCode"),
-                mailing_country=rec.get("MailingCountry"),
-                description=rec.get("Description"),
-                raw_data=rec,
-                status="invalid",
-                error_message="; ".join(inv.get("errors", [])),
-            )
-            inv_batch.append(stg)
-            if len(inv_batch) >= batch_size:
-                db.bulk_save_objects(inv_batch)
+            inv_dicts.append({
+                "id": f"stg_{uuid.uuid4().hex[:16]}",
+                "execution_id": execution_id,
+                "row_number": inv.get("row_number", 0),
+                "first_name": rec.get("FirstName"),
+                "last_name": rec.get("LastName") or "Unknown",
+                "email": rec.get("Email"),
+                "phone": rec.get("Phone"),
+                "department": rec.get("Department"),
+                "title": rec.get("Title"),
+                "mailing_street": rec.get("MailingStreet"),
+                "mailing_city": rec.get("MailingCity"),
+                "mailing_state": rec.get("MailingState"),
+                "mailing_postal_code": rec.get("MailingPostalCode"),
+                "mailing_country": rec.get("MailingCountry"),
+                "description": rec.get("Description"),
+                "raw_data": rec,
+                "status": "invalid",
+                "error_message": "; ".join(inv.get("errors", [])),
+            })
+            if len(inv_dicts) >= batch_size:
+                db.execute(insert(StagedContactRecord), inv_dicts)
                 db.commit()
-                res.invalid_count += len(inv_batch)
-                inv_batch = []
+                res.invalid_count += len(inv_dicts)
+                inv_dicts = []
 
-        if inv_batch:
-            db.bulk_save_objects(inv_batch)
+        if inv_dicts:
+            db.execute(insert(StagedContactRecord), inv_dicts)
             db.commit()
-            res.invalid_count += len(inv_batch)
+            res.invalid_count += len(inv_dicts)
 
         res.total_processed = res.inserted_count + res.duplicate_count + res.invalid_count
         res.duration_ms = (time.monotonic() - start_time) * 1000

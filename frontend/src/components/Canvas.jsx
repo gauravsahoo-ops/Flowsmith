@@ -583,6 +583,7 @@ function CanvasInner() {
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         minZoom={0.1}
         maxZoom={1.5}
+        onlyRenderVisibleElements={true}
         elevateEdgesOnSelect
         fitView={nodes.length > 0}
         fitViewOptions={{ padding: 0.25, includeHiddenNodes: true, maxZoom: nodes.length <= 2 ? 0.85 : 1.0, duration: 450 }}

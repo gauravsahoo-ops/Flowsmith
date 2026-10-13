@@ -188,20 +188,22 @@ class QueueWorker:
             pass
         last_hb_write = time.monotonic()
         while not self._stop.is_set():
+            had_job = False
             try:
                 now = time.monotonic()
                 if now - last_hb_write >= 15.0:
                     hb.write_text(str(os.getpid()))
                     last_hb_write = now
-                await self.consume_once()
+                had_job = await self.consume_once()
             except asyncio.CancelledError:
                 raise
             except Exception:
                 logger.exception("worker iteration failed")
-            try:
-                await asyncio.wait_for(self._stop.wait(), timeout=self.poll_interval_s)
-            except asyncio.TimeoutError:
-                pass
+            if not had_job and not self._stop.is_set():
+                try:
+                    await asyncio.wait_for(self._stop.wait(), timeout=self.poll_interval_s)
+                except asyncio.TimeoutError:
+                    pass
         hb.unlink(missing_ok=True)
         logger.info("worker: stopping cleanly")
 
