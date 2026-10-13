@@ -44,6 +44,8 @@ describe('nodeEditorRegistry', () => {
     expect(resolveNodeEditor('auth_fetch').load).toBe(resolveNodeEditor('token_fetch').load)
     expect(resolveNodeEditor('auth_store').load).toBe(resolveNodeEditor('token_store').load)
     expect(resolveNodeEditor('csv_parser').load).toBe(resolveNodeEditor('csv').load)
+    expect(resolveNodeEditor('flowsmith.data_load').load).toBe(resolveNodeEditor('csv').load)
+    expect(resolveNodeEditor('data_load').load).toBe(resolveNodeEditor('csv').load)
   })
 
   it('falls back to the schema-driven panel for unknown node types', () => {

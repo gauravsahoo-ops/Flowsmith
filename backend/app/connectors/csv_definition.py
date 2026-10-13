@@ -45,7 +45,7 @@ def _operation(
         credential_require=None,
         retryable=retryable,
         idempotency=idempotency,
-        node_types=["csv", "csv_parser"],
+        node_types=["flowsmith.data_load", "csv", "csv_parser"],
     )
 
 
@@ -143,8 +143,8 @@ def build_csv_definition() -> ConnectorDefinitionV1:
 
     return ConnectorDefinitionV1(
         connector_key=CSV_CONNECTOR_KEY,
-        display_name="Delimited & Archive Ingest Engine",
-        description="Streaming CSV, TSV, and ZIP/GZ archive parser, field validator, and database staging connector with URL download and upload support.",
+        display_name="Flowsmith DataLoad Engine",
+        description="Enterprise streaming parser, validator, and staging connector for CSV, TSV, and ZIP archives with URL download and upload support.",
         category="transform",
         connector_version=CSV_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,

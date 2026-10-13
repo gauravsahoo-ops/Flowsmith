@@ -58,7 +58,9 @@ const aliases = {
   // Auth helpers reuse the token editors.
   auth_fetch: 'token_fetch',
   auth_store: 'token_store',
-  // CSV parser node shares the dedicated CSV editor
+  // DataLoad / CSV parser node shares the dedicated editor
+  'flowsmith.data_load': 'csv',
+  data_load: 'csv',
   csv_parser: 'csv',
 }
 

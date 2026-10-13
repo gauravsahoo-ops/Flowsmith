@@ -50,8 +50,8 @@ class CsvConnectorParams(BaseModel):
 
 class CsvConnector(ConnectorSDK):
     connector_id = "csv"
-    display_name = "Delimited & Archive Ingest Engine"
-    description = "Streaming CSV, TSV, and ZIP/GZ archive parsing, validation, deduplication, and database staging connector."
+    display_name = "Flowsmith DataLoad Engine"
+    description = "Streaming CSV, TSV, and ZIP archive parsing, validation, deduplication, and database staging connector."
     category = ConnectorCategory.TRANSFORM
     version = "1.0.0"
 
@@ -60,7 +60,7 @@ class CsvConnector(ConnectorSDK):
 
     @property
     def node_types(self) -> list[str]:
-        return ["csv", "csv_parser"]
+        return ["flowsmith.data_load", "csv", "csv_parser", "data_load"]
 
     async def connect(self, config: dict[str, Any]) -> bool:
         self.status = ConnectorStatus.CONNECTED

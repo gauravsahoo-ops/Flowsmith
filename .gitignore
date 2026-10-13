@@ -62,6 +62,7 @@ USER_MANUAL.md
 # The project README is required in-repo (audit fix) — keep it trackable.
 !README.md
 !docs/performance/*.md
+!docs/dataload/*.md
 
 # Test coverage output
 .coverage

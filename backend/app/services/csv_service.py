@@ -536,6 +536,11 @@ class CsvService:
                 val = row.get(source_col)
                 mapped_record[target_field] = val
 
+            # Preserve source metadata fields
+            for meta_key in ("_source_file", "_archive_path"):
+                if meta_key in row:
+                    mapped_record[meta_key] = row[meta_key]
+
             # 2. Schema Validation
             for field_name, rule in constraints.items():
                 val = mapped_record.get(field_name)

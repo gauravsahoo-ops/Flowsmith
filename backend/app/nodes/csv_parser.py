@@ -96,16 +96,18 @@ class CsvParserParams(BaseModel):
     )
 
 
-@register
-class CsvParserNode(BaseNode[CsvParserParams]):
+from app.nodes.dataload import DataLoadNode
+
+
+class CsvParserNode(DataLoadNode):
     node_type = "csv_parser"
-    display_name = "Delimited & Archive Ingest (CSV / TSV / ZIP)"
+    display_name = "Flowsmith DataLoad"
     version = 1
-    description = "Enterprise streaming parser & ingest node supporting CSV, TSV, and ZIP/GZ archives with direct import and remote download links, schema validation, deduplication, and database persistence."
-    category = "Transform"
-    icon = "csv_parser"
+    description = "Import, download, extract, parse, validate, and transform files for downstream workflow processing."
+    category = "Data Transformation"
+    icon = "data_load"
     parameters_schema = CsvParserParams
-    credential_types = []
+    credential_types = ["http", "basic_auth", "bearer_auth", "header_auth", "api_key"]
     idempotency = "idempotent"
 
     async def run(
