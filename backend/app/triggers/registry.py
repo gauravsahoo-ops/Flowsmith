@@ -13,6 +13,7 @@ toggle.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import uuid
 from typing import Any
@@ -22,6 +23,15 @@ from sqlalchemy.orm import Session
 
 from app.models import ScheduleTrigger, WebhookTrigger, WorkflowRecord
 from app.schemas.workflow import Workflow
+
+
+def make_schedule_trigger_id(wf_id: str, node_id: str, rule_id: str) -> str:
+    """Produce deterministic schedule_triggers.id capped at 64 characters."""
+    raw = f"sch_{wf_id}_{node_id}_{rule_id}"
+    if len(raw) <= 64:
+        return raw
+    h = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
+    return f"{raw[:40]}_{h}"[:64]
 
 logger = logging.getLogger("triggers.registry")
 
@@ -207,7 +217,7 @@ def sync_webhooks(db: Session) -> None:
                     timezone = rule.timezone
                     rule_id = rule.id
                     # One DB row per rule
-                    row_id = f"sch_{rec.id}_{trig['node_id']}_{rule_id}"
+                    row_id = make_schedule_trigger_id(rec.id, trig["node_id"], rule_id)
                     existing = db.scalar(select(ScheduleTrigger).where(ScheduleTrigger.id == row_id))
                     if existing is None:
                         db.add(ScheduleTrigger(
@@ -256,7 +266,7 @@ def sync_webhooks(db: Session) -> None:
                 continue
             for r in schedule_rule_dicts(trig["params"]):
                 rule_id = str(r.get("id") or "legacy")
-                wanted_schedule_ids.add(f"sch_{rec.id}_{trig['node_id']}_{rule_id}")
+                wanted_schedule_ids.add(make_schedule_trigger_id(rec.id, trig["node_id"], rule_id))
     for row in db.scalars(select(ScheduleTrigger)).all():
         if row.id not in wanted_schedule_ids:
             db.delete(row)
