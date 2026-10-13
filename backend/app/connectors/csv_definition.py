@@ -53,12 +53,14 @@ def build_csv_definition() -> ConnectorDefinitionV1:
     operations = {
         "parse": _operation(
             "parse",
-            "Parse CSV",
-            "Parse CSV file or raw string content into structured row dictionaries.",
+            "Parse CSV / TSV / Archive",
+            "Parse CSV, TSV, or ZIP/GZ archive file, URL, or raw string content into structured row dictionaries.",
             {
+                "download_url": {"type": "string", "description": "Remote HTTP/HTTPS download link."},
                 "file_path": {"type": "string", "description": "Local or container file path."},
                 "file_id": {"type": "string", "description": "Flowsmith ObjectStore file ID."},
-                "csv_content": {"type": "string", "description": "Raw CSV string."},
+                "csv_content": {"type": "string", "description": "Raw CSV/TSV string or base64 data URL."},
+                "archive_inner_file": {"type": "string", "description": "Specific file inside ZIP/TAR archive."},
                 "delimiter": {"type": "string", "description": "Field delimiter (comma, tab, pipe, semicolon)."},
                 "has_header": {"type": "boolean", "default": True, "description": "Whether first line is headers."},
                 "batch_size": {"type": "integer", "default": 1000, "description": "Streaming chunk size."},
@@ -141,14 +143,14 @@ def build_csv_definition() -> ConnectorDefinitionV1:
 
     return ConnectorDefinitionV1(
         connector_key=CSV_CONNECTOR_KEY,
-        display_name="CSV Connector",
-        description="Streaming CSV parser, field validator, and database staging connector.",
+        display_name="Delimited & Archive Ingest Engine",
+        description="Streaming CSV, TSV, and ZIP/GZ archive parser, field validator, and database staging connector with URL download and upload support.",
         category="transform",
         connector_version=CSV_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations=operations,
         triggers={},
         credential_types={},
-        metadata={"tags": ["csv", "files", "salesforce", "staging", "bulk"]},
+        metadata={"tags": ["csv", "tsv", "zip", "archive", "files", "salesforce", "staging", "bulk"]},
         icon="csv",
     )

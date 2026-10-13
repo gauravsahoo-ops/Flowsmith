@@ -26,17 +26,29 @@ logger = logging.getLogger(__name__)
 
 
 class CsvParserParams(BaseModel):
+    source_type: Literal["auto", "upload", "url", "file_path", "inline"] = Field(
+        default="auto", description="Source mode: upload (imported file), url (download link), file_path, or inline."
+    )
+    download_url: str = Field(
+        default="", description="Remote HTTP/HTTPS download link to fetch CSV, TSV, or ZIP/GZ archive."
+    )
     file_path: str = Field(
-        default="", description="Path to CSV file on local filesystem or container."
+        default="", description="Path to CSV, TSV, or ZIP/GZ file on local filesystem or container."
     )
     file_id: str = Field(
         default="", description="Flowsmith ObjectStore file ID (uploaded file)."
     )
     csv_content: str = Field(
-        default="", description="Inline raw CSV string (or provided by upstream node)."
+        default="", description="Inline raw CSV/TSV string or base64 data URL (e.g. data:application/zip;base64,...)."
+    )
+    archive_inner_file: str = Field(
+        default="", description="Specific filename to extract inside ZIP/TAR archive (auto-detects if empty)."
+    )
+    file_format: str = Field(
+        default="auto", description="Format hint: auto, csv, tsv, zip, gz, tar."
     )
     delimiter: str = Field(
-        default="", description="Field delimiter (comma, tab, semicolon, pipe). Empty for auto-detect."
+        default="", description="Field delimiter (comma ',', tab '\\t', semicolon ';', pipe '|'). Empty for auto-detect."
     )
     quotechar: str = Field(
         default='"', description="Quote character enclosing fields."
@@ -87,9 +99,9 @@ class CsvParserParams(BaseModel):
 @register
 class CsvParserNode(BaseNode[CsvParserParams]):
     node_type = "csv_parser"
-    display_name = "CSV Parser"
+    display_name = "Delimited & Archive Ingest (CSV / TSV / ZIP)"
     version = 1
-    description = "Enterprise CSV streaming parser with Salesforce Contact validation, deduplication, and database persistence."
+    description = "Enterprise streaming parser & ingest node supporting CSV, TSV, and ZIP/GZ archives with direct import and remote download links, schema validation, deduplication, and database persistence."
     category = "Transform"
     icon = "csv_parser"
     parameters_schema = CsvParserParams
@@ -102,20 +114,32 @@ class CsvParserNode(BaseNode[CsvParserParams]):
         params: CsvParserParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
-        # Determine CSV source: params.file_path -> params.file_id -> params.csv_content -> input_items
+        # Determine data source: params.download_url -> params.file_path -> params.file_id -> params.csv_content -> input_items
         source: str | bytes = ""
         file_id: str | None = None
+        download_url: str | None = None
 
-        if params.file_path and params.file_path.strip():
-            source = params.file_path.strip()
+        if params.download_url and params.download_url.strip():
+            download_url = params.download_url.strip()
+        elif params.file_path and params.file_path.strip():
+            if params.file_path.strip().startswith(("http://", "https://")):
+                download_url = params.file_path.strip()
+            else:
+                source = params.file_path.strip()
         elif params.file_id and params.file_id.strip():
             file_id = params.file_id.strip()
         elif params.csv_content and params.csv_content.strip():
-            source = params.csv_content
+            if params.csv_content.strip().startswith(("http://", "https://")):
+                download_url = params.csv_content.strip()
+            else:
+                source = params.csv_content
         elif input_items:
-            # Check if input item has csv, content, file_path, or file_id
             first = input_items[0]
-            if "csv" in first:
+            if "download_url" in first and str(first["download_url"]).strip():
+                download_url = str(first["download_url"]).strip()
+            elif "url" in first and str(first["url"]).strip().startswith(("http://", "https://")):
+                download_url = str(first["url"]).strip()
+            elif "csv" in first:
                 source = str(first["csv"])
             elif "content" in first:
                 source = str(first["content"])
@@ -124,11 +148,11 @@ class CsvParserNode(BaseNode[CsvParserParams]):
             elif "file_id" in first:
                 file_id = str(first["file_id"])
 
-        if not source and not file_id:
-            logger.warning("CsvParserNode run with no CSV source data provided.")
+        if not source and not file_id and not download_url:
+            logger.warning("CsvParserNode run with no CSV/TSV/ZIP source or download URL provided.")
             return NodeResult(output_items=[{
                 "success": False,
-                "error": "No CSV source provided (file_path, file_id, or csv_content required).",
+                "error": "No CSV source provided (file_path, file_id, download_url, or imported csv_content required).",
                 "total_parsed": 0,
             }])
 
@@ -159,10 +183,16 @@ class CsvParserNode(BaseNode[CsvParserParams]):
         # beyond 10,000, rows are staged in PostgreSQL to protect RAM from OOM.
         MAX_IN_MEMORY_RECORDS = 10000
 
+        meta_info: dict[str, Any] = {}
+
         with get_session() as db:
             for batch in CsvService.stream_parsed_rows(
                 csv_source=source,
                 options=parse_opts,
+                file_id=file_id,
+                download_url=download_url,
+                archive_inner_file=params.archive_inner_file or None,
+                source_meta_out=meta_info,
             ):
                 val_res = CsvService.map_and_validate(
                     rows=batch,
@@ -208,6 +238,13 @@ class CsvParserNode(BaseNode[CsvParserParams]):
         summary = {
             "success": True,
             "execution_id": exec_id,
+            "detected_format": meta_info.get("detected_format", "csv"),
+            "inner_filename": meta_info.get("inner_filename"),
+            "archive_files": meta_info.get("archive_files", []),
+            "detected_delimiter": meta_info.get("detected_delimiter", params.delimiter or ","),
+            "source_type": (
+                "url" if download_url else ("file_id" if file_id else ("file_path" if params.file_path else "inline_or_upload"))
+            ),
             "total_parsed": total_parsed,
             "unique_count": unique_count,
             "duplicate_count": duplicate_count,

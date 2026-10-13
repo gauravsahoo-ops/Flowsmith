@@ -27,9 +27,11 @@ logger = logging.getLogger(__name__)
 
 class CsvConnectorParams(BaseModel):
     operation: str = Field(default="parse", description="parse | validate_and_map | stage_to_database | reconcile.")
-    file_path: str = Field(default="", description="CSV file path.")
+    download_url: str = Field(default="", description="Remote HTTP/HTTPS download link for CSV, TSV, or ZIP/GZ.")
+    file_path: str = Field(default="", description="CSV, TSV, or Archive file path.")
     file_id: str = Field(default="", description="ObjectStore file ID.")
-    csv_content: str = Field(default="", description="Raw CSV string content.")
+    csv_content: str = Field(default="", description="Raw CSV/TSV string or base64 data URL.")
+    archive_inner_file: str = Field(default="", description="Target inner file inside archive.")
     delimiter: str = Field(default="", description="Field delimiter.")
     has_header: bool = Field(default=True, description="Whether first line is header.")
     batch_size: int = Field(default=1000, description="Batch size.")
@@ -48,8 +50,8 @@ class CsvConnectorParams(BaseModel):
 
 class CsvConnector(ConnectorSDK):
     connector_id = "csv"
-    display_name = "CSV Connector"
-    description = "Streaming CSV parsing, validation, deduplication, and database staging connector."
+    display_name = "Delimited & Archive Ingest Engine"
+    description = "Streaming CSV, TSV, and ZIP/GZ archive parsing, validation, deduplication, and database staging connector."
     category = ConnectorCategory.TRANSFORM
     version = "1.0.0"
 
@@ -103,10 +105,12 @@ class CsvConnector(ConnectorSDK):
     async def _op_parse(self, params: CsvConnectorParams) -> dict[str, Any]:
         source = params.file_path or params.csv_content
         file_id = params.file_id or None
-        if not source and not file_id:
+        download_url = params.download_url or None
+
+        if not source and not file_id and not download_url:
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
-                "CSV parse requires file_path, file_id, or csv_content.",
+                "CSV parse requires download_url, file_path, file_id, or csv_content.",
                 retryable=False,
             )
 
@@ -117,13 +121,22 @@ class CsvConnector(ConnectorSDK):
         )
 
         all_rows: list[dict[str, Any]] = []
-        for batch in CsvService.stream_parsed_rows(source, opts):
+        meta_out: dict[str, Any] = {}
+        for batch in CsvService.stream_parsed_rows(
+            source or "",
+            opts,
+            file_id=file_id,
+            download_url=download_url,
+            archive_inner_file=params.archive_inner_file or None,
+            source_meta_out=meta_out,
+        ):
             all_rows.extend(batch)
 
         return {
             "output": {
                 "rows": all_rows,
                 "total_parsed": len(all_rows),
+                "metadata": meta_out,
             },
             "success": True,
             "operation": "parse",

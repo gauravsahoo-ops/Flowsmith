@@ -19,9 +19,14 @@ Validates:
 16. Cancellation, idempotency, and resumability
 """
 
+import base64
+import gzip
 import io
+import zipfile
 import pytest
 import uuid
+import httpx
+import respx
 from unittest.mock import AsyncMock, patch
 
 from app.services.csv_service import CsvService, CsvParseOptions, SF_CONTACT_CONSTRAINTS
@@ -324,3 +329,145 @@ def test_idempotency_and_resumability():
 
         db.query(StagedContactRecord).filter_by(execution_id=exec_id).delete()
         db.commit()
+
+
+# 17. TSV (Tab Separated Values) parsing
+def test_tsv_parsing():
+    tsv_content = "FirstName\tLastName\tEmail\tPhone\nAlice\tBrown\talice@example.com\t555-0101\nBob\tTaylor\tbob@example.com\t555-0102\n"
+    chunks = list(CsvService.stream_parsed_rows(tsv_content))
+    assert len(chunks) == 1
+    rows = chunks[0]
+    assert len(rows) == 2
+    assert rows[0]["FirstName"] == "Alice"
+    assert rows[0]["LastName"] == "Brown"
+    assert rows[0]["Email"] == "alice@example.com"
+    assert rows[1]["FirstName"] == "Bob"
+    assert rows[1]["LastName"] == "Taylor"
+
+
+# 18. Zipped CSV parsing
+def test_zipped_csv_parsing():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("customers.csv", "FirstName,LastName,Email\nGrace,Hopper,grace@example.com\n")
+    zip_bytes = buf.getvalue()
+
+    meta: dict = {}
+    chunks = list(CsvService.stream_parsed_rows(zip_bytes, source_meta_out=meta))
+    assert len(chunks) == 1
+    rows = chunks[0]
+    assert len(rows) == 1
+    assert rows[0]["FirstName"] == "Grace"
+    assert rows[0]["LastName"] == "Hopper"
+    assert meta["detected_format"] == "zip"
+    assert meta["inner_filename"] == "customers.csv"
+
+
+# 19. Zipped TSV parsing
+def test_zipped_tsv_parsing():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("contacts.tsv", "FirstName\tLastName\tEmail\nAlan\tTuring\talan@example.com\n")
+    zip_bytes = buf.getvalue()
+
+    meta: dict = {}
+    chunks = list(CsvService.stream_parsed_rows(zip_bytes, source_meta_out=meta))
+    assert len(chunks) == 1
+    rows = chunks[0]
+    assert len(rows) == 1
+    assert rows[0]["FirstName"] == "Alan"
+    assert rows[0]["LastName"] == "Turing"
+    assert rows[0]["Email"] == "alan@example.com"
+    assert meta["detected_delimiter"] == "\t"
+    assert meta["inner_filename"] == "contacts.tsv"
+
+
+# 20. Target inner file extraction from archive
+def test_archive_inner_file_selection():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("notes.txt", "This is documentation")
+        zf.writestr("data_2026.csv", "FirstName,LastName,Email\nKatherine,Johnson,katherine@example.com\n")
+        zf.writestr("extra.csv", "FirstName,LastName,Email\nIgnore,This,ignore@example.com\n")
+    zip_bytes = buf.getvalue()
+
+    meta: dict = {}
+    chunks = list(CsvService.stream_parsed_rows(
+        zip_bytes,
+        archive_inner_file="data_2026.csv",
+        source_meta_out=meta,
+    ))
+    assert len(chunks) == 1
+    rows = chunks[0]
+    assert rows[0]["FirstName"] == "Katherine"
+    assert meta["inner_filename"] == "data_2026.csv"
+
+
+# 21. GZIP compressed file parsing
+def test_gzip_compressed_file_parsing():
+    raw_csv = b"FirstName,LastName,Email\nMargaret,Hamilton,margaret@example.com\n"
+    gz_bytes = gzip.compress(raw_csv)
+
+    meta: dict = {}
+    chunks = list(CsvService.stream_parsed_rows(gz_bytes, source_meta_out=meta))
+    assert len(chunks) == 1
+    rows = chunks[0]
+    assert rows[0]["FirstName"] == "Margaret"
+    assert meta["detected_format"] == "gzip"
+
+
+# 22. Base64 Data URL decoding (e.g. file upload in browser)
+def test_base64_data_url_zipped_upload():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("upload.tsv", "FirstName\tLastName\tEmail\nClaude\tShannon\tclaude@example.com\n")
+    b64_zip = base64.b64encode(buf.getvalue()).decode("utf-8")
+    data_url = f"data:application/zip;base64,{b64_zip}"
+
+    meta: dict = {}
+    chunks = list(CsvService.stream_parsed_rows(data_url, source_meta_out=meta))
+    assert len(chunks) == 1
+    rows = chunks[0]
+    assert rows[0]["FirstName"] == "Claude"
+    assert rows[0]["LastName"] == "Shannon"
+    assert meta["detected_delimiter"] == "\t"
+
+
+# 23. Workflow node execution with remote download link (URL) and zipped TSV
+@pytest.mark.asyncio
+async def test_node_execution_with_download_url():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("cloud_leads.tsv", "FirstName\tLastName\tEmail\nMarie\tCurie\tmarie@example.com\n")
+    remote_zip_bytes = buf.getvalue()
+
+    test_url = "https://example.com/downloads/cloud_leads.zip"
+
+    node = CsvParserNode()
+    ctx = make_test_ctx("download_wf_test", "csv_parser")
+
+    with respx.mock:
+        respx.get(test_url).respond(
+            status_code=200,
+            content=remote_zip_bytes,
+            headers={"Content-Type": "application/zip", "Content-Disposition": 'attachment; filename="cloud_leads.zip"'}
+        )
+
+        params = CsvParserParams(
+            download_url=test_url,
+            persist_to_db=False,
+        )
+        res = await node.run(ctx, params, [])
+        assert len(res.output_items) == 1
+        summary = res.output_items[0]["summary"]
+        assert summary["success"] is True
+        assert summary["detected_format"] == "zip"
+        assert summary["inner_filename"] == "cloud_leads.tsv"
+        assert summary["detected_delimiter"] == "\t"
+        assert summary["source_type"] == "url"
+        assert summary["total_parsed"] == 1
+        records = res.output_items[0]["records"]
+        assert len(records) == 1
+        assert records[0]["FirstName"] == "Marie"
+        assert records[0]["LastName"] == "Curie"
+
