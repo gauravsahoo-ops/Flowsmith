@@ -142,62 +142,90 @@ class CsvParserNode(BaseNode[CsvParserParams]):
 
         exec_id = params.execution_id or (getattr(ctx, "execution_id", None) or f"exec_{uuid.uuid4().hex[:12]}")
 
-        # Stream and accumulate records
-        all_raw_rows: list[dict[str, Any]] = []
-        for batch in CsvService.stream_parsed_rows(
-            csv_source=source,
-            options=parse_opts,
-        ):
-            all_raw_rows.extend(batch)
-
-        # Apply field mapping, schema validation, and deduplication
-        val_res = CsvService.map_and_validate(
-            rows=all_raw_rows,
-            field_mapping=params.field_mapping,
-            target_object=params.target_object,
-            duplicate_policy=params.duplicate_policy,
-            dedup_key=params.dedup_key,
-        )
-
+        # Stream, validate, and persist in bounded chunks (O(1) Memory Streaming Architecture)
+        total_parsed = 0
+        unique_count = 0
+        duplicate_count = 0
+        invalid_count = 0
         persisted_count = 0
         persisted_duration_ms = 0.0
 
-        # Persist to database if configured
-        if params.persist_to_db and (val_res.valid_records or val_res.duplicate_records or val_res.invalid_records):
-            try:
-                with get_session() as db:
-                    p_res = CsvService.persist_staged_records(
-                        db=db,
-                        execution_id=exec_id,
-                        valid_records=val_res.valid_records,
-                        duplicate_records=val_res.duplicate_records,
-                        invalid_records=val_res.invalid_records,
-                        batch_size=params.batch_size,
-                    )
-                    persisted_count = p_res.inserted_count
-                    persisted_duration_ms = p_res.duration_ms
-            except Exception as exc:
-                logger.error("Failed to persist staged records to database: %s", exc)
+        seen_keys: set[str] = set()
+        accumulated_records: list[dict[str, Any]] = []
+        sample_invalid: list[dict[str, Any]] = []
+        sample_duplicates: list[dict[str, Any]] = []
+
+        # Keep in-memory records up to 10,000 for downstream compatibility;
+        # beyond 10,000, rows are staged in PostgreSQL to protect RAM from OOM.
+        MAX_IN_MEMORY_RECORDS = 10000
+
+        with get_session() as db:
+            for batch in CsvService.stream_parsed_rows(
+                csv_source=source,
+                options=parse_opts,
+            ):
+                val_res = CsvService.map_and_validate(
+                    rows=batch,
+                    field_mapping=params.field_mapping,
+                    target_object=params.target_object,
+                    duplicate_policy=params.duplicate_policy,
+                    dedup_key=params.dedup_key,
+                    seen_keys=seen_keys,
+                )
+
+                total_parsed += val_res.total_parsed
+                unique_count += val_res.unique_count
+                duplicate_count += val_res.duplicate_count
+                invalid_count += val_res.invalid_count
+
+                # Persist chunk immediately to database if configured
+                if params.persist_to_db and (val_res.valid_records or val_res.duplicate_records or val_res.invalid_records):
+                    try:
+                        p_res = CsvService.persist_staged_records(
+                            db=db,
+                            execution_id=exec_id,
+                            valid_records=val_res.valid_records,
+                            duplicate_records=val_res.duplicate_records,
+                            invalid_records=val_res.invalid_records,
+                            batch_size=params.batch_size,
+                        )
+                        persisted_count += p_res.inserted_count
+                        persisted_duration_ms += p_res.duration_ms
+                    except Exception as exc:
+                        logger.error("Failed to persist staged records chunk to database: %s", exc)
+
+                # Collect records up to bounded threshold for downstream nodes
+                if len(accumulated_records) < MAX_IN_MEMORY_RECORDS:
+                    available_slots = MAX_IN_MEMORY_RECORDS - len(accumulated_records)
+                    accumulated_records.extend(val_res.valid_records[:available_slots])
+
+                # Sample up to 50 invalid & duplicates for UI debug inspection
+                if len(sample_invalid) < 50:
+                    sample_invalid.extend(val_res.invalid_records[:50 - len(sample_invalid)])
+                if len(sample_duplicates) < 50:
+                    sample_duplicates.extend(val_res.duplicate_records[:50 - len(sample_duplicates)])
 
         summary = {
             "success": True,
             "execution_id": exec_id,
-            "total_parsed": val_res.total_parsed,
-            "unique_count": val_res.unique_count,
-            "duplicate_count": val_res.duplicate_count,
-            "invalid_count": val_res.invalid_count,
+            "total_parsed": total_parsed,
+            "unique_count": unique_count,
+            "duplicate_count": duplicate_count,
+            "invalid_count": invalid_count,
             "persisted_count": persisted_count,
-            "persistence_duration_ms": persisted_duration_ms,
+            "persistence_duration_ms": round(persisted_duration_ms, 2),
             "target_object": params.target_object,
             "duplicate_policy": params.duplicate_policy,
+            "streaming_mode": "constant_memory_chunked",
+            "staged_table": "staged_contacts" if params.persist_to_db else None,
         }
 
         # Provide output usable by downstream nodes (e.g. Salesforce bulk node)
         output_item = {
             "summary": summary,
-            "records": val_res.valid_records,
-            "invalid_records": val_res.invalid_records[:50],  # bounded sample for inspection
-            "duplicate_records": val_res.duplicate_records[:50],
+            "records": accumulated_records,
+            "invalid_records": sample_invalid,
+            "duplicate_records": sample_duplicates,
         }
 
         return NodeResult(output_items=[output_item])

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from sqlalchemy import JSON, DateTime, Index, Integer, String, Text, func
+from sqlalchemy import JSON, BigInteger, DateTime, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -18,7 +18,7 @@ class StagedContactRecord(Base):
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     execution_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
-    row_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    row_number: Mapped[int] = mapped_column(BigInteger, nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str | None] = mapped_column(String(255), index=True, nullable=True)
