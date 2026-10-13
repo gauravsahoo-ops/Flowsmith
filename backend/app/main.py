@@ -17,6 +17,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy import func, select
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -111,7 +112,10 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
             root = FRONTEND_DIST.resolve()
             candidate = (root / path.lstrip("/")).resolve()
             if candidate.is_relative_to(root) and candidate.is_file():
-                return FileResponse(candidate)
+                headers: dict[str, str] = {}
+                if "/assets/" in path or path.startswith("assets/"):
+                    headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                return FileResponse(candidate, headers=headers)
         response = await call_next(request)
         if (
             response.status_code == 404
@@ -119,7 +123,10 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
             and FRONTEND_DIST is not None
             and (FRONTEND_DIST / "index.html").is_file()
         ):
-            return FileResponse(FRONTEND_DIST / "index.html")
+            return FileResponse(
+                FRONTEND_DIST / "index.html",
+                headers={"Cache-Control": "no-cache, must-revalidate"},
+            )
         return response
 
 
@@ -273,6 +280,7 @@ app.add_middleware(MetricsMiddleware)
 app.add_middleware(OpenTelemetryMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(SPAFallbackMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
