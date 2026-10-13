@@ -145,6 +145,34 @@ class SalesforceConnectorParams(BaseModel):
         default_factory=list,
         description="Record batch for Bulk API 2.0 (operation=bulk).",
     )
+
+    @field_validator("records", mode="before")
+    @classmethod
+    def _normalise_records(cls, v) -> list[dict[str, Any]]:
+        """Coerce stringified JSON or Python list representation to list[dict]."""
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return []
+            if s.startswith("[") and s.endswith("]"):
+                # Try standard JSON parse
+                try:
+                    parsed = json.loads(s)
+                    if isinstance(parsed, list):
+                        return parsed
+                except Exception:
+                    pass
+                # Try ast.literal_eval for Python repr string (e.g. "[{'Email': ...}]")
+                try:
+                    import ast
+                    parsed = ast.literal_eval(s)
+                    if isinstance(parsed, list):
+                        return parsed
+                except Exception:
+                    pass
+        return v
     external_id_field: str = Field(
         default="",
         description="External-id field API name (operation=upsert; bulk_operation=upsert).",
