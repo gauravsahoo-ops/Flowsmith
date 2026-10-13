@@ -1,0 +1,122 @@
+{
+  "benchmark_id": "bmk_311d512df3fe",
+  "timestamp": "2026-10-13T12:09:30Z",
+  "environment": {
+    "os": "win32",
+    "python_version": "3.13.7",
+    "database": "PostgreSQL 16 (Localhost:5432)",
+    "salesforce_target": "Bulk API 2.0 (High-Fidelity Stub Server port 8181)",
+    "live_salesforce_status": "Blocked: Stored token returned HTTP 400 (expired access/refresh token)"
+  },
+  "dataset": {
+    "file_name": "flowsmith_salesforce_contact_10000.csv",
+    "file_size_bytes": 2743879,
+    "sha256_checksum": "14fbfa3738fc6ec52e3d930c70ed1e2a77963b6644f7229301416ecbc7b0114d",
+    "header_count": 12,
+    "headers": [
+      "FirstName",
+      "LastName",
+      "Email",
+      "Phone",
+      "Department",
+      "Title",
+      "MailingStreet",
+      "MailingCity",
+      "MailingState",
+      "MailingPostalCode",
+      "MailingCountry",
+      "Description"
+    ],
+    "data_row_count": 10000,
+    "expected_unique_rows": 9800,
+    "expected_duplicate_rows": 200
+  },
+  "stages": {
+    "csv_parsing": {
+      "rows_parsed": 10000,
+      "chunks_yielded": 10,
+      "duration_ms": 870.5,
+      "duration_seconds": 0.8705,
+      "throughput_rows_per_sec": 11487.7
+    },
+    "mapping_and_validation": {
+      "total_parsed": 10000,
+      "unique_records": 9800,
+      "duplicate_records": 200,
+      "invalid_records": 0,
+      "duration_ms": 452.3,
+      "duration_seconds": 0.4523,
+      "throughput_rows_per_sec": 22109.4
+    },
+    "database_persistence": {
+      "execution_id": "bmk_311d512df3fe",
+      "total_persisted": 10000,
+      "inserted_count": 9800,
+      "duplicate_count": 200,
+      "invalid_count": 0,
+      "db_verified_count": 10000,
+      "status_distribution": {
+        "duplicate": 200,
+        "staged": 9800
+      },
+      "batch_size": 1000,
+      "duration_ms": 14538.98,
+      "duration_seconds": 14.539,
+      "throughput_records_per_sec": 687.8
+    },
+    "salesforce_bulk_ingest": {
+      "job_id": "job_1791893394203_96caa765",
+      "state": "JobComplete",
+      "records_submitted": 9800,
+      "records_processed": 9800,
+      "records_failed": 0,
+      "successful_records_count": 9800,
+      "duration_ms": 7543.76,
+      "duration_seconds": 7.5438,
+      "throughput_records_per_sec": 1299.1,
+      "reconciliation": {
+        "reconciled_success": 9800,
+        "reconciled_failed": 0
+      },
+      "final_db_statuses": {
+        "uploaded": 9800,
+        "duplicate": 200
+      },
+      "reconciliation_duration_ms": 24502.27
+    }
+  },
+  "edge_cases": {
+    "malformed_and_validation": {
+      "rows_tested": 4,
+      "valid_count": 1,
+      "rejected_count": 3,
+      "rejections": [
+        [
+          "Required field 'LastName' is missing or empty."
+        ],
+        [
+          "Field 'Email' has invalid email format: 'not-an-email'."
+        ],
+        [
+          "Field 'LastName' exceeds maximum length of 80 (got 100)."
+        ]
+      ]
+    },
+    "idempotency": {
+      "pass": true,
+      "first_batch_inserted": 100,
+      "second_batch_inserted": 100
+    }
+  },
+  "summary": {
+    "total_rows_processed": 10000,
+    "valid_unique_records": 9800,
+    "duplicate_records_detected": 200,
+    "invalid_records_rejected": 0,
+    "database_inserted_count": 9800,
+    "salesforce_reconciled_count": 9800,
+    "total_duration_seconds": 49.53,
+    "peak_memory_mb": 106.02,
+    "all_stages_passed": true
+  }
+}

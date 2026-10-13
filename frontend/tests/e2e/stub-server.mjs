@@ -24,6 +24,8 @@ const INSTANCE_URL = `http://127.0.0.1:${PORT}`;
 // In-memory store: id -> record
 const records = new Map();
 const index = new Map();
+const bulkJobs = new Map();
+
 
 function putRecord(rec) {
   records.set(rec.Id, rec);
@@ -277,6 +279,118 @@ const server = http.createServer(async (req, res) => {
       putRecord(rec);
     }
     return sendEmpty(res, 200);
+  }
+
+  // ── Bulk API 2.0 Ingest Endpoints ──────────────────────────────
+  const bulkCreateMatch = /^\/services\/data\/[^/]+\/jobs\/ingest\/?$/.exec(path);
+  if (bulkCreateMatch && method === 'POST') {
+    const body = JSON.parse((await collectBody(req)) || '{}');
+    const jobId = `job_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    const job = {
+      id: jobId,
+      operation: body.operation || 'insert',
+      object: body.object || 'Contact',
+      state: 'Open',
+      numberRecordsProcessed: 0,
+      numberRecordsFailed: 0,
+      csvData: '',
+      successfulCsv: '',
+      failedCsv: '',
+      errorMessage: null,
+    };
+    bulkJobs.set(jobId, job);
+    return sendJson(res, 200, {
+      id: job.id,
+      operation: job.operation,
+      object: job.object,
+      state: job.state,
+      contentType: 'CSV',
+      lineEnding: 'LF',
+      columnDelimiter: 'COMMA',
+    });
+  }
+
+  // PUT /services/data/{v}/jobs/ingest/{jobId}/batches
+  const bulkBatchesMatch = /^\/services\/data\/[^/]+\/jobs\/ingest\/([^/]+)\/batches$/.exec(path);
+  if (bulkBatchesMatch && method === 'PUT') {
+    const [, jobId] = bulkBatchesMatch;
+    const job = bulkJobs.get(jobId);
+    if (!job) return notFound(res, jobId);
+    const rawCsv = await collectBody(req);
+    job.csvData += rawCsv;
+    return sendEmpty(res, 201);
+  }
+
+  // GET /services/data/{v}/jobs/ingest/{jobId}/successfulResults
+  const bulkSuccMatch = /^\/services\/data\/[^/]+\/jobs\/ingest\/([^/]+)\/successfulResults$/.exec(path);
+  if (bulkSuccMatch && method === 'GET') {
+    const [, jobId] = bulkSuccMatch;
+    const job = bulkJobs.get(jobId);
+    if (!job) return notFound(res, jobId);
+    res.writeHead(200, { 'Content-Type': 'text/csv' });
+    return res.end(job.successfulCsv || '"sf__Id","sf__Created"\n');
+  }
+
+  // GET /services/data/{v}/jobs/ingest/{jobId}/failedResults
+  const bulkFailMatch = /^\/services\/data\/[^/]+\/jobs\/ingest\/([^/]+)\/failedResults$/.exec(path);
+  if (bulkFailMatch && method === 'GET') {
+    const [, jobId] = bulkFailMatch;
+    const job = bulkJobs.get(jobId);
+    if (!job) return notFound(res, jobId);
+    res.writeHead(200, { 'Content-Type': 'text/csv' });
+    return res.end(job.failedCsv || '"sf__Id","sf__Error"\n');
+  }
+
+  // PATCH /services/data/{v}/jobs/ingest/{jobId} — complete upload
+  const bulkJobMatch = /^\/services\/data\/[^/]+\/jobs\/ingest\/([^/]+)$/.exec(path);
+  if (bulkJobMatch && method === 'PATCH') {
+    const [, jobId] = bulkJobMatch;
+    const job = bulkJobs.get(jobId);
+    if (!job) return notFound(res, jobId);
+    const body = JSON.parse((await collectBody(req)) || '{}');
+    if (body.state === 'UploadComplete') {
+      job.state = 'JobComplete';
+      const lines = job.csvData.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      if (lines.length > 0) {
+        const headerLine = lines[0];
+        const dataLines = lines.slice(1);
+        const headers = headerLine.split(',').map((h) => h.replace(/^"|"$/g, '').trim());
+        const succHeaders = ['"sf__Id"', '"sf__Created"', ...headers.map((h) => `"${h}"`)];
+        const succRows = [succHeaders.join(',')];
+        let processed = 0;
+        for (const line of dataLines) {
+          const recId = newRecordId(job.object || 'Contact');
+          succRows.push(`"${recId}","true",${line}`);
+          processed++;
+        }
+        job.successfulCsv = succRows.join('\n');
+        job.failedCsv = '"sf__Id","sf__Error"\n';
+        job.numberRecordsProcessed = processed;
+        job.numberRecordsFailed = 0;
+      }
+    } else if (body.state === 'Aborted') {
+      job.state = 'Aborted';
+    }
+    return sendJson(res, 200, {
+      id: job.id,
+      state: job.state,
+      numberRecordsProcessed: job.numberRecordsProcessed,
+      numberRecordsFailed: job.numberRecordsFailed,
+    });
+  }
+
+  // GET /services/data/{v}/jobs/ingest/{jobId} — poll job status
+  if (bulkJobMatch && method === 'GET') {
+    const [, jobId] = bulkJobMatch;
+    const job = bulkJobs.get(jobId);
+    if (!job) return notFound(res, jobId);
+    return sendJson(res, 200, {
+      id: job.id,
+      state: job.state,
+      numberRecordsProcessed: job.numberRecordsProcessed,
+      numberRecordsFailed: job.numberRecordsFailed,
+      errorMessage: job.errorMessage,
+    });
   }
 
   // ── Custom API Call (generic) ──────────────────────────────────

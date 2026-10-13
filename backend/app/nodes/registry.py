@@ -33,6 +33,7 @@ _ALIASES: dict[str, str] = {
     "sub_workflow_trigger": "execute_workflow_trigger",
     "when_executed_by_another_workflow": "execute_workflow_trigger",
     "execute_sub_workflow": "sub_workflow",
+    "csv": "csv_parser",
 }
 
 
@@ -93,6 +94,7 @@ def _load_builtin_nodes() -> None:
         compression,
         crypto_tools,
         csv_json_transform,
+        csv_parser,
         data_table,
         database_query,
         date_time,

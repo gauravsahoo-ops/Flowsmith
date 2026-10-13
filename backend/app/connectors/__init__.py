@@ -674,12 +674,15 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.oracle_definition import build_oracle_definition
     from app.connectors.mqtt_connector import MQTTConnector
     from app.connectors.mqtt_definition import build_mqtt_definition
+    from app.connectors.csv_connector import CsvConnector
+    from app.connectors.csv_definition import build_csv_definition
 
     # connector_id -> (instance factory, definition builder). Definition
     # builders are paired with their connectors so discovery, the node
     # catalog and execution always agree on operations/schemas.
     builtins: list[tuple[ConnectorSDK, Any]] = [
         (HTTPConnector(), None),
+        (CsvConnector(), build_csv_definition),
         (SalesforceConnector(), build_salesforce_definition),
         (HubSpotConnector(), build_hubspot_definition),
         (DynamicsCrmConnector(), build_dynamics_crm_definition),

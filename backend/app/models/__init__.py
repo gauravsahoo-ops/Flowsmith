@@ -33,8 +33,11 @@ from app.models.connection_auth_policy import (
     CredentialAuditEvent,
 )
 from app.models.recovery_state import ConnectionState, RecoveryMode
+from app.models.branding import BrandingSetting
+from app.models.staged_record import StagedContactRecord
 
 __all__ = [
+    "StagedContactRecord",
     "User",
     "WorkflowRecord",
     "WorkflowAuthState",

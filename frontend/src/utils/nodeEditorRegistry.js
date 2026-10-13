@@ -36,6 +36,7 @@ const editors = {
   token_fetch: () => import('../components/TokenFetchNodeEditor'),
   token_store: () => import('../components/TokenStoreNodeEditor'),
   ai: () => import('../components/AINodeEditor'),
+  csv: () => import('../components/CsvNodeEditor'),
 }
 
 /**
@@ -57,6 +58,8 @@ const aliases = {
   // Auth helpers reuse the token editors.
   auth_fetch: 'token_fetch',
   auth_store: 'token_store',
+  // CSV parser node shares the dedicated CSV editor
+  csv_parser: 'csv',
 }
 
 const resolvedCache = new Map()

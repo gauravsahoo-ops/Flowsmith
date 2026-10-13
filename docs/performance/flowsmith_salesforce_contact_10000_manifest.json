@@ -1,0 +1,25 @@
+{
+  "dataset_name": "flowsmith_salesforce_contact_10000.csv",
+  "total_rows": 10000,
+  "unique_rows": 9800,
+  "duplicate_rows": 200,
+  "columns": [
+    "FirstName",
+    "LastName",
+    "Email",
+    "Phone",
+    "Department",
+    "Title",
+    "MailingStreet",
+    "MailingCity",
+    "MailingState",
+    "MailingPostalCode",
+    "MailingCountry",
+    "Description"
+  ],
+  "target_salesforce_object": "Contact",
+  "file_size_bytes": 2743879,
+  "sha256_checksum": "14fbfa3738fc6ec52e3d930c70ed1e2a77963b6644f7229301416ecbc7b0114d",
+  "random_seed": 42,
+  "generator_script": "scripts/generate_10k_contact_dataset.py"
+}
