@@ -607,6 +607,52 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
     )
   }
 
+  // Microsoft SQL Server (Official Red Database Cylinder)
+  if (matches('mssql', 'sqlserver')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#CC292B" />
+        <ellipse cx="12" cy="7" rx="6" ry="2.2" fill="#FFFFFF" opacity="0.9" />
+        <path d="M6 7v4c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V7" stroke="#FFFFFF" strokeWidth="1.6" fill="none" />
+        <path d="M6 11v4c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2v-4" stroke="#FFFFFF" strokeWidth="1.6" fill="none" />
+      </svg>
+    )
+  }
+
+  // SQLite (Official Navy Feather Database)
+  if (matches('sqlite')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#003B57" />
+        <path d="M7 16c2-4 5-8 10-10-3 3-5 7-6 10l-4 0z" fill="#00A8E8" />
+        <ellipse cx="12" cy="6.5" rx="5" ry="1.8" fill="#38BDF8" opacity="0.8" />
+      </svg>
+    )
+  }
+
+  // RabbitMQ (Official Orange Rabbit Mark)
+  if (matches('rabbitmq', 'amqp')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#FF6600" />
+        <path d="M12 7c-1.5 0-2 1.5-2 3v1c-.8 0-1.5.7-1.5 1.5v3c0 .8.7 1.5 1.5 1.5h4c.8 0 1.5-.7 1.5-1.5v-3c0-.8-.7-1.5-1.5-1.5V10c0-1.5-.5-3-2-3z" fill="#FFFFFF" />
+        <circle cx="10.5" cy="11.5" r="0.8" fill="#FF6600" />
+      </svg>
+    )
+  }
+
+  // Compression (Archive Package Mark)
+  if (matches('compression', 'zip', 'unzip', 'gzip', 'tar')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0284C7" />
+        <path d="M6 7h12M6 10h12M6 13h12" stroke="#FFFFFF" strokeWidth="1.5" opacity="0.6" />
+        <rect x="9.5" y="12" width="5" height="5" rx="1" fill="#FFFFFF" />
+        <rect x="11" y="13.5" width="2" height="2" fill="#0284C7" />
+      </svg>
+    )
+  }
+
   // CoinGecko (Official Green Gecko Face)
   if (matches('coin_gecko', 'coingecko')) {
     return (
@@ -820,6 +866,43 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
         <path d="M5 8.5h4c1 0 1.8.8 1.8 1.8 0 1-.8 1.8-1.8 1.8H6.5v2.4H5V8.5zm1.5 2.4H9c.2 0 .4-.2.4-.4s-.2-.4-.4-.4H6.5v.8z" fill="#FFFFFF" />
         <path d="M12.5 8.5h1.6l2.4 6h-1.6l-.5-1.3h-2.2l-.5 1.3h-1.6l2.4-6zm.4 3.5h1.4l-.7-1.8-.7 1.8z" fill="#FFFFFF" />
         <path d="M17.5 8.5h2.5c1 0 1.8.8 1.8 1.8s-.8 1.8-1.8 1.8h-1v2.4h-1.5V8.5zm1.5 2.4h1c.2 0 .4-.2.4-.4s-.2-.4-.4-.4H19v.8z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Apache Kafka (Official Dark Tile with White Interconnected Node Ring)
+  if (matches('kafka', 'apache_kafka')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#231F20" />
+        <circle cx="8" cy="8" r="2" fill="#FFFFFF" />
+        <circle cx="16" cy="12" r="2.2" fill="#FFFFFF" />
+        <circle cx="8" cy="16" r="2" fill="#FFFFFF" />
+        <path d="M8 8l8 4-8 4" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // Oracle Database (Official Red Pill Badge with Cylinder Geometry)
+  if (matches('oracle', 'oracle_database', 'oracle_db')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#C74634" />
+        <ellipse cx="12" cy="7.5" rx="5.5" ry="2" fill="#FFFFFF" />
+        <path d="M6.5 7.5v4c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-4" stroke="#FFFFFF" strokeWidth="1.6" fill="none" />
+        <path d="M6.5 11.5v4c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-4" stroke="#FFFFFF" strokeWidth="1.6" fill="none" />
+      </svg>
+    )
+  }
+
+  // MQTT (Official Magenta / Purple IoT Signal Emblem)
+  if (matches('mqtt', 'mqtt_broker')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#660066" />
+        <circle cx="12" cy="12" r="2.2" fill="#FFFFFF" />
+        <path d="M8 8a5.6 5.6 0 0 1 8 0M6 6a8.4 8.4 0 0 1 12 0" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+        <path d="M16 16a5.6 5.6 0 0 1-8 0M18 18a8.4 8.4 0 0 1-12 0" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" fill="none" />
       </svg>
     )
   }
@@ -1727,21 +1810,506 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
     )
   }
 
-  // If user provided a custom emoji character or text (only when not a placeholder)
+  // =========================================================================
+  // SOCIAL, DESIGN, MARKETING & WORKFLOW CONNECTOR MARKS
+  // =========================================================================
+
+  // Facebook / Meta (Official Blue Tile with White 'f')
+  if (matches('facebook', 'meta', 'fb')) {
+    const isTrigger = matches('trigger') || t.includes('trigger') || n.includes('trigger')
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#1877F2" />
+        <path d="M16 12.5h-2.5V22h-4v-9.5H7.5V9h2V6.8C9.5 4.6 10.7 3 13.7 3H16.5v3.2h-1.8c-1 0-1.2.5-1.2 1.2V9h3l-.5 3.5z" fill="#FFFFFF" />
+        {isTrigger && <polygon points="19 3 14 10 17 10 15 16 21 8 18 8" fill="#F97316" stroke="#FFFFFF" strokeWidth="0.8" />}
+      </svg>
+    )
+  }
+
+  // Figma (Official 5-color Flow)
+  if (matches('figma')) {
+    const isTrigger = matches('trigger') || t.includes('trigger') || n.includes('trigger')
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M8 3.5h4v4.5H8a2.25 2.25 0 0 1 0-4.5z" fill="#F24E1E" />
+        <path d="M12 3.5h4a2.25 2.25 0 0 1 0 4.5h-4V3.5z" fill="#FF7262" />
+        <path d="M12 8h4a2.25 2.25 0 0 1 0 4.5h-4V8z" fill="#1ABCFE" />
+        <path d="M8 8h4v4.5H8a2.25 2.25 0 0 1 0-4.5z" fill="#A259FF" />
+        <path d="M8 12.5h4V17a2.25 2.25 0 0 1-4 0v-4.5z" fill="#0ACF83" />
+        <circle cx="12" cy="14.75" r="2.25" fill="#1ABCFE" />
+        {isTrigger && <polygon points="19 3 14 10 17 10 15 16 21 8 18 8" fill="#F97316" stroke="#FFFFFF" strokeWidth="0.8" />}
+      </svg>
+    )
+  }
+
+  // Eventbrite (Official Warm Orange Ticket Tile)
+  if (matches('eventbrite')) {
+    const isTrigger = matches('trigger') || t.includes('trigger') || n.includes('trigger')
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#F05537" />
+        <path d="M15.5 8H8.5v8h7v-2h-4.5v-1.2h3.8v-1.8h-3.8V9.8h4.5V8z" fill="#FFFFFF" />
+        {isTrigger && <polygon points="19 3 14 10 17 10 15 16 21 8 18 8" fill="#F97316" stroke="#FFFFFF" strokeWidth="0.8" />}
+      </svg>
+    )
+  }
+
+  // Emelia (Cold Outreach / Email Marketing Mark)
+  if (matches('emelia')) {
+    const isTrigger = matches('trigger') || t.includes('trigger') || n.includes('trigger')
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#7C3AED" />
+        <path d="M6 8l6 4.5L18 8M6 8v8h12V8" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="15.5" cy="13.5" r="2.5" fill="#EC4899" />
+        {isTrigger && <polygon points="19 3 14 10 17 10 15 16 21 8 18 8" fill="#F97316" stroke="#FFFFFF" strokeWidth="0.8" />}
+      </svg>
+    )
+  }
+
+  // Execute Command / Terminal / Shell
+  if (matches('execute_command', 'exec_command', 'command', 'terminal', 'shell', 'bash')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0F172A" stroke="#334155" strokeWidth="1.2" />
+        <path d="M6 8l4 4-4 4M12 16h6" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Workflow Inputs / Trigger Form Parameters
+  if (matches('workflow_inputs', 'workflow_input', 'inputs', 'input_data')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#1E293B" stroke="#475569" strokeWidth="1.2" />
+        <path d="M5 12h10M11 8l4 4-4 4" stroke="#38BDF8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="15" y="6" width="4" height="12" rx="1" fill="#38BDF8" fillOpacity="0.4" />
+      </svg>
+    )
+  }
+
+  // Execution Data / Flow Context
+  if (matches('execution_data', 'execution_context', 'flow_data')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0F172A" stroke="#334155" strokeWidth="1.2" />
+        <ellipse cx="12" cy="7" rx="6" ry="2.2" stroke="#A855F7" strokeWidth="1.5" />
+        <path d="M6 7v4c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V7M6 11v4c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2v-4" stroke="#A855F7" strokeWidth="1.5" />
+      </svg>
+    )
+  }
+
+  // Twitter / X
+  if (matches('twitter', 'x_corp', 'x_platform', 'tweet')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#000000" />
+        <path d="M14.7 6.5l4 4.5M18.7 6.5l-8.5 11h-3l5.5-7.2-4.5-5.8h2.3l3.5 4.5 3.2-4.5h1.5z" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Instagram (Official Gradient Camera)
+  if (matches('instagram', 'insta')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <defs>
+          <linearGradient id="igGradDynamic" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#FD5949" />
+            <stop offset="50%" stopColor="#D6249F" />
+            <stop offset="100%" stopColor="#285AEB" />
+          </linearGradient>
+        </defs>
+        <rect width="20" height="20" x="2" y="2" rx="5" fill="url(#igGradDynamic)" />
+        <rect x="6.5" y="6.5" width="11" height="11" rx="3" stroke="#FFFFFF" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="2.8" stroke="#FFFFFF" strokeWidth="1.8" />
+        <circle cx="15.2" cy="8.8" r="0.8" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // LinkedIn (Official Blue Tile)
+  if (matches('linkedin')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0A66C2" />
+        <path d="M6.5 9.5h2.5V17H6.5V9.5zM7.7 8.3a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8zM11 9.5h2.4v1.1h.03c.3-.6 1.2-1.3 2.4-1.3 2.5 0 3 1.6 3 3.8V17h-2.5v-3.5c0-.8 0-1.9-1.2-1.9s-1.4.9-1.4 1.8V17H11V9.5z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // YouTube (Official Red Button)
+  if (matches('youtube')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="5" fill="#FF0000" />
+        <polygon points="10 8 16 12 10 16" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // TikTok
+  if (matches('tiktok')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#010101" />
+        <path d="M12.5 5v8.5a2.5 2.5 0 1 1-2.5-2.5c.3 0 .7.1 1 .2V8.5a5 5 0 1 0 4 4.9V9a5 5 0 0 0 3-1V5.5c-1.2.2-2.3-.5-2.8-1.5h-2.7z" fill="#00F2FE" />
+        <path d="M13.5 5v7.5a2.5 2.5 0 0 1-2.5 2.5 2.5 2.5 0 0 1-2.5-2.5c0-.5.2-1 .5-1.4V8.5a5 5 0 0 1 4.5 4.5V9a5 5 0 0 0 3-1V5.5c-.7 0-1.4-.3-1.9-.8-.4-.4-.7-1-.8-1.7h-2.8z" fill="#FE2C55" opacity="0.8" />
+      </svg>
+    )
+  }
+
+  // Pinterest
+  if (matches('pinterest')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#E60023" />
+        <path d="M11.5 17.5c-.4-1.8-.7-3.9.1-5.7.5-.9 2.5-1.1 2.5.7 0 2.2-1.5 3.3-2.6 5zM12 7c-3 0-5 2.1-5 4.8 0 1.8 1 3.2 2.5 3.2.4 0 .7-.3.8-.6l.3-1c.1-.3 0-.4-.2-.7-.5-.6-.7-1.3-.7-2.1 0-1.8 1.4-3.5 3.7-3.5 2 0 3.3 1.3 3.3 3.1 0 2.2-1.1 4.1-2.5 4.1-.8 0-1.4-.6-1.2-1.4l.7-2.8c.2-.8-.2-1.6-1-1.6-.8 0-1.5.8-1.5 2 0 .7.3 1.2.3 1.2s-1 4.2-1.2 5c-.3 1.2 0 3.2.1 3.4.1.1.2.1.3 0 .1-.2 1.5-2 1.9-3.4l.7-2.6c.4.7 1.5 1.3 2.6 1.3 3.4 0 5.7-3.1 5.7-6.5C18.6 9.6 15.6 7 12 7z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Reddit
+  if (matches('reddit')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#FF4500" />
+        <circle cx="9.2" cy="11.8" r="1.2" fill="#FFFFFF" />
+        <circle cx="14.8" cy="11.8" r="1.2" fill="#FFFFFF" />
+        <path d="M9.5 15.2c1.3.8 3.7.8 5 0" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // WhatsApp
+  if (matches('whatsapp')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#25D366" />
+        <path d="M7 17.5l.8-2.6A5.5 5.5 0 1 1 12 17.5a5.4 5.4 0 0 1-2.7-.7L7 17.5zm3.7-7c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.1 0 1.2.9 2.4 1 2.6.2.2 1.8 2.7 4.3 3.7 2.1.8 2.5.6 3 .5.4 0 1.4-.6 1.6-1.1.2-.6.2-1.1.1-1.2-.1-.1-.3-.2-.6-.4l-1.8-.9c-.3-.1-.5 0-.7.2l-.7.9c-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.2-1.3-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.5.1-.6l.5-.6c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-.8-1.9z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // WordPress
+  if (matches('wordpress', 'wp')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#21759B" />
+        <path d="M4.2 12c0 3.3 2 6.2 5 7.4L5.6 9.8c-.9.6-1.4 1.4-1.4 2.2zm12.3 0c0 1.2-.4 2.3-1.1 3.2l-3.3-9.5c1.4.3 2.8 1.1 3.6 2.4.5 1.1.8 2.5.8 3.9zM12 4.2c1.7 0 3.3.6 4.5 1.6l-2.4 6.9-2.1-6.1c.3 0 .7 0 1-.1-.3 0-.6 0-.9 0L10.3 12 8 5.6c.4-.1.7-.1 1.1-.1.4 0 .8 0 1.2.1L7.5 5.8C8.8 4.8 10.3 4.2 12 4.2zm-2.4 15.3l-2.4-6.8 3.5 10.2c-.4-.1-.8-.2-1.1-.4zm4.8-.4l-2.2-6.4 2.2-6.3 2.1 6.3-2.1 6.4z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // WooCommerce
+  if (matches('woocommerce', 'woo')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#96588A" />
+        <path d="M5.5 8.5c1.5 5 2.5 7.5 3 7.5s1.5-2.5 2.5-5.5c1 3 2 5.5 2.5 5.5s1.5-2.5 3-7.5" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Webflow
+  if (matches('webflow')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#146EF5" />
+        <path d="M18.5 7.5L15 16.5l-2.5-5.5-2 4.5L6 7.5h3.2l1.3 3.5 1.5-3.5h3l1.5 4 1-4h2z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Dropbox
+  if (matches('dropbox')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M7 4.5L2 8l5 3.5 5-3.5L7 4.5zm10 0l-5 3.5 5 3.5 5-3.5-5-3.5zM2 15l5 3.5 5-3.5-5-3.5-5 3.5zm15-3.5l-5 3.5 5 3.5 5-3.5-5-3.5zM7 19.5l5 3.5 5-3.5-5-3.5-5 3.5z" fill="#0061FF" />
+      </svg>
+    )
+  }
+
+  // Box
+  if (matches('box', 'box_storage')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#0061D5" />
+        <circle cx="8" cy="12" r="3" fill="#FFFFFF" />
+        <circle cx="16" cy="12" r="3" fill="#FFFFFF" />
+        <path d="M8 12h8" stroke="#0061D5" strokeWidth="2" />
+      </svg>
+    )
+  }
+
+  // Docker
+  if (matches('docker')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="9" width="2" height="2" fill="#0DB7ED" />
+        <rect x="7" y="9" width="2" height="2" fill="#0DB7ED" />
+        <rect x="10" y="9" width="2" height="2" fill="#0DB7ED" />
+        <rect x="7" y="6" width="2" height="2" fill="#0DB7ED" />
+        <rect x="10" y="6" width="2" height="2" fill="#0DB7ED" />
+        <rect x="13" y="9" width="2" height="2" fill="#0DB7ED" />
+        <path d="M21.5 12c-.5-.3-1.5-.4-2.2-.1-.4-1.2-1.5-1.9-2.8-1.9H16v2H2.5c-.3 1.2 0 3.5 1.5 5 2 2 6 2 9 2 4.5 0 8-2.5 9-6.5.2-.2.1-.4-.5-.5z" fill="#0DB7ED" />
+      </svg>
+    )
+  }
+
+  // Kubernetes
+  if (matches('kubernetes', 'k8s')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M12 2l8.5 4.9v9.8L12 21.6 3.5 16.7V6.9L12 2z" stroke="#326CE5" strokeWidth="1.8" fill="#326CE5" fillOpacity="0.1" />
+        <circle cx="12" cy="11.8" r="3.2" stroke="#326CE5" strokeWidth="1.8" />
+        <path d="M12 4.5v4M12 15v4.5M5.5 8l3.5 2M15 13.5l3.5 2M5.5 15.5l3.5-2M15 10l3.5-2" stroke="#326CE5" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // AWS / Amazon Cloud Services
+  if (matches('aws', 'amazon', 's3', 'sqs', 'sns', 'ses', 'dynamodb', 'lambda')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#232F3E" />
+        <path d="M7 14.5c3.5 2 7 2 10 0" stroke="#FF9900" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M16 13.5l1.5 1.2-1.8.8" stroke="#FF9900" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="#FF9900" />
+        <path d="M7 10.5l2-4 2 4M8 9.5h2" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // Google Cloud / BigQuery
+  if (matches('google_cloud', 'gcp', 'bigquery', 'google_drive', 'google')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#4285F4" />
+        <circle cx="12" cy="14" r="2.5" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Microsoft Azure
+  if (matches('azure', 'azure_blob', 'azure_devops')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M13.2 3.5L5.5 17.5h4.2l3.5-6.5 4.8 9.5H22L13.2 3.5z" fill="#0089D6" />
+        <path d="M9.7 17.5h7.8L13.5 9l-3.8 8.5z" fill="#0072C6" opacity="0.6" />
+      </svg>
+    )
+  }
+
+  // Datadog
+  if (matches('datadog')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#632CA6" />
+        <path d="M8 8h3c2.2 0 4 1.8 4 4s-1.8 4-4 4H8V8zm2.2 6h.8c1 0 1.8-.8 1.8-2s-.8-2-1.8-2h-.8v4z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // PagerDuty
+  if (matches('pagerduty')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#06AC38" />
+        <path d="M8 6h4c2.2 0 4 1.8 4 4s-1.8 4-4 4h-2v4H8V6zm2 6h2c1.1 0 2-.9 2-2s-.9-2-2-2h-2v4z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Sentry
+  if (matches('sentry')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4" fill="#362D59" />
+        <path d="M16.5 16.5A6.5 6.5 0 0 0 7 7.5L8.5 9a4.5 4.5 0 0 1 6.5 6.5l1.5 1z" fill="#FB4226" />
+        <circle cx="12" cy="12" r="2" fill="#FB4226" />
+      </svg>
+    )
+  }
+
+  // PayPal
+  if (matches('paypal')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M8.5 4h5.2c2.6 0 4.3 1.5 3.8 4-.6 2.8-2.6 4-4.8 4h-2l-1.2 7.5H6.2L8.5 4z" fill="#003087" />
+        <path d="M10.8 7.5h4.5c2.3 0 3.8 1.3 3.3 3.5-.5 2.5-2.3 3.5-4.2 3.5h-1.8l-1.1 6.5H8.3L10.8 7.5z" fill="#0079C1" opacity="0.85" />
+      </svg>
+    )
+  }
+
+  // Square
+  if (matches('square')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#000000" />
+        <rect width="10" height="10" x="7" y="7" rx="2" fill="#FFFFFF" />
+        <rect width="4" height="4" x="10" y="10" rx="1" fill="#000000" />
+      </svg>
+    )
+  }
+
+  // QuickBooks
+  if (matches('quickbooks', 'intuit')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#2CA01C" />
+        <path d="M8.5 8h2v8h-2c-1.5 0-2.5-1.2-2.5-2.8V10.8C6 9.2 7 8 8.5 8zm7 0h-2v8h2c1.5 0 2.5-1.2 2.5-2.8V10.8c0-1.6-1-2.8-2.5-2.8z" stroke="#FFFFFF" strokeWidth="1.8" fill="none" />
+      </svg>
+    )
+  }
+
+  // Xero
+  if (matches('xero')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#13B5EA" />
+        <path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // BambooHR
+  if (matches('bamboohr', 'bamboo_hr')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#73C431" />
+        <path d="M9 16c1-2 2-6 2-9M12 16c.8-1.5 1.5-4.5 1.5-7M15 16c.5-1 1-3 1-5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  // ActiveCampaign
+  if (matches('activecampaign')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#356AE6" />
+        <path d="M8 15l4-7 4 7M9.5 13h5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  // Brevo / Sendinblue
+  if (matches('brevo', 'sendinblue')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#0B996F" />
+        <circle cx="12" cy="12" r="4" stroke="#FFFFFF" strokeWidth="2" />
+      </svg>
+    )
+  }
+
+  // Telegram
+  if (matches('telegram')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" fill="#2AABEE" />
+        <path d="M7.5 11.5l8-3.5-3.5 8-1.5-3-3-1.5z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Discord
+  if (matches('discord')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#5865F2" />
+        <path d="M8.5 10c0 .6-.4 1-1 1s-1-.4-1-1 .4-1 1-1 1 .4 1 1zm8 0c0 .6-.4 1-1 1s-1-.4-1-1 .4-1 1-1 1 .4 1 1zm-4.5 4.5c1.5 0 2.5-.5 2.5-.5s-.5 1-2.5 1-2.5-1-2.5-1 1 .5 2.5.5z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // Zoom
+  if (matches('zoom')) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill="#2D8CFF" />
+        <path d="M6.5 9h7c.8 0 1.5.7 1.5 1.5v3c0 .8-.7 1.5-1.5 1.5h-7C5.7 15 5 14.3 5 13.5v-3C5 9.7 5.7 9 6.5 9zm9 2.5l3.5-2v5l-3.5-2v-1z" fill="#FFFFFF" />
+      </svg>
+    )
+  }
+
+  // -------------------------------------------------------------------------
+  // DYNAMIC BRAND MONOGRAM BADGE FOR ALL OTHER CONNECTORS & APPS
+  // If user provided a real single emoji character (NOT placeholder words like 'connector', 'custom', 'node', etc.)
   if (
     icon &&
     typeof icon === 'string' &&
     icon.trim() &&
-    icon !== '\uD83C\uDF10' &&
-    icon !== '\uD83D\uDD0C' &&
-    icon !== '•' &&
-    icon !== '\u26A1' &&
-    !icon.includes('http')
+    !['connector', 'custom', 'builtin', 'node', 'default', 'none', 'plugin'].includes(icon.toLowerCase().trim()) &&
+    icon.length <= 4 &&
+    icon.charCodeAt(0) > 127
   ) {
     return (
       <span style={{ fontSize: size * 0.76, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
         {icon}
       </span>
+    )
+  }
+
+  // -------------------------------------------------------------------------
+  // Dynamic Brand Monogram Badge for any remaining connectors or nodes
+  // -------------------------------------------------------------------------
+  const rawKey = (name || type || '').trim()
+  const cleanLabel = rawKey
+    .replace(/trigger|node|connector|_api|api/gi, ' ')
+    .replace(/[^a-zA-Z0-9]/g, ' ')
+    .trim() || rawKey.replace(/[^a-zA-Z0-9]/g, ' ').trim()
+
+  if (cleanLabel) {
+    const words = cleanLabel.split(/\s+/).filter(Boolean)
+    const monogram = (words.length > 1 ? words[0][0] + words[1][0] : cleanLabel.slice(0, 2)).toUpperCase() || 'FS'
+    const colors = [
+      ['#4f46e5', '#6366f1'],
+      ['#2563eb', '#3b82f6'],
+      ['#0284c7', '#38bdf8'],
+      ['#0d9488', '#14b8a6'],
+      ['#059669', '#10b981'],
+      ['#d97706', '#f59e0b'],
+      ['#ea580c', '#f97316'],
+      ['#dc2626', '#ef4444'],
+      ['#e11d48', '#f43f5e'],
+      ['#c026d3', '#d946ef'],
+      ['#7c3aed', '#8b5cf6'],
+      ['#0891b2', '#06b6d4'],
+    ]
+    let hash = 0
+    for (let i = 0; i < cleanLabel.length; i++) {
+      hash = (hash << 5) - hash + cleanLabel.charCodeAt(i)
+      hash |= 0
+    }
+    const colorPair = colors[Math.abs(hash) % colors.length]
+    const gradId = `grad-${Math.abs(hash) % 1000}`
+    const isTrigger = matches('trigger') || t.includes('trigger') || n.includes('trigger')
+
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={colorPair[0]} />
+            <stop offset="100%" stopColor={colorPair[1]} />
+          </linearGradient>
+        </defs>
+        <rect width="20" height="20" x="2" y="2" rx="4.5" fill={`url(#${gradId})`} />
+        <text
+          x="12"
+          y="15.2"
+          fill="#FFFFFF"
+          fontSize={monogram.length > 1 ? "9.5" : "11"}
+          fontWeight="700"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          textAnchor="middle"
+          letterSpacing="-0.3px"
+        >
+          {monogram}
+        </text>
+        {isTrigger && (
+          <polygon points="19 3 14 10 17 10 15 16 21 8 18 8" fill="#F97316" stroke="#FFFFFF" strokeWidth="0.8" />
+        )}
+      </svg>
     )
   }
 

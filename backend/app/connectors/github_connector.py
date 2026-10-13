@@ -22,7 +22,7 @@ from app.providers.github import GitHubProviderClient
 
 
 class GitHubConnectorParams(BaseModel):
-    operation: str = Field(default="get_repo", description="get_repo | create_issue | add_comment | list_issues.")
+    operation: str = Field(default="get_repo", description="get_repo | create_issue | add_comment | list_issues | get_issue | close_issue.")
     owner: str = ""
     repo: str = ""
     title: str = ""
@@ -115,6 +115,24 @@ class GitHubConnector(ConnectorSDK):
                     max_pages=int(max_pages_raw) if max_pages_raw is not None else params.max_pages,
                     timeout=timeout,
                 )
+            if op == "get_issue":
+                number_raw = raw.get("issue_number", params.issue_number)
+                try:
+                    number = int(number_raw)
+                except (TypeError, ValueError) as exc:
+                    raise make_connector_error(
+                        ConnectorErrorCode.BAD_REQUEST, "issue_number must be an integer.", retryable=False,
+                    ) from exc
+                return await self._provider.get_issue(creds, owner, repo, number, timeout=timeout)
+            if op == "close_issue":
+                number_raw = raw.get("issue_number", params.issue_number)
+                try:
+                    number = int(number_raw)
+                except (TypeError, ValueError) as exc:
+                    raise make_connector_error(
+                        ConnectorErrorCode.BAD_REQUEST, "issue_number must be an integer.", retryable=False,
+                    ) from exc
+                return await self._provider.close_issue(creds, owner, repo, number, timeout=timeout)
         except ConnectorError:
             raise
         raise make_connector_error(

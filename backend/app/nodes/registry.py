@@ -70,6 +70,9 @@ def list_nodes() -> list[dict]:
             "input_handles": cls.input_handles,
             "output_handles": cls.output_handles,
             "idempotency": cls.idempotency,  # spec 35
+            # Opt-in per-operation metadata. Nodes that do not declare any
+            # keep an empty dict and render a flat form.
+            "operations": getattr(cls, "operations", {}) or {},
             "parameters_schema": cls.parameters_schema.model_json_schema(),
         })
     _list_cache = items
@@ -87,6 +90,7 @@ def _load_builtin_nodes() -> None:
         chat_trigger,
         code,
         compare_datasets,
+        compression,
         crypto_tools,
         csv_json_transform,
         data_table,
@@ -118,6 +122,7 @@ def _load_builtin_nodes() -> None:
         output_parser,
         pagination,
         rag_pipeline,
+        rename_keys,
         respond_to_webhook,
         rss_feed,
         salesforce_trigger,

@@ -188,3 +188,43 @@ class MongoProviderClient:
                 _translate(exc, "delete")
 
         return await asyncio.to_thread(job)
+
+    async def aggregate(self, creds: dict, database: str, collection: str,
+                        pipeline: list[dict], timeout: float = 30.0) -> dict:
+        db, coll = _namespace(database, collection)
+        if not isinstance(pipeline, list):
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "aggregate requires a pipeline list of stage objects.", retryable=False)
+
+        def job() -> dict[str, Any]:
+            pymongo, PyMongoError = _require_pymongo()
+            try:
+                client = pymongo.MongoClient(_require_uri(creds), serverSelectionTimeoutMS=int(timeout * 1000))
+                try:
+                    cursor = client[db][coll].aggregate(pipeline)
+                    docs = [_sanitize(d) for d in cursor]
+                    return {"documents": docs, "count": len(docs), "success": True}
+                finally:
+                    client.close()
+            except PyMongoError as exc:
+                _translate(exc, "aggregate")
+
+        return await asyncio.to_thread(job)
+
+    async def count_documents(self, creds: dict, database: str, collection: str,
+                              filter_query: dict | None = None, timeout: float = 30.0) -> dict:
+        db, coll = _namespace(database, collection)
+
+        def job() -> dict[str, Any]:
+            pymongo, PyMongoError = _require_pymongo()
+            try:
+                client = pymongo.MongoClient(_require_uri(creds), serverSelectionTimeoutMS=int(timeout * 1000))
+                try:
+                    count = client[db][coll].count_documents(filter_query or {})
+                    return {"count": int(count), "database": db, "collection": coll, "success": True}
+                finally:
+                    client.close()
+            except PyMongoError as exc:
+                _translate(exc, "count_documents")
+
+        return await asyncio.to_thread(job)
+

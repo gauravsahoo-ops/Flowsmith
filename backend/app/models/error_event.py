@@ -26,7 +26,7 @@ from sqlalchemy.types import JSON
 from app.db import Base
 
 if TYPE_CHECKING:
-    from app.models import User, WorkflowRecord, Execution
+    from app.models import User
 
 
 def generate_uuid() -> str:

@@ -450,6 +450,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
     if (params.max_redirects !== undefined && params.max_redirects !== 5) o.push('max_redirects')
     if (params.response_format && params.response_format !== 'auto') o.push('response_format')
     if (params.max_response_bytes && params.max_response_bytes !== 10*1024*1024) o.push('max_response_bytes')
+    if (params.paginate) o.push('pagination')
     return o
   })
 
@@ -569,6 +570,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
     { value: 'max_redirects', label: 'Max Redirects' },
     { value: 'response_format', label: 'Response Format' },
     { value: 'max_response_bytes', label: 'Max Response Size' },
+    { value: 'pagination', label: 'Pagination' },
   ]
   const remainingOptions = availableOptions.filter(o => !optionsList.includes(o.value))
 
@@ -1462,6 +1464,45 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <label style={{ flex: 1 }}><span>Max Response Bytes</span><input type="number" min={1024} value={params.max_response_bytes ?? 10*1024*1024} onChange={(e) => patch({ max_response_bytes: Number(e.target.value) })} /></label>
               <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'max_response_bytes')); patch({ max_response_bytes: 10*1024*1024 }) }} title="Remove" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+          )}
+          {optionsList.includes('pagination') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 8, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel-1)' }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <label className="check" style={{ flex: 1 }}><input type="checkbox" checked={Boolean(params.paginate)} onChange={(e) => patch({ paginate: e.target.checked })} /><span>Paginate this request</span></label>
+                <button type="button" className="ghost" onClick={() => { setOptionsList(optionsList.filter(v => v !== 'pagination')); patch({ paginate: false, pagination_type: 'page', page_param: 'page', limit_param: 'limit', page_size: 50, max_pages: 1, cursor_param: 'cursor', cursor_path: '', records_path: '', stop_when_short: true }) }} title="Remove" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+              {params.paginate && (
+                <>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <label style={{ flex: 1 }}><span>Pagination mode</span>
+                      <select value={params.pagination_type || 'page'} onChange={(e) => patch({ pagination_type: e.target.value })}>
+                        <option value="page">Page number</option>
+                        <option value="offset">Offset</option>
+                        <option value="cursor">Cursor / next token</option>
+                      </select>
+                    </label>
+                    <label style={{ flex: 1 }}><span>Page size</span><input type="number" min={1} max={1000} value={params.page_size ?? 50} onChange={(e) => patch({ page_size: Number(e.target.value) })} /></label>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <label style={{ flex: 1 }}><span>Page / offset parameter</span><input value={params.page_param ?? 'page'} onChange={(e) => patch({ page_param: e.target.value })} placeholder="page" /></label>
+                    <label style={{ flex: 1 }}><span>Limit parameter</span><input value={params.limit_param ?? 'limit'} onChange={(e) => patch({ limit_param: e.target.value })} placeholder="limit" /></label>
+                  </div>
+                  <label><span>Max pages</span><input type="number" min={1} max={1000} value={params.max_pages ?? 1} onChange={(e) => patch({ max_pages: Number(e.target.value) })} /></label>
+                  {params.pagination_type === 'cursor' && (
+                    <>
+                      <label><span>Cursor parameter</span><input value={params.cursor_param ?? 'cursor'} onChange={(e) => patch({ cursor_param: e.target.value })} placeholder="cursor" /></label>
+                      <label><span>Cursor path in response</span><input value={params.cursor_path ?? ''} onChange={(e) => patch({ cursor_path: e.target.value })} placeholder="meta.next_cursor" /><span className="hint">Dot path to the next token, e.g. meta.next_cursor. Leave empty to auto-detect.</span></label>
+                    </>
+                  )}
+                  {params.pagination_type !== 'cursor' && (
+                    <label><span>Records path in response</span><input value={params.records_path ?? ''} onChange={(e) => patch({ records_path: e.target.value })} placeholder="data.items" /><span className="hint">Dot path to the record list. A short or empty page stops the walk early.</span></label>
+                  )}
+                  {params.pagination_type !== 'cursor' && (
+                    <label className="check"><input type="checkbox" checked={params.stop_when_short !== false} onChange={(e) => patch({ stop_when_short: e.target.checked })} /><span>Stop when a page comes back short</span></label>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>

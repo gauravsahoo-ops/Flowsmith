@@ -102,6 +102,28 @@ def _mongodb_operations() -> dict[str, ConnectorOperationV1]:
             retryable=True,
             idempotency="conditionally_idempotent",
         ),
+        "aggregate": _operation(
+            "aggregate", "Aggregate Documents",
+            "Execute an aggregation pipeline on a MongoDB collection.",
+            {
+                "database": _DB, "collection": _COLL,
+                "pipeline": {"type": "array", "title": "Aggregation Pipeline", "items": {"type": "object"}},
+            },
+            ["database", "collection", "pipeline"],
+            {"type": "object", "properties": {"documents": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}, "success": {"type": "boolean"}}},
+            retryable=True,
+        ),
+        "count_documents": _operation(
+            "count_documents", "Count Documents",
+            "Count documents in a collection matching an optional filter.",
+            {
+                "database": _DB, "collection": _COLL,
+                "filter": {"type": "object", "title": "Filter Query"},
+            },
+            ["database", "collection"],
+            {"type": "object", "properties": {"count": {"type": "integer"}, "database": {"type": "string"}, "collection": {"type": "string"}, "success": {"type": "boolean"}}},
+            retryable=True,
+        ),
     }
 
 
@@ -140,8 +162,9 @@ def build_mongodb_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_mongodb_credential_type(),
         metadata={
-            "initial_operations": ["find", "insert_one", "update_one", "delete_one"],
+            "initial_operations": ["find", "insert_one", "update_one", "delete_one", "aggregate", "count_documents"],
             "auth": "connection URI stored encrypted",
         },
         icon="mongodb",
     )
+

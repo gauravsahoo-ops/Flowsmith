@@ -113,6 +113,48 @@ def _github_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"issues": {"type": "array", "items": {"type": "object"}}}},
             retryable=True,
         ),
+        "get_issue": _operation(
+            "get_issue", "Get Issue",
+            "Fetch details of an issue by issue number.",
+            {
+                "owner": _OWNER, "repo": _REPO,
+                "issue_number": {"type": "integer", "title": "Issue number", "description": "Number of the issue."},
+            },
+            ["owner", "repo", "issue_number"],
+            {
+                "type": "object",
+                "properties": {
+                    "number": {"type": "integer"},
+                    "title": {"type": "string"},
+                    "body": {"type": "string"},
+                    "state": {"type": "string"},
+                    "url": {"type": "string"},
+                    "user": {"type": "string"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "close_issue": _operation(
+            "close_issue", "Close Issue",
+            "Close an open issue by issue number.",
+            {
+                "owner": _OWNER, "repo": _REPO,
+                "issue_number": {"type": "integer", "title": "Issue number", "description": "Number of the issue to close."},
+            },
+            ["owner", "repo", "issue_number"],
+            {
+                "type": "object",
+                "properties": {
+                    "number": {"type": "integer"},
+                    "state": {"type": "string"},
+                    "closed": {"type": "boolean"},
+                    "url": {"type": "string"},
+                },
+            },
+            retryable=False,
+            idempotency="idempotent",
+        ),
     }
 
 

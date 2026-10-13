@@ -61,7 +61,13 @@ class WebhookConnector(ConnectorSDK, ConnectorOperations):
         return ["webhook"]
 
     async def op_execute(self, operation: str, payload: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Execute a webhook operation."""
+        """Resolve webhook configuration — no outbound request is made.
+
+        Webhook triggers receive inbound deliveries; nothing is called here. The
+        payload is labelled ``kind == "trigger_config"`` and explicitly marks
+        ``performed_outbound_call: False`` so downstream steps cannot mistake it
+        for a delivered HTTP response.
+        """
         try:
             params = WebhookConnectorParams.model_validate(payload)
         except Exception as exc:
@@ -71,24 +77,26 @@ class WebhookConnector(ConnectorSDK, ConnectorOperations):
                 retryable=False,
             ) from exc
 
-        # Webhook triggers don't make outbound HTTP calls in the same way
-        # They receive inbound payloads. For the framework, we return
-        # the configured path and trigger info.
-        result: dict[str, Any] = {
-            "status_code": 200,
-            "headers": {},
-            "body": {
-                "trigger_type": params.trigger_type,
-                "path": params.path,
-                "method": params.method,
-                "received_at": None,
-            },
+        body: dict[str, Any] = {
+            "trigger_type": params.trigger_type,
+            "path": params.path,
+            "method": params.method,
+            "received_at": None,
+            "note": "Configuration only. Inbound deliveries are handled by the webhook API route.",
         }
 
-        return {"output": result, "success": True, "operation": operation}
+        return {
+            "output": body,
+            "kind": "trigger_config",
+            "performed_outbound_call": False,
+            "operation": operation,
+        }
 
     async def op_health_check(self) -> ConnectorHealthCheck:
-        return ConnectorHealthCheck(healthy=True, message="Webhook connector is operational.")
+        return ConnectorHealthCheck(
+            healthy=True,
+            message="Webhook connector is operational (configuration-only; receives inbound deliveries).",
+        )
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         return {

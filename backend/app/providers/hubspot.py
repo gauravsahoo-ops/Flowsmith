@@ -260,12 +260,31 @@ class HubSpotProviderClient:
         search_field: str,
         search_value: str,
         timeout: float = 30.0,
+        *,
+        limit: int = 10,
+        after: str | None = None,
+        return_all: bool = False,
+        max_pages: int = 10,
     ) -> dict[str, Any]:
-        """Find records whose property equals the value (search endpoint)."""
+        """Find records whose property equals the value (search endpoint).
+
+        Paging follows HubSpot's v3 search contract: each request carries a
+        ``limit`` and, from the second page on, the ``offset.after`` cursor the
+        service returned in ``paging.next.offset.after``. Pages are only fetched
+        while the caller asked for everything (``return_all``) and the service
+        actually reported more results.
+        """
         ot = self._object_type(object_type)
-        response = await self.request(
-            creds, "POST", f"/crm/v3/objects/{ot}/search",
-            json_body={
+        if limit < 1 or limit > 100:
+            limit = 10
+
+        results: list[dict[str, Any]] = []
+        cursor = str(after).strip() if after else None
+        pages = 0
+        paging: dict[str, Any] | None = None
+
+        while True:
+            body: dict[str, Any] = {
                 "filterGroups": [{
                     "filters": [{
                         "propertyName": search_field,
@@ -273,27 +292,168 @@ class HubSpotProviderClient:
                         "value": search_value,
                     }],
                 }],
-                "limit": 2,
-            },
-            timeout=timeout,
-        )
-        self._raise_for_status(response, "search")
-        try:
-            data = response.json()
-            results = data.get("results") or []
-        except ValueError as exc:
-            raise make_connector_error(
-                ConnectorErrorCode.BAD_REQUEST,
-                "HubSpot search returned malformed JSON.",
-                retryable=False,
-            ) from exc
+                "limit": limit,
+            }
+            if cursor:
+                body["offset"] = {"after": cursor}
+
+            response = await self.request(
+                creds, "POST", f"/crm/v3/objects/{ot}/search",
+                json_body=body,
+                timeout=timeout,
+            )
+            self._raise_for_status(response, "search")
+            try:
+                data = response.json()
+            except ValueError as exc:
+                raise make_connector_error(
+                    ConnectorErrorCode.BAD_REQUEST,
+                    "HubSpot search returned malformed JSON.",
+                    retryable=False,
+                ) from exc
+            if not isinstance(data, dict):
+                raise make_connector_error(
+                    ConnectorErrorCode.BAD_REQUEST,
+                    "HubSpot search returned an unexpected payload.",
+                    retryable=False,
+                )
+
+            results.extend(data.get("results") or [])
+            pages += 1
+
+            paging = data.get("paging") if isinstance(data.get("paging"), dict) else None
+            nxt = (paging or {}).get("next") if paging else None
+            cursor = str(nxt.get("after") or "") if isinstance(nxt, dict) else None
+
+            if not return_all or not cursor or pages >= max_pages:
+                break
+
         record = results[0] if results else None
         return {
             "found": record is not None,
             "record": record,
+            "records": results,
             "object_type": ot,
             "search_field": search_field,
             "total": len(results),
+            "pages_fetched": pages,
+            "has_more": bool(cursor),
+            "next_offset": cursor or None,
+        }
+
+    async def list_records(
+        self,
+        creds: dict[str, Any],
+        object_type: str,
+        timeout: float = 30.0,
+        *,
+        limit: int = 100,
+        after: str | None = None,
+        properties: list[str] | None = None,
+        archived: bool = False,
+        return_all: bool = False,
+        max_pages: int = 10,
+    ) -> dict[str, Any]:
+        """Page through every record of an object with the v3 cursor contract.
+
+        ``GET /crm/v3/objects/{type}?limit=N&after=CURSOR`` returns
+        ``paging.next.after``; that cursor is fed into the following request.
+        """
+        ot = self._object_type(object_type)
+        if limit < 1 or limit > 250:
+            limit = 100
+
+        results: list[dict[str, Any]] = []
+        cursor = str(after).strip() if after else None
+        pages = 0
+        next_cursor: str | None = None
+
+        while True:
+            params: dict[str, Any] = {"limit": limit}
+            if cursor:
+                params["after"] = cursor
+            if properties:
+                params["properties"] = ",".join(str(p) for p in properties)
+            if archived:
+                params["archived"] = "true"
+
+            response = await self.request(
+                creds, "GET", f"/crm/v3/objects/{ot}", params=params, timeout=timeout,
+            )
+            self._raise_for_status(response, "list")
+            try:
+                data = response.json()
+            except ValueError as exc:
+                raise make_connector_error(
+                    ConnectorErrorCode.BAD_REQUEST,
+                    "HubSpot list returned malformed JSON.",
+                    retryable=False,
+                ) from exc
+            if not isinstance(data, dict):
+                raise make_connector_error(
+                    ConnectorErrorCode.BAD_REQUEST,
+                    "HubSpot list returned an unexpected payload.",
+                    retryable=False,
+                )
+
+            results.extend(data.get("results") or [])
+            pages += 1
+
+            paging = data.get("paging") if isinstance(data.get("paging"), dict) else None
+            nxt = (paging or {}).get("next") if paging else None
+            next_cursor = str(nxt.get("after") or "") if isinstance(nxt, dict) else None
+
+            if not return_all or not next_cursor or pages >= max_pages:
+                break
+            cursor = next_cursor
+
+        return {
+            "object_type": ot,
+            "records": results,
+            "count": len(results),
+            "pages_fetched": pages,
+            "has_more": bool(next_cursor),
+            "next_cursor": next_cursor or None,
+        }
+
+    async def delete_record(
+        self,
+        creds: dict[str, Any],
+        object_type: str,
+        record_id: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        """Delete a record, reporting the outcome from the actual HTTP status.
+
+        HubSpot answers 204 with an empty body on success, so ``deleted`` is
+        derived from the status line rather than from a payload we may not have
+        received. A rejected call raises before anything is reported.
+        """
+        ot = self._object_type(object_type)
+        response = await self.request(
+            creds, "DELETE", f"/crm/v3/objects/{ot}/{record_id}", timeout=timeout,
+        )
+        self._raise_for_status(response, "delete")
+
+        body: Any = None
+        if response.content:
+            try:
+                body = response.json()
+            except ValueError:
+                body = None
+
+        if isinstance(body, dict) and "deleted" in body:
+            deleted = bool(body.get("deleted"))
+        else:
+            # No body (204) or an unstructured one: the 2xx status is the proof.
+            deleted = 200 <= response.status_code < 300
+
+        return {
+            "id": record_id,
+            "object_type": ot,
+            "deleted": deleted,
+            "http_status": response.status_code,
+            "raw": body,
         }
 
     async def get_record(self, creds: dict[str, Any], object_type: str, record_id: str, timeout: float = 30.0) -> dict[str, Any]:
@@ -323,3 +483,49 @@ class HubSpotProviderClient:
         self._raise_for_status(response, "update")
         record = response.json()
         return {"id": str(record.get("id", "")), "record": record, "success": True}
+
+    async def get_properties(self, creds: dict[str, Any], object_type: str, timeout: float = 30.0) -> dict[str, Any]:
+        ot = self._object_type(object_type)
+        response = await self.request(
+            creds, "GET", f"/crm/v3/properties/{ot}", timeout=timeout,
+        )
+        self._raise_for_status(response, "get properties")
+        data = response.json()
+        props = data.get("results") if isinstance(data, dict) else []
+        return {"object_type": ot, "properties": props, "count": len(props), "success": True}
+
+    async def associate_records(
+        self,
+        creds: dict[str, Any],
+        from_object_type: str,
+        from_record_id: str,
+        to_object_type: str,
+        to_record_id: str,
+        association_type_id: str = "1",
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        from_ot = self._object_type(from_object_type)
+        to_ot = self._object_type(to_object_type)
+        fid = str(from_record_id or "").strip()
+        tid = str(to_record_id or "").strip()
+        aid = str(association_type_id or "1").strip()
+        if not fid or not tid:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "associate_records requires from_record_id and to_record_id.",
+                retryable=False,
+            )
+        response = await self.request(
+            creds, "PUT", f"/crm/v3/objects/{from_ot}/{fid}/associations/{to_ot}/{tid}/{aid}",
+            timeout=timeout,
+        )
+        self._raise_for_status(response, "associate")
+        return {
+            "from_object_type": from_ot,
+            "from_record_id": fid,
+            "to_object_type": to_ot,
+            "to_record_id": tid,
+            "association_type_id": aid,
+            "success": True,
+        }
+

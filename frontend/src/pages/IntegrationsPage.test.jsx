@@ -6,7 +6,7 @@ describe('IntegrationsPage Category Completeness Suite', () => {
   const allConnectors = catalogData.connectors
 
   it('keeps the test contract in sync with the categories rendered by the UI', () => {
-    const expectedIds = ['all', 'crm', 'database', 'communication', 'developer', 'ai', 'productivity', 'finance']
+    const expectedIds = ['all', 'crm', 'database', 'communication', 'marketing', 'developer', 'ai', 'productivity', 'finance']
     expect(CATEGORIES.map((c) => c.id)).toEqual(expectedIds)
     for (const cat of CATEGORIES) {
       expect(cat.id).toMatch(/^[a-z]+$/)
@@ -27,16 +27,22 @@ describe('IntegrationsPage Category Completeness Suite', () => {
 
   it('ensures every single registered connector belongs to at least one category', () => {
     const unmapped = []
+    const availableCategories = CATEGORIES.filter((c) => c.id !== 'all').map((c) => c.id)
     for (const key of allConnectors) {
       const conn = { connector_key: key, category: 'api' }
-      const hasCategory = ['crm', 'database', 'communication', 'developer', 'ai', 'productivity', 'finance'].some(
-        (cat) => matchesCategory(conn, cat)
-      )
+      const hasCategory = availableCategories.some((cat) => matchesCategory(conn, cat))
       if (!hasCategory) {
         unmapped.push(key)
       }
     }
     expect(unmapped).toEqual([])
+  })
+
+  it('correctly maps Marketing & Content connectors', () => {
+    const expected = ['mailchimp', 'brevo', 'activecampaign']
+    for (const key of expected) {
+      expect(matchesCategory({ connector_key: key, category: 'marketing' }, 'marketing')).toBe(true)
+    }
   })
 
   it('correctly maps CRM & Sales connectors', () => {

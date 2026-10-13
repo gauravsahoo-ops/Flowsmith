@@ -22,7 +22,7 @@ from app.providers.jira import JiraProviderClient
 
 
 class JiraConnectorParams(BaseModel):
-    operation: str = Field(default="search", description="search | create_issue | update_issue | add_comment.")
+    operation: str = Field(default="search", description="search | get_issue | get_projects | create_issue | update_issue | add_comment.")
     jql: str = ""
     project_key: str = ""
     issue_type: str = "Task"
@@ -31,6 +31,8 @@ class JiraConnectorParams(BaseModel):
     fields: dict[str, Any] = Field(default_factory=dict)
     issue_key: str = ""
     body: str = ""
+    field_list: list[str] = Field(default_factory=list)
+    expand: list[str] = Field(default_factory=list)
     max_results: int = Field(default=50, ge=1, le=100)
     max_pages: int = Field(default=3, ge=1, le=10)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
@@ -116,6 +118,15 @@ class JiraConnector(ConnectorSDK):
                     creds, str(raw.get("issue_key") or params.issue_key),
                     fields_raw, timeout=timeout,
                 )
+            if op == "get_issue":
+                f_list = raw.get("field_list") or params.field_list or None
+                exp = raw.get("expand") or params.expand or None
+                return await self._provider.get_issue(
+                    creds, str(raw.get("issue_key") or params.issue_key),
+                    fields=f_list, expand=exp, timeout=timeout,
+                )
+            if op == "get_projects":
+                return await self._provider.get_projects(creds, timeout=timeout)
             if op == "add_comment":
                 return await self._provider.add_comment(
                     creds, str(raw.get("issue_key") or params.issue_key),

@@ -96,6 +96,70 @@ class HTTPConnectorParams(BaseModel):
     limit_param: str = "limit"
     page_size: int = 50
     max_pages: int = 1
+    # Cursor pagination: where the outgoing cursor goes and where the incoming
+    # one is read back from (dot path, e.g. "meta.next_cursor").
+    cursor_param: str = "cursor"
+    cursor_path: str = ""
+    # Where each page's records live (dot path, e.g. "data.items"). Used only to
+    # detect a short page and stop early; an empty page still terminates.
+    records_path: str = ""
+    stop_when_short: bool = True
+
+
+def dig(data: Any, path: str) -> Any:
+    """Follow a dot path into a nested structure; None when any step is missing."""
+    current = data
+    for part in [p for p in (path or "").split(".") if p]:
+        if isinstance(current, dict):
+            current = current.get(part)
+        else:
+            return None
+    return current
+
+
+def find_records(data: Any, records_path: str) -> list[Any]:
+    """Locate the list of records on a page, or [] when it cannot be found."""
+    if records_path:
+        found = dig(data, records_path)
+        return found if isinstance(found, list) else []
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        for key in ("data", "results", "items", "records", "value", "entries"):
+            candidate = data.get(key)
+            if isinstance(candidate, list):
+                return candidate
+    return []
+
+
+def find_cursor(data: Any, cursor_path: str) -> str:
+    """Read the next cursor out of a page body.
+
+    An explicit cursor_path is a single dot path and is followed as a whole, so
+    "links.next" reaches the nested value rather than probing "links" and "next"
+    separately. Without one, the usual response shapes are probed, because most
+    APIs put the token somewhere well-known. An empty string means "no more
+    pages".
+    """
+    declared = (cursor_path or "").strip()
+    candidates = [declared] if declared else [
+        "next_cursor", "cursor", "meta.next_cursor", "meta.cursor",
+        "paging.next.after", "pagination.next_cursor", "links.next",
+    ]
+    for path in candidates:
+        value = dig(data, path)
+        if value is None or isinstance(value, (dict, list)):
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    # A bare `next`/`next_url` that is itself the cursor rather than a flag.
+    if isinstance(data, dict):
+        for key in ("next", "next_url"):
+            value = data.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return ""
 
 
 class HTTPConnector(ConnectorSDK, ConnectorOperations):
@@ -232,22 +296,33 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
 
         # Multi-page collector if pagination is requested
         pages_collected: list[dict[str, Any]] = []
-        current_page = 1
-        max_pages = params.max_pages if params.paginate else 1
+        max_pages = params.max_pages if params.paginate and params.max_pages > 1 else 1
 
         last_resp_body: Any = None
         last_status_code: int = 200
         last_headers: dict[str, str] = {}
 
+        # Cursor for the next request; empty on the first page.
+        cursor = ""
+        # Set once a page comes back short so no further requests are made.
+        exhausted = False
+
         for page_idx in range(max_pages):
             step_query = dict(query_params)
-            if params.paginate and max_pages > 1:
+            if params.paginate and max_pages > 1 and not exhausted:
                 if params.pagination_type == "page":
-                    step_query[params.page_param] = current_page + page_idx
+                    step_query[params.page_param] = page_idx + 1
                     step_query[params.limit_param] = params.page_size
                 elif params.pagination_type == "offset":
                     step_query[params.page_param] = page_idx * params.page_size
                     step_query[params.limit_param] = params.page_size
+                elif params.pagination_type == "cursor":
+                    # The first page carries no cursor; later pages carry the one
+                    # the previous response handed back.
+                    if cursor:
+                        step_query[params.cursor_param] = cursor
+                    if params.limit_param:
+                        step_query[params.limit_param] = params.page_size
 
             # Retry loop with exponential backoff
             retries = 0
@@ -286,6 +361,20 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
                         "status_code": last_status_code,
                         "body": parsed_body,
                     })
+
+                    # Stop conditions, so a short final page or a missing cursor
+                    # does not turn into a run of empty requests.
+                    if params.paginate and max_pages > 1:
+                        if params.pagination_type == "cursor":
+                            cursor = find_cursor(parsed_body, params.cursor_path)
+                            if not cursor:
+                                exhausted = True
+                        elif params.stop_when_short:
+                            records = find_records(parsed_body, params.records_path)
+                            # Without a records path the page size is unknown, so
+                            # only an empty list can be taken as "finished".
+                            if len(records) < params.page_size or not records:
+                                exhausted = True
                     break
 
                 except httpx.TimeoutException as exc:
@@ -309,6 +398,11 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
                         retryable=True,
                     ) from exc
 
+            # The retry loop above only breaks out of itself; stop the page
+            # walk here rather than re-sending an identical request.
+            if exhausted:
+                break
+
         # Assemble Output
         output_data: dict[str, Any] = {
             "status_code": last_status_code,
@@ -321,6 +415,11 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
             output_data["pagination"] = {
                 "pages_fetched": len(pages_collected),
                 "page_size": params.page_size,
+                "type": params.pagination_type,
+                # True only when the service itself stopped handing back a
+                # cursor; hitting max_pages with a live cursor reports True.
+                "exhausted": bool(exhausted),
+                "next_cursor": cursor or None,
             }
 
         # Dynamic Schema Inference

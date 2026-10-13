@@ -26,6 +26,11 @@ _PARAMS_PROP = {
     "type": "object", "title": "Parameters",
     "description": 'Bound parameter values, e.g. {"status": "active"}.',
 }
+_MAX_ROWS_PROP = {
+    "type": "integer", "title": "Max Rows", "default": 1000,
+    "minimum": 1, "maximum": 10000,
+    "description": "Row cap, so a wide SELECT cannot exhaust memory.",
+}
 
 
 def _operation(
@@ -59,8 +64,8 @@ def _postgres_operations() -> dict[str, ConnectorOperationV1]:
     return {
         "query": _operation(
             "query", "Query",
-            "Run a SELECT and return the result rows (capped at 1000).",
-            {"sql": _SQL_PROP, "params": _PARAMS_PROP},
+            "Run a SELECT and return the result rows, capped at max_rows.",
+            {"sql": _SQL_PROP, "params": _PARAMS_PROP, "max_rows": _MAX_ROWS_PROP},
             ["sql"],
             {
                 "type": "object",

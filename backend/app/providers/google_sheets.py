@@ -98,3 +98,41 @@ class GoogleSheetsProviderClient(BaseProviderClient):
         )
         data = response.json()
         return {"updated_cells": data.get("updatedCells", 0), "updated_rows": data.get("updatedRows", 0), "success": True}
+
+    async def clear_values(self, creds, spreadsheet_id: str, range_: str, timeout: float = 30.0) -> dict:
+        sid = self._spreadsheet_id(spreadsheet_id)
+        response = await self.authorized_request(
+            creds=self._creds(creds), method="POST",
+            url=f"{SHEETS_API_BASE}/spreadsheets/{sid}/values/{range_}:clear",
+            json_body={},
+            timeout=timeout,
+            what="clear",
+        )
+        data = response.json()
+        return {"cleared": True, "range": data.get("clearedRange", range_)}
+
+    async def get_spreadsheet_info(self, creds, spreadsheet_id: str, timeout: float = 30.0) -> dict:
+        sid = self._spreadsheet_id(spreadsheet_id)
+        response = await self.authorized_request(
+            creds=self._creds(creds), method="GET",
+            url=f"{SHEETS_API_BASE}/spreadsheets/{sid}",
+            timeout=timeout,
+            what="get spreadsheet info",
+        )
+        data = response.json()
+        sheets = [
+            {
+                "sheet_id": s.get("properties", {}).get("sheetId"),
+                "title": s.get("properties", {}).get("title"),
+                "index": s.get("properties", {}).get("index"),
+            }
+            for s in data.get("sheets", [])
+        ]
+        return {
+            "spreadsheet_id": sid,
+            "title": data.get("properties", {}).get("title"),
+            "locale": data.get("properties", {}).get("locale"),
+            "sheets": sheets,
+            "sheet_count": len(sheets),
+        }
+

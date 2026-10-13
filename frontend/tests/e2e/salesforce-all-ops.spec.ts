@@ -7,22 +7,30 @@ const STUB = 'http://127.0.0.1:8181';
 function auth(token: string) { return { Authorization: `Bearer ${token}` }; }
 
 async function gotoApp(page: any, token: string) {
-  await page.goto('http://localhost:5173');
-  await page.evaluate((t) => localStorage.setItem('mat_token', t), token);
-  await page.reload();
-  await page.waitForLoadState('networkidle').catch(() => {});
-  try {
-    await page.waitForSelector('.canvas', { state: 'attached', timeout: 5000 });
-  } catch {
-    const listRes = await page.request.get(`${API}/api/workflows`, { headers: auth(token) });
-    const listJson = await listRes.json();
-    const wfId = listJson.data?.[0]?.id;
-    if (wfId) {
-      await page.goto(`http://localhost:5173/workflows/${wfId}`);
-      await page.waitForLoadState('networkidle').catch(() => {});
-    }
-    await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
+  const listRes = await page.request.get(`${API}/api/workflows`, { headers: auth(token) });
+  const listJson = await listRes.json();
+  let wfId = listJson.data?.[0]?.id;
+  if (!wfId) {
+    const cr = await page.request.post(`${API}/api/workflows`, {
+      headers: auth(token),
+      data: { name: `SF Ops ${Date.now()}` },
+    });
+    const crj = await cr.json();
+    wfId = crj.data?.id;
   }
+  await page.addInitScript((t) => {
+    localStorage.setItem('mat_token', t);
+  }, token);
+  await page.goto(`http://localhost:5173/workflows/${wfId}`);
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
+  await page.waitForFunction(
+    () => {
+      const s = (window as any).__wfStore?.getState();
+      return s && !s.loading && s.workflow;
+    },
+    { timeout: 15000 },
+  );
 }
 
 async function addHttpNodeAndConnect(page: any, url: string, method = 'GET', extra: Record<string, any> = {}) {
@@ -38,7 +46,12 @@ async function addHttpNodeAndConnect(page: any, url: string, method = 'GET', ext
       });
     }
     const currentStore = window.__wfStore.getState();
-    const triggerId = currentStore.nodes.find((n: any) => n.data?.node?.type === 'manual_trigger')?.id;
+    let trigger = currentStore.nodes.find((n: any) => n.data?.node?.type === 'manual_trigger');
+    if (!trigger) {
+      currentStore.addNode('manual_trigger', { x: 0, y: 0 });
+      trigger = window.__wfStore.getState().nodes.find((n: any) => n.data?.node?.type === 'manual_trigger');
+    }
+    const triggerId = trigger.id;
     currentStore.addNode('http_request', { x: 300, y: 0 });
     const httpNode = window.__wfStore.getState().nodes.filter((n: any) => n.data?.node?.type === 'http_request').pop();
     window.__wfStore.getState().updateNode(httpNode.id, { parameters: { method, url, ...extra } });

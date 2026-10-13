@@ -112,3 +112,35 @@ class SlackProviderClient(BaseProviderClient):
             if not cursor:
                 break
         return {"channels": channels, "count": len(channels)}
+
+    async def add_reaction(self, creds: dict, channel: str, timestamp: str, name: str, timeout: float = 30.0) -> dict:
+        channel_id = str(channel or "").strip()
+        ts = str(timestamp or "").strip()
+        emoji = str(name or "").strip().strip(":")
+        if not channel_id or not ts or not emoji:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "operation=add_reaction requires channel, timestamp, and emoji name.", retryable=False)
+        body = {"channel": channel_id, "timestamp": ts, "name": emoji}
+        await self.request_slack(
+            creds, "POST", "/reactions.add", json_body=body,
+            timeout=timeout, what="add reaction",
+        )
+        return {"ok": True, "channel": channel_id, "timestamp": ts, "reaction": emoji}
+
+    async def get_user_by_email(self, creds: dict, email: str, timeout: float = 30.0) -> dict:
+        user_email = str(email or "").strip()
+        if not user_email:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "operation=get_user_by_email requires an email address.", retryable=False)
+        response = await self.request_slack(
+            creds, "GET", "/users.lookupByEmail", params={"email": user_email},
+            timeout=timeout, what="lookup user by email",
+        )
+        user_data = response.json().get("user", {})
+        return {
+            "id": user_data.get("id"),
+            "name": user_data.get("name"),
+            "real_name": user_data.get("real_name"),
+            "email": ((user_data.get("profile") or {}).get("email")),
+            "tz": user_data.get("tz"),
+            "is_admin": user_data.get("is_admin", False),
+        }
+

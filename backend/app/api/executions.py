@@ -576,7 +576,7 @@ def resume_execution(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     if rec.status not in ("waiting_approval", "waiting_auth"):
         raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not waiting for approval or authentication.")
-    
+
     pause = rec.pause_state or {}
     is_auth_pause = rec.status == "waiting_auth"
 

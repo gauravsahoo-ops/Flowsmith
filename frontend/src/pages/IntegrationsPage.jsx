@@ -15,6 +15,7 @@ export const CATEGORIES = [
   { id: 'crm', label: 'CRM & Sales' },
   { id: 'database', label: 'Databases & Storage' },
   { id: 'communication', label: 'Communication' },
+  { id: 'marketing', label: 'Marketing & Content' },
   { id: 'developer', label: 'Developer & DevOps' },
   { id: 'ai', label: 'AI & Knowledge' },
   { id: 'productivity', label: 'Productivity' },
@@ -29,7 +30,7 @@ export const CONNECTOR_CATEGORY_MAP = {
   freshsales: ['crm'],
   zoho_crm: ['crm'],
   pipedrive: ['crm', 'productivity'],
-  activecampaign: ['crm', 'communication'],
+  activecampaign: ['crm', 'communication', 'marketing'],
   workday: ['crm'],
   zendesk: ['crm', 'communication'],
   freshdesk: ['crm', 'communication'],
@@ -61,8 +62,8 @@ export const CONNECTOR_CATEGORY_MAP = {
   outlook: ['communication'],
   resend: ['communication'],
   sendgrid: ['communication'],
-  mailchimp: ['communication', 'crm'],
-  brevo: ['communication', 'crm'],
+  mailchimp: ['communication', 'crm', 'marketing'],
+  brevo: ['communication', 'crm', 'marketing'],
 
   // Developer & DevOps
   github: ['developer'],
@@ -122,13 +123,14 @@ export function matchesCategory(conn, catId) {
   if (key.startsWith('open_meteo') && catId === 'developer') return true
 
   const cat = (conn.category || '').toLowerCase()
-  if (catId === 'crm') return cat.includes('crm') || cat.includes('sales') || cat.includes('support')
-  if (catId === 'database') return cat.includes('data') || cat.includes('storage') || cat.includes('sql')
-  if (catId === 'communication') return cat.includes('comm') || cat.includes('message') || cat.includes('mail') || cat.includes('marketing')
-  if (catId === 'developer') return cat.includes('dev') || cat.includes('git') || cat.includes('code') || cat.includes('api') || cat.includes('devops')
-  if (catId === 'ai') return cat.includes('ai') || cat.includes('rag') || cat.includes('llm')
-  if (catId === 'productivity') return cat.includes('prod') || cat.includes('task') || cat.includes('work') || cat.includes('doc')
-  if (catId === 'finance') return cat.includes('finance') || cat.includes('payment') || cat.includes('billing')
+  if (catId === 'crm') return cat.includes('crm') || cat.includes('sale') || cat.includes('lead') || cat.includes('support')
+  if (catId === 'database') return cat.includes('data') || cat.includes('storage') || cat.includes('sql') || cat.includes('db')
+  if (catId === 'communication') return cat.includes('comm') || cat.includes('message') || cat.includes('mail') || cat.includes('chat') || cat.includes('sms')
+  if (catId === 'marketing') return cat.includes('market') || cat.includes('content') || cat.includes('campaign') || cat.includes('seo')
+  if (catId === 'developer') return cat.includes('dev') || cat.includes('git') || cat.includes('code') || cat.includes('api') || cat.includes('devops') || cat.includes('infra')
+  if (catId === 'ai') return cat.includes('ai') || cat.includes('rag') || cat.includes('llm') || cat.includes('agent')
+  if (catId === 'productivity') return cat.includes('prod') || cat.includes('task') || cat.includes('work') || cat.includes('doc') || cat.includes('calendar') || cat.includes('project')
+  if (catId === 'finance') return cat.includes('finance') || cat.includes('payment') || cat.includes('billing') || cat.includes('account') || cat.includes('invoice') || cat.includes('money')
   return cat.includes(catId)
 }
 

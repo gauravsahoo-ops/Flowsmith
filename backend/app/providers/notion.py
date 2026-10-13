@@ -168,3 +168,40 @@ class NotionProviderClient(BaseProviderClient):
         )
         page = response.json()
         return {"page_id": page.get("id", ""), "archived": page.get("archived", False), "success": True}
+
+    async def get_page(self, creds: dict, page_id: str, timeout: float = 30.0) -> dict:
+        pid = self._object_id(page_id, "page")
+        response = await self.request_notion(
+            creds, "GET", f"/pages/{pid}", timeout=timeout, what="get page",
+        )
+        page = response.json()
+        return {
+            "page_id": page.get("id", pid),
+            "url": page.get("url", ""),
+            "page": page,
+            "success": True,
+        }
+
+    async def append_block_children(self, creds: dict, block_id: str,
+                                    children: list[dict], timeout: float = 30.0) -> dict:
+        bid = self._object_id(block_id, "block")
+        if not isinstance(children, list) or not children:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "append_block_children requires a non-empty children array of block objects.",
+                retryable=False,
+            )
+        response = await self.request_notion(
+            creds, "PATCH", f"/blocks/{bid}/children",
+            json_body={"children": children},
+            timeout=timeout, what="append block children",
+        )
+        data = response.json()
+        results = data.get("results") or []
+        return {
+            "block_id": bid,
+            "results": results,
+            "count": len(results),
+            "success": True,
+        }
+

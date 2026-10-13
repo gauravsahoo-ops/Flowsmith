@@ -22,12 +22,13 @@ from app.providers.mongodb import MongoProviderClient
 
 
 class MongoDBConnectorParams(BaseModel):
-    operation: str = Field(default="find", description="find | insert_one | update_one | delete_one.")
+    operation: str = Field(default="find", description="find | insert_one | update_one | delete_one | aggregate | count_documents.")
     database: str = ""
     collection: str = ""
     filter: dict[str, Any] = Field(default_factory=dict)
     document: dict[str, Any] = Field(default_factory=dict)
     update: dict[str, Any] = Field(default_factory=dict)
+    pipeline: list[dict[str, Any]] = Field(default_factory=list)
     limit: int = Field(default=50, ge=1, le=500)
     skip: int = Field(default=0, ge=0)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
@@ -105,7 +106,21 @@ class MongoDBConnector(ConnectorSDK):
                 return await self._provider.delete_one(
                     creds, database, collection, filter_query=_obj("filter"), timeout=timeout,
                 )
+            if op == "aggregate":
+                pipe_raw = raw.get("pipeline") or params.pipeline
+                if not isinstance(pipe_raw, list):
+                    raise make_connector_error(
+                        ConnectorErrorCode.BAD_REQUEST, "aggregate requires a pipeline list.", retryable=False,
+                    )
+                return await self._provider.aggregate(
+                    creds, database, collection, pipeline=pipe_raw, timeout=timeout,
+                )
+            if op == "count_documents":
+                return await self._provider.count_documents(
+                    creds, database, collection, filter_query=_obj("filter") if _obj("filter") else None, timeout=timeout,
+                )
         except ConnectorError:
+
             raise
         raise make_connector_error(
             ConnectorErrorCode.BAD_REQUEST, f"Unsupported MongoDB operation '{operation}'.", retryable=False,

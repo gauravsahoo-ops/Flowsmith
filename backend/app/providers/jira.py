@@ -195,6 +195,42 @@ class JiraProviderClient:
         data = response.json()
         return {"comment_id": data.get("id", ""), "key": key, "success": True}
 
+    async def get_issue(self, creds: dict, issue_key: str,
+                         fields: list[str] | None = None,
+                         expand: list[str] | None = None,
+                         timeout: float = 30.0) -> dict:
+        key = self._issue_key(issue_key)
+        params: dict[str, Any] = {}
+        if fields:
+            params["fields"] = ",".join(fields)
+        if expand:
+            params["expand"] = ",".join(expand)
+        response = await self.request_jira(
+            creds, "GET", f"/issue/{key}",
+            params=params or None,
+            timeout=timeout, what="get issue",
+        )
+        data = response.json()
+        return {
+            "key": data.get("key", key),
+            "id": data.get("id", ""),
+            "issue": data,
+            "success": True,
+        }
+
+    async def get_projects(self, creds: dict, timeout: float = 30.0) -> dict:
+        response = await self.request_jira(
+            creds, "GET", "/project",
+            timeout=timeout, what="get projects",
+        )
+        data = response.json()
+        projects = data if isinstance(data, list) else []
+        return {
+            "projects": projects,
+            "count": len(projects),
+            "success": True,
+        }
+
     @staticmethod
     def _issue_key(value: str) -> str:
         key = str(value or "").strip().upper()
@@ -203,3 +239,4 @@ class JiraProviderClient:
                 ConnectorErrorCode.BAD_REQUEST, "A Jira issue key looks like PROJ-123.", retryable=False,
             )
         return key
+

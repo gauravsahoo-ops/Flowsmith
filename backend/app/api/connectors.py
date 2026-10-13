@@ -28,13 +28,14 @@ from app.api.auth import get_current_user
 from app.api.common import ok
 from app.models import User
 from app.connectors.registry import ConnectorRegistry
-from app.connectors import get_registry as _get_registry
+from app.connectors import get_registry as _get_registry, ensure_builtin_connectors
 
 router = APIRouter(prefix="/api/connectors", tags=["connectors"])
 
 
 def get_registry() -> ConnectorRegistry:
     """FastAPI dependency: get the global connector registry."""
+    ensure_builtin_connectors()
     return _get_registry()
 
 

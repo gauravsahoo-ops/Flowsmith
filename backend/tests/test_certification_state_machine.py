@@ -35,7 +35,7 @@ def setup_registry():
 
 
 def test_reconciled_counts_exact_mathematical_equality():
-    """Verifies that all 86 registered connectors are accounted for with zero discrepancy."""
+    """Verifies that every registered connector is accounted for with zero discrepancy."""
     data = get_certification_summary()
     summary = data["summary"]
 
@@ -51,16 +51,30 @@ def test_reconciled_counts_exact_mathematical_equality():
         f"Sum mismatch: {total} != {prod} + {live} + {contract} + {mock} + {static}"
     )
 
-    # Verify exact counts against authoritative Phase 43 baseline
-    assert total == 86
+    # Verify exact counts against the connector registry.
+    #
+    # Baseline history: Phase 43 recorded 86 connectors (12 contract, 73 mock).
+    # mssql, sqlite and rabbitmq were added afterwards, each landing at the
+    # mock tier — they are unit/schema verified, but no live vendor sandbox has
+    # been exercised for them. 86 + 3 = 89, and 73 + 3 = 76.
+    assert total == 89
     assert prod == 0, "No commercial vendor sandboxes have live credentials configured yet"
     assert live == 1, "Universal HTTP is verified against public sandbox"
     assert contract == 12, "12 connectors have comprehensive contract test suites"
-    assert mock == 73, "73 connectors are verified via mock/unit schemas"
+    assert mock == 76, "76 connectors are verified via mock/unit schemas"
     assert static == 0
 
+    # The count must track the live registry, not a stale constant.
+    from app.connectors import get_registry
+
+    registry = get_registry()
+    definitions = getattr(registry, "_definitions", {})
+    assert len(definitions) == total, (
+        "certification ledger is out of step with the registered connectors"
+    )
+
     # Availability state must be tracked orthogonally
-    assert summary["live_test_unavailable"] == 85, "85 connectors are awaiting live vault/sandbox credentials"
+    assert summary["live_test_unavailable"] == 88, "88 connectors are awaiting live vault/sandbox credentials"
     assert summary["blocked"] == 0
     assert summary["stale_certifications"] == 0
     assert summary["expired_certifications"] == 0

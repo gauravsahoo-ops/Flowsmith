@@ -60,7 +60,14 @@ class ScheduleConnector(ConnectorSDK, ConnectorOperations):
         return ["schedule"]
 
     async def op_execute(self, operation: str, payload: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Execute a schedule operation."""
+        """Resolve schedule configuration — no outbound request is made.
+
+        Trigger connectors do not call a vendor API: they describe when the
+        workflow should fire. The payload is therefore labelled as configuration
+        metadata (``kind == "trigger_config"``) rather than as a successful
+        remote operation, and ``next_fire`` is genuinely computed from the cron
+        expression instead of being asserted.
+        """
         try:
             params = ScheduleConnectorParams.model_validate(payload)
         except Exception as exc:
@@ -70,22 +77,45 @@ class ScheduleConnector(ConnectorSDK, ConnectorOperations):
                 retryable=False,
             ) from exc
 
-        # Schedule triggers fire at configured intervals.
-        # For the framework, we return the schedule configuration.
-        result: dict[str, Any] = {
-            "status_code": 200,
-            "headers": {},
-            "body": {
-                "cron": params.cron,
-                "timezone": params.timezone,
-                "next_fire": None,
-            },
+        body: dict[str, Any] = {
+            "cron": params.cron,
+            "timezone": params.timezone,
+            "next_fire": self._next_fire(params.cron, params.timezone),
         }
 
-        return {"output": result, "success": True, "operation": operation}
+        return {
+            "output": body,
+            "kind": "trigger_config",
+            "performed_outbound_call": False,
+            "operation": operation,
+        }
+
+    @staticmethod
+    def _next_fire(cron: str, timezone: str) -> str | None:
+        """Compute the next fire time for a cron expression, or None if invalid."""
+        if not cron:
+            return None
+        try:
+            from croniter import croniter
+            import datetime as _dt
+            from zoneinfo import ZoneInfo
+
+            try:
+                tz = ZoneInfo(timezone or "UTC")
+            except Exception:
+                tz = ZoneInfo("UTC")
+            now = _dt.datetime.now(tz)
+            nxt = croniter(cron, now).get_next(_dt.datetime)
+            return nxt.isoformat()
+        except Exception:
+            # An unparseable cron is surfaced honestly rather than hidden.
+            return None
 
     async def op_health_check(self) -> ConnectorHealthCheck:
-        return ConnectorHealthCheck(healthy=True, message="Schedule connector is operational.")
+        return ConnectorHealthCheck(
+            healthy=True,
+            message="Schedule connector is operational (configuration-only; fires via the scheduler).",
+        )
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         return {

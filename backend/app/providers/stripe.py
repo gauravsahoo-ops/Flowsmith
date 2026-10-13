@@ -192,3 +192,44 @@ class StripeProviderClient:
         data = response.json()
         return {"intent_id": data.get("id", ""), "status": data.get("status", ""),
                 "client_secret": data.get("client_secret", ""), "amount": amount, "currency": currency_clean}
+
+    async def create_refund(self, creds: dict, payment_intent: str, amount_cents: int | None = None,
+                            reason: str = "", idem_key: str = "", timeout: float = 30.0) -> dict:
+        pi = str(payment_intent or "").strip()
+        if not pi:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "payment_intent id is required for refund.", retryable=False)
+        form: dict[str, Any] = {"payment_intent": pi}
+        if amount_cents is not None and int(amount_cents) > 0:
+            form["amount"] = int(amount_cents)
+        if reason:
+            form["reason"] = reason
+        response = await self.request_stripe(
+            creds, "POST", "/refunds", form=form, idempotency_key_value=idem_key,
+            timeout=timeout, what="create refund",
+        )
+        data = response.json()
+        return {
+            "refund_id": data.get("id", ""),
+            "payment_intent": data.get("payment_intent", pi),
+            "amount": data.get("amount", 0),
+            "currency": data.get("currency", "usd"),
+            "status": data.get("status", ""),
+        }
+
+    async def get_payment_intent(self, creds: dict, payment_intent_id: str, timeout: float = 30.0) -> dict:
+        pi = str(payment_intent_id or "").strip()
+        if not pi:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "payment_intent_id is required.", retryable=False)
+        response = await self.request_stripe(
+            creds, "GET", f"/payment_intents/{pi}", timeout=timeout, what="get payment intent",
+        )
+        data = response.json()
+        return {
+            "intent_id": data.get("id", ""),
+            "amount": data.get("amount", 0),
+            "currency": data.get("currency", "usd"),
+            "status": data.get("status", ""),
+            "customer": data.get("customer"),
+            "client_secret": data.get("client_secret", ""),
+        }
+

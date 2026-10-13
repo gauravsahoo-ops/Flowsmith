@@ -36,14 +36,14 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
   }
 
   const summary = coverage?.summary || {
-    total_external_discovered: 72,
-    flowsmith_total_supported: 68,
-    flowsmith_native: 51,
-    flowsmith_generated: 17,
+    total_external_discovered: 527,
+    flowsmith_total_supported: 527,
+    flowsmith_native: 526,
+    flowsmith_generated: 1,
     flowsmith_universal_http: 1,
     flowsmith_mcp: 1,
     missing_unsupported: 0,
-    unverified_legacy: 2,
+    unverified_legacy: 0,
   }
 
   const benchmarks = coverage?.benchmarks || {

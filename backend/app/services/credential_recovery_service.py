@@ -23,7 +23,7 @@ from app.models.recovery_state import (
     ConnectionState,
     RecoveryMode,
 )
-from app.security.crypto import decrypt_text, encrypt_text
+from app.security.crypto import encrypt_text
 from app.services.auth_error_classifier import (
     RecoveryAction,
     classify_auth_error,

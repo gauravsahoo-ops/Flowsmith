@@ -2,7 +2,7 @@
 import { test, expect } from '@playwright/test';
 import * as path from 'path';
 
-const ARTIFACT_DIR = 'C:/Users/ASUS/.gemini/antigravity-ide/brain/eb30052b-77a7-4c0f-abd8-2ab99b2d7324';
+const ARTIFACT_DIR = 'C:/Users/ASUS/.gemini/antigravity-ide/brain/46dbcdd7-1a7d-47df-82eb-190615f2480b';
 
 test('system browser audit: login, overview, integrations marketplace, ai copilot, workflows', async ({ page }) => {
   test.setTimeout(90000);

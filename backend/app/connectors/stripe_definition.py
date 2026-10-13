@@ -108,6 +108,47 @@ def _stripe_operations() -> dict[str, ConnectorOperationV1]:
             retryable=True,
             idempotency="idempotent",
         ),
+        "create_refund": _operation(
+            "create_refund", "Create Refund",
+            "Refund a charge or payment intent (idempotency-keyed).",
+            {
+                "payment_intent": {"type": "string", "title": "Payment Intent ID", "description": "ID of PaymentIntent to refund (pi_...)."},
+                "amount": {"type": "integer", "title": "Amount in cents", "description": "Optional partial amount in cents."},
+                "reason": {"type": "string", "title": "Refund reason", "enum": ["duplicate", "fraudulent", "requested_by_customer"]},
+            },
+            ["payment_intent"],
+            {
+                "type": "object",
+                "properties": {
+                    "refund_id": {"type": "string"},
+                    "payment_intent": {"type": "string"},
+                    "amount": {"type": "integer"},
+                    "status": {"type": "string"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "get_payment_intent": _operation(
+            "get_payment_intent", "Get Payment Intent",
+            "Fetch status and details of a PaymentIntent by ID.",
+            {
+                "payment_intent_id": {"type": "string", "title": "Payment Intent ID", "description": "ID of PaymentIntent (pi_...)."},
+            },
+            ["payment_intent_id"],
+            {
+                "type": "object",
+                "properties": {
+                    "intent_id": {"type": "string"},
+                    "amount": {"type": "integer"},
+                    "currency": {"type": "string"},
+                    "status": {"type": "string"},
+                    "client_secret": {"type": "string"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
     }
 
 

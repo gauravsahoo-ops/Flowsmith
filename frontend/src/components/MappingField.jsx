@@ -14,21 +14,25 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
   const [isDragOver, setIsDragOver] = useState(false)
 
   const timer = useRef(null)
+  // Values arrive from restored workflows, so a field declared as a string may
+  // still hold a number or an object. Coerce once rather than letting `.includes`
+  // throw on a non-string and take down the editor.
+  const asText = typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value)
   useEffect(() => {
-    if (!onPreview || !(value ?? '').includes('{{')) {
+    if (!onPreview || !asText.includes('{{')) {
       setPreview(null)
       return undefined
     }
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(async () => {
       try {
-        setPreview(await onPreview(value))
+        setPreview(await onPreview(asText))
       } catch {
         setPreview({ missing: true, rendered: 'preview unavailable' })
       }
     }, 300)
     return () => clearTimeout(timer.current)
-  }, [value, onPreview, mapping])
+  }, [asText, onPreview, mapping])
 
   const fields = mapping.filter(
     (f) =>
@@ -43,7 +47,7 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
       f.path.includes('.') || f.path.includes('[')
         ? `{{ $node["${nid}"].${f.path} }}`
         : `{{ $node["${nid}"].json.${f.path} }}`
-    onChange(insertMapping(value, snippet))
+    onChange(insertMapping(asText, snippet))
     setOpen(false)
   }
 
@@ -74,7 +78,7 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
       exprToInsert = textData
     }
     if (exprToInsert) {
-      const currentVal = value ?? ''
+      const currentVal = asText
       const inputEl = e.target
       let nextVal = ''
       if (inputEl && typeof inputEl.selectionStart === 'number') {
@@ -102,7 +106,7 @@ export default function MappingInput({ schema, value, onChange, path, mapping = 
             inputMode={schema?.format === 'textarea' ? undefined : Input}
             {...(Input === 'textarea' ? { rows: 2 } : {})}
             as={Input}
-            value={value ?? ''}
+            value={asText}
             onChange={(e) => onChange(e.target.value || undefined)}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}

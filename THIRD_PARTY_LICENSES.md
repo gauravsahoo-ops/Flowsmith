@@ -2,6 +2,8 @@
 
 This document provides a formal inventory and license governance audit for all direct dependencies used within the FlowSmith platform (Backend and Frontend), establishing legal certainty and compliance for commercial distribution.
 
+**Connector catalog governance:** Flowsmith's connector definitions and generated connector code are independently implemented from publicly documented API facts (service names, base URLs, HTTP method/path references). No third-party automation-platform source code, icons, or artwork is included in this repository; n8n and similar platforms are used only as integration-coverage references.
+
 ## License Summary Matrix
 
 | Ecosystem | Direct Packages | Permissive (MIT / Apache-2.0 / BSD / ISC) | Weak Copyleft (LGPL w/ exception) | Strong Copyleft (GPL/AGPL) | High Risk |

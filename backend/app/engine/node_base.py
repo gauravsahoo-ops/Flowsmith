@@ -478,6 +478,30 @@ class BaseNode(Generic[ParamsT]):
     # iteration, where {{ $iterations }} / evolving $json only exist
     # inside the node).
     resolves_own_expressions: bool = False
+    # Optional per-operation metadata, keyed by operation name:
+    #
+    #     operations = {
+    #         "jwt_sign": {
+    #             "display_name": "Sign JWT",
+    #             "description": "...",
+    #             "properties": ["claims", "secret"],
+    #             "required": ["claims"],
+    #             "output_preview": {"type": "object", ...},
+    #             "idempotency": "idempotent",
+    #             "retryable": False,
+    #         },
+    #     }
+    #
+    # When present, GET /api/nodes surfaces it and the config panel hides each
+    # field except while its owning operation is selected. Nodes that do not
+    # declare one keep a flat form with every field visible, which is the
+    # behaviour all existing nodes rely on.
+    operations: dict[str, dict[str, Any]] = {}
+
+    # Name of the property that chooses between those operations. Defaults to
+    # "operation"; a node gating on a differently-named enum declares it here so
+    # the panel anchors on the right field.
+    operation_selector: str = "operation"
 
     def build_params(self, raw: dict[str, Any]) -> ParamsT:
         """Validate and normalize the raw parameters dict (spec 26.3)."""

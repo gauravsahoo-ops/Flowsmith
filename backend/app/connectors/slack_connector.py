@@ -24,10 +24,13 @@ from app.providers.slack import SlackProviderClient
 
 
 class SlackConnectorParams(BaseModel):
-    operation: str = Field(default="send_message", description="send_message | list_channels.")
+    operation: str = Field(default="send_message", description="send_message | list_channels | add_reaction | get_user_by_email.")
     channel: str = ""
     text: str = ""
     thread_ts: str = ""
+    timestamp: str = ""
+    name: str = ""
+    email: str = ""
     limit: int = Field(default=100, ge=1, le=200)
     max_pages: int = Field(default=3, ge=1, le=10)
     exclude_archived: bool = True
@@ -36,7 +39,7 @@ class SlackConnectorParams(BaseModel):
 class SlackConnector(ConnectorSDK):
     connector_id = "slack"
     display_name = "Slack"
-    description = "Send messages to Slack channels and list workspace channels."
+    description = "Send messages, reactions, look up users and manage Slack channels."
     category = ConnectorCategory.API
     version = "1.0.0"
 
@@ -89,6 +92,14 @@ class SlackConnector(ConnectorSDK):
                     creds, limit=params.limit, max_pages=params.max_pages,
                     exclude_archived=params.exclude_archived,
                 )
+            if op == "add_reaction":
+                channel = str((payload or {}).get("channel") or params.channel)
+                ts = str((payload or {}).get("timestamp") or params.timestamp)
+                name = str((payload or {}).get("name") or params.name)
+                return await self._provider.add_reaction(creds, channel, ts, name)
+            if op == "get_user_by_email":
+                email = str((payload or {}).get("email") or params.email)
+                return await self._provider.get_user_by_email(creds, email)
         except ConnectorError:
             raise
         raise make_connector_error(

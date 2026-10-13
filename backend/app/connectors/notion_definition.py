@@ -97,6 +97,28 @@ def _notion_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"page_id": {"type": "string"}, "archived": {"type": "boolean"}}},
             retryable=True,
         ),
+        "get_page": _operation(
+            "get_page", "Get Page",
+            "Retrieve a Notion page by its ID.",
+            {
+                "page_id": {"type": "string", "title": "Page ID"},
+            },
+            ["page_id"],
+            {"type": "object", "properties": {"page_id": {"type": "string"}, "url": {"type": "string"}, "page": {"type": "object"}, "success": {"type": "boolean"}}},
+            retryable=True,
+        ),
+        "append_block_children": _operation(
+            "append_block_children", "Append Block Children",
+            "Append child blocks to an existing parent block or page.",
+            {
+                "block_id": {"type": "string", "title": "Block or Page ID"},
+                "children": {"type": "array", "title": "Child Blocks", "items": {"type": "object"}},
+            },
+            ["block_id", "children"],
+            {"type": "object", "properties": {"block_id": {"type": "string"}, "results": {"type": "array"}, "count": {"type": "integer"}, "success": {"type": "boolean"}}},
+            retryable=False,
+            idempotency="non_idempotent",
+        ),
     }
 
 
@@ -136,8 +158,9 @@ def build_notion_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_notion_credential_type(),
         metadata={
-            "initial_operations": ["query_database", "create_page", "update_page"],
+            "initial_operations": ["query_database", "get_page", "create_page", "update_page", "append_block_children"],
             "auth": "internal integration token",
         },
         icon="notion",
     )
+

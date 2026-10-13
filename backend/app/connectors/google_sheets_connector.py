@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class GoogleSheetsConnectorParams(BaseModel):
-    operation: str = Field(default="read")
+    operation: str = Field(default="read", description="read | append | update | clear | get_info.")
     spreadsheet_id: str = Field(default="", description="Spreadsheet id (from its URL).")
     range: str = Field(default="Sheet1!A1:Z100", description="A1-notation range.")
     values: list[Any] = Field(default_factory=list, description="Row values (append/update).")
@@ -32,7 +32,7 @@ class GoogleSheetsConnectorParams(BaseModel):
 class GoogleSheetsConnector(ConnectorSDK, ConnectorOperations):
     connector_id = "google_sheets"
     display_name = "Google Sheets"
-    description = "Read, append and update rows in Google Sheets."
+    description = "Read, append, update, clear and inspect Google Sheets spreadsheets."
     category = ConnectorCategory.API
     version = "1.0.0"
 
@@ -93,6 +93,14 @@ class GoogleSheetsConnector(ConnectorSDK, ConnectorOperations):
                 if not isinstance(values, list) or not values or not isinstance(values[0], list):
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "operation=update requires values as rows ([[...], [...]]).", retryable=False)
                 return await self._provider.update_values(creds, sid, rng, values, timeout=params.timeout_seconds)
+            if op == "clear":
+                sid, rng = self._require_ids(payload, params)
+                return await self._provider.clear_values(creds, sid, rng, timeout=params.timeout_seconds)
+            if op in ("get_info", "get_spreadsheet"):
+                sid = str(payload.get("spreadsheet_id") or params.spreadsheet_id or "").strip()
+                if not sid:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "A spreadsheet_id is required.", retryable=False)
+                return await self._provider.get_spreadsheet_info(creds, sid, timeout=params.timeout_seconds)
         except ConnectorError:
             raise
 

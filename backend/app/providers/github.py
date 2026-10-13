@@ -168,3 +168,36 @@ class GitHubProviderClient(BaseProviderClient):
             if len(batch) < per_page:
                 break
         return {"issues": issues, "count": len(issues)}
+
+    async def get_issue(self, creds: dict, owner: str, repo: str, issue_number: int, timeout: float = 30.0) -> dict:
+        o, r = _owner_repo(owner, repo)
+        number = str(issue_number or "").strip()
+        if not _NUMBER_RE.match(number):
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "issue_number must be numeric.", retryable=False)
+        response = await self.request_github(
+            creds, "GET", f"/repos/{o}/{r}/issues/{number}",
+            timeout=timeout, what="get issue",
+        )
+        data = response.json()
+        return {
+            "number": data.get("number"),
+            "title": data.get("title"),
+            "body": data.get("body"),
+            "state": data.get("state"),
+            "url": data.get("html_url"),
+            "user": (data.get("user") or {}).get("login"),
+            "comments": data.get("comments", 0),
+        }
+
+    async def close_issue(self, creds: dict, owner: str, repo: str, issue_number: int, timeout: float = 30.0) -> dict:
+        o, r = _owner_repo(owner, repo)
+        number = str(issue_number or "").strip()
+        if not _NUMBER_RE.match(number):
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "issue_number must be numeric.", retryable=False)
+        response = await self.request_github(
+            creds, "PATCH", f"/repos/{o}/{r}/issues/{number}",
+            json_body={"state": "closed"}, timeout=timeout, what="close issue",
+        )
+        data = response.json()
+        return {"number": data.get("number"), "state": data.get("state"), "closed": True, "url": data.get("html_url")}
+

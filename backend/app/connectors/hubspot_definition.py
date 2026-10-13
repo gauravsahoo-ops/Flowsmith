@@ -80,12 +80,42 @@ def _hubspot_operations() -> dict[str, ConnectorOperationV1]:
         "title": "Properties",
         "description": 'Property map for the record, e.g. {"email": "a@b.com"}.',
     }
+    pagination_props = {
+        "limit": {
+            "type": "integer",
+            "title": "Page size",
+            "default": 100,
+            "minimum": 1,
+            "maximum": 250,
+            "description": "How many records to fetch per request.",
+        },
+        "after": {
+            "type": "string",
+            "title": "Page cursor",
+            "placeholder": "{{ $json.next_cursor }}",
+            "description": "Cursor returned by the previous page. Leave empty to start at the beginning.",
+        },
+        "return_all": {
+            "type": "boolean",
+            "title": "Fetch all pages",
+            "default": False,
+            "description": "Follow cursors until the whole result set is retrieved.",
+        },
+        "max_pages": {
+            "type": "integer",
+            "title": "Max pages",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Safety cap on how many pages a single run may fetch.",
+        },
+    }
 
     return {
         "search": _operation(
             "search",
             "Search Record",
-            "Find a record by property value (e.g. contact by email) and return it.",
+            "Find records by property value (e.g. contacts by email), with cursor pagination.",
             {
                 "object_type": object_type,
                 "search_field": {
@@ -99,6 +129,10 @@ def _hubspot_operations() -> dict[str, ConnectorOperationV1]:
                     "title": "Search value",
                     "description": "Value to search for, e.g. {{ $json.email }}.",
                 },
+                "limit": pagination_props["limit"],
+                "after": pagination_props["after"],
+                "return_all": pagination_props["return_all"],
+                "max_pages": pagination_props["max_pages"],
                 "timeout_seconds": _TIMEOUT_PROP,
             },
             ["object_type", "search_field", "search_value"],
@@ -106,9 +140,52 @@ def _hubspot_operations() -> dict[str, ConnectorOperationV1]:
                 "type": "object",
                 "properties": {
                     "found": {"type": "boolean"},
-                    "record": {"type": ["object", "null"], "description": "Matched record incl. id/properties."},
+                    "record": {"type": ["object", "null"], "description": "First matched record incl. id/properties."},
+                    "records": {"type": "array", "description": "Every record fetched in this run."},
                     "object_type": {"type": "string"},
                     "search_field": {"type": "string"},
+                    "total": {"type": "integer"},
+                    "pages_fetched": {"type": "integer"},
+                    "has_more": {"type": "boolean"},
+                    "next_offset": {"type": ["string", "null"], "description": "Cursor to pass to the next page."},
+                },
+            },
+            retryable=True,
+        ),
+        "list": _operation(
+            "list",
+            "List Records",
+            "Page through every record of an object using the v3 cursor contract.",
+            {
+                "object_type": object_type,
+                "property_names": {
+                    "type": "array",
+                    "title": "Properties to return",
+                    "items": {"type": "string"},
+                    "description": "Leave empty for the object's default properties.",
+                },
+                "include_archived": {
+                    "type": "boolean",
+                    "title": "Include archived",
+                    "default": False,
+                    "description": "Also return archived records.",
+                },
+                "limit": pagination_props["limit"],
+                "after": pagination_props["after"],
+                "return_all": pagination_props["return_all"],
+                "max_pages": pagination_props["max_pages"],
+                "timeout_seconds": _TIMEOUT_PROP,
+            },
+            ["object_type"],
+            {
+                "type": "object",
+                "properties": {
+                    "object_type": {"type": "string"},
+                    "records": {"type": "array"},
+                    "count": {"type": "integer"},
+                    "pages_fetched": {"type": "integer"},
+                    "has_more": {"type": "boolean"},
+                    "next_cursor": {"type": ["string", "null"], "description": "Cursor for the next page."},
                 },
             },
             retryable=True,
@@ -157,6 +234,67 @@ def _hubspot_operations() -> dict[str, ConnectorOperationV1]:
             },
             retryable=True,
         ),
+        "delete": _operation(
+            "delete",
+            "Delete Record",
+            "Delete a HubSpot record by its id. Reports the result from the actual HTTP status.",
+            {"object_type": object_type, "record_id": record_id, "timeout_seconds": _TIMEOUT_PROP},
+            ["object_type", "record_id"],
+            {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "object_type": {"type": "string"},
+                    "deleted": {"type": "boolean"},
+                    "http_status": {"type": "integer"},
+                },
+            },
+            retryable=False,
+            idempotency="idempotent",
+        ),
+        "get_properties": _operation(
+            "get_properties",
+            "Get Object Properties",
+            "Retrieve metadata and schema for all properties defined on a HubSpot object type.",
+            {"object_type": object_type, "timeout_seconds": _TIMEOUT_PROP},
+            ["object_type"],
+            {
+                "type": "object",
+                "properties": {
+                    "object_type": {"type": "string"},
+                    "properties": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                    "success": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+        ),
+        "associate_records": _operation(
+            "associate_records",
+            "Associate Records",
+            "Create an association link between two HubSpot CRM records.",
+            {
+                "from_object_type": {"type": "string", "title": "From object type", "default": "contacts"},
+                "from_record_id": {"type": "string", "title": "From record ID"},
+                "to_object_type": {"type": "string", "title": "To object type", "default": "companies"},
+                "to_record_id": {"type": "string", "title": "To record ID"},
+                "association_type_id": {"type": "string", "title": "Association type ID", "default": "1"},
+                "timeout_seconds": _TIMEOUT_PROP,
+            },
+            ["from_object_type", "from_record_id", "to_object_type", "to_record_id"],
+            {
+                "type": "object",
+                "properties": {
+                    "from_object_type": {"type": "string"},
+                    "from_record_id": {"type": "string"},
+                    "to_object_type": {"type": "string"},
+                    "to_record_id": {"type": "string"},
+                    "association_type_id": {"type": "string"},
+                    "success": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+        ),
     }
 
 
@@ -192,7 +330,7 @@ def build_hubspot_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=HUBSPOT_CONNECTOR_KEY,
         display_name="HubSpot",
-        description="HubSpot connector: search, get, create and update contacts, companies, deals and tickets via CRM v3.",
+        description="HubSpot connector: search, list, get, create, update and delete contacts, companies, deals and tickets via CRM v3, with cursor pagination.",
         category="crm",
         connector_version=HUBSPOT_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
@@ -200,8 +338,10 @@ def build_hubspot_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_hubspot_credential_type(),
         metadata={
-            "initial_operations": ["search", "get", "create", "update"],
+            "initial_operations": ["search", "list", "get", "create", "update", "delete", "get_properties", "associate_records"],
+            "pagination": {"strategy": "cursor", "params": ["limit", "after", "return_all", "max_pages"]},
             "auth": "OAuth2 authorization-code (Connect HubSpot) or private-app token",
         },
         icon="hubspot",
     )
+

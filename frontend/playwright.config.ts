@@ -28,7 +28,7 @@ export default defineConfig({
       reuseExistingServer: true,
       env: {
         SAFE_HTTP_ALLOWED_HOSTS: '127.0.0.1',
-        SAFE_HTTP_ALLOWED_PORTS: '8181',
+        SAFE_HTTP_ALLOWED_PORTS: '8181,8182',
       },
       timeout: 120000,
     },

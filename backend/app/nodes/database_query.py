@@ -28,6 +28,10 @@ from app.nodes.registry import register
 class DatabaseQueryParams(BaseModel):
     sql: str = Field(min_length=1, description="SQL statement to run.")
     params: dict[str, Any] = Field(default_factory=dict, description="Bound parameters (optional).")
+    max_rows: int = Field(
+        default=1000, ge=1, le=10000,
+        description="Row cap for the query, so a wide SELECT cannot exhaust memory.",
+    )
 
 
 @register
@@ -92,7 +96,19 @@ def _query(engine: Engine, params: DatabaseQueryParams) -> NodeResult:
     with engine.connect() as conn:
         result = conn.execute(text(params.sql), params.params)
         if result.returns_rows:
-            rows = [dict(row._mapping) for row in result]
-            return NodeResult(output_items=rows if rows else [{"rowCount": 0, "rows": []}])
+            # Cap the fetch rather than draining the cursor: an unbounded
+            # SELECT would materialise every row in memory. One row past the
+            # cap tells us whether more remain, so a result set that happens
+            # to be exactly max_rows long is not reported as truncated.
+            rows = [dict(row._mapping) for row in result.fetchmany(params.max_rows + 1)]
+            truncated = len(rows) > params.max_rows
+            if truncated:
+                rows = rows[:params.max_rows]
+            if not rows:
+                return NodeResult(output_items=[{"rowCount": 0, "rows": []}])
+            return NodeResult(
+                output_items=rows,
+                metadata={"row_count": len(rows), "truncated": truncated, "max_rows": params.max_rows},
+            )
         affected = result.rowcount or 0
         return NodeResult(output_items=[{"success": True, "affected_rows": affected}])

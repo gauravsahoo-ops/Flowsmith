@@ -85,13 +85,16 @@ class CredentialSchemaRegistry:
             self._schemas[type_id] = schema
 
     def get(self, type_id: str) -> Type[BaseModel] | None:
-        return self._schemas.get(type_id)
+        if type_id in self._schemas:
+            return self._schemas[type_id]
+        from .registry import is_known_type
+        if is_known_type(type_id):
+            return HeaderAuthSchema
+        return None
 
     def validate(self, type_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        schema = self.get(type_id)
-        if schema is None:
-            raise ValueError(f"Unknown credential type '{type_id}'.")
-        return schema.model_validate(data).model_dump(mode="json")
+        from .registry import validate_data
+        return validate_data(type_id, data)
 
     def list(self) -> Dict[str, Type[BaseModel]]:
         return dict(self._schemas)

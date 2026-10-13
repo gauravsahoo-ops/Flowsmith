@@ -23,7 +23,7 @@ import logging
 import re
 import time
 from typing import Any
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlparse
 
 import httpx
 
@@ -86,6 +86,28 @@ def clean_guid(val: Any) -> str:
     if match:
         return match.group(0).lower()
     return s.strip("{}'\"")
+
+
+def relativize_odata_url(link: str, instance_url: str) -> str:
+    """Turn an absolute ``@odata.nextLink`` into the path+query the client expects.
+
+    Dataverse returns next links as fully-qualified URLs pointing back at the
+    instance that served the query. The HTTP layer always prefixes the instance
+    URL itself, so an already-absolute link has to be reduced to its path or the
+    two would concatenate into an invalid URL.
+    """
+    raw = (link or "").strip()
+    if not raw:
+        return raw
+    base = (instance_url or "").strip().rstrip("/")
+    if base and raw.startswith(base):
+        raw = raw[len(base):]
+    elif raw.startswith("http://") or raw.startswith("https://"):
+        # A link pointing somewhere other than this instance cannot be safely
+        # followed - hand back the path so the caller's error surfaces it.
+        parsed = urlparse(raw)
+        raw = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+    return raw if raw.startswith("/") else f"/{raw}"
 
 
 class DynamicsCrmProviderClient:
@@ -384,14 +406,75 @@ class DynamicsCrmProviderClient:
         top: int = 0,
         fetch_xml: str = "",
     ) -> list[dict[str, Any]]:
-        """Query Dataverse records using OData system query options or FetchXML."""
-        canonical_set = normalize_entity_set(entity_set)
+        """Query Dataverse records using OData system query options or FetchXML.
 
+        Kept list-returning for backwards compatibility; see :meth:`query_paged`
+        for cursor metadata.
+        """
+        return (await self.query_paged(creds, entity_set, filter_expr=filter_expr, select=select,
+                                       expand=expand, orderby=orderby, top=top,
+                                       fetch_xml=fetch_xml))["records"]
+
+    async def query_paged(
+        self,
+        creds: dict[str, Any],
+        entity_set: str,
+        *,
+        filter_expr: str = "",
+        select: str | list[str] = "",
+        expand: str = "",
+        orderby: str = "",
+        top: int = 0,
+        fetch_xml: str = "",
+        page_size: int = 0,
+        return_all: bool = True,
+        max_pages: int = 10,
+        after: str = "",
+    ) -> dict[str, Any]:
+        """Query Dataverse, following ``@odata.nextLink`` with an explicit budget.
+
+        Dataverse paginates with an opaque ``@odata.nextLink`` rather than a
+        numeric offset, so the cursor this returns is that link. Passing it back
+        via ``after`` resumes exactly where the previous run stopped.
+
+        ``return_all=False`` fetches a single page and hands back the cursor, so
+        a caller can walk a very large entity set one page at a time. ``max_pages``
+        bounds how far one run will go either way.
+        """
+        canonical_set = normalize_entity_set(entity_set)
+        max_pages = max(1, int(max_pages or 10))
+
+        # FetchXML pages internally; Dataverse returns the next link in the body
+        # but ignores $top/$skip on fetchXml queries, so paging is link-driven.
         if fetch_xml and fetch_xml.strip():
             encoded_xml = quote(fetch_xml.strip())
             path = f"/api/data/v9.2/{canonical_set}?fetchXml={encoded_xml}"
+            if page_size:
+                path += f"&$top={int(page_size)}"
             resp = await self.request(creds, "GET", path)
-            return resp.json().get("value", [])
+            data = resp.json()
+            records = list(data.get("value", []))
+            next_link = data.get("@odata.nextLink") or ""
+            page = 1
+            base = self._validate_creds(creds)
+            while return_all and next_link and page < max_pages:
+                page += 1
+                next_resp = await self.request(
+                    creds, "GET", relativize_odata_url(next_link, base)
+                )
+                next_data = next_resp.json()
+                page_records = next_data.get("value", [])
+                if not page_records:
+                    break
+                records.extend(page_records)
+                next_link = next_data.get("@odata.nextLink") or ""
+            return {
+                "records": records,
+                "count": len(records),
+                "pages_fetched": page,
+                "next_link": next_link or None,
+                "has_more": bool(next_link),
+            }
 
         params: dict[str, str] = {}
         if filter_expr.strip():
@@ -402,37 +485,57 @@ class DynamicsCrmProviderClient:
             params["$expand"] = expand.strip()
         if orderby.strip():
             params["$orderby"] = orderby.strip()
-        if top and int(top) > 0:
-            params["$top"] = str(int(top))
+
+        # `page_size` is the per-request $top; `top` caps the whole result set.
+        # When the caller only sets `top` (the pre-pagination contract) it drives
+        # the request size too, so a single-call query behaves exactly as before.
+        target_top = int(top) if top and int(top) > 0 else 0
+        per_request = int(page_size) if page_size and int(page_size) > 0 else 0
+        if per_request == 0 and target_top:
+            per_request = target_top
+        if per_request > 0:
+            params["$top"] = str(per_request)
 
         query_str = f"?{urlencode(params)}" if params else ""
         path = f"/api/data/v9.2/{canonical_set}{query_str}"
-        resp = await self.request(creds, "GET", path)
-        data = resp.json()
-        records = list(data.get("value", []))
-        next_link = data.get("@odata.nextLink")
 
-        target_top = int(top) if top and int(top) > 0 else 0
-        max_pages = 10
-        page = 1
+        # Resuming from an opaque cursor: the link already carries every query
+        # option, so it is requested verbatim rather than rebuilt.
+        instance_url = self._validate_creds(creds)
+        if after.strip():
+            path = relativize_odata_url(after.strip(), instance_url)
 
-        while next_link and page < max_pages:
+        records: list[dict[str, Any]] = []
+        next_link: str = ""
+        page = 0
+
+        while True:
+            page += 1
+            target = relativize_odata_url(next_link, instance_url) if next_link else path
+            resp = await self.request(creds, "GET", target)
+            data = resp.json()
+            records.extend(data.get("value", []))
+            next_link = data.get("@odata.nextLink") or ""
+
+            if not next_link:
+                break
+            if not return_all or page >= max_pages:
+                break
             if target_top and len(records) >= target_top:
                 break
-            page += 1
-            instance_url = self._validate_creds(creds)
-            clean_next = next_link.replace(instance_url, "")
-            next_resp = await self.request(creds, "GET", clean_next)
-            next_data = next_resp.json()
-            page_records = next_data.get("value", [])
-            if not page_records:
-                break
-            records.extend(page_records)
-            next_link = next_data.get("@odata.nextLink")
 
         if target_top and len(records) > target_top:
             records = records[:target_top]
-        return records
+            # We truncated, so the link no longer lines up with what we return.
+            next_link = ""
+
+        return {
+            "records": records,
+            "count": len(records),
+            "pages_fetched": page,
+            "next_link": next_link or None,
+            "has_more": bool(next_link),
+        }
 
     async def get_record(
         self,

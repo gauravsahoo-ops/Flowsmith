@@ -110,3 +110,53 @@ async def test_missing_credential_raises_permanent_error():
 async def test_empty_sql_rejected():
     with pytest.raises(ValidationError):
         DatabaseQueryParams.model_validate({"sql": ""})
+
+
+# --- row cap ------------------------------------------------------------------
+
+async def test_query_is_capped_at_max_rows(tmp_path):
+    db = tmp_path / "big.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE t (n INTEGER)")
+    conn.executemany("INSERT INTO t (n) VALUES (?)", [(i,) for i in range(50)])
+    conn.commit()
+    conn.close()
+    dsn = f"sqlite:///{db}"
+
+    result = await _run({"sql": "SELECT n FROM t ORDER BY n", "max_rows": 10}, [], dsn)
+
+    assert len(result.output_items) == 10
+    assert result.metadata["truncated"] is True
+    assert result.metadata["row_count"] == 10
+    assert result.metadata["max_rows"] == 10
+    # The cap takes the first N rows, in order, rather than an arbitrary subset.
+    assert [row["n"] for row in result.output_items] == list(range(10))
+
+
+async def test_exact_row_count_is_not_reported_as_truncated(tmp_path):
+    db = tmp_path / "exact.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE t (n INTEGER)")
+    conn.executemany("INSERT INTO t (n) VALUES (?)", [(i,) for i in range(10)])
+    conn.commit()
+    conn.close()
+    dsn = f"sqlite:///{db}"
+
+    result = await _run({"sql": "SELECT n FROM t", "max_rows": 10}, [], dsn)
+
+    # fetchmany(max_rows + 1) distinguishes "exactly full" from "capped".
+    assert len(result.output_items) == 10
+    assert result.metadata["truncated"] is False
+
+
+async def test_uncapped_result_reports_truncation_flag(dsn):
+    result = await _run({"sql": "SELECT id, name FROM users ORDER BY id"}, [], dsn)
+    assert result.metadata["truncated"] is False
+    assert result.metadata["row_count"] == 3
+
+
+async def test_max_rows_bounds_are_validated():
+    with pytest.raises(ValidationError):
+        DatabaseQueryParams.model_validate({"sql": "SELECT 1", "max_rows": 0})
+    with pytest.raises(ValidationError):
+        DatabaseQueryParams.model_validate({"sql": "SELECT 1", "max_rows": 100000})

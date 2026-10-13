@@ -29,7 +29,7 @@ function PaletteRow({ node, onCanvasCount, onJump, onClick }) {
       onKeyDown={(e) => { if (e.key === 'Enter') onClick?.() }}
     >
       <span className="node-icon">
-        <NodeIcon type={node.type} icon={node.icon} size={20} color="#cbd5e1" />
+        <NodeIcon type={node.type} name={node.display_name} icon={node.icon} size={20} color="#cbd5e1" />
       </span>
       <div className="palette-info">
         <div className="palette-name">
@@ -124,10 +124,20 @@ export default function Sidebar({ onOpenCredentials }) {
     return counts
   }, [nodes])
 
+  const connectorNodes = useMemo(() => {
+    return catalog.filter((n) => n.icon === '🔌' || n.category === 'Connectors' || n.is_connector || n.icon === 'connector' || (n.credential_types && n.credential_types.length > 0))
+  }, [catalog])
+
   const groups = useMemo(() => {
     const q = query.trim()
     const matches = catalog.filter((node) => {
       if (node.type === 'loop') return false
+      if (!q && selectedCategory === 'Connectors') {
+        return Boolean(node.icon === '🔌' || node.category === 'Connectors' || node.is_connector || node.icon === 'connector' || (node.credential_types && node.credential_types.length > 0))
+      }
+      if (!q && selectedCategory === 'Triggers') {
+        return Boolean(node.category === 'Triggers' || node.type?.includes('trigger') || node.display_name?.toLowerCase().includes('trigger'))
+      }
       if (!q && selectedCategory && (node.category || 'Other') !== selectedCategory) {
         return false
       }
@@ -140,11 +150,11 @@ export default function Sidebar({ onOpenCredentials }) {
     const seen = new Set()
     for (const node of matches) {
       if (node.type === 'loop') continue
-      if (!q && selectedCategory !== 'Connectors' && (node.category === 'Connectors' || node.icon === 'connector')) continue
+      if (!q && !selectedCategory && (node.category === 'Connectors' || node.is_connector)) continue
       const key = `${node.category || 'Other'}::${node.display_name}`
       if (seen.has(key)) continue
       seen.add(key)
-      const category = node.category || 'Other'
+      const category = selectedCategory === 'Connectors' ? 'Connectors' : (node.category || 'Other')
       ;(out[category] ||= []).push(node)
     }
     const reordered = {}
@@ -154,10 +164,6 @@ export default function Sidebar({ onOpenCredentials }) {
     }
     return reordered
   }, [catalog, query, selectedCategory])
-
-  const connectorNodes = useMemo(() => {
-    return catalog.filter((n) => n.icon === '\uD83D\uDD0C' || n.category === 'Connectors')
-  }, [catalog])
 
   /** Jump to the first canvas instance of a node type. */
   function jumpToType(type) {
@@ -200,11 +206,14 @@ export default function Sidebar({ onOpenCredentials }) {
       const cat = node.category || 'Other'
       counts[cat] = (counts[cat] || 0) + 1
     }
+    const triggerCount = catalog.filter((n) => n.category === 'Triggers' || n.type?.includes('trigger') || n.display_name?.toLowerCase().includes('trigger')).length
+
     return [
       {
         id: 'Flow',
         title: 'Flow',
-        desc: `Control the flow of data through your workflow (${counts['Flow'] || 18} nodes)`,
+        desc: 'Control data flow through your workflow',
+        count: counts['Flow'] || 19,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="18" cy="5" r="3" />
@@ -219,7 +228,8 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Triggers',
         title: 'Triggers',
-        desc: `Start workflows automatically or manually (${counts['Triggers'] || 6} nodes)`,
+        desc: 'Start workflows automatically or on events',
+        count: triggerCount || 8,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="#f97316" stroke="#ea580c" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -230,7 +240,8 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Actions',
         title: 'Actions',
-        desc: `Send HTTP requests, API calls and external actions (${counts['Actions'] || 7} nodes)`,
+        desc: 'Send HTTP requests, API calls and external actions',
+        count: counts['Actions'] || 11,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="16 18 22 12 16 6" />
@@ -242,11 +253,15 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Transform',
         title: 'Transform',
-        desc: `Code, transform, edit and convert data payloads (${counts['Transform'] || 10} nodes)`,
+        desc: 'Code, transform, edit and convert data payloads',
+        count: counts['Transform'] || 13,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-            <polyline points="22,6 12,13 2,6" />
+            <polyline points="16 3 21 3 21 8" />
+            <line x1="4" y1="20" x2="21" y2="3" />
+            <polyline points="21 16 21 21 16 21" />
+            <line x1="15" y1="15" x2="21" y2="21" />
+            <line x1="4" y1="4" x2="9" y2="9" />
           </svg>
         ),
         accent: '#10b981',
@@ -254,11 +269,14 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Logic',
         title: 'Logic',
-        desc: `Human approvals, loops, splits and pagination (${counts['Logic'] || 3} nodes)`,
+        desc: 'Human approvals, loops, splits and conditions',
+        count: counts['Logic'] || 3,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
+            <line x1="6" y1="3" x2="6" y2="15" />
+            <circle cx="18" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="M18 9a9 9 0 0 1-9 9" />
           </svg>
         ),
         accent: '#f59e0b',
@@ -266,7 +284,8 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'AI',
         title: 'AI & Agents',
-        desc: `AI LLM agents, RAG pipelines and prompts (${counts['AI'] || 7} nodes)`,
+        desc: 'AI LLM agents, RAG pipelines and prompts',
+        count: counts['AI'] || 14,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
@@ -277,7 +296,8 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Database',
         title: 'Database & Data',
-        desc: `Database queries, SQL, and data tables (${counts['Database'] || 2} nodes)`,
+        desc: 'Database queries, SQL, and data tables',
+        count: counts['Database'] || 55,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <ellipse cx="12" cy="5" rx="9" ry="3" />
@@ -290,7 +310,8 @@ export default function Sidebar({ onOpenCredentials }) {
       {
         id: 'Communication',
         title: 'Communication',
-        desc: `Send emails, Slack, Telegram & WebSockets (${counts['Communication'] || 5} nodes)`,
+        desc: 'Send emails, Slack, Telegram & WebSockets',
+        count: counts['Communication'] || 91,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -299,9 +320,80 @@ export default function Sidebar({ onOpenCredentials }) {
         accent: '#06b6d4',
       },
       {
+        id: 'Marketing',
+        title: 'Marketing & Content',
+        desc: 'Mailchimp, Brevo, cold outreach & campaigns',
+        count: counts['Marketing'] || 40,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          </svg>
+        ),
+        accent: '#f43f5e',
+      },
+      {
+        id: 'CRM',
+        title: 'CRM & Sales',
+        desc: 'Salesforce, HubSpot, Dynamics & Pipedrive',
+        count: counts['CRM'] || 35,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        ),
+        accent: '#f97316',
+      },
+      {
+        id: 'Productivity',
+        title: 'Productivity',
+        desc: 'Notion, Jira, Asana, Trello & Calendar',
+        count: counts['Productivity'] || 47,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        ),
+        accent: '#8b5cf6',
+      },
+      {
+        id: 'Developer',
+        title: 'Developer & DevOps',
+        desc: 'GitHub, GitLab, Docker, AWS & APIs',
+        count: counts['Developer'] || 94,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
+          </svg>
+        ),
+        accent: '#14b8a6',
+      },
+      {
+        id: 'Finance',
+        title: 'Finance & Payments',
+        desc: 'Stripe, PayPal, QuickBooks & Billing',
+        count: counts['Finance'] || 19,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
+          </svg>
+        ),
+        accent: '#10b981',
+      },
+      {
         id: 'Connectors',
         title: 'Connectors & Apps',
-        desc: `Salesforce, Google, HubSpot, Slack, GitHub, Stripe (${counts['Connectors'] || 59} apps)`,
+        desc: 'All third-party integrations & apps',
+        count: connectorNodes.length || 473,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="2" width="20" height="20" rx="4" />
@@ -312,7 +404,11 @@ export default function Sidebar({ onOpenCredentials }) {
         accent: '#3b82f6',
       },
     ]
-  }, [catalog])
+  }, [catalog, connectorNodes])
+
+  const activeCatMeta = useMemo(() => {
+    return categoryMeta.find((c) => c.id === selectedCategory) || null
+  }, [categoryMeta, selectedCategory])
 
   if (salesforceOpen) {
     return (
@@ -341,24 +437,29 @@ export default function Sidebar({ onOpenCredentials }) {
               setSelectedCategory(null)
               setQuery('')
             }}
-            title="Back to all nodes"
-            aria-label="Back to all nodes"
+            title="Back to all categories"
+            aria-label="Back to all categories"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="19" y1="12" x2="5" y2="12" />
               <polyline points="12 19 5 12 12 5" />
             </svg>
           </button>
-          <span className="sidebar-cat-icon">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
+          <span className="sidebar-cat-icon" style={{ color: activeCatMeta?.accent || '#38bdf8' }}>
+            {activeCatMeta?.icon || (
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+            )}
           </span>
-          <h2 className="sidebar-category-title">{selectedCategory}</h2>
+          <h2 className="sidebar-category-title">{activeCatMeta?.title || selectedCategory}</h2>
+          {activeCatMeta?.count ? (
+            <span className="category-header-badge">{activeCatMeta.count}</span>
+          ) : null}
         </div>
       ) : (
         <div className="sidebar-header">
@@ -396,8 +497,11 @@ export default function Sidebar({ onOpenCredentials }) {
                 {cat.icon}
               </div>
               <div className="category-card-info">
-                <div className="category-card-title">{cat.title}</div>
-                <div className="category-card-desc">{cat.desc}</div>
+                <div className="category-card-header">
+                  <span className="category-card-title">{cat.title}</span>
+                  <span className="category-card-badge">{cat.count}</span>
+                </div>
+                <div className="category-card-desc" title={cat.desc}>{cat.desc}</div>
               </div>
               <div className="category-card-arrow">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

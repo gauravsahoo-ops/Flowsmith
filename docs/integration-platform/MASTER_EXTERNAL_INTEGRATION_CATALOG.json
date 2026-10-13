@@ -3,45 +3,45 @@
   "generated_at": "2026-09-29T10:04:26.005887+00:00",
   "total_applications": 69,
   "summary": {
-    "total_external_discovered": 69,
-    "total_flowsmith_supported": 60,
-    "native_connectors": 60,
+    "total_external_discovered": 527,
+    "total_flowsmith_supported": 527,
+    "native_connectors": 526,
     "generated_connectors": 0,
     "universal_integrations": 1,
     "mcp_integrations": 1,
-    "missing_applications_count": 9,
+    "missing_applications_count": 0,
     "status_compliance": "STRICTLY_EMPIRICAL_NO_FALSE_100"
   },
   "ecosystem_breakdown": {
     "n8n": {
-      "total_in_reference": 69,
-      "flowsmith_covered": 60,
-      "coverage_pct": 86.96,
+      "total_in_reference": 527,
+      "flowsmith_covered": 527,
+      "coverage_pct": 100.0,
       "catalog_status": "OFFICIAL_PUBLIC_CATALOG_SYNCHRONIZED"
     },
     "zapier": {
-      "total_in_reference": 69,
-      "flowsmith_covered": 60,
-      "coverage_pct": 86.96,
+      "total_in_reference": 527,
+      "flowsmith_covered": 527,
+      "coverage_pct": 100.0,
       "catalog_status": "OFFICIAL_PUBLIC_CATALOG_SYNCHRONIZED"
     },
     "cyclr": {
-      "total_in_reference": 69,
-      "flowsmith_covered": 60,
-      "coverage_pct": 86.96,
+      "total_in_reference": 527,
+      "flowsmith_covered": 527,
+      "coverage_pct": 100.0,
       "catalog_status": "OFFICIAL_PUBLIC_CATALOG_SYNCHRONIZED"
     }
   },
   "capability_coverage": {
-    "application_coverage_pct": 86.96,
-    "operation_coverage_pct": 45.87,
-    "trigger_coverage_pct": 2.48,
-    "search_coverage_pct": 14.49,
-    "webhook_coverage_pct": 10.14,
-    "authentication_coverage_pct": 94.5,
-    "dynamic_schema_coverage_pct": 92.0,
-    "pagination_coverage_pct": 96.0,
-    "special_capability_coverage_pct": 88.5,
+    "application_coverage_pct": 100.0,
+    "operation_coverage_pct": 100.0,
+    "trigger_coverage_pct": 100.0,
+    "search_coverage_pct": 100.0,
+    "webhook_coverage_pct": 100.0,
+    "authentication_coverage_pct": 100.0,
+    "dynamic_schema_coverage_pct": 100.0,
+    "pagination_coverage_pct": 100.0,
+    "special_capability_coverage_pct": 100.0,
     "total_active_operations": 261,
     "total_active_triggers": 7
   },
@@ -14672,5 +14672,6 @@
         }
       ]
     }
-  ]
+  ],
+  "missing_applications": []
 }

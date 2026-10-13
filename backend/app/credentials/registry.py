@@ -806,6 +806,33 @@ class OneDriveCredential(BaseModel):
     client_secret: str = Field(default="", description="Client Secret.")
 
 
+class KafkaCredential(BaseModel):
+    bootstrap_servers: str = Field(min_length=1, description="Kafka broker endpoints (e.g. localhost:9092).")
+    client_id: str = Field(default="flowsmith", description="Client identifier.")
+    security_protocol: str = Field(default="PLAINTEXT", description="Security protocol (PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL).")
+    sasl_mechanism: str = Field(default="PLAIN", description="SASL mechanism (PLAIN, SCRAM-SHA-256, SCRAM-SHA-512).")
+    sasl_username: str = Field(default="", description="SASL username.")
+    sasl_password: str = Field(default="", description="SASL password.")
+    ssl_ca_pem: str = Field(default="", description="Optional SSL CA certificate in PEM format.")
+
+
+class OracleCredential(BaseModel):
+    host: str = Field(min_length=1, description="Oracle Database server host.")
+    port: int = Field(default=1521, ge=1, le=65535, description="Oracle Database port.")
+    service_name: str = Field(default="", description="Oracle service name.")
+    sid: str = Field(default="", description="Oracle SID.")
+    username: str = Field(min_length=1, description="Database username.")
+    password: str = Field(min_length=1, description="Database password.")
+    schema_name: str = Field(default="", description="Default database schema.")
+
+
+class MqttCredential(BaseModel):
+    broker_url: str = Field(min_length=1, description="MQTT broker URL or IP.")
+    port: int = Field(default=1883, ge=1, le=65535, description="MQTT broker port.")
+    client_id: str = Field(default="", description="Client ID.")
+    username: str = Field(default="", description="Username (optional).")
+    password: str = Field(default="", description="Password (optional).")
+    use_tls: bool = Field(default=False, description="Enable TLS / SSL.")
 
 
 CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
@@ -813,6 +840,9 @@ CREDENTIAL_TYPES: dict[str, type[BaseModel]] = {
     "imap": IMAPCredential,
     "database": DatabaseCredential,
     "http": HTTPCredential,
+    "kafka": KafkaCredential,
+    "oracle": OracleCredential,
+    "mqtt": MqttCredential,
     "elasticsearch": ElasticsearchCredential,
     "llm": LLMCredential,
     "salesforce": SalesforceCredential,
@@ -1008,6 +1038,9 @@ SECRET_FIELDS: dict[str, frozenset[str]] = {
     "service_account": frozenset({"private_key"}),
     "aws_iam": frozenset({"secret_key", "session_token"}),
     "aws_assume_role": frozenset({"secret_key", "session_token"}),
+    "kafka": frozenset({"sasl_password", "ssl_ca_pem"}),
+    "oracle": frozenset({"password"}),
+    "mqtt": frozenset({"password"}),
 }
 
 TYPE_META: dict[str, dict[str, str]] = {
@@ -1108,6 +1141,9 @@ TYPE_META: dict[str, dict[str, str]] = {
     "service_account": {"name": "Service Account", "description": "Service account JSON (Google etc)."},
     "aws_iam": {"name": "AWS IAM", "description": "AWS IAM (access key, secret, region, service)."},
     "aws_assume_role": {"name": "AWS Assume Role", "description": "AWS STS AssumeRole (role ARN)."},
+    "kafka": {"name": "Apache Kafka", "description": "Connection parameters and credentials for Apache Kafka cluster."},
+    "oracle": {"name": "Oracle Database", "description": "Database connection parameters for Oracle Database."},
+    "mqtt": {"name": "MQTT", "description": "Broker URL and credentials for MQTT IoT broker."},
 }
 
 
@@ -1162,6 +1198,9 @@ CREDENTIAL_PROVIDER: dict[str, str] = {
     "deepseek": "api_key",
     "sharepoint": "oauth2",
     "onedrive": "oauth2",
+    "kafka": "basic",
+    "oracle": "basic",
+    "mqtt": "basic",
 }
 
 # Which credential types are considered fully implemented (provider exists and tested)
@@ -1181,6 +1220,9 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "service_account": True,
     "aws_iam": True,
     "aws_assume_role": True,
+    "kafka": True,
+    "oracle": True,
+    "mqtt": True,
     # Legacy / business — implemented if they have a working provider/connector
     "smtp": True,
     "imap": True,
@@ -1279,10 +1321,43 @@ def get_provider_for_type(cred_type: str) -> str | None:
 
 
 def is_implemented(cred_type: str) -> bool:
-    # Unknown types are blocked; types registered into CREDENTIAL_TYPES
-    # (including dynamically registered connectors) are implemented unless
-    # CREDENTIAL_IMPLEMENTED explicitly marks them pending.
-    return CREDENTIAL_IMPLEMENTED.get(cred_type, cred_type in CREDENTIAL_TYPES)
+    if cred_type in CREDENTIAL_IMPLEMENTED:
+        return CREDENTIAL_IMPLEMENTED[cred_type]
+    if cred_type in CREDENTIAL_TYPES:
+        return True
+    try:
+        from app.connectors import get_registry, ensure_builtin_connectors
+        ensure_builtin_connectors()
+        registry = get_registry()
+        for info in registry.list_all():
+            definition = registry.get_definition(info.connector_id)
+            if definition and definition.credential_types and cred_type in definition.credential_types:
+                return True
+    except Exception:
+        pass
+    for p in PREDEFINED_CREDENTIALS:
+        if p.get("id") == cred_type or p.get("credentialType") == cred_type:
+            return True
+    return False
+
+
+def is_known_type(cred_type: str) -> bool:
+    if cred_type in CREDENTIAL_TYPES:
+        return True
+    try:
+        from app.connectors import get_registry, ensure_builtin_connectors
+        ensure_builtin_connectors()
+        registry = get_registry()
+        for info in registry.list_all():
+            definition = registry.get_definition(info.connector_id)
+            if definition and definition.credential_types and cred_type in definition.credential_types:
+                return True
+    except Exception:
+        pass
+    for p in PREDEFINED_CREDENTIALS:
+        if p.get("id") == cred_type or p.get("credentialType") == cred_type:
+            return True
+    return False
 
 
 def list_types() -> list[dict[str, Any]]:
@@ -1301,7 +1376,11 @@ def list_types() -> list[dict[str, Any]]:
     })
 
     out = []
+    seen = set()
+
+    # 1. Built-in Pydantic credential types
     for t, schema in CREDENTIAL_TYPES.items():
+        seen.add(t)
         meta = TYPE_META.get(t, {"name": t, "description": ""})
         auth_meta = get_connector_auth_metadata(t)
         is_impl = CREDENTIAL_IMPLEMENTED.get(t, True)
@@ -1330,24 +1409,147 @@ def list_types() -> list[dict[str, Any]]:
             "supportsRefresh": t in refresh_types,
             "supportsTest": is_impl,
         })
+
+    # 2. Connector-declared credentials
+    try:
+        from app.connectors import get_registry, ensure_builtin_connectors
+        ensure_builtin_connectors()
+        registry = get_registry()
+        for info in registry.list_all():
+            definition = registry.get_definition(info.connector_id)
+            if not definition or not definition.credential_types:
+                continue
+            for ct_key, ct in definition.credential_types.items():
+                if ct_key in seen:
+                    continue
+                seen.add(ct_key)
+
+                name = getattr(ct, "display_name", "") or ct_key.replace("_", " ").title()
+                desc = getattr(ct, "description", "") or f"Credentials for {name}."
+                sec_fields = list(getattr(ct, "secret_fields", []) or ["api_key", "token", "password", "client_secret"])
+                val_schema = getattr(ct, "validation_schema", None)
+                if not isinstance(val_schema, dict) or not val_schema.get("properties"):
+                    val_schema = {
+                        "type": "object",
+                        "properties": {
+                            "api_key": {"type": "string", "title": "API Key", "description": f"API key for {name}."},
+                        },
+                        "required": ["api_key"],
+                    }
+
+                is_oauth = any("oauth" in s.lower() for s in [ct_key, name, desc])
+                auth_label = "OAuth 2.0" if is_oauth else ("Bearer Token" if "token" in ct_key.lower() else "API Key")
+
+                out.append({
+                    "type": ct_key,
+                    "name": name,
+                    "description": desc,
+                    "secret_fields": sorted(sec_fields),
+                    "parameters_schema": val_schema,
+                    "provider": "",
+                    "implemented": True,
+                    "status": "available",
+                    "auth_method": auth_label,
+                    "supportsOAuth": is_oauth,
+                    "supportsRefresh": is_oauth,
+                    "supportsTest": True,
+                })
+    except Exception:
+        pass
+
+    # 3. Predefined credentials
+    for p in PREDEFINED_CREDENTIALS:
+        pid = p.get("id")
+        if not pid or pid in seen:
+            continue
+        seen.add(pid)
+        auth = p.get("authType", "header")
+        is_oauth = auth in ("oauth2", "oauth1")
+        auth_label = "OAuth 2.0" if auth == "oauth2" else ("OAuth 1.0" if auth == "oauth1" else ("Bearer Token" if auth == "bearer" else ("Basic Auth" if auth == "basic" else "API Key")))
+
+        schema_props = {}
+        if auth == "basic":
+            schema_props = {"username": {"type": "string", "title": "Username"}, "password": {"type": "string", "title": "Password"}}
+        elif auth in ("bearer", "token"):
+            schema_props = {"token": {"type": "string", "title": "Access Token"}}
+        elif auth in ("oauth2", "oauth1"):
+            schema_props = {"client_id": {"type": "string", "title": "Client ID"}, "client_secret": {"type": "string", "title": "Client Secret"}}
+        else:
+            schema_props = {"api_key": {"type": "string", "title": "API Key"}}
+
+        out.append({
+            "type": pid,
+            "name": p.get("displayName", pid),
+            "description": f"Predefined credential for {p.get('displayName', pid)}.",
+            "secret_fields": ["api_key", "password", "token", "client_secret"],
+            "parameters_schema": {"type": "object", "properties": schema_props},
+            "provider": p.get("provider", ""),
+            "implemented": True,
+            "status": "available",
+            "auth_method": auth_label,
+            "supportsOAuth": is_oauth,
+            "supportsRefresh": auth == "oauth2",
+            "supportsTest": True,
+        })
+
     return out
 
 
 def validate_data(cred_type: str, data: dict[str, Any]) -> dict[str, Any]:
     """Validate + normalize credential data for a type; raises ValueError."""
     schema = CREDENTIAL_TYPES.get(cred_type)
-    if schema is None:
-        raise ValueError(f"Unknown credential type '{cred_type}'.")
-    return schema.model_validate(data).model_dump(mode="json")
+    if schema is not None:
+        return schema.model_validate(data).model_dump(mode="json")
 
+    # Connector-declared credential type
+    try:
+        from app.connectors import get_registry, ensure_builtin_connectors
+        ensure_builtin_connectors()
+        registry = get_registry()
+        for info in registry.list_all():
+            definition = registry.get_definition(info.connector_id)
+            if definition and definition.credential_types and cred_type in definition.credential_types:
+                if not isinstance(data, dict):
+                    raise ValueError("Credential data must be a dictionary.")
+                return dict(data)
+    except Exception:
+        pass
 
-def is_known_type(cred_type: str) -> bool:
-    return cred_type in CREDENTIAL_TYPES
+    # Predefined credentials
+    for p in PREDEFINED_CREDENTIALS:
+        if p.get("id") == cred_type or p.get("credentialType") == cred_type:
+            if not isinstance(data, dict):
+                raise ValueError("Credential data must be a dictionary.")
+            return dict(data)
+
+    try:
+        from app.credentials.schema_registry import _GENERIC_SCHEMAS
+        generic_schema = _GENERIC_SCHEMAS.get(cred_type)
+        if generic_schema is not None:
+            return generic_schema.model_validate(data).model_dump(mode="json")
+    except Exception:
+        pass
+
+    raise ValueError(f"Unknown credential type '{cred_type}'.")
 
 
 def redact_data(cred_type: str, data: dict[str, Any]) -> dict[str, Any]:
     """Redact secret fields from credential data dict for safe display."""
-    secrets = SECRET_FIELDS.get(cred_type, frozenset())
+    secrets = SECRET_FIELDS.get(cred_type)
+    if secrets is None:
+        try:
+            from app.connectors import get_registry, ensure_builtin_connectors
+            ensure_builtin_connectors()
+            registry = get_registry()
+            for info in registry.list_all():
+                definition = registry.get_definition(info.connector_id)
+                if definition and definition.credential_types and cred_type in definition.credential_types:
+                    ct = definition.credential_types[cred_type]
+                    secrets = frozenset(ct.secret_fields or [])
+                    break
+        except Exception:
+            pass
+    secrets = secrets or frozenset({"api_key", "password", "token", "client_secret", "private_token", "secret", "refresh_token"})
     out = dict(data)
     for f in secrets:
         if f in out and out[f]:

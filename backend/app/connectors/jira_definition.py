@@ -101,6 +101,26 @@ def _jira_operations() -> dict[str, ConnectorOperationV1]:
             retryable=False,
             idempotency="non_idempotent",
         ),
+        "get_issue": _operation(
+            "get_issue", "Get Issue",
+            "Retrieve a single Jira issue by its key.",
+            {
+                "issue_key": {"type": "string", "title": "Issue key (e.g. PROJ-123)"},
+                "field_list": {"type": "array", "title": "Fields to return", "items": {"type": "string"}},
+                "expand": {"type": "array", "title": "Expand fields", "items": {"type": "string"}},
+            },
+            ["issue_key"],
+            {"type": "object", "properties": {"key": {"type": "string"}, "id": {"type": "string"}, "issue": {"type": "object"}, "success": {"type": "boolean"}}},
+            retryable=True,
+        ),
+        "get_projects": _operation(
+            "get_projects", "Get Projects",
+            "Retrieve visible projects from Jira Cloud.",
+            {},
+            [],
+            {"type": "object", "properties": {"projects": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}, "success": {"type": "boolean"}}},
+            retryable=True,
+        ),
     }
 
 
@@ -141,8 +161,9 @@ def build_jira_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_jira_credential_type(),
         metadata={
-            "initial_operations": ["search", "create_issue", "update_issue", "add_comment"],
+            "initial_operations": ["search", "get_issue", "get_projects", "create_issue", "update_issue", "add_comment"],
             "auth": "basic auth (email + API token)",
         },
         icon="jira",
     )
+

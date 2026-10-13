@@ -662,6 +662,18 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
     from app.connectors.freshsales_definition import build_freshsales_definition
     from app.connectors.activecampaign_connector import ActiveCampaignConnector
     from app.connectors.activecampaign_definition import build_activecampaign_definition
+    from app.connectors.mssql_connector import MSSQLConnector
+    from app.connectors.mssql_definition import build_mssql_definition
+    from app.connectors.sqlite_connector import SQLiteConnector
+    from app.connectors.sqlite_definition import build_sqlite_definition
+    from app.connectors.rabbitmq_connector import RabbitMQConnector
+    from app.connectors.rabbitmq_definition import build_rabbitmq_definition
+    from app.connectors.kafka_connector import KafkaConnector
+    from app.connectors.kafka_definition import build_kafka_definition
+    from app.connectors.oracle_connector import OracleConnector
+    from app.connectors.oracle_definition import build_oracle_definition
+    from app.connectors.mqtt_connector import MQTTConnector
+    from app.connectors.mqtt_definition import build_mqtt_definition
 
     # connector_id -> (instance factory, definition builder). Definition
     # builders are paired with their connectors so discovery, the node
@@ -737,6 +749,12 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (ZohoCrmConnector(), build_zoho_crm_definition),
         (FreshsalesConnector(), build_freshsales_definition),
         (ActiveCampaignConnector(), build_activecampaign_definition),
+        (MSSQLConnector(), build_mssql_definition),
+        (SQLiteConnector(), build_sqlite_definition),
+        (RabbitMQConnector(), build_rabbitmq_definition),
+        (KafkaConnector(), build_kafka_definition),
+        (OracleConnector(), build_oracle_definition),
+        (MQTTConnector(), build_mqtt_definition),
     ]
 
     registry = get_registry()
@@ -774,6 +792,16 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
                 logging.getLogger("connectors").info("registered %d generated connectors", _count)
     except Exception:
         logging.getLogger("connectors").exception("generated connector scan failed")
+
+    # Parity Connectors: registers all connectors from the reference parity inventory
+    try:
+        from app.connectors.parity_connectors import register_parity_connectors
+
+        _parity_count = register_parity_connectors(registry)
+        if _parity_count:
+            logging.getLogger("connectors").info("registered %d parity connectors", _parity_count)
+    except Exception:
+        logging.getLogger("connectors").exception("parity connector scan failed")
 
 
 def _builtin_operations(connector_key: str, connector_version: str) -> Dict[str, ConnectorOperationV1]:

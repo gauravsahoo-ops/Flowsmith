@@ -48,6 +48,7 @@ def _build_all_defs() -> List[Dict[str, Any]]:
         TYPE_META,
         CREDENTIAL_PROVIDER,
         CREDENTIAL_IMPLEMENTED,
+        PREDEFINED_CREDENTIALS,
     )
     from app.credentials.auth_metadata import CONNECTOR_AUTH_CATALOG
 
@@ -65,9 +66,9 @@ def _build_all_defs() -> List[Dict[str, Any]]:
         "quickbooks", "sharepoint", "onedrive",
     })
 
+    # 1. Built-in Pydantic credential types
     for type_id in CREDENTIAL_TYPES:
         if type_id in seen:
-            # Update implemented flag
             for d in defs:
                 if d["id"] == type_id:
                     d["implemented"] = CREDENTIAL_IMPLEMENTED.get(type_id, True)
@@ -93,6 +94,58 @@ def _build_all_defs() -> List[Dict[str, Any]]:
             "supportsTest": is_impl,
         })
         seen.add(type_id)
+
+    # 2. Connector-declared credentials
+    try:
+        from app.connectors import get_registry, ensure_builtin_connectors
+        ensure_builtin_connectors()
+        registry = get_registry()
+        for info in registry.list_all():
+            definition = registry.get_definition(info.connector_id)
+            if not definition or not definition.credential_types:
+                continue
+            for ct_key, ct in definition.credential_types.items():
+                if ct_key in seen:
+                    continue
+                seen.add(ct_key)
+                name = getattr(ct, "display_name", "") or ct_key.replace("_", " ").title()
+                desc = getattr(ct, "description", "") or f"Credentials for {name}."
+                is_oauth = any("oauth" in s.lower() for s in [ct_key, name, desc])
+                auth_str = "OAuth 2.0" if is_oauth else ("Bearer Token" if "token" in ct_key.lower() else "API Key")
+
+                defs.append({
+                    "id": ct_key,
+                    "displayName": name,
+                    "category": "connector",
+                    "authType": auth_str,
+                    "provider": "header",
+                    "implemented": True,
+                    "supportsOAuth": is_oauth,
+                    "supportsRefresh": is_oauth,
+                    "supportsTest": True,
+                })
+    except Exception:
+        pass
+
+    # 3. Predefined credentials
+    for p in PREDEFINED_CREDENTIALS:
+        pid = p.get("id")
+        if not pid or pid in seen:
+            continue
+        seen.add(pid)
+        auth = p.get("authType", "header")
+        defs.append({
+            "id": pid,
+            "displayName": p.get("displayName", pid),
+            "category": "predefined",
+            "authType": auth,
+            "provider": p.get("provider", "header"),
+            "implemented": True,
+            "supportsOAuth": auth in ("oauth2", "oauth1"),
+            "supportsRefresh": auth == "oauth2",
+            "supportsTest": True,
+        })
+
     return defs
 
 

@@ -64,6 +64,22 @@ def build_google_sheets_definition() -> ConnectorDefinitionV1:
                 {"type": "object", "properties": {"success": {"type": "boolean"}, "updated_cells": {"type": "integer"}}},
                 retryable=True,
             ),
+            "clear": _operation(
+                "clear", "Clear Range", "Clear all values from a specified A1 range.",
+                {"spreadsheet_id": _SSID, "range": _RANGE, "timeout_seconds": {"type": "number", "default": 30}},
+                ["spreadsheet_id", "range"],
+                {"type": "object", "properties": {"cleared": {"type": "boolean"}, "range": {"type": "string"}}},
+                retryable=True,
+                idempotency="idempotent",
+            ),
+            "get_info": _operation(
+                "get_info", "Get Spreadsheet Info", "Retrieve metadata, sheet names and grid properties.",
+                {"spreadsheet_id": _SSID, "timeout_seconds": {"type": "number", "default": 30}},
+                ["spreadsheet_id"],
+                {"type": "object", "properties": {"spreadsheet_id": {"type": "string"}, "title": {"type": "string"}, "sheets": {"type": "array"}, "sheet_count": {"type": "integer"}}},
+                retryable=True,
+                idempotency="idempotent",
+            ),
         },
         triggers={},
         credential_types={

@@ -26,7 +26,7 @@ from app.providers.stripe import StripeProviderClient, idempotency_key
 class StripeConnectorParams(BaseModel):
     operation: str = Field(
         default="list_customers",
-        description="create_customer | get_customer | list_customers | create_payment_intent.",
+        description="create_customer | get_customer | list_customers | create_payment_intent | create_refund | get_payment_intent.",
     )
     email: str = ""
     name: str = ""
@@ -35,6 +35,8 @@ class StripeConnectorParams(BaseModel):
     amount: int = 0
     currency: str = "usd"
     description: str = ""
+    payment_intent_id: str = ""
+    reason: str = ""
     limit: int = Field(default=50, ge=1, le=100)
     max_pages: int = Field(default=3, ge=1, le=10)
     email_filter: str = ""
@@ -44,7 +46,7 @@ class StripeConnectorParams(BaseModel):
 class StripeConnector(ConnectorSDK):
     connector_id = "stripe"
     display_name = "Stripe"
-    description = "Manage Stripe customers and payment intents."
+    description = "Manage Stripe customers, payment intents, and refunds."
     category = ConnectorCategory.API
     version = "1.0.0"
 
@@ -118,6 +120,18 @@ class StripeConnector(ConnectorSDK):
                     idem_key=idempotency_key(context, "create_payment_intent", payload),
                     timeout=timeout,
                 )
+            if op == "create_refund":
+                pi = str(raw.get("payment_intent_id") or raw.get("payment_intent") or params.payment_intent_id)
+                amount_cents = raw.get("amount") or (params.amount if params.amount > 0 else None)
+                reason = str(raw.get("reason") or params.reason)
+                return await self._provider.create_refund(
+                    creds, payment_intent=pi, amount_cents=amount_cents, reason=reason,
+                    idem_key=idempotency_key(context, "create_refund", payload),
+                    timeout=timeout,
+                )
+            if op == "get_payment_intent":
+                pi = str(raw.get("payment_intent_id") or raw.get("payment_intent") or params.payment_intent_id)
+                return await self._provider.get_payment_intent(creds, pi, timeout=timeout)
         except ConnectorError:
             raise
         raise make_connector_error(

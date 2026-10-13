@@ -22,9 +22,11 @@ from app.providers.notion import NotionProviderClient
 
 
 class NotionConnectorParams(BaseModel):
-    operation: str = Field(default="query_database", description="query_database | create_page | update_page.")
+    operation: str = Field(default="query_database", description="query_database | create_page | update_page | get_page | append_block_children.")
     database_id: str = ""
     page_id: str = ""
+    block_id: str = ""
+    children: list[dict[str, Any]] = Field(default_factory=list)
     filter: dict[str, Any] | None = None
     properties: dict[str, Any] = Field(default_factory=dict)
     archived: bool = False
@@ -105,7 +107,25 @@ class NotionConnector(ConnectorSDK):
                     properties=props, archived=bool(archived_raw),
                     timeout=params.timeout_seconds,
                 )
+            if op == "get_page":
+                return await self._provider.get_page(
+                    creds, str(raw.get("page_id") or params.page_id),
+                    timeout=params.timeout_seconds,
+                )
+            if op == "append_block_children":
+                children_raw = raw.get("children") or params.children
+                if not isinstance(children_raw, list) or not children_raw:
+                    raise make_connector_error(
+                        ConnectorErrorCode.BAD_REQUEST,
+                        "append_block_children requires a non-empty children array.",
+                        retryable=False,
+                    )
+                return await self._provider.append_block_children(
+                    creds, str(raw.get("block_id") or params.block_id),
+                    children_raw, timeout=params.timeout_seconds,
+                )
         except ConnectorError:
+
             raise
         raise make_connector_error(
             ConnectorErrorCode.BAD_REQUEST, f"Unsupported Notion operation '{operation}'.", retryable=False,

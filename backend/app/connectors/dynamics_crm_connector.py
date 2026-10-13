@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from app.connectors import (
     ConnectorSDK,
@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 class DynamicsCrmConnectorParams(BaseModel):
     """Parameters for a Microsoft Dynamics 365 connector operation."""
+
+    # `fetchXml` is how the published operation schema names the field, while
+    # the Python attribute is snake_case; accept both spellings.
+    model_config = ConfigDict(populate_by_name=True)
 
     operation: str = Field(
         default="query",
@@ -65,7 +69,24 @@ class DynamicsCrmConnectorParams(BaseModel):
     )
     fetch_xml: str = Field(
         default="",
+        validation_alias=AliasChoices("fetch_xml", "fetchXml"),
         description="Raw FetchXML query (overrides OData parameters if specified).",
+    )
+    page_size: int = Field(
+        default=0,
+        description="Records requested per HTTP call ($top per page). 0 = let Dataverse decide.",
+    )
+    return_all: bool = Field(
+        default=True,
+        description="Follow @odata.nextLink until the budget runs out. Off = fetch one page.",
+    )
+    max_pages: int = Field(
+        default=10,
+        description="Upper bound on pages a single run may fetch.",
+    )
+    after: str = Field(
+        default="",
+        description="@odata.nextLink returned by a previous run; resumes exactly there.",
     )
     key_field: str = Field(
         default="",
@@ -179,7 +200,7 @@ class DynamicsCrmConnector(ConnectorSDK, ConnectorOperations):
                     else:
                         filter_expr = f"contains(name, '{term}')"
 
-            records = await self._provider.query(
+            result = await self._provider.query_paged(
                 creds,
                 entity,
                 filter_expr=filter_expr,
@@ -188,8 +209,12 @@ class DynamicsCrmConnector(ConnectorSDK, ConnectorOperations):
                 orderby=parsed_params.orderby,
                 top=parsed_params.top,
                 fetch_xml=parsed_params.fetch_xml,
+                page_size=parsed_params.page_size,
+                return_all=parsed_params.return_all,
+                max_pages=parsed_params.max_pages,
+                after=parsed_params.after,
             )
-            return {"records": records, "count": len(records), "entity": entity}
+            return {**result, "entity": entity}
 
         if op == "get":
             record = await self._provider.get_record(

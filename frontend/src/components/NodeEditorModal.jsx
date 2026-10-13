@@ -11,38 +11,16 @@ import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
 import { useCredentialStore } from '../stores/credentialStore'
 import { api } from '../api'
-import JsonForm from './JsonForm'
 import OutputPanel from './OutputPanel'
 import InputPanel from './InputPanel'
 import Button from './shared/Button'
 import Tabs from './shared/Tabs'
 import Status from './shared/Status'
-import ErrorState from './shared/ErrorState'
 import { NodeIcon } from './NodeIcons'
 import ExpressionHelper from './ExpressionHelper'
 import NodeAutoRepair from './NodeAutoRepair'
 
-const SalesforceNodeEditor = lazy(() => import('./SalesforceNodeEditor'))
-const DynamicsCrmNodeEditor = lazy(() => import('./DynamicsCrmNodeEditor'))
-const ScheduleTriggerEditor = lazy(() => import('./ScheduleTriggerEditor'))
-const WebhookNodeEditor = lazy(() => import('./WebhookNodeEditor'))
-const HttpRequestNodeEditor = lazy(() => import('./HttpRequestNodeEditor'))
-const CodeNodeEditor = lazy(() => import('./CodeNodeEditor'))
-const IfConditionEditor = lazy(() => import('./IfConditionEditor'))
-const FilterNodeEditor = lazy(() => import('./FilterNodeEditor'))
-const SplitNodeEditor = lazy(() => import('./SplitNodeEditor'))
-const CompareDatasetsEditor = lazy(() => import('./CompareDatasetsEditor'))
-const StopAndErrorNodeEditor = lazy(() => import('./StopAndErrorNodeEditor'))
-const SwitchNodeEditor = lazy(() => import('./SwitchNodeEditor'))
-const WaitNodeEditor = lazy(() => import('./WaitNodeEditor'))
-const ExecuteWorkflowNodeEditor = lazy(() => import('./ExecuteWorkflowNodeEditor'))
-const ExecuteWorkflowTriggerEditor = lazy(() => import('./ExecuteWorkflowTriggerEditor'))
-const TokenManagerNodeEditor = lazy(() => import('./TokenManagerNodeEditor'))
-const TokenFetchNodeEditor = lazy(() => import('./TokenFetchNodeEditor'))
-const TokenStoreNodeEditor = lazy(() => import('./TokenStoreNodeEditor'))
-const SetVariableNodeEditor = lazy(() => import('./SetVariableNodeEditor'))
-const DataTableDiscovery = lazy(() => import('./DataTableDiscovery'))
-const AINodeEditor = lazy(() => import('./AINodeEditor'))
+import { resolveNodeEditor, lazyEditor } from '../utils/nodeEditorRegistry'
 import {
   IDEMPOTENCY_LABEL,
   IDEMPOTENCY_HINT,
@@ -97,16 +75,6 @@ export default function NodeEditorModal() {
   )
   const schema = meta?.parameters_schema
   const credTypes = meta?.credential_types || []
-
-  // Dynamic parameter filtering: for connector nodes with defined operations,
-  // hide fields that don't belong to the currently selected operation.
-  const currentOp = node?.parameters?.operation || schema?.properties?.operation?.default
-  const opMeta = meta?.operations?.[currentOp]
-  const operationHiddenKeys = useMemo(() => {
-    if (!opMeta?.properties || !schema?.properties) return []
-    const allowed = new Set([...opMeta.properties, 'operation'])
-    return Object.keys(schema.properties).filter((k) => !allowed.has(k))
-  }, [opMeta, schema])
 
   const incomingEdges = useMemo(() => edges?.filter((e) => e.target === selectedId) || [], [edges, selectedId])
   const upstreamNode = useMemo(() => {
@@ -210,6 +178,95 @@ export default function NodeEditorModal() {
     : rawError
   const operation = node?.parameters?.operation
   const connectorName = meta?.display_name || node?.type || 'Node'
+
+  // ---- editor resolution -------------------------------------------------
+  // Declarative lookup: dedicated editor if the node type has one, otherwise
+  // the schema-driven DynamicNodeConfigPanel. Every node therefore gets a
+  // configuration panel without adding another conditional branch.
+  const editorKind = useMemo(() => {
+    const resolved = resolveNodeEditor(node?.type)
+    return resolved ? resolved.kind : 'dynamic'
+  }, [node?.type])
+
+  const EditorComponent = useMemo(() => {
+    if (!node?.type) return null
+    return lazyEditor(node.type)
+  }, [node?.type])
+
+  const PrePanel = useMemo(() => {
+    const load = node?.type === 'data_table' ? lazy(() => import('./DataTableDiscovery')) : null
+    return load
+  }, [node?.type])
+
+  // Props shared by every purpose-built editor.
+  const editorBaseProps = useMemo(
+    () => ({
+      node,
+      onParamsChange: handleParamsChange,
+      mapping,
+      onPreview: previewExpression,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [node, mapping],
+  )
+
+  // Some dedicated editors need credential plumbing too.
+  const CREDENTIAL_AWARE_EDITORS = useMemo(
+    () => new Set(['salesforce', 'dynamics_crm', 'ai', 'http_request']),
+    [],
+  )
+
+  const dedicatedEditorProps = useMemo(() => {
+    const base = { ...editorBaseProps }
+    if (CREDENTIAL_AWARE_EDITORS.has(node?.type)) {
+      base.credentials = credentials
+      base.onCredentialChange = setCredential
+    }
+    if (node?.type === 'filter') {
+      base.onSettingsChange = setSetting
+      base.tab = 'parameters'
+    }
+    if (node?.type === 'webhook') base.workflowId = workflow?.id
+    if (node?.type === 'http_request') {
+      base.inputData = _upstreamData
+      base.credentialTypes = credentialTypes
+    }
+    if (node?.type === 'schedule') {
+      // Schedule editor only takes node + onParamsChange.
+      return { node, onParamsChange: handleParamsChange }
+    }
+    if (node?.type === 'execute_workflow_trigger') {
+      return { node, onParamsChange: handleParamsChange }
+    }
+    return base
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorBaseProps, node?.type, credentials, workflow?.id, credentialTypes, _upstreamData])
+
+  const dynamicPanelProps = useMemo(
+    () => ({
+      node,
+      meta,
+      onParamsChange: handleParamsChange,
+      onSettingsChange: setSetting,
+      credentials,
+      onCredentialChange: setCredential,
+      mapping,
+      onPreview: previewExpression,
+      inputData: _upstreamData,
+      // Real execution only: if the preview endpoint is unavailable, no result is
+      // produced — the panel disables its Test Step button rather than showing a
+      // fabricated success payload.
+      onExecuteStep: api.previewNode && workflow?.id
+        ? async () => {
+            const res = await api.previewNode(workflow.id, node.id, node.parameters, node.credentials)
+            setOutputData(res)
+            return res
+          }
+        : undefined,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [node, meta, credentials, mapping, workflow?.id, _upstreamData],
+  )
 
   async function previewExpression(expression) {
     return api.previewExpression(workflow.id, { expression, node_id: selectedId })
@@ -585,175 +642,36 @@ export default function NodeEditorModal() {
                   )}
 
                   <Suspense fallback={<div className="panel-loading" style={{ padding: '24px', textAlign: 'center', opacity: 0.7 }}><p className="hint">Loading editor…</p></div>}>
-                  {node.type === 'salesforce' ? (
-                    <SalesforceNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      credentials={credentials}
-                      onCredentialChange={setCredential}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : node.type === 'dynamics_crm' ? (
-                    <DynamicsCrmNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      credentials={credentials}
-                      onCredentialChange={setCredential}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : node.type === 'code' ? (
-                    <CodeNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : node.type === 'if_condition' ? (
-                    <IfConditionEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : node.type === 'filter' ? (
-                    <FilterNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      onSettingsChange={setSetting}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                      tab="parameters"
-                    />
-                  ) : node.type === 'schedule' ? (
-                    <ScheduleTriggerEditor node={node} onParamsChange={handleParamsChange} />
-                  ) : node.type === 'webhook' ? (
-                    <WebhookNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      workflowId={workflow?.id}
-                    />
-                  ) : node.type === 'http_request' ? (
-                    <HttpRequestNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      inputData={_upstreamData}
-                      onPreview={previewExpression}
-                      credentials={credentials}
-                      credentialTypes={credentialTypes}
-                      onCredentialChange={setCredential}
-                    />
-                  ) : node.type === 'set_variable' ? (
-                    <SetVariableNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : (node.type === 'split' || node.type === 'item_lists') ? (
-                    <SplitNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : node.type === 'compare_datasets' ? (
-                    <CompareDatasetsEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : node.type === 'stop_and_error' ? (
-                    <StopAndErrorNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : node.type === 'switch' ? (
-                    <SwitchNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : node.type === 'wait' ? (
-                    <WaitNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : (node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') ? (
-                    <ExecuteWorkflowNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : (node.type === 'execute_workflow_trigger' || node.type === 'sub_workflow_trigger') ? (
-                    <ExecuteWorkflowTriggerEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                    />
-                  ) : (node.type === 'token_manager') ? (
-                    <TokenManagerNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : (node.type === 'token_fetch' || node.type === 'auth_fetch') ? (
-                    <TokenFetchNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : (node.type === 'token_store' || node.type === 'auth_store') ? (
-                    <TokenStoreNodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : (node.type === 'ai') ? (
-                    <AINodeEditor
-                      node={node}
-                      onParamsChange={handleParamsChange}
-                      credentials={credentials}
-                      onCredentialChange={setCredential}
-                      mapping={mapping}
-                      onPreview={previewExpression}
-                    />
-                  ) : (
-                    <>
-                      {node.type === 'data_table' && (
-                        <DataTableDiscovery node={node} onParamsChange={handleParamsChange} />
-                      )}
-                      {schema ? (
-                        // Hide internal schema name for schedule (now has dedicated editor)
-                        <JsonForm
-                          schema={schema}
-                          value={node.parameters || {}}
-                          onChange={handleParamsChange}
-                          mapping={mapping}
-                          onPreview={previewExpression}
-                          hiddenKeys={operationHiddenKeys}
-                        />
-                      ) : (
+                  {(() => {
+                    const Editor = EditorComponent
+                    if (!Editor) {
+                      return (
                         <div className="nem-empty">
-                          <div className="nem-empty-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                          </div>
-                          <p className="hint">No parameters defined for this node.</p>
+                          <p className="hint">Loading editor…</p>
                         </div>
-                      )}
-                    </>
-                  )}
+                      )
+                    }
+                    if (editorKind === 'dedicated') {
+                      return <Editor {...dedicatedEditorProps} />
+                    }
+                    // Schema-driven panel: rendered for every node type, with the
+                    // discovery helper above it where the node declares one.
+                    return (
+                      <>
+                        {PrePanel && <PrePanel node={node} onParamsChange={handleParamsChange} />}
+                        {schema || meta?.operations || meta?.fields ? (
+                          <Editor {...dynamicPanelProps} />
+                        ) : (
+                          <div className="nem-empty">
+                            <div className="nem-empty-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </div>
+                            <p className="hint">No parameters defined for this node.</p>
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                   </Suspense>
 
                   {node.type === 'webhook' && (

@@ -88,6 +88,48 @@ def _slack_operations() -> dict[str, ConnectorOperationV1]:
             },
             retryable=True,
         ),
+        "add_reaction": _operation(
+            "add_reaction", "Add Reaction",
+            "Add an emoji reaction to a message via reactions.add.",
+            {
+                "channel": {"type": "string", "title": "Channel id", "description": "Channel containing the message."},
+                "timestamp": {"type": "string", "title": "Message timestamp", "description": "Timestamp (ts) of the target message."},
+                "name": {"type": "string", "title": "Emoji name", "description": "Emoji name without colons (e.g. thumbsup)."},
+            },
+            ["channel", "timestamp", "name"],
+            {
+                "type": "object",
+                "properties": {
+                    "ok": {"type": "boolean"},
+                    "channel": {"type": "string"},
+                    "timestamp": {"type": "string"},
+                    "reaction": {"type": "string"},
+                },
+            },
+            retryable=False,
+            idempotency="idempotent",
+        ),
+        "get_user_by_email": _operation(
+            "get_user_by_email", "Get User by Email",
+            "Look up a Slack workspace user by their email address via users.lookupByEmail.",
+            {
+                "email": {"type": "string", "title": "Email address", "description": "User email address to look up."},
+            },
+            ["email"],
+            {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "real_name": {"type": "string"},
+                    "email": {"type": "string"},
+                    "tz": {"type": "string"},
+                    "is_admin": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
     }
 
 
