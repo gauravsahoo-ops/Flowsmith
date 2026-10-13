@@ -29,7 +29,7 @@ COPY backend/ ./backend
 COPY --from=frontend /build/dist ./frontend/dist
 
 RUN useradd --create-home --shell /bin/bash appuser \
-    && mkdir -p /app/backend/data \
+    && mkdir -p /app/backend/data /app/backend/tmp /app/backend/data/objects \
     && chown -R appuser:appuser /app
 
 USER appuser

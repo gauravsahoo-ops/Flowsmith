@@ -182,6 +182,10 @@ class QueueWorker:
         hb = pathlib.Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tmp"))
         hb.mkdir(parents=True, exist_ok=True)
         hb = hb / "worker_alive"
+        try:
+            hb.write_text(str(os.getpid()))
+        except Exception:
+            pass
         last_hb_write = time.monotonic()
         while not self._stop.is_set():
             try:

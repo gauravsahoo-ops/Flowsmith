@@ -244,8 +244,9 @@ class ParityConnector(ConnectorSDK):
 
 
 def _load_inventory_items() -> list[dict[str, Any]]:
-    """Load reference inventory items from docs/integration-parity/inventory.json."""
+    """Load reference inventory items from local package or docs/integration-parity/inventory.json."""
     candidates = [
+        Path(__file__).resolve().parent / "inventory.json",
         Path(__file__).resolve().parents[3] / "docs" / "integration-parity" / "inventory.json",
         Path(__file__).resolve().parents[2] / "docs" / "integration-parity" / "inventory.json",
         Path("docs/integration-parity/inventory.json").resolve(),
