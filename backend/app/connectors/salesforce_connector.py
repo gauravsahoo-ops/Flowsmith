@@ -172,6 +172,10 @@ class SalesforceConnectorParams(BaseModel):
                         return parsed
                 except Exception:
                     pass
+            if s.startswith("{{") and s.endswith("}}"):
+                raise ValueError(
+                    f"Expression '{s}' was not resolved to a valid record batch. Ensure the referenced node has executed and produced records."
+                )
         return v
     external_id_field: str = Field(
         default="",

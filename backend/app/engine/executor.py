@@ -580,6 +580,9 @@ async def _run_one(
     # node class always wins, so connectors never override built-ins.
     connector_registry = get_connector_registry()
     node_cls = NODE_REGISTRY.get(node.type)
+    if node_cls is None:
+        from app.nodes.registry import get as get_node_cls
+        node_cls = get_node_cls(node.type)
     connector = None if node_cls is not None else connector_registry.primary_for_node_type(node.type)
     if node_cls is None and connector is None:
         definition = connector_registry.get_definition(node.type)

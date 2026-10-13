@@ -135,6 +135,7 @@ class CsvConnector(ConnectorSDK):
         return {
             "output": {
                 "rows": all_rows,
+                "records": all_rows,
                 "total_parsed": len(all_rows),
                 "metadata": meta_out,
             },

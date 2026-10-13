@@ -263,6 +263,7 @@ class CsvParserNode(DataLoadNode):
         output_item = {
             "summary": summary,
             "records": accumulated_records,
+            "rows": accumulated_records,
             "invalid_records": sample_invalid,
             "duplicate_records": sample_duplicates,
         }

@@ -160,3 +160,8 @@ def _load_builtin_nodes() -> None:
 
 
 _load_builtin_nodes()
+
+# Register aliases in NODE_REGISTRY so direct lookups and executor find them seamlessly
+for _alias, _target in _ALIASES.items():
+    if _target in NODE_REGISTRY and _alias not in NODE_REGISTRY:
+        NODE_REGISTRY[_alias] = NODE_REGISTRY[_target]
