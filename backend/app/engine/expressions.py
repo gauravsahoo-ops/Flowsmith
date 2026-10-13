@@ -484,6 +484,9 @@ def resolve(value: Any, context: dict[str, Any]) -> Any:
         if rendered != stripped:
             match = _EXPR_RE.fullmatch(stripped.strip())
             if match:
+                raw_val = _eval_expr(match.group(1), context)
+                if raw_val is not None and not isinstance(raw_val, str):
+                    return raw_val
                 return _coerce(rendered)
         return rendered
     if isinstance(value, dict):

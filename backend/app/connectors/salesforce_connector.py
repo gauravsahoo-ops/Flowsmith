@@ -665,12 +665,17 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
                         f"operation=bulk delete requires records[{i}].Id.",
                         retryable=False,
                     )
+        # Strip internal metadata keys (e.g. _row_number) before submitting to Salesforce
+        clean_records = [
+            {k: v for k, v in rec.items() if not k.startswith("_")}
+            for rec in params.records
+        ]
         try:
             result = await self._provider.bulk_ingest(
                 creds,
                 object_name,
                 params.bulk_operation,
-                params.records,
+                clean_records,
                 external_id_field=params.external_id_field,
                 timeout=params.timeout_seconds,
                 poll_interval=params.poll_interval_seconds,
