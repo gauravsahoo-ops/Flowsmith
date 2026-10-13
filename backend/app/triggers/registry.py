@@ -100,6 +100,7 @@ def sync_webhooks(db: Session) -> None:
     ).all()
 
     wanted_webhook_paths: set[str] = set()
+    wanted_schedule_ids: set[str] = set()
     for rec in recs:
         workflow = Workflow.model_validate(rec.data)
         for trig in workflow_trigger_nodes(workflow):
@@ -218,6 +219,7 @@ def sync_webhooks(db: Session) -> None:
                     rule_id = rule.id
                     # One DB row per rule
                     row_id = make_schedule_trigger_id(rec.id, trig["node_id"], rule_id)
+                    wanted_schedule_ids.add(row_id)
                     existing = db.scalar(select(ScheduleTrigger).where(ScheduleTrigger.id == row_id))
                     if existing is None:
                         db.add(ScheduleTrigger(
@@ -257,19 +259,11 @@ def sync_webhooks(db: Session) -> None:
         if wanted_webhook_paths
         else delete(WebhookTrigger)
     )
-    # Multi-rule: one row per rule (ids from the SAME normalization as the
-    # create/update pass above, so both passes agree on the row id — audit H16)
-    wanted_schedule_ids: set[str] = set()
-    for rec in recs:
-        for trig in workflow_trigger_nodes(Workflow.model_validate(rec.data)):
-            if trig["type"] != "schedule":
-                continue
-            for r in schedule_rule_dicts(trig["params"]):
-                rule_id = str(r.get("id") or "legacy")
-                wanted_schedule_ids.add(make_schedule_trigger_id(rec.id, trig["node_id"], rule_id))
-    for row in db.scalars(select(ScheduleTrigger)).all():
-        if row.id not in wanted_schedule_ids:
-            db.delete(row)
+    db.execute(
+        delete(ScheduleTrigger).where(~ScheduleTrigger.id.in_(wanted_schedule_ids))
+        if wanted_schedule_ids
+        else delete(ScheduleTrigger)
+    )
     db.commit()
 
 
