@@ -34,7 +34,7 @@ const ALL_OPS = {
   flow_invoke: { label: 'Invoke Flow', hint: 'Invoke an autolaunched Flow', backend: 'flow_invoke' },
   search: { label: 'Search', hint: 'Search records', backend: 'search' },
   list: { label: 'List Objects', hint: 'List all objects', backend: 'list' },
-  bulk: { label: 'Bulk', hint: 'Bulk load', backend: 'bulk' },
+  bulk: { label: 'Bulk Ingest', hint: 'High-volume batch ingest of records into Salesforce via Bulk API 2.0', backend: 'bulk' },
 }
 
 export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [], onPreview }) {
@@ -78,7 +78,7 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
     if (resource === 'CustomApiCall') return ['custom_api_call']
     if (resource === 'User') return ['get','query','describe']
     if (resource === 'Attachment' || resource === 'Document') return ['create','delete','get','query','describe']
-    return ['create','upsert','delete','get','query','describe','update','custom_api_call']
+    return ['create','upsert','delete','get','query','describe','update','bulk','custom_api_call']
   }, [matrix, resource])
 
   // Map backend ids to curated display values for dropdown

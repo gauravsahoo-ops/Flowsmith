@@ -44,14 +44,14 @@ SALESFORCE_OPERATION_VERSION = "1.1.0"
 # Single source: resource → valid backend operation ids (frontend derives from this).
 # Curated labels (Add Note etc.) are UI aliases → backend ids (Add Note→create with object Note).
 RESOURCE_OPERATION_MATRIX: dict[str, list[str]] = {
-    "Account": ["create", "upsert", "delete", "get", "query", "describe", "update", "custom_api_call"],
+    "Account": ["create", "upsert", "delete", "get", "query", "describe", "update", "bulk", "custom_api_call"],
     "Attachment": ["create", "delete", "get", "query", "describe"],
     "Case": ["create", "upsert", "delete", "get", "query", "describe", "update"],
-    "Contact": ["create", "upsert", "delete", "get", "query", "describe", "update"],
-    "CustomObject": ["create", "upsert", "delete", "get", "query", "describe", "update", "custom_api_call"],
+    "Contact": ["create", "upsert", "delete", "get", "query", "describe", "update", "bulk"],
+    "CustomObject": ["create", "upsert", "delete", "get", "query", "describe", "update", "bulk", "custom_api_call"],
     "Document": ["create", "delete", "get", "query", "describe"],
     "Flow": ["flow_invoke", "custom_api_call"],
-    "Lead": ["create", "upsert", "delete", "get", "query", "describe", "update"],
+    "Lead": ["create", "upsert", "delete", "get", "query", "describe", "update", "bulk"],
     "Opportunity": ["create", "upsert", "delete", "get", "query", "describe", "update"],
     "Search": ["search", "query", "list"],
     "Task": ["create", "upsert", "delete", "get", "query", "describe", "update"],
@@ -69,6 +69,7 @@ CURATED_OPERATION_LABELS: dict[str, dict[str, str]] = {
     "get_many": {"label": "Get Many", "hint": "Get many accounts", "backend": "query"},
     "describe": {"label": "Get Summary", "hint": "Returns an overview of account's metadata", "backend": "describe"},
     "update": {"label": "Update", "hint": "Update an account", "backend": "update"},
+    "bulk": {"label": "Bulk Ingest", "hint": "High-volume batch ingest of records into Salesforce via Bulk API 2.0", "backend": "bulk"},
     "custom_api_call": {"label": "Custom API Call", "hint": "Make a custom API call", "backend": "custom_api_call"},
 }
 

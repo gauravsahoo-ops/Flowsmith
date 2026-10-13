@@ -261,7 +261,7 @@ function CustomNode({ id, data, selected }) {
       describe: 'Get Summary',
       search: 'Search',
       list: 'List Objects',
-      bulk: 'Bulk',
+      bulk: 'Bulk Ingest',
       custom_api_call: 'Custom API',
       flow_invoke: 'Invoke Flow',
     }
