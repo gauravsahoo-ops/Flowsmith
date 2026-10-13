@@ -408,3 +408,38 @@ describe('group frames', () => {
   })
 })
 
+describe('autoSave & manual save', () => {
+  it('defaults autoSave to false and leaves workflow dirty until manual save()', async () => {
+    const wf = { id: 'wf_manual', name: 'Manual Save Wf', version: 1, active: false, nodes: [], connections: [] }
+    useWorkflowStore.setState({ workflow: wf, savedAt: new Date(), saving: false, _dirty: false, autoSave: false })
+    mockApi.saveWorkflow.mockClear()
+
+    // Add a node
+    add('set_data', 0)
+    expect(useWorkflowStore.getState()._dirty).toBe(true)
+    expect(useWorkflowStore.getState().savedAt).toBeNull()
+
+    // Even after waiting 600ms, mockApi.saveWorkflow should NOT be called because autoSave is false
+    await new Promise((r) => setTimeout(r, 650))
+    expect(mockApi.saveWorkflow).not.toHaveBeenCalled()
+
+    // Only when manual save() is called does it save
+    const saved = { ...wf, version: 2 }
+    mockApi.saveWorkflow.mockResolvedValue(saved)
+    await useWorkflowStore.getState().save()
+
+    expect(mockApi.saveWorkflow).toHaveBeenCalledTimes(1)
+    expect(useWorkflowStore.getState()._dirty).toBe(false)
+    expect(useWorkflowStore.getState().savedAt).not.toBeNull()
+  })
+
+  it('allows toggling autoSave via setAutoSave', () => {
+    useWorkflowStore.setState({ autoSave: false })
+    expect(useWorkflowStore.getState().autoSave).toBe(false)
+    useWorkflowStore.getState().setAutoSave(true)
+    expect(useWorkflowStore.getState().autoSave).toBe(true)
+    useWorkflowStore.getState().setAutoSave(false)
+    expect(useWorkflowStore.getState().autoSave).toBe(false)
+  })
+})
+

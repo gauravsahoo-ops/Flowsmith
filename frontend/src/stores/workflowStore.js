@@ -74,6 +74,11 @@ export const useWorkflowStore = create((set, get) => ({
   _history: createHistory(),
   _dirty: false,
   _dragHistoryOpen: false,
+  autoSave: false, // Auto-save disabled by default (manual save only)
+
+  setAutoSave(enabled) {
+    set({ autoSave: Boolean(enabled) })
+  },
 
   // ------------------------------------------------------------------
   // history plumbing
@@ -242,7 +247,8 @@ export const useWorkflowStore = create((set, get) => ({
       }
       return n
     })
-    if (needsSave) setTimeout(() => get().save().catch(()=>{}), 600)
+    if (needsSave && get().autoSave) setTimeout(() => get().save().catch(()=>{}), 600)
+    else if (needsSave) set({ _dirty: true, savedAt: null })
     const decor = readDecorations(wf)
     set({ workflow: wf, nodes, edges, ...decor, loading: false, savedAt: new Date() })
     get()._history.reset()
@@ -783,9 +789,9 @@ export const useWorkflowStore = create((set, get) => ({
     const { workflow, nodes, edges, comments, groups, edgeLabels } = get()
     if (!workflow) return
     if (get().saving) {
-      // A save is already in flight; queue this one behind it so concurrent
-      // edits are never silently dropped.
-      scheduleSave()
+      // A save is already in flight; record dirty state so edits aren't lost
+      set({ _dirty: true })
+      if (get().autoSave) scheduleSave()
       return null
     }
     clearTimeout(saveTimer)
@@ -883,8 +889,12 @@ function pruneEmptyGroups(get, set) {
 }
 
 function scheduleSave() {
-  useWorkflowStore.setState({ _dirty: true })
+  useWorkflowStore.setState({ _dirty: true, savedAt: null })
   clearTimeout(saveTimer)
+  // Auto-save is disabled by default: only manual save via Save button or Ctrl+S
+  if (!useWorkflowStore.getState().autoSave) {
+    return
+  }
   saveTimer = setTimeout(() => {
     useWorkflowStore.getState().save().catch((err) => {
       const isEmpty = err?.message?.includes('at least one node')

@@ -39,6 +39,9 @@ export default function TopBar({
   const savedAt = useWorkflowStore((s) => s.savedAt)
   const save = useWorkflowStore((s) => s.save)
   const saveError = useWorkflowStore((s) => s.error)
+  const isDirty = useWorkflowStore((s) => s._dirty)
+  const autoSave = useWorkflowStore((s) => s.autoSave)
+  const setAutoSave = useWorkflowStore((s) => s.setAutoSave)
   const setName = useWorkflowStore((s) => s.setName)
   const setWorkflowSettings = useWorkflowStore((s) => s.setWorkflowSettings)
   const toggleActive = useWorkflowStore((s) => s.toggleActive)
@@ -242,6 +245,11 @@ export default function TopBar({
               <span className="save-dot save-dot-saving" />
               <span>saving…</span>
             </span>
+          ) : isDirty ? (
+            <span className="save-state-unsaved" title="Unsaved changes — click Save or press Ctrl+S">
+              <span className="save-dot save-dot-unsaved" />
+              <span>unsaved</span>
+            </span>
           ) : savedAt ? (
             <span className="save-state-saved">
               <span className="save-dot save-dot-saved" />
@@ -316,10 +324,10 @@ export default function TopBar({
           </button>
         )}
         <button
-          className="ghost ghost--quiet"
+          className={`ghost ghost--quiet ${isDirty ? 'btn-save-dirty' : ''}`}
           disabled={saving || !workflow?.id}
           onClick={() => save().catch(() => {})}
-          title="Save (auto-saves on change)"
+          title={isDirty ? "Save workflow (Ctrl+S) — Unsaved changes" : "Save workflow (Ctrl+S)"}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -328,6 +336,9 @@ export default function TopBar({
             <polyline points="7 3 7 8 15 8" />
           </svg>
           <span>{saving ? 'Saving…' : 'Save'}</span>
+          {isDirty && !saving && (
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8', display: 'inline-block' }} />
+          )}
         </button>
         <button
           className={`ghost ghost--quiet ${docModalOpen ? 'active' : ''}`}
@@ -398,7 +409,16 @@ export default function TopBar({
           <button
             className="primary primary--run"
             disabled={!workflow?.id}
-            onClick={() => run(workflow.id)}
+            onClick={async () => {
+              if (useWorkflowStore.getState()._dirty) {
+                try {
+                  await save()
+                } catch {
+                  return
+                }
+              }
+              run(workflow.id)
+            }}
             aria-label="Run workflow"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
@@ -465,6 +485,14 @@ export default function TopBar({
                     onChange={(e) => setWorkflowSettings({ max_parallelism: Math.min(32, Math.max(1, Number(e.target.value) || 8)) })}
                     style={{ width: '100%' }}
                   />
+                </label>
+                <label className="check" style={{ fontSize: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={autoSave}
+                    onChange={(e) => setAutoSave(e.target.checked)}
+                  />
+                  Auto-save workflow changes (disabled by default)
                 </label>
                 <label className="check" style={{ fontSize: 12 }}>
                   <input

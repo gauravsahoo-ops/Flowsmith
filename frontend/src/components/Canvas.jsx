@@ -378,6 +378,9 @@ function CanvasInner() {
       } else if (mod && e.key.toLowerCase() === 'y') {
         e.preventDefault()
         useWorkflowStore.getState().redo()
+      } else if (mod && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        useWorkflowStore.getState().save().catch(() => {})
       } else if (mod && e.key.toLowerCase() === 'c') {
         const selected = useWorkflowStore.getState().nodes.filter((n) => n.selected)
         useWorkflowStore.getState().copySelection(selected.map((n) => n.id))
