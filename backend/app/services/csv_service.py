@@ -98,10 +98,29 @@ class CsvService:
         if isinstance(source, bytes):
             return io.StringIO(source.decode("utf-8-sig", errors="replace"))
         if isinstance(source, str):
-            # Check if source is a local file path
-            import os
-            if os.path.isfile(source):
-                with open(source, "r", encoding="utf-8-sig", errors="replace") as f:
+            clean_source = source.strip()
+            # Check candidate paths if clean_source looks like a filename/path or has no newlines
+            if "\n" not in clean_source and (clean_source.endswith(".csv") or "/" in clean_source or "\\" in clean_source):
+                from pathlib import Path
+                candidates = [
+                    Path(clean_source),
+                    Path.cwd() / clean_source,
+                    Path.cwd().parent / clean_source,
+                    Path(__file__).resolve().parents[2] / clean_source,
+                    Path(__file__).resolve().parents[3] / clean_source,
+                    Path(r"c:\Flowsmith") / clean_source,
+                    Path("/app") / clean_source,
+                    Path("/app/backend") / clean_source,
+                ]
+                for cand in candidates:
+                    try:
+                        if cand.is_file():
+                            with open(cand, "r", encoding="utf-8-sig", errors="replace") as f:
+                                return io.StringIO(f.read())
+                    except Exception:
+                        continue
+            elif os.path.isfile(clean_source):
+                with open(clean_source, "r", encoding="utf-8-sig", errors="replace") as f:
                     return io.StringIO(f.read())
             # Otherwise treat as CSV raw text string
             return io.StringIO(source)
