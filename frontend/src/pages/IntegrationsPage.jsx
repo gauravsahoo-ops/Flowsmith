@@ -234,7 +234,7 @@ export default function IntegrationsPage() {
     <div className="page integrations-page" style={{ padding: '1.5rem', maxWidth: 1400, margin: '0 auto' }}>
       <PageHeader
         title="Integrations & Marketplace"
-        subtitle="Discover, configure, and connect 45+ enterprise integrations, APIs, and custom OpenAPI endpoints."
+        subtitle="Discover, configure, and connect 527+ enterprise integrations, APIs, and custom OpenAPI endpoints."
         actions={
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button

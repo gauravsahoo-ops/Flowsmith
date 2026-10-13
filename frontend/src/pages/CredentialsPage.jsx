@@ -660,7 +660,7 @@ export default function CredentialsPage() {
               },
             ]}
             action={<button className="primary" onClick={() => { document.querySelector('.credentials-page section.card:last-of-type')?.scrollIntoView({ behavior: 'smooth' }) }}>Add first credential</button>}
-            secondaryAction={<button className="ghost" onClick={() => navigate('/integrations')}>Explore 88+ integrations</button>}
+            secondaryAction={<button className="ghost" onClick={() => navigate('/integrations')}>Explore 527+ integrations</button>}
           />
         ) : (
           <EmptyState

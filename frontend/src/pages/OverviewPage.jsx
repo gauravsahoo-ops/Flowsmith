@@ -277,6 +277,7 @@ export default function OverviewPage() {
   const [templates, setTemplates] = useState([])
   const [dataTables, setDataTables] = useState([])
   const [health, setHealth] = useState(null)
+  const [connectorsCount, setConnectorsCount] = useState(527)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -290,7 +291,8 @@ export default function OverviewPage() {
       api.listTemplates().catch(() => []),
       api.listDataTables({ pageSize: 100 }).then(r => r.data || []).catch(() => []),
       api.getHealth().catch(() => null),
-    ]).then(([wf, ex, cr, tp, dt, hl]) => {
+      api.listConnectors().catch(() => []),
+    ]).then(([wf, ex, cr, tp, dt, hl, cn]) => {
       if (!alive) return
       if (wf.status === 'fulfilled') setWorkflows(Array.isArray(wf.value) ? wf.value : [])
       if (ex.status === 'fulfilled') {
@@ -301,6 +303,10 @@ export default function OverviewPage() {
       if (tp.status === 'fulfilled') setTemplates(Array.isArray(tp.value) ? tp.value : [])
       if (dt.status === 'fulfilled') setDataTables(Array.isArray(dt.value) ? dt.value : [])
       if (hl.status === 'fulfilled') setHealth(hl.value)
+      if (cn.status === 'fulfilled') {
+        const connList = Array.isArray(cn.value) ? cn.value : (cn.value?.data || cn.value?.connectors || [])
+        if (connList.length > 0) setConnectorsCount(connList.length)
+      }
       setLoading(false)
     }).catch(err => { if (alive) { setError(err.message); setLoading(false) } })
     return () => { alive = false }
@@ -355,7 +361,7 @@ export default function OverviewPage() {
             Enterprise Workflow Orchestration
           </h2>
           <p className="overview-hero-sub">
-            Connect 88+ multi-system integrations, automate real-time data flows, and build with AI agents.
+            Connect {connectorsCount}+ multi-system integrations, automate real-time data flows, and build with AI agents.
           </p>
           <div className="overview-hero-btn-row">
             <button className="primary" onClick={() => navigate('/workflows')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -368,7 +374,7 @@ export default function OverviewPage() {
             </button>
             <button className="ghost" onClick={() => navigate('/integrations')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><rect x="8" y="8" width="8" height="8" rx="2"/></svg>
-              <span>88+ Integrations</span>
+              <span>{connectorsCount}+ Integrations</span>
             </button>
           </div>
         </div>
