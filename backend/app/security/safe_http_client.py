@@ -530,6 +530,13 @@ class SafeHTTPClient:
             SafeHTTPClient._redact_sensitive_headers(request_headers),
         )
 
+        start_t = time.monotonic()
+        response: httpx.Response | None = None
+        err_msg: str | None = None
+        status_code: int | None = None
+        resp_headers: dict[str, Any] | None = None
+        resp_payload: Any = None
+
         try:
             if max_response_bytes is not None:
                 cap = max_response_bytes
@@ -548,12 +555,14 @@ class SafeHTTPClient:
                     timeout=timeout,
                 )
                 return response
-            return await self._request_with_size_cap(
+            response = await self._request_with_size_cap(
                 client, method, url, cap,
                 params=params, json=json, data=data, files=files,
                 headers=request_headers, cookies=cookies, timeout=timeout,
             )
+            return response
         except httpx.DecodingError as exc:
+            err_msg = str(exc)
             # Salesforce (F5 edge) can send `Content-Encoding: gzip` over a
             # malformed/uncompressed body; httpx then fails with
             # "Error -3 while decompressing data: incorrect header check".
@@ -594,12 +603,14 @@ class SafeHTTPClient:
                 max_response_bytes=max_response_bytes,
             )
         except httpx.TimeoutException as exc:
+            err_msg = str(exc)
             raise make_connector_error(
                 ConnectorErrorCode.TIMEOUT,
                 f"HTTP request timed out after {self.total_timeout_s}s.",
                 retryable=True,
             ) from exc
         except httpx.RequestError as exc:
+            err_msg = str(exc)
             # Network-level error — don't expose internal details (the
             # exception class is safe to log for diagnosis; never the
             # URL or headers).
@@ -608,6 +619,47 @@ class SafeHTTPClient:
                 f"HTTP request failed: {type(exc).__name__}{f': {exc}' if str(exc) else ''}",
                 retryable=True,
             ) from exc
+        except Exception as exc:
+            err_msg = str(exc)
+            raise
+        finally:
+            duration_ms = (time.monotonic() - start_t) * 1000.0
+            try:
+                if response is not None:
+                    status_code = getattr(response, "status_code", None)
+                    if hasattr(response, "headers"):
+                        resp_headers = dict(response.headers)
+                    try:
+                        resp_payload = response.json()
+                    except Exception:
+                        resp_payload = getattr(response, "text", None)
+
+                from app.telemetry.context import current_execution_id, current_workspace_id, current_organization_id, current_node_id
+                exec_id = current_execution_id.get()
+                if exec_id:
+                    from app.services.telemetry_service import record_api_call
+                    req_payload = json if json is not None else data
+                    record_api_call(
+                        execution_id=exec_id,
+                        node_id=current_node_id.get(),
+                        connector_name="connector",
+                        operation=method.upper(),
+                        http_method=method,
+                        endpoint_url=str(url),
+                        query_params=params if isinstance(params, dict) else None,
+                        request_headers=request_headers,
+                        request_payload=req_payload,
+                        http_status_code=status_code,
+                        response_headers=resp_headers,
+                        response_payload=resp_payload,
+                        duration_ms=duration_ms,
+                        error_message=err_msg,
+                        workspace_id=current_workspace_id.get(),
+                        organization_id=current_organization_id.get(),
+                    )
+            except Exception:
+                pass
+
 
     async def _request_with_size_cap(
         self,

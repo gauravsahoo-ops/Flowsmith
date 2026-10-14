@@ -130,7 +130,17 @@ async function requestEnvelope(method, path, body, opts = {}) {
     parsed = text ? JSON.parse(text) : null
   } catch {
     // Non-JSON response (HTML error page, proxy 502/503, etc.)
-    if (!resp.ok) throw new ApiError(resp.status, text || `Server error (${resp.status})`)
+    let cleanMsg = `Server error (${resp.status})`
+    if (resp.status === 502) {
+      cleanMsg = '502 Bad Gateway — The backend service is temporarily restarting. Please refresh in a moment.'
+    } else if (resp.status === 503) {
+      cleanMsg = '503 Service Unavailable — The server is temporarily overloaded or down for maintenance.'
+    } else if (resp.status === 504) {
+      cleanMsg = '504 Gateway Timeout — The request took too long to complete.'
+    } else if (text && !text.trim().startsWith('<')) {
+      cleanMsg = text
+    }
+    if (!resp.ok) throw new ApiError(resp.status, cleanMsg)
     throw new ApiError(resp.status, 'Invalid response from server')
   }
   if (!resp.ok) throw new ApiError(resp.status, parsed?.detail ?? text)
@@ -171,10 +181,59 @@ export const api = {
   runToNode: (workflowId, nodeId) =>
     request('POST', `/workflows/${workflowId}/run-to-node`, { node_id: nodeId }),
   cancel: (id) => request('POST', `/executions/${id}/cancel`),
-  // Phase 13: nodeId re-runs safely from one failed node (upstream seeded).
-  retry: (id, nodeId) => request('POST', `/executions/${id}/retry`, nodeId ? { node_id: nodeId } : {}),
+  // Phase 13 + Monitoring: nodeId re-runs safely from one failed node; reason/idempotency supported
+  retry: (id, nodeId, reason = null, idempotencyKey = null) => {
+    const body = {}
+    if (nodeId) body.node_id = nodeId
+    if (reason) body.reason = reason
+    if (idempotencyKey) body.idempotency_key = idempotencyKey
+    return request('POST', `/executions/${id}/retry`, body)
+  },
   resume: (id, approved = true) => request('POST', `/executions/${id}/resume`, { approved }),
   getExecution: (id) => request('GET', `/executions/${id}`),
+  getExecutionSteps: (id) => request('GET', `/executions/${id}/steps`),
+  getExecutionTimeline: (id) => request('GET', `/executions/${id}/timeline`),
+  getExecutionRequests: (id) => request('GET', `/executions/${id}/requests`),
+  getExecutionRequestDetail: (id, reqId) => request('GET', `/executions/${id}/requests/${reqId}`),
+  getExecutionRetries: (id) => request('GET', `/executions/${id}/retries`),
+  getMonitoringSummary: (params = {}) => {
+    const q = new URLSearchParams()
+    if (params.workflowId) q.set('workflow_id', params.workflowId)
+    if (params.connector) q.set('connector', params.connector)
+    if (params.startDate) q.set('start_date', params.startDate)
+    if (params.endDate) q.set('end_date', params.endDate)
+    const suffix = q.size ? `?${q.toString()}` : ''
+    return request('GET', `/monitoring/summary${suffix}`)
+  },
+  exportExecutionsCsv: async (params = {}) => {
+    const token = getToken()
+    const q = new URLSearchParams()
+    if (params.workflowId) q.set('workflow_id', params.workflowId)
+    if (params.status) q.set('status', params.status)
+    if (params.connector) q.set('connector', params.connector)
+    if (params.search) q.set('search', params.search)
+    if (params.startDate) q.set('start_date', params.startDate)
+    if (params.endDate) q.set('end_date', params.endDate)
+    const suffix = q.size ? `?${q.toString()}` : ''
+    const res = await fetch(`/api/executions/export${suffix}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (res.status === 401) {
+      setToken(null)
+      window.dispatchEvent(new Event('auth:expired'))
+      throw new ApiError(401, 'Session expired')
+    }
+    if (!res.ok) throw new Error(`Export failed: ${res.statusText}`)
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `flowsmith-executions-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+  },
   exportExecution: async (id, format = 'json') => {
     const token = getToken()
     const res = await fetch(`/api/executions/${id}/export?format=${format}`, {
@@ -200,6 +259,17 @@ export const api = {
     const q = new URLSearchParams()
     if (params.workflowId) q.set('workflow_id', params.workflowId)
     if (params.status) q.set('status', params.status)
+    if (params.connector) q.set('connector', params.connector)
+    if (params.sourceObject) q.set('source_object', params.sourceObject)
+    if (params.destinationObject) q.set('destination_object', params.destinationObject)
+    if (params.httpStatus != null && params.httpStatus !== '') q.set('http_status', String(params.httpStatus))
+    if (params.errorType) q.set('error_type', params.errorType)
+    if (params.trigger) q.set('trigger', params.trigger)
+    if (params.search) q.set('search', params.search)
+    if (params.startDate) q.set('start_date', params.startDate)
+    if (params.endDate) q.set('end_date', params.endDate)
+    if (params.sortBy) q.set('sort_by', params.sortBy)
+    if (params.sortDir) q.set('sort_dir', params.sortDir)
     if (params.page) q.set('page', String(params.page))
     if (params.pageSize) q.set('pageSize', String(params.pageSize))
     const suffix = q.size ? `?${q.toString()}` : ''

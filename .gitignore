@@ -63,6 +63,7 @@ USER_MANUAL.md
 !README.md
 !docs/performance/*.md
 !docs/dataload/*.md
+!docs/LOGS_MONITORING_*.md
 
 # Test coverage output
 .coverage

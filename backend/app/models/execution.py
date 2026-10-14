@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, func, text
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,6 +26,10 @@ class Execution(Base):
     __table_args__ = (
         Index("ix_executions_workflow_started", "workflow_id", text("started_at DESC")),
         Index("ix_executions_wf_status", "workflow_id", "status"),
+        Index("ix_executions_org_started", "organization_id", text("started_at DESC")),
+        Index("ix_executions_status_started", "status", text("started_at DESC")),
+        Index("ix_executions_parent", "parent_execution_id"),
+        Index("ix_executions_correlation", "correlation_id"),
     )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -37,7 +41,7 @@ class Execution(Base):
     workflow_data: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), nullable=False)
     trigger: Mapped[str] = mapped_column(String(32), default="manual", nullable=False)
     trigger_data: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    status: Mapped[str] = mapped_column(String(16), default="running", index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="running", index=True, nullable=False)
     results: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     node_statuses: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     trace: Mapped[list | None] = mapped_column(JSON, nullable=True)
@@ -47,6 +51,36 @@ class Execution(Base):
     pause_state: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Multi-tenant and correlation fields (Logs & Monitoring Module)
+    organization_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    workspace_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    parent_execution_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    duration_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Integration metadata (Cyclr-grade tracking)
+    source_connector: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    destination_connector: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    source_object: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    destination_object: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    http_method: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    api_endpoint: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    http_status_code: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+
+    # Record-level statistics
+    records_read: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_created: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_updated: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_skipped: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_failed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_processed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # Error diagnostics
+    error_type: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Declared so the unit of work orders inserts by FK dependency
     # (executions after workflows) instead of mapper-name sort order.

@@ -606,6 +606,12 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 rec.error = result.error.to_dict() if result.error else None
                 rec.pause_state = None
                 await _commit(db)
+
+                try:
+                    from app.services.telemetry_service import finalize_execution_telemetry
+                    await asyncio.to_thread(finalize_execution_telemetry, db, rec, result, job)
+                except Exception:
+                    logger.exception("Failed to finalize telemetry for execution %s", execution_id)
             await asyncio.to_thread(_mark_deliveries, db, execution_id, result.status)
             execution_finished(execution_id, result.status, job.trigger)
             if result.status in ("failed", "timeout"):

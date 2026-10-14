@@ -1,52 +1,48 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { api, getToken, setToken } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ErrorAlertsList from '../components/ErrorAlertsList'
 
-function renderStatIcon(type) {
-  switch (type) {
-    case 'running':
-      return (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
-      )
-    case 'queued':
-      return (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-      )
-    case 'success':
-      return (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      )
-    case 'failed':
-      return (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      )
-    default:
-      return null
-  }
-}
-
-function MonitoringStatCard({ title, value, subtitle, color, icon }) {
+function MonitoringStatCard({ title, value, subtitle, color, icon, badge }) {
   return (
     <div className="monitoring-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{title}</span>
-        <span style={{ fontSize: 13, width: 28, height: 28, borderRadius: 'var(--radius-xs, 4px)', display: 'grid', placeItems: 'center', background: `${color}14`, color, border: `1px solid ${color}28` }}>{icon}</span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {title}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {badge && (
+            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: `${color}18`, color }}>
+              {badge}
+            </span>
+          )}
+          <span
+            style={{
+              fontSize: 13,
+              width: 28,
+              height: 28,
+              borderRadius: 'var(--radius-xs, 4px)',
+              display: 'grid',
+              placeItems: 'center',
+              background: `${color}14`,
+              color,
+              border: `1px solid ${color}28`,
+            }}
+          >
+            {icon}
+          </span>
+        </div>
       </div>
-      <div style={{ fontSize: 24, fontWeight: 600, color, letterSpacing: '-0.02em', lineHeight: 1.15 }}>{value}</div>
-      {subtitle && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>{subtitle}</div>}
+      <div style={{ fontSize: 24, fontWeight: 600, color, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+        {value}
+      </div>
+      {subtitle && (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
+          {subtitle}
+        </div>
+      )}
     </div>
   )
 }
@@ -182,38 +178,83 @@ function SystemInfo({ stats }) {
   )
 }
 
+function getDateRangeIso(preset) {
+  if (!preset || preset === 'all') return { fromDate: undefined, toDate: undefined }
+  const now = new Date()
+  let from = new Date(now)
+  if (preset === '1h') from.setHours(from.getHours() - 1)
+  else if (preset === '24h') from.setDate(from.getDate() - 1)
+  else if (preset === '7d') from.setDate(from.getDate() - 7)
+  else if (preset === '30d') from.setDate(from.getDate() - 30)
+  return { fromDate: from.toISOString(), toDate: now.toISOString() }
+}
+
+const DATE_OPTIONS = [
+  { id: '24h', label: 'Last 24 Hours' },
+  { id: '1h', label: 'Last 1 Hour' },
+  { id: '7d', label: 'Last 7 Days' },
+  { id: '30d', label: 'Last 30 Days' },
+  { id: 'all', label: 'All Time' },
+]
+
 export default function MonitoringPage() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const currentTab = searchParams.get('tab') === 'telemetry' ? 'telemetry' : 'alerts'
-  const [tab, setTab] = useState(currentTab)
+
+  const qTab = searchParams.get('tab')
+  const defaultTab = qTab === 'telemetry' || qTab === 'alerts' ? qTab : 'summary'
+  const [tab, setTab] = useState(defaultTab)
+
+  const [datePreset, setDatePreset] = useState(searchParams.get('range') || '24h')
   const highlightedEventId = searchParams.get('event_id')
+
+  // Summary Metrics State (Cyclr-style integration telemetry)
+  const [summary, setSummary] = useState(null)
+  const [loadingSummary, setLoadingSummary] = useState(true)
+
+  // Cluster Runtime Stats & Alert Stats
+  const [stats, setStats] = useState(null)
   const [alertStats, setAlertStats] = useState({ unresolved_count: 0, critical_count: 0 })
+  const [loadingCluster, setLoadingCluster] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    const qTab = searchParams.get('tab')
-    if (qTab === 'telemetry') {
-      setTab('telemetry')
-    } else if (qTab === 'alerts' || !qTab) {
-      setTab('alerts')
+    const t = searchParams.get('tab')
+    if (t === 'telemetry' || t === 'alerts') {
+      setTab(t)
+    } else if (t === 'summary' || !t) {
+      setTab('summary')
     }
   }, [searchParams])
 
-  const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const fetchSummary = useCallback(() => {
+    setLoadingSummary(true)
+    const { fromDate, toDate } = getDateRangeIso(datePreset)
+    api
+      .getMonitoringSummary({ fromDate, toDate })
+      .then((data) => {
+        setSummary(data)
+      })
+      .catch((err) => {
+        console.error('Error fetching monitoring summary', err)
+      })
+      .finally(() => setLoadingSummary(false))
+  }, [datePreset])
 
-  const fetchStats = useCallback(() => {
-    api.getMonitoringStats()
+  const fetchClusterStats = useCallback(() => {
+    api
+      .getMonitoringStats()
       .then((data) => {
         setStats(data)
         setError(null)
       })
       .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+      .finally(() => setLoadingCluster(false))
   }, [])
 
   const fetchAlertStats = useCallback(() => {
-    api.getNotificationStats()
+    api
+      .getNotificationStats()
       .then((data) => {
         if (data) setAlertStats(data)
       })
@@ -221,18 +262,21 @@ export default function MonitoringPage() {
   }, [])
 
   useEffect(() => {
-    fetchStats()
+    fetchSummary()
+    fetchClusterStats()
     fetchAlertStats()
-    // Automatic live background telemetry refresh (10s interval)
+
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return
-      fetchStats()
+      fetchSummary()
+      fetchClusterStats()
       fetchAlertStats()
-    }, 10000)
+    }, 12000)
 
     const handleVisibility = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
-        fetchStats()
+        fetchSummary()
+        fetchClusterStats()
         fetchAlertStats()
       }
     }
@@ -242,10 +286,8 @@ export default function MonitoringPage() {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', handleVisibility)
     }
-  }, [fetchStats, fetchAlertStats])
+  }, [fetchSummary, fetchClusterStats, fetchAlertStats])
 
-  // Fetch the scrape endpoint with the bearer header and open the blob —
-  // a plain href would need ?token= and leak the JWT into history/Referer.
   const openMetricsExporter = async (e) => {
     e.preventDefault()
     const bearer = getToken()
@@ -268,19 +310,33 @@ export default function MonitoringPage() {
     }
   }
 
-  if (loading && !stats && tab === 'telemetry') return <div className="page monitoring-page"><LoadingSkeleton rows={6} /></div>
-  if (error && !stats && tab === 'telemetry') return <div className="page monitoring-page"><div className="banner-inline err">Error: {error}</div></div>
+  function handleTabChange(nextTab) {
+    setTab(nextTab)
+    setSearchParams((p) => {
+      p.set('tab', nextTab)
+      return p
+    })
+  }
+
+  function handleRangeChange(preset) {
+    setDatePreset(preset)
+    setSearchParams((p) => {
+      p.set('range', preset)
+      return p
+    })
+  }
 
   return (
     <div className="page monitoring-page">
       {error && (
         <div className="banner-inline err" style={{ marginBottom: 12 }}>
-          Live telemetry update paused: {error} — retrying automatically.
+          Live telemetry update notice: {error} — auto-retrying.
         </div>
       )}
+
       <PageHeader
-        title="Central Monitoring & Alert Center"
-        description="Global error monitoring, automatic email alerts, worker throughput, and cluster telemetry."
+        title="Central Monitoring & Diagnostics"
+        description="Global integration execution health, Cyclr-style telemetry, API throughput, and cluster error diagnostics."
         actions={
           <div className="monitoring-toolbar" role="toolbar" aria-label="Monitoring controls">
             <div className="monitoring-live-badge" title="Live telemetry: auto-updating continuously in background">
@@ -296,12 +352,12 @@ export default function MonitoringPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="monitoring-btn-exporter"
-              title="Open raw Prometheus & OpenTelemetry text scrape endpoint"
+              title="Open raw Prometheus & OpenTelemetry scrape endpoint"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
-              <span>Prometheus Exporter</span>
+              <span>Prometheus Scraper</span>
               <span className="monitoring-exporter-badge">↗</span>
             </a>
           </div>
@@ -309,74 +365,453 @@ export default function MonitoringPage() {
       />
 
       {/* Primary Tab Navigation */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
-        <button
-          type="button"
-          onClick={() => {
-            setTab('alerts')
-            setSearchParams(p => { p.set('tab', 'alerts'); return p })
-          }}
-          style={{
-            padding: '10px 18px',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            borderBottom: tab === 'alerts' ? '2px solid #6366f1' : '2px solid transparent',
-            color: tab === 'alerts' ? '#6366f1' : 'var(--text-muted)',
-            background: 'transparent',
-            borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <span>Error Monitoring & Alerts</span>
-          {alertStats.unresolved_count > 0 && (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '1px 7px',
-                borderRadius: 999,
-                background: alertStats.critical_count > 0 ? '#e11d48' : '#f59e0b',
-                color: '#fff',
-              }}
-            >
-              {alertStats.unresolved_count}
-            </span>
-          )}
-        </button>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--border)',
+          marginBottom: 20,
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => handleTabChange('summary')}
+            style={{
+              padding: '10px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: tab === 'summary' ? '2px solid #6366f1' : '2px solid transparent',
+              color: tab === 'summary' ? '#818cf8' : 'var(--text-muted)',
+              background: 'transparent',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none',
+            }}
+          >
+            Integration Health & Telemetry
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setTab('telemetry')
-            setSearchParams(p => { p.set('tab', 'telemetry'); return p })
-          }}
-          style={{
-            padding: '10px 18px',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            borderBottom: tab === 'telemetry' ? '2px solid #6366f1' : '2px solid transparent',
-            color: tab === 'telemetry' ? '#6366f1' : 'var(--text-muted)',
-            background: 'transparent',
-            borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-          }}
-        >
-          Cluster & Runtime Telemetry
-        </button>
+          <button
+            type="button"
+            onClick={() => handleTabChange('telemetry')}
+            style={{
+              padding: '10px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: tab === 'telemetry' ? '2px solid #6366f1' : '2px solid transparent',
+              color: tab === 'telemetry' ? '#818cf8' : 'var(--text-muted)',
+              background: 'transparent',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none',
+            }}
+          >
+            Cluster & Runtime Telemetry
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('alerts')}
+            style={{
+              padding: '10px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: tab === 'alerts' ? '2px solid #6366f1' : '2px solid transparent',
+              color: tab === 'alerts' ? '#818cf8' : 'var(--text-muted)',
+              background: 'transparent',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span>Error Alerts & Notifications</span>
+            {alertStats.unresolved_count > 0 && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '1px 7px',
+                  borderRadius: 999,
+                  background: alertStats.critical_count > 0 ? '#e11d48' : '#f59e0b',
+                  color: '#fff',
+                }}
+              >
+                {alertStats.unresolved_count}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Date Range Selector Pill Set (Active on summary tab) */}
+        {tab === 'summary' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginRight: 2 }}>Timeframe:</span>
+            {DATE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className={`ghost ${datePreset === opt.id ? 'active' : ''}`}
+                onClick={() => handleRangeChange(opt.id)}
+                style={{
+                  fontSize: 11.5,
+                  padding: '3px 9px',
+                  borderRadius: 6,
+                  background: datePreset === opt.id ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.03)',
+                  color: datePreset === opt.id ? '#ffffff' : '#94a3b8',
+                  border: `1px solid ${datePreset === opt.id ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255, 255, 255, 0.08)'}`,
+                  fontWeight: datePreset === opt.id ? 600 : 400,
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {tab === 'alerts' ? (
-        <ErrorAlertsList highlightedEventId={highlightedEventId} />
-      ) : (
+      {/* Tab 1: Integration & Execution Health (Cyclr Metrics) */}
+      {tab === 'summary' && (
+        <div>
+          {loadingSummary && !summary ? (
+            <LoadingSkeleton rows={8} />
+          ) : (
+            <>
+              {/* 8 Summary Metric Cards Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                  gap: 14,
+                  marginBottom: 20,
+                }}
+              >
+                {/* 1. Total Executions */}
+                <MonitoringStatCard
+                  title="Total Executions"
+                  value={(summary?.total_executions || 0).toLocaleString()}
+                  color="#f8fafc"
+                  icon={
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                  }
+                  subtitle={`${summary?.running_executions || 0} active in-flight`}
+                />
+
+                {/* 2. Successful Executions */}
+                <MonitoringStatCard
+                  title="Successful Executions"
+                  value={(summary?.successful_executions || 0).toLocaleString()}
+                  color="#10b981"
+                  icon={
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  }
+                  subtitle="Completed with 0 errors"
+                />
+
+                {/* 3. Failed Executions */}
+                <MonitoringStatCard
+                  title="Failed Executions"
+                  value={(summary?.failed_executions || 0).toLocaleString()}
+                  color="#ef4444"
+                  icon={
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  }
+                  subtitle="Diagnosed error outcomes"
+                />
+
+                {/* 4. Success Rate % */}
+                <MonitoringStatCard
+                  title="Success Rate"
+                  value={`${summary?.success_rate_percent ?? 100}%`}
+                  color={
+                    (summary?.success_rate_percent ?? 100) >= 98
+                      ? '#10b981'
+                      : (summary?.success_rate_percent ?? 100) >= 90
+                      ? '#f59e0b'
+                      : '#ef4444'
+                  }
+                  icon={
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 6v6l4 2" />
+                    </svg>
+                  }
+                  badge="SLA Target 99%"
+                  subtitle="Across all integration nodes"
+                />
+
+                {/* 5. Total Records Processed */}
+                <MonitoringStatCard
+                  title="Records Processed"
+                  value={(summary?.total_records_processed || 0).toLocaleString()}
+                  color="#38bdf8"
+                  icon={
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <ellipse cx="12" cy="5" rx="9" ry="3" />
+                      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    </svg>
+                  }
+                  subtitle="Payload items processed"
+                />
+
+                {/* 6. Outbound API Calls */}
+                <MonitoringStatCard
+                  title="Outbound API Calls"
+                  value={(summary?.total_api_calls || 0).toLocaleString()}
+                  color="#818cf8"
+                  icon={
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="2" y1="12" x2="22" y2="12" />
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                  }
+                  subtitle="Network requests traced"
+                />
+
+                {/* 7. Average Duration */}
+                <MonitoringStatCard
+                  title="Average Duration"
+                  value={
+                    summary?.avg_duration_ms != null
+                      ? summary.avg_duration_ms < 1000
+                        ? `${Math.round(summary.avg_duration_ms)}ms`
+                        : `${(summary.avg_duration_ms / 1000).toFixed(2)}s`
+                      : '—'
+                  }
+                  color="#c084fc"
+                  icon={
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 14 14" />
+                    </svg>
+                  }
+                  subtitle="Runtime execution latency"
+                />
+
+                {/* 8. Total Retries Attempted */}
+                <MonitoringStatCard
+                  title="Retries Attempted"
+                  value={(summary?.total_retries || 0).toLocaleString()}
+                  color="#f59e0b"
+                  icon={
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="1 4 1 10 7 10" />
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                    </svg>
+                  }
+                  subtitle="Idempotent auto/manual replays"
+                />
+              </div>
+
+              {/* Error Taxonomy & Diagnostic Categories */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+                  gap: 16,
+                  marginBottom: 20,
+                }}
+              >
+                {/* Error Breakdown Panel */}
+                <div className="monitoring-card" style={{ padding: '18px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                      Failure Taxonomy & Diagnostics
+                    </h3>
+                    <span className="hint" style={{ fontSize: 11.5 }}>
+                      Click any category to view logs
+                    </span>
+                  </div>
+
+                  {summary?.error_breakdown && Object.keys(summary.error_breakdown).length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {Object.entries(summary.error_breakdown).map(([cat, count]) => {
+                        const totalErr = summary.failed_executions || 1
+                        const pct = Math.round((count / totalErr) * 100)
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => navigate(`/executions?error_type=${cat}`)}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 4,
+                              background: 'var(--panel-2)',
+                              border: '1px solid var(--border)',
+                              borderRadius: 7,
+                              padding: '10px 12px',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 600, fontSize: 12.5, color: '#f8fafc' }}>
+                                {cat}
+                              </span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#f87171' }}>
+                                {count} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>({pct}%)</span>
+                              </span>
+                            </div>
+                            <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, background: '#ef4444', borderRadius: 2 }} />
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ padding: 24, textAlign: 'center', color: '#10b981', fontSize: 13 }}>
+                      ✓ Zero integration errors detected in this timeframe. All executions healthy!
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Diagnostics & Operations Links */}
+                <div className="monitoring-card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                      Integration Operations
+                    </h3>
+                    <p style={{ margin: '0 0 16px', fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      Review granular execution traces, inspect live request & response network payloads, export sanitized CSV audits, or configure automatic alert policies.
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => navigate('/executions')}
+                        style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center', padding: '10px 14px' }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="8" y1="6" x2="21" y2="6" />
+                            <line x1="8" y1="12" x2="21" y2="12" />
+                            <line x1="8" y1="18" x2="21" y2="18" />
+                            <line x1="3" y1="6" x2="3.01" y2="6" />
+                            <line x1="3" y1="12" x2="3.01" y2="12" />
+                            <line x1="3" y1="18" x2="3.01" y2="18" />
+                          </svg>
+                          <span>Open Execution Logs Table</span>
+                        </span>
+                        <span>→</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => navigate('/executions?status=failed')}
+                        style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center', padding: '10px 14px', color: '#f87171' }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                          </svg>
+                          <span>Review Failed Runs ({summary?.failed_executions || 0})</span>
+                        </span>
+                        <span>→</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => handleTabChange('alerts')}
+                        style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center', padding: '10px 14px' }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                          </svg>
+                          <span>Manage Notification & Alert Policies</span>
+                        </span>
+                        <span>→</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    Auto-refreshed via Flowsmith async telemetry collector every 12 seconds.
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Tab 2: Cluster & Runtime Telemetry (Existing Queue & Infra Views) */}
+      {tab === 'telemetry' && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
-            <MonitoringStatCard title="Running Executions" value={stats?.executions?.running || 0} color="#38bdf8" icon={renderStatIcon('running')} subtitle="Currently active in runtime" />
-            <MonitoringStatCard title="Queued Runs" value={stats?.executions?.queued || 0} color="#f59e0b" icon={renderStatIcon('queued')} subtitle="Waiting for available worker" />
-            <MonitoringStatCard title="Success (Past 1h)" value={stats?.last_hour?.success || 0} color="#10b981" icon={renderStatIcon('success')} subtitle="Completed without error" />
-            <MonitoringStatCard title="Failed (Past 1h)" value={stats?.last_hour?.failed || 0} color="#ef4444" icon={renderStatIcon('failed')} subtitle="Errored execution runs" />
+            <MonitoringStatCard
+              title="Running Executions"
+              value={stats?.executions?.running || 0}
+              color="#38bdf8"
+              icon={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+              }
+              subtitle="Active in worker runtime"
+            />
+            <MonitoringStatCard
+              title="Queued Runs"
+              value={stats?.executions?.queued || 0}
+              color="#f59e0b"
+              icon={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              }
+              subtitle="Awaiting available slot"
+            />
+            <MonitoringStatCard
+              title="Success (Past 1h)"
+              value={stats?.last_hour?.success || 0}
+              color="#10b981"
+              icon={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              }
+              subtitle="Completed without error"
+            />
+            <MonitoringStatCard
+              title="Failed (Past 1h)"
+              value={stats?.last_hour?.failed || 0}
+              color="#ef4444"
+              icon={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              }
+              subtitle="Errored execution runs"
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 18, marginBottom: 20 }}>
@@ -386,6 +821,11 @@ export default function MonitoringPage() {
 
           <SystemInfo stats={stats} />
         </>
+      )}
+
+      {/* Tab 3: Error Alerts & Notifications (Existing Alerts List) */}
+      {tab === 'alerts' && (
+        <ErrorAlertsList highlightedEventId={highlightedEventId} />
       )}
     </div>
   )

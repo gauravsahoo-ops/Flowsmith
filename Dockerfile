@@ -12,9 +12,9 @@ RUN npm run build
 # ---- runtime stage ----
 FROM python:3.12-slim
 
-LABEL maintainer="automation-platform" \
-      version="0.3.1" \
-      description="Automation platform — API + UI + Worker + Scheduler"
+LABEL maintainer="flowsmith" \
+      version="1.6.0" \
+      description="Flowsmith iPaaS — API + UI + Worker + Scheduler + Monitoring"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

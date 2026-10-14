@@ -166,6 +166,15 @@ describe('api.getWorkflow', () => {
     await api.getWorkflow('wf1')
     expect(fetchMock).toHaveBeenCalledWith('/api/workflows/wf1', expect.objectContaining({ method: 'GET' }))
   })
+
+  it('handles 502 Bad Gateway HTML response cleanly', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 502,
+      text: () => Promise.resolve('<html><head><title>502 Bad Gateway</title></head><body><center>502 Bad Gateway</center></body></html>'),
+    })
+    await expect(api.getWorkflow('wf1')).rejects.toThrow('502 Bad Gateway — The backend service is temporarily restarting. Please refresh in a moment.')
+  })
 })
 
 describe('api.saveWorkflow', () => {

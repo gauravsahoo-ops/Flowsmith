@@ -88,7 +88,7 @@ settings = get_settings()
 _docs = "/docs" if get_settings().api_docs_enabled else None
 _redoc = "/redoc" if get_settings().api_docs_enabled else None
 _openapi = "/openapi.json" if get_settings().api_docs_enabled else None
-app = FastAPI(title="Flowsmith API", version="0.3.1", lifespan=lifespan,
+app = FastAPI(title="Flowsmith API", version="1.6.0", lifespan=lifespan,
               docs_url=_docs, redoc_url=_redoc, openapi_url=_openapi)
 
 FRONTEND_DIST: Path | None = Path(settings.frontend_dist) if settings.serve_frontend else None
@@ -402,7 +402,7 @@ def health() -> dict:
         db.close()
     return ok({
         "status": "ok",
-        "version": "0.3.1",
+        "version": "1.6.0",
         "developed_by": "Gaurav Sahoo (gauravsahoo-ops)",
         "public_url": settings.public_url,
         "uptime_s": int(time.monotonic() - _PROCESS_START),

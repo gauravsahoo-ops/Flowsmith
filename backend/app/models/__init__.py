@@ -35,8 +35,12 @@ from app.models.connection_auth_policy import (
 from app.models.recovery_state import ConnectionState, RecoveryMode
 from app.models.branding import BrandingSetting
 from app.models.staged_record import StagedContactRecord
+from app.models.monitoring_telemetry import ExecutionStep, ApiRequestTelemetry, ExecutionRetryHistory
 
 __all__ = [
+    "ExecutionStep",
+    "ApiRequestTelemetry",
+    "ExecutionRetryHistory",
     "StagedContactRecord",
     "User",
     "WorkflowRecord",

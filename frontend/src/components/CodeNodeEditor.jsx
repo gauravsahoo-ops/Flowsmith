@@ -29,8 +29,13 @@ const MODE_OPTIONS = [
 
 const LANGUAGE_OPTIONS = [
   { value: 'javascript', label: 'JavaScript' },
-  { value: 'python', label: 'Python (beta)' },
+  { value: 'python', label: 'Python (sandbox)' },
 ]
+
+const DEFAULT_CODE = {
+  javascript: 'for (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\nreturn $input.all();',
+  python: '# Process items and return output\noutput = []\nfor item in items:\n    record = dict(item.get("json", item))\n    record["myNewField"] = 1\n    output.append({"json": record})\nreturn output',
+}
 
 const SNIPPETS = {
   javascript: [
@@ -93,6 +98,27 @@ return $input.all().map(item => ({
   ],
   python: [
     {
+      label: 'Salesforce Contact Ingest & State Normalizer',
+      code: `STATE_MAP = {'AL': 'Alabama', 'CA': 'California', 'FL': 'Florida', 'NY': 'New York', 'TX': 'Texas'}
+raw = items[0].get('json', items[0]) if items else {}
+records = raw.get('records', [])
+summary = raw.get('summary', {})
+cleaned = []
+for r in records:
+    c = dict(r)
+    c.pop('_row_number', None)
+    st = c.get('MailingState', '')
+    if st and st.upper() in STATE_MAP:
+        c['MailingState'] = STATE_MAP[st.upper()]
+    cleaned.append(c)
+return [{
+    'status': 'SUCCESS',
+    'total_csv_records': summary.get('total_parsed', len(records)),
+    'valid_unique_contacts': len(cleaned),
+    'records': cleaned
+}]`,
+    },
+    {
       label: 'Transform & Add Field',
       code: `# Process each item and add calculated fields
 output = []
@@ -115,7 +141,7 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
   const params = node.parameters || {}
   const mode = params.mode || 'runOnceForAllItems'
   const language = params.language || 'javascript'
-  const code = params.code || 'for (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\nreturn $input.all();'
+  const code = params.code || DEFAULT_CODE[language] || DEFAULT_CODE.javascript
 
   const [localCode, setLocalCode] = useState(code)
   const [validating, setValidating] = useState(false)
@@ -176,12 +202,16 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
   }
 
   function handleLanguageChange(v) {
-    if (v === 'python') {
-      // Mark Python as available but with warning
-      onParamsChange({ ...params, language: v })
-    } else {
-      onParamsChange({ ...params, language: v })
+    let nextCode = localCode
+    const prevLang = language
+    const prevDefault = DEFAULT_CODE[prevLang]
+    const nextDefault = DEFAULT_CODE[v]
+    if (nextDefault && (!localCode.trim() || localCode.trim() === prevDefault?.trim())) {
+      nextCode = nextDefault
+      setLocalCode(nextCode)
     }
+    setValidation(null)
+    onParamsChange({ ...params, language: v, code: nextCode })
   }
 
   function handleEditorMount(editor, monaco) {
@@ -285,9 +315,17 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
       <label>
         <span>Language</span>
         <select value={language} onChange={(e) => handleLanguageChange(e.target.value)}>
-          {LANGUAGE_OPTIONS.map(o => <option key={o.value} value={o.value} disabled={o.value === 'python' && false}>{o.label}{o.value === 'python' ? ' — Python via sandbox (limited)' : ''}</option>)}
+          {LANGUAGE_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>
+              {o.label}{o.value === 'python' ? ' — Fast for large datasets' : ''}
+            </option>
+          ))}
         </select>
-        {language === 'python' && <span className="hint" style={{ color: 'var(--amber)' }}>Python runs via secure Python sandbox (limited builtins, no FS/network). Prefer JavaScript for full $input support.</span>}
+        {language === 'python' && (
+          <span className="hint" style={{ color: 'var(--amber)' }}>
+            Python runs via secure sandbox. Fast and memory-efficient — recommended for large datasets (10,000+ records).
+          </span>
+        )}
       </label>
 
       {/* Editor */}

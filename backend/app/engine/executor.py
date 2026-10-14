@@ -244,10 +244,15 @@ async def execute_workflow(
 
     emit_all("execution.started")
 
+    from app.telemetry.context import current_execution_id, current_workspace_id
+    token_exec = current_execution_id.set(execution_id)
+    token_ws = current_workspace_id.set(workspace_id)
+
     monitor = asyncio.create_task(_monitor_cancel(ctx, cancelled))
     run: asyncio.Task[None] | None = None
     try:
         # Own task handle: shield()/bare awaits detach on cancellation and
+
         # leave the node graph running after the caller saw "cancelled".
         run = asyncio.create_task(_run_nodes(
             graph, trigger_items, ctx, result, emit_all, cancelled,
@@ -333,6 +338,8 @@ async def _run_nodes(
     async def run_one(nid: str) -> None:
         gnode = graph[nid]
         node = gnode.node
+        from app.telemetry.context import current_node_id
+        current_node_id.set(node.id)
         from app.telemetry.tracer import start_trace_span
         node_name = getattr(node, "name", "") or getattr(node, "type", nid)
         try:

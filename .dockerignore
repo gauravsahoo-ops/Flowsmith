@@ -30,3 +30,7 @@ tmp
 **/*.log
 **/.coverage
 **/automation.db
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/benchmark*.db

@@ -145,38 +145,92 @@ async def request_with_size_cap(
         if max_response_bytes and max_response_bytes > 0
         else DEFAULT_MAX_RESPONSE_BYTES
     )
+    start_t = time.monotonic()
+    response: httpx.Response | None = None
+    err_msg: str | None = None
+    status_code: int | None = None
+    resp_headers: dict[str, Any] | None = None
+    resp_payload: Any = None
+
     try:
-        return await _dispatch_capped(
-            client, method, url, cap=cap, node_id=node_id, code=code, kwargs=kwargs
-        )
-    except httpx.DecodingError as exc:
-        upper = method.upper()
-        original_headers = kwargs.get("headers") or {}
-        already_identity = any(
-            k.lower() == "accept-encoding" and str(v).strip().lower() == "identity"
-            for k, v in original_headers.items()
-        )
-        if upper not in ("GET", "HEAD", "OPTIONS") or already_identity:
-            raise NodeExecutionError(
-                f"HTTP {upper} request failed: response body could not be decoded.",
-                code="HTTP_REQUEST_FAILED", node_id=node_id, retryable=False,
-            ) from exc
-        retry_headers = {
-            k: v for k, v in original_headers.items() if k.lower() != "accept-encoding"
-        }
-        retry_headers["Accept-Encoding"] = "identity"
-        retry_kwargs = {**kwargs, "headers": retry_headers}
         try:
-            return await _dispatch_capped(
-                client, method, url, cap=cap, node_id=node_id, code=code,
-                kwargs=retry_kwargs,
+            response = await _dispatch_capped(
+                client, method, url, cap=cap, node_id=node_id, code=code, kwargs=kwargs
             )
-        except httpx.DecodingError as exc2:
-            raise NodeExecutionError(
-                "HTTP request failed: response body could not be decoded even "
-                "with Accept-Encoding: identity.",
-                code="HTTP_REQUEST_FAILED", node_id=node_id, retryable=True,
-            ) from exc2
+            return response
+        except httpx.DecodingError as exc:
+            upper = method.upper()
+            original_headers = kwargs.get("headers") or {}
+            already_identity = any(
+                k.lower() == "accept-encoding" and str(v).strip().lower() == "identity"
+                for k, v in original_headers.items()
+            )
+            if upper not in ("GET", "HEAD", "OPTIONS") or already_identity:
+                raise NodeExecutionError(
+                    f"HTTP {upper} request failed: response body could not be decoded.",
+                    code="HTTP_REQUEST_FAILED", node_id=node_id, retryable=False,
+                ) from exc
+            retry_headers = {
+                k: v for k, v in original_headers.items() if k.lower() != "accept-encoding"
+            }
+            retry_headers["Accept-Encoding"] = "identity"
+            retry_kwargs = {**kwargs, "headers": retry_headers}
+            try:
+                response = await _dispatch_capped(
+                    client, method, url, cap=cap, node_id=node_id, code=code,
+                    kwargs=retry_kwargs,
+                )
+                return response
+            except httpx.DecodingError as exc2:
+                raise NodeExecutionError(
+                    "HTTP request failed: response body could not be decoded even "
+                    "with Accept-Encoding: identity.",
+                    code="HTTP_REQUEST_FAILED", node_id=node_id, retryable=True,
+                ) from exc2
+    except Exception as exc:
+        err_msg = str(exc)
+        raise
+    finally:
+        duration_ms = (time.monotonic() - start_t) * 1000.0
+        try:
+            if response is not None:
+                status_code = getattr(response, "status_code", None)
+                if hasattr(response, "headers"):
+                    resp_headers = dict(response.headers)
+                try:
+                    resp_payload = response.json()
+                except Exception:
+                    resp_payload = getattr(response, "text", None)
+
+            from app.telemetry.context import current_execution_id, current_workspace_id, current_organization_id
+            exec_id = current_execution_id.get()
+            if exec_id:
+                from app.services.telemetry_service import record_api_call
+                req_headers = kwargs.get("headers")
+                if req_headers and hasattr(req_headers, "items"):
+                    req_headers = dict(req_headers)
+                req_payload = kwargs.get("json") if kwargs.get("json") is not None else kwargs.get("data")
+                record_api_call(
+                    execution_id=exec_id,
+                    node_id=node_id,
+                    connector_name=node_id,
+                    operation=method.upper(),
+                    http_method=method,
+                    endpoint_url=str(url),
+                    query_params=kwargs.get("params") if isinstance(kwargs.get("params"), dict) else None,
+                    request_headers=req_headers,
+                    request_payload=req_payload,
+                    http_status_code=status_code,
+                    response_headers=resp_headers,
+                    response_payload=resp_payload,
+                    duration_ms=duration_ms,
+                    error_message=err_msg,
+                    workspace_id=current_workspace_id.get(),
+                    organization_id=current_organization_id.get(),
+                )
+        except Exception:
+            pass
+
 
 
 async def _dispatch_capped(

@@ -43,6 +43,7 @@ EXECUTION_RESUME = "execution.resume"
 WORKFLOW_TEST_CREATE = "workflow_test.create"
 WORKFLOW_TEST_RUN = "workflow_test.run"
 ADMIN_PRUNE = "admin.prune"
+EXECUTION_EXPORT = "execution.export"
 
 
 def log_event(

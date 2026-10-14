@@ -286,7 +286,20 @@ def validate_code(code: str, language: str = "javascript") -> tuple[bool, str | 
     else:
         # Python: syntax and security validation
         try:
-            tree = ast.parse(code)
+            # Code node allows top-level `return expr` by transforming it to `__output = expr`
+            transformed = []
+            for line in code.splitlines():
+                stripped = line.lstrip()
+                if stripped.startswith("return "):
+                    indent = line[: len(line) - len(stripped)]
+                    rest = stripped[len("return "):]
+                    transformed.append(indent + "__output = " + rest)
+                elif stripped == "return":
+                    transformed.append("    __output = None")
+                else:
+                    transformed.append(line)
+            py_code = "\n".join(transformed)
+            tree = ast.parse(py_code)
             PythonSecurityAnalyzer().visit(tree)
             return True, None, None, None
         except SyntaxError as e:
@@ -717,7 +730,7 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
             transformed.append(line)
     py_code = "\n".join(transformed)
     if "__output" not in py_code:
-        py_code += "\nif '__output' not in locals():\n    __output = input_wrapper.all()"
+        py_code += "\ntry:\n    __output\nexcept NameError:\n    __output = input_wrapper.all()"
     namespace: dict[str, Any] = {
         "input_wrapper": input_wrapper,
         "items": items,
@@ -788,7 +801,7 @@ def _exec_python_code(code: str, items: List[dict[str, Any]], mode: str, timeout
     exec_code = exec_code.replace("console.log", "print")
 
     if "__output" not in exec_code and "return" not in code:
-        exec_code += "\nif '__output' not in locals():\n    try:\n        __output = input_wrapper.all()\n    except: __output = []"
+        exec_code += "\ntry:\n    __output\nexcept NameError:\n    try:\n        __output = input_wrapper.all()\n    except Exception: __output = []"
 
     namespace: dict[str, Any] = {
         "input_wrapper": input_wrapper,
