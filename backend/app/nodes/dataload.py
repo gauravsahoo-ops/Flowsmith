@@ -265,12 +265,7 @@ class DataLoadNode(BaseNode[DataLoadParams]):
             )
         except NodeExecutionError as exc:
             logger.warning("DataLoadNode failed during payload resolution: %s", exc)
-            return NodeResult(output_items=[{
-                "success": False,
-                "error": str(exc.message if hasattr(exc, "message") else exc),
-                "error_code": getattr(exc, "code", "DATA_LOAD_ERROR"),
-                "total_parsed": 0,
-            }])
+            raise
 
         # 3. Build options
         load_opts = DataLoadOptions(
