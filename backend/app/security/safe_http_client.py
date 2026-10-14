@@ -646,7 +646,7 @@ class SafeHTTPClient:
                         connector_name="connector",
                         operation=method.upper(),
                         http_method=method,
-                        endpoint_url=str(url),
+                        endpoint_url=url,
                         query_params=params if isinstance(params, dict) else None,
                         request_headers=request_headers,
                         request_payload=req_payload,
