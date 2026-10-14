@@ -23,6 +23,7 @@ from app.models import FileRecord, User, WorkspaceMember
 from app.objectstore.factory import get_object_store
 
 router = APIRouter(prefix="/api/files", tags=["files"])
+v1_router = APIRouter(prefix="/api/v1/files", tags=["files"])
 
 # Explicit allow-list: a broad "image/" prefix would also inline
 # image/svg+xml (script-capable XSS when served same-origin).
@@ -70,6 +71,7 @@ def _workspace_ids_for_user(db: Session, user_id: int) -> set[str]:
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
+@v1_router.post("", status_code=status.HTTP_201_CREATED)
 async def upload_file(
     file: UploadFile = File(...),
     workspace_id: str | None = Form(default=None),

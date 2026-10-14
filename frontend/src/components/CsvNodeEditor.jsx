@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { getToken } from '../api'
 
 const SF_CONTACT_FIELDS = [
   { field: 'LastName', label: 'Last Name', required: true, type: 'String (80)' },
@@ -56,7 +57,11 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
     return acc
   }, {})
 
-  const [fieldMapping, setFieldMapping] = useState(params.field_mapping || defaultMapping)
+  const [fieldMapping, setFieldMapping] = useState(
+    params.field_mapping && Object.keys(params.field_mapping).length > 0
+      ? params.field_mapping
+      : defaultMapping
+  )
   const [fileName, setFileName] = useState(params.file_name || '')
   const [fileSize, setFileSize] = useState(params.file_size || '')
   const [isDragOver, setIsDragOver] = useState(false)
@@ -101,7 +106,9 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
   // Quick client-side preview extractor for text tabular files
   const extractPreviewFromText = (rawText, delimHint = ',') => {
     if (!rawText) return
-    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 6)
+    // Sample only the first 8KB to avoid splitting multi-megabyte strings into thousands of elements
+    const sampleText = rawText.length > 8192 ? rawText.slice(0, 8192) : rawText
+    const lines = sampleText.split(/\r?\n/).map(l => l.trim()).filter(Boolean).slice(0, 6)
     if (!lines.length) return
     const effectiveDelim = delimHint || (lines[0].includes('\t') ? '\t' : ',')
     const headers = lines[0].split(effectiveDelim).map(h => h.replace(/^["']|["']$/g, '').trim())
@@ -138,20 +145,32 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
     // Attempt uploading to Flowsmith files API to persist a secure file_id reference
     // rather than embedding the entire file in the workflow json definition
+    let uploadSuccess = false
     try {
       const formData = new FormData()
       formData.append('file', file)
       setUploadProgress(50)
 
-      const res = await fetch('/api/v1/files', {
+      const headers = {}
+      const token = getToken()
+      if (token) headers.Authorization = `Bearer ${token}`
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+      const res = await fetch('/api/files', {
         method: 'POST',
+        headers,
         body: formData,
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
 
       if (res.ok) {
         const json = await res.json()
-        const createdFileId = json.file_id || json.id || json.key
+        const createdFileId = json.data?.id || json.file_id || json.id || json.key
         if (createdFileId) {
+          uploadSuccess = true
           setFileId(createdFileId)
           setUploadProgress(100)
           setIsUploading(false)
@@ -172,17 +191,23 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 extractPreviewFromText(text, isTsv ? '\t' : (delimiter || ','))
               }
             }
-            reader.readAsText(file.slice(0, 65536))
+            reader.readAsText(file.slice(0, 32768))
           }
           return
         }
       }
     } catch {
-      // Fallback: local DataURL reading if backend files endpoint not available
+      // Fallback: local DataURL reading if backend files endpoint not available or network error
     }
 
-    // Fallback: Read as DataURL (archives) or Text (csv/tsv)
+    if (uploadSuccess) return
+
+    // Fallback: Read as DataURL (archives) or Text (csv/tsv) locally
     const reader = new FileReader()
+    reader.onerror = () => {
+      setIsUploading(false)
+      setUploadProgress(0)
+    }
     if (isArchive) {
       reader.onload = (event) => {
         const content = event.target?.result
@@ -197,6 +222,8 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
             source_type: 'upload',
             file_format: 'zip',
           })
+        } else {
+          setIsUploading(false)
         }
       }
       reader.readAsDataURL(file)
@@ -215,6 +242,8 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
             source_type: 'upload',
             file_format: isTsv ? 'tsv' : 'csv',
           })
+        } else {
+          setIsUploading(false)
         }
       }
       reader.readAsText(file)

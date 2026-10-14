@@ -86,6 +86,36 @@ def _lookup(path: str, context: dict[str, Any]) -> Any:
     return _resolve_path(clean_path, context)
 
 
+def _split_path_segments(path: str) -> list[str]:
+    """Split path on '.' while preserving dots inside brackets [...] or quotes."""
+    parts: list[str] = []
+    current: list[str] = []
+    in_bracket = False
+    in_quote = None
+    for ch in path:
+        if in_quote:
+            if ch == in_quote:
+                in_quote = None
+            current.append(ch)
+        elif ch in ('"', "'") and in_bracket:
+            in_quote = ch
+            current.append(ch)
+        elif ch == '[':
+            in_bracket = True
+            current.append(ch)
+        elif ch == ']':
+            in_bracket = False
+            current.append(ch)
+        elif ch == '.' and not in_bracket:
+            parts.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+    if current:
+        parts.append("".join(current))
+    return parts
+
+
 def _path_keys(path: str) -> list[Any] | None:
     """Tokenize 'a.b[0]["My Node"].c' into ['a','b',0,'My Node','c'].
 
@@ -93,7 +123,15 @@ def _path_keys(path: str) -> list[Any] | None:
     deeper than MAX_PATH_DEPTH * 2 segments.
     """
     clean_path = path.replace("?.", ".").replace("?[", "[")
-    parts = clean_path.split(".")
+    # Normalize unquoted $node.<name with spaces/symbols>.json to bracket syntax
+    if clean_path.startswith("$node.") and not clean_path.startswith("$node["):
+        unquoted_match = re.match(r"^\$node\.([^\[\]]+?)\.(json|item|first)(.*)$", clean_path)
+        if unquoted_match:
+            n_name, n_prop, n_rest = unquoted_match.group(1), unquoted_match.group(2), unquoted_match.group(3)
+            if any(c in n_name for c in (" ", "&", "-", ".")):
+                clean_path = f'$node["{n_name}"].{n_prop}{n_rest}'
+
+    parts = _split_path_segments(clean_path)
     if not parts or len(parts) > MAX_PATH_DEPTH * 2:
         return None
     keys: list[Any] = []
@@ -328,6 +366,8 @@ def build_node_name_map(nodes: Any) -> dict[str, str]:
 
         # Candidates in ascending priority order (lowest priority first, highest overwrites)
         candidates: list[str] = []
+        if ntype in ("flowsmith.data_load", "csv_parser", "data_load", "csv"):
+            candidates.extend(["CSV Parser", "CSV Parser & Schema Validator", "Data Load"])
         if ntype:
             candidates.append(ntype)
         if reg_name:
@@ -461,10 +501,10 @@ def _convert_named_node_expressions(expr: str, context: dict[str, Any]) -> str:
                     node_id = val
             if best_dist > 3:
                 node_id = None  # too far, don't match
-        if node_id:
-            return f"$node.{node_id}."
-        # Fallback: try the name as-is (might be a node ID already)
-        return f"$node.{node_name}."
+        target = node_id or node_name
+        if any(c in target for c in (".", " ", "-", "&")):
+            return f'$node["{target}"].'
+        return f"$node.{target}."
 
     return _NAMED_NODE_RE.sub(_replace_named, expr)
 

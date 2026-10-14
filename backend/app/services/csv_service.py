@@ -525,6 +525,11 @@ class CsvService:
         seen = seen_keys if seen_keys is not None else set()
         constraints = SF_CONTACT_CONSTRAINTS if target_object == "Contact" else {}
 
+        # If no field_mapping provided, default to identity mapping for all non-internal columns
+        effective_mapping = dict(field_mapping) if field_mapping else {}
+        if not effective_mapping and rows:
+            effective_mapping = {k: k for k in rows[0].keys() if not k.startswith("_")}
+
         for row in rows:
             result.total_parsed += 1
             row_num = row.get("_row_number", result.total_parsed + 1)
@@ -532,7 +537,7 @@ class CsvService:
             validation_errors: list[str] = []
 
             # 1. Apply field mapping
-            for source_col, target_field in field_mapping.items():
+            for source_col, target_field in effective_mapping.items():
                 val = row.get(source_col)
                 mapped_record[target_field] = val
 
