@@ -428,9 +428,11 @@ async def provider_callback(
                 timeout=30.0,
             )
     except Exception as exc:  # SSRF/timeouts/network errors
+        err_msg = str(exc).strip() or type(exc).__name__
+        reason = f"token exchange failed: {err_msg}"
         logger.warning("%s token exchange failed for user %s: %s", provider, row.user_id, exc)
-        log_event(db, audit_fail, target_type="credential", detail={"reason": "token exchange failed", "provider": provider})
-        return _fail_redirect(frontend_url, spec, "token exchange failed")
+        log_event(db, audit_fail, target_type="credential", detail={"reason": reason[:200], "provider": provider})
+        return _fail_redirect(frontend_url, spec, reason)
 
     if response.status_code >= 400:
         reason = "token exchange rejected"
@@ -438,8 +440,11 @@ async def provider_callback(
             err = response.json()
             if isinstance(err, dict):
                 reason = err.get("error_description") or err.get("error") or reason
+            elif isinstance(err, list) and len(err) > 0 and isinstance(err[0], dict):
+                reason = err[0].get("message") or err[0].get("errorCode") or reason
         except ValueError:
-            pass
+            if response.text and len(response.text) < 200:
+                reason = f"token exchange rejected ({response.status_code}): {response.text.strip()}"
         logger.warning("%s token exchange rejected for user %s: %s", provider, row.user_id, reason)
         log_event(db, audit_fail, target_type="credential", detail={"reason": str(reason)[:200], "provider": provider})
         return _fail_redirect(frontend_url, spec, reason)
