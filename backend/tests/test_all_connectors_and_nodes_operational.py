@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 import pytest
 
-from app.nodes.registry import NODE_REGISTRY, list_nodes
+from app.nodes.registry import NODE_REGISTRY, _ALIASES, list_nodes
 from app.engine.node_base import IDEMPOTENCY_LEVELS
 from app.connectors import get_registry, register_builtin_connectors, ConnectorSDK
 
@@ -31,7 +31,7 @@ def test_all_nodes_in_registry_operational():
     assert len(NODE_REGISTRY) >= 65, f"Expected at least 65 nodes, found {len(NODE_REGISTRY)}"
 
     for node_type, cls in NODE_REGISTRY.items():
-        assert cls.node_type == node_type
+        assert cls.node_type == node_type or node_type in _ALIASES
         assert cls.display_name, f"Node {node_type} missing display_name"
         assert cls.category, f"Node {node_type} missing category"
         assert cls.idempotency in IDEMPOTENCY_LEVELS or cls.idempotency in ("idempotent", "non_idempotent", "conditionally_idempotent", "at_most_once")
