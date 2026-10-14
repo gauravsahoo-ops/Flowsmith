@@ -326,7 +326,15 @@ export default function TopBar({
         <button
           className={`ghost ghost--quiet ${isDirty ? 'btn-save-dirty' : ''}`}
           disabled={saving || !workflow?.id}
-          onClick={() => save().catch(() => {})}
+          onClick={() => {
+            save().catch((err) => {
+              const msg = err?.message || 'Save failed'
+              const readable = msg.includes('413')
+                ? 'Workflow payload too large (HTTP 413). Check node file uploads or server proxy body size limit.'
+                : msg
+              alert(`Save failed: ${readable}`)
+            })
+          }}
           title={isDirty ? "Save workflow (Ctrl+S) — Unsaved changes" : "Save workflow (Ctrl+S)"}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
@@ -413,7 +421,12 @@ export default function TopBar({
               if (useWorkflowStore.getState()._dirty) {
                 try {
                   await save()
-                } catch {
+                } catch (err) {
+                  const msg = err?.message || 'Save failed'
+                  const readable = msg.includes('413')
+                    ? 'Workflow payload too large (HTTP 413). Check node file uploads or server proxy body size limit.'
+                    : msg
+                  alert(`Cannot run: Workflow save failed (${readable}). Please fix the error before running.`)
                   return
                 }
               }

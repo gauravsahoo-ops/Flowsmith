@@ -141,6 +141,38 @@ describe('toWorkflowJson', () => {
     expect(result.name).toBe('test')
     expect(result.custom).toBe(42)
   })
+
+  it('safeguards workflow size by clearing csv_content when file_id is present', () => {
+    const nodes = [{
+      id: 'n1',
+      position: { x: 0, y: 0 },
+      data: {
+        node: {
+          type: 'flowsmith.data_load',
+          parameters: { file_id: 'file_123', csv_content: 'col1,col2\nval1,val2' },
+        },
+      },
+    }]
+    const result = toWorkflowJson({}, nodes, [])
+    expect(result.nodes[0].parameters.file_id).toBe('file_123')
+    expect(result.nodes[0].parameters.csv_content).toBe('')
+  })
+
+  it('safeguards workflow size by clearing oversized csv_content in non-inline mode', () => {
+    const hugeContent = 'x'.repeat(70000)
+    const nodes = [{
+      id: 'n1',
+      position: { x: 0, y: 0 },
+      data: {
+        node: {
+          type: 'flowsmith.data_load',
+          parameters: { source_mode: 'upload', csv_content: hugeContent },
+        },
+      },
+    }]
+    const result = toWorkflowJson({}, nodes, [])
+    expect(result.nodes[0].parameters.csv_content).toBe('')
+  })
 })
 
 describe('round-trip consistency', () => {

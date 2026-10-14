@@ -94,11 +94,19 @@ export function toWorkflowJson(workflow, nodes, edges) {
     nodes: nodes.map((n) => {
       const node = n.data?.node || {}
       const nodeName = node.settings?.label || n.settings?.label || n.data?.label || node.label || node.name || n.data?.node?.name || ''
+      const params = { ...(node.parameters || n.parameters || {}) }
+      // Safeguard: when a file_id is present or non-inline mode, strip bloated inline csv_content
+      // so the workflow JSON stays small (< 50KB) and avoids HTTP 413 rejections by reverse proxies
+      if (params.file_id && params.csv_content) {
+        params.csv_content = ''
+      } else if (params.csv_content && typeof params.csv_content === 'string' && params.csv_content.length > 65536 && params.source_mode !== 'inline') {
+        params.csv_content = ''
+      }
       const out = {
         id: n.id,
         type: node.type ?? n.type,
         position: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
-        parameters: node.parameters || n.parameters || {},
+        parameters: params,
         settings: node.settings || n.settings || {},
       }
       if (nodeName) out.name = nodeName

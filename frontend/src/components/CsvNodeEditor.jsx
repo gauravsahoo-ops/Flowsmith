@@ -64,6 +64,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
   )
   const [fileName, setFileName] = useState(params.file_name || '')
   const [fileSize, setFileSize] = useState(params.file_size || '')
+  const [uploadError, setUploadError] = useState(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
@@ -143,20 +144,24 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
     setIsUploading(true)
     setUploadProgress(20)
 
+    setUploadError(null)
+
     // Attempt uploading to Flowsmith files API to persist a secure file_id reference
     // rather than embedding the entire file in the workflow json definition
     let uploadSuccess = false
     try {
+      setIsUploading(true)
+      setUploadProgress(10)
       const formData = new FormData()
       formData.append('file', file)
-      setUploadProgress(50)
+      setUploadProgress(40)
 
       const headers = {}
       const token = getToken()
       if (token) headers.Authorization = `Bearer ${token}`
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), 60000)
 
       const res = await fetch('/api/files', {
         method: 'POST',
@@ -172,6 +177,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
         if (createdFileId) {
           uploadSuccess = true
           setFileId(createdFileId)
+          setUploadError(null)
           setUploadProgress(100)
           setIsUploading(false)
           updateMultipleParams({
@@ -179,7 +185,9 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
             file_name: name,
             file_size: sizeStr,
             source_type: 'upload',
+            source_mode: 'upload',
             file_format: isArchive ? 'zip' : (isTsv ? 'tsv' : 'csv'),
+            csv_content: '', // Clear inline content so workflow JSON stays lightweight
           })
 
           // Also read sample for instant local preview if text
@@ -195,14 +203,39 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
           }
           return
         }
+      } else {
+        let errDetail = `Upload failed (HTTP ${res.status})`
+        if (res.status === 413) {
+          errDetail = `File exceeds server upload limit (HTTP 413 Request Entity Too Large). The file (${sizeStr}) is larger than the server proxy limit (default 1 MB). Please configure 'client_max_body_size 50M;' in your server Nginx configuration.`
+        } else if (res.status === 401) {
+          errDetail = 'Authentication required. Please log in again.'
+        } else {
+          try {
+            const j = await res.json()
+            errDetail = j.detail || j.message || errDetail
+          } catch {}
+        }
+        setUploadError(errDetail)
+        setIsUploading(false)
+        setUploadProgress(0)
       }
-    } catch {
-      // Fallback: local DataURL reading if backend files endpoint not available or network error
+    } catch (err) {
+      const isAbort = err?.name === 'AbortError'
+      setUploadError(isAbort ? 'Upload timed out after 60s. Please check network speed or file size.' : `Upload failed: ${err.message || 'Network error'}`)
+      setIsUploading(false)
+      setUploadProgress(0)
     }
 
     if (uploadSuccess) return
 
-    // Fallback: Read as DataURL (archives) or Text (csv/tsv) locally
+    // Never embed files larger than 64 KB into workflow JSON — doing so breaks workflow saves (HTTP 413)
+    if (file.size > 65536) {
+      setIsUploading(false)
+      setUploadProgress(0)
+      return
+    }
+
+    // Small file (< 64 KB) fallback for local offline testing
     const reader = new FileReader()
     reader.onerror = () => {
       setIsUploading(false)
@@ -220,6 +253,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
             file_name: name,
             file_size: sizeStr,
             source_type: 'upload',
+            source_mode: 'upload',
             file_format: 'zip',
           })
         } else {
@@ -240,6 +274,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
             file_name: name,
             file_size: sizeStr,
             source_type: 'upload',
+            source_mode: 'upload',
             file_format: isTsv ? 'tsv' : 'csv',
           })
         } else {
@@ -267,6 +302,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
     setFileSize('')
     setFileId('')
     setCsvContent('')
+    setUploadError(null)
     setPreviewRows([])
     setPreviewColumns([])
     updateMultipleParams({
@@ -274,6 +310,8 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
       file_name: '',
       file_size: '',
       csv_content: '',
+      source_type: '',
+      source_mode: 'upload',
     })
   }
 
@@ -404,6 +442,23 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 <div style={{ background: '#3b4252', height: '4px', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ width: `${uploadProgress}%`, height: '100%', background: '#88c0d0', transition: 'width 0.2s' }} />
                 </div>
+              </div>
+            )}
+
+            {uploadError && (
+              <div style={{
+                background: 'rgba(191, 97, 106, 0.15)',
+                border: '1px solid #bf616a',
+                borderRadius: '6px',
+                padding: '0.65rem 0.85rem',
+                color: '#eceff4',
+                fontSize: '0.78rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem',
+              }}>
+                <span style={{ fontWeight: 600, color: '#bf616a' }}>⚠ File Upload Error</span>
+                <span style={{ color: '#d8dee9', lineHeight: 1.4 }}>{uploadError}</span>
               </div>
             )}
 
