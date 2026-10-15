@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { escapeHtml } from '../utils/escapeHtml'
 import { isTrustedOAuthOrigin } from '../utils/oauthOrigins'
@@ -100,6 +101,7 @@ function defaultsFromSchema(schema) {
 }
 
 export default function CredentialsPage() {
+  const navigate = useNavigate()
   const storeCreds = useCredentialStore(s => s.credentials)
   const credentials = (storeCreds && storeCreds.length > 0) ? storeCreds : useCredentialStore.getState().credentials
   const storeTypes = useCredentialStore(s => s.types)
@@ -537,6 +539,20 @@ export default function CredentialsPage() {
       <PageHeader
         title="Credentials"
         description="Manage encrypted connections used by your workflows. Secrets are stored encrypted and never shown again."
+        actions={
+          <button
+            className="primary"
+            onClick={() => {
+              const el = document.getElementById('new-credential-section') || document.querySelector('.credentials-page section.card:last-of-type')
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                setTimeout(() => el.querySelector('input, select, button')?.focus(), 300)
+              }
+            }}
+          >
+            + New Credential
+          </button>
+        }
       />
       <WorkspaceTabs />
 
@@ -659,8 +675,31 @@ export default function CredentialsPage() {
                 desc: 'Silent background refresh before expiration ensures zero pipeline downtime.',
               },
             ]}
-            action={<button className="primary" onClick={() => { document.querySelector('.credentials-page section.card:last-of-type')?.scrollIntoView({ behavior: 'smooth' }) }}>Add first credential</button>}
-            secondaryAction={<button className="ghost" onClick={() => navigate('/integrations')}>Explore 527+ integrations</button>}
+            action={
+              <button
+                className="primary"
+                onClick={() => {
+                  const el = document.getElementById('new-credential-section') || document.querySelector('.credentials-page section.card:last-of-type')
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    setTimeout(() => {
+                      const input = el.querySelector('input, select, button')
+                      input?.focus()
+                    }, 300)
+                  }
+                }}
+              >
+                Add first credential
+              </button>
+            }
+            secondaryAction={
+              <button
+                className="ghost"
+                onClick={() => navigate('/integrations')}
+              >
+                Explore 527+ integrations
+              </button>
+            }
           />
         ) : (
           <EmptyState
@@ -1124,7 +1163,7 @@ export default function CredentialsPage() {
         )}
       </section>
 
-      <section className="card" style={{ marginTop: 24 }}>
+      <section id="new-credential-section" className="card" style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 14, margin: '0 0 12px' }}>New credential</h2>
 
         <div style={{ marginBottom: 16 }}>

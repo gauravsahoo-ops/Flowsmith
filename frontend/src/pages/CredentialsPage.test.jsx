@@ -5,6 +5,10 @@ import { useCredentialStore } from '../stores/credentialStore'
 import CredentialsPage from './CredentialsPage'
 import { api } from '../api'
 
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+}))
+
 vi.mock('../components/shared/WorkspaceTabs', () => ({
   default: () => React.createElement('div', { id: 'workspace-tabs' }, 'Tabs'),
 }))
