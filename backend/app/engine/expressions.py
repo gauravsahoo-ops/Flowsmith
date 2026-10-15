@@ -186,7 +186,10 @@ def _resolve_path(path: str, context: dict[str, Any]) -> Any:
         elif isinstance(key, str) and key == "length" and isinstance(value, list):
             value = len(value)
         elif isinstance(value, dict):
-            value = value.get(key)
+            val = value.get(key)
+            if val is None and "json" in value and isinstance(value["json"], dict):
+                val = value["json"].get(key)
+            value = val
         else:
             return None
         if value is None:

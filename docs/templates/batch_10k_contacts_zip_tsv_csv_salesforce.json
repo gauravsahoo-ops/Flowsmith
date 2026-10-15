@@ -54,7 +54,7 @@
         "object_name": "Contact",
         "bulk_operation": "upsert",
         "external_id_field": "Email",
-        "records": "{{ $('data_load').item.records }}",
+        "records": "{{ $json.records }}",
         "timeout_seconds": 180.0,
         "poll_interval_seconds": 3.0,
         "max_polls": 60
