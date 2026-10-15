@@ -41,6 +41,41 @@ SENSITIVE_KEY_MARKERS = (
 )
 
 _MAX_DEPTH = 12
+MAX_PREVIEW_ITEMS = 50
+MAX_PREVIEW_STR_LEN = 4000
+
+
+def preview_sanitize(
+    val: Any,
+    max_items: int = MAX_PREVIEW_ITEMS,
+    max_str_len: int = MAX_PREVIEW_STR_LEN,
+    depth: int = 0,
+) -> Any:
+    """Window large lists and long strings for fast interactive API rendering.
+
+    When an execution processes thousands of records, serializing and parsing
+    megabytes of raw data freezes both the server and client UI. This truncates
+    lists to the first `max_items` entries and appends an informational item with
+    the true total item count and an export note.
+    """
+    if depth > 12:
+        return val
+    if isinstance(val, list):
+        if len(val) > max_items:
+            items = [preview_sanitize(x, max_items, max_str_len, depth + 1) for x in val[:max_items]]
+            items.append({
+                "_truncated": True,
+                "_total_count": len(val),
+                "_omitted": len(val) - max_items,
+                "_note": f"... and {len(val) - max_items:,} more items ({len(val):,} total). Use Export to download complete dataset.",
+            })
+            return items
+        return [preview_sanitize(x, max_items, max_str_len, depth + 1) for x in val]
+    if isinstance(val, dict):
+        return {k: preview_sanitize(v, max_items, max_str_len, depth + 1) for k, v in val.items()}
+    if isinstance(val, str) and len(val) > max_str_len:
+        return val[:max_str_len] + f"... [truncated {len(val):,} chars]"
+    return val
 
 
 def _is_sensitive_key(key: str) -> bool:

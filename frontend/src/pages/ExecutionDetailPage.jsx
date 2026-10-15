@@ -68,8 +68,8 @@ export default function ExecutionDetailPage() {
       .getExecution(id)
       .then((d) => {
         setData(d)
-        if (d.trace?.length && !selected) {
-          setSelected(d.trace[0].node_id)
+        if (d?.trace?.length) {
+          setSelected((prev) => prev || d.trace[0].node_id)
         }
         setError(null)
       })
@@ -79,7 +79,7 @@ export default function ExecutionDetailPage() {
       .finally(() => {
         if (!silent) setLoading(false)
       })
-  }, [id, selected])
+  }, [id])
 
   useEffect(() => {
     fetchExecution()
@@ -107,14 +107,14 @@ export default function ExecutionDetailPage() {
         .then((res) => {
           const reqs = res?.data || res || []
           setApiRequests(Array.isArray(reqs) ? reqs : [])
-          if (reqs.length > 0 && !selectedRequestId) {
-            setSelectedRequestId(reqs[0].id)
+          if (reqs.length > 0) {
+            setSelectedRequestId((prev) => prev || reqs[0].id)
           }
         })
         .catch(() => setApiRequests([]))
         .finally(() => setLoadingRequests(false))
     }
-  }, [id, tab, selectedRequestId])
+  }, [id, tab])
 
   // Load detailed request payload when selected
   useEffect(() => {

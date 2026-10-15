@@ -36,6 +36,7 @@ from app.credentials.validator import validate_workflow_credentials
 from app.db import get_db
 from app.engine.errors import WorkflowValidationError
 from app.engine.redact import (
+    preview_sanitize,
     redact_results,
     redact_sensitive,
     redact_trace_steps,
@@ -642,7 +643,12 @@ def export_executions_csv(
 
 
 @router.get("/api/executions/{execution_id}")
-def get_execution(execution_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+def get_execution(
+    execution_id: str,
+    full: bool = False,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
@@ -653,22 +659,27 @@ def get_execution(execution_id: str, user: User = Depends(get_current_user), db:
     if (results_outputs and isinstance(results_outputs, dict)) or (results_inputs and isinstance(results_inputs, dict)):
         for step in trace:
             nid = step.get("node_id")
-            if results_outputs and isinstance(results_outputs, dict) and nid in results_outputs and results_outputs[nid]:
-                step["full_outputs"] = results_outputs[nid]
-                if not step.get("outputs"):
-                    step["outputs"] = results_outputs[nid]
-            if results_inputs and isinstance(results_inputs, dict) and nid in results_inputs and results_inputs[nid]:
-                step["full_inputs"] = results_inputs[nid]
-                if not step.get("inputs"):
-                    step["inputs"] = results_inputs[nid]
+            if not step.get("outputs") and results_outputs and isinstance(results_outputs, dict) and nid in results_outputs:
+                step["outputs"] = results_outputs[nid]
+            if not step.get("inputs") and results_inputs and isinstance(results_inputs, dict) and nid in results_inputs:
+                step["inputs"] = results_inputs[nid]
+
+    raw_results = rec.results
+    raw_wf_data = rec.workflow_data
+
+    if not full:
+        trace = preview_sanitize(trace)
+        raw_results = preview_sanitize(raw_results)
+        raw_wf_data = preview_sanitize(raw_wf_data)
+
     trace = redact_trace_steps(trace)
 
     data = {
         **_to_dict(rec),
-        "results": redact_results(rec.results),
+        "results": redact_results(raw_results),
         "node_statuses": rec.node_statuses,
         "trace": trace,
-        "workflow_data": redact_sensitive(rec.workflow_data),
+        "workflow_data": redact_sensitive(raw_wf_data),
     }
     return ok(data)
 
@@ -777,7 +788,10 @@ def get_execution_items(
 
 @router.get("/api/executions/{execution_id}/trace")
 def get_execution_trace(
-    execution_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    execution_id: str,
+    full: bool = False,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> dict:
     """Step-by-step run log for the debugger (M8 + Phase 13): each step
     records the node's inputs, outputs, error, status, duration and the
@@ -791,14 +805,12 @@ def get_execution_trace(
     if (results_outputs and isinstance(results_outputs, dict)) or (results_inputs and isinstance(results_inputs, dict)):
         for step in trace:
             nid = step.get("node_id")
-            if results_outputs and isinstance(results_outputs, dict) and nid in results_outputs and results_outputs[nid]:
-                step["full_outputs"] = results_outputs[nid]
-                if not step.get("outputs"):
-                    step["outputs"] = results_outputs[nid]
-            if results_inputs and isinstance(results_inputs, dict) and nid in results_inputs and results_inputs[nid]:
-                step["full_inputs"] = results_inputs[nid]
-                if not step.get("inputs"):
-                    step["inputs"] = results_inputs[nid]
+            if not step.get("outputs") and results_outputs and isinstance(results_outputs, dict) and nid in results_outputs:
+                step["outputs"] = results_outputs[nid]
+            if not step.get("inputs") and results_inputs and isinstance(results_inputs, dict) and nid in results_inputs:
+                step["inputs"] = results_inputs[nid]
+    if not full:
+        trace = preview_sanitize(trace)
     return ok({"steps": redact_trace_steps(trace)})
 
 
@@ -864,10 +876,10 @@ def get_execution_steps(
             }
             for s in step_rows
         ]
-        return ok(data)
+        return ok(preview_sanitize(data))
 
     # Fallback to rec.trace for runs executed prior to telemetry table migration
-    trace = redact_trace_steps([dict(s) for s in (rec.trace or [])])
+    trace = redact_trace_steps(preview_sanitize([dict(s) for s in (rec.trace or [])]))
     return ok(trace)
 
 
