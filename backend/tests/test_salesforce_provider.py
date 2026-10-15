@@ -854,7 +854,7 @@ async def test_bulk_upsert_includes_external_id_field(client: SalesforceProvider
         patcher.stop()
     job_body = fake.calls[1][2]["json"]
     assert job_body["operation"] == "upsert"
-    assert job_body["externalIdField"] == "Legacy_Id__c"
+    assert job_body["externalIdFieldName"] == "Legacy_Id__c"
 
 
 async def test_bulk_delete_sends_id_only_csv(client: SalesforceProviderClient) -> None:

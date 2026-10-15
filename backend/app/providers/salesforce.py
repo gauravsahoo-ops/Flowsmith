@@ -766,7 +766,7 @@ class SalesforceProviderClient:
                     "Bulk upsert requires external_id_field.",
                     retryable=False,
                 )
-            job_body["externalIdField"] = external_id_field
+            job_body["externalIdFieldName"] = external_id_field
 
         create_resp = await self.request(
             creds, "POST", "/jobs/ingest", json=job_body, timeout=timeout
