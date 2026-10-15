@@ -82,6 +82,9 @@ class Execution(Base):
     error_code: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # High-performance consolidated global search text index
+    search_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # Declared so the unit of work orders inserts by FK dependency
     # (executions after workflows) instead of mapper-name sort order.
     workflow: Mapped["WorkflowRecord"] = relationship()

@@ -506,6 +506,329 @@ def extract_execution_flow_metadata(
     }
 
 
+def extract_search_strings(obj: Any, max_chars: int = 4000) -> str:
+    """Recursively extract key terms, emails, identifiers, and values from structured JSON/dict/list."""
+    if not obj:
+        return ""
+    terms: list[str] = []
+
+    def _visit(val: Any, depth: int = 0):
+        if depth > 5 or sum(len(t) for t in terms) >= max_chars:
+            return
+        if val is None:
+            return
+        if isinstance(val, (str, int, float, bool)):
+            s = str(val).strip()
+            if s and len(s) < 200:
+                terms.append(s)
+            elif s and len(s) >= 200:
+                terms.append(s[:100])
+        elif isinstance(val, dict):
+            for k, v in list(val.items())[:50]:
+                terms.append(str(k))
+                _visit(v, depth + 1)
+        elif isinstance(val, (list, tuple)):
+            sample_items = val[:5] + (val[-5:] if len(val) > 10 else [])
+            for item in sample_items:
+                _visit(item, depth + 1)
+
+    try:
+        _visit(obj)
+    except Exception:
+        pass
+
+    return " ".join(terms)[:max_chars]
+
+
+def build_execution_search_text(
+    rec: Any,
+    workflow_name: str | None = None,
+    user_email: str | None = None,
+) -> str:
+    """Build a consolidated, lowercase-searchable text index entry for an execution."""
+    parts = []
+
+    rec_id = getattr(rec, "id", None) or ""
+    if rec_id:
+        parts.append(rec_id)
+
+    wf_name = workflow_name or getattr(rec, "workflow_name", None) or ""
+    if wf_name:
+        parts.append(wf_name)
+
+    wf_id = getattr(rec, "workflow_id", None) or ""
+    if wf_id:
+        parts.append(wf_id)
+
+    u_email = user_email or getattr(rec, "user_email", None) or ""
+    if u_email:
+        parts.append(u_email)
+
+    for attr in (
+        "trigger",
+        "status",
+        "source_connector",
+        "destination_connector",
+        "source_object",
+        "destination_object",
+        "http_method",
+        "api_endpoint",
+        "error_summary",
+        "error_code",
+        "error_type",
+        "correlation_id",
+        "parent_execution_id",
+    ):
+        v = getattr(rec, attr, None)
+        if v:
+            parts.append(str(v))
+
+    sc = getattr(rec, "http_status_code", None)
+    if sc:
+        parts.append(str(sc))
+
+    err = getattr(rec, "error", None)
+    if err:
+        parts.append(extract_search_strings(err, max_chars=1000))
+
+    td = getattr(rec, "trigger_data", None)
+    if td:
+        parts.append(extract_search_strings(td, max_chars=2000))
+
+    tr = getattr(rec, "trace", None)
+    if tr and isinstance(tr, list):
+        for step in tr:
+            if isinstance(step, dict):
+                parts.append(str(step.get("node_id") or ""))
+                parts.append(str(step.get("node_title") or ""))
+                parts.append(str(step.get("node_type") or ""))
+                if step.get("error"):
+                    parts.append(extract_search_strings(step["error"], max_chars=500))
+                if step.get("inputs"):
+                    parts.append(extract_search_strings(step["inputs"], max_chars=1000))
+                if step.get("outputs"):
+                    parts.append(extract_search_strings(step["outputs"], max_chars=1500))
+    elif getattr(rec, "results", None):
+        parts.append(extract_search_strings(rec.results, max_chars=2000))
+
+    return " | ".join(p for p in parts if p)
+
+
+def find_structured_snippet(data: Any, term: str, max_len: int = 140) -> str | None:
+    """Find a key or value in data containing `term` and return a human-readable snippet."""
+    if not data or not term:
+        return None
+    term_lower = term.lower()
+    matches: list[str] = []
+
+    def _walk(obj: Any, path: str = "", depth: int = 0):
+        if len(matches) >= 2 or depth > 6:
+            return
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                k_str = str(k)
+                if term_lower in k_str.lower():
+                    matches.append(f"{k_str}: {str(v)[:40]}")
+                if isinstance(v, (str, int, float, bool)):
+                    v_str = str(v)
+                    if term_lower in v_str.lower():
+                        snippet = f'{k_str}: "{v_str}"'
+                        ctx_val = obj.get("Email") or obj.get("email") or obj.get("name") or obj.get("FirstName") or obj.get("id")
+                        if ctx_val and str(ctx_val) != v_str:
+                            snippet += f" ({ctx_val})"
+                        matches.append(snippet)
+                elif isinstance(v, (dict, list)):
+                    _walk(v, f"{path}.{k_str}" if path else k_str, depth + 1)
+        elif isinstance(obj, (list, tuple)):
+            for idx, item in enumerate(obj[:100]):
+                _walk(item, f"{path}[{idx}]", depth + 1)
+                if len(matches) >= 2:
+                    break
+
+    try:
+        _walk(data)
+    except Exception:
+        pass
+
+    if matches:
+        return " | ".join(matches)[:max_len]
+
+    s = str(data)
+    idx = s.lower().find(term_lower)
+    if idx != -1:
+        start = max(0, idx - 30)
+        end = min(len(s), idx + len(term) + 40)
+        prefix = "..." if start > 0 else ""
+        suffix = "..." if end < len(s) else ""
+        return prefix + s[start:end].strip() + suffix
+    return None
+
+
+def extract_execution_search_matches(
+    rec: Any,
+    search_term: str,
+    workflow_name: str | None = None,
+    user_email: str | None = None,
+    db: Session | None = None,
+) -> list[dict[str, Any]]:
+    """Extract prioritized structured match descriptors for search highlighting and deep-linking."""
+    if not search_term or not search_term.strip():
+        return []
+
+    term = search_term.strip()
+    term_lower = term.lower()
+    matches: list[dict[str, Any]] = []
+    seen_snippets: set[str] = set()
+
+    def _add_match(mtype: str, label: str, snippet: str | None, node_id: str | None = None, request_id: str | None = None, workflow_id: str | None = None, target: str = "execution"):
+        if not snippet or snippet in seen_snippets:
+            return
+        seen_snippets.add(snippet)
+        url = f"/executions/{getattr(rec, 'id', '')}"
+        if target == "timeline" and node_id:
+            url += f"?tab=timeline&node={node_id}&search={term}"
+        elif target == "timeline":
+            url += f"?tab=timeline&search={term}"
+        elif target == "requests" and request_id:
+            url += f"?tab=requests&request_id={request_id}&search={term}"
+        elif target == "requests":
+            url += f"?tab=requests&search={term}"
+        elif target == "workflow" and workflow_id:
+            url = f"/workflows/{workflow_id}"
+
+        matches.append({
+            "type": mtype,
+            "label": label,
+            "snippet": snippet,
+            "node_id": node_id,
+            "request_id": request_id,
+            "workflow_id": workflow_id,
+            "target": target,
+            "url": url,
+        })
+
+    # 1. Execution ID
+    rec_id = getattr(rec, "id", "") or ""
+    if term_lower in rec_id.lower():
+        _add_match("id", "Execution ID", rec_id, target="execution")
+
+    # 2. Workflow Name
+    wf_name = workflow_name or getattr(rec, "workflow_name", "") or ""
+    rec_wf_id = getattr(rec, "workflow_id", "") or ""
+    if wf_name and term_lower in wf_name.lower():
+        _add_match("workflow", "Workflow", wf_name, workflow_id=rec_wf_id, target="workflow")
+
+    # 3. User / Email
+    u_email = user_email or getattr(rec, "user_email", "") or ""
+    if u_email and term_lower in u_email.lower():
+        _add_match("user", "User Email", u_email, target="execution")
+
+    # 4. Connectors & Objects
+    src_c = getattr(rec, "source_connector", "") or ""
+    dst_c = getattr(rec, "destination_connector", "") or ""
+    if (src_c and term_lower in src_c.lower()) or (dst_c and term_lower in dst_c.lower()):
+        _add_match("connector", "Integration Flow", f"{src_c} → {dst_c}", target="execution")
+
+    src_o = getattr(rec, "source_object", "") or ""
+    dst_o = getattr(rec, "destination_object", "") or ""
+    if (src_o and term_lower in src_o.lower()) or (dst_o and term_lower in dst_o.lower()):
+        _add_match("object", "Entity Object", f"{src_o or '—'} → {dst_o or '—'}", target="execution")
+
+    # 5. HTTP Endpoint & Method
+    api_ep = getattr(rec, "api_endpoint", "") or ""
+    http_m = getattr(rec, "http_method", "") or ""
+    http_sc = getattr(rec, "http_status_code", None)
+    if (api_ep and term_lower in api_ep.lower()) or (http_m and term_lower in http_m.lower()):
+        _add_match("api", "API Call", f"{http_m} {api_ep} ({http_sc or ''})".strip(), target="requests")
+    elif http_sc and str(http_sc) == term:
+        _add_match("api", "HTTP Status", f"HTTP {http_sc} ({http_m or 'POST'})", target="requests")
+
+    # 6. Error details
+    err_sum = getattr(rec, "error_summary", "") or ""
+    if err_sum and term_lower in err_sum.lower():
+        _add_match("error", "Error Diagnostic", err_sum, target="timeline")
+    err_code = getattr(rec, "error_code", "") or ""
+    if err_code and term_lower in err_code.lower():
+        _add_match("error", "Error Code", err_code, target="timeline")
+    err_type = getattr(rec, "error_type", "") or ""
+    if err_type and term_lower in err_type.lower():
+        _add_match("error", "Error Category", err_type, target="timeline")
+    err_obj = getattr(rec, "error", None)
+    if err_obj and not err_sum:
+        err_snip = find_structured_snippet(err_obj, term)
+        if err_snip:
+            _add_match("error", "Error Details", err_snip, target="timeline")
+
+    # 7. Trace steps (Nodes, inputs, outputs, step errors)
+    trace = getattr(rec, "trace", None) or []
+    if isinstance(trace, list):
+        for step in trace:
+            if not isinstance(step, dict):
+                continue
+            nid = step.get("node_id") or ""
+            ntitle = step.get("node_title") or nid
+            ntype = step.get("node_type") or ""
+
+            # Check node title / type
+            if term_lower in ntitle.lower() or term_lower in nid.lower() or term_lower in ntype.lower():
+                _add_match("node", f"Node: {ntitle}", f"{ntitle} ({ntype})", node_id=nid, target="timeline")
+
+            # Check node inputs
+            if step.get("inputs"):
+                in_snip = find_structured_snippet(step["inputs"], term)
+                if in_snip:
+                    _add_match("input", f"Input ({ntitle})", in_snip, node_id=nid, target="timeline")
+
+            # Check node outputs
+            if step.get("outputs"):
+                out_snip = find_structured_snippet(step["outputs"], term)
+                if out_snip:
+                    _add_match("output", f"Output ({ntitle})", out_snip, node_id=nid, target="timeline")
+
+            # Check node error
+            if step.get("error"):
+                step_err_snip = find_structured_snippet(step["error"], term)
+                if step_err_snip:
+                    _add_match("error", f"Node Error ({ntitle})", step_err_snip, node_id=nid, target="timeline")
+
+    # 8. Trigger data (Inputs)
+    td = getattr(rec, "trigger_data", None)
+    if td:
+        td_snip = find_structured_snippet(td, term)
+        if td_snip:
+            _add_match("input", "Trigger Input", td_snip, target="timeline")
+
+    # 9. Results (if trace wasn't present)
+    res = getattr(rec, "results", None)
+    if res and not trace:
+        res_snip = find_structured_snippet(res, term)
+        if res_snip:
+            _add_match("output", "Execution Output", res_snip, target="timeline")
+
+    # 10. Outbound API Requests logs
+    if db and rec_id:
+        try:
+            from app.models.monitoring_telemetry import ApiRequestTelemetry
+            from sqlalchemy import select, or_, cast, String
+            req_stmt = select(ApiRequestTelemetry).where(
+                ApiRequestTelemetry.execution_id == rec_id,
+                or_(
+                    ApiRequestTelemetry.endpoint_url.ilike(f"%{term}%"),
+                    ApiRequestTelemetry.error_message.ilike(f"%{term}%"),
+                    cast(ApiRequestTelemetry.request_payload, String).ilike(f"%{term}%"),
+                    cast(ApiRequestTelemetry.response_payload, String).ilike(f"%{term}%"),
+                )
+            ).limit(2)
+            matching_reqs = db.scalars(req_stmt).all()
+            for mreq in matching_reqs:
+                req_snip = find_structured_snippet(mreq.request_payload, term) or find_structured_snippet(mreq.response_payload, term) or mreq.endpoint_url
+                _add_match("api_request", f"API: {mreq.http_method} {mreq.connector_name or ''}", req_snip, request_id=mreq.id, node_id=mreq.node_id, target="requests")
+        except Exception:
+            pass
+
+    return matches[:5]
+
+
 def finalize_execution_telemetry(
     db: Session,
     rec: Execution,
@@ -717,7 +1040,12 @@ def finalize_execution_telemetry(
             rec.error_code = e_code
             rec.error_summary = e_sum
 
-        # 9. Batch add to session
+        # 9. Build consolidated search index
+        wf_name = getattr(job, "workflow_name", None) or getattr(rec, "workflow_name", None)
+        u_email = getattr(job, "user_email", None) or getattr(rec, "user_email", None)
+        rec.search_text = build_execution_search_text(rec, workflow_name=wf_name, user_email=u_email)
+
+        # 10. Batch add to session
         for s_row in step_db_rows:
             db.merge(s_row)
         for a_row in api_db_rows:
@@ -730,7 +1058,7 @@ def finalize_execution_telemetry(
 
 
 def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:
-    """One-time or startup backfill routine that updates executions missing integration metadata."""
+    """One-time or startup backfill routine that updates executions missing integration metadata or search text."""
     from app.db import get_session
     from app.models.workflow import WorkflowRecord
     from sqlalchemy import or_
@@ -749,6 +1077,7 @@ def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:
 
         recs = db.query(Execution).filter(
             or_(
+                Execution.search_text == None,
                 Execution.destination_connector == None,
                 Execution.destination_connector == "flowsmith_output",
                 Execution.destination_connector.in_(["flowsmith.data_load", "data_load"]),
@@ -819,6 +1148,10 @@ def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:
                 rec.records_read = ds_read if ds_read > 0 else max_batch
                 rec.records_processed = max_batch
                 rec.records_created = max_batch
+                modified = True
+
+            if getattr(rec, "search_text", None) is None:
+                rec.search_text = build_execution_search_text(rec, workflow_name=wf_name)
                 modified = True
 
             if modified:

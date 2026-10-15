@@ -700,3 +700,59 @@ def test_extract_execution_flow_metadata_and_backfill():
     count = backfill_execution_telemetry_metadata()
     assert isinstance(count, int)
 
+
+def test_execution_search_indexing_and_snippets():
+    """Verify build_execution_search_text and extract_search_matches."""
+    from app.services.telemetry_service import (
+        build_execution_search_text,
+        extract_execution_search_matches as extract_search_matches,
+    )
+    from unittest.mock import MagicMock
+
+    mock_rec = MagicMock()
+    mock_rec.id = "exec_test_search_123"
+    mock_rec.workflow_id = "wf_contacts_ingest"
+    mock_rec.status = "success"
+    mock_rec.source_connector = "data_load"
+    mock_rec.destination_connector = "salesforce"
+    mock_rec.source_object = "Contact"
+    mock_rec.destination_object = "Contact"
+    mock_rec.http_method = "POST"
+    mock_rec.http_status_code = 201
+    mock_rec.api_endpoint = "/services/data/v59.0/jobs/ingest"
+    mock_rec.error_summary = None
+    mock_rec.error_code = None
+    mock_rec.error_type = None
+    mock_rec.error = None
+    mock_rec.trigger_data = {"filename": "contacts_batch.tsv"}
+    mock_rec.results = None
+    mock_rec.trace = [
+        {
+            "node_id": "sf_bulk_1",
+            "node_title": "Salesforce Bulk Ingest",
+            "node_type": "salesforce",
+            "inputs": {"object_name": "Contact", "operation": "insert"},
+            "outputs": {"job_id": "750XXXXXXXXXXXX", "records_processed": 10000},
+        }
+    ]
+
+    # Test search text building
+    search_idx = build_execution_search_text(
+        mock_rec,
+        workflow_name="Ingest TSV Contacts (10,000) to Salesforce",
+        user_email="admin@flowsmith.local",
+    )
+    assert "salesforce" in search_idx
+    assert "750XXXXXXXXXXXX" in search_idx
+    assert "10000" in search_idx
+
+    # Test search snippet extraction for 'contacts_batch'
+    matches = extract_search_matches(mock_rec, "contacts_batch")
+    assert len(matches) > 0
+    assert any("contacts_batch" in m["snippet"] for m in matches)
+
+    # Test search snippet extraction for 'Contact'
+    matches_obj = extract_search_matches(mock_rec, "Contact")
+    assert len(matches_obj) > 0
+    assert any(m["type"] in ("object", "input", "node") for m in matches_obj)
+

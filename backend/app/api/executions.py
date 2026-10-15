@@ -18,7 +18,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import cast, func, or_, select, String
 from sqlalchemy.orm import Session, defer
 
 from app.api.access import accessible_ids, get_permission, get_workflow
@@ -77,7 +77,13 @@ class ResumeRequest(BaseModel):
     approved: bool = True
 
 
-def _to_dict(rec: Execution) -> dict[str, Any]:
+def _to_dict(
+    rec: Execution,
+    wf_name: str | None = None,
+    search: str | None = None,
+    user_email: str | None = None,
+    db: Session | None = None,
+) -> dict[str, Any]:
     duration_ms = rec.duration_ms
     if duration_ms is None and rec.started_at:
         end = rec.finished_at or datetime.now(UTC)
@@ -96,7 +102,8 @@ def _to_dict(rec: Execution) -> dict[str, Any]:
     r_skipped = rec.records_skipped or 0
     r_failed = rec.records_failed or 0
     r_proc = rec.records_processed or 0
-    wf_name = getattr(rec, "workflow_name", None)
+    if not wf_name:
+        wf_name = getattr(rec, "workflow_name", None)
 
     # Dynamic fallback if integration metadata or status code is missing/default
     if (
@@ -156,6 +163,20 @@ def _to_dict(rec: Execution) -> dict[str, Any]:
         except Exception:
             pass
 
+    search_matches = []
+    if search and search.strip():
+        try:
+            from app.services.telemetry_service import extract_execution_search_matches
+            search_matches = extract_execution_search_matches(
+                rec,
+                search.strip(),
+                workflow_name=wf_name,
+                user_email=user_email,
+                db=db,
+            )
+        except Exception:
+            pass
+
     return {
         "id": rec.id,
         "workflow_id": rec.workflow_id,
@@ -189,6 +210,8 @@ def _to_dict(rec: Execution) -> dict[str, Any]:
         "parent_execution_id": rec.parent_execution_id,
         "organization_id": rec.organization_id,
         "workspace_id": rec.workspace_id,
+        "search_matches": search_matches,
+        "matched": bool(search_matches),
     }
 
 
@@ -471,22 +494,102 @@ def _build_execution_query(
             stmt = stmt.where(Execution.started_at <= dt_end)
         except Exception:
             pass
-    if search:
-        sterm = f"%{search.strip()}%"
+    if search and search.strip():
+        term = search.strip()
+        sterm = f"%{term}%"
+        from app.models.user import User
+        from app.models.workflow import WorkflowRecord
+        from app.models.monitoring_telemetry import ExecutionStep, ApiRequestTelemetry
+
         matching_wf_ids = [
             wid for (wid,) in db.execute(
-                select(WorkflowRecord.id).where(WorkflowRecord.name.ilike(sterm))
+                select(WorkflowRecord.id).where(
+                    or_(
+                        WorkflowRecord.name.ilike(sterm),
+                        WorkflowRecord.description.ilike(sterm),
+                    )
+                )
             ).all()
         ]
-        from sqlalchemy import or_
+
+        matching_user_ids = [
+            uid for (uid,) in db.execute(
+                select(User.id).where(User.email.ilike(sterm))
+            ).all()
+        ]
+
+        # ExecutionStep matches
+        matching_step_exec_ids = [
+            eid for (eid,) in db.execute(
+                select(ExecutionStep.execution_id)
+                .where(
+                    or_(
+                        ExecutionStep.step_name.ilike(sterm),
+                        ExecutionStep.node_id.ilike(sterm),
+                        ExecutionStep.node_type.ilike(sterm),
+                        ExecutionStep.error_message.ilike(sterm),
+                        cast(ExecutionStep.inputs, String).ilike(sterm),
+                        cast(ExecutionStep.outputs, String).ilike(sterm),
+                    )
+                )
+                .distinct()
+                .limit(500)
+            ).all()
+        ]
+
+        # ApiRequestTelemetry matches
+        matching_req_exec_ids = [
+            eid for (eid,) in db.execute(
+                select(ApiRequestTelemetry.execution_id)
+                .where(
+                    or_(
+                        ApiRequestTelemetry.endpoint_url.ilike(sterm),
+                        ApiRequestTelemetry.connector_name.ilike(sterm),
+                        ApiRequestTelemetry.error_message.ilike(sterm),
+                        cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
+                        cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
+                    )
+                )
+                .distinct()
+                .limit(500)
+            ).all()
+        ]
+
         predicates = [
             Execution.id.ilike(sterm),
-            Execution.error_summary.ilike(sterm),
+            Execution.source_connector.ilike(sterm),
+            Execution.destination_connector.ilike(sterm),
+            Execution.source_object.ilike(sterm),
+            Execution.destination_object.ilike(sterm),
+            Execution.trigger.ilike(sterm),
+            Execution.status.ilike(sterm),
             Execution.api_endpoint.ilike(sterm),
+            Execution.http_method.ilike(sterm),
+            Execution.error_summary.ilike(sterm),
+            Execution.error_code.ilike(sterm),
+            Execution.error_type.ilike(sterm),
             Execution.correlation_id.ilike(sterm),
+            Execution.parent_execution_id.ilike(sterm),
+            Execution.search_text.ilike(sterm),
+            cast(Execution.error, String).ilike(sterm),
+            cast(Execution.trigger_data, String).ilike(sterm),
         ]
+
+        if term.isdigit() and len(term) == 3:
+            try:
+                predicates.append(Execution.http_status_code == int(term))
+            except Exception:
+                pass
+
         if matching_wf_ids:
             predicates.append(Execution.workflow_id.in_(matching_wf_ids))
+        if matching_user_ids:
+            predicates.append(Execution.user_id.in_(matching_user_ids))
+        if matching_step_exec_ids:
+            predicates.append(Execution.id.in_(matching_step_exec_ids))
+        if matching_req_exec_ids:
+            predicates.append(Execution.id.in_(matching_req_exec_ids))
+
         stmt = stmt.where(or_(*predicates))
 
     return stmt
@@ -541,17 +644,34 @@ def list_executions(
     stmt = stmt.order_by(order_clause, Execution.id.desc()).offset((page - 1) * size).limit(size)
 
     recs = db.scalars(stmt).all()
+    wf_ids = {r.workflow_id for r in recs if r.workflow_id}
+    u_ids = {r.user_id for r in recs if r.user_id is not None}
     names = {
         wid: name
         for wid, name in db.execute(
             select(WorkflowRecord.id, WorkflowRecord.name).where(
-                WorkflowRecord.id.in_({r.workflow_id for r in recs})
+                WorkflowRecord.id.in_(wf_ids)
             )
-        ).all() if recs
+        ).all() if wf_ids
     }
-    items = [_to_dict(r) for r in recs]
-    for item in items:
-        item["workflow_name"] = names.get(item["workflow_id"], item["workflow_id"][:8])
+    user_emails = {
+        uid: email
+        for uid, email in db.execute(
+            select(User.id, User.email).where(
+                User.id.in_(u_ids)
+            )
+        ).all() if u_ids
+    }
+    items = [
+        _to_dict(
+            r,
+            wf_name=names.get(r.workflow_id, r.workflow_id[:8] if r.workflow_id else "Untitled"),
+            search=search,
+            user_email=user_emails.get(r.user_id),
+            db=db,
+        )
+        for r in recs
+    ]
     return ok(items, {"page": page, "pageSize": size, "total": total})
 
 
