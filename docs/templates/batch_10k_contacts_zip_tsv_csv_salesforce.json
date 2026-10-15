@@ -1,0 +1,93 @@
+{
+  "id": "wf_batch_contacts_salesforce_10k",
+  "name": "Ingest ZIP / TSV / CSV Contacts (10,000) to Salesforce",
+  "description": "Enterprise batch ingestion workflow: unpacks ZIP/TSV/CSV archives with up to 10,000 contact records, maps fields, deduplicates on Email, and bulk upserts into Salesforce via Bulk API 2.0.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "manual_trigger",
+      "name": "Upload File / Trigger Run",
+      "type": "manual_trigger",
+      "position": { "x": 100, "y": 260 },
+      "parameters": {}
+    },
+    {
+      "id": "data_load",
+      "name": "Flowsmith DataLoad (ZIP/TSV/CSV)",
+      "type": "flowsmith.data_load",
+      "position": { "x": 380, "y": 260 },
+      "parameters": {
+        "source_mode": "auto",
+        "format_override": "auto",
+        "delimiter": "",
+        "archive_pattern": "*.csv,*.tsv",
+        "archive_process_mode": "single",
+        "has_header": true,
+        "batch_size": 1000,
+        "row_limit": 10000,
+        "target_object": "Contact",
+        "field_mapping": {
+          "FirstName": "FirstName",
+          "LastName": "LastName",
+          "Email": "Email",
+          "Phone": "Phone",
+          "Title": "Title",
+          "Department": "Department",
+          "MailingCity": "MailingCity",
+          "MailingState": "MailingState",
+          "MailingPostalCode": "MailingPostalCode",
+          "MailingCountry": "MailingCountry"
+        },
+        "duplicate_policy": "skip",
+        "dedup_key": "Email",
+        "persist_to_db": true
+      }
+    },
+    {
+      "id": "salesforce_bulk",
+      "name": "Salesforce Bulk 2.0 Upsert",
+      "type": "salesforce",
+      "position": { "x": 680, "y": 260 },
+      "parameters": {
+        "resource": "Contact",
+        "operation": "bulk",
+        "object_name": "Contact",
+        "bulk_operation": "upsert",
+        "external_id_field": "Email",
+        "records": "{{ $('data_load').item.records }}",
+        "timeout_seconds": 180.0,
+        "poll_interval_seconds": 3.0,
+        "max_polls": 60
+      },
+      "credentials": {
+        "salesforce": "salesforce_account"
+      }
+    },
+    {
+      "id": "ingestion_summary",
+      "name": "Execution Summary",
+      "type": "set_variable",
+      "position": { "x": 980, "y": 260 },
+      "parameters": {
+        "assignments": [
+          { "key": "total_parsed", "value": "{{ $('data_load').item.summary.total_parsed }}" },
+          { "key": "unique_contacts", "value": "{{ $('data_load').item.summary.unique_count }}" },
+          { "key": "duplicates_skipped", "value": "{{ $('data_load').item.summary.duplicate_count }}" },
+          { "key": "salesforce_job_id", "value": "{{ $('salesforce_bulk').item.output.job_id }}" },
+          { "key": "salesforce_processed", "value": "{{ $('salesforce_bulk').item.output.records_processed }}" },
+          { "key": "salesforce_failed", "value": "{{ $('salesforce_bulk').item.output.records_failed }}" },
+          { "key": "salesforce_job_state", "value": "{{ $('salesforce_bulk').item.output.state }}" },
+          { "key": "status", "value": "SUCCESS" }
+        ]
+      }
+    }
+  ],
+  "connections": [
+    { "source": "manual_trigger", "target": "data_load" },
+    { "source": "data_load", "target": "salesforce_bulk" },
+    { "source": "salesforce_bulk", "target": "ingestion_summary" }
+  ],
+  "settings": {
+    "save_execution_progress": true
+  }
+}
