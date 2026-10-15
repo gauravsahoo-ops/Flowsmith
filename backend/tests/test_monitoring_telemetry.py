@@ -615,3 +615,88 @@ def test_finalize_execution_telemetry_with_notes_and_steps(client):
     assert len(steps_data) == 2
     assert steps_data[0]["metadata"] == {"note": "Triggered manually"}
     assert steps_data[1]["metadata"] == {"note": "Upserted 1 record via Bulk API"}
+
+
+def test_extract_execution_flow_metadata_and_backfill():
+    """Test extract_execution_flow_metadata and backfill_execution_telemetry_metadata."""
+    from app.services.telemetry_service import (
+        extract_execution_flow_metadata,
+        backfill_execution_telemetry_metadata,
+    )
+
+    # 1. Test Ingestion workflow with data_load and Salesforce Bulk
+    wf_data = {
+        "nodes": [
+            {"id": "sched_1", "type": "schedule", "parameters": {}},
+            {
+                "id": "dl_1",
+                "type": "flowsmith.data_load",
+                "parameters": {"file_format": "tsv", "target_object": "Contact"},
+            },
+            {"id": "code_1", "type": "code", "parameters": {}},
+            {
+                "id": "sf_1",
+                "type": "salesforce",
+                "parameters": {
+                    "operation": "bulk",
+                    "bulk_operation": "insert",
+                    "object_name": "Contact",
+                    "resource": "Contact",
+                },
+            },
+        ]
+    }
+
+    # Success case
+    meta_success = extract_execution_flow_metadata(
+        wf_data,
+        trigger="manual",
+        status="success",
+        workflow_name="Ingest TSV Contacts (10,000) to Salesforce",
+    )
+    assert meta_success["source_connector"] == "data_load"
+    assert meta_success["destination_connector"] == "salesforce"
+    assert meta_success["source_object"] == "Contact"
+    assert meta_success["destination_object"] == "Contact"
+    assert meta_success["http_method"] == "POST"
+    assert meta_success["http_status_code"] == 201
+
+    # Failed case
+    meta_failed = extract_execution_flow_metadata(
+        wf_data,
+        trigger="manual",
+        status="failed",
+        error={"code": "INVALID_WORKFLOW", "message": "Credential not found"},
+        workflow_name="Ingest TSV Contacts (10,000) to Salesforce",
+    )
+    assert meta_failed["source_connector"] == "data_load"
+    assert meta_failed["destination_connector"] == "salesforce"
+    assert meta_failed["source_object"] == "Contact"
+    assert meta_failed["destination_object"] == "Contact"
+    assert meta_failed["http_method"] == "POST"
+    assert meta_failed["http_status_code"] == 400
+
+    # 2. Test Webhook -> Slack workflow
+    wf_slack = {
+        "nodes": [
+            {"id": "wh_1", "type": "webhook", "parameters": {"topic": "orders"}},
+            {"id": "filter_1", "type": "filter", "parameters": {}},
+            {"id": "slack_1", "type": "slack", "parameters": {"channel": "#alerts"}},
+        ]
+    }
+    meta_slack = extract_execution_flow_metadata(
+        wf_slack,
+        trigger="webhook",
+        status="success",
+    )
+    assert meta_slack["source_connector"] == "webhook"
+    assert meta_slack["destination_connector"] == "slack"
+    assert meta_slack["source_object"] == "orders"
+    assert meta_slack["destination_object"] == "#alerts"
+    assert meta_slack["http_method"] == "POST"
+    assert meta_slack["http_status_code"] == 200
+
+    # 3. Test backfill function returns integer
+    count = backfill_execution_telemetry_metadata()
+    assert isinstance(count, int)
+

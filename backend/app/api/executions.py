@@ -82,6 +82,51 @@ def _to_dict(rec: Execution) -> dict[str, Any]:
         end = rec.finished_at or datetime.now(UTC)
         duration_ms = round((end - rec.started_at).total_seconds() * 1000.0, 2)
 
+    source_conn = rec.source_connector
+    dest_conn = rec.destination_connector
+    src_obj = rec.source_object
+    dst_obj = rec.destination_object
+    http_m = rec.http_method
+    api_ep = rec.api_endpoint
+    http_sc = rec.http_status_code
+
+    # Dynamic fallback if integration metadata or status code is missing/default
+    if (
+        not dest_conn
+        or dest_conn == "flowsmith_output"
+        or not src_obj
+        or not dst_obj
+        or not http_sc
+    ):
+        try:
+            from app.services.telemetry_service import extract_execution_flow_metadata
+            wf_data = getattr(rec, "workflow_data", None) or {}
+            wf_name = getattr(rec, "workflow_name", None)
+            meta = extract_execution_flow_metadata(
+                wf_data,
+                trigger=rec.trigger,
+                trace=getattr(rec, "trace", None),
+                error=rec.error,
+                status=rec.status,
+                workflow_name=wf_name,
+            )
+            if not source_conn or (source_conn in ("manual", "flowsmith_trigger") and meta.get("source_connector") == "data_load"):
+                source_conn = meta.get("source_connector") or source_conn
+            if not dest_conn or (dest_conn == "flowsmith_output" and meta.get("destination_connector") != "flowsmith_output"):
+                dest_conn = meta.get("destination_connector") or dest_conn
+            if not src_obj:
+                src_obj = meta.get("source_object")
+            if not dst_obj:
+                dst_obj = meta.get("destination_object")
+            if not http_m:
+                http_m = meta.get("http_method")
+            if not api_ep:
+                api_ep = meta.get("api_endpoint")
+            if not http_sc:
+                http_sc = meta.get("http_status_code")
+        except Exception:
+            pass
+
     return {
         "id": rec.id,
         "workflow_id": rec.workflow_id,
@@ -93,13 +138,13 @@ def _to_dict(rec: Execution) -> dict[str, Any]:
         "finished_at": rec.finished_at,
         "pause_state": rec.pause_state,
         "duration_ms": duration_ms,
-        "source_connector": rec.source_connector or rec.trigger or "flowsmith_trigger",
-        "destination_connector": rec.destination_connector or "flowsmith_output",
-        "source_object": rec.source_object,
-        "destination_object": rec.destination_object,
-        "http_method": rec.http_method,
-        "api_endpoint": rec.api_endpoint,
-        "http_status_code": rec.http_status_code,
+        "source_connector": source_conn or rec.trigger or "flowsmith_trigger",
+        "destination_connector": dest_conn or "flowsmith_output",
+        "source_object": src_obj,
+        "destination_object": dst_obj,
+        "http_method": http_m,
+        "api_endpoint": api_ep,
+        "http_status_code": http_sc,
         "records_read": rec.records_read or 0,
         "records_created": rec.records_created or 0,
         "records_updated": rec.records_updated or 0,
@@ -144,6 +189,18 @@ def start_execution(
     queueing — workflows with unimplemented or invalid providers never
     enter the queue.
     """
+    from app.services.telemetry_service import extract_execution_flow_metadata
+    wf_name = None
+    wf_rec = db.get(WorkflowRecord, workflow_id)
+    if wf_rec:
+        wf_name = wf_rec.name
+
+    flow_meta = extract_execution_flow_metadata(
+        workflow_data,
+        trigger=trigger,
+        workflow_name=wf_name,
+    )
+
     # Validate credential references before queue — fail fast with clear error
     try:
         validate_workflow_credentials(workflow_data, db, user_id)
@@ -160,6 +217,13 @@ def start_execution(
             trigger_data=trigger_items,
             status="failed",
             error=ve.to_dict(),
+            source_connector=flow_meta["source_connector"],
+            destination_connector=flow_meta["destination_connector"],
+            source_object=flow_meta["source_object"],
+            destination_object=flow_meta["destination_object"],
+            http_method=flow_meta["http_method"],
+            api_endpoint=flow_meta["api_endpoint"],
+            http_status_code=400,
             started_at=datetime.now(UTC),
             finished_at=datetime.now(UTC),
             workspace_id=workspace_id,
@@ -181,6 +245,12 @@ def start_execution(
         trigger=trigger,
         trigger_data=trigger_items,
         status="queued",
+        source_connector=flow_meta["source_connector"],
+        destination_connector=flow_meta["destination_connector"],
+        source_object=flow_meta["source_object"],
+        destination_object=flow_meta["destination_object"],
+        http_method=flow_meta["http_method"],
+        api_endpoint=flow_meta["api_endpoint"],
         started_at=datetime.now(UTC),
         workspace_id=workspace_id,
         parent_execution_id=parent_execution_id,

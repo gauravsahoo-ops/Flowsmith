@@ -186,6 +186,256 @@ def extract_node_record_counts(step: dict[str, Any]) -> dict[str, int]:
     }
 
 
+INTERNAL_UTILITY_TYPES = frozenset({
+    "condition",
+    "if_condition",
+    "filter",
+    "merge",
+    "switch",
+    "router",
+    "split",
+    "loop",
+    "sub_workflow",
+    "execute_sub_workflow",
+    "set_variable",
+    "set",
+    "variables",
+    "set_data",
+    "code",
+    "python_code",
+    "javascript_code",
+    "function",
+    "noop",
+    "delay",
+    "wait",
+    "sleep",
+    "logger",
+    "log",
+    "debug",
+    "transform",
+    "data_transform",
+    "json_transform",
+    "mapper",
+    "flowsmith_output",
+    "output",
+    "response",
+    "webhook_response",
+    "respond_to_webhook",
+    "stop",
+    "stop_and_error",
+})
+
+TRIGGER_TYPES = frozenset({
+    "manual_trigger",
+    "manual",
+    "schedule",
+    "cron",
+    "webhook",
+    "form_trigger",
+    "chat_trigger",
+    "error_trigger",
+})
+
+DATA_SOURCE_TYPES = frozenset({
+    "flowsmith.data_load",
+    "data_load",
+    "dataload",
+    "csv_parser",
+    "csv",
+    "tsv",
+    "file",
+    "file_io",
+    "google_drive",
+    "s3",
+    "aws_s3",
+    "ftp",
+    "sftp",
+})
+
+
+def extract_node_object_name(params: dict[str, Any] | None) -> str | None:
+    """Extract business entity or object from node parameters."""
+    if not isinstance(params, dict):
+        return None
+    for key in (
+        "object_name",
+        "target_object",
+        "object_type",
+        "resource",
+        "entity",
+        "table_name",
+        "table",
+        "sheet_name",
+        "collection_name",
+        "collection",
+        "topic",
+        "channel",
+        "project_key",
+        "repo",
+    ):
+        val = params.get(key)
+        if val and isinstance(val, str) and val.strip() and not val.strip().startswith("{{"):
+            return val.strip()
+    return None
+
+
+def extract_execution_flow_metadata(
+    workflow_data: dict[str, Any] | None,
+    *,
+    trigger: str | None = None,
+    trace: list[dict[str, Any]] | None = None,
+    error: Any = None,
+    status: str | None = None,
+    workflow_name: str | None = None,
+) -> dict[str, Any]:
+    """Accurately deduce integration flow, objects, and HTTP call summary.
+    
+    Ensures external integration connectors (salesforce, hubspot, jira, etc.) and
+    data sources (data_load, csv_parser) are accurately identified and never
+    masked by internal utility nodes (code, set_variable, filter).
+    """
+    wf = workflow_data or {}
+    nodes = wf.get("nodes", []) if isinstance(wf, dict) else []
+
+    source_connector = None
+    destination_connector = None
+    source_object = None
+    destination_object = None
+    http_method = None
+    http_status_code = None
+    api_endpoint = None
+
+    # 1. Identify data source node (data_load, csv, etc.)
+    data_source_node = None
+    for n in nodes:
+        ntype = n.get("type", "")
+        if ntype in DATA_SOURCE_TYPES or "data_load" in ntype:
+            data_source_node = n
+            break
+
+    # 2. Identify trigger node
+    trigger_node = None
+    for n in nodes:
+        ntype = n.get("type", "")
+        if ntype in TRIGGER_TYPES:
+            trigger_node = n
+            break
+
+    # 3. Identify destination connector (business external node)
+    external_nodes = [
+        n for n in nodes
+        if n.get("type") not in INTERNAL_UTILITY_TYPES
+        and n.get("type") not in TRIGGER_TYPES
+        and n != data_source_node
+    ]
+
+    dest_node = external_nodes[-1] if external_nodes else None
+
+    # Source connector resolution
+    if data_source_node:
+        raw_type = data_source_node.get("type", "data_load")
+        source_connector = "data_load" if "data_load" in raw_type else raw_type
+        params = data_source_node.get("parameters", {}) or {}
+        source_object = extract_node_object_name(params) or params.get("file_format") or "file"
+    elif trigger_node:
+        source_connector = trigger_node.get("type", "trigger")
+        if source_connector == "manual_trigger":
+            source_connector = "manual"
+        params = trigger_node.get("parameters", {}) or {}
+        source_object = extract_node_object_name(params)
+    elif trigger:
+        source_connector = trigger
+    else:
+        source_connector = "manual"
+
+    # Destination connector resolution
+    if dest_node:
+        destination_connector = dest_node.get("type")
+        params = dest_node.get("parameters", {}) or {}
+        destination_object = extract_node_object_name(params)
+
+        op = str(params.get("operation") or params.get("bulk_operation") or "").lower()
+        if any(w in op for w in ("bulk", "insert", "create", "send", "post", "add")):
+            http_method = "POST"
+        elif any(w in op for w in ("update", "patch", "modify", "upsert")):
+            http_method = "PATCH"
+        elif any(w in op for w in ("delete", "remove")):
+            http_method = "DELETE"
+        elif any(w in op for w in ("query", "search", "get", "read", "list", "soql")):
+            http_method = "GET"
+        else:
+            http_method = "POST"
+
+        if params.get("custom_api_url"):
+            api_endpoint = redact_url(params.get("custom_api_url"))
+        elif params.get("url"):
+            api_endpoint = redact_url(params.get("url"))
+        elif destination_connector == "salesforce":
+            if op == "bulk":
+                api_endpoint = "/services/data/v63.0/jobs/ingest"
+            elif destination_object:
+                api_endpoint = f"/services/data/v63.0/sobjects/{destination_object}"
+    else:
+        http_node = next((n for n in nodes if n.get("type") == "http_request"), None)
+        if http_node:
+            destination_connector = "http_request"
+            p = http_node.get("parameters", {}) or {}
+            http_method = p.get("method", "GET").upper()
+            api_endpoint = redact_url(p.get("url", ""))
+            destination_object = extract_node_object_name(p)
+        else:
+            destination_connector = "flowsmith_output"
+
+    # If destination_object is still None, try inferring from source_object or workflow name
+    if not destination_object and source_object and source_object != "file":
+        destination_object = source_object
+    elif not destination_object and workflow_name:
+        for entity in ("Contact", "Lead", "Account", "Case", "Opportunity", "Customer", "Invoice", "User"):
+            if entity.lower() in workflow_name.lower():
+                destination_object = entity
+                break
+
+    if not source_object and destination_object:
+        source_object = destination_object
+
+    # HTTP Status Code resolution
+    if destination_connector not in ("flowsmith_output", None):
+        st = (status or "").lower()
+        if st in ("success", "completed"):
+            is_bulk = "bulk" in str((dest_node.get("parameters", {}) or {}).get("operation", "") if dest_node else "")
+            http_status_code = 201 if (http_method == "POST" and (is_bulk or destination_connector == "salesforce")) else 200
+            if not http_method:
+                http_method = "POST"
+        elif st in ("failed", "error"):
+            code_found = None
+            if isinstance(error, dict):
+                for k in ("status_code", "status", "http_status"):
+                    val = error.get(k)
+                    if isinstance(val, int) and 400 <= val <= 599:
+                        code_found = val
+                        break
+            if not code_found and error:
+                import re
+                m = re.search(r'\b(4\d\d|5\d\d)\b', str(error))
+                if m:
+                    code_found = int(m.group(1))
+            http_status_code = code_found or 400
+            if not http_method:
+                http_method = "POST"
+        elif st in ("cancelled", "cancelling"):
+            http_status_code = None
+
+    return {
+        "source_connector": source_connector,
+        "destination_connector": destination_connector,
+        "source_object": source_object,
+        "destination_object": destination_object,
+        "http_method": http_method,
+        "http_status_code": http_status_code,
+        "api_endpoint": api_endpoint,
+    }
+
+
 def finalize_execution_telemetry(
     db: Session,
     rec: Execution,
@@ -197,6 +447,7 @@ def finalize_execution_telemetry(
         execution_id = rec.id
         workflow_data = getattr(job, "workflow_data", {}) or rec.workflow_data or {}
         nodes = workflow_data.get("nodes", []) or []
+        node_type_map = {n.get("id"): n for n in nodes if isinstance(n, dict)}
 
         # 1. Pop buffered API calls
         with _API_BUFFERS_LOCK:
@@ -208,39 +459,30 @@ def finalize_execution_telemetry(
         duration_ms = max(0.0, (finished_at - started_at).total_seconds() * 1000.0)
         rec.duration_ms = round(duration_ms, 2)
 
-        # 3. Detect connectors and objects
-        source_connector = None
-        destination_connector = None
-        source_object = None
-        destination_object = None
+        # 3. Detect connectors, objects, and HTTP summaries
+        flow_meta = extract_execution_flow_metadata(
+            workflow_data,
+            trigger=rec.trigger,
+            trace=result.trace if hasattr(result, "trace") and result.trace else rec.trace,
+            error=rec.error,
+            status=rec.status,
+            workflow_name=getattr(rec, "workflow_name", None),
+        )
 
-        node_type_map = {n.get("id"): n for n in nodes if isinstance(n, dict)}
-        for idx, node in enumerate(nodes):
-            ntype = node.get("type", "")
-            params = node.get("parameters", {}) or {}
-            obj = params.get("object_type") or params.get("resource") or params.get("entity") or None
-
-            if idx == 0 or ntype in ("webhook", "schedule", "manual_trigger", "dataload"):
-                if not source_connector:
-                    source_connector = ntype
-                    source_object = obj or ("file" if ntype == "dataload" else "payload")
-            elif ntype not in ("condition", "if_condition", "filter", "merge", "switch", "router"):
-                destination_connector = ntype
-                destination_object = obj
-
-        # If HTTP request node was executed, inspect parameters
-        for node in nodes:
-            if node.get("type") == "http_request":
-                p = node.get("parameters", {}) or {}
-                if not rec.http_method:
-                    rec.http_method = p.get("method", "GET").upper()
-                if not rec.api_endpoint:
-                    rec.api_endpoint = redact_url(p.get("url", ""))
-
-        rec.source_connector = source_connector or "flowsmith_trigger"
-        rec.destination_connector = destination_connector or "flowsmith_output"
-        rec.source_object = source_object
-        rec.destination_object = destination_object
+        if not rec.source_connector or (rec.source_connector == "manual" and flow_meta["source_connector"] == "data_load"):
+            rec.source_connector = flow_meta["source_connector"]
+        if not rec.destination_connector or rec.destination_connector == "flowsmith_output":
+            rec.destination_connector = flow_meta["destination_connector"]
+        if not rec.source_object:
+            rec.source_object = flow_meta["source_object"]
+        if not rec.destination_object:
+            rec.destination_object = flow_meta["destination_object"]
+        if not rec.http_method and flow_meta["http_method"]:
+            rec.http_method = flow_meta["http_method"]
+        if not rec.api_endpoint and flow_meta["api_endpoint"]:
+            rec.api_endpoint = flow_meta["api_endpoint"]
+        if not rec.http_status_code and flow_meta["http_status_code"]:
+            rec.http_status_code = flow_meta["http_status_code"]
 
         # 4. Process steps & record counters
         trace = result.trace if hasattr(result, "trace") and result.trace else (rec.trace or [])
@@ -396,3 +638,86 @@ def finalize_execution_telemetry(
     except Exception as exc:
         logger.exception("Failed to finalize telemetry for execution %s: %s", getattr(rec, "id", "unknown"), exc)
         db.rollback()
+
+
+def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:
+    """One-time or startup backfill routine that updates executions missing integration metadata."""
+    from app.db import get_session
+    from app.models.workflow import WorkflowRecord
+    from sqlalchemy import or_
+
+    close_db = False
+    if db is None:
+        db = get_session()
+        close_db = True
+
+    updated_count = 0
+    try:
+        wf_map = {
+            w.id: (w.name, w.data)
+            for w in db.query(WorkflowRecord).all()
+        }
+
+        recs = db.query(Execution).filter(
+            or_(
+                Execution.destination_connector == None,
+                Execution.destination_connector == "flowsmith_output",
+                Execution.http_status_code == None,
+                Execution.source_connector == None,
+            )
+        ).all()
+
+        for rec in recs:
+            wf_info = wf_map.get(rec.workflow_id)
+            wf_name = wf_info[0] if wf_info else ""
+            wf_data = rec.workflow_data or (wf_info[1] if wf_info else {})
+
+            meta = extract_execution_flow_metadata(
+                wf_data,
+                trigger=rec.trigger,
+                trace=rec.trace,
+                error=rec.error,
+                status=rec.status,
+                workflow_name=wf_name,
+            )
+
+            modified = False
+            if not rec.source_connector or (rec.source_connector == "manual" and meta["source_connector"] == "data_load"):
+                rec.source_connector = meta["source_connector"]
+                modified = True
+            if not rec.destination_connector or (rec.destination_connector == "flowsmith_output" and meta["destination_connector"] != "flowsmith_output"):
+                rec.destination_connector = meta["destination_connector"]
+                modified = True
+            if not rec.source_object and meta["source_object"]:
+                rec.source_object = meta["source_object"]
+                modified = True
+            if not rec.destination_object and meta["destination_object"]:
+                rec.destination_object = meta["destination_object"]
+                modified = True
+            if not rec.http_method and meta["http_method"]:
+                rec.http_method = meta["http_method"]
+                modified = True
+            if not rec.api_endpoint and meta["api_endpoint"]:
+                rec.api_endpoint = meta["api_endpoint"]
+                modified = True
+            if not rec.http_status_code and meta["http_status_code"]:
+                rec.http_status_code = meta["http_status_code"]
+                modified = True
+
+            if modified:
+                updated_count += 1
+                if updated_count % 100 == 0:
+                    db.commit()
+
+        if updated_count > 0:
+            db.commit()
+            logger.info("Successfully backfilled %d execution telemetry records", updated_count)
+    except Exception as exc:
+        logger.exception("Failed during execution telemetry backfill: %s", exc)
+        db.rollback()
+    finally:
+        if close_db:
+            db.close()
+
+    return updated_count
+

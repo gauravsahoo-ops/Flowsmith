@@ -58,6 +58,8 @@ async def lifespan(_app: FastAPI):
     runner.submit(scheduler.ensure_started)
     runner.submit(maintenance.ensure_started)
     runner.submit(connection_health_monitor.ensure_started)
+    from app.services.telemetry_service import backfill_execution_telemetry_metadata
+    runner.submit(backfill_execution_telemetry_metadata)
     ensure_embedded_consumer()
     # Register built-in connectors (connector-only node types; built-in
     # node classes always take precedence at execution time).
