@@ -9,6 +9,7 @@ GET /api/metrics.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Any
@@ -59,7 +60,11 @@ async def lifespan(_app: FastAPI):
     runner.submit(connection_health_monitor.ensure_started)
     try:
         from app.services.telemetry_service import backfill_execution_telemetry_metadata
-        runner.submit(backfill_execution_telemetry_metadata)
+
+        async def _run_backfill() -> None:
+            await asyncio.to_thread(backfill_execution_telemetry_metadata)
+
+        runner.submit(_run_backfill)
     except Exception:
         pass
     ensure_embedded_consumer()
