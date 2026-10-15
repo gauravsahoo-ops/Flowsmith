@@ -210,13 +210,16 @@ class RecoveryStateMachine:
         return lock_token
 
     @classmethod
-    def release_recovery_lock(cls, credential_id: str, lock_token: str) -> None:
-        """Release the single-flight distributed lock if token matches."""
+    def release_recovery_lock(cls, credential_id: str, lock_token: str | None = None) -> None:
+        """Release the single-flight distributed lock if token matches (or force-release if None)."""
         r = get_shared_redis()
         if r is not None:
             try:
-                val = r.get(f"cred_rec_lock:{credential_id}")
-                if val and (val == lock_token or val.decode("utf-8", "ignore") == lock_token):
+                if lock_token is None:
                     r.delete(f"cred_rec_lock:{credential_id}")
+                else:
+                    val = r.get(f"cred_rec_lock:{credential_id}")
+                    if val and (val == lock_token or val.decode("utf-8", "ignore") == lock_token):
+                        r.delete(f"cred_rec_lock:{credential_id}")
             except Exception:
                 pass

@@ -587,3 +587,57 @@ class TestWorkflowSafePauseAndResume:
             # Upstream results remain completely intact so they are not replayed
             assert "node_1" in reloaded.results["outputs"]
             assert reloaded.results["outputs"]["node_1"][0]["status"] == "processed"
+
+
+class TestConnectionHealthMonitor:
+    def test_release_recovery_lock_with_and_without_token(self):
+        cred_id = f"cred_lock_test_{uuid.uuid4().hex[:8]}"
+        lock_token = RecoveryStateMachine.acquire_recovery_lock(cred_id, ttl_seconds=60)
+        assert lock_token is not None
+
+        # Safe release with matching token
+        RecoveryStateMachine.release_recovery_lock(cred_id, lock_token)
+
+        # Force release without token (stale reconciliation)
+        lock2 = RecoveryStateMachine.acquire_recovery_lock(cred_id, ttl_seconds=60)
+        assert lock2 is not None
+        RecoveryStateMachine.release_recovery_lock(cred_id)  # lock_token=None force release
+
+    def test_connection_health_monitor_scan_and_notification(self):
+        from app.services.connection_health_monitor import ConnectionHealthMonitor
+        from app.services.recovery_notifications import RecoveryNotificationService
+
+        with get_session() as db:
+            user = _get_or_create_test_user(db, "monitor_test@example.com")
+            cred = create_for_user(
+                db=db,
+                user_id=user.id,
+                name="Expiring Soon SFDC",
+                cred_type="salesforce",
+                data={
+                    "access_token": "token123",
+                    "client_id": "test_client_id",
+                    "client_secret": "test_client_secret",
+                    "refresh_token": "test_refresh_token",
+                    "instance_url": "https://test.salesforce.com",
+                },
+            )
+            policy = RecoveryStateMachine.get_or_create_policy(
+                db=db,
+                credential_id=cred["id"],
+                user_id=user.id,
+                provider="salesforce",
+            )
+            policy.mode = RecoveryMode.MANUAL.value
+            policy.state = ConnectionState.CONNECTED.value
+            policy.expires_at = datetime.now(UTC) + timedelta(minutes=15)
+            policy.notify_on_upcoming_expiry = True
+            policy.notify_in_app = True
+            db.commit()
+
+            monitor = ConnectionHealthMonitor()
+            counts = monitor.run_scan_sync(db)
+
+            # Verify policy transitioned to EXPIRING_SOON
+            db.refresh(policy)
+            assert policy.state == ConnectionState.EXPIRING_SOON.value

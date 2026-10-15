@@ -128,6 +128,24 @@ class RecoveryNotificationService:
         )
 
     @classmethod
+    def notify_upcoming_expiry(
+        cls,
+        db: Session,
+        policy: ConnectionAuthPolicy,
+        credential_name: str,
+    ) -> None:
+        cls._create_notification(
+            db=db,
+            policy=policy,
+            title=f"Connection Expiring Soon: {credential_name}",
+            message=f"Connection {credential_name} ({policy.provider}) will expire soon and requires renewal.",
+            severity="WARNING",
+            category="UPCOMING_EXPIRY",
+            resolution="Review your connection settings or reconnect before expiration.",
+            send_email=policy.notify_email,
+        )
+
+    @classmethod
     def notify_recovery_failed(
         cls,
         db: Session,

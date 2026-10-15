@@ -173,7 +173,7 @@ class ConnectionHealthMonitor:
 
             if pol.mode == RecoveryMode.MANUAL.value:
                 # Manual mode: do NOT auto-refresh! Transition to MANUAL_ACTION_REQUIRED or EXPIRING_SOON
-                if pol.expires_at <= now and pol.state != ConnectionState.MANUAL_ACTION_REQUIRED.value:
+                if pol.expires_at is not None and pol.expires_at <= now and pol.state != ConnectionState.MANUAL_ACTION_REQUIRED.value:
                     RecoveryStateMachine.transition(
                         db=db,
                         credential_id=pol.credential_id,
