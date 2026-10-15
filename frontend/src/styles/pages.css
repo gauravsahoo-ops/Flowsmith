@@ -1,6 +1,6 @@
 /* ---------- Cards & sections ---------- */
 .page { max-width: 1200px; margin: 0 auto; padding: 28px 32px; }
-.overview-page, .workflows-page, .credentials-page, .executions-page, .templates-page, .variables-page, .knowledge-page, .approvals-page, .data-tables-page { max-width: 1200px; }
+.overview-page, .workflows-page, .credentials-page, .templates-page, .variables-page, .knowledge-page, .approvals-page, .data-tables-page { max-width: 1200px; }
 
 .stat-grid {
   display: grid;

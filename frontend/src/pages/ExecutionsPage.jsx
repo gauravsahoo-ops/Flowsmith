@@ -81,7 +81,6 @@ function fmtTime(iso) {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
   })
 }
 
@@ -570,16 +569,16 @@ export default function ExecutionsPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ width: 140 }}>Execution ID</th>
-                  <th>Workflow</th>
-                  <th>Integration Flow</th>
-                  <th>Objects</th>
-                  <th>Status</th>
-                  <th>HTTP Call</th>
-                  <th>Duration</th>
-                  <th>Records</th>
-                  <th>Started</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th style={{ width: 110, minWidth: 100 }}>Execution ID</th>
+                  <th style={{ minWidth: 140, maxWidth: 220 }}>Workflow</th>
+                  <th style={{ minWidth: 155 }}>Integration Flow</th>
+                  <th style={{ minWidth: 110 }}>Objects</th>
+                  <th style={{ minWidth: 85 }}>Status</th>
+                  <th style={{ minWidth: 80 }}>HTTP Call</th>
+                  <th style={{ minWidth: 65 }}>Duration</th>
+                  <th style={{ minWidth: 70 }}>Records</th>
+                  <th style={{ minWidth: 105 }}>Started</th>
+                  <th style={{ textAlign: 'right', minWidth: 75, width: 85 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -646,14 +645,24 @@ export default function ExecutionsPage() {
                       </td>
 
                       {/* Workflow Name */}
-                      <td className="wf-name-cell">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <td className="wf-name-cell" style={{ maxWidth: 220 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                           <span style={{ color: '#818cf8', display: 'inline-flex', flexShrink: 0 }}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2">
                               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                             </svg>
                           </span>
-                          <strong style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 13 }}>
+                          <strong
+                            title={e.workflow_name || (e.workflow_id ? e.workflow_id : '')}
+                            style={{
+                              fontWeight: 600,
+                              color: '#f1f5f9',
+                              fontSize: 12.5,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {e.workflow_name || (e.workflow_id ? e.workflow_id.slice(0, 10) : '—')}
                           </strong>
                         </div>
@@ -801,13 +810,17 @@ export default function ExecutionsPage() {
                       </td>
 
                       {/* Started Time */}
-                      <td className="muted" style={{ fontSize: 12 }}>
+                      <td
+                        className="muted"
+                        style={{ fontSize: 11.5 }}
+                        title={e.started_at ? new Date(e.started_at).toLocaleString() : ''}
+                      >
                         {fmtTime(e.started_at)}
                       </td>
 
                       {/* Action */}
                       <td style={{ textAlign: 'right' }}>
-                        <span className="exec-inspect-btn">
+                        <span className="exec-inspect-btn" title="Inspect execution trace & waterfall">
                           Trace →
                         </span>
                       </td>
