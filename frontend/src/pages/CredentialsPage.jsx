@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { escapeHtml } from '../utils/escapeHtml'
 import { isTrustedOAuthOrigin } from '../utils/oauthOrigins'
@@ -102,6 +102,7 @@ function defaultsFromSchema(schema) {
 
 export default function CredentialsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const storeCreds = useCredentialStore(s => s.credentials)
   const credentials = (storeCreds && storeCreds.length > 0) ? storeCreds : useCredentialStore.getState().credentials
   const storeTypes = useCredentialStore(s => s.types)
@@ -143,6 +144,29 @@ export default function CredentialsPage() {
   const [googleModalOpen, setGoogleModalOpen] = useState(false)
   const [googleModalData, setGoogleModalData] = useState(null)
   const [googleModalService, setGoogleModalService] = useState('google_calendar')
+
+  useEffect(() => {
+    const requestedType = searchParams.get('type')
+    if (requestedType && types.length > 0) {
+      const match = types.find(t => t.type === requestedType || t.type.toLowerCase() === requestedType.toLowerCase())
+      if (match) {
+        if (match.type === 'llm') {
+          setLlmModalData(null)
+          setLlmModalOpen(true)
+        } else {
+          setForm(prev => ({
+            ...prev,
+            type: match.type,
+            name: prev.name.trim() ? prev.name : `${match.name} Credential`,
+            data: defaultsFromSchema(match.parameters_schema),
+          }))
+          setTimeout(() => {
+            document.getElementById('new-credential-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }, 150)
+        }
+      }
+    }
+  }, [searchParams, types])
   const [llmModalOpen, setLlmModalOpen] = useState(false)
   const [llmModalData, setLlmModalData] = useState(null)
   const [authSettingsModalOpen, setAuthSettingsModalOpen] = useState(false)
@@ -678,16 +702,7 @@ export default function CredentialsPage() {
             action={
               <button
                 className="primary"
-                onClick={() => {
-                  const el = document.getElementById('new-credential-section') || document.querySelector('.credentials-page section.card:last-of-type')
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    setTimeout(() => {
-                      const input = el.querySelector('input, select, button')
-                      input?.focus()
-                    }, 300)
-                  }
-                }}
+                onClick={() => navigate('/integrations?focus=search')}
               >
                 Add first credential
               </button>

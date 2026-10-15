@@ -7,6 +7,7 @@ import { api } from '../api'
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }))
 
 vi.mock('../components/shared/WorkspaceTabs', () => ({

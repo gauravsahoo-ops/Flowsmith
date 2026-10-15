@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useCredentialStore } from '../stores/credentialStore'
 import PageHeader from '../components/shared/PageHeader'
@@ -136,6 +136,8 @@ export function matchesCategory(conn, catId) {
 
 export default function IntegrationsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const searchInputRef = useRef(null)
   const [connectors, setConnectors] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -174,6 +176,15 @@ export default function IntegrationsPage() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  useEffect(() => {
+    if (searchParams.get('focus') === 'search') {
+      setTimeout(() => {
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+      }, 120)
+    }
+  }, [searchParams])
 
   // Map user credential types to know which connectors have active connections
   const connectedTypes = useMemo(() => {
@@ -301,6 +312,7 @@ export default function IntegrationsPage() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', margin: '1.5rem 0' }}>
         <div className="marketplace-search" style={{ flex: '1 1 320px', minWidth: 260 }}>
           <input
+            ref={searchInputRef}
             type="search"
             className="input marketplace-search-input"
             placeholder="Search by name, action, or provider (e.g. Salesforce, Slack, Postgres)..."
@@ -590,8 +602,9 @@ export default function IntegrationsPage() {
               <button
                 className="primary"
                 onClick={() => {
+                  const typeKey = selectedConnector.connector_key || selectedConnector.id
                   setSelectedConnector(null)
-                  navigate('/credentials')
+                  navigate(`/credentials?type=${encodeURIComponent(typeKey)}`)
                 }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
               >
