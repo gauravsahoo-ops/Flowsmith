@@ -134,6 +134,48 @@ def record_api_call(
     return req_id
 
 
+def _extract_item_collection_count(item: Any) -> int | None:
+    """Check if an item is an envelope or dict containing a collection of records."""
+    if not isinstance(item, dict):
+        return None
+    # 1. Direct count fields
+    for k in (
+        "total_csv_records",
+        "total_rows",
+        "total_records",
+        "total_parsed",
+        "valid_unique_contacts",
+        "persisted_to_staged_db",
+        "record_count",
+        "records_count",
+        "count",
+    ):
+        v = item.get(k)
+        if isinstance(v, int) and v > 0:
+            return v
+    # 2. Check summary object
+    summary = item.get("summary")
+    if isinstance(summary, dict):
+        for k in (
+            "total_csv_records",
+            "total_rows",
+            "total_records",
+            "total_parsed",
+            "unique_count",
+            "valid_unique_contacts",
+            "persisted_count",
+        ):
+            v = summary.get(k)
+            if isinstance(v, int) and v > 0:
+                return v
+    # 3. Check record list keys
+    for lk in ("records", "rows", "data", "items"):
+        lst = item.get(lk)
+        if isinstance(lst, list) and len(lst) > 0:
+            return len(lst)
+    return None
+
+
 def extract_node_record_counts(step: dict[str, Any]) -> dict[str, int]:
     """Calculate input, output, created, updated, skipped, failed counts for a step."""
     inputs = step.get("inputs")
@@ -142,9 +184,12 @@ def extract_node_record_counts(step: dict[str, Any]) -> dict[str, int]:
 
     in_count = 0
     if isinstance(inputs, list):
-        in_count = len(inputs)
+        if inputs:
+            env_cnt = _extract_item_collection_count(inputs[0])
+            in_count = env_cnt if env_cnt is not None else len(inputs)
     elif isinstance(inputs, dict):
-        in_count = 1 if inputs else 0
+        env_cnt = _extract_item_collection_count(inputs)
+        in_count = env_cnt if env_cnt is not None else (1 if inputs else 0)
 
     out_count = 0
     created_count = 0
@@ -155,15 +200,24 @@ def extract_node_record_counts(step: dict[str, Any]) -> dict[str, int]:
     if step.get("status") in ("error", "failed"):
         failed_count = max(in_count, 1)
 
+    items_list = None
     if isinstance(outputs, list):
-        out_count = len(outputs)
+        items_list = outputs
     elif isinstance(outputs, dict):
         if "items" in outputs and isinstance(outputs["items"], list):
-            out_count = len(outputs["items"])
+            items_list = outputs["items"]
         elif "main" in outputs and isinstance(outputs["main"], list):
-            out_count = len(outputs["main"])
+            items_list = outputs["main"]
         else:
-            out_count = 1 if outputs else 0
+            env_cnt = _extract_item_collection_count(outputs)
+            out_count = env_cnt if env_cnt is not None else (1 if outputs else 0)
+
+    if items_list is not None:
+        if items_list:
+            env_cnt = _extract_item_collection_count(items_list[0])
+            out_count = env_cnt if env_cnt is not None else len(items_list)
+        else:
+            out_count = 0
 
     # Inspect node operation heuristics
     node_type = str(step.get("node_type") or "").lower()
@@ -385,9 +439,17 @@ def extract_execution_flow_metadata(
             destination_object = extract_node_object_name(p)
         else:
             destination_connector = "flowsmith_output"
+            last_node = nodes[-1] if nodes else None
+            if last_node and last_node != data_source_node:
+                lt = str(last_node.get("type") or "").lower()
+                if lt in ("code", "python_code", "javascript_code", "function"):
+                    destination_connector = "code"
+
+    if destination_connector in DATA_SOURCE_TYPES or "data_load" in str(destination_connector):
+        destination_connector = "flowsmith_output"
 
     # If destination_object is still None, try inferring from source_object or workflow name
-    if not destination_object and source_object and source_object != "file":
+    if not destination_object and source_object and source_object not in ("file", "payload", "trigger", "event", "data"):
         destination_object = source_object
     elif not destination_object and workflow_name:
         for entity in ("Contact", "Lead", "Account", "Case", "Opportunity", "Customer", "Invoice", "User"):
@@ -395,8 +457,16 @@ def extract_execution_flow_metadata(
                 destination_object = entity
                 break
 
-    if not source_object and destination_object:
+    if (not source_object or source_object in ("file", "payload", "trigger", "event", "data")) and destination_object:
         source_object = destination_object
+    elif not source_object and workflow_name:
+        for entity in ("Contact", "Lead", "Account", "Case", "Opportunity", "Customer", "Invoice", "User"):
+            if entity.lower() in workflow_name.lower():
+                source_object = entity
+                break
+
+    if not destination_object and source_object:
+        destination_object = source_object
 
     # HTTP Status Code resolution
     if destination_connector not in ("flowsmith_output", None):
@@ -491,6 +561,9 @@ def finalize_execution_telemetry(
         total_updated = 0
         total_skipped = 0
         total_failed = 0
+        data_source_read = 0
+        first_step_read = 0
+        max_batch_count = 0
 
         step_db_rows: list[ExecutionStep] = []
         node_step_map: dict[str, str] = {}
@@ -500,9 +573,16 @@ def finalize_execution_telemetry(
             nid = step.get("node_id", f"node_{seq}")
             node_step_map[nid] = step_id
             counts = extract_node_record_counts(step)
+            ntype = str(step.get("node_type") or "").lower()
 
             if seq == 1:
-                total_read += counts["input_record_count"] or counts["output_record_count"]
+                first_step_read = counts["input_record_count"] or counts["output_record_count"]
+
+            if ntype in DATA_SOURCE_TYPES or "data_load" in ntype or "csv" in ntype:
+                data_source_read = max(data_source_read, counts["output_record_count"], counts["input_record_count"])
+
+            max_batch_count = max(max_batch_count, counts["output_record_count"], counts["input_record_count"])
+
             total_created += counts["created_record_count"]
             total_updated += counts["updated_record_count"]
             total_skipped += counts["skipped_record_count"]
@@ -605,12 +685,21 @@ def finalize_execution_telemetry(
             api_db_rows.append(api_row)
 
         # 6. Overall record statistics
-        rec.records_read = total_read
+        final_read = data_source_read if data_source_read > 0 else first_step_read
+        if final_read == 0 and max_batch_count > 0:
+            final_read = max_batch_count
+
+        final_processed = total_created + total_updated
+        if final_processed < max_batch_count and max_batch_count > 0:
+            final_processed = max_batch_count
+            total_created = max_batch_count
+
+        rec.records_read = final_read
         rec.records_created = total_created
         rec.records_updated = total_updated
         rec.records_skipped = total_skipped
         rec.records_failed = total_failed
-        rec.records_processed = total_created + total_updated
+        rec.records_processed = final_processed
 
         # 7. Partial success detection & canonical status
         has_partial = (
@@ -662,8 +751,12 @@ def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:
             or_(
                 Execution.destination_connector == None,
                 Execution.destination_connector == "flowsmith_output",
+                Execution.destination_connector.in_(["flowsmith.data_load", "data_load"]),
                 Execution.http_status_code == None,
                 Execution.source_connector == None,
+                Execution.source_connector.in_(["schedule", "cron", "manual"]),
+                Execution.source_object.in_(["payload", "trigger", "event", "data"]),
+                Execution.records_read <= 1,
             )
         ).all()
 
@@ -682,18 +775,25 @@ def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:
             )
 
             modified = False
-            if not rec.source_connector or (rec.source_connector == "manual" and meta["source_connector"] == "data_load"):
-                rec.source_connector = meta["source_connector"]
+            if rec.destination_connector in ("flowsmith.data_load", "data_load"):
+                rec.source_connector = "data_load"
+                rec.destination_connector = meta["destination_connector"] or "flowsmith_output"
                 modified = True
-            if not rec.destination_connector or (rec.destination_connector == "flowsmith_output" and meta["destination_connector"] != "flowsmith_output"):
+            elif not rec.destination_connector or (rec.destination_connector == "flowsmith_output" and meta["destination_connector"] != "flowsmith_output"):
                 rec.destination_connector = meta["destination_connector"]
                 modified = True
-            if not rec.source_object and meta["source_object"]:
+
+            if not rec.source_connector or (rec.source_connector in ("manual", "schedule", "cron", "flowsmith_trigger") and meta["source_connector"] == "data_load"):
+                rec.source_connector = meta["source_connector"]
+                modified = True
+
+            if (not rec.source_object or rec.source_object in ("payload", "trigger", "event", "data")) and meta["source_object"]:
                 rec.source_object = meta["source_object"]
                 modified = True
             if not rec.destination_object and meta["destination_object"]:
                 rec.destination_object = meta["destination_object"]
                 modified = True
+
             if not rec.http_method and meta["http_method"]:
                 rec.http_method = meta["http_method"]
                 modified = True
@@ -702,6 +802,23 @@ def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:
                 modified = True
             if not rec.http_status_code and meta["http_status_code"]:
                 rec.http_status_code = meta["http_status_code"]
+                modified = True
+
+            # Record count backfill for batch and data load executions
+            trace = rec.trace or []
+            max_batch = 0
+            ds_read = 0
+            for s in trace:
+                c = extract_node_record_counts(s)
+                nt = str(s.get("node_type") or "").lower()
+                if nt in DATA_SOURCE_TYPES or "data_load" in nt or "csv" in nt:
+                    ds_read = max(ds_read, c["output_record_count"], c["input_record_count"])
+                max_batch = max(max_batch, c["output_record_count"], c["input_record_count"])
+
+            if max_batch > 1 and (rec.records_read <= 1 or rec.records_processed <= 3):
+                rec.records_read = ds_read if ds_read > 0 else max_batch
+                rec.records_processed = max_batch
+                rec.records_created = max_batch
                 modified = True
 
             if modified:

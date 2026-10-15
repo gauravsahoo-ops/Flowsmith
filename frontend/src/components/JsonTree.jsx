@@ -112,7 +112,7 @@ function Scalar({ value, search }) {
 
 const CHUNK_SIZE = 50
 
-function Node({ label, value, depth, search, path = '', forceOpen = null }) {
+function Node({ label, value, depth, search, path = '', forceOpen = null, defaultExpandDepth = 3 }) {
   const [chunkLimit, setChunkLimit] = useState(CHUNK_SIZE)
   const [copiedPath, setCopiedPath] = useState(false)
   const isObj = value && typeof value === 'object'
@@ -157,7 +157,7 @@ function Node({ label, value, depth, search, path = '', forceOpen = null }) {
   )
 
   // Smart initial openness: auto-open top levels unless forced or matched
-  const defaultOpen = forceOpen !== null ? forceOpen : depth < 2 || Boolean(matchesSearch)
+  const defaultOpen = forceOpen !== null ? forceOpen : depth < defaultExpandDepth || Boolean(matchesSearch)
 
   const visibleEntries = entries.slice(0, chunkLimit)
   const hasMore = entries.length > chunkLimit
@@ -189,6 +189,7 @@ function Node({ label, value, depth, search, path = '', forceOpen = null }) {
             search={search}
             path={currentPath}
             forceOpen={forceOpen}
+            defaultExpandDepth={defaultExpandDepth}
           />
         ))}
         {hasMore && (
@@ -223,7 +224,7 @@ function Node({ label, value, depth, search, path = '', forceOpen = null }) {
   )
 }
 
-function JsonTree({ value, search, showToolbar = true }) {
+function JsonTree({ value, search, showToolbar = true, defaultExpandDepth = 3 }) {
   const [expandAll, setExpandAll] = useState(null)
   const [copiedAll, setCopiedAll] = useState(false)
 
@@ -292,6 +293,7 @@ function JsonTree({ value, search, showToolbar = true }) {
           search={search}
           path="$json"
           forceOpen={expandAll}
+          defaultExpandDepth={defaultExpandDepth}
         />
       </div>
     </div>

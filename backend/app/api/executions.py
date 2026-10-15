@@ -90,19 +90,27 @@ def _to_dict(rec: Execution) -> dict[str, Any]:
     http_m = rec.http_method
     api_ep = rec.api_endpoint
     http_sc = rec.http_status_code
+    r_read = rec.records_read or 0
+    r_created = rec.records_created or 0
+    r_updated = rec.records_updated or 0
+    r_skipped = rec.records_skipped or 0
+    r_failed = rec.records_failed or 0
+    r_proc = rec.records_processed or 0
+    wf_name = getattr(rec, "workflow_name", None)
 
     # Dynamic fallback if integration metadata or status code is missing/default
     if (
         not dest_conn
-        or dest_conn == "flowsmith_output"
+        or dest_conn in ("flowsmith_output", "flowsmith.data_load", "data_load")
         or not src_obj
+        or src_obj in ("payload", "trigger", "event", "data")
         or not dst_obj
         or not http_sc
+        or r_read <= 1
     ):
         try:
-            from app.services.telemetry_service import extract_execution_flow_metadata
+            from app.services.telemetry_service import extract_execution_flow_metadata, extract_node_record_counts
             wf_data = getattr(rec, "workflow_data", None) or {}
-            wf_name = getattr(rec, "workflow_name", None)
             meta = extract_execution_flow_metadata(
                 wf_data,
                 trigger=rec.trigger,
@@ -111,26 +119,47 @@ def _to_dict(rec: Execution) -> dict[str, Any]:
                 status=rec.status,
                 workflow_name=wf_name,
             )
-            if not source_conn or (source_conn in ("manual", "flowsmith_trigger") and meta.get("source_connector") == "data_load"):
-                source_conn = meta.get("source_connector") or source_conn
-            if not dest_conn or (dest_conn == "flowsmith_output" and meta.get("destination_connector") != "flowsmith_output"):
+            if dest_conn in ("flowsmith.data_load", "data_load", "csv_parser", "csv", "tsv", "file"):
+                source_conn = "data_load"
+                dest_conn = meta.get("destination_connector") or "flowsmith_output"
+            elif not dest_conn or (dest_conn == "flowsmith_output" and meta.get("destination_connector") != "flowsmith_output"):
                 dest_conn = meta.get("destination_connector") or dest_conn
-            if not src_obj:
-                src_obj = meta.get("source_object")
+
+            if not source_conn or (source_conn in ("manual", "schedule", "cron", "flowsmith_trigger") and meta.get("source_connector") == "data_load"):
+                source_conn = meta.get("source_connector") or source_conn
+
+            if not src_obj or src_obj in ("payload", "trigger", "event", "data"):
+                src_obj = meta.get("source_object") or dst_obj or meta.get("destination_object")
             if not dst_obj:
-                dst_obj = meta.get("destination_object")
+                dst_obj = meta.get("destination_object") or src_obj
             if not http_m:
                 http_m = meta.get("http_method")
             if not api_ep:
                 api_ep = meta.get("api_endpoint")
             if not http_sc:
                 http_sc = meta.get("http_status_code")
+
+            if r_read <= 1 or r_proc <= 3:
+                trace = getattr(rec, "trace", None) or []
+                max_batch = 0
+                ds_read = 0
+                for s in trace:
+                    c = extract_node_record_counts(s)
+                    nt = str(s.get("node_type") or "").lower()
+                    if "data_load" in nt or "csv" in nt:
+                        ds_read = max(ds_read, c["output_record_count"], c["input_record_count"])
+                    max_batch = max(max_batch, c["output_record_count"], c["input_record_count"])
+                if max_batch > 1:
+                    r_read = ds_read if ds_read > 0 else max_batch
+                    r_proc = max_batch
+                    r_created = max_batch
         except Exception:
             pass
 
     return {
         "id": rec.id,
         "workflow_id": rec.workflow_id,
+        "workflow_name": wf_name,
         "workflow_version": rec.workflow_version,
         "trigger": rec.trigger,
         "status": rec.status,
@@ -146,12 +175,12 @@ def _to_dict(rec: Execution) -> dict[str, Any]:
         "http_method": http_m,
         "api_endpoint": api_ep,
         "http_status_code": http_sc,
-        "records_read": rec.records_read or 0,
-        "records_created": rec.records_created or 0,
-        "records_updated": rec.records_updated or 0,
-        "records_skipped": rec.records_skipped or 0,
-        "records_failed": rec.records_failed or 0,
-        "records_processed": rec.records_processed or (rec.records_created or 0) + (rec.records_updated or 0),
+        "records_read": r_read,
+        "records_created": r_created,
+        "records_updated": r_updated,
+        "records_skipped": r_skipped,
+        "records_failed": r_failed,
+        "records_processed": r_proc if r_proc > 0 else (r_created + r_updated),
         "retry_count": rec.retry_count or 0,
         "error_type": rec.error_type,
         "error_code": rec.error_code,
@@ -652,6 +681,10 @@ def get_execution(
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
+
+    from app.models.workflow import WorkflowRecord
+    wf_rec = db.get(WorkflowRecord, rec.workflow_id)
+    rec.workflow_name = wf_rec.name if wf_rec else rec.workflow_id
 
     results_outputs = (rec.results or {}).get("outputs") if isinstance(rec.results, dict) else {}
     results_inputs = (rec.results or {}).get("inputs") if isinstance(rec.results, dict) else {}

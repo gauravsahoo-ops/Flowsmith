@@ -214,7 +214,7 @@ export default function StepDetail({ execution, step, onRetryNode }) {
                 </span>
               )}
             </div>
-            <JsonTree value={effectiveInputs} defaultExpandDepth={2} />
+            <JsonTree value={effectiveInputs} defaultExpandDepth={3} />
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 4 }}>
               <h5 style={{ margin: 0 }}>Outputs</h5>
@@ -226,7 +226,7 @@ export default function StepDetail({ execution, step, onRetryNode }) {
                 </span>
               )}
             </div>
-            <JsonTree value={effectiveOutputs} defaultExpandDepth={2} />
+            <JsonTree value={effectiveOutputs} defaultExpandDepth={3} />
           </>
         )
       })()}

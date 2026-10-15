@@ -69,7 +69,11 @@ export default function ExecutionDetailPage() {
       .then((d) => {
         setData(d)
         if (d?.trace?.length) {
-          setSelected((prev) => prev || d.trace[0].node_id)
+          const initial =
+            d.trace.find((s) => s.status === 'failed' || s.status === 'error') ||
+            d.trace.find((s) => s.node_type !== 'schedule' && s.node_type !== 'cron' && s.node_type !== 'manual_trigger') ||
+            d.trace[0]
+          setSelected((prev) => prev || initial.node_id)
         }
         setError(null)
       })
@@ -236,9 +240,9 @@ export default function ExecutionDetailPage() {
   return (
     <div className="page execution-detail-page">
       <PageHeader
-        title={`Execution ${id.slice(0, 8)}`}
+        title={`Execution ${id}`}
         description={`${data.workflow_name || data.workflow_id} · ${STATUS_LABEL[data.status] || data.status}`}
-        breadcrumbs={[{ label: 'Executions', href: '/executions' }, { label: id.slice(0, 8) }]}
+        breadcrumbs={[{ label: 'Executions', href: '/executions' }, { label: id }]}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button className="ghost" onClick={() => navigate('/executions')}>
