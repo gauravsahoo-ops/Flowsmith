@@ -248,8 +248,8 @@ async def execute_workflow(
     token_exec = current_execution_id.set(execution_id)
     token_ws = current_workspace_id.set(workspace_id)
 
-    monitor = asyncio.create_task(_monitor_cancel(ctx, cancelled))
     run: asyncio.Task[None] | None = None
+    monitor = asyncio.create_task(_monitor_cancel(ctx, cancelled, lambda: run))
     try:
         # Own task handle: shield()/bare awaits detach on cancellation and
 
@@ -287,19 +287,31 @@ async def execute_workflow(
             except Exception:
                 pass
 
+    if result.status != "timeout" and (cancelled.is_set() or ctx.is_cancelled()):
+        result.status = "cancelled"
+
     result.finished_at = time.monotonic()
     result.events = event_queue
     return result
 
 
-async def _monitor_cancel(ctx: NodeContext, cancelled: asyncio.Event) -> None:
-    """Flip ctx._cancelled the moment the shared cancel event fires, so
-    running nodes polling `ctx.is_cancelled()` notice immediately."""
+async def _monitor_cancel(
+    ctx: NodeContext,
+    cancelled: asyncio.Event,
+    get_run_task: Callable[[], asyncio.Task | None] | None = None,
+) -> None:
+    """Flip ctx._cancelled and cancel the running task the moment the shared
+    cancel event fires, so awaiting I/O, sleep, or polling loops abort
+    immediately instead of hanging until completion."""
     try:
         await cancelled.wait()
     except asyncio.CancelledError:
         return
     ctx._cancelled = True
+    if get_run_task is not None:
+        task = get_run_task()
+        if task is not None and not task.done():
+            task.cancel()
 
 
 async def _run_nodes(
@@ -357,6 +369,16 @@ async def _run_nodes(
                         graph, gnode.node, gnode, seed, results, ctx, result, emit, cancelled,
                         credential_resolver,
                     )
+        except (asyncio.CancelledError, NodeCancelledError):
+            cancelled.set()
+            ctx._cancelled = True
+            emit("node.failed", node_id=node.id, status="cancelled")
+            _add_step(
+                result, node_id=node.id, node_type=node.type, status="cancelled",
+                started_at=datetime.now(UTC).isoformat(), duration_ms=0,
+                note="Cancelled during execution.",
+            )
+            return
         except NodeExecutionError as exc:
             # Errors raised before _run_one's own handlers (e.g. credential
             # resolution) must still fail the run, not vanish into the task.
@@ -411,35 +433,51 @@ async def _run_nodes(
             # All parents were pre-seeded (durable resume): ready now.
             _schedule(nid)
 
-    while True:
-        while active:
-            done, _ = await asyncio.wait(tuple(active), return_when=asyncio.FIRST_COMPLETED)
-            active.difference_update(done)
+    try:
+        while True:
+            if cancelled.is_set() or ctx.is_cancelled():
+                break
+            while active:
+                done, _ = await asyncio.wait(tuple(active), return_when=asyncio.FIRST_COMPLETED)
+                active.difference_update(done)
+                if cancelled.is_set() or ctx.is_cancelled():
+                    break
 
-        # Cycle fallback: when all active tasks have drained, any nodes
-        # still unscheduled are part of a cycle (every parent is either
-        # unscheduled or stuck waiting for a child in the cycle).  We
-        # break the cycle by scheduling the node with the fewest
-        # remaining incomplete parents.  It receives empty input (its
-        # parent hasn't produced output yet) which is the correct
-        # cycle-breaking semantics.
-        unscheduled = [
-            nid for nid in graph
-            if nid not in scheduled
-            and nid not in result.skipped
-            and nid not in result.node_errors
-            and not cancelled.is_set()
-            and not ctx.is_cancelled()
-        ]
-        if not unscheduled:
-            break
-        unscheduled.sort(
-            key=lambda nid: sum(1 for p in graph[nid].input_node_ids if p not in results)
-        )
-        _schedule(unscheduled[0])
+            if cancelled.is_set() or ctx.is_cancelled():
+                break
+
+            # Cycle fallback: when all active tasks have drained, any nodes
+            # still unscheduled are part of a cycle (every parent is either
+            # unscheduled or stuck waiting for a child in the cycle).  We
+            # break the cycle by scheduling the node with the fewest
+            # remaining incomplete parents.  It receives empty input (its
+            # parent hasn't produced output yet) which is the correct
+            # cycle-breaking semantics.
+            unscheduled = [
+                nid for nid in graph
+                if nid not in scheduled
+                and nid not in result.skipped
+                and nid not in result.node_errors
+                and not cancelled.is_set()
+                and not ctx.is_cancelled()
+            ]
+            if not unscheduled:
+                break
+            unscheduled.sort(
+                key=lambda nid: sum(1 for p in graph[nid].input_node_ids if p not in results)
+            )
+            _schedule(unscheduled[0])
+    finally:
+        if cancelled.is_set() or ctx.is_cancelled():
+            for t in list(active):
+                if not t.done():
+                    t.cancel()
+            if active:
+                with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
+                    await asyncio.wait(tuple(active), timeout=2.0)
 
     # Nodes that could never become ready (a wait_for_all parent died
-    # hard) are recorded as skipped, like the sequential engine did.
+    # hard, or execution was cancelled) are recorded as skipped
     for nid in graph:
         if nid in scheduled or nid in result.skipped or nid in results or nid in result.node_errors:
             continue
@@ -447,12 +485,12 @@ async def _run_nodes(
         _add_step(
             result, node_id=nid, node_type=graph[nid].node.type, status="skipped",
             started_at=datetime.now(UTC).isoformat(), duration_ms=0,
-            note="Parent node failed; step was not executed.",
+            note="Execution cancelled; step was not executed." if (cancelled.is_set() or ctx.is_cancelled()) else "Parent node failed; step was not executed.",
         )
 
     result.results = results
     result.trace.sort(key=lambda s: s["started_at"])  # chronological across parallel branches
-    if cancelled.is_set() or ctx.is_cancelled():
+    if result.status != "timeout" and (cancelled.is_set() or ctx.is_cancelled()):
         result.status = "cancelled"
         emit("execution.cancelled", status="cancelled")
     elif result.error:
@@ -799,7 +837,7 @@ async def _run_one(
                 input_items, inputs_capped, params, cancelled, timeout,
                 max_attempts, backoff, retries, started_wall, started_mono,
             )
-        except NodeCancelledError:
+        except (NodeCancelledError, asyncio.CancelledError):
             cancelled.set()
             emit("node.failed", node_id=node.id, status="cancelled")
             _add_step(
@@ -969,7 +1007,7 @@ async def _run_one(
             attempts=retries + 1,
             retries=retries,
         )
-    except NodeCancelledError:
+    except (NodeCancelledError, asyncio.CancelledError):
         cancelled.set()
         emit("node.failed", node_id=node.id, status="cancelled")
         _add_step(

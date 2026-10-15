@@ -39,6 +39,17 @@ CANCEL_POLL_S = 0.25
 
 EventSink = Callable[[dict[str, Any]], None]
 
+_ACTIVE_CANCEL_EVENTS: dict[str, asyncio.Event] = {}
+
+
+def signal_cancel(execution_id: str) -> bool:
+    """Instantly flip the cancel event if this execution is running in the current process."""
+    evt = _ACTIVE_CANCEL_EVENTS.get(execution_id)
+    if evt is not None:
+        evt.set()
+        return True
+    return False
+
 
 async def _commit(db: Session) -> None:
     """Run the sync-driver commit off the event loop (it blocks otherwise)."""
@@ -160,6 +171,7 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
     """
     execution_id = job.execution_id
     cancel_event = asyncio.Event()
+    _ACTIVE_CANCEL_EVENTS[execution_id] = cancel_event
     db = get_session()
 
     def resolve_credentials(refs: dict[str, str]) -> dict:
@@ -186,12 +198,12 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
         rec = db.get(ExecutionModel, execution_id)
         if rec is None:
             return "failed"
-        if rec.status == "cancelling":
+        if rec.status in ("cancelling", "cancelled"):
             # Cancelled before a worker picked it up (spec 36). Publish
             # the terminal event so live streams and the durable events
             # table reflect the outcome (spec 37).
             rec.status = "cancelled"
-            rec.finished_at = datetime.now(UTC)
+            rec.finished_at = rec.finished_at or datetime.now(UTC)
             await _commit(db)
             event_sink({
                 "event": "execution.cancelled",
@@ -216,9 +228,9 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
         if flipped == 0:
             db.rollback()
             db.expire(rec)
-            if rec.status == "cancelling":
+            if rec.status in ("cancelling", "cancelled"):
                 rec.status = "cancelled"
-                rec.finished_at = datetime.now(UTC)
+                rec.finished_at = rec.finished_at or datetime.now(UTC)
                 await _commit(db)
                 event_sink({
                     "event": "execution.cancelled",
@@ -531,7 +543,18 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                     return "waiting_auth"
 
             if rec is not None:
-                rec.status = result.status
+                if result.status == "timeout":
+                    rec.status = "timeout"
+                elif rec.status in ("cancelling", "cancelled") or result.status == "cancelled":
+                    rec.status = "cancelled"
+                    if rec.error is None:
+                        rec.error = {"code": "CANCELLED", "message": "Execution cancelled by user."}
+                elif cancel_event.is_set():
+                    rec.status = "cancelled"
+                    if rec.error is None:
+                        rec.error = {"code": "CANCELLED", "message": "Execution cancelled by user."}
+                else:
+                    rec.status = result.status
                 rec.finished_at = datetime.now(UTC)
                 stored: dict[str, Any] = {
                     "outputs": dict(result.results or {}),
@@ -612,9 +635,10 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                     await asyncio.to_thread(finalize_execution_telemetry, db, rec, result, job)
                 except Exception:
                     logger.exception("Failed to finalize telemetry for execution %s", execution_id)
-            await asyncio.to_thread(_mark_deliveries, db, execution_id, result.status)
-            execution_finished(execution_id, result.status, job.trigger)
-            if result.status in ("failed", "timeout"):
+            final_status = "cancelled" if (rec and rec.status == "cancelled") else result.status
+            await asyncio.to_thread(_mark_deliveries, db, execution_id, final_status)
+            execution_finished(execution_id, final_status, job.trigger)
+            if final_status in ("failed", "timeout"):
                 err_dict = result.error.to_dict() if result.error else {"code": "EXECUTION_FAILED", "message": "Workflow execution failed."}
                 try:
                     from app.services.error_monitoring import ErrorMonitoringService
@@ -623,10 +647,12 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                     logger.exception("Failed to capture error for execution %s", execution_id)
                 if result.error is not None:
                     await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, result.error.to_dict())
-            return result.status
+            return final_status
         finally:
+            _ACTIVE_CANCEL_EVENTS.pop(execution_id, None)
             monitor.cancel()
     except asyncio.CancelledError:
+        _ACTIVE_CANCEL_EVENTS.pop(execution_id, None)
         # Worker-level cancellation (shutdown/stop) must still reach a
         # terminal row — re-raising alone left executions "running" forever
         # (spec 34.1: executions are authoritative).

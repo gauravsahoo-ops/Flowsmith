@@ -159,6 +159,58 @@ def test_cancel_running_execution(client):
     assert data["status"] == "cancelled"
 
 
+def test_cancel_queued_execution_immediately_cancels(client):
+    headers = _setup(client)
+    client.post("/api/workflows", json=WF_OK, headers=headers)
+    from app.db import get_session
+    from app.models import Execution
+    with get_session() as db:
+        rec = Execution(
+            id="exec_test_queued",
+            workflow_id=WF_OK["id"],
+            user_id=1,
+            workflow_version=1,
+            workflow_data=WF_OK,
+            status="queued",
+            trigger="manual",
+        )
+        db.merge(rec)
+        db.commit()
+
+    res = client.post("/api/executions/exec_test_queued/cancel", json={}, headers=headers)
+    assert res.status_code == 200
+    assert res.json()["data"]["status"] == "cancelled"
+
+    detail = client.get("/api/executions/exec_test_queued", headers=headers).json()["data"]
+    assert detail["status"] == "cancelled"
+
+
+def test_force_cancel_already_cancelling_execution(client):
+    headers = _setup(client)
+    client.post("/api/workflows", json=WF_OK, headers=headers)
+    from app.db import get_session
+    from app.models import Execution
+    with get_session() as db:
+        rec = Execution(
+            id="exec_test_cancelling",
+            workflow_id=WF_OK["id"],
+            user_id=1,
+            workflow_version=1,
+            workflow_data=WF_OK,
+            status="cancelling",
+            trigger="manual",
+        )
+        db.merge(rec)
+        db.commit()
+
+    res = client.post("/api/executions/exec_test_cancelling/cancel", json={}, headers=headers)
+    assert res.status_code == 200
+    assert res.json()["data"]["status"] == "cancelled"
+
+    detail = client.get("/api/executions/exec_test_cancelling", headers=headers).json()["data"]
+    assert detail["status"] == "cancelled"
+
+
 def test_cancel_finished_execution_conflicts(client):
     headers = _setup(client)
     client.post("/api/workflows", json=WF_OK, headers=headers)

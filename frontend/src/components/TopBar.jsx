@@ -410,8 +410,13 @@ export default function TopBar({
         </button>
 
         {running ? (
-          <button className="danger danger--sm" onClick={cancel} aria-label="Cancel run">
-            Cancel
+          <button
+            className="danger danger--sm"
+            onClick={cancel}
+            aria-label={runStatus === 'cancelling' ? 'Force cancel run' : 'Cancel run'}
+            title={runStatus === 'cancelling' ? 'Click to force cancel immediately' : 'Cancel run'}
+          >
+            {runStatus === 'cancelling' ? 'Force Cancel' : 'Cancel'}
           </button>
         ) : (
           <button

@@ -442,9 +442,23 @@ export const useExecutionStore = create((set, get) => ({
     const { executionId } = get()
     if (!executionId) return
     try {
-      await api.cancel(executionId)
+      set({ status: 'cancelling' })
+      const res = await api.cancel(executionId)
+      const data = res?.data || res
+      if (data?.status === 'cancelled') {
+        const batchHandle = get().rafBatchHandle
+        if (batchHandle && typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(batchHandle)
+          set({ rafBatchHandle: null })
+        }
+        set({ status: 'cancelled', running: false, pollTimer: null })
+        get().loadTrace(executionId)
+      } else {
+        get().poll(executionId)
+      }
     } catch {
-      // already finished; the stream/poll picks up the real status
+      // already finished or error; the stream/poll picks up the real status
+      get().poll(executionId)
     }
   },
 

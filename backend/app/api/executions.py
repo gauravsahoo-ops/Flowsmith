@@ -1149,33 +1149,107 @@ def cancel_execution(execution_id: str, user: User = Depends(get_current_user), 
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     if rec.status not in IN_PROGRESS_STATUSES | {"waiting_approval", "waiting_auth"}:
         raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not running.")
-    # Durable cooperative cancel (spec 36): mark it in the DB; the
-    # worker's monitor flips the engine's cancel event. A waiting
-    # execution has no active run — the flag itself is terminal.
-    # CAS on status: a concurrent cancel/resume/completion wins instead of
-    # being clobbered by a stale read-modify-write.
-    was_waiting = rec.status in ("waiting_approval", "waiting_auth")
-    values: dict[Any, Any] = {"status": "cancelled" if was_waiting else "cancelling"}
-    if was_waiting:
-        values["finished_at"] = datetime.now(UTC)
-        values["pause_state"] = None
-        if rec.error is None:
-            values["error"] = {"code": "CANCELLED_WHILE_WAITING", "message": "Cancelled while waiting for action."}
-    if was_waiting:
-        guard = Execution.status.in_(("waiting_approval", "waiting_auth"))
-    else:
-        guard = Execution.status.in_(IN_PROGRESS_STATUSES)
+
+    from app.eventbus import bus
+    from app.execution_runtime import signal_cancel
+
+    # 1. Waiting approval/auth: terminal immediately
+    if rec.status in ("waiting_approval", "waiting_auth"):
+        values = {
+            "status": "cancelled",
+            "finished_at": datetime.now(UTC),
+            "pause_state": None,
+            "error": rec.error or {"code": "CANCELLED_WHILE_WAITING", "message": "Cancelled while waiting for action."},
+        }
+        flipped = (
+            db.query(Execution)
+            .filter(Execution.id == execution_id, Execution.status.in_(("waiting_approval", "waiting_auth")))
+            .update(values)
+        )
+        if flipped == 0:
+            db.rollback()
+            raise HTTPException(status.HTTP_409_CONFLICT, "Execution is no longer waiting.")
+        db.commit()
+        bus.publish(execution_id, {
+            "event": "execution.cancelled",
+            "execution_id": execution_id,
+            "workflow_id": rec.workflow_id,
+            "status": "cancelled",
+        })
+        log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
+        return ok({"id": execution_id, "status": "cancelled"})
+
+    # 2. Queued execution: not claimed by a worker yet -> transition directly to cancelled
+    if rec.status == "queued":
+        values = {
+            "status": "cancelled",
+            "finished_at": datetime.now(UTC),
+            "error": rec.error or {"code": "CANCELLED_IN_QUEUE", "message": "Execution cancelled before starting."},
+        }
+        flipped = (
+            db.query(Execution)
+            .filter(Execution.id == execution_id, Execution.status == "queued")
+            .update(values)
+        )
+        if flipped == 0:
+            db.rollback()
+            raise HTTPException(status.HTTP_409_CONFLICT, "Execution is no longer queued.")
+        db.commit()
+        bus.publish(execution_id, {
+            "event": "execution.cancelled",
+            "execution_id": execution_id,
+            "workflow_id": rec.workflow_id,
+            "status": "cancelled",
+        })
+        log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
+        return ok({"id": execution_id, "status": "cancelled"})
+
+    # 3. Already cancelling -> FORCE CANCEL immediately
+    if rec.status == "cancelling":
+        values = {
+            "status": "cancelled",
+            "finished_at": datetime.now(UTC),
+            "error": rec.error or {"code": "FORCE_CANCELLED", "message": "Execution force-cancelled by user."},
+        }
+        flipped = (
+            db.query(Execution)
+            .filter(Execution.id == execution_id, Execution.status == "cancelling")
+            .update(values)
+        )
+        if flipped == 0:
+            db.rollback()
+            raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not cancelling.")
+        db.commit()
+        signal_cancel(execution_id)
+        bus.publish(execution_id, {
+            "event": "execution.cancelled",
+            "execution_id": execution_id,
+            "workflow_id": rec.workflow_id,
+            "status": "cancelled",
+        })
+        log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
+        return ok({"id": execution_id, "status": "cancelled"})
+
+    # 4. Running execution -> transition to cancelling, signal local runner instantly
     flipped = (
         db.query(Execution)
-        .filter(Execution.id == execution_id, guard)
-        .update(values)
+        .filter(Execution.id == execution_id, Execution.status == "running")
+        .update({"status": "cancelling"})
     )
     if flipped == 0:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not running.")
     db.commit()
+    # Instantly notify in-process runner if active locally
+    signal_cancel(execution_id)
+    bus.publish(execution_id, {
+        "event": "execution.cancelling",
+        "execution_id": execution_id,
+        "workflow_id": rec.workflow_id,
+        "status": "cancelling",
+    })
     log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
-    return ok({"id": execution_id, "status": values["status"]})
+    return ok({"id": execution_id, "status": "cancelling"})
 
 
 @router.post("/api/executions/{execution_id}/resume")
