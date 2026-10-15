@@ -37,7 +37,7 @@ WORKDIR /app/backend
 EXPOSE 8000
 STOPSIGNAL SIGTERM
 
-HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=5s --start-period=45s --retries=5 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)" || exit 1
 
 CMD ["python", "-m", "app.serve"]

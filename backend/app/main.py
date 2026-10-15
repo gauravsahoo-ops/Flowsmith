@@ -59,7 +59,7 @@ async def lifespan(_app: FastAPI):
     runner.submit(connection_health_monitor.ensure_started)
     try:
         from app.services.telemetry_service import backfill_execution_telemetry_metadata
-        backfill_execution_telemetry_metadata()
+        runner.submit(backfill_execution_telemetry_metadata)
     except Exception:
         pass
     ensure_embedded_consumer()
