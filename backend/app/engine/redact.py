@@ -126,12 +126,11 @@ def redact_headers(headers: dict[str, Any] | None) -> dict[str, str]:
         return {}
     out: dict[str, str] = {}
     for k, v in headers.items():
-        k_str = str(k)
         v_str = str(v) if v is not None else ""
-        if _is_sensitive_key(k_str) or k_str.lower() in ("authorization", "cookie", "set-cookie", "proxy-authorization", "x-api-key", "x-auth-token"):
-            out[k_str] = MASK
+        if _is_sensitive_key(k) or k.lower() in ("authorization", "cookie", "set-cookie", "proxy-authorization", "x-api-key", "x-auth-token"):
+            out[k] = MASK
         else:
-            out[k_str] = v_str
+            out[k] = v_str
     return out
 
 
