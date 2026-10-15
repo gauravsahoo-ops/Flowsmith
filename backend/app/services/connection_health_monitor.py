@@ -50,8 +50,9 @@ class ConnectionHealthMonitor:
         if self._task and not self._task.done():
             self._task.cancel()
             try:
-                await self._task
-            except asyncio.CancelledError:
+                if self._task.get_loop() is asyncio.get_running_loop():
+                    await self._task
+            except (asyncio.CancelledError, RuntimeError):
                 pass
         logger.info("ConnectionHealthMonitor stopped")
 
