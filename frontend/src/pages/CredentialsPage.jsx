@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -173,6 +173,47 @@ export default function CredentialsPage() {
   const [authSettingsTarget, setAuthSettingsTarget] = useState(null)
   const [openMenuId, setOpenMenuId] = useState(null)
   const [menuDirection, setMenuDirection] = useState('down')
+
+  const scrollToNewCredential = useCallback(() => {
+    const section = document.getElementById('new-credential-section')
+    const wrap = document.getElementById('credential-type-select-wrap')
+    const scrollTarget = section || wrap
+
+    if (scrollTarget) {
+      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+
+    // Explicit scroll on container (.app-content) as well to guarantee scrolling in all browsers
+    const container = document.querySelector('.app-content') || document.documentElement || document.body
+    if (container && section) {
+      const containerRect = container.getBoundingClientRect ? container.getBoundingClientRect() : { top: 0 }
+      const sectionRect = section.getBoundingClientRect ? section.getBoundingClientRect() : { top: 0 }
+      const targetScroll = (container.scrollTop || 0) + (sectionRect.top - containerRect.top) - 20
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: targetScroll, behavior: 'smooth' })
+      }
+    }
+
+    // Automatically open the SearchableSelect dropdown and focus its search input
+    setTimeout(() => {
+      const trigger = wrap?.querySelector('button') || section?.querySelector('button')
+      if (trigger && !document.querySelector('[role="listbox"]')) {
+        trigger.click()
+      }
+      if (wrap) {
+        wrap.style.transition = 'box-shadow 0.3s ease, border-color 0.3s ease'
+        wrap.style.borderRadius = '10px'
+        wrap.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.45)'
+        setTimeout(() => {
+          if (wrap) wrap.style.boxShadow = 'none'
+        }, 2200)
+      }
+      setTimeout(() => {
+        const searchInput = document.querySelector('[role="listbox"] input, #credential-type-select-wrap input')
+        searchInput?.focus()
+      }, 60)
+    }, 350)
+  }, [])
 
   const mountedRef = useRef(true)
   const oauthCleanupRef = useRef(null)
@@ -566,13 +607,7 @@ export default function CredentialsPage() {
         actions={
           <button
             className="primary"
-            onClick={() => {
-              const el = document.getElementById('new-credential-section') || document.querySelector('.credentials-page section.card:last-of-type')
-              if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                setTimeout(() => el.querySelector('input, select, button')?.focus(), 300)
-              }
-            }}
+            onClick={scrollToNewCredential}
           >
             + New Credential
           </button>
@@ -702,7 +737,7 @@ export default function CredentialsPage() {
             action={
               <button
                 className="primary"
-                onClick={() => navigate('/integrations?focus=search')}
+                onClick={scrollToNewCredential}
               >
                 Add first credential
               </button>
@@ -1181,7 +1216,7 @@ export default function CredentialsPage() {
       <section id="new-credential-section" className="card" style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 14, margin: '0 0 12px' }}>New credential</h2>
 
-        <div style={{ marginBottom: 16 }}>
+        <div id="credential-type-select-wrap" style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 13 }}>Select Service / Type</label>
           <SearchableSelect
             value={form.type}
