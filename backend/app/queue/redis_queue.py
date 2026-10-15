@@ -76,7 +76,10 @@ class RedisJobQueue(QueueBackend):
                 "The redis package is required for the redis queue backend: "
                 "pip install redis"
             ) from exc
-        self._conn = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+        kwargs: dict[str, Any] = {"decode_responses": True}
+        if settings.redis_password:
+            kwargs["password"] = settings.redis_password
+        self._conn = redis.Redis.from_url(settings.redis_url, **kwargs)
 
     def enqueue(self, job_id: str, execution_id: str, payload: dict[str, Any]) -> bool:
         # SADD is both the idempotency guard and the first write: if it

@@ -36,7 +36,11 @@ def get_shared_redis() -> Any | None:
         try:
             import redis  # optional dependency (requirements.txt)
 
-            _client = redis.Redis.from_url(url, decode_responses=True)
+            settings = get_settings()
+            kwargs: dict[str, Any] = {"decode_responses": True}
+            if settings.redis_password:
+                kwargs["password"] = settings.redis_password
+            _client = redis.Redis.from_url(url, **kwargs)
             _checked_url = url
             logger.info("shared Redis client ready")
         except Exception as exc:

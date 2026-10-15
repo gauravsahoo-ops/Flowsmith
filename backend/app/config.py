@@ -150,6 +150,7 @@ class Settings(BaseSettings):
     # doing the execution.
     queue_backend: str = "db"
     redis_url: str = ""
+    redis_password: str = ""
     queue_embedded_consumer: bool = True
     worker_poll_interval_s: float = 0.5
     worker_heartbeat_s: float = 10.0
