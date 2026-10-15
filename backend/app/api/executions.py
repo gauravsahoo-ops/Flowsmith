@@ -788,7 +788,9 @@ def get_execution_steps(
                 "error_code": s.error_code,
                 "error_message": s.error_message,
                 "retry_count": s.retry_count,
-                "metadata": getattr(s, "step_metadata", None),
+                "metadata": getattr(s, "error_details", None) or getattr(s, "step_metadata", None),
+                "inputs": getattr(s, "inputs", None),
+                "outputs": getattr(s, "outputs", None),
             }
             for s in step_rows
         ]

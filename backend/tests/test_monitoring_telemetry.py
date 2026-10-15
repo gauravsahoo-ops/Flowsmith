@@ -533,3 +533,85 @@ def test_multi_tenant_isolation(client):
 
     # User B retry check
     assert client.post(f"/api/executions/{exec_a}/retry", json={}, headers=headers_b).status_code == 404
+
+
+def test_finalize_execution_telemetry_with_notes_and_steps(client):
+    """Test finalize_execution_telemetry safely creates ExecutionStep rows with notes and error details."""
+    from types import SimpleNamespace
+    from app.services.telemetry_service import finalize_execution_telemetry
+    from sqlalchemy import select
+
+    headers, user = _setup_user(client)
+    wf_id = f"wf_telem_{uuid.uuid4().hex[:6]}"
+    client.post("/api/workflows", json=make_workflow(wf_id, "Telemetry Test WF"), headers=headers)
+
+    exec_id = f"exec_telem_{uuid.uuid4().hex[:6]}"
+    now = datetime.now(timezone.utc)
+
+    with session_scope() as session:
+        rec = _create_execution(
+            session,
+            id=exec_id,
+            workflow_id=wf_id,
+            user_id=user["id"],
+            status="success",
+            started_at=now - timedelta(seconds=10),
+            finished_at=now,
+            workflow_data={
+                "id": wf_id,
+                "nodes": [
+                    {"id": "node_trigger", "type": "manual_trigger", "name": "Trigger Node"},
+                    {"id": "node_salesforce", "type": "salesforce", "name": "Salesforce Upsert"},
+                ],
+            },
+        )
+        fake_result = SimpleNamespace(
+            trace=[
+                {
+                    "node_id": "node_trigger",
+                    "node_type": "manual_trigger",
+                    "status": "success",
+                    "duration_ms": 120.0,
+                    "inputs": {"records": 10},
+                    "outputs": {"records": 10},
+                    "note": "Triggered manually",
+                },
+                {
+                    "node_id": "node_salesforce",
+                    "node_type": "salesforce",
+                    "status": "success",
+                    "duration_ms": 450.0,
+                    "inputs": {"records": [{"id": 1}]},
+                    "outputs": {"records": [{"id": 1, "success": True}]},
+                    "note": "Upserted 1 record via Bulk API",
+                    "created_record_count": 1,
+                },
+            ]
+        )
+        fake_job = SimpleNamespace(workflow_data=rec.workflow_data)
+
+        # Call finalize_execution_telemetry directly
+        finalize_execution_telemetry(session, rec, fake_result, fake_job)
+
+    # Verify execution steps were written to DB and are retrievable
+    with session_scope() as session:
+        steps = session.scalars(
+            select(ExecutionStep)
+            .where(ExecutionStep.execution_id == exec_id)
+            .order_by(ExecutionStep.sequence_number.asc())
+        ).all()
+        assert len(steps) == 2
+        assert steps[0].node_id == "node_trigger"
+        assert steps[0].error_details == {"note": "Triggered manually"}
+        assert steps[0].step_metadata == {"note": "Triggered manually"}
+        assert steps[1].node_id == "node_salesforce"
+        assert steps[1].error_details == {"note": "Upserted 1 record via Bulk API"}
+        assert steps[1].step_metadata == {"note": "Upserted 1 record via Bulk API"}
+
+    # Verify /steps endpoint exposes metadata
+    res = client.get(f"/api/executions/{exec_id}/steps", headers=headers)
+    assert res.status_code == 200
+    steps_data = res.json()["data"]
+    assert len(steps_data) == 2
+    assert steps_data[0]["metadata"] == {"note": "Triggered manually"}
+    assert steps_data[1]["metadata"] == {"note": "Upserted 1 record via Bulk API"}

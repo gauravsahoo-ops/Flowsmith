@@ -281,6 +281,15 @@ def finalize_execution_telemetry(
             ndata = node_type_map.get(nid, {})
             step_name = ndata.get("name") or ndata.get("label") or nid
 
+            err_details = None
+            if isinstance(step_err, dict):
+                err_details = dict(step_err)
+            elif step_err:
+                err_details = {"error": str(step_err)}
+            if step.get("note"):
+                err_details = err_details or {}
+                err_details["note"] = step.get("note")
+
             step_row = ExecutionStep(
                 id=step_id,
                 execution_id=execution_id,
@@ -289,6 +298,8 @@ def finalize_execution_telemetry(
                 node_id=nid,
                 node_type=step.get("node_type") or ndata.get("type", "unknown"),
                 step_name=step_name,
+                operation=step.get("operation"),
+                connector_id=step.get("connector_id"),
                 sequence_number=seq,
                 parent_step_id=None,
                 status=step_status,
@@ -306,7 +317,9 @@ def finalize_execution_telemetry(
                 error_message=e_msg,
                 retry_count=step.get("retries", 0),
                 correlation_id=rec.correlation_id,
-                step_metadata={"note": step.get("note")} if step.get("note") else None,
+                inputs=step.get("inputs"),
+                outputs=step.get("outputs"),
+                error_details=err_details,
             )
             step_db_rows.append(step_row)
 

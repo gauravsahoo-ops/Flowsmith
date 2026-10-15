@@ -88,6 +88,14 @@ class ExecutionStep(Base):
     outputs: Mapped[Any | None] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), nullable=True)
     error_details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
+    @property
+    def step_metadata(self) -> dict | None:
+        return self.error_details
+
+    @step_metadata.setter
+    def step_metadata(self, val: dict | None) -> None:
+        self.error_details = val
+
 
 class ApiRequestTelemetry(Base):
     """Captured outbound HTTP requests and responses from connectors and HTTP nodes."""
