@@ -219,21 +219,21 @@ function RowEditor({ table, onRowChanged }) {
 
       <div className="toolbar" style={{ marginBottom: 12 }}>
         <input className="search-input" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search rows" />
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
+        <select className="glass-select" value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
           <option value="">Sort by created</option>
           {table.columns.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
         </select>
-        <select value={sortOrder} onChange={e => setSortOrder(e.target.value)} aria-label="Sort order">
+        <select className="glass-select" value={sortOrder} onChange={e => setSortOrder(e.target.value)} aria-label="Sort order">
           <option value="asc">Asc</option>
           <option value="desc">Desc</option>
         </select>
-        <select value={filterCol} onChange={e => setFilterCol(e.target.value)} aria-label="Filter column">
+        <select className="glass-select" value={filterCol} onChange={e => setFilterCol(e.target.value)} aria-label="Filter column">
           <option value="">Filter column</option>
           {table.columns.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
         </select>
         {filterCol && (
           <>
-            <select value={filterOp} onChange={e => setFilterOp(e.target.value)}>
+            <select className="glass-select" value={filterOp} onChange={e => setFilterOp(e.target.value)}>
               <option value="contains">contains</option>
               <option value="eq">eq</option>
               <option value="ne">ne</option>

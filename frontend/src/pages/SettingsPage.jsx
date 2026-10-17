@@ -981,18 +981,8 @@ export default function SettingsPage() {
                     value={notifPrefs.cooldown_minutes}
                     disabled={!notifPrefs.email_enabled}
                     onChange={e => setNotifPrefs(f => ({ ...f, cooldown_minutes: Number(e.target.value) }))}
-                    style={{
-                      minWidth: 210,
-                      padding: '8px 14px',
-                      borderRadius: 7,
-                      background: 'var(--panel-2, #0f172a)',
-                      border: '1px solid var(--border, #334155)',
-                      color: 'var(--text, #f1f5f9)',
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: notifPrefs.email_enabled ? 'pointer' : 'not-allowed',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-                    }}
+                    className="glass-select"
+                    style={{ minWidth: 210 }}
                   >
                     <option value={5}>5 minutes</option>
                     <option value={15}>15 minutes (recommended)</option>

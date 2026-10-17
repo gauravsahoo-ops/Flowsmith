@@ -468,12 +468,12 @@ export default function WorkflowsPage() {
           <input className="search-input" placeholder="Search workflows…" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search workflows" />
         </div>
         <div className="toolbar-right">
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
+          <select className="glass-select" value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
             <option value="updated">Sort by last updated</option>
             <option value="created">Sort by created</option>
             <option value="name">Sort by name</option>
           </select>
-          <select value={filterActive} onChange={e => setFilterActive(e.target.value)} aria-label="Filter">
+          <select className="glass-select" value={filterActive} onChange={e => setFilterActive(e.target.value)} aria-label="Filter">
             <option value="all">All ({workflows.length})</option>
             <option value="pinned">Pinned ({workflows.filter(isWfPinned).length})</option>
             <option value="active">Active</option>

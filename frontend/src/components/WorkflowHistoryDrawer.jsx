@@ -18,6 +18,7 @@ function formatDate(dateStr) {
 
 export default function WorkflowHistoryDrawer() {
   const workflow = useWorkflowStore((s) => s.workflow)
+  const isDirty = useWorkflowStore((s) => s._dirty)
   const rawVersions = useWorkflowStore((s) => s.versions)
   const versions = Array.isArray(rawVersions) ? rawVersions : []
   const listVersions = useWorkflowStore((s) => s.listVersions)
@@ -181,21 +182,21 @@ export default function WorkflowHistoryDrawer() {
       {/* Tab 1: Versions */}
       {historyTab === 'versions' && (
         <div className="history-drawer-body">
-          {/* Current changes card */}
+          {/* Working draft card */}
           <div
             className={`history-item history-item--current ${!previewVersion ? 'is-selected' : ''}`}
             onClick={() => exitPreview()}
             role="button"
             tabIndex={0}
           >
-            <div className="history-item-dot dot-current" title="Current draft" />
+            <div className={`history-item-dot ${isDirty ? 'dot-dirty' : 'dot-clean'}`} title={isDirty ? "Working draft (unsaved changes)" : "Working draft (saved)"} />
             <div className="history-item-info">
-              <div className="history-item-title">Current changes</div>
+              <div className="history-item-title">Working Draft</div>
               <div className="history-item-subtitle">
                 {formatDate(workflow?.updated_at || new Date())}
               </div>
             </div>
-            <div className="history-item-badge">Draft</div>
+            <div className="history-item-badge">{isDirty ? 'Unsaved' : 'Draft'}</div>
           </div>
 
           {/* Collapsible header for version list */}

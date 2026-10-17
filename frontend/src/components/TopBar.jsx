@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useWorkflowStore, confirmDiscard } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
@@ -25,6 +26,7 @@ export default function TopBar({
   hasExecution,
   _onLogout,
   onOpenHistory,
+  onOpenExecutions,
   onOpenApprovals,
   onOpenTemplates,
   onOpenEnv,
@@ -34,6 +36,7 @@ export default function TopBar({
   onOpenAIChat,
   onOpenAICopilot,
 }) {
+  const navigate = useNavigate()
   const workflow = useWorkflowStore((s) => s.workflow)
   const saving = useWorkflowStore((s) => s.saving)
   const savedAt = useWorkflowStore((s) => s.savedAt)
@@ -528,7 +531,7 @@ export default function TopBar({
           </button>
           {menuOpen && (
             <div className="topbar-menu" role="menu">
-              <button role="menuitem" onClick={() => { setMenuOpen(false); setDocModalOpen(true); }} disabled={!workflow?.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); setDocModalOpen(true); }} disabled={!workflow?.id}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
@@ -537,14 +540,14 @@ export default function TopBar({
                 </svg>
                 <span>Architecture & Docs</span>
               </button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); togglePinned(); }} disabled={!workflow?.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); togglePinned(); }} disabled={!workflow?.id}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: isPinned ? '#fbbf24' : 'currentColor' }}>
                   <line x1="12" y1="17" x2="12" y2="22" />
                   <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6a3 3 0 0 0-6 0v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24Z" />
                 </svg>
                 <span>{isPinned ? 'Unpin Workflow' : 'Pin to Top'}</span>
               </button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); handleExport(); }} disabled={!workflow?.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); handleExport(); }} disabled={!workflow?.id}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
@@ -552,59 +555,80 @@ export default function TopBar({
                 </svg>
                 <span>Download Workflow (JSON)</span>
               </button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}>Import Workflow</button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); handleSaveAsTemplate(); }} disabled={!workflow?.id}>Save as Template</button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>Import Workflow</span>
+              </button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); handleSaveAsTemplate(); }} disabled={!workflow?.id}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="9" y1="21" x2="9" y2="9" />
+                </svg>
+                <span>Save as Template</span>
+              </button>
               <div className="ctx-sep" />
-              <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 8 }} onClick={(e) => e.stopPropagation()}>
-                <span className="hint" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>Workflow settings</span>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+              <div className="topbar-menu-section" onClick={(e) => e.stopPropagation()}>
+                <span className="topbar-menu-section-title">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                  Workflow Settings
+                </span>
+                <label className="topbar-menu-field">
                   <span>Timeout (seconds, 0 = none)</span>
                   <input
                     type="number" min={0} max={86400}
+                    className="topbar-menu-input"
                     value={workflow?.settings?.timeout_seconds ?? 0}
                     onChange={(e) => setWorkflowSettings({ timeout_seconds: Math.max(0, Number(e.target.value) || 0) })}
-                    style={{ width: '100%' }}
                   />
                 </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                <label className="topbar-menu-field">
                   <span>Max parallelism (1–32)</span>
                   <input
                     type="number" min={1} max={32}
+                    className="topbar-menu-input"
                     value={workflow?.settings?.max_parallelism ?? 8}
                     onChange={(e) => setWorkflowSettings({ max_parallelism: Math.min(32, Math.max(1, Number(e.target.value) || 8)) })}
-                    style={{ width: '100%' }}
                   />
                 </label>
-                <label className="check" style={{ fontSize: 12 }}>
+                <label className="topbar-menu-check">
                   <input
                     type="checkbox"
                     checked={autoSave}
                     onChange={(e) => setAutoSave(e.target.checked)}
                   />
-                  Auto-save workflow changes (disabled by default)
+                  <span>Auto-save workflow changes (disabled by default)</span>
                 </label>
-                <label className="check" style={{ fontSize: 12 }}>
+                <label className="topbar-menu-check">
                   <input
                     type="checkbox"
                     checked={Boolean(workflow?.settings?.save_execution_progress)}
                     onChange={(e) => setWorkflowSettings({ save_execution_progress: e.target.checked })}
                   />
-                  Save execution progress
+                  <span>Save execution progress</span>
                 </label>
-                <label className="check" style={{ fontSize: 12 }}>
+                <label className="topbar-menu-check">
                   <input
                     type="checkbox"
                     checked={Boolean(workflow?.settings?.error_workflow_id)}
                     onChange={(e) => setWorkflowSettings({ error_workflow_id: e.target.checked ? 'default' : null })}
                   />
-                  Route failure to error workflow
+                  <span>Route failure to error workflow</span>
                 </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12 }}>
+                <label className="topbar-menu-field">
                   <span>Error workflow</span>
                   <select
+                    className="glass-select"
                     value={workflow?.settings?.on_error_workflow_id || ''}
                     onChange={(e) => setWorkflowSettings({ on_error_workflow_id: e.target.value || null })}
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', height: 32 }}
                   >
                     <option value="">None</option>
                     {(workflows || []).filter((w) => w.id !== workflow?.id).map((w) => (
@@ -614,14 +638,80 @@ export default function TopBar({
                 </label>
               </div>
               <div className="ctx-sep" />
-              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenTests(); }}>Tests</button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenRag(); }}>Knowledge & RAG</button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenEnv(); }}>Variables</button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenApprovals(); }}>Approvals</button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenTemplates(); }}>Templates</button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenTests(); }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.5 2v6.5L19 17a2.5 2.5 0 0 1-2.2 3.8H7.2A2.5 2.5 0 0 1 5 17l4.5-8.5V2" />
+                  <path d="M8.5 2h7" />
+                  <path d="M7 16h10" />
+                </svg>
+                <span>Tests</span>
+              </button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenRag(); }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                  <path d="M6 6h10" />
+                  <path d="M6 10h10" />
+                </svg>
+                <span>Knowledge & RAG</span>
+              </button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenEnv(); }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+                <span>Variables</span>
+              </button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenApprovals(); }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <polyline points="9 12 11 14 15 10" />
+                </svg>
+                <span>Approvals</span>
+              </button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); onOpenTemplates(); }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="7" height="7" x="3" y="3" rx="1" />
+                  <rect width="7" height="7" x="14" y="3" rx="1" />
+                  <rect width="7" height="7" x="14" y="14" rx="1" />
+                  <rect width="7" height="7" x="3" y="14" rx="1" />
+                </svg>
+                <span>Templates</span>
+              </button>
               <div className="ctx-sep" />
-              <button role="menuitem" onClick={() => { setMenuOpen(false); toggleHistoryDrawer(); }}>Workflow History</button>
-              <button role="menuitem" onClick={() => { setMenuOpen(false); if (onOpenHistory && !historyDrawerOpen) onOpenHistory(); else window.open('/executions', '_blank'); }}>Execution Logs</button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  if (onOpenHistory) {
+                    onOpenHistory()
+                  } else {
+                    toggleHistoryDrawer()
+                  }
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span>Workflow History</span>
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  if (onOpenExecutions) {
+                    onOpenExecutions()
+                  } else {
+                    navigate(workflow?.id ? `/executions?workflow_id=${workflow.id}` : '/executions')
+                  }
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 17 10 11 4 5" />
+                  <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+                <span>Execution Logs</span>
+              </button>
             </div>
           )}
         </div>

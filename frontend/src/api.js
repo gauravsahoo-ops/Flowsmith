@@ -181,6 +181,17 @@ export const api = {
     }),
   runToNode: (workflowId, nodeId) =>
     request('POST', `/workflows/${workflowId}/run-to-node`, { node_id: nodeId }),
+  // Phase 14: first-class workflow tests (mock runs, PASS/FAIL/DIFF).
+  listWorkflowTests: (workflowId) => request('GET', `/workflows/${workflowId}/tests`),
+  getWorkflowTest: (workflowId, testId) => request('GET', `/workflows/${workflowId}/tests/${testId}`),
+  createWorkflowTest: (workflowId, payload) =>
+    request('POST', `/workflows/${workflowId}/tests`, payload),
+  updateWorkflowTest: (workflowId, testId, payload) =>
+    request('PATCH', `/workflows/${workflowId}/tests/${testId}`, payload),
+  deleteWorkflowTest: (workflowId, testId) =>
+    request('DELETE', `/workflows/${workflowId}/tests/${testId}`),
+  runWorkflowTest: (workflowId, testId) =>
+    request('POST', `/workflows/${workflowId}/tests/${testId}/run`, {}),
   cancel: (id) => request('POST', `/executions/${id}/cancel`),
   // Phase 13 + Monitoring: nodeId re-runs safely from one failed node; reason/idempotency supported
   retry: (id, nodeId, reason = null, idempotencyKey = null) => {
@@ -275,6 +286,19 @@ export const api = {
     if (params.pageSize) q.set('pageSize', String(params.pageSize))
     const suffix = q.size ? `?${q.toString()}` : ''
     return requestEnvelope('GET', `/executions${suffix}`, undefined, opts)
+  },
+  universalSearchExecutions: (params = {}, opts) => {
+    const q = new URLSearchParams()
+    if (params.q) q.set('q', params.q)
+    if (params.category) q.set('category', params.category)
+    if (params.workflowId) q.set('workflow_id', params.workflowId)
+    if (params.status) q.set('status', params.status)
+    if (params.startDate) q.set('start_date', params.startDate)
+    if (params.endDate) q.set('end_date', params.endDate)
+    if (params.page) q.set('page', String(params.page))
+    if (params.pageSize) q.set('pageSize', String(params.pageSize))
+    const suffix = q.size ? `?${q.toString()}` : ''
+    return requestEnvelope('GET', `/executions/universal-search${suffix}`, undefined, opts)
   },
   listNodes: () => request('GET', '/nodes'),
   listCredentials: () => request('GET', '/credentials'),

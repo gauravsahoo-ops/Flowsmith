@@ -12,6 +12,7 @@ import PageHeader from '../components/shared/PageHeader'
 import LogsPanel from '../components/LogsPanel'
 import WorkflowHistoryDrawer from '../components/WorkflowHistoryDrawer'
 import SmithDrawer from '../components/SmithDrawer'
+import WorkflowTestsModal from '../components/WorkflowTestsModal'
 import { setToken } from '../api'
 
 class CanvasErrorBoundary extends Component {
@@ -76,6 +77,7 @@ export default function WorkflowEditorPage() {
   const [localError, setLocalError] = useState(null)
   const [debuggerOpen, setDebuggerOpen] = useState(false)
   const [smithOpen, setSmithOpen] = useState(false)
+  const [testsOpen, setTestsOpen] = useState(false)
 
   const handleSetDebuggerOpen = (val) => {
     setDebuggerOpen((prev) => {
@@ -228,12 +230,22 @@ export default function WorkflowEditorPage() {
           onOpenHistory={() => {
             if (debuggerOpen) setDebuggerOpen(false)
             if (smithOpen) setSmithOpen(false)
+            closeSidebar()
             useUiStore.getState().toggleHistoryDrawer()
+          }}
+          onOpenExecutions={() => {
+            if (isDirty() && !confirmDiscard()) return
+            navigate(id ? `/executions?workflow_id=${id}` : '/executions')
           }}
           onOpenApprovals={() => navigate('/approvals')}
           onOpenTemplates={() => navigate('/templates')}
           onOpenEnv={() => navigate('/variables')}
-          onOpenTests={() => navigate('/settings')}
+          onOpenTests={() => {
+            if (debuggerOpen) setDebuggerOpen(false)
+            if (smithOpen) setSmithOpen(false)
+            closeHistoryDrawer()
+            setTestsOpen(true)
+          }}
           onOpenRag={() => navigate('/knowledge')}
           onOpenSmith={() => {
             if (debuggerOpen) setDebuggerOpen(false)
@@ -309,6 +321,12 @@ export default function WorkflowEditorPage() {
           {smithOpen && (
             <SmithDrawer isOpen={smithOpen} onClose={() => setSmithOpen(false)} />
           )}
+          <WorkflowTestsModal
+            isOpen={testsOpen}
+            onClose={() => setTestsOpen(false)}
+            workflowId={id}
+            workflowName={workflow?.name}
+          />
         </div>
       </div>
     </div>

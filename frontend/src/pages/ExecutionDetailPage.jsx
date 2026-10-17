@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ExecutionTimeline from '../components/ExecutionTimeline'
 import StepDetail from '../components/StepDetail'
+import JsonTree from '../components/JsonTree'
 import { NodeIcon } from '../components/NodeIcons'
 
 const STATUS_LABEL = {
@@ -33,12 +34,19 @@ function fmtDur(s, f) {
 export default function ExecutionDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  const initialTab = searchParams.get('tab') || 'timeline'
+  const targetNodeId = searchParams.get('node')
+  const targetRequestId = searchParams.get('request_id')
+  const searchHighlight = searchParams.get('search')
+  const highlightField = searchParams.get('highlight')
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [tab, setTab] = useState('timeline')
-  const [selected, setSelected] = useState(null)
+  const [tab, setTab] = useState(initialTab)
+  const [selected, setSelected] = useState(targetNodeId || null)
   const [copiedId, setCopiedId] = useState(false)
 
   // AI explanation state
@@ -69,11 +77,15 @@ export default function ExecutionDetailPage() {
       .then((d) => {
         setData(d)
         if (d?.trace?.length) {
-          const initial =
-            d.trace.find((s) => s.status === 'failed' || s.status === 'error') ||
-            d.trace.find((s) => s.node_type !== 'schedule' && s.node_type !== 'cron' && s.node_type !== 'manual_trigger') ||
-            d.trace[0]
-          setSelected((prev) => prev || initial.node_id)
+          if (targetNodeId && d.trace.some((s) => s.node_id === targetNodeId)) {
+            setSelected(targetNodeId)
+          } else {
+            const initial =
+              d.trace.find((s) => s.status === 'failed' || s.status === 'error') ||
+              d.trace.find((s) => s.node_type !== 'schedule' && s.node_type !== 'cron' && s.node_type !== 'manual_trigger') ||
+              d.trace[0]
+            setSelected((prev) => prev || initial.node_id)
+          }
         }
         setError(null)
       })
@@ -83,11 +95,18 @@ export default function ExecutionDetailPage() {
       .finally(() => {
         if (!silent) setLoading(false)
       })
-  }, [id])
+  }, [id, targetNodeId])
 
   useEffect(() => {
     fetchExecution()
   }, [fetchExecution])
+
+  // Sync state if URL search parameters change
+  useEffect(() => {
+    if (initialTab) setTab(initialTab)
+    if (targetNodeId) setSelected(targetNodeId)
+    if (targetRequestId) setSelectedRequestId(targetRequestId)
+  }, [initialTab, targetNodeId, targetRequestId])
 
   // Live auto-poll while running, queued, or retrying
   const isRunning = Boolean(
@@ -112,13 +131,17 @@ export default function ExecutionDetailPage() {
           const reqs = res?.data || res || []
           setApiRequests(Array.isArray(reqs) ? reqs : [])
           if (reqs.length > 0) {
-            setSelectedRequestId((prev) => prev || reqs[0].id)
+            if (targetRequestId && reqs.some((r) => r.id === targetRequestId)) {
+              setSelectedRequestId(targetRequestId)
+            } else {
+              setSelectedRequestId((prev) => prev || reqs[0].id)
+            }
           }
         })
         .catch(() => setApiRequests([]))
         .finally(() => setLoadingRequests(false))
     }
-  }, [id, tab])
+  }, [id, tab, targetRequestId])
 
   // Load detailed request payload when selected
   useEffect(() => {
@@ -417,6 +440,63 @@ export default function ExecutionDetailPage() {
         </div>
       </div>
 
+      {/* Universal Search Context Banner */}
+      {searchHighlight && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            marginBottom: 16,
+            background: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            borderRadius: 8,
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span style={{ color: '#e0e7ff' }}>
+              Search Context: <strong>&ldquo;{searchHighlight}&rdquo;</strong>
+              {highlightField && <span style={{ opacity: 0.85, marginLeft: 8 }}>(Field: <code>{highlightField}</code>)</span>}
+              {targetNodeId && <span style={{ opacity: 0.85, marginLeft: 8 }}>(Node: <code>{targetNodeId}</code>)</span>}
+              {targetRequestId && <span style={{ opacity: 0.85, marginLeft: 8 }}>(API: <code>{targetRequestId.slice(0, 10)}…</code>)</span>}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams)
+                next.delete('search')
+                next.delete('highlight')
+                navigate(`/executions/${id}${next.toString() ? `?${next.toString()}` : ''}`, { replace: true })
+              }}
+              style={{ fontSize: 11.5, padding: '4px 8px', background: 'rgba(255,255,255,0.04)', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              <span>Clear</span>
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => navigate(`/executions?search=${encodeURIComponent(searchHighlight)}`)}
+              style={{ fontSize: 11.5, padding: '4px 10px', background: 'rgba(255,255,255,0.04)', color: '#818cf8' }}
+            >
+              All Occurrences
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Primary Failure Diagnostics Alert */}
       {isFailed && (
         <div
@@ -508,6 +588,8 @@ export default function ExecutionDetailPage() {
                 <StepDetail
                   execution={data}
                   step={selectedStep}
+                  search={searchHighlight}
+                  highlightField={highlightField}
                   onRetryNode={(nodeId) => {
                     api
                       .retry(id, nodeId)
@@ -575,6 +657,8 @@ export default function ExecutionDetailPage() {
               <StepDetail
                 execution={data}
                 step={selectedStep}
+                search={searchHighlight}
+                highlightField={highlightField}
                 onRetryNode={(nodeId) => {
                   api
                     .retry(id, nodeId)
@@ -750,24 +834,28 @@ export default function ExecutionDetailPage() {
                             {copiedPayload === 'req_b' ? '✓ Copied' : 'Copy'}
                           </button>
                         </div>
-                        <pre
-                          style={{
-                            margin: 0,
-                            padding: 10,
-                            borderRadius: 6,
-                            background: 'rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            fontSize: 11.5,
-                            fontFamily: 'monospace',
-                            color: '#cbd5e1',
-                            maxHeight: 180,
-                            overflowY: 'auto',
-                          }}
-                        >
-                          {typeof selectedRequestDetail.request_body === 'object'
-                            ? JSON.stringify(selectedRequestDetail.request_body, null, 2)
-                            : selectedRequestDetail.request_body || '—'}
-                        </pre>
+                        {typeof selectedRequestDetail.request_body === 'object' && selectedRequestDetail.request_body !== null ? (
+                          <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)', maxHeight: 220, overflowY: 'auto' }}>
+                            <JsonTree data={selectedRequestDetail.request_body} search={searchHighlight} defaultExpandDepth={searchHighlight ? 10 : 3} />
+                          </div>
+                        ) : (
+                          <pre
+                            style={{
+                              margin: 0,
+                              padding: 10,
+                              borderRadius: 6,
+                              background: 'rgba(0,0,0,0.3)',
+                              border: '1px solid rgba(255,255,255,0.05)',
+                              fontSize: 11.5,
+                              fontFamily: 'monospace',
+                              color: '#cbd5e1',
+                              maxHeight: 180,
+                              overflowY: 'auto',
+                            }}
+                          >
+                            {selectedRequestDetail.request_body || '—'}
+                          </pre>
+                        )}
                       </div>
 
                       {/* Response Payload */}
@@ -785,24 +873,28 @@ export default function ExecutionDetailPage() {
                             {copiedPayload === 'res_b' ? '✓ Copied' : 'Copy'}
                           </button>
                         </div>
-                        <pre
-                          style={{
-                            margin: 0,
-                            padding: 10,
-                            borderRadius: 6,
-                            background: 'rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            fontSize: 11.5,
-                            fontFamily: 'monospace',
-                            color: '#cbd5e1',
-                            maxHeight: 220,
-                            overflowY: 'auto',
-                          }}
-                        >
-                          {typeof selectedRequestDetail.response_body === 'object'
-                            ? JSON.stringify(selectedRequestDetail.response_body, null, 2)
-                            : selectedRequestDetail.response_body || '—'}
-                        </pre>
+                        {typeof selectedRequestDetail.response_body === 'object' && selectedRequestDetail.response_body !== null ? (
+                          <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)', maxHeight: 260, overflowY: 'auto' }}>
+                            <JsonTree data={selectedRequestDetail.response_body} search={searchHighlight} defaultExpandDepth={searchHighlight ? 10 : 3} />
+                          </div>
+                        ) : (
+                          <pre
+                            style={{
+                              margin: 0,
+                              padding: 10,
+                              borderRadius: 6,
+                              background: 'rgba(0,0,0,0.3)',
+                              border: '1px solid rgba(255,255,255,0.05)',
+                              fontSize: 11.5,
+                              fontFamily: 'monospace',
+                              color: '#cbd5e1',
+                              maxHeight: 220,
+                              overflowY: 'auto',
+                            }}
+                          >
+                            {selectedRequestDetail.response_body || '—'}
+                          </pre>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -888,9 +980,9 @@ export default function ExecutionDetailPage() {
                 {copiedPayload === 'trace' ? '✓ Copied Trace' : 'Copy Trace JSON'}
               </button>
             </div>
-            <pre className="json-tree" style={{ maxHeight: 600, overflowY: 'auto' }}>
-              {JSON.stringify(steps, null, 2)}
-            </pre>
+            <div style={{ background: 'rgba(0,0,0,0.3)', padding: 14, borderRadius: 8, maxHeight: 600, overflowY: 'auto', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <JsonTree data={steps} search={searchHighlight} defaultExpandDepth={searchHighlight ? 10 : 3} />
+            </div>
           </div>
         )}
       </div>

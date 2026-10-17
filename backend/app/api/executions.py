@@ -83,6 +83,9 @@ def _to_dict(
     search: str | None = None,
     user_email: str | None = None,
     db: Session | None = None,
+    preloaded_staged: list[Any] | None = None,
+    preloaded_api_reqs: list[Any] | None = None,
+    preloaded_errors: list[Any] | None = None,
 ) -> dict[str, Any]:
     duration_ms = rec.duration_ms
     if duration_ms is None and rec.started_at:
@@ -193,7 +196,10 @@ def _to_dict(
                 search.strip(),
                 workflow_name=wf_name,
                 user_email=user_email,
-                db=db,
+                db=db if (preloaded_staged is None and preloaded_api_reqs is None and preloaded_errors is None) else None,
+                preloaded_staged=preloaded_staged,
+                preloaded_api_reqs=preloaded_api_reqs,
+                preloaded_errors=preloaded_errors,
             )
         except Exception:
             pass
@@ -577,6 +583,57 @@ def _build_execution_query(
             ).all()
         ]
 
+        # StagedContactRecord matches (CSV, Data Load, Salesforce Bulk)
+        matching_staged_exec_ids = []
+        try:
+            from app.models.staged_record import StagedContactRecord
+            matching_staged_exec_ids = [
+                eid for (eid,) in db.execute(
+                    select(StagedContactRecord.execution_id)
+                    .where(
+                        or_(
+                            StagedContactRecord.first_name.ilike(sterm),
+                            StagedContactRecord.last_name.ilike(sterm),
+                            StagedContactRecord.email.ilike(sterm),
+                            StagedContactRecord.phone.ilike(sterm),
+                            StagedContactRecord.department.ilike(sterm),
+                            StagedContactRecord.title.ilike(sterm),
+                            StagedContactRecord.error_message.ilike(sterm),
+                            StagedContactRecord.salesforce_id.ilike(sterm),
+                            cast(StagedContactRecord.raw_data, String).ilike(sterm),
+                        )
+                    )
+                    .distinct()
+                    .limit(500)
+                ).all()
+            ]
+        except Exception:
+            pass
+
+        # ErrorEvent matches
+        matching_err_exec_ids = []
+        try:
+            from app.models.error_event import ErrorEvent
+            matching_err_exec_ids = [
+                eid for (eid,) in db.execute(
+                    select(ErrorEvent.execution_id)
+                    .where(
+                        ErrorEvent.execution_id.isnot(None),
+                        or_(
+                            ErrorEvent.message.ilike(sterm),
+                            ErrorEvent.title.ilike(sterm),
+                            ErrorEvent.code.ilike(sterm),
+                            ErrorEvent.category.ilike(sterm),
+                            ErrorEvent.resolution.ilike(sterm),
+                        )
+                    )
+                    .distinct()
+                    .limit(500)
+                ).all()
+            ]
+        except Exception:
+            pass
+
         predicates = [
             Execution.id.ilike(sterm),
             Execution.source_connector.ilike(sterm),
@@ -595,6 +652,9 @@ def _build_execution_query(
             Execution.search_text.ilike(sterm),
             cast(Execution.error, String).ilike(sterm),
             cast(Execution.trigger_data, String).ilike(sterm),
+            cast(Execution.results, String).ilike(sterm),
+            cast(Execution.trace, String).ilike(sterm),
+            cast(Execution.workflow_data, String).ilike(sterm),
         ]
 
         if term.isdigit() and len(term) == 3:
@@ -602,6 +662,18 @@ def _build_execution_query(
                 predicates.append(Execution.http_status_code == int(term))
             except Exception:
                 pass
+
+        # Individual words support for multi-word search queries
+        words = [w.strip() for w in term.split() if len(w.strip()) >= 2]
+        if len(words) > 1:
+            for word in words[:4]:
+                wterm = f"%{word}%"
+                predicates.append(Execution.search_text.ilike(wterm))
+                predicates.append(Execution.id.ilike(wterm))
+                predicates.append(Execution.status.ilike(wterm))
+                predicates.append(Execution.source_connector.ilike(wterm))
+                predicates.append(Execution.destination_connector.ilike(wterm))
+                predicates.append(Execution.error_summary.ilike(wterm))
 
         if matching_wf_ids:
             predicates.append(Execution.workflow_id.in_(matching_wf_ids))
@@ -611,10 +683,52 @@ def _build_execution_query(
             predicates.append(Execution.id.in_(matching_step_exec_ids))
         if matching_req_exec_ids:
             predicates.append(Execution.id.in_(matching_req_exec_ids))
+        if matching_staged_exec_ids:
+            predicates.append(Execution.id.in_(matching_staged_exec_ids))
+        if matching_err_exec_ids:
+            predicates.append(Execution.id.in_(matching_err_exec_ids))
 
         stmt = stmt.where(or_(*predicates))
 
     return stmt
+
+
+@router.get("/api/executions/universal-search")
+def universal_search_executions_endpoint(
+    q: str,
+    category: str = "all",
+    workflow_id: str | None = None,
+    status: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    page: int = 1,
+    pageSize: int = 20,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """YouTube-like Universal Search across all execution logs, steps, errors, and telemetry."""
+    from app.services.telemetry_service import search_universal_executions
+
+    res = search_universal_executions(
+        db,
+        user,
+        query=q,
+        category=category,
+        workflow_id=workflow_id,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+        page=page,
+        page_size=pageSize,
+    )
+    return ok(res["results"], {
+        "page": res["page"],
+        "pageSize": res["pageSize"],
+        "total": res["total"],
+        "query": res["query"],
+        "category": res["category"],
+        "facets": res["facets"],
+    })
 
 
 @router.get("/api/executions")
@@ -684,6 +798,74 @@ def list_executions(
             )
         ).all() if u_ids
     }
+    # Pre-batch search dependencies to eliminate N+1 queries during list serialization
+    from collections import defaultdict
+
+    rec_ids = [r.id for r in recs if r.id]
+    staged_by_exec: dict[str, list[Any]] = defaultdict(list)
+    api_by_exec: dict[str, list[Any]] = defaultdict(list)
+    err_by_exec: dict[str, list[Any]] = defaultdict(list)
+
+    if search and search.strip() and rec_ids:
+        sterm = f"%{search.strip()}%"
+        try:
+            from app.models.staged_record import StagedContactRecord
+            for s in db.scalars(
+                select(StagedContactRecord).where(
+                    StagedContactRecord.execution_id.in_(rec_ids),
+                    or_(
+                        StagedContactRecord.first_name.ilike(sterm),
+                        StagedContactRecord.last_name.ilike(sterm),
+                        StagedContactRecord.email.ilike(sterm),
+                        StagedContactRecord.phone.ilike(sterm),
+                        StagedContactRecord.department.ilike(sterm),
+                        StagedContactRecord.title.ilike(sterm),
+                        StagedContactRecord.error_message.ilike(sterm),
+                        StagedContactRecord.salesforce_id.ilike(sterm),
+                        cast(StagedContactRecord.raw_data, String).ilike(sterm),
+                    ),
+                ).limit(300)
+            ).all():
+                if s.execution_id:
+                    staged_by_exec[s.execution_id].append(s)
+        except Exception:
+            pass
+
+        try:
+            for r in db.scalars(
+                select(ApiRequestTelemetry).where(
+                    ApiRequestTelemetry.execution_id.in_(rec_ids),
+                    or_(
+                        ApiRequestTelemetry.endpoint_url.ilike(sterm),
+                        ApiRequestTelemetry.connector_name.ilike(sterm),
+                        ApiRequestTelemetry.error_message.ilike(sterm),
+                        cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
+                        cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
+                    ),
+                ).limit(300)
+            ).all():
+                if r.execution_id:
+                    api_by_exec[r.execution_id].append(r)
+        except Exception:
+            pass
+
+        try:
+            from app.models.error_event import ErrorEvent
+            for e in db.scalars(
+                select(ErrorEvent).where(
+                    ErrorEvent.execution_id.in_(rec_ids),
+                    or_(
+                        ErrorEvent.message.ilike(sterm),
+                        ErrorEvent.title.ilike(sterm),
+                        ErrorEvent.code.ilike(sterm),
+                    ),
+                ).limit(300)
+            ).all():
+                if e.execution_id:
+                    err_by_exec[e.execution_id].append(e)
+        except Exception:
+            pass
+
     items = [
         _to_dict(
             r,
@@ -691,6 +873,9 @@ def list_executions(
             search=search,
             user_email=user_emails.get(r.user_id),
             db=db,
+            preloaded_staged=staged_by_exec.get(r.id, []),
+            preloaded_api_reqs=api_by_exec.get(r.id, []),
+            preloaded_errors=err_by_exec.get(r.id, []),
         )
         for r in recs
     ]

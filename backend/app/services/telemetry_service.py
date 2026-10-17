@@ -665,12 +665,76 @@ def find_structured_snippet(data: Any, term: str, max_len: int = 140) -> str | N
     return None
 
 
+def find_all_json_matches(data: Any, term: str, max_depth: int = 8, max_matches: int = 20) -> list[dict[str, Any]]:
+    """Recursively search any nested dict or list for keys or values matching term."""
+    if not data or not term:
+        return []
+    term_lower = term.lower()
+    results: list[dict[str, Any]] = []
+
+    def _walk(obj: Any, path: str = "", depth: int = 0):
+        if len(results) >= max_matches or depth > max_depth:
+            return
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                k_str = str(k)
+                curr_path = f"{path}.{k_str}" if path else k_str
+                # Check key match
+                if term_lower in k_str.lower():
+                    results.append({
+                        "path": curr_path,
+                        "key": k_str,
+                        "value": str(v)[:80] if v is not None else "",
+                        "snippet": f"{k_str}: {str(v)[:60]}",
+                        "type": "key",
+                    })
+                # Check value match
+                if isinstance(v, (str, int, float, bool)):
+                    v_str = str(v)
+                    if term_lower in v_str.lower():
+                        results.append({
+                            "path": curr_path,
+                            "key": k_str,
+                            "value": v_str[:120],
+                            "snippet": f'{k_str}: "{v_str[:80]}"',
+                            "type": "value",
+                        })
+                elif isinstance(v, (dict, list)):
+                    _walk(v, curr_path, depth + 1)
+        elif isinstance(obj, (list, tuple)):
+            for idx, item in enumerate(obj[:100]):
+                curr_path = f"{path}[{idx}]"
+                if isinstance(item, (str, int, float, bool)):
+                    item_str = str(item)
+                    if term_lower in item_str.lower():
+                        results.append({
+                            "path": curr_path,
+                            "key": f"[{idx}]",
+                            "value": item_str[:120],
+                            "snippet": f'[{idx}]: "{item_str[:80]}"',
+                            "type": "value",
+                        })
+                elif isinstance(item, (dict, list)):
+                    _walk(item, curr_path, depth + 1)
+
+    try:
+        _walk(data)
+    except Exception:
+        pass
+    return results
+
+
 def extract_execution_search_matches(
     rec: Any,
     search_term: str,
+    *,
     workflow_name: str | None = None,
     user_email: str | None = None,
     db: Session | None = None,
+    max_matches: int = 12,
+    preloaded_staged: list[Any] | None = None,
+    preloaded_api_reqs: list[Any] | None = None,
+    preloaded_errors: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Extract prioritized structured match descriptors for search highlighting and deep-linking."""
     if not search_term or not search_term.strip():
@@ -681,21 +745,59 @@ def extract_execution_search_matches(
     matches: list[dict[str, Any]] = []
     seen_snippets: set[str] = set()
 
-    def _add_match(mtype: str, label: str, snippet: str | None, node_id: str | None = None, request_id: str | None = None, workflow_id: str | None = None, target: str = "execution"):
+    def _add_match(
+        mtype: str,
+        label: str,
+        snippet: str | None,
+        node_id: str | None = None,
+        request_id: str | None = None,
+        workflow_id: str | None = None,
+        record_id: str | None = None,
+        target: str = "execution",
+        category: str | None = None,
+        field_name: str | None = None,
+        field_value: str | None = None,
+    ):
         if not snippet or snippet in seen_snippets:
+            return
+        if len(matches) >= max_matches:
             return
         seen_snippets.add(snippet)
         url = f"/executions/{getattr(rec, 'id', '')}"
         if target == "timeline" and node_id:
             url += f"?tab=timeline&node={node_id}&search={term}"
+            if field_name:
+                url += f"&highlight={field_name}"
         elif target == "timeline":
             url += f"?tab=timeline&search={term}"
+            if field_name:
+                url += f"&highlight={field_name}"
         elif target == "requests" and request_id:
             url += f"?tab=requests&request_id={request_id}&search={term}"
         elif target == "requests":
             url += f"?tab=requests&search={term}"
+        elif target == "steps" and node_id:
+            url += f"?tab=steps&node={node_id}&search={term}"
+        elif target == "steps":
+            url += f"?tab=steps&search={term}"
+        elif target == "trace":
+            url += f"?tab=trace&search={term}"
         elif target == "workflow" and workflow_id:
             url = f"/workflows/{workflow_id}"
+
+        if not category:
+            if mtype in ("node", "input", "output", "step"):
+                category = "steps"
+            elif mtype in ("error", "error_code", "error_type"):
+                category = "errors"
+            elif mtype in ("staged_record", "record"):
+                category = "records"
+            elif mtype in ("api", "api_request"):
+                category = "api_requests"
+            elif mtype in ("trigger", "payload", "result"):
+                category = "payloads"
+            else:
+                category = "metadata"
 
         matches.append({
             "type": mtype,
@@ -704,63 +806,80 @@ def extract_execution_search_matches(
             "node_id": node_id,
             "request_id": request_id,
             "workflow_id": workflow_id,
+            "record_id": record_id,
             "target": target,
+            "category": category,
+            "field_name": field_name or mtype,
+            "field_value": field_value,
             "url": url,
         })
 
     # 1. Execution ID
     rec_id = getattr(rec, "id", "") or ""
     if term_lower in rec_id.lower():
-        _add_match("id", "Execution ID", rec_id, target="execution")
+        _add_match("id", "Execution ID", rec_id, target="execution", category="metadata", field_name="id", field_value=rec_id)
 
-    # 2. Workflow Name
+    # 2. Workflow Name & ID
     wf_name = workflow_name or getattr(rec, "workflow_name", "") or ""
     rec_wf_id = getattr(rec, "workflow_id", "") or ""
     if wf_name and term_lower in wf_name.lower():
-        _add_match("workflow", "Workflow", wf_name, workflow_id=rec_wf_id, target="workflow")
+        _add_match("workflow", "Workflow", wf_name, workflow_id=rec_wf_id, target="workflow", category="metadata", field_name="workflow_name", field_value=wf_name)
+    elif rec_wf_id and term_lower in rec_wf_id.lower():
+        _add_match("workflow", "Workflow ID", rec_wf_id, workflow_id=rec_wf_id, target="workflow", category="metadata", field_name="workflow_id", field_value=rec_wf_id)
 
     # 3. User / Email
     u_email = user_email or getattr(rec, "user_email", "") or ""
     if u_email and term_lower in u_email.lower():
-        _add_match("user", "User Email", u_email, target="execution")
+        _add_match("user", "User Email", u_email, target="execution", category="metadata", field_name="email", field_value=u_email)
 
-    # 4. Connectors & Objects
+    # 4. Status & Trigger
+    status_val = getattr(rec, "status", "") or ""
+    if status_val and term_lower in status_val.lower():
+        _add_match("status", f"Status: {status_val.upper()}", f"Execution status: {status_val}", target="timeline", category="metadata", field_name="status", field_value=status_val)
+
+    trigger_val = getattr(rec, "trigger", "") or ""
+    if trigger_val and term_lower in trigger_val.lower():
+        _add_match("trigger", f"Trigger: {trigger_val}", f"Trigger type: {trigger_val}", target="timeline", category="metadata", field_name="trigger", field_value=trigger_val)
+
+    # 5. Connectors & Objects
     src_c = getattr(rec, "source_connector", "") or ""
     dst_c = getattr(rec, "destination_connector", "") or ""
-    if (src_c and term_lower in src_c.lower()) or (dst_c and term_lower in dst_c.lower()):
-        _add_match("connector", "Integration Flow", f"{src_c} → {dst_c}", target="execution")
+    if src_c and term_lower in src_c.lower():
+        _add_match("connector", f"Source: {src_c}", f"Source connector: {src_c}", target="execution", category="metadata", field_name="source_connector", field_value=src_c)
+    if dst_c and term_lower in dst_c.lower():
+        _add_match("connector", f"Destination: {dst_c}", f"Destination connector: {dst_c}", target="execution", category="metadata", field_name="destination_connector", field_value=dst_c)
 
     src_o = getattr(rec, "source_object", "") or ""
     dst_o = getattr(rec, "destination_object", "") or ""
     if (src_o and term_lower in src_o.lower()) or (dst_o and term_lower in dst_o.lower()):
-        _add_match("object", "Entity Object", f"{src_o or '—'} → {dst_o or '—'}", target="execution")
+        _add_match("object", "Entity Object", f"{src_o or '—'} → {dst_o or '—'}", target="execution", category="metadata", field_name="object", field_value=f"{src_o} -> {dst_o}")
 
-    # 5. HTTP Endpoint & Method
+    # 6. HTTP Endpoint & Method
     api_ep = getattr(rec, "api_endpoint", "") or ""
     http_m = getattr(rec, "http_method", "") or ""
     http_sc = getattr(rec, "http_status_code", None)
     if (api_ep and term_lower in api_ep.lower()) or (http_m and term_lower in http_m.lower()):
-        _add_match("api", "API Call", f"{http_m} {api_ep} ({http_sc or ''})".strip(), target="requests")
+        _add_match("api", "API Call", f"{http_m} {api_ep} ({http_sc or ''})".strip(), target="requests", category="api_requests", field_name="endpoint", field_value=api_ep)
     elif http_sc and str(http_sc) == term:
-        _add_match("api", "HTTP Status", f"HTTP {http_sc} ({http_m or 'POST'})", target="requests")
+        _add_match("api", "HTTP Status", f"HTTP {http_sc} ({http_m or 'POST'})", target="requests", category="api_requests", field_name="status_code", field_value=str(http_sc))
 
-    # 6. Error details
+    # 7. Error details
     err_sum = getattr(rec, "error_summary", "") or ""
     if err_sum and term_lower in err_sum.lower():
-        _add_match("error", "Error Diagnostic", err_sum, target="timeline")
+        _add_match("error", "Error Diagnostic", err_sum, target="timeline", category="errors", field_name="error_summary", field_value=err_sum)
     err_code = getattr(rec, "error_code", "") or ""
     if err_code and term_lower in err_code.lower():
-        _add_match("error", "Error Code", err_code, target="timeline")
+        _add_match("error", f"Error Code: {err_code}", err_code, target="timeline", category="errors", field_name="error_code", field_value=err_code)
     err_type = getattr(rec, "error_type", "") or ""
     if err_type and term_lower in err_type.lower():
-        _add_match("error", "Error Category", err_type, target="timeline")
+        _add_match("error", f"Error Category: {err_type}", err_type, target="timeline", category="errors", field_name="error_type", field_value=err_type)
     err_obj = getattr(rec, "error", None)
     if err_obj and not err_sum:
         err_snip = find_structured_snippet(err_obj, term)
         if err_snip:
-            _add_match("error", "Error Details", err_snip, target="timeline")
+            _add_match("error", "Error Details", err_snip, target="timeline", category="errors", field_name="error_details", field_value=err_snip)
 
-    # 7. Trace steps (Nodes, inputs, outputs, step errors)
+    # 8. Trace steps (Nodes, inputs, outputs, step errors)
     trace = getattr(rec, "trace", None) or []
     if isinstance(trace, list):
         for step in trace:
@@ -770,64 +889,576 @@ def extract_execution_search_matches(
             ntitle = step.get("node_title") or nid
             ntype = step.get("node_type") or ""
 
-            # Check node title / type
+            # Check node title / type / id
             if term_lower in ntitle.lower() or term_lower in nid.lower() or term_lower in ntype.lower():
-                _add_match("node", f"Node: {ntitle}", f"{ntitle} ({ntype})", node_id=nid, target="timeline")
+                _add_match("node", f"Step: {ntitle}", f"{ntitle} ({ntype})", node_id=nid, target="timeline", category="steps", field_name="node_title", field_value=ntitle)
 
-            # Check node inputs
+            # Check node inputs (deep JSON match)
             if step.get("inputs"):
-                in_snip = find_structured_snippet(step["inputs"], term)
-                if in_snip:
-                    _add_match("input", f"Input ({ntitle})", in_snip, node_id=nid, target="timeline")
+                in_matches = find_all_json_matches(step["inputs"], term, max_matches=2)
+                for im in in_matches:
+                    _add_match("input", f"Step: {ntitle} › Input.{im['path']}", im["snippet"], node_id=nid, target="timeline", category="steps", field_name=im["key"], field_value=im["value"])
+                if not in_matches:
+                    in_snip = find_structured_snippet(step["inputs"], term)
+                    if in_snip:
+                        _add_match("input", f"Input ({ntitle})", in_snip, node_id=nid, target="timeline", category="steps")
 
-            # Check node outputs
+            # Check node outputs (deep JSON match)
             if step.get("outputs"):
-                out_snip = find_structured_snippet(step["outputs"], term)
-                if out_snip:
-                    _add_match("output", f"Output ({ntitle})", out_snip, node_id=nid, target="timeline")
+                out_matches = find_all_json_matches(step["outputs"], term, max_matches=3)
+                for om in out_matches:
+                    _add_match("output", f"Step: {ntitle} › Output.{om['path']}", om["snippet"], node_id=nid, target="timeline", category="steps", field_name=om["key"], field_value=om["value"])
+                if not out_matches:
+                    out_snip = find_structured_snippet(step["outputs"], term)
+                    if out_snip:
+                        _add_match("output", f"Output ({ntitle})", out_snip, node_id=nid, target="timeline", category="steps")
 
             # Check node error
             if step.get("error"):
                 step_err_snip = find_structured_snippet(step["error"], term)
                 if step_err_snip:
-                    _add_match("error", f"Node Error ({ntitle})", step_err_snip, node_id=nid, target="timeline")
+                    _add_match("error", f"Node Error ({ntitle})", step_err_snip, node_id=nid, target="timeline", category="errors")
 
-    # 8. Trigger data (Inputs)
+    # 9. Trigger data (Inputs / Webhooks)
     td = getattr(rec, "trigger_data", None)
     if td:
-        td_snip = find_structured_snippet(td, term)
-        if td_snip:
-            _add_match("input", "Trigger Input", td_snip, target="timeline")
+        td_matches = find_all_json_matches(td, term, max_matches=2)
+        for tm in td_matches:
+            _add_match("trigger", f"Trigger Payload › {tm['path']}", tm["snippet"], target="timeline", category="payloads", field_name=tm["key"], field_value=tm["value"])
+        if not td_matches:
+            td_snip = find_structured_snippet(td, term)
+            if td_snip:
+                _add_match("input", "Trigger Input", td_snip, target="timeline", category="payloads")
 
-    # 9. Results (if trace wasn't present)
+    # 10. Results (Outputs)
     res = getattr(rec, "results", None)
     if res and not trace:
-        res_snip = find_structured_snippet(res, term)
-        if res_snip:
-            _add_match("output", "Execution Output", res_snip, target="timeline")
+        res_matches = find_all_json_matches(res, term, max_matches=2)
+        for rm in res_matches:
+            _add_match("output", f"Execution Output › {rm['path']}", rm["snippet"], target="timeline", category="payloads", field_name=rm["key"], field_value=rm["value"])
+        if not res_matches:
+            res_snip = find_structured_snippet(res, term)
+            if res_snip:
+                _add_match("output", "Execution Output", res_snip, target="timeline", category="payloads")
 
-    # 10. Outbound API Requests logs
-    if db and rec_id:
+    # 11. Staged contact records (CSV, Data Load, Salesforce Bulk) - batch preloaded or fallback
+    if (preloaded_staged is not None or (db and rec_id)) and len(matches) < max_matches:
         try:
-            from app.models.monitoring_telemetry import ApiRequestTelemetry
-            from sqlalchemy import select, or_, cast, String
-            req_stmt = select(ApiRequestTelemetry).where(
-                ApiRequestTelemetry.execution_id == rec_id,
-                or_(
-                    ApiRequestTelemetry.endpoint_url.ilike(f"%{term}%"),
-                    ApiRequestTelemetry.error_message.ilike(f"%{term}%"),
-                    cast(ApiRequestTelemetry.request_payload, String).ilike(f"%{term}%"),
-                    cast(ApiRequestTelemetry.response_payload, String).ilike(f"%{term}%"),
-                )
-            ).limit(2)
-            matching_reqs = db.scalars(req_stmt).all()
-            for mreq in matching_reqs:
-                req_snip = find_structured_snippet(mreq.request_payload, term) or find_structured_snippet(mreq.response_payload, term) or mreq.endpoint_url
-                _add_match("api_request", f"API: {mreq.http_method} {mreq.connector_name or ''}", req_snip, request_id=mreq.id, node_id=mreq.node_id, target="requests")
+            staged_rows = preloaded_staged
+            if staged_rows is None and db and rec_id:
+                from app.models.staged_record import StagedContactRecord
+                from sqlalchemy import select, or_, cast, String
+                staged_stmt = select(StagedContactRecord).where(
+                    StagedContactRecord.execution_id == rec_id,
+                    or_(
+                        StagedContactRecord.first_name.ilike(f"%{term}%"),
+                        StagedContactRecord.last_name.ilike(f"%{term}%"),
+                        StagedContactRecord.email.ilike(f"%{term}%"),
+                        StagedContactRecord.phone.ilike(f"%{term}%"),
+                        StagedContactRecord.department.ilike(f"%{term}%"),
+                        StagedContactRecord.title.ilike(f"%{term}%"),
+                        StagedContactRecord.error_message.ilike(f"%{term}%"),
+                        StagedContactRecord.salesforce_id.ilike(f"%{term}%"),
+                        cast(StagedContactRecord.raw_data, String).ilike(f"%{term}%"),
+                    )
+                ).limit(3)
+                staged_rows = db.scalars(staged_stmt).all()
+            if staged_rows:
+                for srow in staged_rows[:3]:
+                    mfield = "Record"
+                    val = ""
+                    for field in ("email", "first_name", "last_name", "phone", "department", "title", "salesforce_id", "error_message"):
+                        fv = getattr(srow, field, None)
+                        if fv and term_lower in str(fv).lower():
+                            mfield = field
+                            val = str(fv)
+                            break
+                    if not val and srow.raw_data:
+                        raw_snip = find_structured_snippet(srow.raw_data, term)
+                        if raw_snip:
+                            val = raw_snip
+                    if not val:
+                        val = f"{srow.first_name or ''} {srow.last_name or ''}".strip() or srow.email or f"Row #{srow.row_number}"
+                    _add_match(
+                        "staged_record",
+                        f"Record #{srow.row_number} ({mfield})",
+                        f"Row {srow.row_number}: {val}",
+                        record_id=srow.id,
+                        target="steps",
+                        category="records",
+                        field_name=mfield,
+                        field_value=val,
+                    )
         except Exception:
             pass
 
-    return matches[:5]
+    # 12. Outbound API Requests logs - batch preloaded or fallback
+    if (preloaded_api_reqs is not None or (db and rec_id)) and len(matches) < max_matches:
+        try:
+            matching_reqs = preloaded_api_reqs
+            if matching_reqs is None and db and rec_id:
+                from app.models.monitoring_telemetry import ApiRequestTelemetry
+                from sqlalchemy import select, or_, cast, String
+                req_stmt = select(ApiRequestTelemetry).where(
+                    ApiRequestTelemetry.execution_id == rec_id,
+                    or_(
+                        ApiRequestTelemetry.endpoint_url.ilike(f"%{term}%"),
+                        ApiRequestTelemetry.error_message.ilike(f"%{term}%"),
+                        cast(ApiRequestTelemetry.request_payload, String).ilike(f"%{term}%"),
+                        cast(ApiRequestTelemetry.response_payload, String).ilike(f"%{term}%"),
+                    )
+                ).limit(3)
+                matching_reqs = db.scalars(req_stmt).all()
+            if matching_reqs:
+                for mreq in matching_reqs[:3]:
+                    req_snip = find_structured_snippet(mreq.request_payload, term) or find_structured_snippet(mreq.response_payload, term) or mreq.endpoint_url
+                    _add_match(
+                        "api_request",
+                        f"API: {mreq.http_method} {mreq.connector_name or ''}",
+                        req_snip,
+                        request_id=mreq.id,
+                        node_id=mreq.node_id,
+                        target="requests",
+                        category="api_requests",
+                        field_name="api_payload",
+                        field_value=req_snip,
+                    )
+        except Exception:
+            pass
+
+    # 13. Error events - batch preloaded or fallback
+    if (preloaded_errors is not None or (db and rec_id)) and len(matches) < max_matches:
+        try:
+            matching_errs = preloaded_errors
+            if matching_errs is None and db and rec_id:
+                from app.models.error_event import ErrorEvent
+                from sqlalchemy import select, or_
+                err_ev_stmt = select(ErrorEvent).where(
+                    ErrorEvent.execution_id == rec_id,
+                    or_(
+                        ErrorEvent.message.ilike(f"%{term}%"),
+                        ErrorEvent.title.ilike(f"%{term}%"),
+                        ErrorEvent.code.ilike(f"%{term}%"),
+                    )
+                ).limit(2)
+                matching_errs = db.scalars(err_ev_stmt).all()
+            if matching_errs:
+                for err_ev in matching_errs[:2]:
+                    _add_match(
+                        "error",
+                        f"Error Event: {err_ev.title}",
+                        err_ev.message[:120],
+                        target="timeline",
+                        category="errors",
+                        field_name="error_event",
+                        field_value=err_ev.message,
+                    )
+        except Exception:
+            pass
+
+    return matches[:max_matches]
+
+
+def search_universal_executions(
+    db: Session,
+    user: Any,
+    *,
+    query: str,
+    category: str = "all",
+    workflow_id: str | None = None,
+    status: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> dict[str, Any]:
+    """Execute a YouTube-like deep universal search across all execution logs and monitoring details."""
+    from app.api.access import accessible_ids
+    from app.models.workflow import WorkflowRecord
+    from app.models.user import User
+    from app.models.monitoring_telemetry import ExecutionStep, ApiRequestTelemetry
+    from app.models.staged_record import StagedContactRecord
+    from app.models.error_event import ErrorEvent
+    from sqlalchemy import select, or_, cast, String
+
+    page = max(1, page)
+    page_size = max(1, min(100, page_size))
+
+    empty_facets = {
+        "all": 0,
+        "steps": 0,
+        "errors": 0,
+        "records": 0,
+        "api_requests": 0,
+        "payloads": 0,
+        "metadata": 0,
+    }
+
+    if not query or not query.strip():
+        return {
+            "query": "",
+            "category": category,
+            "total": 0,
+            "page": page,
+            "pageSize": page_size,
+            "results": [],
+            "facets": empty_facets,
+        }
+
+    accessible_wf_ids = accessible_ids(db, user)
+    if not accessible_wf_ids:
+        return {
+            "query": query,
+            "category": category,
+            "total": 0,
+            "page": page,
+            "pageSize": page_size,
+            "results": [],
+            "facets": empty_facets,
+        }
+
+    term = query.strip()
+    sterm = f"%{term}%"
+    words = [w.strip() for w in term.split() if len(w.strip()) >= 2]
+
+    # 1. Collect candidate workflow IDs
+    matching_wf_ids = [
+        wid for (wid,) in db.execute(
+            select(WorkflowRecord.id).where(
+                WorkflowRecord.id.in_(accessible_wf_ids),
+                or_(
+                    WorkflowRecord.name.ilike(sterm),
+                    WorkflowRecord.description.ilike(sterm),
+                )
+            )
+        ).all()
+    ]
+
+    # 2. Collect candidate user IDs
+    matching_user_ids = [
+        uid for (uid,) in db.execute(
+            select(User.id).where(User.email.ilike(sterm))
+        ).all()
+    ]
+
+    # 3. ExecutionStep candidate IDs (only if category needs steps or payloads or all)
+    matching_step_exec_ids = []
+    step_preds = [
+        ExecutionStep.step_name.ilike(sterm),
+        ExecutionStep.node_id.ilike(sterm),
+        ExecutionStep.node_type.ilike(sterm),
+        ExecutionStep.error_message.ilike(sterm),
+        cast(ExecutionStep.inputs, String).ilike(sterm),
+        cast(ExecutionStep.outputs, String).ilike(sterm),
+        cast(ExecutionStep.error_details, String).ilike(sterm),
+    ]
+    for w in words[:3]:
+        step_preds.append(cast(ExecutionStep.inputs, String).ilike(f"%{w}%"))
+        step_preds.append(cast(ExecutionStep.outputs, String).ilike(f"%{w}%"))
+
+    if category in ("all", "steps", "payloads"):
+        matching_step_exec_ids = [
+            eid for (eid,) in db.execute(
+                select(ExecutionStep.execution_id)
+                .where(or_(*step_preds))
+                .distinct()
+                .limit(300)
+            ).all()
+        ]
+
+    # 4. ApiRequestTelemetry candidate IDs (only if category needs api_requests or all)
+    matching_req_exec_ids = []
+    api_preds = [
+        ApiRequestTelemetry.endpoint_url.ilike(sterm),
+        ApiRequestTelemetry.connector_name.ilike(sterm),
+        ApiRequestTelemetry.error_message.ilike(sterm),
+        cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
+        cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
+        cast(ApiRequestTelemetry.request_headers, String).ilike(sterm),
+        cast(ApiRequestTelemetry.response_headers, String).ilike(sterm),
+    ]
+    for w in words[:3]:
+        api_preds.append(cast(ApiRequestTelemetry.request_payload, String).ilike(f"%{w}%"))
+        api_preds.append(cast(ApiRequestTelemetry.response_payload, String).ilike(f"%{w}%"))
+
+    if category in ("all", "api_requests"):
+        matching_req_exec_ids = [
+            eid for (eid,) in db.execute(
+                select(ApiRequestTelemetry.execution_id)
+                .where(or_(*api_preds))
+                .distinct()
+                .limit(300)
+            ).all()
+        ]
+
+    # 5. StagedContactRecord candidate IDs (only if category needs records or all)
+    matching_staged_exec_ids = []
+    staged_preds = [
+        StagedContactRecord.first_name.ilike(sterm),
+        StagedContactRecord.last_name.ilike(sterm),
+        StagedContactRecord.email.ilike(sterm),
+        StagedContactRecord.phone.ilike(sterm),
+        StagedContactRecord.department.ilike(sterm),
+        StagedContactRecord.title.ilike(sterm),
+        StagedContactRecord.error_message.ilike(sterm),
+        StagedContactRecord.salesforce_id.ilike(sterm),
+        cast(StagedContactRecord.raw_data, String).ilike(sterm),
+    ]
+    if category in ("all", "records"):
+        matching_staged_exec_ids = [
+            eid for (eid,) in db.execute(
+                select(StagedContactRecord.execution_id)
+                .where(or_(*staged_preds))
+                .distinct()
+                .limit(300)
+            ).all()
+        ]
+
+    # 6. ErrorEvent candidate IDs (only if category needs errors or all)
+    matching_err_exec_ids = []
+    err_preds = [
+        ErrorEvent.message.ilike(sterm),
+        ErrorEvent.title.ilike(sterm),
+        ErrorEvent.code.ilike(sterm),
+        ErrorEvent.category.ilike(sterm),
+        ErrorEvent.resolution.ilike(sterm),
+    ]
+    if category in ("all", "errors"):
+        matching_err_exec_ids = [
+            eid for (eid,) in db.execute(
+                select(ErrorEvent.execution_id)
+                .where(ErrorEvent.execution_id.isnot(None), or_(*err_preds))
+                .distinct()
+                .limit(300)
+            ).all()
+        ]
+
+    # 7. Execution table predicates
+    exec_preds: list[Any] = [
+        Execution.id.ilike(sterm),
+        Execution.source_connector.ilike(sterm),
+        Execution.destination_connector.ilike(sterm),
+        Execution.source_object.ilike(sterm),
+        Execution.destination_object.ilike(sterm),
+        Execution.trigger.ilike(sterm),
+        Execution.status.ilike(sterm),
+        Execution.api_endpoint.ilike(sterm),
+        Execution.http_method.ilike(sterm),
+        Execution.error_summary.ilike(sterm),
+        Execution.error_code.ilike(sterm),
+        Execution.error_type.ilike(sterm),
+        Execution.correlation_id.ilike(sterm),
+        Execution.parent_execution_id.ilike(sterm),
+        Execution.search_text.ilike(sterm),
+        cast(Execution.error, String).ilike(sterm),
+        cast(Execution.trigger_data, String).ilike(sterm),
+        cast(Execution.results, String).ilike(sterm),
+        cast(Execution.trace, String).ilike(sterm),
+        cast(Execution.workflow_data, String).ilike(sterm),
+    ]
+
+    if term.isdigit() and len(term) == 3:
+        try:
+            exec_preds.append(Execution.http_status_code == int(term))
+        except Exception:
+            pass
+
+    for w in words[:3]:
+        exec_preds.append(Execution.search_text.ilike(f"%{w}%"))
+        exec_preds.append(Execution.id.ilike(f"%{w}%"))
+        exec_preds.append(Execution.status.ilike(f"%{w}%"))
+
+    if matching_wf_ids:
+        exec_preds.append(Execution.workflow_id.in_(matching_wf_ids))
+    if matching_user_ids:
+        exec_preds.append(Execution.user_id.in_(matching_user_ids))
+    if matching_step_exec_ids:
+        exec_preds.append(Execution.id.in_(matching_step_exec_ids))
+    if matching_req_exec_ids:
+        exec_preds.append(Execution.id.in_(matching_req_exec_ids))
+    if matching_staged_exec_ids:
+        exec_preds.append(Execution.id.in_(matching_staged_exec_ids))
+    if matching_err_exec_ids:
+        exec_preds.append(Execution.id.in_(matching_err_exec_ids))
+
+    stmt = (
+        select(Execution)
+        .where(
+            Execution.workflow_id.in_(accessible_wf_ids),
+            or_(*exec_preds),
+        )
+    )
+
+    if workflow_id:
+        stmt = stmt.where(Execution.workflow_id == workflow_id)
+    if status:
+        stmt = stmt.where(Execution.status == status)
+    if start_date:
+        try:
+            stmt = stmt.where(Execution.started_at >= datetime.fromisoformat(start_date.replace("Z", "+00:00")))
+        except Exception:
+            pass
+    if end_date:
+        try:
+            stmt = stmt.where(Execution.started_at <= datetime.fromisoformat(end_date.replace("Z", "+00:00")))
+        except Exception:
+            pass
+
+    stmt = stmt.order_by(Execution.started_at.desc()).limit(150)
+    recs = db.scalars(stmt).all()
+
+    # Pre-fetch workflow names and user emails
+    wf_ids = {r.workflow_id for r in recs if r.workflow_id}
+    names = {
+        wid: name
+        for wid, name in db.execute(
+            select(WorkflowRecord.id, WorkflowRecord.name).where(
+                WorkflowRecord.id.in_(wf_ids)
+            )
+        ).all()
+    } if wf_ids else {}
+
+    u_ids = {r.user_id for r in recs if r.user_id is not None}
+    emails = {
+        uid: email
+        for uid, email in db.execute(
+            select(User.id, User.email).where(
+                User.id.in_(u_ids)
+            )
+        ).all()
+    } if u_ids else {}
+
+    # Bulk prefetch related staged records, API requests, and errors to prevent N+1 queries
+    from collections import defaultdict
+
+    rec_ids = [r.id for r in recs if r.id]
+    staged_by_exec: dict[str, list[Any]] = defaultdict(list)
+    api_by_exec: dict[str, list[Any]] = defaultdict(list)
+    err_by_exec: dict[str, list[Any]] = defaultdict(list)
+
+    if rec_ids:
+        if category in ("all", "records"):
+            try:
+                staged_rows = db.scalars(
+                    select(StagedContactRecord).where(
+                        StagedContactRecord.execution_id.in_(rec_ids),
+                        or_(*staged_preds),
+                    ).limit(300)
+                ).all()
+                for s in staged_rows:
+                    if s.execution_id:
+                        staged_by_exec[s.execution_id].append(s)
+            except Exception:
+                pass
+
+        if category in ("all", "api_requests"):
+            try:
+                req_rows = db.scalars(
+                    select(ApiRequestTelemetry).where(
+                        ApiRequestTelemetry.execution_id.in_(rec_ids),
+                        or_(*api_preds),
+                    ).limit(300)
+                ).all()
+                for r in req_rows:
+                    if r.execution_id:
+                        api_by_exec[r.execution_id].append(r)
+            except Exception:
+                pass
+
+        if category in ("all", "errors"):
+            try:
+                err_rows = db.scalars(
+                    select(ErrorEvent).where(
+                        ErrorEvent.execution_id.in_(rec_ids),
+                        or_(*err_preds),
+                    ).limit(300)
+                ).all()
+                for e in err_rows:
+                    if e.execution_id:
+                        err_by_exec[e.execution_id].append(e)
+            except Exception:
+                pass
+
+    all_occurrences = []
+    category_counts = {
+        "all": 0,
+        "steps": 0,
+        "errors": 0,
+        "records": 0,
+        "api_requests": 0,
+        "payloads": 0,
+        "metadata": 0,
+    }
+
+    for rec in recs:
+        wf_name = names.get(rec.workflow_id, rec.workflow_id[:8] if rec.workflow_id else "Workflow")
+        user_email = emails.get(rec.user_id)
+        occ_list = extract_execution_search_matches(
+            rec,
+            term,
+            workflow_name=wf_name,
+            user_email=user_email,
+            max_matches=12,
+            preloaded_staged=staged_by_exec.get(rec.id, []),
+            preloaded_api_reqs=api_by_exec.get(rec.id, []),
+            preloaded_errors=err_by_exec.get(rec.id, []),
+        )
+
+        for occ in occ_list:
+            cat = occ.get("category") or "metadata"
+            category_counts["all"] += 1
+            if cat in category_counts:
+                category_counts[cat] += 1
+            else:
+                category_counts["metadata"] += 1
+
+            dur = rec.duration_ms
+            if dur is None and rec.started_at:
+                end = rec.finished_at or datetime.now(UTC)
+                dur = round((end - rec.started_at).total_seconds() * 1000.0, 1)
+
+            all_occurrences.append({
+                "id": f"{rec.id}_{occ.get('type')}_{occ.get('node_id') or occ.get('request_id') or len(all_occurrences)}",
+                "execution_id": rec.id,
+                "workflow_id": rec.workflow_id,
+                "workflow_name": wf_name,
+                "status": rec.status,
+                "started_at": rec.started_at.isoformat() if rec.started_at else None,
+                "finished_at": rec.finished_at.isoformat() if rec.finished_at else None,
+                "duration_ms": dur,
+                "source_connector": rec.source_connector or rec.trigger or "flowsmith_trigger",
+                "destination_connector": rec.destination_connector or "flowsmith_output",
+                "category": cat,
+                "location_badge": occ.get("label") or f"{cat.capitalize()}",
+                "matched_field": occ.get("field_name") or occ.get("type"),
+                "matched_value": occ.get("field_value"),
+                "snippet": occ.get("snippet") or "",
+                "matched_text": term,
+                "target_tab": occ.get("target") or "timeline",
+                "target_node_id": occ.get("node_id"),
+                "target_request_id": occ.get("request_id"),
+                "target_record_id": occ.get("record_id"),
+                "url": occ.get("url") or f"/executions/{rec.id}",
+            })
+
+    # Filter by category if specified and not 'all'
+    filtered_results = all_occurrences
+    if category and category != "all":
+        filtered_results = [o for o in all_occurrences if o.get("category") == category]
+
+    total = len(filtered_results)
+    start_idx = (page - 1) * page_size
+    paged_results = filtered_results[start_idx : start_idx + page_size]
+
+    return {
+        "query": term,
+        "category": category,
+        "total": total,
+        "page": page,
+        "pageSize": page_size,
+        "results": paged_results,
+        "facets": category_counts,
+    }
 
 
 def finalize_execution_telemetry(

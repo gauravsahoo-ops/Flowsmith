@@ -617,7 +617,7 @@ export default function CredentialsPage() {
 
       <div className="toolbar">
         <input className="search-input" placeholder="Search credentials…" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search credentials" />
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} aria-label="Filter by type">
+        <select className="glass-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)} aria-label="Filter by type">
           <option value="all">All types</option>
           {types.map(t => <option key={t.type} value={t.type}>{t.name}</option>)}
         </select>

@@ -186,6 +186,7 @@ function EdgeContextMenu({ x, y, edgeId, onClose }) {
 }
 
 function CanvasInner() {
+  const isDirty = useWorkflowStore((s) => s._dirty)
   const previewVersion = useWorkflowStore((s) => s.previewVersion)
   const exitPreview = useWorkflowStore((s) => s.exitPreview)
   const rollbackVersion = useWorkflowStore((s) => s.rollbackVersion)
@@ -466,24 +467,54 @@ function CanvasInner() {
       onDragOver={previewGraph ? undefined : handleDragOver}
       onDragLeave={previewGraph ? undefined : handleDragLeave}
     >
-      {/* Top-left pill: Current changes / Viewing Version */}
+      {/* Top-left pill: Working Draft / Version History */}
       <div className="canvas-history-pill-container">
         <button
           type="button"
-          className={`canvas-history-pill ${previewVersion ? 'is-preview' : 'is-current'}`}
+          className={`canvas-history-pill ${previewVersion ? 'is-preview' : 'is-current'} ${isDirty ? 'is-dirty' : 'is-saved'}`}
           onClick={() => {
             if (previewVersion) exitPreview()
             else openHistoryDrawer('versions')
           }}
-          title={previewVersion ? "Click to return to current changes" : "View workflow history"}
+          title={previewVersion ? "Click to return to working draft" : "Workflow Version History — click to view versions & audit timeline"}
+          aria-label={previewVersion ? "Return to working draft" : "Open version history"}
         >
-          <span className={`pill-dot ${previewVersion ? (previewVersion.is_active ? 'dot-active' : 'dot-saved') : 'dot-current'}`} />
-          <span>
+          <span className="canvas-history-pill-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </span>
+
+          <span className={`pill-dot ${previewVersion ? (previewVersion.is_active ? 'dot-active' : 'dot-saved') : (isDirty ? 'dot-dirty' : 'dot-clean')}`} />
+
+          <span className="canvas-history-pill-title">
             {previewVersion
               ? `Viewing Version ${previewVersion.version}${previewVersion.is_active ? ' (Active)' : ''}`
-              : 'Current changes'}
+              : 'Working Draft'}
           </span>
-          {previewVersion && <span className="pill-return-hint">Return</span>}
+
+          {!previewVersion && (
+            <span className="canvas-history-pill-badge">
+              {workflow?.version ? `v${workflow.version}` : 'Draft'}
+            </span>
+          )}
+
+          {previewVersion ? (
+            <span className="pill-return-hint">
+              <span>Return to Draft</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 14 4 9 9 4" />
+                <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+              </svg>
+            </span>
+          ) : (
+            <span className="canvas-history-pill-chevron" aria-hidden="true">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </span>
+          )}
         </button>
       </div>
 
@@ -511,7 +542,7 @@ function CanvasInner() {
                 onClick={() => {
                   setActionsMenuOpen(false)
                   if (window.confirm(`Restore workflow to version ${previewVersion.version}? Current unsaved edits will be replaced.`)) {
-                    rollbackVersion(workflow.id, previewVersion.version)
+                    rollbackVersion(workflow?.id, previewVersion.version)
                   }
                 }}
               >
@@ -525,7 +556,7 @@ function CanvasInner() {
                   exitPreview()
                 }}
               >
-                Back to current changes
+                Back to working draft
               </button>
             </div>
           )}

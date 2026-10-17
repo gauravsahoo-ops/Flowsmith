@@ -99,14 +99,14 @@ export default function DataTablesPage() {
 
       <div className="toolbar">
         <div className="toolbar-left">
-          <select value={wsId} onChange={e => { setWsId(e.target.value); setNewWs(e.target.value); }} aria-label="Workspace">
+          <select className="glass-select" value={wsId} onChange={e => { setWsId(e.target.value); setNewWs(e.target.value); }} aria-label="Workspace">
             {workspaces.length === 0 && <option value="">No workspaces</option>}
             {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
           </select>
           <input className="search-input" placeholder="Search tables…" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search tables" />
         </div>
         <div className="toolbar-right">
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
+          <select className="glass-select" value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
             <option value="updated">Sort by updated</option>
             <option value="created">Sort by created</option>
             <option value="name">Sort by name</option>

@@ -4,6 +4,7 @@ import { api, getToken, setToken } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ErrorAlertsList from '../components/ErrorAlertsList'
+import UniversalExecutionSearch from '../components/UniversalExecutionSearch'
 
 function MonitoringStatCard({ title, value, subtitle, color, icon, badge }) {
   return (
@@ -363,6 +364,18 @@ export default function MonitoringPage() {
           </div>
         }
       />
+
+      {/* Universal Execution & Telemetry Search Bar */}
+      <div style={{ marginBottom: 18 }}>
+        <UniversalExecutionSearch
+          placeholder="Search all execution logs, errors, steps, API payloads, or records from Monitoring..."
+          onSearch={(q, cat) => {
+            if (q && q.trim()) {
+              navigate(`/executions?search=${encodeURIComponent(q.trim())}${cat && cat !== 'all' ? `&category=${cat}` : ''}`)
+            }
+          }}
+        />
+      </div>
 
       {/* Primary Tab Navigation */}
       <div

@@ -32,7 +32,7 @@ export const useUiStore = create((set) => ({
   toggleHistoryDrawer: () =>
     set((s) => {
       const next = !s.historyDrawerOpen
-      return next ? { historyDrawerOpen: true, sidebarOpen: false } : { historyDrawerOpen: false }
+      return next ? { historyDrawerOpen: true, historyTab: 'versions', sidebarOpen: false } : { historyDrawerOpen: false }
     }),
   setHistoryTab: (tab) => set({ historyTab: tab }),
 

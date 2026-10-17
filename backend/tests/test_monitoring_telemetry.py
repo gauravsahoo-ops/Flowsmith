@@ -756,3 +756,130 @@ def test_execution_search_indexing_and_snippets():
     assert len(matches_obj) > 0
     assert any(m["type"] in ("object", "input", "node") for m in matches_obj)
 
+
+def test_universal_execution_search_endpoint(client):
+    """Test the full YouTube-like Universal Search endpoint across executions."""
+    headers, user = _setup_user(client)
+    wf_id = f"wf_univ_{uuid.uuid4().hex[:6]}"
+    client.post("/api/workflows", json=make_workflow(wf_id, "Customer Sync Engine"), headers=headers)
+
+    exec_id = f"exec_univ_{uuid.uuid4().hex[:8]}"
+
+    with session_scope() as session:
+        exec_row = _create_execution(
+            session,
+            id=exec_id,
+            workflow_id=wf_id,
+            user_id=user["id"],
+            status="failed",
+            source_connector="hubspot",
+            destination_connector="salesforce",
+            source_object="Contact",
+            destination_object="Lead",
+            http_method="POST",
+            http_status_code=502,
+            api_endpoint="/services/data/v59.0/sobjects/Lead",
+            error_summary="Bad Gateway: Downstream Salesforce API gateway timed out",
+            error_code="GATEWAY_TIMEOUT_502",
+            error_type="DOWNSTREAM_5XX",
+            trigger_data={"batch_name": "quarter_one_leads", "total_records": 100},
+            trace=[
+                {
+                    "node_id": "step_extract_1",
+                    "node_title": "Extract Contacts",
+                    "node_type": "hubspot_query",
+                    "inputs": {"filter_field": "email", "filter_val": "customer_one@domain.com"},
+                    "outputs": {"count": 1, "lead": {"first_name": "Alice", "nested_key": "special_token_val_42"}},
+                    "status": "success",
+                    "duration_ms": 120.0,
+                },
+                {
+                    "node_id": "step_load_sf",
+                    "node_title": "Load to Salesforce",
+                    "node_type": "salesforce_upsert",
+                    "inputs": {"lead_email": "customer_one@domain.com", "tier": "enterprise"},
+                    "error": "HTTP 502: Server unreachable",
+                    "status": "error",
+                    "duration_ms": 2500.0,
+                },
+            ],
+        )
+
+        # Add ExecutionStep rows
+        now_step = datetime.now(timezone.utc)
+        session.add(ExecutionStep(
+            id=f"step_{uuid.uuid4().hex[:8]}",
+            execution_id=exec_id,
+            node_id="step_extract_1",
+            step_name="Extract Contacts",
+            node_type="hubspot_query",
+            inputs={"filter_field": "email", "filter_val": "customer_one@domain.com"},
+            outputs={"count": 1, "lead": {"first_name": "Alice", "nested_key": "special_token_val_42"}},
+            status="success",
+            started_at=now_step,
+            completed_at=now_step,
+            duration_ms=120.0,
+        ))
+
+        # Add ApiRequestTelemetry row
+        session.add(ApiRequestTelemetry(
+            id=f"req_{uuid.uuid4().hex[:8]}",
+            execution_id=exec_id,
+            node_id="step_load_sf",
+            connector_name="salesforce",
+            http_method="POST",
+            endpoint_url="https://api.salesforce.com/services/data/v59.0/sobjects/Lead",
+            http_status_code=502,
+            duration_ms=2500.0,
+            request_payload={"lead_email": "customer_one@domain.com", "tier": "enterprise"},
+            response_payload={"error": "Bad Gateway", "code": 502},
+        ))
+
+    # 1. Search for single word "one" (case-insensitive)
+    resp = client.get("/api/executions/universal-search?q=one", headers=headers)
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    meta = resp.json()["meta"]
+    assert meta["total"] > 0
+    assert meta["facets"]["all"] > 0
+    # Check that occurrence points to this execution and has target deep-link
+    occ = next(o for o in data if o["execution_id"] == exec_id)
+    assert occ["workflow_name"] == "Customer Sync Engine"
+    assert "/executions/" in occ["url"]
+
+    # 2. Search for deeply nested JSON string "special_token_val_42"
+    resp2 = client.get("/api/executions/universal-search?q=special_token_val_42", headers=headers)
+    assert resp2.status_code == 200
+    data2 = resp2.json()["data"]
+    assert any(o["execution_id"] == exec_id and "special_token_val_42" in o["snippet"] for o in data2)
+
+    # 3. Search for error keyword "gateway"
+    resp3 = client.get("/api/executions/universal-search?q=gateway", headers=headers)
+    assert resp3.status_code == 200
+    data3 = resp3.json()["data"]
+    assert any(o["category"] == "errors" or "Gateway" in o["snippet"] for o in data3)
+
+    # 4. Search with category filter: category="api_requests"
+    resp4 = client.get("/api/executions/universal-search?q=salesforce&category=api_requests", headers=headers)
+    assert resp4.status_code == 200
+    data4 = resp4.json()["data"]
+    for o in data4:
+        assert o["category"] == "api_requests"
+
+    # 5. Verify standard execution list also returns search_matches
+    resp5 = client.get("/api/executions?search=special_token_val_42", headers=headers)
+    assert resp5.status_code == 200
+    exec_list = resp5.json()["data"]
+    assert len(exec_list) >= 1
+    target = next(e for e in exec_list if e["id"] == exec_id)
+    assert len(target["search_matches"]) > 0
+    assert any("special_token_val_42" in m["snippet"] for m in target["search_matches"])
+
+    # 6. Verify strict isolation: Another user cannot see these results
+    other_headers, _ = _setup_user(client, email="other_auditor@test.com")
+    resp_other = client.get("/api/executions/universal-search?q=special_token_val_42", headers=other_headers)
+    assert resp_other.status_code == 200
+    assert resp_other.json()["meta"]["total"] == 0
+    assert len(resp_other.json()["data"]) == 0
+
+

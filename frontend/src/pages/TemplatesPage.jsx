@@ -146,7 +146,7 @@ export default function TemplatesPage() {
             onChange={e => setSearch(e.target.value)}
             aria-label="Search templates"
           />
-          <select value={category} onChange={e => setCategory(e.target.value)} aria-label="Filter category">
+          <select className="glass-select" value={category} onChange={e => setCategory(e.target.value)} aria-label="Filter category">
             <option value="all">All categories</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>

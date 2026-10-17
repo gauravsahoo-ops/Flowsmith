@@ -31,7 +31,7 @@ function Badge({ tone = 'muted', title, children }) {
   )
 }
 
-export default function StepDetail({ execution, step, onRetryNode }) {
+export default function StepDetail({ execution, step, onRetryNode, search, highlightField }) {
   const catalogIndex = useWorkflowStore((s) => s.catalogIndex)
   const [confirmUnsafe, setConfirmUnsafe] = useState(false)
 
@@ -214,7 +214,7 @@ export default function StepDetail({ execution, step, onRetryNode }) {
                 </span>
               )}
             </div>
-            <JsonTree value={effectiveInputs} defaultExpandDepth={3} />
+            <JsonTree value={effectiveInputs} defaultExpandDepth={search ? 10 : 3} search={search} />
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 4 }}>
               <h5 style={{ margin: 0 }}>Outputs</h5>
@@ -226,7 +226,7 @@ export default function StepDetail({ execution, step, onRetryNode }) {
                 </span>
               )}
             </div>
-            <JsonTree value={effectiveOutputs} defaultExpandDepth={3} />
+            <JsonTree value={effectiveOutputs} defaultExpandDepth={search ? 10 : 3} search={search} />
           </>
         )
       })()}
