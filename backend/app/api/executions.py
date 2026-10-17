@@ -106,7 +106,16 @@ def _to_dict(
         wf_name = getattr(rec, "workflow_name", None)
 
     # Dynamic fallback if integration metadata or status code is missing/default
-    if (
+    # CRITICAL PERFORMANCE GUARD: Avoid triggering lazy loading on deferred columns (trace, workflow_data)
+    from sqlalchemy.orm.attributes import NO_VALUE
+
+    raw_wf_data = rec.__dict__.get("workflow_data")
+    wf_data = raw_wf_data if (raw_wf_data is not None and raw_wf_data is not NO_VALUE) else None
+
+    raw_trace = rec.__dict__.get("trace")
+    trace = raw_trace if (raw_trace is not None and raw_trace is not NO_VALUE) else None
+
+    if wf_data is not None and (
         not dest_conn
         or dest_conn in ("flowsmith_output", "flowsmith.data_load", "data_load")
         or not src_obj
@@ -117,11 +126,10 @@ def _to_dict(
     ):
         try:
             from app.services.telemetry_service import extract_execution_flow_metadata, extract_node_record_counts
-            wf_data = getattr(rec, "workflow_data", None) or {}
             meta = extract_execution_flow_metadata(
                 wf_data,
                 trigger=rec.trigger,
-                trace=getattr(rec, "trace", None),
+                trace=trace,
                 error=rec.error,
                 status=rec.status,
                 workflow_name=wf_name,
@@ -146,8 +154,7 @@ def _to_dict(
             if not http_sc:
                 http_sc = meta.get("http_status_code")
 
-            if r_read <= 1 or r_proc <= 3:
-                trace = getattr(rec, "trace", None) or []
+            if trace and (r_read <= 1 or r_proc <= 3):
                 max_batch = 0
                 ds_read = 0
                 for s in trace:
@@ -162,6 +169,20 @@ def _to_dict(
                     r_created = max_batch
         except Exception:
             pass
+    elif wf_data is None:
+        # Fallback defaults for list queries when snapshot is deferred
+        if not source_conn:
+            source_conn = rec.trigger or "manual"
+        if not dest_conn or dest_conn in ("flowsmith_output", "flowsmith.data_load", "data_load"):
+            dest_conn = dest_conn or "flowsmith_output"
+        if not src_obj or src_obj in ("payload", "trigger", "event", "data"):
+            src_obj = src_obj or "record"
+        if not dst_obj:
+            dst_obj = src_obj or "record"
+        if not http_m:
+            http_m = "POST"
+        if not http_sc:
+            http_sc = 200 if rec.status == "success" else (500 if rec.status in ("failed", "error", "timeout") else 202)
 
     search_matches = []
     if search and search.strip():
@@ -189,6 +210,7 @@ def _to_dict(
         "finished_at": rec.finished_at,
         "pause_state": rec.pause_state,
         "duration_ms": duration_ms,
+        "queue_wait_ms": getattr(rec, "queue_wait_ms", None),
         "source_connector": source_conn or rec.trigger or "flowsmith_trigger",
         "destination_connector": dest_conn or "flowsmith_output",
         "source_object": src_obj,

@@ -349,13 +349,28 @@ export default function WorkflowsPage() {
 
   async function handleDuplicate(wf) {
     try {
-      // Use export/import roundtrip to duplicate
-      const exported = await api.exportWorkflow(wf.id)
-      const copyDoc = { ...exported, name: `${exported.name || wf.name} (copy)` }
-      // Try import
-      const imported = await api.importWorkflow(copyDoc)
+      let duplicated
+      try {
+        duplicated = await api.duplicateWorkflow(wf.id)
+      } catch (err) {
+        if (err.status === 404) {
+          const exported = await api.exportWorkflow(wf.id)
+          const baseName = wf.name || 'Workflow'
+          const copyName = baseName.endsWith('(Copy)') ? `${baseName} 2` : `${baseName} (Copy)`
+          const copyDoc = {
+            ...(exported.workflow ? exported.workflow : exported),
+            id: undefined,
+            name: copyName,
+            active: false,
+            status: 'draft',
+          }
+          duplicated = await api.importWorkflow(copyDoc)
+        } else {
+          throw err
+        }
+      }
       await load()
-      navigate(`/workflows/${imported.id}`)
+      navigate(`/workflows/${duplicated.id}`)
     } catch (e) { setError(e.message) }
   }
 

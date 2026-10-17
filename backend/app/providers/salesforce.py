@@ -90,6 +90,8 @@ class SalesforceProviderClient:
         self._token_expires_at: float = 0.0
         self._instance_url: str = ""
         self._token_lock = asyncio.Lock()
+        self._metadata_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+        self._metadata_ttl_s: float = 600.0
 
     # ------------------------------------------------------------------
     # Authentication
@@ -102,6 +104,7 @@ class SalesforceProviderClient:
         self._token_key = ""
         self._token_expires_at = 0.0
         self._instance_url = ""
+        self._metadata_cache.clear()
 
     @property
     def has_token(self) -> bool:
@@ -876,11 +879,20 @@ class SalesforceProviderClient:
         *,
         timeout: float = 30.0,
     ) -> dict[str, Any]:
+        cache_key = f"describe:{self._instance_url or creds.get('instance_url', '')}:{object_name}"
+        now = time.monotonic()
+        if cache_key in self._metadata_cache:
+            ts, data = self._metadata_cache[cache_key]
+            if now - ts < self._metadata_ttl_s:
+                return data
+
         response = await self.request(
             creds, "GET", f"/sobjects/{object_name}/describe", timeout=timeout
         )
         self._raise_for_status(response)
-        return self._parse_body(response, "describe")
+        body = self._parse_body(response, "describe")
+        self._metadata_cache[cache_key] = (now, body)
+        return body
 
     async def list_objects(
         self,
@@ -888,9 +900,18 @@ class SalesforceProviderClient:
         *,
         timeout: float = 30.0,
     ) -> dict[str, Any]:
+        cache_key = f"list:{self._instance_url or creds.get('instance_url', '')}"
+        now = time.monotonic()
+        if cache_key in self._metadata_cache:
+            ts, data = self._metadata_cache[cache_key]
+            if now - ts < self._metadata_ttl_s:
+                return data
+
         response = await self.request(creds, "GET", "/sobjects", timeout=timeout)
         self._raise_for_status(response)
-        return self._parse_body(response, "list")
+        body = self._parse_body(response, "list")
+        self._metadata_cache[cache_key] = (now, body)
+        return body
 
     async def custom_api_call(
         self,

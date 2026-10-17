@@ -83,7 +83,7 @@ export default function ScheduleTriggerEditor({ node, onParamsChange }) {
   return (
     <div className="st-editor">
       <div className="st-info banner-inline info" style={{fontSize:'12px', padding:'8px 10px', marginBottom:'12px'}}>
-        This workflow will run on the schedule you define here once you publish it. For testing, you can also trigger it manually by going back to the canvas and clicking 'execute workflow'.
+        This workflow will run on the schedule you define here once you activate it. For testing, you can also trigger it manually by going back to the canvas and clicking 'Test Run'.
       </div>
 
       <div className="st-rules-head">

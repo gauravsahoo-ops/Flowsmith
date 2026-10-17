@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { memo, useMemo, useState, useRef, useEffect } from 'react'
 import { useReactFlow } from '@xyflow/react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
@@ -36,9 +36,18 @@ function PaletteRow({ node, onCanvasCount, onJump, onClick }) {
           {node.display_name}
           {isTrigger && (
             <span className="node-trigger-bolt" title="Trigger" aria-label="Trigger">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="#f97316" stroke="#ea580c" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
+              <img
+                src="/trigger-beacon.webp"
+                alt="Trigger"
+                className="node-trigger-beacon-img"
+                loading="lazy"
+                onError={(e) => {
+                  if (!e.currentTarget.dataset.fallback) {
+                    e.currentTarget.dataset.fallback = '1'
+                    e.currentTarget.src = '/trigger-beacon.png'
+                  }
+                }}
+              />
             </span>
           )}
         </div>
@@ -70,10 +79,12 @@ function PaletteRow({ node, onCanvasCount, onJump, onClick }) {
   )
 }
 
-export default function Sidebar({ onOpenCredentials }) {
+function Sidebar({ onOpenCredentials }) {
   const sidebarRef = useRef(null)
   const catalog = useWorkflowStore((s) => s.catalog)
-  const nodes = useWorkflowStore((s) => s.nodes)
+  const nodeTypesKey = useWorkflowStore(
+    (s) => s.nodes.map((n) => (n.type === 'custom' ? n.data?.node?.type : null)).filter(Boolean).sort().join(',')
+  )
   const selectNode = useUiStore((s) => s.selectNode)
   const closeSidebar = useUiStore((s) => s.closeSidebar)
   const { fitView } = useReactFlow()
@@ -116,13 +127,12 @@ export default function Sidebar({ onOpenCredentials }) {
   // How many of each type are already on the canvas (drives the ×N chips).
   const countsByType = useMemo(() => {
     const counts = new Map()
-    for (const n of nodes) {
-      if (n.type !== 'custom') continue
-      const t = n.data?.node?.type
-      counts.set(t, (counts.get(t) || 0) + 1)
+    if (!nodeTypesKey) return counts
+    for (const t of nodeTypesKey.split(',')) {
+      if (t) counts.set(t, (counts.get(t) || 0) + 1)
     }
     return counts
-  }, [nodes])
+  }, [nodeTypesKey])
 
   const connectorNodes = useMemo(() => {
     return catalog.filter((n) => n.icon === '🔌' || n.category === 'Connectors' || n.is_connector || n.icon === 'connector' || (n.credential_types && n.credential_types.length > 0))
@@ -167,7 +177,7 @@ export default function Sidebar({ onOpenCredentials }) {
 
   /** Jump to the first canvas instance of a node type. */
   function jumpToType(type) {
-    const target = nodes.find(
+    const target = useWorkflowStore.getState().nodes.find(
       (n) => n.type === 'custom' && n.data?.node?.type === type,
     )
     if (!target) return
@@ -231,11 +241,25 @@ export default function Sidebar({ onOpenCredentials }) {
         desc: 'Start workflows automatically or on events',
         count: triggerCount || 8,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#f97316" stroke="#ea580c" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-          </svg>
+          <img
+            src="/trigger-beacon.webp"
+            alt="Triggers"
+            width={20}
+            height={20}
+            style={{
+              display: 'block',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 0 6px rgba(56, 189, 248, 0.5))',
+            }}
+            onError={(e) => {
+              if (!e.currentTarget.dataset.fallback) {
+                e.currentTarget.dataset.fallback = '1'
+                e.currentTarget.src = '/trigger-beacon.png'
+              }
+            }}
+          />
         ),
-        accent: '#f97316',
+        accent: '#06b6d4',
       },
       {
         id: 'Actions',
@@ -727,3 +751,5 @@ export default function Sidebar({ onOpenCredentials }) {
     </aside>
   )
 }
+
+export default memo(Sidebar)

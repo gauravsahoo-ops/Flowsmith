@@ -340,7 +340,9 @@ export const useExecutionStore = create((set, get) => ({
       socket.onmessage = (msg) => get().onEvent(id, msg)
       socket.onerror = () => get().fallback(id)
       socket.onclose = (e) => {
-        if (e.code !== 1000 && e.code !== 1005) get().fallback(id)
+        if (get().running || (e.code !== 1000 && e.code !== 1005)) {
+          get().fallback(id)
+        }
       }
       if (get()._connectSeq !== seq) {
         try {

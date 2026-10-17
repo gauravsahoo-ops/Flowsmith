@@ -423,18 +423,15 @@
   stroke-width: 2.6;
   stroke-dasharray: 8 6;
   stroke-linecap: round;
-  animation: dashflow 1.4s linear infinite;
+  animation: dashflow 1.8s linear infinite;
   filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.65));
   will-change: stroke-dashoffset;
 }
 .exec-edge.exec-error {
   stroke: #f43f5e;
   stroke-width: 2.8;
-  stroke-dasharray: 8 6;
   stroke-linecap: round;
-  animation: dashflow 1.4s linear infinite;
-  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.8));
-  will-change: stroke-dashoffset;
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.6));
 }
 .exec-edge.exec-skipped {
   stroke: #64748b;

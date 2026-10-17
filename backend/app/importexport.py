@@ -25,36 +25,183 @@ from typing import Any, Callable
 EXPORT_FORMAT = "opencode-workflow"
 EXPORT_VERSION = 1
 
+SENSITIVE_PARAM_KEYS = {
+    "auth_token",
+    "auth_password",
+    "token",
+    "password",
+    "api_key",
+    "secret",
+    "client_secret",
+    "private_key",
+    "access_token",
+    "refresh_token",
+    "service_account_key",
+    "connection_string",
+    "database_url",
+    "webhook_secret",
+    "signing_secret",
+    "session_token",
+    "oauth_token",
+    "api_token",
+    "secret_key",
+    "bearer_token",
+    "security_token",
+    "app_secret",
+}
+
+SENSITIVE_HEADER_KEYS = {
+    "authorization",
+    "proxy-authorization",
+    "x-api-key",
+    "cookie",
+    "set-cookie",
+    "api-key",
+}
+
 
 class WorkflowImportError(ValueError):
     """Raised when an import payload cannot be understood."""
 
 
+def _sanitize_params(params: dict[str, Any]) -> None:
+    """Recursively sanitize sensitive parameter keys and auth headers."""
+    for key in list(params.keys()):
+        key_lower = key.lower()
+        if (
+            key_lower in SENSITIVE_PARAM_KEYS
+            or key_lower.endswith(("_secret", "_password", "_token", "_key"))
+            or ("password" in key_lower and "policy" not in key_lower)
+        ):
+            params.pop(key, None)
+            continue
+
+        val = params[key]
+        if isinstance(val, dict):
+            if key_lower == "headers":
+                for hk in list(val.keys()):
+                    if str(hk).lower() in SENSITIVE_HEADER_KEYS:
+                        val.pop(hk, None)
+            else:
+                _sanitize_params(val)
+        elif isinstance(val, list):
+            for item in val:
+                if isinstance(item, dict):
+                    if "name" in item and str(item.get("name")).lower() in SENSITIVE_HEADER_KEYS:
+                        item["value"] = ""
+                    else:
+                        _sanitize_params(item)
+
+
+def sanitize_workflow_data(
+    workflow: dict[str, Any],
+    *,
+    strip_credentials: bool = True,
+    strip_secrets: bool = True,
+) -> dict[str, Any]:
+    """Sanitize a workflow dictionary for safe export, duplication, template save, or import.
+
+    1. Removes all live credential references or replaces them with empty dicts.
+    2. Removes passwords, tokens, API keys, secrets, and auth headers from node parameters.
+    3. Strips runtime/execution state, active jobs, traces, and execution IDs.
+    4. Enforces inactive status (`active = False`, `status = "draft"`).
+    """
+    import copy
+
+    doc = copy.deepcopy(workflow)
+
+    # 1. Enforce lifecycle safety
+    doc["active"] = False
+    doc["status"] = "draft"
+
+    # 2. Exclude runtime execution state
+    for run_key in (
+        "execution_id",
+        "executionId",
+        "active_execution_id",
+        "runtime_state",
+        "job_id",
+        "results",
+        "trace",
+        "last_run",
+        "history",
+        "pending_jobs",
+        "run_preview",
+        "runPreview",
+        "node_statuses",
+        "nodeStatuses",
+    ):
+        doc.pop(run_key, None)
+
+    # 3. Sanitize nodes
+    nodes = doc.get("nodes")
+    if isinstance(nodes, list):
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+
+            if strip_credentials:
+                node["credentials"] = {}
+
+            params = node.get("parameters")
+            if isinstance(params, dict) and strip_secrets:
+                _sanitize_params(params)
+
+            for nk in ("last_run", "runPreview", "execution_status", "status_message", "error"):
+                node.pop(nk, None)
+
+    return doc
+
+
 def build_export(workflow: dict[str, Any]) -> dict[str, Any]:
-    """Wrap a native workflow document for download."""
+    """Wrap a native workflow document for download, strictly excluding secrets and runtime state."""
+    sanitized = sanitize_workflow_data(workflow, strip_credentials=True, strip_secrets=True)
     return {
         "format": EXPORT_FORMAT,
         "version": EXPORT_VERSION,
         "exported_at": datetime.now(timezone.utc).isoformat(),
-        "workflow": workflow,
+        "workflow": sanitized,
     }
 
 
 def parse_import(payload: Any) -> dict[str, Any]:
-    """Normalize an import payload to a native workflow document."""
+    """Normalize an import payload to a native workflow document.
+
+    Guarantees that:
+    1. The payload conforms to a supported format and version.
+    2. Node and connection structures are normalized.
+    3. Credentials and secret parameters are sanitized.
+    4. Lifecycle is set to Draft / Inactive (`active = False`, `status = "draft"`).
+    """
     if not isinstance(payload, dict):
         raise WorkflowImportError("Import payload must be a JSON object.")
+
+    fmt = payload.get("format")
+    ver = payload.get("version")
+    if fmt == EXPORT_FORMAT and ver is not None:
+        try:
+            parsed_ver = int(ver)
+        except (ValueError, TypeError):
+            raise WorkflowImportError(f"Invalid export version: {ver}")
+        if parsed_ver > EXPORT_VERSION:
+            raise WorkflowImportError(
+                f"Unsupported workflow export version: {ver}. Supported up to version {EXPORT_VERSION}."
+            )
+
     wrapped = payload.get("workflow")
     inner: dict[str, Any] = wrapped if isinstance(wrapped, dict) else payload
     connections = inner.get("connections")
     if isinstance(connections, dict):
-        return _from_external(inner)
-    if not isinstance(inner.get("nodes"), list):
+        out = _from_external(inner)
+    elif not isinstance(inner.get("nodes"), list):
         raise WorkflowImportError(
             "Unrecognized workflow document: expected a 'nodes' array "
             "(native, opencode-workflow envelope, or standard export)."
         )
-    return inner
+    else:
+        out = dict(inner)
+
+    return sanitize_workflow_data(out, strip_credentials=True, strip_secrets=True)
 
 
 # ----------------------------------------------------------------------

@@ -29,6 +29,8 @@ from app.audit import (
     WORKFLOW_CREATE,
     WORKFLOW_DEACTIVATE,
     WORKFLOW_DELETE,
+    WORKFLOW_DUPLICATE,
+    WORKFLOW_IMPORT,
     WORKFLOW_SHARE,
     WORKFLOW_UPDATE,
     log_event,
@@ -44,7 +46,7 @@ from app.api.access import (
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params, validate_workflow_payload
 from app.db import get_db
-from app.importexport import WorkflowImportError, build_export, parse_import
+from app.importexport import WorkflowImportError, build_export, parse_import, sanitize_workflow_data
 from app.models import AuditEvent, Credential, User, WebhookTrigger, WorkflowRecord, WorkflowShare, WorkflowVersionRecord
 from app.nodes.registry import NODE_REGISTRY
 from app.schemas.workflow import Workflow
@@ -261,6 +263,7 @@ def import_workflow(
 
     A fresh workflow id is generated when the source id is missing or
     already taken, so re-importing never clobbers an existing workflow.
+    Always creates the workflow in Draft / Inactive status without active triggers.
     """
     try:
         native = parse_import(body)
@@ -269,6 +272,10 @@ def import_workflow(
     source_id = native.get("id")
     if not source_id or db.get(WorkflowRecord, source_id) is not None:
         native["id"] = f"wf_import_{uuid.uuid4().hex[:12]}"
+
+    native["status"] = "draft"
+    native["active"] = False
+
     workflow = validate_workflow_payload(native)
     _validate_credential_refs(workflow, user, db, allow_unbound=True)
 
@@ -287,28 +294,119 @@ def import_workflow(
 
     if db.get(WorkflowRecord, workflow.id) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Workflow '{workflow.id}' already exists.")
+
+    dumped_data = workflow.model_dump(mode="json")
+    dumped_data["status"] = "draft"
+    dumped_data["active"] = False
+
     rec = WorkflowRecord(
         id=workflow.id,
         user_id=user.id,
         name=workflow.name,
         description=workflow.settings.get("description", ""),
         version=workflow.version,
-        data=workflow.model_dump(mode="json"),
+        active=False,
+        data=dumped_data,
     )
     db.add(rec)
     ver = WorkflowVersionRecord(
         id=f"ver_{uuid.uuid4().hex[:12]}",
         workflow_id=workflow.id,
         version=workflow.version,
-        data=workflow.model_dump(mode="json"),
+        data=dumped_data,
         user_id=user.id,
         is_active=True,
     )
     db.add(ver)
     db.commit()
     db.refresh(rec)
-    log_event(db, WORKFLOW_CREATE, target_type=SHARE_TARGET, target_id=rec.id, user_id=user.id)
+    log_event(db, WORKFLOW_IMPORT, target_type=SHARE_TARGET, target_id=rec.id, user_id=user.id)
     return ok(_to_dict(rec, "owner"), meta={"imported": True, "source_id": source_id})
+
+
+@router.post("/{workflow_id}/duplicate", status_code=status.HTTP_201_CREATED)
+def duplicate_workflow(
+    workflow_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    """Safely duplicate a workflow.
+
+    Copies the complete workflow design:
+    - Nodes, edges, layout, positions, viewport
+    - Node configurations, mappings, expressions, error handling, settings
+    - Generates a fresh unique workflow ID
+    - Names the duplicate '{original_name} (Copy)'
+    - Strictly excludes credentials, secrets, tokens, passwords, and auth headers
+    - Strictly excludes active execution IDs, runtime states, pending jobs, and history
+    - Regenerates webhook and trigger paths to guarantee uniqueness and entropy
+    - Enforces Draft / Inactive lifecycle state (active = False, status = 'draft')
+    - Never triggers or registers active schedules or executions
+    """
+    rec = get_workflow(db, workflow_id, user, require_edit=False)
+    raw_data = dict(rec.data or {})
+
+    # Deep copy and sanitize data (strip credentials, secrets, runtime states)
+    data = sanitize_workflow_data(raw_data, strip_credentials=True, strip_secrets=True)
+
+    # Generate fresh unique workflow ID
+    new_id = f"wf_{uuid.uuid4().hex[:12]}"
+    while db.get(WorkflowRecord, new_id) is not None:
+        new_id = f"wf_{uuid.uuid4().hex[:12]}"
+
+    # Form duplicate name
+    base_name = rec.name or data.get("name") or "Workflow"
+    copy_suffix = "(Copy)"
+    if not base_name.endswith(copy_suffix):
+        new_name = f"{base_name} {copy_suffix}"
+    else:
+        new_name = f"{base_name} 2"
+
+    data["id"] = new_id
+    data["name"] = new_name
+    data["version"] = 1
+    data["status"] = "draft"
+    data["active"] = False
+
+    workflow = validate_workflow_payload(data)
+
+    # Regenerate webhook/trigger paths with 24+ chars of entropy
+    for node in workflow.nodes:
+        if node.type in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
+            curr_path = str(node.parameters.get("path") or "")
+            clean_prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr_path)[:12] or "hook"
+            node.parameters["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:24]}"
+
+    _validate_webhook_paths(workflow, db, exclude_id=new_id)
+
+    new_data = workflow.model_dump(mode="json")
+    new_data["status"] = "draft"
+    new_data["active"] = False
+
+    new_rec = WorkflowRecord(
+        id=new_id,
+        user_id=user.id,
+        workspace_id=rec.workspace_id,
+        name=new_name,
+        description=rec.description or "",
+        version=1,
+        active=False,
+        data=new_data,
+    )
+    db.add(new_rec)
+
+    ver = WorkflowVersionRecord(
+        id=f"ver_{uuid.uuid4().hex[:12]}",
+        workflow_id=new_id,
+        version=1,
+        data=new_data,
+        user_id=user.id,
+        is_active=True,
+    )
+    db.add(ver)
+    db.commit()
+    db.refresh(new_rec)
+
+    log_event(db, WORKFLOW_DUPLICATE, target_type=SHARE_TARGET, target_id=new_rec.id, user_id=user.id)
+    return ok(_to_dict(new_rec, "owner"), meta={"duplicated_from": workflow_id})
 
 
 @router.get("/{workflow_id}")

@@ -15,7 +15,7 @@ import { useUiStore } from '../stores/uiStore'
 import { NodeIcon } from './NodeIcons'
 import { fuzzyScore } from '../utils/fuzzy'
 
-export default function CommandPalette({ open, onClose }) {
+export function CommandPaletteModal({ open, onClose }) {
   const catalog = useWorkflowStore((s) => s.catalog)
   const nodes = useWorkflowStore((s) => s.nodes)
   const addNode = useWorkflowStore((s) => s.addNode)
@@ -48,7 +48,7 @@ export default function CommandPalette({ open, onClose }) {
     const commands = [
       {
         id: 'cmd-run',
-        title: 'Run workflow',
+        title: workflow?.active ? 'Run workflow' : 'Activate workflow',
         svgIcon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>,
         hint: 'Ctrl+Enter',
         enabled: Boolean(workflow?.id),
@@ -296,4 +296,9 @@ export default function CommandPalette({ open, onClose }) {
       </div>
     </div>
   )
+}
+
+export default function CommandPalette({ open, onClose }) {
+  if (!open) return null
+  return <CommandPaletteModal open={open} onClose={onClose} />
 }

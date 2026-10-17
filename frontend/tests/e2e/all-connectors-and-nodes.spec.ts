@@ -89,8 +89,8 @@ test.describe('Exhaustive Connectors & Nodes Audit', () => {
       await page.evaluate(() => window.__uiStore.getState().closeNodeEditor?.());
     }
 
-    const totalNodesInDom = await page.evaluate(() => document.querySelectorAll('.rf-node').length);
-    expect(totalNodesInDom).toBeGreaterThanOrEqual(builtins.length);
+    const totalNodesInStore = await page.evaluate(() => window.__wfStore.getState().nodes.length);
+    expect(totalNodesInStore).toBeGreaterThanOrEqual(builtins.length);
     expect(errors, `Uncaught JS errors during builtins audit:\n${errors.join('\n')}`).toEqual([]);
   });
 
@@ -134,8 +134,8 @@ test.describe('Exhaustive Connectors & Nodes Audit', () => {
       await page.evaluate(() => window.__uiStore.getState().closeNodeEditor?.());
     }
 
-    const totalNodesInDom = await page.evaluate(() => document.querySelectorAll('.rf-node').length);
-    expect(totalNodesInDom).toBeGreaterThanOrEqual(connectors.length);
+    const totalNodesInStore = await page.evaluate(() => window.__wfStore.getState().nodes.length);
+    expect(totalNodesInStore).toBeGreaterThanOrEqual(connectors.length);
     expect(errors, `Uncaught JS errors during all-connectors audit:\n${errors.join('\n')}`).toEqual([]);
   });
 

@@ -11,7 +11,7 @@ const QUICK_ACTIONS = [
   { id: 'optimize', label: 'Optimize Reliability', prompt: 'Optimize this workflow for reliability and fault tolerance' },
 ]
 
-export default function InCanvasCopilot({ open, onClose, onAutoLayout, fitView }) {
+export function InCanvasCopilotModal({ open, onClose, onAutoLayout, fitView }) {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState(null) // { type: 'success'|'info'|'error', text: '', details: null }
@@ -398,4 +398,9 @@ export default function InCanvasCopilot({ open, onClose, onAutoLayout, fitView }
       </div>
     </div>
   )
+}
+
+export default function InCanvasCopilot(props) {
+  if (!props.open) return null
+  return <InCanvasCopilotModal {...props} />
 }

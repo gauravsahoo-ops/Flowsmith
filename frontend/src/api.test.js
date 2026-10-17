@@ -196,6 +196,22 @@ describe('api.deleteWorkflow', () => {
   })
 })
 
+describe('api.duplicateWorkflow', () => {
+  it('sends POST to duplicate endpoint', async () => {
+    mockFetchSuccess({ id: 'wf1_copy' })
+    await api.duplicateWorkflow('wf1')
+    expect(fetchMock).toHaveBeenCalledWith('/api/workflows/wf1/duplicate', expect.objectContaining({ method: 'POST' }))
+  })
+})
+
+describe('api.getTemplate', () => {
+  it('sends GET to template preview endpoint', async () => {
+    mockFetchSuccess({ id: 1, name: 'Template 1' })
+    await api.getTemplate(1)
+    expect(fetchMock).toHaveBeenCalledWith('/api/templates/1', expect.objectContaining({ method: 'GET' }))
+  })
+})
+
 describe('api.run', () => {
   it('sends POST with empty body', async () => {
     mockFetchSuccess({ execution_id: 'exec1' })

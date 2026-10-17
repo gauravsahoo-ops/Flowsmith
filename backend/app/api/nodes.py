@@ -177,20 +177,71 @@ def _selector_values(
     return []
 
 
+import threading
+import time
+
+_CATALOG_LOCK = threading.Lock()
+_CATALOG_CACHE_TIME: float = 0.0
+_CATALOG_CACHE_TTL: float = 300.0  # 5 minutes
+_CACHED_REGISTRY_LEN: int = -1
+_CACHED_NODE_REGISTRY_LEN: int = -1
+_CACHED_CONNECTOR_ENTRIES: list[dict] | None = None
+_CACHED_ALL_NODES: list[dict] | None = None
+_CACHED_NODE_PARAMS: dict[str, dict] = {}
+_CACHED_NODE_SCHEMAS: dict[str, dict] = {}
+
+
+def invalidate_catalog_cache() -> None:
+    """Clear in-memory catalog caches when nodes or connectors are registered."""
+    global _CATALOG_CACHE_TIME, _CACHED_REGISTRY_LEN, _CACHED_NODE_REGISTRY_LEN
+    global _CACHED_CONNECTOR_ENTRIES, _CACHED_ALL_NODES
+    with _CATALOG_LOCK:
+        _CATALOG_CACHE_TIME = 0.0
+        _CACHED_REGISTRY_LEN = -1
+        _CACHED_NODE_REGISTRY_LEN = -1
+        _CACHED_CONNECTOR_ENTRIES = None
+        _CACHED_ALL_NODES = None
+        _CACHED_NODE_PARAMS.clear()
+        _CACHED_NODE_SCHEMAS.clear()
+
+
+def _is_cache_valid() -> bool:
+    if _CACHED_ALL_NODES is None:
+        return False
+    if (time.time() - _CATALOG_CACHE_TIME) > _CATALOG_CACHE_TTL:
+        return False
+    registry = _get_connector_registry()
+    if registry.is_initialized() and len(registry.list_all()) != _CACHED_REGISTRY_LEN:
+        return False
+    if len(NODE_REGISTRY) != _CACHED_NODE_REGISTRY_LEN:
+        return False
+    return True
+
+
 def _connector_catalog_entries() -> list[dict]:
     """Catalog entries for connector-only node types (Phase 23).
 
     Node classes always win at execution time; connectors only appear
     here for node types with no built-in class.
     """
-    entries: list[dict] = []
+    global _CACHED_CONNECTOR_ENTRIES, _CACHED_REGISTRY_LEN
     registry = _get_connector_registry()
     if not registry.is_initialized():
         from app.connectors import register_builtin_connectors
         register_builtin_connectors()
         registry = _get_connector_registry()
     if not registry.is_initialized():
-        return entries
+        return []
+
+    curr_reg_len = len(registry.list_all())
+    if (
+        _CACHED_CONNECTOR_ENTRIES is not None
+        and curr_reg_len == _CACHED_REGISTRY_LEN
+        and (time.time() - _CATALOG_CACHE_TIME) <= _CATALOG_CACHE_TTL
+    ):
+        return _CACHED_CONNECTOR_ENTRIES
+
+    entries: list[dict] = []
     for connector in registry.list_all():
         definition = registry.get_definition(connector.connector_id)
         for node_type in connector.node_types:
@@ -258,36 +309,97 @@ def _connector_catalog_entries() -> list[dict]:
                 "parameters_schema": param_schema,
                 "fields": fields,
             })
+
+    _CACHED_CONNECTOR_ENTRIES = entries
+    _CACHED_REGISTRY_LEN = curr_reg_len
     return entries
+
+
+def _build_and_cache_full_catalog() -> list[dict]:
+    global _CACHED_ALL_NODES, _CATALOG_CACHE_TIME, _CACHED_NODE_REGISTRY_LEN, _CACHED_REGISTRY_LEN
+    with _CATALOG_LOCK:
+        if _is_cache_valid() and _CACHED_ALL_NODES is not None:
+            return _CACHED_ALL_NODES
+
+        builtin_nodes = list_nodes()
+        enriched_nodes = []
+        for node in builtin_nodes:
+            node_copy = dict(node)
+            schema = node.get("parameters_schema") or {}
+            selector = node.get("operation_selector")
+            operations_meta = _operations_meta_from_definitions(
+                node.get("operations") or {},
+                _selector_values(node, schema, selector),
+            )
+            node_copy["operation_selector"] = selector or "operation"
+            node_copy["operations"] = operations_meta
+            node_copy["fields"] = [
+                f.model_dump()
+                for f in ParameterSchemaBuilder.extract_from_json_schema(
+                    schema, operations_meta, selector=node.get("operation_selector")
+                )
+            ]
+            enriched_nodes.append(node_copy)
+
+            ntype = node.get("type")
+            if ntype:
+                node_cls = NODE_REGISTRY.get(ntype)
+                _CACHED_NODE_SCHEMAS[ntype] = (
+                    node_cls.parameters_schema.model_json_schema() if node_cls else schema
+                )
+                _CACHED_NODE_PARAMS[ntype] = {
+                    "node_type": ntype,
+                    "display_name": node.get("display_name", ntype),
+                    "description": node.get("description", ""),
+                    "category": node.get("category", "General"),
+                    "credential_types": node.get("credential_types", []),
+                    "idempotency": node.get("idempotency", "conditionally_idempotent"),
+                    "parameters_schema": _CACHED_NODE_SCHEMAS[ntype],
+                    "operation_selector": selector or "operation",
+                    "operations": operations_meta,
+                    "fields": node_copy["fields"],
+                }
+
+        conn_entries = _connector_catalog_entries()
+        for entry in conn_entries:
+            ntype = entry["type"]
+            _CACHED_NODE_SCHEMAS[ntype] = entry["parameters_schema"]
+            _CACHED_NODE_PARAMS[ntype] = {
+                "node_type": ntype,
+                "display_name": entry["display_name"],
+                "description": entry["description"],
+                "category": entry["category"],
+                "credential_types": entry["credential_types"],
+                "idempotency": entry["idempotency"],
+                "parameters_schema": entry["parameters_schema"],
+                "operations": entry.get("operations", {}),
+                "fields": entry.get("fields", []),
+            }
+
+        all_nodes = enriched_nodes + conn_entries
+        _CACHED_ALL_NODES = all_nodes
+        _CACHED_NODE_REGISTRY_LEN = len(NODE_REGISTRY)
+        registry = _get_connector_registry()
+        _CACHED_REGISTRY_LEN = len(registry.list_all()) if registry.is_initialized() else 0
+        _CATALOG_CACHE_TIME = time.time()
+        return all_nodes
 
 
 @router.get("")
 def get_nodes(user: User = Depends(get_current_user)) -> dict:
-    builtin_nodes = list_nodes()
-    # Enrich built-in nodes with schema fields
-    enriched_nodes = []
-    for node in builtin_nodes:
-        node_copy = dict(node)
-        schema = node.get("parameters_schema") or {}
-        selector = node.get("operation_selector")
-        operations_meta = _operations_meta_from_definitions(
-            node.get("operations") or {},
-            _selector_values(node, schema, selector),
-        )
-        node_copy["operation_selector"] = selector or "operation"
-        node_copy["operations"] = operations_meta
-        node_copy["fields"] = [
-            f.model_dump()
-            for f in ParameterSchemaBuilder.extract_from_json_schema(
-                schema, operations_meta, selector=node.get("operation_selector")
-            )
-        ]
-        enriched_nodes.append(node_copy)
-    return ok(enriched_nodes + _connector_catalog_entries())
+    if _is_cache_valid() and _CACHED_ALL_NODES is not None:
+        return ok(_CACHED_ALL_NODES)
+    return ok(_build_and_cache_full_catalog())
 
 
 @router.get("/{node_type}/schema")
 def get_node_schema(node_type: str, user: User = Depends(get_current_user)) -> dict:
+    if not _is_cache_valid():
+        _build_and_cache_full_catalog()
+    if node_type in _CACHED_NODE_SCHEMAS:
+        return ok(_CACHED_NODE_SCHEMAS[node_type])
+
+    # Fallback to direct resolution
     node_cls = NODE_REGISTRY.get(node_type)
     if node_cls is not None:
         return ok(node_cls.parameters_schema.model_json_schema())
@@ -300,6 +412,11 @@ def get_node_schema(node_type: str, user: User = Depends(get_current_user)) -> d
 @router.get("/{node_type}/parameters")
 def get_node_parameters(node_type: str, user: User = Depends(get_current_user)) -> dict:
     """Return enriched parameter fields, operation metadata, and credentials requirements."""
+    if not _is_cache_valid():
+        _build_and_cache_full_catalog()
+    if node_type in _CACHED_NODE_PARAMS:
+        return ok(_CACHED_NODE_PARAMS[node_type])
+
     node_cls = NODE_REGISTRY.get(node_type)
     if node_cls is not None:
         schema = node_cls.parameters_schema.model_json_schema()

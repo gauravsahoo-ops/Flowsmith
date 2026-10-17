@@ -170,27 +170,24 @@ function ExecutionEdge({
       {(state === 'active' || state === 'running') && (
         <>
           <circle r={4.5} fill="#38bdf8" style={{ filter: 'drop-shadow(0 0 8px #38bdf8)' }} pointerEvents="none">
-            <animateMotion dur="1s" repeatCount="indefinite" path={path} />
+            <animateMotion dur="0.8s" repeatCount="indefinite" path={path} />
           </circle>
           <circle r={3} fill="#10b981" style={{ filter: 'drop-shadow(0 0 6px #34d399)' }} pointerEvents="none">
-            <animateMotion dur="1s" begin="-0.5s" repeatCount="indefinite" path={path} />
+            <animateMotion dur="0.8s" begin="-0.4s" repeatCount="indefinite" path={path} />
           </circle>
         </>
       )}
 
-      {/* 2. Completed execution: continuous smooth emerald data stream packet */}
+      {/* 2. Completed execution: continuous smooth eye-catching emerald data stream packet */}
       {state === 'completed' && (
         <circle r={3.5} fill="#10b981" style={{ filter: 'drop-shadow(0 0 6px #34d399)' }} pointerEvents="none">
-          <animateMotion dur="1.8s" repeatCount="indefinite" path={path} />
+          <animateMotion dur="2s" repeatCount="indefinite" path={path} />
         </circle>
       )}
 
-      {/* 3. Error route: continuous glowing red warning data packet */}
-      {state === 'error' && (
-        <circle r={3.5} fill="#f43f5e" style={{ filter: 'drop-shadow(0 0 7px #fb7185)' }} pointerEvents="none">
-          <animateMotion dur="1.8s" repeatCount="indefinite" path={path} />
-        </circle>
-      )}
+
+
+
 
       {/* 4. Waiting state: continuous glowing amber pulse packet */}
       {state === 'waiting' && (

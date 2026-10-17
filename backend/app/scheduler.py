@@ -34,7 +34,7 @@ from sqlalchemy.orm import Session
 from zoneinfo import ZoneInfo
 
 from app.db import engine, get_session
-from app.models import ScheduleTrigger
+from app.models import ScheduleTrigger, WorkflowRecord
 
 logger = logging.getLogger("scheduler")
 
@@ -66,36 +66,14 @@ class Scheduler:
     async def _loop(self) -> None:
         while True:
             try:
-                fired = await self.tick()
-                # Refresh tick interval once per tick (not every sleep) to avoid
-                # opening a DB session on every 250ms cancel-poll cycle.
-                self._cached_tick_s = await asyncio.to_thread(self._compute_tick_interval)
+                await self.tick()
             except Exception:
                 logger.exception("scheduler tick failed")
-                fired = 0
             await asyncio.sleep(self._cached_tick_s)
 
     def _compute_tick_interval(self) -> float:
-        """Return the optimal sleep duration before the next tick.
-
-        When active rules include seconds-level schedules, poll every
-        2 seconds so we don't miss fires.  Otherwise use the default
-        30-second interval to avoid unnecessary DB scans.
-        """
-        try:
-            db = get_session()
-            try:
-                rules = db.scalars(
-                    select(ScheduleTrigger).where(ScheduleTrigger.status == "active")
-                ).all()
-                for r in rules:
-                    if r.interval_type == "seconds":
-                        return 2.0
-            finally:
-                db.close()
-        except Exception:
-            pass
-        return float(TICK_INTERVAL_S)
+        """Return the optimal sleep duration before the next tick."""
+        return self._cached_tick_s
 
     async def tick(self, now: datetime | None = None) -> int:
         """One scan; returns the number of executions fired.
@@ -125,16 +103,26 @@ class Scheduler:
             db = get_session()
             try:
                 rules = db.scalars(
-                    select(ScheduleTrigger).where(ScheduleTrigger.status == "active")
+                    select(ScheduleTrigger)
+                    .join(WorkflowRecord, ScheduleTrigger.workflow_id == WorkflowRecord.id)
+                    .where(
+                        ScheduleTrigger.status == "active",
+                        WorkflowRecord.active.is_(True),
+                        WorkflowRecord.deleted_at.is_(None),
+                    )
                 ).all()
                 fired = 0
+                has_seconds = False
                 for rule in rules:
+                    if getattr(rule, "interval_type", None) == "seconds":
+                        has_seconds = True
                     if self._fire(rule, now, db):
                         fired += 1
                         logger.info(
                             "scheduler fired workflow=%s node=%s cron=%s tz=%s",
                             rule.workflow_id, rule.node_id, rule.cron, rule.timezone,
                         )
+                self._cached_tick_s = 2.0 if has_seconds else float(TICK_INTERVAL_S)
                 return fired
             finally:
                 db.close()

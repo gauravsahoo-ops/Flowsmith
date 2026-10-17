@@ -107,19 +107,22 @@ export default function WorkflowEditorPage() {
       }
     }
     setLocalError(null)
+    // Clear any previous execution state immediately on workflow navigation
+    useExecutionStore.getState().clear()
+
     load(id).then(async () => {
-      // When opening a workflow (active or draft), immediately check for any active running execution
-      // or the latest execution so the canvas displays the live run or recent execution across the entire workflow!
+      // When opening a workflow, attach to live execution or display latest execution status/errors
       try {
         const { api } = await import('../api')
         const { data } = await api.listExecutions({ workflowId: id, pageSize: 5 })
         if (Array.isArray(data) && data.length > 0) {
           const active = data.find(
             (e) =>
-              e.status === 'running' ||
-              e.status === 'queued' ||
-              e.status === 'waiting' ||
-              e.status === 'waiting_approval'
+              (e.workflow_id === id || !e.workflow_id) &&
+              (e.status === 'running' ||
+               e.status === 'queued' ||
+               e.status === 'waiting' ||
+               e.status === 'waiting_approval')
           )
           const target = active || data[0]
           if (target?.id) {
@@ -133,9 +136,8 @@ export default function WorkflowEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  // Live execution monitor: when viewing an active workflow (or any workflow on screen),
-  // continuously detect if an execution was triggered in background (e.g. by webhook, schedule, or external event)
-  // and sync the live running execution right onto the entire canvas!
+  // Live execution monitor: when viewing a workflow on screen,
+  // detect if an execution was triggered for this workflow and sync it onto the canvas.
   useEffect(() => {
     if (!id) return
     let active = true
@@ -155,14 +157,15 @@ export default function WorkflowEditorPage() {
 
         const runningExec = data.find(
           (e) =>
-            e.status === 'running' ||
-            e.status === 'queued' ||
-            e.status === 'waiting' ||
-            e.status === 'waiting_approval'
+            (e.workflow_id === id || !e.workflow_id) &&
+            (e.status === 'running' ||
+             e.status === 'queued' ||
+             e.status === 'waiting' ||
+             e.status === 'waiting_approval')
         )
 
         if (runningExec) {
-          // If a new execution is running in the background, attach immediately!
+          // If a new execution is running for this workflow, attach immediately!
           if (runningExec.id !== cur.executionId || !cur.running) {
             await useExecutionStore.getState().load(runningExec.id)
           }
@@ -179,20 +182,10 @@ export default function WorkflowEditorPage() {
     }
   }, [id, workflow?.active])
 
-  // Leave the page: stop following the execution (close the live WebSocket
-  // and any poll timer) so navigating away doesn't leak the connection.
+  // Leave the page: cleanly clear the execution state so navigating away
+  // never leaks sockets, poll timers, or execution state to other workflows.
   useEffect(() => () => {
-    useExecutionStore.getState().close()
-  }, [])
-
-  // Re-entering with a stale "running" state (we closed on unmount):
-  // resync — reconnects if still live, settles if it finished meanwhile.
-  useEffect(() => {
-    const s = useExecutionStore.getState()
-    if (s.executionId && s.running && !s.socket && !s.pollTimer) {
-      s.load(s.executionId).catch(() => {})
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useExecutionStore.getState().clear()
   }, [])
 
   // Also ensure canvas is visible even if store still loading

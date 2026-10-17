@@ -162,6 +162,7 @@ async def ws_execution_stream(
     last_auth_check = asyncio.get_event_loop().time()
     connected_at = last_auth_check
     last_activity = last_auth_check
+    last_db_poll = 0.0
     idle_ticks = 0
     try:
         while True:
@@ -183,16 +184,36 @@ async def ws_execution_stream(
                 last_auth_check = now
 
             events: list[dict[str, Any]] = bus.drain(execution_id, bus_after)
-            with get_session() as poll_db:
-                db_events, db_after = _drain_db_events(poll_db, execution_id, db_after)
-                rec = poll_db.get(Execution, execution_id)
-                exec_status = rec.status if rec is not None else None
-                exec_error = rec.error if rec is not None else None
-
             if events:
                 bus_after = events[-1]["seq"]
-            events.extend(db_events)
-            events.sort(key=lambda ev: ev.get("seq", 0))
+                last_activity = now
+                idle_ticks = 0
+
+            # Only query DB if in-process bus had no events or periodic DB sync is due
+            # (drastically reduces connection pool churn while preserving external worker streaming)
+            db_events: list[dict[str, Any]] = []
+            exec_status: str | None = None
+            exec_error: Any = None
+
+            should_poll_db = (
+                not events
+                and (now - last_db_poll >= min(0.35, 0.05 + idle_ticks * 0.03) or idle_ticks == 0)
+            )
+
+            if should_poll_db:
+                last_db_poll = now
+                with get_session() as poll_db:
+                    db_events, db_after = _drain_db_events(poll_db, execution_id, db_after)
+                    # Use fast 2-column projected query instead of loading complete Execution entity
+                    status_row = poll_db.execute(
+                        select(Execution.status, Execution.error).where(Execution.id == execution_id)
+                    ).first()
+                    if status_row:
+                        exec_status, exec_error = status_row[0], status_row[1]
+
+            if db_events:
+                events.extend(db_events)
+                events.sort(key=lambda ev: ev.get("seq", 0))
 
             terminal_sent = False
             for ev in events:
@@ -226,14 +247,14 @@ async def ws_execution_stream(
                 break
 
             if events:
-                last_activity = now
-                idle_ticks = 0
                 await asyncio.sleep(DRAIN_INTERVAL_S)
             else:
                 idle_ticks += 1
                 await asyncio.sleep(min(0.20, DRAIN_INTERVAL_S + (idle_ticks * 0.02)))
     except WebSocketDisconnect:
         pass
+    except Exception as exc:
+        logger.warning(f"[ws] Execution {execution_id} stream error: {exc}", exc_info=True)
     finally:
         _ws_release(user_id)
         try:

@@ -1056,7 +1056,15 @@ class HTTPRequestNode(BaseNode[HTTPRequestParams]):
 
             resp_body = item.get("body") if item.get("body") is not None else getattr(response, "text", "")
             safe_headers = {k: v for k, v in dict(response.headers).items() if k.lower() not in ("authorization", "cookie", "set-cookie")}
-            body_summary = resp_body if isinstance(resp_body, str) else json.dumps(resp_body)[:400]
+            if isinstance(resp_body, str):
+                if "<html" in resp_body.lower() or "<!doctype" in resp_body.lower():
+                    import re
+                    clean_text = " ".join(re.sub(r"<[^>]+>", " ", resp_body).split())
+                    body_summary = clean_text[:200] if clean_text else (response.reason_phrase or "Error")
+                else:
+                    body_summary = resp_body[:400]
+            else:
+                body_summary = json.dumps(resp_body)[:400]
 
             if response.status_code == 401:
                 raise NodeExecutionError(

@@ -374,7 +374,7 @@ export const useWorkflowStore = create((set, get) => ({
     get().pushHistory()
     set({
       edges: addEdge(
-        { ...connection, id: crypto.randomUUID() },
+        { ...connection, id: crypto.randomUUID(), data: { isNew: true } },
         edges,
       ),
     })
@@ -760,6 +760,14 @@ export const useWorkflowStore = create((set, get) => ({
     if (!workflow?.id) return
     const result = await api.setActive(workflow.id, !workflow.active)
     set({ workflow: { ...workflow, active: result.active } })
+  },
+
+  async setActive(active) {
+    const { workflow } = get()
+    if (!workflow?.id) return
+    const result = await api.setActive(workflow.id, Boolean(active))
+    set({ workflow: { ...workflow, active: result.active } })
+    return result
   },
 
   async togglePinned() {

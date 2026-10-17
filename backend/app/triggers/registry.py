@@ -96,7 +96,10 @@ def schedule_rule_dicts(params: dict[str, Any]) -> list[dict[str, Any]]:
 def sync_webhooks(db: Session) -> None:
     """Reconcile webhook + schedule rows with active workflows."""
     recs = db.scalars(
-        select(WorkflowRecord).where(WorkflowRecord.active.is_(True))
+        select(WorkflowRecord).where(
+            WorkflowRecord.active.is_(True),
+            WorkflowRecord.deleted_at.is_(None),
+        )
     ).all()
 
     wanted_webhook_paths: set[str] = set()
@@ -200,19 +203,22 @@ def sync_webhooks(db: Session) -> None:
                 # to legacy cron and the AI shape rule.cronExpression (H16).
                 rules = schedule_rule_dicts(trig["params"])
                 if not rules:
-                    continue
+                    tz = trig["params"].get("timezone") or "UTC"
+                    rules = [{"id": "default", "interval": "minutes", "value": 5, "timezone": tz}]
                 # Normalize each rule to cron/timezone via TriggerRule.to_cron()
                 from app.nodes.schedule import TriggerRule
                 normalized = []
-                for r in rules:
+                for idx, r in enumerate(rules):
                     try:
                         tr = TriggerRule.model_validate(r)
                         normalized.append(tr)
                     except Exception:
                         # Fallback: treat as cron
-                        cron = r.get("cron") or r.get("value") and f"*/{r.get('value')} * * * *" or "*/5 * * * *"
-                        tz = r.get("timezone") or "UTC"
-                        normalized.append(TriggerRule(id=r.get("id") or uuid.uuid4().hex[:8], interval="cron", cron=cron, timezone=tz))
+                        val = r.get("value")
+                        cron_str = str(r.get("cron") or (f"*/{val} * * * *" if val else "*/5 * * * *"))
+                        tz_str = str(r.get("timezone") or "UTC")
+                        rule_id_str = str(r.get("id") or f"rule{idx}")
+                        normalized.append(TriggerRule(id=rule_id_str, interval="cron", cron=cron_str, timezone=tz_str))
                 for rule in normalized:
                     cron = rule.to_cron()
                     timezone = rule.timezone

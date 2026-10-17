@@ -154,17 +154,87 @@ class EmbeddingService:
         api_key: str = "",
         base_url: str = "",
     ) -> list[list[float]]:
-        tasks = [
-            self.get_embedding(
-                t,
-                provider=provider,
-                model=model,
+        if not texts:
+            return []
+        p = provider.lower()
+        if p == "openai" and api_key:
+            return await self._get_openai_embeddings_batch(
+                texts,
+                model=model or "text-embedding-3-small",
                 api_key=api_key,
                 base_url=base_url,
             )
-            for t in texts
-        ]
-        return await asyncio.gather(*tasks)
+
+        async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+            tasks = [
+                self._get_embedding_with_client(
+                    client,
+                    t,
+                    provider=provider,
+                    model=model,
+                    api_key=api_key,
+                    base_url=base_url,
+                )
+                for t in texts
+            ]
+            return await asyncio.gather(*tasks)
+
+    async def _get_embedding_with_client(
+        self,
+        client: httpx.AsyncClient,
+        text: str,
+        *,
+        provider: str,
+        model: str,
+        api_key: str,
+        base_url: str,
+    ) -> list[float]:
+        p = provider.lower()
+        if p == "ollama":
+            endpoint = f"{(base_url or 'http://localhost:11434').rstrip('/')}/api/embeddings"
+            payload = {"model": model or "nomic-embed-text", "prompt": text}
+            resp = await client.post(endpoint, json=payload)
+            if resp.status_code >= 400:
+                raise RuntimeError(f"Ollama embedding error ({resp.status_code}): {resp.text[:300]}")
+            return resp.json()["embedding"]
+
+        endpoint = f"{base_url.rstrip('/')}/embeddings" if base_url else "https://api.openai.com/v1/embeddings"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        }
+        payload = {"input": text, "model": model or "text-embedding-3-small"}
+        resp = await client.post(endpoint, headers=headers, json=payload)
+        if resp.status_code >= 400:
+            raise RuntimeError(f"Embedding API error ({resp.status_code}): {resp.text[:300]}")
+        return resp.json()["data"][0]["embedding"]
+
+    async def _get_openai_embeddings_batch(
+        self,
+        texts: list[str],
+        *,
+        model: str,
+        api_key: str,
+        base_url: str,
+    ) -> list[list[float]]:
+        endpoint = f"{base_url.rstrip('/')}/embeddings" if base_url else "https://api.openai.com/v1/embeddings"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        }
+        batch_size = 128
+        results: list[list[float]] = []
+        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i : i + batch_size]
+                payload = {"input": batch, "model": model}
+                resp = await client.post(endpoint, headers=headers, json=payload)
+                if resp.status_code >= 400:
+                    raise RuntimeError(f"Embedding API error ({resp.status_code}): {resp.text[:300]}")
+                data = resp.json()
+                sorted_items = sorted(data["data"], key=lambda item: item["index"])
+                results.extend([item["embedding"] for item in sorted_items])
+        return results
 
     async def _get_openai_embedding(
         self,

@@ -1486,7 +1486,7 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
   }
 
   // Data Load / File Ingest (CSV, TSV, Files)
-  if (matches('data_load', 'dataload', 'flowsmith.data_load', 'flowsmith_data_load', 'file_import', 'ingest', 'tsv')) {
+  if (matches('data_load', 'dataload', 'flowsmith.data_load', 'flowsmith_data_load', 'csv_parser', 'file_import', 'ingest', 'tsv')) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#38bdf8'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

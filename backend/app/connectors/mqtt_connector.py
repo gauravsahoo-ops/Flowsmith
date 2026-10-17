@@ -66,8 +66,15 @@ class MQTTConnector(ConnectorSDK, ConnectorOperations):
             latency_ms=2.1,
         )
 
-    async def op_execute(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def op_execute(
+        self,
+        operation: str,
+        payload: Dict[str, Any] | None = None,
+        context: Dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Route operations dynamically to handler methods."""
+        params = payload or kwargs.get("params") or {}
         op_map = {
             "publish": self.op_publish,
             "consume": self.op_consume,
@@ -75,10 +82,8 @@ class MQTTConnector(ConnectorSDK, ConnectorOperations):
         handler = op_map.get(operation)
         if not handler:
             raise make_connector_error(
-                self.connector_id,
-                operation,
+                ConnectorErrorCode.INVALID_OPERATION,
                 f"Unsupported operation '{operation}'. Supported: {', '.join(op_map.keys())}",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         return await handler(params)
 
@@ -87,10 +92,8 @@ class MQTTConnector(ConnectorSDK, ConnectorOperations):
         topic = params.get("topic", "").strip()
         if not topic:
             raise make_connector_error(
-                self.connector_id,
-                "publish",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Topic is required for MQTT publish operation.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         qos = int(params.get("qos", 0))
         retain = bool(params.get("retain", False))
@@ -106,10 +109,8 @@ class MQTTConnector(ConnectorSDK, ConnectorOperations):
         topic = params.get("topic", "").strip()
         if not topic:
             raise make_connector_error(
-                self.connector_id,
-                "consume",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Topic is required for MQTT consume operation.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         max_msgs = min(int(params.get("max_messages", 10)), 100)
         return {

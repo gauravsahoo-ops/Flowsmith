@@ -24,7 +24,7 @@ function getNodeTypeString(n) {
   return ''
 }
 
-export default function SmithDrawer({
+function SmithDrawerContent({
   isOpen,
   onClose,
   initialTab = 'chat',
@@ -1272,4 +1272,10 @@ export default function SmithDrawer({
     return createPortal(drawerNode, document.body)
   }
   return drawerNode
+}
+
+export default function SmithDrawer(props) {
+  const isOpen = props.isOpen ?? props.open ?? true
+  if (!isOpen) return null
+  return <SmithDrawerContent {...props} />
 }

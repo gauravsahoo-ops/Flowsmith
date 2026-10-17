@@ -34,7 +34,7 @@ class CsvConnectorParams(BaseModel):
     archive_inner_file: str = Field(default="", description="Target inner file inside archive.")
     delimiter: str = Field(default="", description="Field delimiter.")
     has_header: bool = Field(default=True, description="Whether first line is header.")
-    batch_size: int = Field(default=1000, description="Batch size.")
+    batch_size: int = Field(default=1000, ge=1, le=10000, description="Batch size (range: 1-10000).")
     rows: list[dict[str, Any]] = Field(default_factory=list, description="Rows for validation/mapping.")
     field_mapping: dict[str, str] = Field(default_factory=dict, description="Field mapping dictionary.")
     target_object: str = Field(default="Contact", description="Target Salesforce object.")

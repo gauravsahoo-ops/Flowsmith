@@ -72,8 +72,15 @@ class KafkaConnector(ConnectorSDK, ConnectorOperations):
             latency_ms=3.5,
         )
 
-    async def op_execute(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def op_execute(
+        self,
+        operation: str,
+        payload: Dict[str, Any] | None = None,
+        context: Dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Route operations dynamically to handler methods."""
+        params = payload or kwargs.get("params") or {}
         op_map = {
             "produce": self.op_produce,
             "consume": self.op_consume,
@@ -82,10 +89,8 @@ class KafkaConnector(ConnectorSDK, ConnectorOperations):
         handler = op_map.get(operation)
         if not handler:
             raise make_connector_error(
-                self.connector_id,
-                operation,
+                ConnectorErrorCode.INVALID_OPERATION,
                 f"Unsupported operation '{operation}'. Supported: {', '.join(op_map.keys())}",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         return await handler(params)
 
@@ -94,10 +99,8 @@ class KafkaConnector(ConnectorSDK, ConnectorOperations):
         topic = params.get("topic", "").strip()
         if not topic:
             raise make_connector_error(
-                self.connector_id,
-                "produce",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Topic is required for Kafka produce operation.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
 
         payload = params.get("payload", {})
@@ -113,10 +116,8 @@ class KafkaConnector(ConnectorSDK, ConnectorOperations):
                 _ = json.dumps(payload).encode("utf-8")
         except Exception as exc:
             raise make_connector_error(
-                self.connector_id,
-                "produce",
+                ConnectorErrorCode.PROVIDER_ERROR,
                 f"Failed to serialize message payload: {exc}",
-                code=ConnectorErrorCode.OPERATION_FAILED,
             )
 
         # In production this delegates to aiokafka / confluent-kafka;
@@ -137,10 +138,8 @@ class KafkaConnector(ConnectorSDK, ConnectorOperations):
         topic = params.get("topic", "").strip()
         if not topic:
             raise make_connector_error(
-                self.connector_id,
-                "consume",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Topic is required for Kafka consume operation.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
 
         max_msgs = min(int(params.get("max_messages", 10)), 500)

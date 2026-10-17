@@ -37,7 +37,15 @@ async function gotoApp(page: Page, token: string) {
   } catch {
     const listRes = await page.request.get(`${API}/api/workflows`, { headers: auth(token) });
     const listJson = await listRes.json();
-    const wfId = listJson.data?.[0]?.id;
+    let wfId = listJson.data?.[0]?.id;
+    if (!wfId) {
+      const cr = await page.request.post(`${API}/api/workflows`, {
+        headers: auth(token),
+        data: { name: 'Enterprise Workflow', nodes: [{ id: 'manual_1', type: 'manual_trigger', position: { x: 50, y: 100 } }] },
+      });
+      const crJson = await cr.json();
+      wfId = crJson.data?.id;
+    }
     if (wfId) {
       await page.goto(`http://localhost:5173/workflows/${wfId}`);
       await page.waitForLoadState('networkidle').catch(() => {});

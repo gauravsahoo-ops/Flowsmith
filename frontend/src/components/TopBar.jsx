@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useWorkflowStore, isDirty, confirmDiscard } from '../stores/workflowStore'
+import { useWorkflowStore, confirmDiscard } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
 import { useBrandingStore } from '../stores/brandingStore'
@@ -45,6 +45,7 @@ export default function TopBar({
   const setName = useWorkflowStore((s) => s.setName)
   const setWorkflowSettings = useWorkflowStore((s) => s.setWorkflowSettings)
   const toggleActive = useWorkflowStore((s) => s.toggleActive)
+  const setActive = useWorkflowStore((s) => s.setActive)
   const togglePinned = useWorkflowStore((s) => s.togglePinned)
   const isPinned = Boolean(workflow?.pinned || workflow?.settings?.pinned)
   const historyDrawerOpen = useUiStore((s) => s.historyDrawerOpen)
@@ -57,6 +58,9 @@ export default function TopBar({
   const [ioError, setIoError] = useState(null)
   const [downloading, setDownloading] = useState(false)
   const [docModalOpen, setDocModalOpen] = useState(false)
+  const [activating, setActivating] = useState(false)
+  const isActivatingRef = useRef(false)
+  const wasRunningRef = useRef(false)
   const fileRef = useRef(null)
 
   // Branding store for default/custom logo
@@ -209,6 +213,77 @@ export default function TopBar({
     }
   }
 
+  // Auto-activate workflow when an activation run completes successfully
+  useEffect(() => {
+    if (running) {
+      wasRunningRef.current = true
+      return
+    }
+
+    if (wasRunningRef.current && !running) {
+      wasRunningRef.current = false
+      if (isActivatingRef.current) {
+        isActivatingRef.current = false
+        setActivating(false)
+
+        if (runStatus === 'success' && workflow?.id) {
+          // Execution succeeded! Automatically turn the workflow on (Inactive -> Active)
+          setActive(true).then(() => {
+            // Reload execution to keep the canvas live
+            api.listExecutions({ workflowId: workflow.id, pageSize: 2 }).then(({ data }) => {
+              if (Array.isArray(data) && data[0]?.id) {
+                useExecutionStore.getState().load(data[0].id).catch(() => {})
+              }
+            }).catch(() => {})
+          }).catch((err) => {
+            console.error('Failed to auto-activate workflow:', err)
+          })
+        } else if (runStatus === 'failed') {
+          // Execution failed; open console so user can inspect error
+          if (setDebuggerOpen) {
+            setDebuggerOpen(true)
+          }
+        }
+      }
+    }
+  }, [running, runStatus, workflow?.id, setActive, setDebuggerOpen])
+
+  const handleActivate = async () => {
+    if (!workflow?.id) return
+    if (useWorkflowStore.getState()._dirty) {
+      try {
+        await save()
+      } catch (err) {
+        const msg = err?.message || 'Save failed'
+        const readable = msg.includes('413')
+          ? 'Workflow payload too large (HTTP 413). Check node file uploads or server proxy body size limit.'
+          : msg
+        alert(`Cannot activate: Workflow save failed (${readable}). Please fix the error before running.`)
+        return
+      }
+    }
+    isActivatingRef.current = true
+    setActivating(true)
+    run(workflow.id)
+  }
+
+  const handleRun = async () => {
+    if (!workflow?.id) return
+    if (useWorkflowStore.getState()._dirty) {
+      try {
+        await save()
+      } catch (err) {
+        const msg = err?.message || 'Save failed'
+        const readable = msg.includes('413')
+          ? 'Workflow payload too large (HTTP 413). Check node file uploads or server proxy body size limit.'
+          : msg
+        alert(`Cannot run: Workflow save failed (${readable}). Please fix the error before running.`)
+        return
+      }
+    }
+    run(workflow.id)
+  }
+
   return (
     <header className="topbar topbar--workflow">
       <div className="topbar-left">
@@ -297,12 +372,17 @@ export default function TopBar({
 
       <div className="topbar-center">
         {ioError && <span className="err" title={ioError}>{ioError}</span>}
-        {runStatus && runStatus !== 'running' && (
+        {running ? (
+          <span className="run-status status-running">
+            <span className="status-dot status-dot-running" />
+            {activating ? 'activating…' : 'running…'}
+          </span>
+        ) : runStatus ? (
           <span className={`run-status status-${runStatus}`}>
             <span className={`status-dot status-dot-${runStatus}`} />
             {STATUS_LABEL[runStatus] || runStatus}
           </span>
-        )}
+        ) : null}
       </div>
 
       <div className="topbar-right">
@@ -413,37 +493,28 @@ export default function TopBar({
           <button
             className="danger danger--sm"
             onClick={cancel}
-            aria-label={runStatus === 'cancelling' ? 'Force cancel run' : 'Cancel run'}
-            title={runStatus === 'cancelling' ? 'Click to force cancel immediately' : 'Cancel run'}
+            aria-label={runStatus === 'cancelling' ? 'Force cancel' : 'Cancel'}
+            title={runStatus === 'cancelling' ? 'Click to force cancel immediately' : 'Cancel'}
           >
-            {runStatus === 'cancelling' ? 'Force Cancel' : 'Cancel'}
+            {runStatus === 'cancelling' ? 'Force Cancel' : activating ? 'Cancel Activation' : 'Cancel'}
           </button>
         ) : (
           <button
-            className="primary primary--run"
+            className={`primary primary--run ${workflow?.active ? 'is-active' : ''}`}
             disabled={!workflow?.id}
-            onClick={async () => {
-              if (useWorkflowStore.getState()._dirty) {
-                try {
-                  await save()
-                } catch (err) {
-                  const msg = err?.message || 'Save failed'
-                  const readable = msg.includes('413')
-                    ? 'Workflow payload too large (HTTP 413). Check node file uploads or server proxy body size limit.'
-                    : msg
-                  alert(`Cannot run: Workflow save failed (${readable}). Please fix the error before running.`)
-                  return
-                }
-              }
-              run(workflow.id)
-            }}
-            aria-label="Run workflow"
+            onClick={workflow?.active ? handleRun : handleActivate}
+            aria-label={workflow?.active ? 'Run workflow' : 'Activate workflow'}
+            title={
+              workflow?.active
+                ? 'Workflow is active — click to run manually'
+                : 'Activate workflow — runs once to verify and automatically turns active on success'
+            }
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
-            <span>Run</span>
+            <span>{workflow?.active ? 'Run' : 'Activate'}</span>
           </button>
         )}
 

@@ -139,9 +139,9 @@ class DataLoadParams(BaseModel):
     # Processing & Downstream options
     batch_size: int = Field(
         default=1000,
-        ge=10,
+        ge=1,
         le=10000,
-        description="Processing and database batch size.",
+        description="Processing and database batch size (range: 1-10000).",
     )
     row_limit: int = Field(
         default=0,

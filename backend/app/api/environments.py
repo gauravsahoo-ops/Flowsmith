@@ -19,6 +19,7 @@ from app.db import get_db
 from app.environments import decrypt_env_value
 from app.models import Environment, User, UserAPIKey, Workspace, WorkflowTemplate
 from app.security.crypto import encrypt_text
+from app.importexport import sanitize_workflow_data
 
 router = APIRouter()
 
@@ -431,14 +432,38 @@ def update_template(
     return ok({"id": tmpl.id, "name": tmpl.name})
 
 
+@router.get("/api/templates/{template_id}")
+def get_template(template_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    """Preview a template (read-only)."""
+    tmpl = db.get(WorkflowTemplate, template_id)
+    if tmpl is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Template not found.")
+    if not tmpl.is_public and tmpl.created_by != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Template not found.")
+    raw = tmpl.workflow_data
+    data = json.loads(raw if isinstance(raw, str) else json.dumps(raw))
+    sanitized = sanitize_workflow_data(data, strip_credentials=True, strip_secrets=True)
+    return ok({
+        "id": tmpl.id,
+        "name": tmpl.name,
+        "description": tmpl.description,
+        "category": tmpl.category,
+        "is_public": tmpl.is_public,
+        "use_count": tmpl.use_count,
+        "is_mine": tmpl.created_by == user.id,
+        "workflow_data": sanitized,
+    })
+
+
 @router.post("/api/templates")
 def create_template(payload: TemplateCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     """Create a workflow template."""
+    sanitized = sanitize_workflow_data(payload.workflow_data, strip_credentials=True, strip_secrets=True)
     tmpl = WorkflowTemplate(
         name=payload.name,
         description=payload.description,
         category=payload.category,
-        workflow_data=json.dumps(payload.workflow_data),
+        workflow_data=json.dumps(sanitized),
         is_public=payload.is_public,
         created_by=user.id,
     )
@@ -488,10 +513,12 @@ def use_template(template_id: int, user: User = Depends(get_current_user), db: S
                 # comfortable margin above the minimum for any prefix length.
                 params["path"] = f"{prefix}-{uuid.uuid4().hex[:24]}"
 
+    sanitized = sanitize_workflow_data(data, strip_credentials=True, strip_secrets=True)
+    sanitized.pop("id", None)
     return ok({
         "id": tmpl.id,
         "name": tmpl.name,
-        "workflow_data": data,
+        "workflow_data": sanitized,
     })
 
 

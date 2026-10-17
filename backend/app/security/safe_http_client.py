@@ -303,6 +303,11 @@ class SafeHTTPClient:
             # httpx 0.28 removed the `total` timeout; connect+read bound
             # the worst case for a single request. Keyword form requires
             # ALL of connect/read/write/pool (httpx 0.28+).
+            limits = httpx.Limits(
+                max_connections=200,
+                max_keepalive_connections=50,
+                keepalive_expiry=30.0,
+            )
             self._client = httpx.AsyncClient(
                 timeout=httpx.Timeout(
                     connect=self.connect_timeout_s,
@@ -310,6 +315,7 @@ class SafeHTTPClient:
                     write=self.read_timeout_s,
                     pool=self.read_timeout_s,
                 ),
+                limits=limits,
                 follow_redirects=True,
                 max_redirects=self.max_redirects,
                 verify=self.verify_tls,

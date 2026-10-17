@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { getToken } from '../api'
 
 const SF_CONTACT_FIELDS = [
@@ -15,6 +15,42 @@ const SF_CONTACT_FIELDS = [
   { field: 'MailingCountry', label: 'Mailing Country', required: false, type: 'String (80)' },
   { field: 'Description', label: 'Description / Notes', required: false, type: 'Text (32k)' },
 ]
+
+const SF_LEAD_FIELDS = [
+  { field: 'LastName', label: 'Last Name', required: true, type: 'String (80)' },
+  { field: 'FirstName', label: 'First Name', required: false, type: 'String (40)' },
+  { field: 'Company', label: 'Company Name', required: true, type: 'String (255)' },
+  { field: 'Email', label: 'Email Address', required: false, type: 'Email (80)' },
+  { field: 'Phone', label: 'Phone', required: false, type: 'Phone (40)' },
+  { field: 'Status', label: 'Status', required: false, type: 'Picklist (40)' },
+  { field: 'Title', label: 'Title / Role', required: false, type: 'String (128)' },
+  { field: 'LeadSource', label: 'Lead Source', required: false, type: 'Picklist (40)' },
+  { field: 'City', label: 'City', required: false, type: 'String (40)' },
+  { field: 'State', label: 'State', required: false, type: 'String (80)' },
+  { field: 'PostalCode', label: 'Postal Code', required: false, type: 'String (20)' },
+  { field: 'Country', label: 'Country', required: false, type: 'String (80)' },
+]
+
+const SF_ACCOUNT_FIELDS = [
+  { field: 'Name', label: 'Account Name', required: true, type: 'String (255)' },
+  { field: 'AccountNumber', label: 'Account Number', required: false, type: 'String (40)' },
+  { field: 'Industry', label: 'Industry', required: false, type: 'Picklist (40)' },
+  { field: 'AnnualRevenue', label: 'Annual Revenue', required: false, type: 'Currency (18,0)' },
+  { field: 'Phone', label: 'Phone', required: false, type: 'Phone (40)' },
+  { field: 'Website', label: 'Website URL', required: false, type: 'URL (255)' },
+  { field: 'BillingStreet', label: 'Billing Street', required: false, type: 'String (255)' },
+  { field: 'BillingCity', label: 'Billing City', required: false, type: 'String (40)' },
+  { field: 'BillingState', label: 'Billing State', required: false, type: 'String (80)' },
+  { field: 'BillingPostalCode', label: 'Billing Postal Code', required: false, type: 'String (20)' },
+  { field: 'BillingCountry', label: 'Billing Country', required: false, type: 'String (80)' },
+]
+
+function getStandardFieldsForObject(objType) {
+  if (objType === 'Lead') return SF_LEAD_FIELDS
+  if (objType === 'Account') return SF_ACCOUNT_FIELDS
+  if (objType === 'Custom') return []
+  return SF_CONTACT_FIELDS
+}
 
 export default function CsvNodeEditor({ node, onParamsChange }) {
   const params = node.parameters || {}
@@ -45,14 +81,40 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
   const [delimiter, setDelimiter] = useState(params.delimiter || '')
   const [hasHeader, setHasHeader] = useState(params.has_header !== false)
-  const [batchSize, setBatchSize] = useState(params.batch_size || 1000)
+  const [batchSize, setBatchSize] = useState(params.batch_size !== undefined && params.batch_size !== null ? params.batch_size : 1000)
   const [rowLimit, setRowLimit] = useState(params.row_limit || 0)
   const [targetObject, setTargetObject] = useState(params.target_object || 'Contact')
-  const [duplicatePolicy, setDuplicatePolicy] = useState(params.duplicate_policy || 'skip')
-  const [dedupKey, setDedupKey] = useState(params.dedup_key || 'Email')
-  const [persistToDb, setPersistToDb] = useState(params.persist_to_db !== false)
 
-  const defaultMapping = SF_CONTACT_FIELDS.reduce((acc, f) => {
+  const activeStandardFields = getStandardFieldsForObject(targetObject)
+
+  const [customTargetFields, setCustomTargetFields] = useState(() => {
+    const fromParams = Array.isArray(params.custom_target_fields) ? params.custom_target_fields : []
+    const knownFields = new Set([
+      ...activeStandardFields.map(f => f.field),
+      ...fromParams.map(f => f.field),
+    ])
+    const extra = []
+    if (params.field_mapping && typeof params.field_mapping === 'object') {
+      for (const targetName of Object.values(params.field_mapping)) {
+        if (targetName && typeof targetName === 'string' && !knownFields.has(targetName)) {
+          knownFields.add(targetName)
+          extra.push({
+            field: targetName,
+            label: targetName,
+            type: 'Custom (String)',
+            required: false,
+            isCustom: true,
+          })
+        }
+      }
+    }
+    return [...fromParams, ...extra]
+  })
+
+  // Combined active target fields (standard + custom)
+  const allTargetFields = [...activeStandardFields, ...customTargetFields]
+
+  const defaultMapping = allTargetFields.reduce((acc, f) => {
     acc[f.field] = f.field
     return acc
   }, {})
@@ -62,6 +124,13 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
       ? params.field_mapping
       : defaultMapping
   )
+
+  // State for adding a new target field
+  const [showAddTargetModal, setShowAddTargetModal] = useState(false)
+  const [newTargetName, setNewTargetName] = useState('')
+  const [newTargetType, setNewTargetType] = useState('String (255)')
+  const [newTargetRequired, setNewTargetRequired] = useState(false)
+  const [newTargetSourceCol, setNewTargetSourceCol] = useState('')
   const [fileName, setFileName] = useState(params.file_name || '')
   const [fileSize, setFileSize] = useState(params.file_size || '')
   const [uploadError, setUploadError] = useState(null)
@@ -91,9 +160,125 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
   }
 
   const handleMappingChange = (targetField, sourceCol) => {
-    const nextMapping = { ...fieldMapping, [sourceCol]: targetField }
+    const nextMapping = { ...fieldMapping }
+    // Clean up any other source column previously assigned to this targetField
+    for (const [k, v] of Object.entries(nextMapping)) {
+      if (v === targetField) {
+        delete nextMapping[k]
+      }
+    }
+    if (sourceCol && sourceCol.trim()) {
+      nextMapping[sourceCol.trim()] = targetField
+    }
     setFieldMapping(nextMapping)
     updateParam('field_mapping', nextMapping)
+  }
+
+  const handleAddTargetField = (e) => {
+    e?.preventDefault()
+    const trimmed = (newTargetName || '').trim()
+    if (!trimmed) return
+
+    if (allTargetFields.some(f => f.field.toLowerCase() === trimmed.toLowerCase())) {
+      alert(`Target field "${trimmed}" already exists in the mapping table.`)
+      return
+    }
+
+    const newFieldObj = {
+      field: trimmed,
+      label: trimmed,
+      type: newTargetType || 'String (255)',
+      required: Boolean(newTargetRequired),
+      isCustom: true,
+    }
+
+    const nextCustomFields = [...customTargetFields, newFieldObj]
+    setCustomTargetFields(nextCustomFields)
+
+    const sourceCol = (newTargetSourceCol || trimmed).trim()
+    const nextMapping = { ...fieldMapping }
+    if (sourceCol) {
+      nextMapping[sourceCol] = trimmed
+    }
+    setFieldMapping(nextMapping)
+
+    updateMultipleParams({
+      custom_target_fields: nextCustomFields,
+      field_mapping: nextMapping,
+    })
+
+    setNewTargetName('')
+    setNewTargetSourceCol('')
+    setNewTargetRequired(false)
+    setShowAddTargetModal(false)
+  }
+
+  const handleRemoveCustomTargetField = (targetFieldToRemove) => {
+    const nextCustomFields = customTargetFields.filter(f => f.field !== targetFieldToRemove)
+    setCustomTargetFields(nextCustomFields)
+
+    const nextMapping = { ...fieldMapping }
+    for (const [k, v] of Object.entries(nextMapping)) {
+      if (v === targetFieldToRemove) {
+        delete nextMapping[k]
+      }
+    }
+    setFieldMapping(nextMapping)
+
+    updateMultipleParams({
+      custom_target_fields: nextCustomFields,
+      field_mapping: nextMapping,
+    })
+  }
+
+  const handleAddAllUnmappedColumns = () => {
+    if (!previewColumns || previewColumns.length === 0) return
+    const currentMappedSources = new Set(Object.keys(fieldMapping))
+    const currentTargetNames = new Set(allTargetFields.map(f => f.field.toLowerCase()))
+
+    const newCustoms = []
+    const nextMapping = { ...fieldMapping }
+
+    for (const col of previewColumns) {
+      if (!currentMappedSources.has(col) && !currentTargetNames.has(col.toLowerCase())) {
+        newCustoms.push({
+          field: col,
+          label: col,
+          type: 'Auto-Detected',
+          required: false,
+          isCustom: true,
+        })
+        nextMapping[col] = col
+        currentTargetNames.add(col.toLowerCase())
+      }
+    }
+
+    if (newCustoms.length === 0) return
+
+    const combinedCustoms = [...customTargetFields, ...newCustoms]
+    setCustomTargetFields(combinedCustoms)
+    setFieldMapping(nextMapping)
+
+    updateMultipleParams({
+      custom_target_fields: combinedCustoms,
+      field_mapping: nextMapping,
+    })
+  }
+
+  const handleAutoMapAll = () => {
+    const nextMapping = allTargetFields.reduce((acc, f) => {
+      const match = previewColumns.find(c => c.toLowerCase() === f.field.toLowerCase())
+      const sourceCol = match || f.field
+      acc[sourceCol] = f.field
+      return acc
+    }, {})
+    setFieldMapping(nextMapping)
+    updateParam('field_mapping', nextMapping)
+  }
+
+  const handleClearMapping = () => {
+    setFieldMapping({})
+    updateParam('field_mapping', {})
   }
 
   const formatBytes = (bytes) => {
@@ -107,7 +292,6 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
   // Quick client-side preview extractor for text tabular files
   const extractPreviewFromText = (rawText, delimHint = ',') => {
     if (!rawText) return
-    // Sample only the first 8KB to avoid splitting multi-megabyte strings into thousands of elements
     const sampleText = rawText.length > 8192 ? rawText.slice(0, 8192) : rawText
     const lines = sampleText.split(/\r?\n/).map(l => l.trim()).filter(Boolean).slice(0, 6)
     if (!lines.length) return
@@ -143,11 +327,9 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
     setIsUploading(true)
     setUploadProgress(20)
-
     setUploadError(null)
 
     // Attempt uploading to Flowsmith files API to persist a secure file_id reference
-    // rather than embedding the entire file in the workflow json definition
     let uploadSuccess = false
     try {
       setIsUploading(true)
@@ -187,10 +369,9 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
             source_type: 'upload',
             source_mode: 'upload',
             file_format: isArchive ? 'zip' : (isTsv ? 'tsv' : 'csv'),
-            csv_content: '', // Clear inline content so workflow JSON stays lightweight
+            csv_content: '',
           })
 
-          // Also read sample for instant local preview if text
           if (!isArchive) {
             const reader = new FileReader()
             reader.onload = (e) => {
@@ -228,7 +409,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
     if (uploadSuccess) return
 
-    // Never embed files larger than 64 KB into workflow JSON — doing so breaks workflow saves (HTTP 413)
+    // Never embed files larger than 64 KB into workflow JSON
     if (file.size > 65536) {
       setIsUploading(false)
       setUploadProgress(0)
@@ -315,56 +496,127 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
     })
   }
 
+  // Common input style using Flowsmith tokens
+  const inputStyle = {
+    width: '100%',
+    padding: '0.55rem 0.75rem',
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--panel-2)',
+    color: 'var(--text)',
+    border: '1px solid var(--border)',
+    fontSize: '0.84rem',
+    fontFamily: 'inherit',
+    outline: 'none',
+    boxShadow: 'var(--shadow-xs)',
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+  }
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '0.78rem',
+    fontWeight: 600,
+    color: 'var(--text-secondary)',
+    marginBottom: '0.35rem',
+    letterSpacing: '-0.01em',
+  }
+
+  const cardStyle = {
+    background: 'var(--panel)',
+    padding: '1rem',
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow-card)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
+  }
+
   return (
-    <div className="flowsmith-dataload-editor" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '0.5rem' }}>
+    <div className="flowsmith-dataload-editor" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.25rem' }}>
       {/* Node Identity Banner */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(30, 42, 60, 0.7) 0%, rgba(20, 26, 38, 0.9) 100%)',
-        padding: '0.9rem 1.1rem',
-        borderRadius: '8px',
-        border: '1px solid #3b4252',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+        background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(37, 99, 235, 0.06) 100%)',
+        padding: '1rem 1.2rem',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.5rem',
+        gap: '0.6rem',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#88c0d0', letterSpacing: '-0.01em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                 Flowsmith DataLoad
               </span>
-              <span style={{ fontSize: '0.7rem', background: '#434c5e', color: '#eceff4', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 600 }}>
+              <span style={{
+                fontSize: '0.68rem',
+                background: 'var(--panel-3)',
+                color: 'var(--text-secondary)',
+                padding: '0.15rem 0.45rem',
+                borderRadius: 'var(--radius-xs)',
+                fontWeight: 600,
+                border: '1px solid var(--border)',
+              }}>
                 flowsmith.data_load
               </span>
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#d8dee9', marginTop: '0.15rem' }}>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
               Import, download, extract, parse, validate, and transform files for downstream workflows.
             </div>
           </div>
-          <span style={{ fontSize: '0.72rem', background: 'rgba(163, 190, 140, 0.2)', color: '#a3be8c', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #a3be8c' }}>
+          <span style={{
+            fontSize: '0.72rem',
+            background: 'rgba(5, 150, 105, 0.12)',
+            color: 'var(--green)',
+            padding: '0.2rem 0.55rem',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid rgba(5, 150, 105, 0.3)',
+            fontWeight: 600,
+          }}>
             Production Ready
           </span>
         </div>
 
         {/* Supported Formats Tags */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.2rem' }}>
-          <span style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '3px', background: '#242933', color: '#81a1c1', border: '1px solid #3b4252' }}>CSV</span>
-          <span style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '3px', background: '#242933', color: '#a3be8c', border: '1px solid #3b4252' }}>TSV</span>
-          <span style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '3px', background: '#242933', color: '#ebcb8b', border: '1px solid #3b4252' }}>ZIP (Single & Multi-File)</span>
-          <span style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '3px', background: '#242933', color: '#d08770', border: '1px solid #3b4252' }}>Nested Archives</span>
-          <span style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: '3px', background: '#242933', color: '#b48ead', border: '1px solid #3b4252' }}>GZIP (.gz)</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.1rem' }}>
+          {[
+            { label: 'CSV', color: 'var(--blue)' },
+            { label: 'TSV', color: 'var(--green)' },
+            { label: 'ZIP (Single & Multi-File)', color: 'var(--amber)' },
+            { label: 'Nested Archives', color: 'var(--accent)' },
+            { label: 'GZIP (.gz)', color: 'var(--purple)' },
+          ].map((tag) => (
+            <span
+              key={tag.label}
+              style={{
+                fontSize: '0.68rem',
+                padding: '0.15rem 0.5rem',
+                borderRadius: 'var(--radius-xs)',
+                background: 'var(--panel-2)',
+                color: tag.color,
+                border: '1px solid var(--border)',
+                fontWeight: 500,
+              }}
+            >
+              {tag.label}
+            </span>
+          ))}
         </div>
       </div>
 
       {/* Two Mandatory Input Modes Selector */}
-      <div className="form-section" style={{ background: 'var(--color-bg-secondary, #1e222d)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border, #2e3440)' }}>
-        <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', fontWeight: 600, color: '#eceff4' }}>
-          Source Mode
-        </h4>
+      <div className="form-section" style={cardStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
+            Source Mode
+          </h4>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Select ingestion mechanism</span>
+        </div>
 
         {/* Segmented Control */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
           {[
             { id: 'upload', label: 'Option A: Upload File', desc: 'Direct / ObjectStore' },
             { id: 'url', label: 'Option B: Download URL', desc: 'Remote HTTP / HTTPS' },
@@ -378,11 +630,11 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 type="button"
                 onClick={() => handleSourceModeChange(mode.id)}
                 style={{
-                  padding: '0.6rem 0.4rem',
-                  borderRadius: '6px',
-                  background: isActive ? '#3b4252' : '#242933',
-                  border: isActive ? '1px solid #88c0d0' : '1px solid #2e3440',
-                  color: isActive ? '#88c0d0' : '#d8dee9',
+                  padding: '0.65rem 0.5rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: isActive ? 'var(--accent-subtle)' : 'var(--panel-2)',
+                  border: isActive ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  color: isActive ? 'var(--text)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   textAlign: 'center',
                   display: 'flex',
@@ -390,10 +642,11 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                   gap: '0.2rem',
                   alignItems: 'center',
                   transition: 'all 0.15s ease',
+                  boxShadow: isActive ? '0 0 0 1px var(--accent-subtle)' : 'none',
                 }}
               >
-                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{mode.label}</span>
-                <span style={{ fontSize: '0.67rem', color: isActive ? '#eceff4' : '#6c778c' }}>{mode.desc}</span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{mode.label}</span>
+                <span style={{ fontSize: '0.67rem', color: isActive ? 'var(--text-secondary)' : 'var(--muted)' }}>{mode.desc}</span>
               </button>
             )
           })}
@@ -401,17 +654,17 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
         {/* Option A: Upload File */}
         {sourceMode === 'upload' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
               onDragLeave={() => setIsDragOver(false)}
               onDrop={handleDrop}
               style={{
-                border: isDragOver ? '2px dashed #88c0d0' : '2px dashed #434c5e',
-                borderRadius: '8px',
-                padding: '1.25rem',
+                border: isDragOver ? '2px dashed var(--accent)' : '2px dashed var(--border-strong)',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.4rem',
                 textAlign: 'center',
-                background: isDragOver ? 'rgba(136, 192, 208, 0.08)' : '#242933',
+                background: isDragOver ? 'rgba(79, 70, 229, 0.08)' : 'var(--panel-2)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
@@ -424,41 +677,57 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 onChange={handleFileInputChange}
                 style={{ display: 'none' }}
               />
-              <div style={{ fontSize: '1.4rem', marginBottom: '0.35rem' }}>📁</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e5e9f0' }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: 'rgba(79, 70, 229, 0.12)',
+                color: 'var(--accent)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '0.5rem',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text)' }}>
                 Choose file or drag & drop here
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#81a1c1', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.25rem', maxWidth: 440, marginInline: 'auto' }}>
                 Supports CSV, TSV, and ZIP archives (.zip, .gz, .tar). Files are stored securely in Flowsmith ObjectStore.
               </div>
             </div>
 
             {isUploading && (
-              <div style={{ background: '#242933', padding: '0.5rem', borderRadius: '4px', border: '1px solid #3b4252' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+              <div style={{ background: 'var(--panel-2)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--accent)', marginBottom: '0.35rem', fontWeight: 600 }}>
                   <span>Uploading to ObjectStore...</span>
                   <span>{uploadProgress}%</span>
                 </div>
-                <div style={{ background: '#3b4252', height: '4px', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${uploadProgress}%`, height: '100%', background: '#88c0d0', transition: 'width 0.2s' }} />
+                <div style={{ background: 'var(--panel-3)', height: '4px', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--gradient-brand)', transition: 'width 0.2s' }} />
                 </div>
               </div>
             )}
 
             {uploadError && (
               <div style={{
-                background: 'rgba(191, 97, 106, 0.15)',
-                border: '1px solid #bf616a',
-                borderRadius: '6px',
-                padding: '0.65rem 0.85rem',
-                color: '#eceff4',
+                background: 'rgba(225, 29, 72, 0.1)',
+                border: '1px solid rgba(225, 29, 72, 0.3)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0.75rem 0.9rem',
+                color: 'var(--text)',
                 fontSize: '0.78rem',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.25rem',
               }}>
-                <span style={{ fontWeight: 600, color: '#bf616a' }}>⚠ File Upload Error</span>
-                <span style={{ color: '#d8dee9', lineHeight: 1.4 }}>{uploadError}</span>
+                <span style={{ fontWeight: 600, color: 'var(--red)' }}>⚠ File Upload Error</span>
+                <span style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>{uploadError}</span>
               </div>
             )}
 
@@ -467,33 +736,55 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '0.65rem 0.85rem',
-                borderRadius: '6px',
-                background: '#2b303c',
-                border: '1px solid #3b4252',
+                padding: '0.75rem 0.95rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--panel-2)',
+                border: '1px solid var(--border-strong)',
               }}>
-                <div>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#a3be8c', display: 'block' }}>
-                    ✓ Loaded: {fileName || 'File'}
-                  </span>
-                  <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.72rem', color: '#81a1c1', marginTop: '0.15rem' }}>
-                    {fileSize && <span>Size: {fileSize}</span>}
-                    {fileId && <span>Ref ID: {fileId}</span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(5, 150, 105, 0.15)',
+                    color: 'var(--green)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text)', display: 'block' }}>
+                      {fileName || 'Loaded File'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
+                      {fileSize && <span>Size: {fileSize}</span>}
+                      {fileId && <span>Ref ID: <code style={{ fontSize: '0.7rem' }}>{fileId.slice(0, 12)}...</code></span>}
+                    </div>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={handleClearUploadedFile}
                   style={{
-                    padding: '0.25rem 0.6rem',
-                    background: '#bf616a',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
+                    padding: '0.35rem 0.75rem',
+                    background: 'rgba(225, 29, 72, 0.12)',
+                    color: 'var(--red)',
+                    border: '1px solid rgba(225, 29, 72, 0.25)',
+                    borderRadius: 'var(--radius-sm)',
                     fontSize: '0.75rem',
+                    fontWeight: 600,
                     cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.15s ease',
                   }}
                 >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   Clear File
                 </button>
               </div>
@@ -503,9 +794,9 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
         {/* Option B: Download from URL */}
         {sourceMode === 'url' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+              <label style={labelStyle}>
                 Download URL (Supports Expressions)
               </label>
               <input
@@ -516,37 +807,29 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                   setDownloadUrl(e.target.value)
                   updateParam('download_url', e.target.value)
                 }}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  background: '#242933',
-                  color: '#e5e9f0',
-                  border: '1px solid #3b4252',
-                  fontSize: '0.85rem',
-                }}
+                style={inputStyle}
               />
             </div>
 
             {/* SSRF & Security Guard Indicator */}
             <div style={{
-              background: 'rgba(163, 190, 140, 0.1)',
-              border: '1px solid #4c566a',
-              borderRadius: '4px',
-              padding: '0.45rem 0.75rem',
+              background: 'rgba(5, 150, 105, 0.08)',
+              border: '1px solid rgba(5, 150, 105, 0.25)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.55rem 0.85rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              gap: '0.5rem',
               fontSize: '0.74rem',
-              color: '#d8dee9',
+              color: 'var(--text-secondary)',
             }}>
-              <span style={{ color: '#a3be8c' }}>🔒</span>
+              <span style={{ color: 'var(--green)', fontSize: '0.9rem' }}>🔒</span>
               <span><strong>SSRF Guard Active:</strong> Rejects loopback, private networks (RFC 1918), and cloud metadata destinations. Validates DNS and redirects.</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+                <label style={labelStyle}>
                   Authentication Type
                 </label>
                 <select
@@ -555,15 +838,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                     setAuthType(e.target.value)
                     updateParam('auth_type', e.target.value)
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    borderRadius: '4px',
-                    background: '#242933',
-                    color: '#e5e9f0',
-                    border: '1px solid #3b4252',
-                    fontSize: '0.85rem',
-                  }}
+                  style={inputStyle}
                 >
                   <option value="none">None (Public Download)</option>
                   <option value="bearer">Bearer Token</option>
@@ -572,7 +847,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+                <label style={labelStyle}>
                   Auth Token / Secret
                 </label>
                 <input
@@ -585,13 +860,8 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                   }}
                   disabled={authType === 'none'}
                   style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    borderRadius: '4px',
-                    background: authType === 'none' ? '#1e222d' : '#242933',
-                    color: '#e5e9f0',
-                    border: '1px solid #3b4252',
-                    fontSize: '0.85rem',
+                    ...inputStyle,
+                    opacity: authType === 'none' ? 0.6 : 1,
                   }}
                 />
               </div>
@@ -599,7 +869,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+                <label style={labelStyle}>
                   Timeout (Seconds)
                 </label>
                 <input
@@ -612,20 +882,12 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                     setTimeoutSeconds(val)
                     updateParam('timeout_seconds', val)
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    borderRadius: '4px',
-                    background: '#242933',
-                    color: '#e5e9f0',
-                    border: '1px solid #3b4252',
-                    fontSize: '0.85rem',
-                  }}
+                  style={inputStyle}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+                <label style={labelStyle}>
                   Max Download Size (MB)
                 </label>
                 <input
@@ -639,15 +901,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                     setMaxDownloadBytes(bytes)
                     updateParam('max_download_bytes', bytes)
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    borderRadius: '4px',
-                    background: '#242933',
-                    color: '#e5e9f0',
-                    border: '1px solid #3b4252',
-                    fontSize: '0.85rem',
-                  }}
+                  style={inputStyle}
                 />
               </div>
             </div>
@@ -656,8 +910,8 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
         {/* Local File Path */}
         {sourceMode === 'file_path' && (
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+          <div style={{ marginTop: '0.25rem' }}>
+            <label style={labelStyle}>
               Filesystem or Container File Path
             </label>
             <input
@@ -668,23 +922,15 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 setFilePath(e.target.value)
                 updateParam('file_path', e.target.value)
               }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-              }}
+              style={inputStyle}
             />
           </div>
         )}
 
         {/* Inline Content */}
         {sourceMode === 'inline' && (
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+          <div style={{ marginTop: '0.25rem' }}>
+            <label style={labelStyle}>
               Raw Text or Expression
             </label>
             <textarea
@@ -697,14 +943,10 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 extractPreviewFromText(e.target.value, delimiter || ',')
               }}
               style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-                fontFamily: 'monospace',
+                ...inputStyle,
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.8rem',
+                lineHeight: 1.5,
               }}
             />
           </div>
@@ -713,27 +955,29 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
       {/* Structure Preview Panel (when preview data is present) */}
       {previewColumns.length > 0 && (
-        <div className="form-section" style={{ background: 'var(--color-bg-secondary, #1e222d)', padding: '1rem', borderRadius: '8px', border: '1px solid #434c5e' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: '#88c0d0' }}>
+        <div className="form-section" style={cardStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
               Detected Structure Preview ({previewColumns.length} columns)
             </h4>
-            <span style={{ fontSize: '0.72rem', color: '#a3be8c' }}>Showing first {previewRows.length} rows</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--green)', fontWeight: 500 }}>
+              Showing first {previewRows.length} rows
+            </span>
           </div>
-          <div style={{ overflowX: 'auto', maxHeight: '160px', border: '1px solid #2e3440', borderRadius: '4px' }}>
+          <div style={{ overflowX: 'auto', maxHeight: '180px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#2e3440', color: '#d8dee9' }}>
+                <tr style={{ background: 'var(--panel-3)', color: 'var(--text-secondary)' }}>
                   {previewColumns.map((col) => (
-                    <th key={col} style={{ padding: '0.35rem 0.5rem', borderBottom: '1px solid #3b4252' }}>{col}</th>
+                    <th key={col} style={{ padding: '0.45rem 0.65rem', borderBottom: '1px solid var(--border)', fontWeight: 600 }}>{col}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {previewRows.map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? '#242933' : '#1e222d' }}>
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'var(--panel)' : 'var(--panel-2)' }}>
                     {previewColumns.map((col) => (
-                      <td key={col} style={{ padding: '0.35rem 0.5rem', color: '#eceff4', borderBottom: '1px solid #2e3440' }}>{row[col]}</td>
+                      <td key={col} style={{ padding: '0.45rem 0.65rem', color: 'var(--text)', borderBottom: '1px solid var(--border-subtle)' }}>{row[col]}</td>
                     ))}
                   </tr>
                 ))}
@@ -744,13 +988,16 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
       )}
 
       {/* Archive Configuration (Shown for ZIP / TAR) */}
-      <div className="form-section" style={{ background: 'var(--color-bg-secondary, #1e222d)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border, #2e3440)' }}>
-        <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', fontWeight: 600, color: '#eceff4' }}>
-          Archive & ZIP Extraction Settings
-        </h4>
+      <div className="form-section" style={cardStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
+            Archive & ZIP Extraction Settings
+          </h4>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Multi-file unpacking rules</span>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+            <label style={labelStyle}>
               Process Mode
             </label>
             <select
@@ -759,15 +1006,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 setArchiveProcessMode(e.target.value)
                 updateParam('archive_process_mode', e.target.value)
               }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-              }}
+              style={inputStyle}
             >
               <option value="single">Process Single File (Default)</option>
               <option value="combine">Combine All Matching Files</option>
@@ -775,7 +1014,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+            <label style={labelStyle}>
               Header Match Policy (Combine Mode)
             </label>
             <select
@@ -784,15 +1023,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 setArchiveHeaderMode(e.target.value)
                 updateParam('archive_header_mode', e.target.value)
               }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-              }}
+              style={inputStyle}
             >
               <option value="union">Union (Merge All Columns)</option>
               <option value="strict">Strict (Fail on Mismatch)</option>
@@ -801,9 +1032,9 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+            <label style={labelStyle}>
               Target Entry Filename (Optional)
             </label>
             <input
@@ -814,20 +1045,12 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 setArchiveInnerFile(e.target.value)
                 updateParam('archive_inner_file', e.target.value)
               }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-              }}
+              style={inputStyle}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+            <label style={labelStyle}>
               Path / Glob Pattern Filter
             </label>
             <input
@@ -838,28 +1061,23 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 setArchivePattern(e.target.value)
                 updateParam('archive_pattern', e.target.value)
               }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-              }}
+              style={inputStyle}
             />
           </div>
         </div>
       </div>
 
       {/* Parser & Delimiter Settings */}
-      <div className="form-section" style={{ background: 'var(--color-bg-secondary, #1e222d)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border, #2e3440)' }}>
-        <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', fontWeight: 600, color: '#eceff4' }}>
-          Parser & Delimiter Settings
-        </h4>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+      <div className="form-section" style={cardStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
+            Parser & Delimiter Settings
+          </h4>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Dialect & batch options</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+            <label style={labelStyle}>
               Delimiter
             </label>
             <select
@@ -868,15 +1086,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 setDelimiter(e.target.value)
                 updateParam('delimiter', e.target.value)
               }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-              }}
+              style={inputStyle}
             >
               <option value="">Auto-Detect (, \t ; |)</option>
               <option value="&#9;">Tab (\t) — TSV</option>
@@ -887,34 +1097,65 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
+            <label style={labelStyle}>
               Batch Size
             </label>
             <input
               type="number"
-              min="100"
+              min="1"
               max="10000"
-              step="100"
+              step="1"
               value={batchSize}
               onChange={(e) => {
-                const val = parseInt(e.target.value, 10) || 1000
+                const raw = e.target.value
+                if (raw === '') {
+                  setBatchSize('')
+                  return
+                }
+                const parsed = parseInt(raw, 10)
+                const val = isNaN(parsed) ? 1 : Math.max(1, Math.min(10000, parsed))
                 setBatchSize(val)
                 updateParam('batch_size', val)
               }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
+              onBlur={() => {
+                if (batchSize === '' || isNaN(Number(batchSize)) || Number(batchSize) < 1) {
+                  setBatchSize(1000)
+                  updateParam('batch_size', 1000)
+                }
               }}
+              placeholder="1000"
+              style={inputStyle}
             />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.25rem', display: 'block' }}>
+              1 – 10,000 items
+            </span>
+          </div>
+
+          <div>
+            <label style={labelStyle}>
+              Row Limit (0 = All)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="1000000"
+              step="1"
+              value={rowLimit}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10) || 0
+                setRowLimit(val)
+                updateParam('row_limit', val)
+              }}
+              placeholder="0"
+              style={inputStyle}
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.25rem', display: 'block' }}>
+              0 for unlimited
+            </span>
           </div>
         </div>
 
-        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <input
             type="checkbox"
             id="dataload-has-header"
@@ -923,136 +1164,324 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
               setHasHeader(e.target.checked)
               updateParam('has_header', e.target.checked)
             }}
+            style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
           />
-          <label htmlFor="dataload-has-header" style={{ fontSize: '0.85rem', color: '#d8dee9', cursor: 'pointer' }}>
+          <label htmlFor="dataload-has-header" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
             First row contains column headers
           </label>
         </div>
       </div>
 
       {/* Target Schema & Visual Field Mapping */}
-      <div className="form-section" style={{ background: 'var(--color-bg-secondary, #1e222d)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border, #2e3440)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 600, color: '#eceff4' }}>
-            Field Mapping ({targetObject})
-          </h4>
-          <span style={{ fontSize: '0.75rem', color: '#81a1c1' }}>12 Standard Target Fields</span>
+      <div className="form-section" style={cardStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
+                Field Mapping
+              </h4>
+              <select
+                value={targetObject}
+                onChange={(e) => {
+                  const newObj = e.target.value
+                  setTargetObject(newObj)
+                  updateParam('target_object', newObj)
+                }}
+                style={{
+                  ...inputStyle,
+                  width: 'auto',
+                  padding: '0.2rem 0.5rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  color: 'var(--accent)',
+                }}
+              >
+                <option value="Contact">Salesforce Contact</option>
+                <option value="Lead">Salesforce Lead</option>
+                <option value="Account">Salesforce Account</option>
+                <option value="Custom">Custom Schema / Table</option>
+              </select>
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
+              Map input columns to target schema fields ({allTargetFields.length} target fields configured)
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setShowAddTargetModal(!showAddTargetModal)}
+              style={{
+                padding: '0.3rem 0.65rem',
+                borderRadius: 'var(--radius-xs)',
+                background: showAddTargetModal ? 'var(--accent)' : 'var(--panel-2)',
+                border: '1px solid var(--accent)',
+                color: showAddTargetModal ? '#fff' : 'var(--accent)',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+              }}
+            >
+              <span>+</span> Add Target Field
+            </button>
+            {previewColumns && previewColumns.length > 0 && (
+              <button
+                type="button"
+                onClick={handleAddAllUnmappedColumns}
+                title="Create target fields automatically for all unmapped columns in CSV"
+                style={{
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: 'var(--radius-xs)',
+                  background: 'var(--panel-2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                + Map All CSV Columns ({previewColumns.length})
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleAutoMapAll}
+              style={{
+                padding: '0.3rem 0.65rem',
+                borderRadius: 'var(--radius-xs)',
+                background: 'var(--panel-2)',
+                border: '1px solid var(--border)',
+                color: 'var(--accent)',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Auto-Map All
+            </button>
+            <button
+              type="button"
+              onClick={handleClearMapping}
+              style={{
+                padding: '0.3rem 0.65rem',
+                borderRadius: 'var(--radius-xs)',
+                background: 'var(--panel-2)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-dim)',
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+              }}
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
-        <div style={{ maxHeight: '260px', overflowY: 'auto', border: '1px solid #3b4252', borderRadius: '4px' }}>
+        {/* Datalist for autocomplete on detected CSV columns */}
+        {previewColumns && previewColumns.length > 0 && (
+          <datalist id="dataload-csv-columns-list">
+            {previewColumns.map((col) => (
+              <option key={col} value={col} />
+            ))}
+          </datalist>
+        )}
+
+        {/* Add Target Field Modal / Form */}
+        {showAddTargetModal && (
+          <div
+            style={{
+              padding: '0.75rem',
+              marginTop: '0.75rem',
+              borderRadius: 'var(--radius-xs)',
+              background: 'var(--panel-2)',
+              border: '1px solid var(--accent, #3b82f6)',
+            }}
+          >
+            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.5rem' }}>
+              Define New Target Field (Schema Destination)
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr auto auto', gap: '0.5rem', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block', marginBottom: '0.2rem' }}>
+                  Target Field Name *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. AccountId or Custom_Field__c"
+                  value={newTargetName}
+                  onChange={(e) => setNewTargetName(e.target.value)}
+                  style={{ ...inputStyle, width: '100%', fontSize: '0.76rem', padding: '0.35rem 0.5rem' }}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block', marginBottom: '0.2rem' }}>
+                  Source CSV Column
+                </label>
+                <input
+                  type="text"
+                  placeholder="Column in CSV file"
+                  list="dataload-csv-columns-list"
+                  value={newTargetSourceCol}
+                  onChange={(e) => setNewTargetSourceCol(e.target.value)}
+                  style={{ ...inputStyle, width: '100%', fontSize: '0.76rem', padding: '0.35rem 0.5rem' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block', marginBottom: '0.2rem' }}>
+                  Data Type
+                </label>
+                <select
+                  value={newTargetType}
+                  onChange={(e) => setNewTargetType(e.target.value)}
+                  style={{ ...inputStyle, width: '100%', fontSize: '0.76rem', padding: '0.35rem 0.5rem' }}
+                >
+                  <option value="String (255)">String / Text</option>
+                  <option value="Number / Integer">Number (Integer)</option>
+                  <option value="Decimal / Currency">Decimal / Currency</option>
+                  <option value="Email">Email Address</option>
+                  <option value="Phone">Phone</option>
+                  <option value="Boolean">Boolean (true/false)</option>
+                  <option value="Date / DateTime">Date / DateTime</option>
+                  <option value="Text (Long)">Long Text / JSON</option>
+                </select>
+              </div>
+              <div style={{ paddingBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={newTargetRequired}
+                    onChange={(e) => setNewTargetRequired(e.target.checked)}
+                  />
+                  Required?
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: '0.3rem', paddingBottom: '0.1rem' }}>
+                <button
+                  type="button"
+                  onClick={handleAddTargetField}
+                  disabled={!newTargetName.trim()}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 'var(--radius-xs)',
+                    background: newTargetName.trim() ? 'var(--accent)' : 'var(--panel-3)',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    cursor: newTargetName.trim() ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  Add Field
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddTargetModal(false)
+                    setNewTargetName('')
+                    setNewTargetSourceCol('')
+                  }}
+                  style={{
+                    padding: '0.35rem 0.55rem',
+                    borderRadius: 'var(--radius-xs)',
+                    background: 'var(--panel-3)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-dim)',
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ maxHeight: '320px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', marginTop: '0.75rem' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: '#2e3440', color: '#d8dee9', borderBottom: '1px solid #434c5e' }}>
-                <th style={{ padding: '0.5rem' }}>Target Field</th>
-                <th style={{ padding: '0.5rem' }}>Type</th>
-                <th style={{ padding: '0.5rem' }}>Source Column</th>
+              <tr style={{ background: 'var(--panel-3)', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '0.55rem 0.75rem', fontWeight: 600 }}>Target Field</th>
+                <th style={{ padding: '0.55rem 0.75rem', fontWeight: 600 }}>Type</th>
+                <th style={{ padding: '0.55rem 0.75rem', fontWeight: 600 }}>Source Column</th>
+                <th style={{ padding: '0.55rem 0.5rem', fontWeight: 600, width: '40px', textAlign: 'center' }}></th>
               </tr>
             </thead>
             <tbody>
-              {SF_CONTACT_FIELDS.map((sfField) => {
-                const currentSource = Object.keys(fieldMapping).find(k => fieldMapping[k] === sfField.field) || sfField.field
+              {allTargetFields.map((f) => {
+                const currentSource = Object.keys(fieldMapping).find(k => fieldMapping[k] === f.field) || f.field
                 return (
-                  <tr key={sfField.field} style={{ borderBottom: '1px solid #2e3440', background: '#242933' }}>
-                    <td style={{ padding: '0.5rem', color: '#eceff4' }}>
-                      {sfField.label} ({sfField.field})
-                      {sfField.required && (
-                        <span style={{ color: '#bf616a', marginLeft: '0.25rem', fontWeight: 'bold' }}>*</span>
-                      )}
+                  <tr key={f.field} style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--panel)' }}>
+                    <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span>
+                          {f.label ? `${f.label} (${f.field})` : f.field}
+                        </span>
+                        {f.required && (
+                          <span style={{ color: 'var(--red)', fontWeight: 'bold' }}>*</span>
+                        )}
+                        {f.isCustom && (
+                          <span style={{
+                            fontSize: '0.65rem',
+                            padding: '0.1rem 0.35rem',
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            color: 'var(--accent)',
+                            borderRadius: '2px',
+                            fontWeight: 600,
+                          }}>
+                            Custom
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td style={{ padding: '0.5rem', color: '#81a1c1' }}>{sfField.type}</td>
-                    <td style={{ padding: '0.5rem' }}>
+                    <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-dim)', fontSize: '0.74rem' }}>{f.type}</td>
+                    <td style={{ padding: '0.5rem 0.75rem' }}>
                       <input
                         type="text"
                         value={currentSource}
-                        onChange={(e) => handleMappingChange(sfField.field, e.target.value)}
+                        list="dataload-csv-columns-list"
+                        placeholder="Column name in CSV"
+                        onChange={(e) => handleMappingChange(f.field, e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '0.25rem 0.5rem',
-                          background: '#2e3440',
-                          border: '1px solid #4c566a',
-                          borderRadius: '3px',
-                          color: '#88c0d0',
-                          fontSize: '0.8rem',
+                          padding: '0.35rem 0.6rem',
+                          background: 'var(--panel-2)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-xs)',
+                          color: 'var(--text)',
+                          fontSize: '0.78rem',
+                          outline: 'none',
                         }}
                       />
+                    </td>
+                    <td style={{ padding: '0.5rem 0.5rem', textAlign: 'center' }}>
+                      {f.isCustom && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCustomTargetField(f.field)}
+                          title="Remove custom target field"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--red, #ef4444)',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            padding: '0.2rem',
+                            lineHeight: 1,
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Duplicate Handling & Database Staging */}
-      <div className="form-section" style={{ background: 'var(--color-bg-secondary, #1e222d)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border, #2e3440)' }}>
-        <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.92rem', fontWeight: 600, color: '#eceff4' }}>
-          Duplicate Policy & Database Persistence
-        </h4>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
-              Duplicate Policy
-            </label>
-            <select
-              value={duplicatePolicy}
-              onChange={(e) => {
-                setDuplicatePolicy(e.target.value)
-                updateParam('duplicate_policy', e.target.value)
-              }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-              }}
-            >
-              <option value="skip">Skip Duplicate Rows (Preserve First)</option>
-              <option value="update">Update / Overwrite Duplicates</option>
-              <option value="error">Raise Error on Duplicates</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#88c0d0', marginBottom: '0.25rem' }}>
-              Duplicate Key
-            </label>
-            <input
-              type="text"
-              value={dedupKey}
-              onChange={(e) => {
-                setDedupKey(e.target.value)
-                updateParam('dedup_key', e.target.value)
-              }}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                background: '#242933',
-                color: '#e5e9f0',
-                border: '1px solid #3b4252',
-                fontSize: '0.85rem',
-              }}
-            />
-          </div>
-        </div>
-
-        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <input
-            type="checkbox"
-            id="dataload-persist-db"
-            checked={persistToDb}
-            onChange={(e) => {
-              setPersistToDb(e.target.checked)
-              updateParam('persist_to_db', e.target.checked)
-            }}
-          />
-          <label htmlFor="dataload-persist-db" style={{ fontSize: '0.85rem', color: '#d8dee9', cursor: 'pointer' }}>
-            Persist staged records to PostgreSQL database (table: staged_contacts)
-          </label>
         </div>
       </div>
     </div>

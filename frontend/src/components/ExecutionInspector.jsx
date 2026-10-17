@@ -43,7 +43,7 @@ export default function ExecutionInspector({ onClose }) {
   const approval = useExecutionStore((s) => s.approval)
   const retry = useExecutionStore((s) => s.retry)
   const clear = useExecutionStore((s) => s.clear)
-  const canvasNodes = useWorkflowStore((s) => s.nodes)
+  const nodeNamesKey = useWorkflowStore((s) => s.nodes.map((n) => `${n.id}:${n.data?.node?.id || ''}`).join('|'))
   const workflow = useWorkflowStore((s) => s.workflow)
   const run = useExecutionStore((s) => s.run)
   const running = useExecutionStore((s) => s.running)
@@ -87,9 +87,11 @@ export default function ExecutionInspector({ onClose }) {
   }, [executionId, workflow?.id])
 
   const nameOf = useMemo(() => {
-    const byId = new Map(canvasNodes.map((n) => [n.id, n.data?.node?.id]))
+    void nodeNamesKey
+    const rawNodes = useWorkflowStore.getState().nodes
+    const byId = new Map(rawNodes.map((n) => [n.id, n.data?.node?.id]))
     return (nodeId) => byId.get(nodeId) || nodeId
-  }, [canvasNodes])
+  }, [nodeNamesKey])
 
   const steps = trace.length
     ? trace.map((s) => ({ ...s, _name: nameOf(s.node_id) }))

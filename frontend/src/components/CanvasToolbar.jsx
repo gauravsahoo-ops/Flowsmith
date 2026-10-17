@@ -4,7 +4,7 @@
 // canvas — undo/redo, auto-layout, comment, group, fit, shortcuts help,
 // and the graph-health indicator (connection validation summary).
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, memo } from 'react'
 import { useReactFlow, useViewport } from '@xyflow/react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
@@ -13,7 +13,7 @@ import InCanvasCopilot from './InCanvasCopilot'
 
 function ToolButton({ onClick, disabled, title, children, className = '' }) {
   return (
-    <Tooltip label={title}>
+    <Tooltip label={title} placement="bottom">
       <button
         className={`tool-btn ${className}`}
         onClick={onClick}
@@ -26,18 +26,38 @@ function ToolButton({ onClick, disabled, title, children, className = '' }) {
   )
 }
 
-export default function CanvasToolbar() {
-  const { fitView, zoomIn, zoomOut, zoomTo, screenToFlowPosition } = useReactFlow()
+/**
+ * Isolated zoom percentage indicator.
+ * Consuming useViewport() here ensures panning/zooming re-renders only this tiny button,
+ * keeping the entire CanvasToolbar, undo/redo states, and health checks free of 60fps churn.
+ */
+const ZoomPercentButton = memo(function ZoomPercentButton({ onResetZoom }) {
   const viewport = useViewport()
   const zoomPercent = Math.round((viewport?.zoom || 1) * 100)
+  return (
+    <ToolButton title="Reset zoom to 100% (Ctrl+1)" onClick={onResetZoom}>
+      <span style={{ fontSize: 10.5, fontWeight: 700, minWidth: 32, textAlign: 'center', color: '#cbd5e1' }}>
+        {zoomPercent}%
+      </span>
+    </ToolButton>
+  )
+})
+
+function CanvasToolbarComponent() {
+  const { fitView, zoomIn, zoomOut, zoomTo, screenToFlowPosition } = useReactFlow()
   const canUndo = useWorkflowStore((s) => s.canUndo)
   const canRedo = useWorkflowStore((s) => s.canRedo)
   const undo = useWorkflowStore((s) => s.undo)
   const redo = useWorkflowStore((s) => s.redo)
-  const nodes = useWorkflowStore((s) => s.nodes)
-  const edges = useWorkflowStore((s) => s.edges)
-  const comments = useWorkflowStore((s) => s.comments)
-  const groups = useWorkflowStore((s) => s.groups)
+  // Structural subscriptions: extract only IDs and topology so node position changes during drag do NOT re-render the toolbar
+  const nodeTopology = useWorkflowStore(
+    (s) => s.nodes.map((n) => `${n.id}:${n.type}:${n.data?.node?.type || ''}`).join('|')
+  )
+  const edgeTopology = useWorkflowStore(
+    (s) => s.edges.map((e) => `${e.source}->${e.target}`).join('|')
+  )
+  const commentsCount = useWorkflowStore((s) => s.comments.length)
+  const groupsCount = useWorkflowStore((s) => s.groups.length)
   const showMiniMap = useUiStore((s) => s.showMiniMap)
   const toggleMiniMap = useUiStore((s) => s.toggleMiniMap)
 
@@ -56,20 +76,19 @@ export default function CanvasToolbar() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Lightweight graph check: cycles and duplicate wires are allowed (the
-  // engine executes nodes in topological order, each at most once per
-  // pass), so we only flag nodes that are completely unconnected.
+  // Lightweight graph check: derived only when topology (nodes/edges structure) changes, never on position drags
   const health = useMemo(() => {
+    const store = useWorkflowStore.getState()
     const connected = new Set()
-    for (const e of edges) {
+    for (const e of store.edges) {
       connected.add(e.source)
       connected.add(e.target)
     }
-    const orphans = nodes
+    const orphans = store.nodes
       .filter((n) => n.type === 'custom' && !connected.has(n.id))
       .map((n) => `"${n.data?.node?.type || n.id}" (${n.id}) is not connected to anything`)
     return { ok: orphans.length === 0, problems: orphans }
-  }, [nodes, edges])
+  }, [nodeTopology, edgeTopology])
 
   function onAutoLayout() {
     import('../utils/autoLayout').then(({ autoLayout, animateAutoLayout }) => {
@@ -160,7 +179,7 @@ export default function CanvasToolbar() {
         </span>
       </ToolButton>
       <ToolButton
-        title={`Add a comment (${comments.length} on canvas)`}
+        title={`Add a comment (${commentsCount} on canvas)`}
         onClick={onAddComment}
       >
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -175,7 +194,7 @@ export default function CanvasToolbar() {
         </span>
       </ToolButton>
       <ToolButton
-        title={`Add Group Frame (${groups.length} active)`}
+        title={`Add Group Frame (${groupsCount} active)`}
         onClick={onGroup}
       >
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -212,11 +231,7 @@ export default function CanvasToolbar() {
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </ToolButton>
-      <ToolButton title="Reset zoom to 100% (Ctrl+1)" onClick={() => zoomTo(1, { duration: 200 })}>
-        <span style={{ fontSize: 10.5, fontWeight: 700, minWidth: 32, textAlign: 'center', color: '#cbd5e1' }}>
-          {zoomPercent}%
-        </span>
-      </ToolButton>
+      <ZoomPercentButton onResetZoom={() => zoomTo(1, { duration: 200 })} />
       <ToolButton title="Zoom in (+)" onClick={() => zoomIn({ duration: 200 })}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" />
@@ -224,6 +239,7 @@ export default function CanvasToolbar() {
         </svg>
       </ToolButton>
       <Tooltip
+        placement="bottom"
         label={
           problemCount
             ? `${problemCount} unconnected node(s) — click to review`
@@ -283,3 +299,7 @@ export default function CanvasToolbar() {
     </div>
   )
 }
+
+const CanvasToolbar = memo(CanvasToolbarComponent)
+export default CanvasToolbar
+

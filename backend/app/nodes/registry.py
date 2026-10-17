@@ -11,7 +11,33 @@ from typing import TypeVar
 
 from app.engine.node_base import IDEMPOTENCY_LEVELS, BaseNode
 
-NODE_REGISTRY: dict[str, type[BaseNode]] = {}
+_ALIASES: dict[str, str] = {
+    "sub_workflow_trigger": "execute_workflow_trigger",
+    "when_executed_by_another_workflow": "execute_workflow_trigger",
+    "execute_sub_workflow": "sub_workflow",
+    "csv": "flowsmith.data_load",
+    "csv_parser": "flowsmith.data_load",
+    "data_load": "flowsmith.data_load",
+}
+
+
+class _AliasedRegistry(dict):
+    """Registry dictionary that transparently maps alias keys to canonical node classes."""
+
+    def get(self, key, default=None):
+        target = _ALIASES.get(key, key)
+        return super().get(target, default)
+
+    def __getitem__(self, key):
+        target = _ALIASES.get(key, key)
+        return super().__getitem__(target)
+
+    def __contains__(self, key):
+        target = _ALIASES.get(key, key)
+        return super().__contains__(target)
+
+
+NODE_REGISTRY: dict[str, type[BaseNode]] = _AliasedRegistry()
 
 NodeType = TypeVar("NodeType", bound=BaseNode)
 
@@ -27,17 +53,6 @@ def register(cls: type[NodeType]) -> type[NodeType]:
         )
     NODE_REGISTRY[cls.node_type] = cls
     return cls
-
-
-_ALIASES: dict[str, str] = {
-    "sub_workflow_trigger": "execute_workflow_trigger",
-    "when_executed_by_another_workflow": "execute_workflow_trigger",
-    "execute_sub_workflow": "sub_workflow",
-    "csv": "flowsmith.data_load",
-    "csv_parser": "flowsmith.data_load",
-    "data_load": "flowsmith.data_load",
-}
-
 
 
 def get(node_type: str) -> type[BaseNode] | None:
@@ -161,7 +176,3 @@ def _load_builtin_nodes() -> None:
 
 _load_builtin_nodes()
 
-# Register aliases in NODE_REGISTRY so direct lookups and executor find them seamlessly
-for _alias, _target in _ALIASES.items():
-    if _target in NODE_REGISTRY and _alias not in NODE_REGISTRY:
-        NODE_REGISTRY[_alias] = NODE_REGISTRY[_target]

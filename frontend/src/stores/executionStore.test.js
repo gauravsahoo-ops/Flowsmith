@@ -180,4 +180,29 @@ describe('connect (WS ticket)', () => {
     expect(wsUrls).toHaveLength(0)
     expect(useExecutionStore.getState().socket).toBeFalsy()
   })
+})
+
+describe('clear', () => {
+  it('resets all execution state and closes connections cleanly', () => {
+    useExecutionStore.setState({
+      executionId: 'exec_old',
+      status: 'running',
+      running: true,
+      nodeStatuses: { n1: 'running' },
+      runPreview: { n1: { status: 'running' } },
+      trace: [{ node_id: 'n1' }],
+      error: 'some error',
+    })
+
+    useExecutionStore.getState().clear()
+
+    const s = useExecutionStore.getState()
+    expect(s.executionId).toBeNull()
+    expect(s.status).toBeNull()
+    expect(s.running).toBe(false)
+    expect(s.nodeStatuses).toEqual({})
+    expect(s.runPreview).toEqual({})
+    expect(s.trace).toEqual([])
+    expect(s.error).toBeNull()
+  })
 })

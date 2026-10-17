@@ -63,7 +63,7 @@ def build_csv_definition() -> ConnectorDefinitionV1:
                 "archive_inner_file": {"type": "string", "description": "Specific file inside ZIP/TAR archive."},
                 "delimiter": {"type": "string", "description": "Field delimiter (comma, tab, pipe, semicolon)."},
                 "has_header": {"type": "boolean", "default": True, "description": "Whether first line is headers."},
-                "batch_size": {"type": "integer", "default": 1000, "description": "Streaming chunk size."},
+                "batch_size": {"type": "integer", "default": 1000, "minimum": 1, "maximum": 10000, "description": "Streaming chunk size (range: 1-10000)."},
             },
             [],
             {
@@ -107,7 +107,7 @@ def build_csv_definition() -> ConnectorDefinitionV1:
                 "valid_records": {"type": "array", "items": {"type": "object"}},
                 "duplicate_records": {"type": "array", "items": {"type": "object"}},
                 "invalid_records": {"type": "array", "items": {"type": "object"}},
-                "batch_size": {"type": "integer", "default": 1000},
+                "batch_size": {"type": "integer", "default": 1000, "minimum": 1, "maximum": 10000, "description": "Database batch insert size (range: 1-10000)."},
             },
             ["execution_id", "valid_records"],
             {

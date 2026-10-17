@@ -24,7 +24,15 @@ test('happy path: register, load canvas, add nodes, connect, run, see green', as
   } catch {
     const listRes = await page.request.get('http://localhost:8000/api/workflows', { headers: { Authorization: `Bearer ${token}` } });
     const listJson = await listRes.json();
-    const wfId = listJson.data?.[0]?.id;
+    let wfId = listJson.data?.[0]?.id;
+    if (!wfId) {
+      const createRes = await page.request.post('http://localhost:8000/api/workflows', {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { name: `Happy Path ${Date.now()}`, nodes: [{ id: 'manual_1', type: 'manual_trigger', position: { x: 50, y: 100 } }] },
+      });
+      const createJson = await createRes.json();
+      wfId = createJson.data?.id;
+    }
     if (wfId) {
       await page.goto(`http://localhost:5173/workflows/${wfId}`);
       await page.waitForLoadState('networkidle').catch(() => {});

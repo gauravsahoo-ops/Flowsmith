@@ -343,7 +343,7 @@ def extract_execution_flow_metadata(
     workflow_name: str | None = None,
 ) -> dict[str, Any]:
     """Accurately deduce integration flow, objects, and HTTP call summary.
-    
+
     Ensures external integration connectors (salesforce, hubspot, jira, etc.) and
     data sources (data_load, csv_parser) are accurately identified and never
     masked by internal utility nodes (code, set_variable, filter).
@@ -528,7 +528,8 @@ def extract_search_strings(obj: Any, max_chars: int = 4000) -> str:
                 terms.append(str(k))
                 _visit(v, depth + 1)
         elif isinstance(val, (list, tuple)):
-            sample_items = val[:5] + (val[-5:] if len(val) > 10 else [])
+            items_list = list(val)
+            sample_items = items_list[:5] + (items_list[-5:] if len(items_list) > 10 else [])
             for item in sample_items:
                 _visit(item, depth + 1)
 
@@ -846,11 +847,18 @@ def finalize_execution_telemetry(
         with _API_BUFFERS_LOCK:
             buffered_api_calls = _API_BUFFERS.pop(execution_id, [])
 
-        # 2. Timing
+        # 2. Timing: separate queue wait from actual execution duration
         started_at = rec.started_at or datetime.now(UTC)
         finished_at = rec.finished_at or datetime.now(UTC)
-        duration_ms = max(0.0, (finished_at - started_at).total_seconds() * 1000.0)
-        rec.duration_ms = round(duration_ms, 2)
+
+        if hasattr(result, "duration_ms") and result.duration_ms is not None and result.duration_ms > 0:
+            rec.duration_ms = round(float(result.duration_ms), 2)
+        else:
+            raw_duration_ms = max(0.0, (finished_at - started_at).total_seconds() * 1000.0)
+            if getattr(rec, "queue_wait_ms", None):
+                rec.duration_ms = round(max(0.0, raw_duration_ms - rec.queue_wait_ms), 2)
+            else:
+                rec.duration_ms = round(raw_duration_ms, 2)
 
         # 3. Detect connectors, objects, and HTTP summaries
         flow_meta = extract_execution_flow_metadata(
@@ -1077,12 +1085,12 @@ def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:
 
         recs = db.query(Execution).filter(
             or_(
-                Execution.search_text == None,
-                Execution.destination_connector == None,
+                Execution.search_text.is_(None),
+                Execution.destination_connector.is_(None),
                 Execution.destination_connector == "flowsmith_output",
                 Execution.destination_connector.in_(["flowsmith.data_load", "data_load"]),
-                Execution.http_status_code == None,
-                Execution.source_connector == None,
+                Execution.http_status_code.is_(None),
+                Execution.source_connector.is_(None),
                 Execution.source_connector.in_(["schedule", "cron", "manual"]),
                 Execution.source_object.in_(["payload", "trigger", "event", "data"]),
                 Execution.records_read <= 1,

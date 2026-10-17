@@ -335,18 +335,37 @@ class PgVectorStore(VectorStore):
         try:
             self._ensure_extension(conn)
             conn.execute(_ENSURE_CATALOG_SQL)
-            out: list[dict[str, Any]] = []
-            for name, suffix, dim in conn.execute(
+            catalog_rows = conn.execute(
                 text(f"SELECT name, suffix, dim FROM {CATALOG_TABLE} ORDER BY name")
-            ).all():
+            ).all()
+            if not catalog_rows:
+                return []
+
+            # Check existing physical tables in one query to avoid table-missing errors and rollbacks
+            try:
+                existing_tables = set(
+                    conn.execute(
+                        text(
+                            "SELECT table_name FROM information_schema.tables "
+                            "WHERE table_schema = current_schema() AND table_name LIKE :prefix"
+                        ),
+                        {"prefix": f"{TABLE_PREFIX}%"},
+                    ).scalars().all()
+                )
+            except Exception:
+                existing_tables = None
+
+            out: list[dict[str, Any]] = []
+            for name, suffix, dim in catalog_rows:
                 table = _table_name(str(suffix))
-                try:
-                    chunks = int(conn.execute(
-                        text(f'SELECT COUNT(*) FROM "{table}"')
-                    ).scalar_one())
-                except Exception:
-                    chunks = 0
-                    conn.rollback()
+                chunks = 0
+                if existing_tables is None or table in existing_tables:
+                    try:
+                        chunks = int(conn.execute(
+                            text(f'SELECT COUNT(*) FROM "{table}"')
+                        ).scalar_one())
+                    except Exception:
+                        chunks = 0
                 out.append({"name": name, "dim": int(dim), "chunks": chunks})
             return out
         except Exception:

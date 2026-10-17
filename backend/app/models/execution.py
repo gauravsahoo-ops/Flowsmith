@@ -59,6 +59,7 @@ class Execution(Base):
     parent_execution_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     duration_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
+    queue_wait_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Integration metadata (Cyclr-grade tracking)
     source_connector: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)

@@ -126,6 +126,40 @@ def _migrate_missing_columns() -> None:
         logger.warning("db: added missing columns %s to %s", [c.name for c in missing], table.name)
 
 
+def _migrate_missing_indexes() -> None:
+    """Ensure critical composite and lookup indexes exist on high-throughput tables.
+
+    `Base.metadata.create_all()` creates missing tables but skips adding newly defined
+    indexes on pre-existing tables. This idempotently builds missing performance indexes.
+    """
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+
+    critical_indexes = [
+        # Executions (audit, listing, running check)
+        ("executions", "ix_executions_workflow_started", 'CREATE INDEX IF NOT EXISTS ix_executions_workflow_started ON "executions" (workflow_id, started_at DESC)'),
+        ("executions", "ix_executions_wf_status", 'CREATE INDEX IF NOT EXISTS ix_executions_wf_status ON "executions" (workflow_id, status)'),
+        ("executions", "ix_executions_status_started", 'CREATE INDEX IF NOT EXISTS ix_executions_status_started ON "executions" (status, started_at DESC)'),
+        ("executions", "ix_executions_user_started", 'CREATE INDEX IF NOT EXISTS ix_executions_user_started ON "executions" (user_id, started_at DESC)'),
+        ("executions", "ix_executions_parent", 'CREATE INDEX IF NOT EXISTS ix_executions_parent ON "executions" (parent_execution_id)'),
+        ("executions", "ix_executions_correlation", 'CREATE INDEX IF NOT EXISTS ix_executions_correlation ON "executions" (correlation_id)'),
+        # Workflows (dashboard sort & filter)
+        ("workflows", "ix_workflows_updated_at", 'CREATE INDEX IF NOT EXISTS ix_workflows_updated_at ON "workflows" (updated_at DESC)'),
+        ("workflows", "ix_workflows_user_updated", 'CREATE INDEX IF NOT EXISTS ix_workflows_user_updated ON "workflows" (user_id, deleted_at, updated_at DESC)'),
+        # Jobs (queue worker claim speed)
+        ("jobs", "ix_jobs_claim", 'CREATE INDEX IF NOT EXISTS ix_jobs_claim ON "jobs" (status, next_retry_at, created_at, id)'),
+    ]
+
+    with engine.begin() as conn:
+        for tbl, idx_name, ddl in critical_indexes:
+            if tbl not in existing_tables:
+                continue
+            try:
+                conn.execute(text(ddl))
+            except Exception as e:
+                logger.debug("Index creation %s skipped or error: %s", idx_name, e)
+
+
 def _run_alembic_upgrade() -> None:
     """Apply Alembic migrations up to head (production boot path).
 
@@ -178,9 +212,11 @@ def init_db(url: str | None = None) -> None:
         # Deployed schema evolves through Alembic revisions
         _run_alembic_upgrade()
         _migrate_missing_columns()
+        _migrate_missing_indexes()
         return
     Base.metadata.create_all(bind=engine)
     _migrate_missing_columns()
+    _migrate_missing_indexes()
 
 
 def get_db() -> Generator[Session, None, None]:

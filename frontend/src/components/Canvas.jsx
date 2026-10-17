@@ -35,27 +35,30 @@ const defaultEdgeOptions = { type: 'exec' }
  * real nodes and are never part of the saved graph nodes.
  */
 function useDecoratedNodes(nodes, comments, groups) {
+  const groupNodes = useMemo(() => groups.map((g) => ({
+    id: g.id,
+    type: 'group',
+    position: { x: g.x, y: g.y },
+    data: { group: g },
+    selectable: true,
+    draggable: false, // moves via its own drag handler (moves members too)
+    zIndex: -1,
+    style: { width: g.width, height: g.height },
+  })), [groups])
+
+  const commentNodes = useMemo(() => comments.map((c) => ({
+    id: c.id,
+    type: 'comment',
+    position: { x: c.x, y: c.y },
+    data: { comment: c },
+    zIndex: 0,
+    style: { width: c.width, height: c.height },
+  })), [comments])
+
   return useMemo(() => {
-    const groupNodes = groups.map((g) => ({
-      id: g.id,
-      type: 'group',
-      position: { x: g.x, y: g.y },
-      data: { group: g },
-      selectable: true,
-      draggable: false, // moves via its own drag handler (moves members too)
-      zIndex: -1,
-      style: { width: g.width, height: g.height },
-    }))
-    const commentNodes = comments.map((c) => ({
-      id: c.id,
-      type: 'comment',
-      position: { x: c.x, y: c.y },
-      data: { comment: c },
-      zIndex: 0,
-      style: { width: c.width, height: c.height },
-    }))
+    if (!groupNodes.length && !commentNodes.length) return nodes
     return [...groupNodes, ...commentNodes, ...nodes]
-  }, [nodes, comments, groups])
+  }, [groupNodes, commentNodes, nodes])
 }
 
 /** Wire run-state for execution highlighting, derived once per change. */
@@ -66,6 +69,11 @@ function useLabeledStatefulEdges(edges, edgeLabels, nodeStatuses, running) {
     const hasAnyStatus = Object.keys(nodeStatuses).length > 0
     if (!hasLabels && !anyRunning && !hasAnyStatus) return edges
     return edges.map((e) => {
+      if (e.data?.isNew && !anyRunning) {
+        const label = edgeLabels[edgeKey(e)]
+        return { ...e, type: 'exec', label, data: { ...e.data, state: 'idle' } }
+      }
+
       let state = 'idle'
       const sourceStatus = nodeStatuses[e.source]
       const targetStatus = nodeStatuses[e.target]
@@ -88,19 +96,17 @@ function useLabeledStatefulEdges(edges, edgeLabels, nodeStatuses, running) {
       } else if (anyRunning) {
         // While running: animate active data flow leading into running nodes or between active steps
         if (
-          sourceStatus === 'running' ||
           targetStatus === 'running' ||
-          (sourceStatus === 'success' && (targetStatus === 'running' || !targetStatus))
+          (sourceStatus === 'running' && targetStatus !== 'success') ||
+          (sourceStatus === 'success' && targetStatus === 'running')
         ) {
           state = 'active'
         } else if (sourceStatus === 'success' && targetStatus === 'success') {
           state = 'completed'
         }
       } else if (hasAnyStatus) {
-        // After run finishes: smoothly show completed edges with clean crisp glow
+        // After run finishes: cleanly show completed edges with static glow
         if (sourceStatus === 'success' && (targetStatus === 'success' || targetStatus === 'skipped')) {
-          state = 'completed'
-        } else if (sourceStatus === 'success' && !targetStatus) {
           state = 'completed'
         }
       }

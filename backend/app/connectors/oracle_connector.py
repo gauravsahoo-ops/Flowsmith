@@ -68,8 +68,15 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
             latency_ms=4.8,
         )
 
-    async def op_execute(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def op_execute(
+        self,
+        operation: str,
+        payload: Dict[str, Any] | None = None,
+        context: Dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         """Route operations dynamically to handler methods."""
+        params = payload or kwargs.get("params") or {}
         op_map = {
             "query": self.op_query,
             "execute": self.op_query_execute,
@@ -81,10 +88,8 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
         handler = op_map.get(operation)
         if not handler:
             raise make_connector_error(
-                self.connector_id,
-                operation,
+                ConnectorErrorCode.INVALID_OPERATION,
                 f"Unsupported operation '{operation}'. Supported: {', '.join(op_map.keys())}",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         return await handler(params)
 
@@ -93,10 +98,8 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
         sql = params.get("query", "").strip()
         if not sql:
             raise make_connector_error(
-                self.connector_id,
-                "query",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Query parameter is required.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
 
         max_rows = min(int(params.get("max_rows", 1000)), 10000)
@@ -114,10 +117,8 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
         sql = params.get("query", "").strip()
         if not sql:
             raise make_connector_error(
-                self.connector_id,
-                "execute",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Query parameter is required.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         return {
             "status": "success",
@@ -130,10 +131,8 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
         data = params.get("data", {})
         if not table or not data:
             raise make_connector_error(
-                self.connector_id,
-                "insert",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Table and data are required for insert operation.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         return {
             "status": "success",
@@ -147,10 +146,8 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
         data = params.get("data", {})
         if not table or not data:
             raise make_connector_error(
-                self.connector_id,
-                "update",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Table and data are required for update operation.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         return {
             "status": "success",
@@ -163,10 +160,8 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
         table = params.get("table", "").strip()
         if not table:
             raise make_connector_error(
-                self.connector_id,
-                "delete",
+                ConnectorErrorCode.BAD_REQUEST,
                 "Table is required for delete operation.",
-                code=ConnectorErrorCode.INVALID_PARAMETERS,
             )
         return {
             "status": "success",

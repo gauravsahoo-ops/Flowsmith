@@ -574,9 +574,77 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
   ]
   const remainingOptions = availableOptions.filter(o => !optionsList.includes(o.value))
 
+  const METHOD_BADGES = {
+    GET: { color: 'var(--green)', bg: 'rgba(5, 150, 105, 0.12)', border: 'rgba(5, 150, 105, 0.3)' },
+    POST: { color: 'var(--accent)', bg: 'rgba(79, 70, 229, 0.12)', border: 'rgba(79, 70, 229, 0.3)' },
+    PUT: { color: 'var(--amber)', bg: 'rgba(217, 119, 6, 0.12)', border: 'rgba(217, 119, 6, 0.3)' },
+    PATCH: { color: 'var(--cyan)', bg: 'rgba(8, 145, 178, 0.12)', border: 'rgba(8, 145, 178, 0.3)' },
+    DELETE: { color: 'var(--red)', bg: 'rgba(225, 29, 72, 0.12)', border: 'rgba(225, 29, 72, 0.3)' },
+    HEAD: { color: 'var(--muted)', bg: 'rgba(100, 116, 139, 0.12)', border: 'rgba(100, 116, 139, 0.3)' },
+    OPTIONS: { color: 'var(--purple)', bg: 'rgba(124, 58, 237, 0.12)', border: 'rgba(124, 58, 237, 0.3)' },
+  }
+
   return (
     <div className="http-editor" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <button type="button" className="ghost" onClick={() => setCurlOpen(true)} style={{ alignSelf: 'flex-start', fontSize: 12, padding: '6px 10px' }}>Import cURL</button>
+      {/* Node Identity Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(37, 99, 235, 0.06) 100%)',
+        padding: '0.85rem 1.1rem',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '0.25rem',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+          <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+            HTTP Request
+          </span>
+          <span style={{
+            fontSize: '0.68rem',
+            background: 'var(--panel-3)',
+            color: 'var(--text-secondary)',
+            padding: '0.15rem 0.45rem',
+            borderRadius: 'var(--radius-xs)',
+            fontWeight: 600,
+            border: '1px solid var(--border)',
+          }}>
+            http_request
+          </span>
+          <span style={{
+            fontSize: '0.68rem',
+            padding: '0.15rem 0.5rem',
+            borderRadius: 'var(--radius-xs)',
+            fontWeight: 700,
+            background: METHOD_BADGES[method]?.bg || 'var(--panel-2)',
+            color: METHOD_BADGES[method]?.color || 'var(--accent)',
+            border: `1px solid ${METHOD_BADGES[method]?.border || 'var(--border)'}`,
+          }}>
+            {method}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => setCurlOpen(true)}
+          style={{
+            fontSize: 12,
+            padding: '4px 10px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border)',
+            background: 'var(--panel-2)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            cursor: 'pointer',
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          Import cURL
+        </button>
+      </div>
       <CurlModal open={curlOpen} onClose={() => setCurlOpen(false)} onImport={handleImportCurl} />
 
       {/* Method */}

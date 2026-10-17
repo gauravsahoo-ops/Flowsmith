@@ -160,6 +160,7 @@ export const api = {
   expressionContext: (workflowId) => request('GET', `/workflows/${workflowId}/expression-context`),
   saveWorkflow: (id, wf) => request('PUT', `/workflows/${id}`, wf),
   deleteWorkflow: (id) => request('DELETE', `/workflows/${id}`),
+  duplicateWorkflow: (id) => request('POST', `/workflows/${id}/duplicate`),
   exportWorkflow: (id) => request('GET', `/workflows/${id}/export`),
   importWorkflow: (doc) => request('POST', '/workflows/import', doc),
   setActive: (id, active) => request('PATCH', `/workflows/${id}/active`, { active }),
@@ -299,6 +300,7 @@ export const api = {
   revokeApiKey: (id) => request('DELETE', `/apikeys/${id}`),
   // Templates gallery (Phase 32/36)
   listTemplates: () => request('GET', '/templates'),
+  getTemplate: (id) => request('GET', `/templates/${id}`),
   createTemplate: (payload) => request('POST', '/templates', payload),
   useTemplate: (id) => request('POST', `/templates/${id}/use`, {}),
   deleteTemplate: (id) => request('DELETE', `/templates/${id}`),

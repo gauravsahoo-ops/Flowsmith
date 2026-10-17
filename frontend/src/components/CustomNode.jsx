@@ -6,17 +6,48 @@ import { useUiStore } from '../stores/uiStore'
 import { NodeIcon } from './NodeIcons'
 
 const CATEGORY_COLORS = {
-  Trigger: '#34c759',
-  Communication: '#4f8cff',
-  Database: '#bf5af2',
-  Transform: '#ffd60a',
-  Logic: '#64d2ff',
-  AI: '#ff9f0a',
-  api: '#4f8cff',
-  database: '#bf5af2',
-  communication: '#4f8cff',
-  CRM: '#0078d4',
-  crm: '#0078d4',
+  Trigger: '#10b981',
+  trigger: '#10b981',
+  Triggers: '#10b981',
+  triggers: '#10b981',
+  Flow: '#38bdf8',
+  flow: '#38bdf8',
+  Actions: '#a855f7',
+  actions: '#a855f7',
+  Action: '#a855f7',
+  action: '#a855f7',
+  Communication: '#6366f1',
+  communication: '#6366f1',
+  Database: '#8b5cf6',
+  database: '#8b5cf6',
+  Transform: '#f59e0b',
+  transform: '#f59e0b',
+  'Data Transformation': '#f59e0b',
+  'data transformation': '#f59e0b',
+  Logic: '#06b6d4',
+  logic: '#06b6d4',
+  AI: '#ec4899',
+  ai: '#ec4899',
+  'AI & Agents': '#ec4899',
+  api: '#3b82f6',
+  API: '#3b82f6',
+  CRM: '#0284c7',
+  crm: '#0284c7',
+  'CRM & Sales': '#0284c7',
+  Analytics: '#14b8a6',
+  analytics: '#14b8a6',
+  Productivity: '#84cc16',
+  productivity: '#84cc16',
+  DevOps: '#f97316',
+  devops: '#f97316',
+  Developer: '#f97316',
+  developer: '#f97316',
+  Marketing: '#f43f5e',
+  marketing: '#f43f5e',
+  Finance: '#10b981',
+  finance: '#10b981',
+  Connectors: '#6366f1',
+  connectors: '#6366f1',
 }
 
 function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
@@ -189,6 +220,182 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
   )
 }
 
+const FRIENDLY_NODE_LABELS = {
+  // Triggers
+  'manual_trigger': 'Manual Trigger',
+  'schedule': 'Schedule Trigger',
+  'webhook': 'Webhook Trigger',
+  'chat_trigger': 'Chat Trigger',
+  'form_trigger': 'Form Trigger',
+  'salesforce_trigger': 'Salesforce Trigger',
+  'sftp_trigger': 'SFTP Trigger',
+  'error_trigger': 'Error Trigger',
+  'execute_workflow_trigger': 'Workflow Trigger',
+  'sub_workflow_trigger': 'Workflow Trigger',
+  'when_executed_by_another_workflow': 'Workflow Trigger',
+  'rss_feed': 'RSS Feed Trigger',
+
+  // Core Data & API Nodes
+  'flowsmith.data_load': 'DataLoad',
+  'data_load': 'DataLoad',
+  'csv': 'DataLoad',
+  'csv_parser': 'DataLoad',
+  'dataload': 'DataLoad',
+  'http_request': 'HTTP Request',
+  'graphql': 'GraphQL Query',
+  'soap_request': 'SOAP Request',
+  'websocket': 'WebSocket',
+  'code': 'Code (Python / JS)',
+  'database_query': 'Database Query',
+  'data_table': 'Data Table',
+  'send_email': 'Send Email',
+  'email_read': 'Read Email',
+  'file_io': 'File I/O',
+  'ftp': 'FTP Client',
+  'ssh': 'SSH Command',
+  'git': 'Git Ops',
+
+  // Flow & Logic
+  'if_condition': 'If / Else',
+  'if': 'If / Else',
+  'filter': 'Filter',
+  'switch': 'Switch',
+  'loop': 'Loop',
+  'loop_over_items': 'Loop Items',
+  'loop_while': 'Loop While',
+  'split': 'Split Items',
+  'split_out': 'Split Out',
+  'merge': 'Merge Streams',
+  'aggregate': 'Aggregate',
+  'item_lists': 'Item Lists',
+  'router': 'Smart Router',
+  'wait': 'Wait / Delay',
+  'stop_and_error': 'Stop & Error',
+  'human_approval': 'Human Approval',
+  'sub_workflow': 'Sub-Workflow',
+  'execute_sub_workflow': 'Sub-Workflow',
+  'compare_datasets': 'Compare Datasets',
+  'noop': 'No-Op (Pass)',
+
+  // Transform & Utilities
+  'set_variable': 'Set Variable',
+  'set_data': 'Set Values',
+  'rename_keys': 'Rename Keys',
+  'csv_json_transform': 'CSV / JSON Convert',
+  'crypto_tools': 'Crypto Tools',
+  'date_time': 'Date & Time',
+  'markdown_text': 'Markdown Text',
+  'string_tools': 'String Tools',
+  'xml_ops': 'XML Ops',
+  'compression': 'Zip / Unzip',
+  'html_extract': 'HTML Extract',
+  'pagination': 'Pagination',
+  'respond_to_webhook': 'Respond to Webhook',
+
+  // Token & Auth Nodes
+  'token_fetch': 'Token Fetch',
+  'token_manager': 'Token Manager',
+  'token_store': 'Token Store',
+  'auth_fetch': 'Fetch Auth Token',
+  'auth_store': 'Store Auth Token',
+
+  // AI & RAG
+  'ai': 'AI / LLM',
+  'ai_agent': 'AI Agent',
+  'embeddings': 'Embeddings',
+  'reranker': 'Reranker',
+  'text_splitter': 'Text Splitter',
+  'rag_pipeline': 'RAG Pipeline',
+  'memory': 'Agent Memory',
+  'output_parser': 'Output Parser',
+  'openai': 'OpenAI',
+  'anthropic': 'Anthropic',
+  'gemini': 'Google Gemini',
+  'pinecone': 'Pinecone',
+
+  // CRM & Sales Connectors
+  'salesforce': 'Salesforce',
+  'dynamics_crm': 'Dynamics 365',
+  'hubspot': 'HubSpot',
+  'pipedrive': 'Pipedrive',
+  'zoho_crm': 'Zoho CRM',
+  'freshsales': 'Freshsales',
+  'netsuite': 'NetSuite',
+
+  // Communication Connectors
+  'slack': 'Slack',
+  'telegram': 'Telegram',
+  'discord': 'Discord',
+  'msteams': 'MS Teams',
+  'twilio': 'Twilio',
+  'whatsapp': 'WhatsApp',
+  'gmail': 'Gmail',
+  'outlook': 'Outlook',
+  'resend': 'Resend',
+  'sendgrid': 'SendGrid',
+  'mailchimp': 'Mailchimp',
+  'brevo': 'Brevo',
+  'activecampaign': 'ActiveCampaign',
+
+  // Productivity & Project Management
+  'google_sheets': 'Google Sheets',
+  'google_calendar': 'Google Calendar',
+  'google_docs': 'Google Docs',
+  'google_drive': 'Google Drive',
+  'notion': 'Notion',
+  'airtable': 'Airtable',
+  'asana': 'Asana',
+  'clickup': 'ClickUp',
+  'coda': 'Coda',
+  'linear': 'Linear',
+  'monday': 'Monday.com',
+  'todoist': 'Todoist',
+  'trello': 'Trello',
+  'jira': 'Jira',
+  'calendly': 'Calendly',
+  'zoom': 'Zoom',
+  'typeform': 'Typeform',
+  'docusign': 'DocuSign',
+  'box': 'Box',
+  'dropbox': 'Dropbox',
+
+  // Developer & DevOps
+  'github': 'GitHub',
+  'gitlab': 'GitLab',
+  'bitbucket': 'Bitbucket',
+  'sentry': 'Sentry',
+  'pagerduty': 'PagerDuty',
+  'zendesk': 'Zendesk',
+  'freshdesk': 'Freshdesk',
+  'intercom': 'Intercom',
+  'servicenow': 'ServiceNow',
+
+  // Database & Storage
+  'postgres': 'PostgreSQL',
+  'mysql': 'MySQL',
+  'mssql': 'SQL Server',
+  'oracle': 'Oracle DB',
+  'mongodb': 'MongoDB',
+  'redis': 'Redis',
+  'snowflake': 'Snowflake',
+  'bigquery': 'BigQuery',
+  'sqlite': 'SQLite',
+  'supabase': 'Supabase',
+  'elasticsearch': 'Elasticsearch',
+  's3': 'AWS S3',
+  'kafka': 'Apache Kafka',
+  'rabbitmq': 'RabbitMQ',
+  'mqtt': 'MQTT',
+
+  // Finance & Commerce
+  'stripe': 'Stripe',
+  'shopify': 'Shopify',
+  'quickbooks': 'QuickBooks',
+  'xero': 'Xero',
+  'workday': 'Workday',
+  'sap': 'SAP',
+}
+
 function CustomNode({ id, data, selected }) {
   const meta = useWorkflowStore((s) => s.catalogIndex.get(data.node.type))
   const status = useExecutionStore((s) => s.nodeStatuses[id])
@@ -200,7 +407,12 @@ function CustomNode({ id, data, selected }) {
 
   const settings = data.node.settings || {}
   const params = data.node.parameters || {}
-  const label = settings.label || meta?.display_name || data.node.type
+  const rawType = data.node.type || ''
+  const friendlyFallback = FRIENDLY_NODE_LABELS[rawType] ||
+    (rawType.startsWith('flowsmith.')
+      ? rawType.replace(/^flowsmith\./, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+      : rawType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()))
+  const label = settings.label || meta?.display_name || friendlyFallback
   const accent =
     settings.color ||
     CATEGORY_COLORS[meta?.category] ||
@@ -239,13 +451,37 @@ function CustomNode({ id, data, selected }) {
   // Derive dynamic subtitle (matching node configuration)
   let subtitle = ''
   let fullSubtitle = ''
-  const nodeType = data.node.type
+  const nodeType = data.node.type || ''
+
   if (nodeType === 'http_request') {
     const m = params.method || 'GET'
     const u = params.url || ''
     fullSubtitle = u ? `${m}: ${u}` : m
     const cleanUrl = u.replace(/^https?:\/\//, '')
     subtitle = cleanUrl ? `${m}: ${cleanUrl.slice(0, 24)}${cleanUrl.length > 24 ? '…' : ''}` : m
+  } else if (nodeType === 'flowsmith.data_load' || nodeType === 'data_load' || nodeType === 'csv' || nodeType === 'csv_parser' || nodeType === 'dataload') {
+    if (params.file_name) {
+      const fn = params.file_name
+      fullSubtitle = `File: ${fn}`
+      subtitle = fn.length > 20 ? `File: ${fn.slice(0, 18)}…` : `File: ${fn}`
+    } else if (params.download_url) {
+      const cleanUrl = params.download_url.replace(/^https?:\/\//, '')
+      fullSubtitle = `URL: ${params.download_url}`
+      subtitle = cleanUrl ? `URL: ${cleanUrl.slice(0, 20)}${cleanUrl.length > 20 ? '…' : ''}` : 'Download URL'
+    } else if (params.file_path) {
+      const parts = params.file_path.split(/[\\/]/)
+      const base = parts[parts.length - 1] || params.file_path
+      fullSubtitle = `Path: ${params.file_path}`
+      subtitle = base.length > 20 ? `Path: ${base.slice(0, 18)}…` : `Path: ${base}`
+    } else if (params.source_mode === 'upload') {
+      subtitle = 'Upload File'
+    } else if (params.source_mode === 'url') {
+      subtitle = 'Download URL'
+    } else if (params.source_mode === 'inline') {
+      subtitle = 'Inline Data'
+    } else {
+      subtitle = 'DataLoad'
+    }
   } else if (nodeType === 'salesforce') {
     const rawOp = params.operation || 'query'
     const OP_LABELS = {
@@ -272,22 +508,62 @@ function CustomNode({ id, data, selected }) {
     }
     subtitle = (obj && !op.toLowerCase().includes(obj.toLowerCase())) ? `${op}: ${obj}` : op
     fullSubtitle = subtitle
-  } else if (nodeType === 'code') {
-    subtitle = params.mode === 'runOnceForAllItems' ? 'Run once' : 'Run for each'
   } else if (nodeType === 'schedule') {
     subtitle = params.rule || params.cron || (params.interval ? `Every ${params.interval}` : 'Trigger')
   } else if (nodeType === 'webhook') {
     subtitle = params.httpMethod ? `${params.httpMethod}: /${params.path || ''}` : 'Inbound'
-  } else if (nodeType === 'database_query') {
-    subtitle = params.operation || 'Query'
+  } else if (nodeType === 'manual_trigger') {
+    subtitle = 'Manual Run'
+  } else if (nodeType === 'chat_trigger') {
+    subtitle = 'Web Chat'
+  } else if (nodeType === 'form_trigger') {
+    subtitle = params.form_name ? `Form: ${params.form_name}` : 'Form Submit'
+  } else if (nodeType === 'salesforce_trigger') {
+    subtitle = params.event || params.object || 'Salesforce Event'
+  } else if (nodeType === 'sftp_trigger') {
+    subtitle = params.path ? `Watch: ${params.path}` : 'SFTP Watch'
+  } else if (nodeType === 'error_trigger') {
+    subtitle = 'On Failure'
+  } else if (nodeType === 'rss_feed') {
+    subtitle = params.url ? `Feed: ${params.url.replace(/^https?:\/\//, '').slice(0, 18)}…` : 'RSS Feed'
+  } else if (nodeType === 'execute_workflow_trigger' || nodeType === 'sub_workflow_trigger' || nodeType === 'when_executed_by_another_workflow') {
+    subtitle = 'Parent Workflow'
+  } else if (nodeType === 'code') {
+    subtitle = params.mode === 'runOnceForAllItems' ? 'Run once' : 'Run for each'
+  } else if (nodeType === 'if_condition' || nodeType === 'if') {
+    subtitle = params.left || params.operator ? `${params.left || 'x'} ${params.operator || '=='}` : 'Condition'
+  } else if (nodeType === 'filter') {
+    subtitle = params.field ? `Field: ${params.field}` : 'Filter'
+  } else if (nodeType === 'switch') {
+    subtitle = Array.isArray(params.rules) && params.rules.length > 0 ? `${params.rules.length} route(s)` : 'Branch'
+  } else if (isLoop) {
+    subtitle = params.batch_size ? `Batch: ${params.batch_size}` : 'Loop'
+  } else if (nodeType === 'split' || nodeType === 'split_out') {
+    subtitle = params.field ? `Split: ${params.field}` : 'Split Items'
+  } else if (nodeType === 'merge') {
+    subtitle = params.mode ? `Mode: ${params.mode}` : 'Merge Streams'
+  } else if (nodeType === 'set_variable') {
+    subtitle = params.variable_name || params.name ? `Var: ${params.variable_name || params.name}` : 'Set Variable'
   } else if (nodeType === 'set_data') {
     subtitle = 'Set values'
-  } else if (nodeType === 'filter') {
-    subtitle = 'Filter'
+  } else if (nodeType === 'wait') {
+    subtitle = params.duration || params.seconds ? `Wait: ${params.duration || params.seconds}s` : 'Delay'
+  } else if (nodeType === 'stop_and_error') {
+    subtitle = params.errorMessage ? `Error: ${params.errorMessage.slice(0, 18)}…` : 'Stop & Error'
+  } else if (nodeType === 'compare_datasets') {
+    subtitle = 'Compare Datasets'
+  } else if (nodeType === 'database_query' || nodeType === 'postgres' || nodeType === 'mysql' || nodeType === 'mssql' || nodeType === 'oracle' || nodeType === 'sqlite' || nodeType === 'snowflake' || nodeType === 'bigquery') {
+    subtitle = params.operation || (params.query ? 'SQL Query' : 'Database Query')
+  } else if (nodeType === 'mongodb') {
+    subtitle = params.collection ? `${params.operation || 'Find'}: ${params.collection}` : (params.operation || 'MongoDB')
+  } else if (nodeType === 'redis') {
+    subtitle = params.key ? `${params.operation || 'GET'}: ${params.key}` : (params.operation || 'Redis')
+  } else if (nodeType === 's3') {
+    subtitle = params.bucket_name ? `s3://${params.bucket_name}` : (params.operation || 'AWS S3')
   } else if (nodeType === 'send_email') {
-    subtitle = params.toEmail || 'Email'
-  } else if (nodeType === 'slack' || nodeType === 'telegram') {
-    subtitle = params.channel || 'Message'
+    subtitle = params.toEmail || params.to || 'Email'
+  } else if (nodeType === 'slack' || nodeType === 'telegram' || nodeType === 'discord' || nodeType === 'msteams') {
+    subtitle = params.channel ? `#${params.channel.replace(/^#/, '')}` : (params.operation || 'Message')
   } else if (nodeType === 'gmail') {
     subtitle = params.operation ? `${params.operation}${params.to ? `: ${params.to}` : ''}` : 'Gmail'
   } else if (nodeType === 'google_sheets') {
@@ -300,14 +576,33 @@ function CustomNode({ id, data, selected }) {
     subtitle = params.resource || params.operation || 'HubSpot'
   } else if (nodeType === 'dynamics_crm') {
     subtitle = params.operation ? `${params.operation} (${params.entity || 'records'})` : 'Dynamics 365'
-  } else if (nodeType === 'ai_agent' || nodeType === 'llm' || nodeType === 'agent') {
+  } else if (nodeType === 'stripe') {
+    subtitle = params.resource ? `${params.operation || 'Manage'}: ${params.resource}` : 'Stripe API'
+  } else if (nodeType === 'shopify') {
+    subtitle = params.resource ? `${params.operation || 'Manage'}: ${params.resource}` : 'Shopify API'
+  } else if (nodeType === 'jira') {
+    subtitle = params.project_key ? `Proj: ${params.project_key}` : (params.operation || 'Jira Issue')
+  } else if (nodeType === 'github') {
+    subtitle = params.repo ? `Repo: ${params.repo}` : (params.operation || 'GitHub')
+  } else if (nodeType === 'gitlab') {
+    subtitle = params.project ? `Proj: ${params.project}` : (params.operation || 'GitLab')
+  } else if (nodeType === 'zendesk') {
+    subtitle = params.operation || 'Support Ticket'
+  } else if (nodeType === 'notion') {
+    subtitle = params.operation || 'Notion Page'
+  } else if (nodeType === 'airtable') {
+    subtitle = params.operation || 'Airtable'
+  } else if (nodeType === 'ai_agent' || nodeType === 'llm' || nodeType === 'agent' || nodeType === 'openai' || nodeType === 'anthropic' || nodeType === 'gemini') {
     subtitle = params.model ? `Model: ${params.model}` : 'AI Model'
-  } else if (nodeType === 'subworkflow') {
+  } else if (nodeType === 'subworkflow' || nodeType === 'sub_workflow' || nodeType === 'execute_sub_workflow') {
     subtitle = params.workflow_id ? `Wf: ${params.workflow_id.slice(0, 8)}` : 'Subworkflow'
-  } else if (nodeType === 'switch') {
-    subtitle = Array.isArray(params.rules) && params.rules.length > 0 ? `${params.rules.length} route(s)` : 'Branch'
-  } else if (isLoop) {
-    subtitle = params.batch_size ? `Batch: ${params.batch_size}` : 'Loop'
+  } else {
+    const op = params.operation || params.action || params.resource || params.model || params.query
+    if (op && typeof op === 'string') {
+      subtitle = op.length > 22 ? `${op.slice(0, 20)}…` : op.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    } else {
+      subtitle = meta?.category || 'Ready'
+    }
   }
   if (!fullSubtitle) fullSubtitle = subtitle
 

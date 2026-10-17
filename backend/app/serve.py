@@ -17,10 +17,12 @@ from app.logging_setup import setup_logging
 def main() -> None:
     setup_logging()
     settings = get_settings()
+    is_dev = settings.app_env == "development"
     uvicorn.run(
         "app.main:app",
         host=settings.host,
         port=settings.port,
+        reload=is_dev,
         log_config=None,  # our root handler owns logging; uvicorn logs propagate
         # Access logs duplicate MetricsMiddleware's structured line but add
         # the full query string — webhook `?token=` secrets would land in

@@ -60,7 +60,7 @@ class CsvParserParams(BaseModel):
         default=True, description="Whether the first row contains column headers."
     )
     batch_size: int = Field(
-        default=1000, ge=10, le=10000, description="Processing and database batch size."
+        default=1000, ge=1, le=10000, description="Processing and database batch size (range: 1-10000)."
     )
     target_object: str = Field(
         default="Contact", description="Target Salesforce object (Contact, Lead, Account, etc.)."
@@ -96,10 +96,7 @@ class CsvParserParams(BaseModel):
     )
 
 
-from app.nodes.dataload import DataLoadNode
-
-
-class CsvParserNode(DataLoadNode):
+class CsvParserNode(BaseNode[CsvParserParams]):
     node_type = "csv_parser"
     display_name = "Flowsmith DataLoad"
     version = 1

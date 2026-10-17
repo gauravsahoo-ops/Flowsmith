@@ -26,7 +26,7 @@ export default defineConfig({
         // helper for React.lazy() routes, and if it is merged into
         // vendor-monaco the whole 4.3 MB Monaco chunk gets modulepreloaded
         // on first paint. High priority so no vendor group captures them.
-        advancedChunks: {
+        codeSplitting: {
           groups: [
             {
               name: 'vite-runtime',

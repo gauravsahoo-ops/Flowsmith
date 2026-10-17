@@ -28,7 +28,7 @@ import {
 } from '../utils/nodeConstants'
 import { CollapsibleSection, OpSafetyHint } from './shared/CollapsibleSection'
 
-export default function NodeEditorModal() {
+export function NodeEditorModalDialog({ onClosed }) {
   const nodeEditorOpen = useUiStore((s) => s.nodeEditorOpen)
   const activeTab = useUiStore((s) => s.nodeEditorTab)
   const setNodeEditorTab = useUiStore((s) => s.setNodeEditorTab)
@@ -103,6 +103,7 @@ export default function NodeEditorModal() {
         setVisible(false)
         setClosing(false)
         previousFocusRef.current?.focus()
+        onClosed?.()
       }, 200)
       return () => clearTimeout(t)
     }
@@ -954,5 +955,17 @@ export default function NodeEditorModal() {
     </div>,
     document.body
   )
+}
+
+export default function NodeEditorModal() {
+  const nodeEditorOpen = useUiStore((s) => s.nodeEditorOpen)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    if (nodeEditorOpen) setMounted(true)
+  }, [nodeEditorOpen])
+
+  if (!nodeEditorOpen && !mounted) return null
+  return <NodeEditorModalDialog onClosed={() => setMounted(false)} />
 }
 

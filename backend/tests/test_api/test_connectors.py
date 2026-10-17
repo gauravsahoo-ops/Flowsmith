@@ -133,10 +133,10 @@ def test_credential_type_discovery_endpoints(client):
 
 def test_connector_discovery_404s(client):
     headers = _setup(client)
-    assert client.get("/api/connectors/ghost", headers=headers).status_code == 404
-    assert client.get("/api/connectors/ghost/operations", headers=headers).status_code == 404
-    assert client.get("/api/connectors/ghost/triggers", headers=headers).status_code == 404
-    assert client.get("/api/connectors/ghost/credential-types", headers=headers).status_code == 404
+    assert client.get("/api/connectors/nonexistent_ghost", headers=headers).status_code == 404
+    assert client.get("/api/connectors/nonexistent_ghost/operations", headers=headers).status_code == 404
+    assert client.get("/api/connectors/nonexistent_ghost/triggers", headers=headers).status_code == 404
+    assert client.get("/api/connectors/nonexistent_ghost/credential-types", headers=headers).status_code == 404
 
 
 def test_connector_detail_has_version_fields(client):
@@ -192,7 +192,7 @@ def test_discovery_allows_any_authenticated_user(client):
 
 def test_invalid_connector_keys_404(client):
     headers = _setup(client)
-    for key in ("ghost", "GHOST", "salesforce-v2", "123"):
+    for key in ("nonexistent_ghost", "NONEXISTENT_GHOST", "salesforce-v2", "123"):
         for suffix in ("", "/operations", "/triggers", "/credential-types"):
             path = f"/api/connectors/{key}{suffix}"
             assert client.get(path, headers=headers).status_code == 404, path
@@ -206,26 +206,30 @@ def test_invalid_connector_keys_404(client):
 def test_empty_registry_returns_empty_list(client):
     """An initialized-but-empty registry yields an empty discovery list,
     not an error."""
+    from unittest.mock import patch
     registry = get_registry()
     registry.initialize()  # reset without registering builtins
     headers = auth_headers(register(client)["token"])
     try:
-        resp = client.get("/api/connectors", headers=headers)
-        assert resp.status_code == 200
-        assert resp.json()["data"] == []
+        with patch("app.api.connectors.ensure_builtin_connectors"):
+            resp = client.get("/api/connectors", headers=headers)
+            assert resp.status_code == 200
+            assert resp.json()["data"] == []
     finally:
         register_builtin_connectors()  # restore for other tests
 
 
 def test_empty_registry_keyed_endpoints_404(client):
     """With no connectors registered, keyed discovery endpoints 404."""
+    from unittest.mock import patch
     registry = get_registry()
     registry.initialize()
     headers = auth_headers(register(client)["token"])
     try:
-        assert client.get("/api/connectors/salesforce", headers=headers).status_code == 404
-        assert client.get("/api/connectors/salesforce/operations", headers=headers).status_code == 404
-        assert client.get("/api/connectors/schedule/triggers", headers=headers).status_code == 404
-        assert client.get("/api/connectors/salesforce/credential-types", headers=headers).status_code == 404
+        with patch("app.api.connectors.ensure_builtin_connectors"):
+            assert client.get("/api/connectors/salesforce", headers=headers).status_code == 404
+            assert client.get("/api/connectors/salesforce/operations", headers=headers).status_code == 404
+            assert client.get("/api/connectors/schedule/triggers", headers=headers).status_code == 404
+            assert client.get("/api/connectors/salesforce/credential-types", headers=headers).status_code == 404
     finally:
         register_builtin_connectors()

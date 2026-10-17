@@ -3,7 +3,7 @@
 // Input/Output data inspection with Schema / Table / JSON segmented views,
 // syncs selection with the canvas on click, and can pop out into the full console.
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { memo, useState, useRef, useEffect, useMemo } from 'react'
 import { useExecutionStore } from '../stores/executionStore'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
@@ -52,7 +52,7 @@ function unrollItems(data) {
   return [{ value: data }]
 }
 
-export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
+function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   const handleOpenConsole = onOpenConsole || onOpenDebugger
   const [open, setOpen] = useState(() => {
     try {
@@ -107,18 +107,21 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   const clearExecution = useExecutionStore((s) => s.clear)
   const results = useExecutionStore((s) => s.results)
 
-  const nodes = useWorkflowStore((s) => s.nodes)
+  const nodeNamesKey = useWorkflowStore((s) =>
+    s.nodes.map((n) => `${n.id}:${n.data?.node?.name || n.data?.node?.display_name || n.data?.node?.type || ''}`).join(';')
+  )
   const selectNode = useUiStore((s) => s.selectNode)
   const selectedNodeId = useUiStore((s) => s.selectedNodeId)
 
   // Map node_id -> canvas node object
   const nodeMap = useMemo(() => {
+    const currentNodes = useWorkflowStore.getState().nodes
     const m = new Map()
-    for (const n of nodes) {
+    for (const n of currentNodes) {
       m.set(n.id, n.data?.node || n)
     }
     return m
-  }, [nodes])
+  }, [nodeNamesKey])
 
   function toggleOpen() {
     setOpen((prev) => {
@@ -681,3 +684,5 @@ export default function LogsPanel({ onOpenConsole, onOpenDebugger }) {
     </div>
   )
 }
+
+export default memo(LogsPanel)

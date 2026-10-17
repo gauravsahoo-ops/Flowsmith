@@ -216,14 +216,25 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
         # CAS into "running": a cancel landing between the check above and
         # this write must win instead of being clobbered by an
         # unconditional read-modify-write (same guard class as the API-side
-        # resume/cancel paths — spec 36).
+        now_utc = datetime.now(UTC)
+        q_wait_ms = None
+        if rec.started_at:
+            raw_wait = (now_utc - rec.started_at).total_seconds() * 1000.0
+            q_wait_ms = round(max(0.0, raw_wait), 2)
+
         flipped = (
             db.query(ExecutionModel)
             .filter(
                 ExecutionModel.id == execution_id,
                 ExecutionModel.status.in_(("queued", "running")),
             )
-            .update({"status": "running"}, synchronize_session=False)
+            .update(
+                {
+                    "status": "running",
+                    "queue_wait_ms": q_wait_ms,
+                },
+                synchronize_session=False,
+            )
         )
         if flipped == 0:
             db.rollback()
