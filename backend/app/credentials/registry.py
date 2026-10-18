@@ -1302,12 +1302,11 @@ CREDENTIAL_IMPLEMENTED: dict[str, bool] = {
     "typeform": True,
     "workday": True,
     "xero": True,
-    "zoho_crm": True,
-    # Backlog connectors pending implementation
-    "groq": False,
-    "deepseek": False,
-    "sharepoint": False,
-    "onedrive": False,
+    # Fully implemented integrations
+    "groq": True,
+    "deepseek": True,
+    "sharepoint": True,
+    "onedrive": True,
 }
 
 # Predefined credential registry — exact huge list as requested, all implemented to make them work

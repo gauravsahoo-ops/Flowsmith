@@ -28,7 +28,7 @@ _TYPE_DEFS: List[Dict[str, Any]] = [
 # Predefined (business) — implemented only when provider exists
 _PREDEFINED_DEFS: List[Dict[str, Any]] = [
     {"id": "salesforce-oauth2", "displayName": "Salesforce OAuth2 API", "category": "predefined", "authType": "oauth2", "provider": "salesforce", "implemented": True, "supportsOAuth": True, "supportsRefresh": True, "supportsTest": True},
-    {"id": "salesforce-jwt", "displayName": "Salesforce JWT", "category": "predefined", "authType": "oauth2", "provider": "salesforce_jwt", "implemented": False, "supportsOAuth": True, "supportsRefresh": False, "supportsTest": False},
+    {"id": "salesforce-jwt", "displayName": "Salesforce JWT", "category": "predefined", "authType": "oauth2", "provider": "salesforce_jwt", "implemented": True, "supportsOAuth": True, "supportsRefresh": False, "supportsTest": True},
     {"id": "github-oauth", "displayName": "GitHub OAuth", "category": "predefined", "authType": "oauth2", "provider": "github", "implemented": True, "supportsOAuth": True, "supportsRefresh": True, "supportsTest": True},
     {"id": "google-oauth2", "displayName": "Google OAuth2 API", "category": "predefined", "authType": "oauth2", "provider": "google", "implemented": True, "supportsOAuth": True, "supportsRefresh": True, "supportsTest": True},
     {"id": "slack-oauth2", "displayName": "Slack OAuth2", "category": "predefined", "authType": "oauth2", "provider": "slack", "implemented": True, "supportsOAuth": True, "supportsRefresh": True, "supportsTest": True},
@@ -37,7 +37,7 @@ _PREDEFINED_DEFS: List[Dict[str, Any]] = [
     {"id": "notion-api", "displayName": "Notion API", "category": "predefined", "authType": "header", "provider": "header", "implemented": True, "supportsOAuth": False, "supportsRefresh": False, "supportsTest": True},
     {"id": "airtable-api", "displayName": "Airtable API", "category": "predefined", "authType": "header", "provider": "header", "implemented": True, "supportsOAuth": False, "supportsRefresh": False, "supportsTest": True},
     {"id": "stripe-api", "displayName": "Stripe API", "category": "predefined", "authType": "bearer", "provider": "bearer", "implemented": True, "supportsOAuth": False, "supportsRefresh": False, "supportsTest": True},
-    {"id": "shopify-oauth", "displayName": "Shopify OAuth", "category": "predefined", "authType": "oauth2", "provider": "shopify", "implemented": False, "supportsOAuth": True, "supportsRefresh": True, "supportsTest": False},
+    {"id": "shopify-oauth", "displayName": "Shopify OAuth", "category": "predefined", "authType": "oauth2", "provider": "shopify", "implemented": True, "supportsOAuth": True, "supportsRefresh": True, "supportsTest": True},
 ]
 
 
