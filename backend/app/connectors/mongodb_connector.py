@@ -56,6 +56,19 @@ class MongoDBConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify MongoDB connection by issuing ping command."""
+        import time
+        start_t = time.perf_counter()
+        try:
+            res = await self._provider._run(creds, "ping", lambda c: c.admin.command("ping"))
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
+            if res.get("ok"):
+                return {"ok": True, "message": "Successfully connected to MongoDB (ping OK).", "latency_ms": elapsed_ms}
+            return {"ok": False, "message": "MongoDB ping command did not return ok.", "latency_ms": elapsed_ms}
+        except Exception as exc:
+            return {"ok": False, "message": f"MongoDB connection failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,

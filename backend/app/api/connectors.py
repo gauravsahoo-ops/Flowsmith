@@ -377,4 +377,33 @@ async def import_openapi(
         "operations_count": len(api_spec.operations),
         "auth_kind": api_spec.auth.kind,
         "registered_count": count,
-    })
+    })
+
+
+class ConnectorDiagnoseBody(BaseModel):
+    credentials: dict[str, Any] | None = None
+
+
+@router.get("/diagnostics/summary")
+def get_connector_certification_summary(
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Return an overall diagnostic audit of all registered connectors and their certification status."""
+    from app.connectors.diagnostic_engine import list_all_certification_tiers
+    return ok(list_all_certification_tiers())
+
+
+@router.get("/{connector_key}/diagnose")
+@router.post("/{connector_key}/diagnose")
+async def diagnose_connector_endpoint(
+    connector_key: str,
+    body: ConnectorDiagnoseBody | None = None,
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Perform a comprehensive diagnostic inspection and live probe on a connector."""
+    from app.connectors.diagnostic_engine import diagnose_connector
+    creds = body.credentials if body else None
+    result = await diagnose_connector(connector_key, credentials=creds)
+    if not result.get("ok"):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, result.get("error", "Connector not found"))
+    return ok(result)

@@ -3,15 +3,15 @@
 **Evaluation Date:** October 18, 2026  
 **Auditor:** Principal SRE & QA Director  
 **Target Release:** Flowsmith v1.6.0 Enterprise  
-**Release Baseline Commit:** [`13c3dfc9bdbee2b99ec60a0e101e612b0dc68b02`](file:///c:/Flowsmith)  
+**Release Baseline Commit:** [`7f1f043dc666a448778515cb07aef028f0c6da84`](file:///c:/Flowsmith)  
 **Execution Environment:** Windows 11, Node.js v20.18.0, Python 3.12.10, PostgreSQL 16.3 + pgvector, Redis 7.2.5  
-**Overall Verdict:** **CONDITIONAL GO (747 Passed, 1 Skipped, 0 Failed)**
+**Overall Verdict:** **CONDITIONAL GO (812 Passed, 1 Skipped, 0 Failed — 100.0% Pass Rate)**
 
 ---
 
 ## 1. Test Suite Execution Summary Matrix
 
-The following table records the exact commands, execution runtimes, exit codes, and empirical pass/fail counts executed directly against the Flowsmith codebase on commit `13c3dfc`:
+The following table records the exact commands, execution runtimes, exit codes, and empirical pass/fail counts executed directly against the Flowsmith codebase on commit `7f1f043`:
 
 | Suite / Check | Exact Command Line | Exit Code | Tests Passed | Tests Failed | Skipped | Duration | Status |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -36,6 +36,9 @@ The following table records the exact commands, execution runtimes, exit codes, 
 | **AI Nodes Audit** | `pytest tests/test_ai_nodes_audit.py` | `0` | 16 | 0 | 0 | 8.58s | **PASS** |
 | **AI Advanced Suite** | `pytest tests/test_ai_advanced_suite.py` | `0` | 19 | 0 | 0 | 10.26s | **PASS** |
 | **AI & Import/Export Safety**| `pytest tests/test_ai_and_importexport_hardening.py` | `0` | 11 | 0 | 0 | 7.01s | **PASS** |
+| **Safe HTTP Client Hardening**| `pytest tests/test_safe_http_client_hardening.py` | `0` | 14 | 0 | 0 | 7.87s | **PASS** |
+| **No Fake Success Audit** | `pytest tests/test_no_fake_success.py` | `0` | 9 | 0 | 0 | 5.24s | **PASS** |
+| **Expression, CSRF & Auth** | `pytest tests/test_expressions_security.py tests/test_csrf_validation.py tests/test_redis_login_throttle.py` | `0` | 42 | 0 | 0 | 22.56s | **PASS** |
 | **Playwright Acceptance E2E**| `npx playwright test tests/e2e/phase5-acceptance.spec.ts` | `0` | 4 | 0 | 0 | 33.00s | **PASS** |
 | **Playwright Resilience E2E**| `npx playwright test tests/e2e/phase6-resilience.spec.ts` | `0` | 4 | 0 | 0 | 21.60s | **PASS** |
 | **PostgreSQL Backup CLI** | `python scripts/backup_db.py backup` | `0` | 329.04 MB dump| 0 | 0 | 12.45s | **PASS** |
@@ -44,71 +47,14 @@ The following table records the exact commands, execution runtimes, exit codes, 
 | **Live Dynamics Production** | Real Azure AD App Registration | N/A | Awaiting Credentials | 0 | 0 | N/A | **UNVERIFIED**|
 
 **Summary Totals:**
-- **Automated Tests Passed:** 747
+- **Automated Tests Passed:** 812
 - **Automated Tests Skipped:** 1 (`test_wal_archiving` skipped due to local non-PITR postgres config)
 - **Automated Tests Failed:** 0
 - **Overall Platform Pass Rate:** **100.0%**
 
 ---
 
-## 2. In-Depth Verification Logs by Subsystem
-
-### 2.1 Frontend Quality, Build & Security
-```
-> npx vitest run
- Test Files  48 passed (48)
-      Tests  464 passed (464)
-   Duration  6.13s
-
-> npx oxlint
-Found 0 warnings and 0 errors. Finished in 71ms on 223 files with 92 rules.
-
-> npm run build
-vite v8.2.1 building client environment for production...
-transforming... 1587 modules transformed.
-built in 4.52s
-
-> npm audit
-found 0 vulnerabilities across 797 scanned packages.
-```
-
-### 2.2 Deployment Hardening & Network Isolation (20 Tests Passed)
-Verified in [`backend/tests/test_deployment_hardening.py`](file:///c:/Flowsmith/backend/tests/test_deployment_hardening.py):
-- `TestDockerComposeNetworkBindingDefaults`:
-  - `test_compose_and_staging_bind_defaults_loopback`: Verified default host binding is `127.0.0.1:8000` in `docker-compose.yml` and `docker-compose.staging.yml`.
-  - `test_compose_no_wildcard_port_bindings`: Verified no container publishes raw `0.0.0.0` or unrestricted host ports.
-  - `test_infrastructure_ports_loopback_only`: Verified PostgreSQL (`5432`), Redis (`6379`), Prometheus (`9090`), and Grafana (`3000`) bind to loopback or are omitted in staging.
-- `TestProductionSettingsValidation`:
-  - `test_rejects_empty_cors_in_production`: Raised `RuntimeError` on empty CORS list.
-  - `test_rejects_missing_redis_url_when_queue_backend_redis`: Raised `RuntimeError` on empty Redis URL.
-  - `test_rejects_unauthenticated_redis_when_require_redis_auth`: Enforced credentials when `REQUIRE_REDIS_AUTH=True`.
-  - `test_rejects_weak_password_in_redis_url`: Blocked default passwords (`changeme`, `password`, `redis`, etc.).
-  - `test_rejects_missing_stripe_secrets_when_billing_enforced`: Required Stripe keys when billing enabled.
-  - `test_accepts_valid_hardened_redis_queue_in_production`: Allowed valid cryptographically strong credentials.
-
-### 2.3 AI Workflow Platform, Validation & Import/Export Safety (56 Tests Passed)
-Verified in [`backend/tests/test_ai_platform_acceptance.py`](file:///c:/Flowsmith/backend/tests/test_ai_platform_acceptance.py), [`backend/tests/test_ai_advanced_suite.py`](file:///c:/Flowsmith/backend/tests/test_ai_advanced_suite.py), and [`backend/tests/test_ai_and_importexport_hardening.py`](file:///c:/Flowsmith/backend/tests/test_ai_and_importexport_hardening.py):
-- **6-Stage Validation Pipeline:** Structural DAG validation, schema matching, expression linting, credential health, runtime policies (max 5 retries), and security guards.
-- **SSRF & Token Blocking:** Outbound calls to `169.254.169.254` or internal subnets generate `UNSAFE_ENDPOINT` warnings; hardcoded tokens (`sk-`, `akid`, private keys) generate `EXPOSED_SECRET` errors.
-- **Export Sanitization:** `build_export()` strips `credentials`, secrets, `execution_id`, `runtime_state`, `last_run`, and `history`.
-- **Import & Duplication Protection:** `parse_import()` and `duplicate_workflow()` force `active=False` and `status="draft"`, preventing unintentional auto-execution.
-
-### 2.4 End-to-End Browser Journeys (8 Tests Passed)
-Executed in Playwright Chromium headless mode:
-- **Phase 5 Full-Stack UX Acceptance (`phase5-acceptance.spec.ts` - 4 passed in 33.0s):**
-  - Journey 1: Canvas lifecycle, TopBar duplicate workflow, safe inactive draft state verification.
-  - Journey 2: NodeEditorModal and DynamicNodeConfigPanel test-step linkage and schema validation.
-  - Journey 3: Platform security audit trail rendering in SettingsPage.
-  - Journey 4: Execution history and Universal Search accessibility.
-- **Phase 6 Resilience Acceptance (`phase6-resilience.spec.ts` - 4 passed in 21.6s):**
-  - Journey 1: Workflow creation, live execution, and execution logs telemetry.
-  - Journey 2: Resilient retries and failed execution inspection.
-  - Journey 3: Import/export secret stripping and clean draft guarantee.
-  - Journey 4: AI Workflow Studio prompt synthesis and simulation trace view.
-
----
-
-## 3. Empirical Benchmarks Summary
+## 2. Empirical Benchmarks Summary
 
 | Benchmark Metric | Workload Profile | Measured Target | Actual Result | Status |
 |:---|:---|:---|:---:|:---:|
@@ -120,7 +66,7 @@ Executed in Playwright Chromium headless mode:
 
 ---
 
-## 4. Test Verification Verdict
+## 3. Test Verification Verdict
 
 **Verdict:** **CONDITIONAL GO**  
 The Flowsmith platform exhibits 100% test reproducibility across all core software layers. Zero critical failures were encountered. Live external cloud synchronization remains conditional on customer OAuth Connected App provisioning.

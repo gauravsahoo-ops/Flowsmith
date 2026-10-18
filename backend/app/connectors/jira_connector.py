@@ -64,6 +64,19 @@ class JiraConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify Jira connection by testing credentials against /rest/api/3/myself."""
+        import time
+        start_t = time.perf_counter()
+        try:
+            resp = await self._provider.request_jira(creds, "GET", "/myself", timeout=15.0, what="test_connection")
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
+            if resp.status_code in (200, 204):
+                return {"ok": True, "message": "Successfully connected to Jira Cloud.", "latency_ms": elapsed_ms, "status_code": resp.status_code}
+            return {"ok": False, "message": f"Jira returned status {resp.status_code}: {resp.text[:200]}", "latency_ms": elapsed_ms, "status_code": resp.status_code}
+        except Exception as exc:
+            return {"ok": False, "message": f"Jira connection test failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,

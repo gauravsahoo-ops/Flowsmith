@@ -53,6 +53,19 @@ class PostgresConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify PostgreSQL connection by executing SELECT 1."""
+        import time
+        start_t = time.perf_counter()
+        try:
+            res = await self._provider.query(creds, "SELECT 1 AS ping", None, max_rows=1)
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
+            if res.get("rows"):
+                return {"ok": True, "message": "Successfully connected to PostgreSQL (SELECT 1 OK).", "latency_ms": elapsed_ms}
+            return {"ok": False, "message": "PostgreSQL query returned no rows.", "latency_ms": elapsed_ms}
+        except Exception as exc:
+            return {"ok": False, "message": f"PostgreSQL connection test failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,

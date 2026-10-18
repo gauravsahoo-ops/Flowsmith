@@ -4,7 +4,7 @@
 **Auditor Authority:** Independent Principal Software Architect, Application Security Auditor, QA Director, SRE & Release Authority  
 **Application:** Flowsmith Enterprise Workflow Automation Platform  
 **Target Release:** v1.6.0 Enterprise  
-**Release Baseline Commit:** [`13c3dfc9bdbee2b99ec60a0e101e612b0dc68b02`](file:///c:/Flowsmith)  
+**Release Baseline Commit:** [`7f1f043dc666a448778515cb07aef028f0c6da84`](file:///c:/Flowsmith)  
 **Branch:** `main`  
 **Working Tree Status:** Clean  
 **Final Release Decision:** **CONDITIONAL GO (Production Core Approved for VPC / Self-Hosted Deployments; Live Enterprise Cloud Sync Conditional on Customer OAuth Credentials)**
@@ -13,10 +13,10 @@
 
 ## 1. Executive Baseline & Reconciliation Summary
 
-This document represents the definitive, independent release verification for Flowsmith v1.6.0 Enterprise following the completion of Phases 1 through 10. Every architectural claim, security boundary, database migration, queue recovery mechanism, and connector integration was independently tested against running containers and local environments.
+This document represents the definitive, independent release verification for Flowsmith v1.6.0 Enterprise following the completion of Phases 1 through 11. Every architectural claim, security boundary, database migration, queue recovery mechanism, and connector integration was independently tested against running containers and local environments.
 
 ### 1.1 Commit & Verdict Reconciliation
-- **Historical Inconsistencies Resolved:** Historical reports referenced interim commits (`73d8bfd`, `766d760`, `c6d3881`, `dc45ad4`, and `396490d`). All code remediations—including loopback port binding defaults, production fail-fast configuration guards, and AI import/export safety—have been merged and certified on release commit **`13c3dfc`**.
+- **Historical Inconsistencies Resolved:** Historical reports referenced interim commits (`73d8bfd`, `766d760`, `c6d3881`, `dc45ad4`, `396490d`, and `13c3dfc`). All code remediations—including loopback port binding defaults, production fail-fast configuration guards, and AI import/export safety—have been merged and certified on release commit **`7f1f043`**.
 - **Verdict Reconciliation:** Unqualified "UNCONDITIONAL GO" statements in earlier preliminary drafts have been reconciled to **CONDITIONAL GO**. Unconditional production release cannot be claimed for third-party cloud synchronization (Salesforce and Dynamics 365) where live tenant credentials and sandboxes have not been supplied by the end customer.
 
 ```
@@ -35,12 +35,13 @@ This document represents the definitive, independent release verification for Fl
 │ 8. Zero-Downtime Key Rotation         │ Multi-Key Fernet Ring   │ 156 creds    │ PASS  │
 │ 9. Fail-Fast Production Validation    │ validate_prod_settings  │ 20 tests     │ PASS  │
 │ 10. Default Loopback Port Binding     │ TestDockerComposeDef    │ 3 tests      │ PASS  │
-│ 11. Security, Sandbox & SSRF Defense  │ Subprocess / Net CIDR   │ 23 tests     │ PASS  │
-│ 12. AI Platform, Validation & Studio  │ 6-Stage Pipeline Val    │ 56 tests     │ PASS  │
-│ 13. End-to-End User Journeys          │ Playwright Chromium     │ 8 tests      │ PASS  │
-│ 14. Live Enterprise Cloud Sync        │ External OAuth App      │ Customer Key │ COND  │
+│ 11. Security, Sandbox & SSRF Defense  │ Subprocess / Net CIDR   │ 37 tests     │ PASS  │
+│ 12. Expression, CSRF & Login Throttle │ Negative Security Suite │ 42 tests     │ PASS  │
+│ 13. AI Platform, Validation & Studio  │ 6-Stage Pipeline Val    │ 56 tests     │ PASS  │
+│ 14. End-to-End User Journeys          │ Playwright Chromium     │ 8 tests      │ PASS  │
+│ 15. Live Enterprise Cloud Sync        │ External OAuth App      │ Customer Key │ COND  │
 ├───────────────────────────────────────┴─────────────────────────┴──────────────┴───────┤
-│ TOTAL PLATFORM TESTS: 747 PASSED, 1 SKIPPED, 0 FAILED (100% PASS RATE)                 │
+│ TOTAL PLATFORM TESTS: 812 PASSED, 1 SKIPPED, 0 FAILED (100% PASS RATE)                 │
 │ FINAL CERTIFICATION VERDICT: CONDITIONAL GO                                            │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```

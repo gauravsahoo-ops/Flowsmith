@@ -35,7 +35,7 @@ services:
     container_name: mat-redis
     restart: unless-stopped
     # Require a password when REDIS_PASSWORD is set (production).
-    command: ["sh", "-c", "if [ -n \"$REDIS_PASSWORD\" ]; then exec redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 256mb --maxmemory-policy noeviction --appendonly yes; else exec redis-server --maxmemory 256mb --maxmemory-policy noeviction --appendonly yes; fi"]
+    command: ["sh", "-c", "if [ -n \"$REDIS_PASSWORD\" ]; then exec redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 512mb --maxmemory-policy volatile-lru --appendonly yes; else exec redis-server --maxmemory 512mb --maxmemory-policy volatile-lru --appendonly yes; fi"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
@@ -52,7 +52,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 768M
     logging:
       driver: json-file
       options:

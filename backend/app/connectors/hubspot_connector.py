@@ -107,6 +107,19 @@ class HubSpotConnector(ConnectorSDK, ConnectorOperations):
         self._provider.reset()
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify HubSpot connection by testing credentials against CRM v3."""
+        import time
+        start_t = time.perf_counter()
+        try:
+            resp = await self._provider.request(creds, "GET", "/crm/v3/objects/contacts", params={"limit": 1}, timeout=15.0)
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
+            if resp.status_code in (200, 204):
+                return {"ok": True, "message": "Successfully connected to HubSpot CRM.", "latency_ms": elapsed_ms}
+            return {"ok": False, "message": f"HubSpot returned status {resp.status_code}: {resp.text[:200]}", "latency_ms": elapsed_ms}
+        except Exception as exc:
+            return {"ok": False, "message": f"HubSpot connection test failed: {exc}"}
+
     # ------------------------------------------------------------------
     # Operations
     # ------------------------------------------------------------------

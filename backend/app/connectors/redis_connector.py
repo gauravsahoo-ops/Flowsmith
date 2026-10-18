@@ -55,6 +55,19 @@ class RedisConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify Redis connection by issuing PING."""
+        import time
+        start_t = time.perf_counter()
+        try:
+            pong = await self._provider._run(creds, "ping", lambda c: c.ping())
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
+            if pong:
+                return {"ok": True, "message": "Successfully connected to Redis (PONG received).", "latency_ms": elapsed_ms}
+            return {"ok": False, "message": "Redis did not return PONG.", "latency_ms": elapsed_ms}
+        except Exception as exc:
+            return {"ok": False, "message": f"Redis connection failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,
