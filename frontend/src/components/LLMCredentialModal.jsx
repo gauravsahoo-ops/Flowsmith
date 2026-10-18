@@ -110,16 +110,14 @@ export default function LLMCredentialModal({
     setFields(initialFieldVals)
 
     // Suggest default name if empty or default
-    if (!name || name.includes('Credential') || name.includes('OpenAI')) {
-      setName(`${currentProvider.name} Credential`)
-    }
+    setName((prev) => (!prev || prev.includes('Credential') || prev.includes('OpenAI') ? `${currentProvider.name} Credential` : prev))
 
     // Reset models & test results
     setTestResult(null)
     setModels([])
     setSelectedModel('')
     setModelsSource(null)
-  }, [currentProvider, providerId])
+  }, [currentProvider, providerId, initialData])
 
   // If initialData has models or saved credentials, load discovered models
   useEffect(() => {

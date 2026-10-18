@@ -101,6 +101,7 @@ VALID_TRANSITIONS: Dict[CertificationState, Set[CertificationState]] = {
 
 CONTRACT_TESTED_CONNECTORS: Set[str] = {
     "salesforce",
+    "dynamics_crm",
     "http",
     "github",
     "slack",

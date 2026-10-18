@@ -61,6 +61,8 @@ USER_MANUAL.md
 **/*.md
 # The project README is required in-repo (audit fix) — keep it trackable.
 !README.md
+!docs/*.md
+!docs/audit/*.md
 !docs/performance/*.md
 !docs/dataload/*.md
 !docs/LOGS_MONITORING_*.md

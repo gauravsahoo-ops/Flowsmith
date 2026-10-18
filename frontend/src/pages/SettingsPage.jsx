@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { api, getToken } from '../api'
 import { useBrandingStore } from '../stores/brandingStore'
 import PageHeader from '../components/shared/PageHeader'
@@ -90,6 +90,35 @@ export default function SettingsPage() {
   })
   const [sessionBusy, setSessionBusy] = useState(false)
   const [sessionNotice, setSessionNotice] = useState(null)
+
+  // Platform Security Audit Trail state
+  const [auditEvents, setAuditEvents] = useState([])
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [auditActionFilter, setAuditActionFilter] = useState('')
+  const [auditPage, setAuditPage] = useState(1)
+  const [auditTotal, setAuditTotal] = useState(0)
+
+  const loadAuditEvents = useCallback(async (action = auditActionFilter, page = auditPage) => {
+    setAuditLoading(true)
+    try {
+      const res = await api.listAuditEvents({
+        action: action || undefined,
+        page,
+        pageSize: 15,
+      })
+      const items = Array.isArray(res) ? res : (res?.data || [])
+      setAuditEvents(items)
+      setAuditTotal(res?.meta?.total || items.length)
+    } catch {
+      setAuditEvents([])
+    } finally {
+      setAuditLoading(false)
+    }
+  }, [auditActionFilter, auditPage])
+
+  useEffect(() => {
+    loadAuditEvents(auditActionFilter, auditPage)
+  }, [loadAuditEvents, auditActionFilter, auditPage])
 
   useEffect(() => {
     setBrandForm({
@@ -1327,6 +1356,133 @@ export default function SettingsPage() {
           <li>All third-party credentials encrypted at rest using AES-128-CBC / Fernet envelope encryption</li>
           <li>Session authentication backed by cryptographic JWT with sliding expiration</li>
         </ul>
+      </Section>
+
+      <Section title="Platform Audit Trail" description="Immutable security audit events, credential operations, and user access history.">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
+              Action Filter:
+              <select
+                value={auditActionFilter}
+                onChange={(e) => {
+                  setAuditActionFilter(e.target.value)
+                  setAuditPage(1)
+                }}
+                style={{ marginLeft: 8, padding: '4px 8px', borderRadius: 4, background: '#18181b', color: '#f8fafc', border: '1px solid #27272a', fontSize: 12 }}
+              >
+                <option value="">All Actions</option>
+                <option value="auth.login">auth.login</option>
+                <option value="auth.register">auth.register</option>
+                <option value="workflow.create">workflow.create</option>
+                <option value="workflow.update">workflow.update</option>
+                <option value="workflow.duplicate">workflow.duplicate</option>
+                <option value="workflow.import">workflow.import</option>
+                <option value="workflow.activate">workflow.activate</option>
+                <option value="execution.run">execution.run</option>
+                <option value="credential.create">credential.create</option>
+                <option value="credential.auto_refresh_sweep">credential.auto_refresh_sweep</option>
+              </select>
+            </label>
+            <span style={{ fontSize: 12, color: '#64748b' }}>
+              {auditTotal} total events logged
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => loadAuditEvents(auditActionFilter, auditPage)}
+              disabled={auditLoading}
+              title="Refresh audit events"
+            >
+              {auditLoading ? 'Loading…' : 'Refresh'}
+            </button>
+            <button
+              type="button"
+              className="ghost small"
+              disabled={auditPage <= 1 || auditLoading}
+              onClick={() => setAuditPage(p => Math.max(1, p - 1))}
+            >
+              Prev
+            </button>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>
+              Page {auditPage} of {Math.max(1, Math.ceil(auditTotal / 15))}
+            </span>
+            <button
+              type="button"
+              className="ghost small"
+              disabled={auditPage >= Math.ceil(auditTotal / 15) || auditLoading}
+              onClick={() => setAuditPage(p => p + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+
+        <div className="table-wrap">
+          <table className="data-table" style={{ width: '100%', fontSize: 12.5 }}>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>Actor</th>
+                <th>Target Type</th>
+                <th>Target ID</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {auditLoading ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
+                    Loading audit trail…
+                  </td>
+                </tr>
+              ) : auditEvents.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
+                    No audit events recorded matching current filter.
+                  </td>
+                </tr>
+              ) : (
+                auditEvents.map((ev) => (
+                  <tr key={ev.id}>
+                    <td style={{ whiteSpace: 'nowrap', color: '#cbd5e1' }}>
+                      {ev.created_at ? new Date(ev.created_at).toLocaleString() : '—'}
+                    </td>
+                    <td>
+                      <span className="badge" style={{
+                        background: ev.action?.startsWith('auth.') ? 'rgba(99,102,241,0.15)' :
+                                    ev.action?.startsWith('workflow.') ? 'rgba(56,189,248,0.15)' :
+                                    ev.action?.startsWith('execution.') ? 'rgba(34,197,94,0.15)' :
+                                    'rgba(148,163,184,0.15)',
+                        color: ev.action?.startsWith('auth.') ? '#818cf8' :
+                               ev.action?.startsWith('workflow.') ? '#38bdf8' :
+                               ev.action?.startsWith('execution.') ? '#4ade80' :
+                               '#cbd5e1',
+                        fontFamily: 'monospace',
+                        fontSize: 11
+                      }}>
+                        {ev.action}
+                      </span>
+                    </td>
+                    <td style={{ color: '#94a3b8' }}>
+                      {ev.user_id ? `User #${ev.user_id}` : 'system'}
+                    </td>
+                    <td style={{ color: '#94a3b8' }}>{ev.target_type || '—'}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#e2e8f0' }}>
+                      {ev.target_id || '—'}
+                    </td>
+                    <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11 }}>
+                      {ev.detail ? JSON.stringify(ev.detail) : '—'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </Section>
 
       <Section title="Execution Engine" description="Durable job queue and worker architecture.">

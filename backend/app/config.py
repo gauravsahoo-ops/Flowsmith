@@ -300,16 +300,25 @@ def validate_production_settings(settings: Settings | None = None) -> None:
     missing: list[str] = []
     if not settings.credentials_encryption_key:
         missing.append("CREDENTIALS_ENCRYPTION_KEY")
-    if not settings.jwt_secret or settings.jwt_secret == "dev-only-secret-change-me":
+    elif len(settings.credentials_encryption_key) < 16:
+        missing.append("CREDENTIALS_ENCRYPTION_KEY (key too short)")
+    if not settings.jwt_secret or settings.jwt_secret in ("dev-only-secret-change-me", "changeme", "secret", "password"):
         missing.append("JWT_SECRET (must be set to a secure random value)")
-    if "sqlite" in (settings.database_url or "").lower():
+    elif len(settings.jwt_secret) < 32:
+        missing.append("JWT_SECRET (must be at least 32 characters in production)")
+    db_url = (settings.database_url or "").lower()
+    if "sqlite" in db_url:
         missing.append("DATABASE_URL (must be PostgreSQL in production)")
+    elif ":automate@" in db_url:
+        missing.append("DATABASE_URL (default development password detected in production)")
     origins = [o.strip() for o in (settings.cors_origins or "").split(",") if o.strip()]
     if "*" in origins:
         # CORS allow_origins="*" combined with allow_credentials=True is an
         # unsafe combination for a deployed API surface (main.py sets
         # credentials=True unconditionally).
         missing.append("CORS_ORIGINS (wildcard '*' is not allowed in production)")
+    if settings.redis_password and settings.redis_password.lower() in ("changeme", "password", "redis", "default"):
+        missing.append("REDIS_PASSWORD (insecure default password detected)")
     if missing:
         raise ConfigError(
             "Refusing to start in production mode: missing "

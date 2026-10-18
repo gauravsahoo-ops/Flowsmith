@@ -44,7 +44,7 @@ const editors = {
  * configuration panel, rather than a replacement for it.
  * (`data_table` offers a schema-discovery helper alongside its normal form.)
  */
-const prePanels = {
+const _prePanels = {
   data_table: () => import('../components/DataTableDiscovery'),
 }
 

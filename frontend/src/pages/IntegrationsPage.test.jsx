@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { matchesCategory, CONNECTOR_CATEGORY_MAP, CATEGORIES } from './IntegrationsPage'
+import { matchesCategory, CONNECTOR_CATEGORY_MAP, CATEGORIES } from '../utils/connectorCategories'
 import catalogData from '../all_catalog_items.json'
 
 describe('IntegrationsPage Category Completeness Suite', () => {

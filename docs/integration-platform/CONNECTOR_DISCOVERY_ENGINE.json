@@ -1,6 +1,6 @@
 {
   "engine_version": "3.0.0",
-  "timestamp": "2026-10-13T00:30:48.938262+00:00",
+  "timestamp": "2026-10-18T00:25:46.397481+00:00",
   "sources_ingested": {
     "n8n_discovered": 58,
     "zapier_discovered": 60,
@@ -20,9 +20,9 @@
     "8. Blocked/unverified?"
   ],
   "implementation_strategy_breakdown": {
-    "NATIVE": 60,
+    "NATIVE": 63,
     "OPENAPI": 9,
-    "UNIVERSAL_HTTP": 12,
+    "UNIVERSAL_HTTP": 9,
     "MCP": 10,
     "BLOCKED": 0,
     "UNVERIFIED": 0

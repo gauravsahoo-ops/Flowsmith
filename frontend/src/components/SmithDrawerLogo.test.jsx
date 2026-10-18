@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router-dom'
 import SmithDrawer from './SmithDrawer'
 import TopBar from './TopBar'
 
@@ -33,10 +34,14 @@ describe('SmithDrawer Logo Suite', () => {
 
   it('renders default Flowsmith brand mark in the TopBar Smith button and removes ⚡', () => {
     const html = renderToStaticMarkup(
-      React.createElement(TopBar, {
-        workflow: { id: 'wf_1', name: 'Test Flow' },
-        onOpenSmith: () => {},
-      })
+      React.createElement(
+        MemoryRouter,
+        null,
+        React.createElement(TopBar, {
+          workflow: { id: 'wf_1', name: 'Test Flow' },
+          onOpenSmith: () => {},
+        })
+      )
     )
 
     // Verify TopBar has topbar-smith-btn with FlowsmithBrandMark

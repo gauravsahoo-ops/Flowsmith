@@ -141,3 +141,58 @@ async def test_execution_dispatch_across_categories():
         assert conn is not None, f"Connector '{cid}' not found in registry"
         assert defn is not None, f"Definition '{cid}' not found in registry"
         assert len(defn.operations) > 0, f"Connector '{cid}' has no operations"
+
+
+# =============================================================================
+# 5. AUTOMATED COMPLETENESS & RELEASE GATE VERIFICATION
+# =============================================================================
+
+def test_manifest_automated_completeness_gate():
+    """Verify that flowsmith_connector_manifest.json is synchronized with runtime registries.
+
+    Ensures that:
+    1. Every advertised connector and operation has a traceable implementation.
+    2. Every connector has declared test coverage.
+    3. No newly added or modified operation can be released without passing validation.
+    """
+    import json
+    from pathlib import Path
+
+    manifest_path = Path(__file__).resolve().parents[2] / "docs" / "audit" / "flowsmith_connector_manifest.json"
+    assert manifest_path.exists(), f"Certification manifest missing at {manifest_path}"
+
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    registry = get_registry()
+    definitions = registry.list_definitions()
+    assert len(definitions) == manifest["summary"]["total_registered_connectors"], (
+        f"Registry count {len(definitions)} != Manifest count {manifest['summary']['total_registered_connectors']}"
+    )
+
+    manifest_connectors = {c["connector_key"]: c for c in manifest["connectors"]}
+
+    for defn in definitions:
+        cid = defn.connector_key
+        assert cid in manifest_connectors, f"Connector '{cid}' missing from certification manifest"
+        m_conn = manifest_connectors[cid]
+
+        # Verify operations completeness
+        assert len(defn.operations) == m_conn["operations_count"]
+        for op_key, op in defn.operations.items():
+            assert op_key in m_conn["operations"], f"Operation '{op_key}' on '{cid}' missing from manifest"
+            m_op = m_conn["operations"][op_key]
+            assert m_op["display_name"], f"Operation '{op_key}' on '{cid}' has blank display_name"
+            assert "input_schema_fields" in m_op
+
+        # Verify test coverage
+        assert len(m_conn["test_suite_coverage"]) > 0, f"Connector '{cid}' has no declared test coverage"
+
+    # Verify canonical nodes completeness (excluding test fixture stubs injected by conftest)
+    canonical_runtime_nodes = {
+        k: v for k, v in NODE_REGISTRY.items()
+        if k not in ("db", "boom", "slow")
+    }
+    assert len(canonical_runtime_nodes) == manifest["summary"]["total_canonical_nodes"], (
+        f"NODE_REGISTRY count {len(canonical_runtime_nodes)} != Manifest nodes {manifest['summary']['total_canonical_nodes']}"
+    )

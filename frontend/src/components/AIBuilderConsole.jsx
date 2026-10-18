@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 
@@ -31,22 +31,22 @@ const STARTER_PROMPTS = [
   },
 ]
 
-export default function AIBuilderConsole({ statusInfo, selectedCredentialId, onSelectCredential }) {
+export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCredentialId, onSelectCredential: _onSelectCredential }) {
   const navigate = useNavigate()
 
   // Console State
   const [mode, setMode] = useState('build')
   const [prompt, setPrompt] = useState('')
   const [modelMode, setModelMode] = useState('auto') // 'auto' | specific
-  const [selectedProvider, setSelectedProvider] = useState('auto')
-  const [selectedModel, setSelectedModel] = useState('auto')
-  const [modelSearch, setModelSearch] = useState('')
+  const [_selectedProvider, _setSelectedProvider] = useState('auto')
+  const [_selectedModel, _setSelectedModel] = useState('auto')
+  const [_modelSearch, _setModelSearch] = useState('')
   const [availableProviders, setAvailableProviders] = useState([])
-  const [loadingProviders, setLoadingProviders] = useState(false)
+  const [_loadingProviders, setLoadingProviders] = useState(false)
 
   // Execution & Pipeline State
   const [processing, setProcessing] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
+  const [_currentStep, setCurrentStep] = useState(0)
   const [error, setError] = useState(null)
   const [intent, setIntent] = useState(null)
   const [clarifications, setClarifications] = useState([])

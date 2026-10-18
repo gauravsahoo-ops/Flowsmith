@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-13T00:30:48.938262+00:00",
-  "total_backlog_items": 22,
+  "generated_at": "2026-10-18T00:25:46.397481+00:00",
+  "total_backlog_items": 19,
   "items": [
     {
       "application": "Amazon S3",
@@ -177,40 +177,6 @@
       ],
       "operations_count": 9,
       "triggers_count": 2,
-      "certification_status": "VALIDATED_FUNCTIONAL"
-    },
-    {
-      "application": "Microsoft Dynamics 365 CRM",
-      "canonical_id": "microsoft_dynamics_crm",
-      "strategy": "UNIVERSAL_HTTP",
-      "ecosystem_presence": [
-        "zapier"
-      ],
-      "operations_count": 8,
-      "triggers_count": 3,
-      "certification_status": "VALIDATED_FUNCTIONAL"
-    },
-    {
-      "application": "Microsoft Outlook",
-      "canonical_id": "microsoft_outlook",
-      "strategy": "UNIVERSAL_HTTP",
-      "ecosystem_presence": [
-        "zapier"
-      ],
-      "operations_count": 8,
-      "triggers_count": 4,
-      "certification_status": "VALIDATED_FUNCTIONAL"
-    },
-    {
-      "application": "Microsoft Teams",
-      "canonical_id": "microsoft_teams",
-      "strategy": "UNIVERSAL_HTTP",
-      "ecosystem_presence": [
-        "cyclr",
-        "zapier"
-      ],
-      "operations_count": 6,
-      "triggers_count": 3,
       "certification_status": "VALIDATED_FUNCTIONAL"
     },
     {

@@ -5,7 +5,7 @@ import { useExecutionStore } from '../stores/executionStore'
 import { useBrandingStore } from '../stores/brandingStore'
 import FlowsmithBrandMark from './FlowsmithBrandMark'
 import { api } from '../api'
-import { toReactFlow, toWorkflowJson } from '../mappers'
+import { toReactFlow } from '../mappers'
 import { getDynamicUser } from '../utils/userProfile'
 
 function getUserDisplayName() {

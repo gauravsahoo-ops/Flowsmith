@@ -216,7 +216,7 @@ export default function MonitoringPage() {
   // Cluster Runtime Stats & Alert Stats
   const [stats, setStats] = useState(null)
   const [alertStats, setAlertStats] = useState({ unresolved_count: 0, critical_count: 0 })
-  const [loadingCluster, setLoadingCluster] = useState(true)
+  const [_loadingCluster, setLoadingCluster] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {

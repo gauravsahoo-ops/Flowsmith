@@ -107,7 +107,7 @@ export function NodeEditorModalDialog({ onClosed }) {
       }, 200)
       return () => clearTimeout(t)
     }
-  }, [nodeEditorOpen, visible])
+  }, [nodeEditorOpen, visible, onClosed])
 
   // Load upstream fields
   useEffect(() => {
@@ -243,6 +243,33 @@ export function NodeEditorModalDialog({ onClosed }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorBaseProps, node?.type, credentials, workflow?.id, credentialTypes, _upstreamData])
 
+  async function previewExpression(expression) {
+    return api.previewExpression(workflow.id, { expression, node_id: selectedId })
+  }
+
+  // Execute single step — always use current workflow params (save first), run node fresh
+  const handleExecuteStep = useCallback(async (_options = {}) => {
+    if (!workflow?.id || !selectedId) return null
+    setExecuting(true)
+    setExecError(null)
+    // Clear stale output immediately
+    setOutputData(null)
+    try {
+      // Ensure latest parameters and credentials are saved before execution
+      try { await useWorkflowStore.getState().save() } catch {}
+      const result = await api.runNode(workflow.id, selectedId, executionId)
+      if (result?.execution_id) {
+        await useExecutionStore.getState().load(result.execution_id)
+      }
+      return result
+    } catch (err) {
+      setExecError(err.message || String(err))
+      throw err
+    } finally {
+      setExecuting(false)
+    }
+  }, [workflow?.id, selectedId, executionId])
+
   const dynamicPanelProps = useMemo(
     () => ({
       node,
@@ -254,24 +281,11 @@ export function NodeEditorModalDialog({ onClosed }) {
       mapping,
       onPreview: previewExpression,
       inputData: _upstreamData,
-      // Real execution only: if the preview endpoint is unavailable, no result is
-      // produced — the panel disables its Test Step button rather than showing a
-      // fabricated success payload.
-      onExecuteStep: api.previewNode && workflow?.id
-        ? async () => {
-            const res = await api.previewNode(workflow.id, node.id, node.parameters, node.credentials)
-            setOutputData(res)
-            return res
-          }
-        : undefined,
+      onExecuteStep: workflow?.id && selectedId ? handleExecuteStep : undefined,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [node, meta, credentials, mapping, workflow?.id, _upstreamData],
+    [node, meta, credentials, mapping, workflow?.id, selectedId, _upstreamData, handleExecuteStep],
   )
-
-  async function previewExpression(expression) {
-    return api.previewExpression(workflow.id, { expression, node_id: selectedId })
-  }
 
   const handleClose = useCallback(() => {
     if (closing) return
@@ -313,27 +327,6 @@ export function NodeEditorModalDialog({ onClosed }) {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [visible, closing, handleClose])
-
-  // Execute single step — always use current workflow params (save first), run node fresh
-  const handleExecuteStep = useCallback(async (_options = {}) => {
-    if (!workflow?.id || !selectedId) return
-    setExecuting(true)
-    setExecError(null)
-    // Clear stale output immediately
-    setOutputData(null)
-    try {
-      // Ensure latest parameters and credentials are saved before execution
-      try { await useWorkflowStore.getState().save() } catch {}
-      const result = await api.runNode(workflow.id, selectedId, executionId)
-      if (result?.execution_id) {
-        await useExecutionStore.getState().load(result.execution_id)
-      }
-    } catch (err) {
-      setExecError(err.message || String(err))
-    } finally {
-      setExecuting(false)
-    }
-  }, [workflow?.id, selectedId, executionId])
 
   // Execute all nodes up to this one (or up to specified upstream node)
   const handleExecutePrevious = useCallback(async (targetNodeId) => {

@@ -136,6 +136,20 @@ export default function TopBar({
     }
   }
 
+  async function handleDuplicate() {
+    const wf = workflow
+    if (!wf?.id) return
+    try {
+      const duplicated = await api.duplicateWorkflow(wf.id)
+      if (duplicated?.id) {
+        window.location.href = `/workflows/${duplicated.id}`
+      }
+    } catch (err) {
+      setIoError(err.message || 'Failed to duplicate workflow')
+      alert(`Duplicate failed: ${err.message || 'Unknown error'}`)
+    }
+  }
+
   async function handleSaveAsTemplate() {
     const wf = workflow
     if (!wf?.id) return
@@ -546,6 +560,13 @@ export default function TopBar({
                   <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.89A2 2 0 0 1 15 10.77V6a3 3 0 0 0-6 0v4.77a2 2 0 0 1-1.11 1.79l-1.78.89A2 2 0 0 0 5 15.24Z" />
                 </svg>
                 <span>{isPinned ? 'Unpin Workflow' : 'Pin to Top'}</span>
+              </button>
+              <button role="menuitem" onClick={() => { setMenuOpen(false); handleDuplicate(); }} disabled={!workflow?.id}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <span>Duplicate Workflow</span>
               </button>
               <button role="menuitem" onClick={() => { setMenuOpen(false); handleExport(); }} disabled={!workflow?.id}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

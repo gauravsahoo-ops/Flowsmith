@@ -532,6 +532,16 @@ export const api = {
   updateCredentialPolicy: (credId, data) => request('PATCH', `/credentials/${encodeURIComponent(credId)}/policy`, data),
   recoverCredential: (credId) => request('POST', `/credentials/${encodeURIComponent(credId)}/recover`),
   getCredentialHistory: (credId) => request('GET', `/credentials/${encodeURIComponent(credId)}/history`),
+  // Platform Security & Audit Trail
+  listAuditEvents: (params = {}) => {
+    const q = new URLSearchParams()
+    if (params?.action) q.set('action', params.action)
+    if (params?.user_id) q.set('user_id', params.user_id)
+    if (params?.page) q.set('page', params.page)
+    if (params?.pageSize) q.set('pageSize', params.pageSize)
+    const qs = q.toString() ? `?${q.toString()}` : ''
+    return request('GET', `/audit${qs}`)
+  },
 }
 
 

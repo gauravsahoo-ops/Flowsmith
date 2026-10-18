@@ -6,6 +6,7 @@ import { api } from '../api'
 
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ id: 'exec_54797581b4f5' }),
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
   useNavigate: () => vi.fn(),
   Link: ({ children, to }) => React.createElement('a', { href: to }, children),
 }))

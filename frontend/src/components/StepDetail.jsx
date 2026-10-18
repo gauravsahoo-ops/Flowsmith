@@ -31,7 +31,7 @@ function Badge({ tone = 'muted', title, children }) {
   )
 }
 
-export default function StepDetail({ execution, step, onRetryNode, search, highlightField }) {
+export default function StepDetail({ execution, step, onRetryNode, search, highlightField: _highlightField }) {
   const catalogIndex = useWorkflowStore((s) => s.catalogIndex)
   const [confirmUnsafe, setConfirmUnsafe] = useState(false)
 

@@ -80,6 +80,37 @@ class RedisJobQueue(QueueBackend):
         if settings.redis_password:
             kwargs["password"] = settings.redis_password
         self._conn = redis.Redis.from_url(settings.redis_url, **kwargs)
+        self.verify_eviction_policy()
+
+    def verify_eviction_policy(self) -> dict[str, Any]:
+        """Verify Redis eviction policy and persistence configuration.
+
+        An eviction policy of allkeys-lru/lfu/random or volatile-* will silently
+        evict critical queue keys (queue:jobs, queue:jobs:processing, queue:meta)
+        under memory pressure. The recommended policy for durable job queues is 'noeviction'.
+        """
+        result: dict[str, Any] = {"policy": "unknown", "safe": True, "appendonly": "unknown"}
+        try:
+            cfg = self._conn.config_get("maxmemory-policy")
+            policy = cfg.get("maxmemory-policy") if isinstance(cfg, dict) else None
+            if policy:
+                result["policy"] = str(policy)
+                if str(policy).startswith("allkeys-") or str(policy).startswith("volatile-"):
+                    result["safe"] = False
+                    logger.warning(
+                        "DANGEROUS REDIS CONFIGURATION: Redis maxmemory-policy is '%s'. "
+                        "Under memory pressure, Redis may silently evict queued job keys "
+                        "(queue:jobs, queue:jobs:processing, queue:meta). "
+                        "Configure maxmemory-policy to 'noeviction' to prevent silent data loss.",
+                        policy,
+                    )
+            aof_cfg = self._conn.config_get("appendonly")
+            if isinstance(aof_cfg, dict) and "appendonly" in aof_cfg:
+                result["appendonly"] = aof_cfg["appendonly"]
+        except Exception as exc:
+            # CONFIG GET may be disabled or restricted in hosted environments
+            logger.debug("Could not verify Redis maxmemory-policy: %s", exc)
+        return result
 
     def enqueue(self, job_id: str, execution_id: str, payload: dict[str, Any]) -> bool:
         # SADD is both the idempotency guard and the first write: if it

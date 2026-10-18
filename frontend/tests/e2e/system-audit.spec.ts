@@ -1,6 +1,5 @@
 /// <reference path="./global.d.ts" />
 import { test, expect } from '@playwright/test';
-import * as path from 'path';
 
 const ARTIFACT_DIR = 'C:/Users/ASUS/.gemini/antigravity-ide/brain/46dbcdd7-1a7d-47df-82eb-190615f2480b';
 

@@ -255,7 +255,7 @@ return items;`,
   if (await consoleBtn.isVisible()) {
     await consoleBtn.click();
     await page.waitForTimeout(800);
-    const traceSteps = await page.locator('.timeline-step, .trace-row, .execution-timeline').count().catch(() => 0);
+    const _traceSteps = await page.locator('.timeline-step, .trace-row, .execution-timeline').count().catch(() => 0);
     console.log(`  [PASS] Execution console open with timeline audit entries.`);
   }
 

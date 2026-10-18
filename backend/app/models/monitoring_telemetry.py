@@ -24,14 +24,13 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
 from app.db import Base
 
 if TYPE_CHECKING:
-    from app.models.execution import Execution
-    from app.models.user import User
+    pass
 
 
 def generate_uuid() -> str:

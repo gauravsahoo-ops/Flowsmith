@@ -14,7 +14,6 @@ import csv
 from dataclasses import dataclass, field
 import gzip
 import io
-import re
 from typing import Any, Generator
 
 from app.engine.errors import NodeExecutionError

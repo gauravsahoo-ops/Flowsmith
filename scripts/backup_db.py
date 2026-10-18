@@ -1,75 +1,89 @@
-"""Backup the SQLite database using the online backup API (safe while
-the app is running — no downtime, no file locks).
+"""PostgreSQL database backup & restore CLI (pg_dump / psql) — Flowsmith DR utility.
 
 Usage:
-    python scripts/backup_db.py [--db PATH] [--out DIR] [--keep N]
+    python scripts/backup_db.py backup [--name NAME] [--out DIR] [--keep N]
+    python scripts/backup_db.py restore --file PATH [--fresh]
+    python scripts/backup_db.py list [--out DIR]
+    python scripts/backup_db.py prune [--keep-days N] [--out DIR]
 
 Defaults:
-    --db   backend/data/app.db (override with DATABASE_URL if needed)
-    --out  backend/data/backups
-    --keep 7 (oldest backups beyond this count are pruned)
+    --out       backups/
+    --keep-days 14
 """
 
 from __future__ import annotations
 
 import argparse
-import re
-import sqlite3
 import sys
-from datetime import datetime
 from pathlib import Path
 
-DEFAULT_DB = Path(__file__).resolve().parents[1] / "backend" / "data" / "app.db"
+# Add backend to sys.path so app modules resolve cleanly
+ROOT_DIR = Path(__file__).resolve().parents[1]
+BACKEND_DIR = ROOT_DIR / "backend"
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
-
-def backup(db_path: Path, out_dir: Path, keep: int) -> Path:
-    if not db_path.is_file():
-        raise SystemExit(f"database not found: {db_path}")
-    out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    target = out_dir / f"app-{stamp}.db"
-    src = sqlite3.connect(db_path)
-    dst = sqlite3.connect(target)
-    try:
-        src.backup(dst)
-    finally:
-        dst.close()
-        src.close()
-
-    # integrity spot check on the copy
-    check = sqlite3.connect(target)
-    try:
-        row = check.execute("PRAGMA integrity_check").fetchone()
-        if row != ("ok",):
-            raise SystemExit(f"backup failed integrity check: {row!r}")
-    finally:
-        check.close()
-
-    _prune(out_dir, keep)
-    return target
-
-
-def _prune(out_dir: Path, keep: int) -> None:
-    pattern = re.compile(r"^app-\d{8}-\d{6}\.db$")
-    backups = sorted(
-        (p for p in out_dir.iterdir() if p.is_file() and pattern.match(p.name)),
-        key=lambda p: p.name,
-        reverse=True,
-    )
-    for old in backups[keep:]:
-        old.unlink()
+from app.utils.backup import (
+    create_backup,
+    restore_backup,
+    list_backups,
+    prune_backups,
+)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Online SQLite backup.")
-    parser.add_argument("--db", default=str(DEFAULT_DB), help="path to the database file")
-    parser.add_argument("--out", default=str(DEFAULT_DB.parent / "backups"), help="backup directory")
-    parser.add_argument("--keep", type=int, default=7, help="number of backups to keep")
+    parser = argparse.ArgumentParser(description="Flowsmith PostgreSQL Backup & Restore CLI.")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Backup subcommand
+    backup_parser = subparsers.add_parser("backup", help="Create a compressed .sql.gz database backup")
+    backup_parser.add_argument("--name", default=None, help="Backup name (default: timestamped)")
+    backup_parser.add_argument("--out", default=None, help="Output directory (default: backups/)")
+    backup_parser.add_argument("--dsn", default=None, help="Database connection string (default: from config)")
+    backup_parser.add_argument("--keep", type=int, default=14, help="Prune backups older than N days after backup")
+
+    # Restore subcommand
+    restore_parser = subparsers.add_parser("restore", help="Restore database from a .sql or .sql.gz dump")
+    restore_parser.add_argument("--file", required=True, help="Path to the backup file to restore")
+    restore_parser.add_argument("--dsn", default=None, help="Database connection string (default: from config)")
+    restore_parser.add_argument("--fresh", action="store_true", help="Drop and recreate public schema before restore")
+
+    # List subcommand
+    list_parser = subparsers.add_parser("list", help="List available backups and sizes")
+    list_parser.add_argument("--out", default=None, help="Backup directory (default: backups/)")
+
+    # Prune subcommand
+    prune_parser = subparsers.add_parser("prune", help="Delete backups older than retention window")
+    prune_parser.add_argument("--keep-days", type=int, default=14, help="Number of days of backups to retain")
+    prune_parser.add_argument("--out", default=None, help="Backup directory (default: backups/)")
+
     args = parser.parse_args()
-    target = backup(Path(args.db), Path(args.out), args.keep)
-    print(f"backup written: {target}")
-    print(f"backups kept: {[p.name for p in sorted(Path(args.out).glob('app-*.db'))]}")
+
+    if args.command == "backup":
+        filepath = create_backup(args.name, dsn=args.dsn, out_dir=args.out)
+        print(f"[OK] Backup written: {filepath} ({round(filepath.stat().st_size / (1024*1024), 2)} MB)")
+        if args.keep > 0:
+            pruned = prune_backups(keep_days=args.keep, out_dir=args.out)
+            if pruned:
+                print(f"[INFO] Pruned {pruned} backup(s) older than {args.keep} days.")
+    elif args.command == "restore":
+        print(f"[INFO] Restoring backup from: {args.file} (fresh={args.fresh})")
+        restore_backup(args.file, dsn=args.dsn, fresh=args.fresh)
+        print(f"[OK] Successfully restored database from: {args.file}")
+    elif args.command == "list":
+        backups = list_backups(out_dir=args.out)
+        if not backups:
+            print("No backups found.")
+        else:
+            print(f"{'Name':<35} {'Size (MB)':<12} {'Created At'}")
+            print("-" * 75)
+            for b in backups:
+                print(f"{b['filename']:<35} {b['size_mb']:<12} {b['created_at']}")
+    elif args.command == "prune":
+        removed = prune_backups(keep_days=args.keep_days, out_dir=args.out)
+        print(f"[OK] Pruned {removed} backup(s) older than {args.keep_days} days.")
 
 
 if __name__ == "__main__":
     main()
+

@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
 from app.engine.errors import NodeExecutionError
-from app.engine.expressions import interpolate, resolve
+from app.engine.expressions import interpolate
 from app.nodes.registry import register
 from app.services.dataload.registry import DataLoadOptions
 from app.services.dataload.service import DataLoadService

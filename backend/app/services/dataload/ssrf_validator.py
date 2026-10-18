@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import ipaddress
 import re
-import socket
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 from app.engine.errors import NodeExecutionError

@@ -78,11 +78,14 @@ function CanvasToolbarComponent() {
 
   // Lightweight graph check: derived only when topology (nodes/edges structure) changes, never on position drags
   const health = useMemo(() => {
+    if (!nodeTopology) return { ok: true, problems: [] }
     const store = useWorkflowStore.getState()
+    const edgePairs = edgeTopology.split('|').filter(Boolean)
     const connected = new Set()
-    for (const e of store.edges) {
-      connected.add(e.source)
-      connected.add(e.target)
+    for (const pair of edgePairs) {
+      const [src, tgt] = pair.split('->')
+      if (src) connected.add(src)
+      if (tgt) connected.add(tgt)
     }
     const orphans = store.nodes
       .filter((n) => n.type === 'custom' && !connected.has(n.id))

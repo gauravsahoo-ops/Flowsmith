@@ -70,7 +70,7 @@ export function MetadataIcon({ size = 14, color = 'currentColor' }) {
   )
 }
 
-export function getCategoryIcon(catId, size = 13, color = 'currentColor') {
+function getCategoryIcon(catId, size = 13, color = 'currentColor') {
   switch (catId) {
     case 'steps':
       return <StepsIcon size={size} color={color} />

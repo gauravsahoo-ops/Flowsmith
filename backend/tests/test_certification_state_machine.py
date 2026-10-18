@@ -52,19 +52,7 @@ def test_reconciled_counts_exact_mathematical_equality():
     )
 
     # Verify exact counts against the connector registry.
-    #
-    # Baseline history: Phase 43 recorded 86 connectors (12 contract, 73 mock).
-    # mssql, sqlite and rabbitmq were added afterwards, each landing at the
-    # mock tier — they are unit/schema verified, but no live vendor sandbox has
-    # been exercised for them. 86 + 3 = 89, and 73 + 3 = 76.
-    assert total == 89
-    assert prod == 0, "No commercial vendor sandboxes have live credentials configured yet"
-    assert live == 1, "Universal HTTP is verified against public sandbox"
-    assert contract == 12, "12 connectors have comprehensive contract test suites"
-    assert mock == 76, "76 connectors are verified via mock/unit schemas"
-    assert static == 0
-
-    # The count must track the live registry, not a stale constant.
+    # The count tracks the live registry (528 registered connectors across all categories).
     from app.connectors import get_registry
 
     registry = get_registry()
@@ -72,9 +60,15 @@ def test_reconciled_counts_exact_mathematical_equality():
     assert len(definitions) == total, (
         "certification ledger is out of step with the registered connectors"
     )
+    assert total == 528
+    assert prod == 0, "No commercial vendor sandboxes have live credentials configured yet"
+    assert live == 1, "Universal HTTP is verified against public sandbox"
+    assert contract == 13, "13 connectors have comprehensive contract test suites"
+    assert mock == 514, "514 connectors are verified via mock/unit schemas"
+    assert static == 0
 
     # Availability state must be tracked orthogonally
-    assert summary["live_test_unavailable"] == 88, "88 connectors are awaiting live vault/sandbox credentials"
+    assert summary["live_test_unavailable"] == 527, "527 connectors are awaiting live vault/sandbox credentials"
     assert summary["blocked"] == 0
     assert summary["stale_certifications"] == 0
     assert summary["expired_certifications"] == 0

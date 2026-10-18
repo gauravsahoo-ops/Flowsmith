@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 import fnmatch
 import io
 import os
-from typing import Any
 import zipfile
 
 from app.engine.errors import NodeExecutionError

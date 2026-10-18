@@ -14,7 +14,6 @@ from app.connectors import (
     ConnectorDefinitionV1,
     ConnectorOperationV1,
     ConnectorLifecycle,
-    CredentialTypeV1,
 )
 
 CSV_CONNECTOR_KEY = "csv"

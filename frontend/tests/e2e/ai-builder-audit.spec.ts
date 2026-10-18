@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { execSync } from 'child_process';
-import path from 'path';
 
 const ARTIFACT_DIR = 'C:/Users/ASUS/.gemini/antigravity-ide/brain/1b1dbbe9-670b-4a9e-ad3b-6aefbe438d36';
 

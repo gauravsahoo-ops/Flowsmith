@@ -18,7 +18,6 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
-from app.nodes.registry import register
 from app.services.csv_service import CsvService, CsvParseOptions
 from app.db import get_session
 

@@ -22,11 +22,11 @@ import urllib.parse
 import uuid
 import time
 import zipfile
-from typing import Any, Generator, Iterable
+from typing import Any, Generator
 from dataclasses import dataclass, field
 
 import httpx
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
 from app.objectstore.factory import get_object_store

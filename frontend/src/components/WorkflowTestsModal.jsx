@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../api'
 import {
-  badgeClass,
   formatCheckLabel,
   formatDiffEntry,
   summarizeReport,
@@ -26,7 +25,7 @@ function parseJsonField(text, fallback) {
   }
 }
 
-export default function WorkflowTestsModal({ isOpen, onClose, workflowId, workflowName }) {
+export default function WorkflowTestsModal({ isOpen, onClose, workflowId, workflowName: _workflowName }) {
   const [tests, setTests] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [loading, setLoading] = useState(false)

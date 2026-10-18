@@ -7,7 +7,7 @@ import {
   useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useWorkflowStore, isDirty, confirmDiscard } from '../stores/workflowStore'
+import { useWorkflowStore, confirmDiscard } from '../stores/workflowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
 import { api } from '../api'
@@ -328,7 +328,7 @@ function CanvasInner() {
         if (file.name.endsWith('.json') || file.type === 'application/json') {
           (async () => {
             try {
-              if (typeof isDirty === 'function' && isDirty() && typeof confirmDiscard === 'function' && !confirmDiscard()) {
+              if (useWorkflowStore.getState()._dirty && typeof confirmDiscard === 'function' && !confirmDiscard()) {
                 return
               }
               const text = await file.text()
