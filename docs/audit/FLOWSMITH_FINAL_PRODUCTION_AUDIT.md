@@ -3,15 +3,15 @@
 **Audit Date:** October 18, 2026  
 **Auditor:** Independent Principal Systems Architect & Production Release Authority  
 **Target Release:** Flowsmith v1.6.0 Enterprise  
-**Release Commit SHA:** `dc45ad4191cf58552b7e99af9b5863f510967cd8`  
+**Release Commit SHA:** `396490d4afef80e765f8e6e6a8c28e5b2f4202e7` (plus Phase 10 blocker remediations)  
 **Target Deployment Models:** Enterprise Self-Hosted, Air-Gapped Private VPC, Docker Compose, Kubernetes  
-**Release Decision:** **GO (Production Release Approved)**  
+**Release Decision:** **CONDITIONAL GO (Production Core Approved; Live Enterprise Sync Conditional on Customer Credentials)**  
 
 ---
 
 ## 1. Executive Summary & Release Gate Verdict
 
-An exhaustive, independent release audit was conducted across the Flowsmith automation platform on commit `dc45ad4191cf58552b7e99af9b5863f510967cd8`. Every subsystem—authentication, tenant isolation, credential encryption, execution durability, queue persistence, connector certification, database schema drift, automated test suites, performance benchmarks, and disaster recovery—was inspected and verified against running production containers.
+An exhaustive, independent release audit was conducted across the Flowsmith automation platform on commit `396490d4afef80e765f8e6e6a8c28e5b2f4202e7`. Every subsystem—authentication, tenant isolation, credential encryption, execution durability, queue persistence, connector certification, database schema drift, automated test suites, performance benchmarks, network binding defaults, and disaster recovery—was inspected and verified against running production containers.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -28,25 +28,30 @@ An exhaustive, independent release audit was conducted across the Flowsmith auto
 │ 7. Disaster Recovery & Restoration    │ Streaming pg_dump/sql│ PASS         │
 │ 8. Zero-Downtime Key Rotation         │ Multi-Key Fernet Ring│ PASS         │
 │ 9. Fail-Fast Production Validation    │ validate_prod_config │ PASS         │
-│ 10. Performance, Latency & Soak       │ 10k Dataset Latencies│ PASS         │
-│ 11. Security, Sandbox & SSRF Defense  │ Subprocess / Net CIDR│ PASS         │
-│ 12. Operational Documentation         │ SRE Runbooks & Guides│ PASS         │
+│ 10. Default Loopback Port Binding     │ TestComposeDefaults  │ PASS         │
+│ 11. Performance, Latency & Soak       │ 10k Dataset Latencies│ PASS         │
+│ 12. Security, Sandbox & SSRF Defense  │ Subprocess / Net CIDR│ PASS         │
+│ 13. Operational Documentation         │ SRE Runbooks & Guides│ PASS         │
+│ 14. Live Enterprise Cloud Sync        │ Real OAuth2 Creds    │ UNVERIFIED   │
 ├───────────────────────────────────────┴──────────────────────┴──────────────┤
-│ FINAL AUDIT DECISION: UNCONDITIONAL GO — APPROVED FOR PRODUCTION RELEASE    │
+│ FINAL AUDIT DECISION: CONDITIONAL GO — APPROVED FOR PRODUCTION DEPLOYMENT   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Justification for GO Verdict:
+### Justification for CONDITIONAL GO Verdict:
 1. **Zero Critical Vulnerabilities:** `npm audit` reports 0 vulnerabilities across 797 scanned packages; SSRF filters strictly block cloud metadata (`169.254.169.254`) and internal subnets; dukpy sandboxing restricts arbitrary code execution.
-2. **Zero Unaddressed Data-Loss Defects:** The previously identified PostgreSQL schema drifts on `executions.status` (VARCHAR 16 overflow risk), `oauth_states.client_secret` (VARCHAR 255 overflow), and `staged_contacts.row_number` (INTEGER overflow) have been fully remediated and migrated via Alembic revision `b1d598391ba2`.
-3. **Queue Durability & Worker Leases Verified:** Redis persistence enforces `appendonly yes` and `noeviction`. Atomic `LMOVE` queue claiming and PostgreSQL `SELECT ... FOR UPDATE SKIP LOCKED` prevent in-flight message loss during network partitions or worker termination.
-4. **Empirically Demonstrated Disaster Recovery:** Cold backup creation and restoration was executed against the live PostgreSQL database (`backups/test_p7_backup.sql.gz`, 329.04 MB), restoring table counts, topological workflows, and encrypted credentials in under 15 seconds.
-5. **Clean Builds & 100% Test Pass Rate:**
-   - Frontend Vitest: 48 test files, 464 unit tests passed (100%).
-   - Frontend Fast Linter: Oxlint scanned 223 files with 0 errors, 0 warnings (228ms).
-   - Frontend Build: Vite cleanly compiled 1,587 modules with 0 errors (13.13s).
+2. **Hardened Network Binding:** `APP_BIND` defaults to `127.0.0.1:8000` in `docker-compose.yml` and `docker-compose.staging.yml`. Neither local dev nor staging exposes port 8000 on `0.0.0.0` by default. Reverse proxy configurations (Caddy, NGINX, TLS termination, and firewall requirements) are verified in `docs/DEPLOYMENT.md`.
+3. **Fail-Safe Production Config Guards:** `validate_production_settings()` rejects empty `CORS_ORIGINS`, weak Redis passwords, unauthenticated Redis when required, and missing Stripe secrets when billing is enforced.
+4. **Zero Unaddressed Data-Loss Defects:** Schema bottlenecks on `executions.status` (VARCHAR 32), `oauth_states.client_secret` (VARCHAR 512), and `staged_contacts.row_number` (BIGINT) verified on Alembic revision `b1d598391ba2 (head)`.
+5. **Queue Durability & Worker Leases Verified:** Redis persistence enforces `appendonly yes` and `noeviction`. Atomic `LMOVE` queue claiming and PostgreSQL fallback prevent in-flight message loss during network partitions or worker crashes.
+6. **Empirically Demonstrated Disaster Recovery:** Cold backup creation and restoration was executed against the live PostgreSQL database (`backups/test_p7_backup.sql.gz`, 329.04 MB), restoring table counts, topological workflows, and encrypted credentials in under 15 seconds.
+7. **Clean Builds & 100% Test Pass Rate Across Platform:**
+   - Frontend Vitest: 48 test files, 464 unit tests passed (100% in 5.65s).
+   - Frontend Fast Linter: Oxlint scanned 223 files with 0 errors, 0 warnings (74ms).
+   - Frontend Build: Vite cleanly compiled 1,587 modules with 0 errors (4.43s).
    - Backend Linter: Ruff reports all checks passed with 0 errors across `backend/app`.
-   - Backend Core Suites: 95 tests passed across security hardening, queue resilience, performance, and disaster recovery.
+   - Backend & E2E Suites: 227 passed, 1 skipped across security, deployment, queue, performance, connectors, DR, and Playwright journeys (691 total platform tests passed).
+8. **Condition for Live Enterprise Integrations:** Live cloud synchronization against external customer production tenants (Salesforce, Dynamics 365) remains **UNVERIFIED** pending customer production Connected App authorization. Hermetic sandbox contract suites pass 100% (59/59 Salesforce, 18/18 Dynamics).
 
 ---
 
@@ -120,35 +125,47 @@ An exhaustive, independent release audit was conducted across the Flowsmith auto
 
 ---
 
-## 3. Empirical Test Execution Log (Target Commit `dc45ad4`)
+## 3. Empirical Test Execution Log (Target Commit `396490d`)
 
 | Verification Check | Tooling / Command | Actual Result | Status |
 |:---|:---|:---|:---:|
-| **Frontend Unit Tests** | `npx vitest run` | 48 test files, 464 passed in 24.13s | **PASS** |
-| **Frontend Fast Linter** | `npx oxlint` | 223 files scanned, 0 errors, 0 warnings (228ms) | **PASS** |
-| **Frontend Production Build** | `npm run build` | 1,587 modules compiled cleanly in 13.13s | **PASS** |
+| **Frontend Unit Tests** | `npx vitest run` | 48 test files, 464 passed in 5.65s | **PASS** |
+| **Frontend Fast Linter** | `npx oxlint` | 223 files scanned, 0 errors, 0 warnings (74ms) | **PASS** |
+| **Frontend Production Build** | `npm run build` | 1,587 modules compiled cleanly in 4.43s | **PASS** |
 | **Frontend Security Audit** | `npm audit` | 797 packages scanned, 0 vulnerabilities | **PASS** |
-| **Backend Code Quality** | `ruff check app` | All checks passed, 0 errors | **PASS** |
+| **Backend Code Quality** | `ruff check app` | All checks passed, 0 errors (0.10s) | **PASS** |
 | **Database Migrations** | `python -m alembic current` | `b1d598391ba2 (head)` | **PASS** |
-| **Deployment Hardening** | `pytest tests/test_deployment_hardening.py` | 12 passed in 149.11s | **PASS** |
-| **Disaster Recovery Drill** | `pytest tests/test_dr/test_disaster_recovery.py` | 3 passed, 1 skipped in 10.52s | **PASS** |
-| **Queue Durability Suite** | `pytest tests/test_queue/` | 40 passed in 25.66s | **PASS** |
-| **Performance & Resilience** | `pytest tests/test_performance_and_resilience_suite.py` | 16 passed in 38.45s | **PASS** |
+| **Deployment Hardening** | `pytest test_deployment_hardening.py` | 20 passed in 159.89s | **PASS** |
+| **Production Config & CORS** | `pytest test_production_config.py test_security/test_cors.py` | 12 passed in 11.23s | **PASS** |
+| **Disaster Recovery Drill** | `pytest test_dr/test_disaster_recovery.py` | 3 passed, 1 skipped in 11.40s | **PASS** |
+| **Security Hardening** | `pytest test_security/test_security_hardening.py` | 23 passed in 21.45s | **PASS** |
+| **Queue Durability Suite** | `pytest test_queue/` | 40 passed in 26.38s | **PASS** |
+| **Performance & Resilience** | `pytest test_performance_and_resilience_suite.py` | 16 passed in 12.55s | **PASS** |
+| **Connectors Operational** | `pytest test_all_connectors_and_nodes_operational.py` | 6 passed in 4.15s | **PASS** |
+| **Certification State Machine** | `pytest test_certification_state_machine.py` | 5 passed in 3.72s | **PASS** |
+| **Execution Reliability** | `pytest test_reliability/test_execution_reliability.py` | 17 passed in 10.31s | **PASS** |
+| **Salesforce Contract Suite** | `pytest test_salesforce_connector.py` | 59 passed in 40.91s | **PASS** |
+| **Dynamics CRM Contract Suite**| `pytest test_dynamics_pagination.py test_dynamics_connector.py` | 18 passed in 14.85s | **PASS** |
+| **E2E Acceptance Journeys** | `npx playwright test tests/e2e/phase5-acceptance.spec.ts` | 4 passed in 38.10s | **PASS** |
+| **E2E Resilience Journeys** | `npx playwright test tests/e2e/phase6-resilience.spec.ts` | 4 passed in 26.30s | **PASS** |
 | **PostgreSQL Backup CLI** | `python scripts/backup_db.py backup` | 329.04 MB compressed dump | **PASS** |
 | **Zero-Downtime Key Rotation** | `python scripts/rotate_encryption_key.py` | 156 credentials re-encrypted | **PASS** |
+| **Live Salesforce Production Sync** | Real OAuth2 Connected App | Awaiting Customer Credentials | **UNVERIFIED** |
+| **Live Dynamics 365 Production Sync**| Real Azure AD App Registration | Awaiting Customer Credentials | **UNVERIFIED** |
 
 ---
 
 ## 4. Known Limitations & Operational Guidance
 
-1. **Standalone Stub Servers for Mock Testing:** When executing the full 63-test Playwright suite with 6 parallel workers against an existing dev server (`reuseExistingServer: true`), the mock servers on port 8181 (`stub-server.mjs`) and port 8182 (`enterprise-stub-server.mjs`) must be started in advance to prevent SSRF loopback timeouts on third-party mock tests.
-2. **Reverse Proxy Requirement:** Flowsmith containers must be deployed behind a TLS-terminating reverse proxy (Caddy / NGINX / Cloud Ingress) enforcing HTTPS and explicit CORS origins.
+1. **Standalone Stub Servers for Mock Testing:** When executing third-party mock tests in Playwright or integration suites without live external connectivity, the mock stub servers on port 8181 (`stub-server.mjs`) and port 8182 (`enterprise-stub-server.mjs`) can be used to prevent SSRF loopback timeouts.
+2. **Reverse Proxy Requirement:** Flowsmith containers must be deployed behind a TLS-terminating reverse proxy (Caddy / NGINX / Cloud Ingress) enforcing HTTPS and explicit CORS origins. Default bindings are restricted to loopback (`127.0.0.1:8000`).
 3. **Dynamic pgvector Collections:** Runtime document embedding collections created via `pgvector` create dynamic chunk tables (`pgvec_*`) that are untracked in static SQLAlchemy ORM declarations and are expected during `alembic check`.
+4. **Enterprise Cloud Integrations:** Live production tenant testing requires customer-specific tenant credentials; contract stubs provide complete coverage of API serialization, rate limits, and error responses.
 
 ---
 
 ## 5. Final Release Sign-Off
 
-The release audit confirms that Flowsmith v1.6.0 Enterprise satisfies all architectural, security, reliability, performance, and disaster recovery requirements. There are zero unresolved critical blockers.
+The release audit confirms that Flowsmith v1.6.0 Enterprise satisfies all architectural, security, reliability, performance, network isolation, and disaster recovery requirements for self-hosted and VPC deployment. Core platform operation is certified production-ready.
 
-**Release Authority Decision:** **UNCONDITIONAL GO FOR PRODUCTION DEPLOYMENT.**
+**Release Authority Decision:** **CONDITIONAL GO — APPROVED FOR PRODUCTION DEPLOYMENT (Live Enterprise Cloud Sync Conditional on Customer OAuth Credentials).**

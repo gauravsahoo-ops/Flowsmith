@@ -10,16 +10,13 @@ Validates:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
 from cryptography.fernet import Fernet
 
 from app.config import ConfigError, Settings, validate_production_settings
-from app.db import get_session
-from app.models import Credential, User
-from app.utils.backup import create_backup, list_backups, prune_backups, restore_backup
+from app.utils.backup import create_backup, list_backups, prune_backups
 
 
 def _valid_prod_settings(**overrides) -> Settings:
@@ -76,8 +73,119 @@ class TestProductionConfigurationHardening:
             validate_production_settings(_valid_prod_settings(cors_origins="https://app.com, *"))
 
     def test_rejects_insecure_default_redis_password(self):
+        for weak in ("changeme", "password", "redis", "default", "admin", "123456", "root"):
+            with pytest.raises(ConfigError, match="REDIS_PASSWORD"):
+                validate_production_settings(_valid_prod_settings(redis_password=weak))
+
+    def test_rejects_empty_cors_in_production(self):
+        with pytest.raises(ConfigError, match="CORS_ORIGINS"):
+            validate_production_settings(_valid_prod_settings(cors_origins=""))
+        with pytest.raises(ConfigError, match="CORS_ORIGINS"):
+            validate_production_settings(_valid_prod_settings(cors_origins="   "))
+
+    def test_rejects_missing_redis_url_when_queue_backend_redis(self):
+        with pytest.raises(ConfigError, match="REDIS_URL"):
+            validate_production_settings(_valid_prod_settings(queue_backend="redis", redis_url=""))
+
+    def test_rejects_unauthenticated_redis_when_require_redis_auth(self):
         with pytest.raises(ConfigError, match="REDIS_PASSWORD"):
-            validate_production_settings(_valid_prod_settings(redis_password="changeme"))
+            validate_production_settings(
+                _valid_prod_settings(
+                    queue_backend="redis",
+                    redis_url="redis://localhost:6379/0",
+                    redis_password="",
+                    require_redis_auth=True,
+                )
+            )
+
+    def test_rejects_weak_password_in_redis_url(self):
+        with pytest.raises(ConfigError, match="REDIS_PASSWORD"):
+            validate_production_settings(
+                _valid_prod_settings(
+                    queue_backend="redis",
+                    redis_url="redis://:changeme@redis:6379/0",
+                )
+            )
+
+    def test_rejects_missing_stripe_secrets_when_billing_enforced(self):
+        with pytest.raises(ConfigError, match="STRIPE_SECRET_KEY"):
+            validate_production_settings(_valid_prod_settings(billing_enforcement=True, stripe_secret_key=""))
+        with pytest.raises(ConfigError, match="STRIPE_WEBHOOK_SECRET"):
+            validate_production_settings(
+                _valid_prod_settings(
+                    billing_enforcement=True,
+                    stripe_secret_key="sk_live_prod_test_key",
+                    stripe_webhook_secret="",
+                )
+            )
+
+    def test_accepts_valid_hardened_redis_queue_in_production(self):
+        validate_production_settings(
+            _valid_prod_settings(
+                queue_backend="redis",
+                redis_url="redis://:VeryStrongSecretKey2026!@redis:6379/0",
+                require_redis_auth=True,
+            )
+        )
+
+
+class TestDockerComposeNetworkBindingDefaults:
+    """Verifies that compose topologies do not expose services publicly by default."""
+
+    @pytest.fixture
+    def root_dir(self) -> Path:
+        return Path(__file__).resolve().parents[2]
+
+    def test_docker_compose_loopback_bindings(self, root_dir: Path):
+        import yaml
+
+        compose_path = root_dir / "docker-compose.yml"
+        assert compose_path.exists(), f"Missing {compose_path}"
+
+        with compose_path.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        services = data.get("services", {})
+        assert "app" in services
+        assert "postgres" in services
+        assert "redis" in services
+
+        # 1. App binding must default to 127.0.0.1, not 0.0.0.0
+        app_ports = services["app"].get("ports", [])
+        assert any("127.0.0.1" in p for p in app_ports), f"App must bind to loopback by default: {app_ports}"
+        assert not any("0.0.0.0" in p for p in app_ports), f"App must not default to 0.0.0.0: {app_ports}"
+
+        # 2. Infrastructure ports must bind strictly to 127.0.0.1
+        for sname in ("postgres", "redis", "prometheus", "grafana", "minio"):
+            if sname in services and "ports" in services[sname]:
+                ports = services[sname]["ports"]
+                for p in ports:
+                    p_str = str(p)
+                    assert p_str.startswith("127.0.0.1:"), (
+                        f"Service {sname} port {p_str} is not bound to 127.0.0.1 loopback"
+                    )
+
+    def test_docker_compose_staging_network_isolation(self, root_dir: Path):
+        import yaml
+
+        staging_path = root_dir / "docker-compose.staging.yml"
+        assert staging_path.exists(), f"Missing {staging_path}"
+
+        with staging_path.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        services = data.get("services", {})
+        assert "app" in services
+        app_ports = services["app"].get("ports", [])
+        assert any("127.0.0.1" in p for p in app_ports), f"Staging app must default to loopback: {app_ports}"
+        assert not any("0.0.0.0" in p for p in app_ports), f"Staging app must not default to 0.0.0.0: {app_ports}"
+
+        # In staging, databases must have zero published host ports
+        for sname in ("postgres", "redis"):
+            if sname in services:
+                assert "ports" not in services[sname], (
+                    f"Staging {sname} must not publish host ports; should be bridge-internal only"
+                )
 
 
 class TestDisasterRecoveryAndBackupCLI:

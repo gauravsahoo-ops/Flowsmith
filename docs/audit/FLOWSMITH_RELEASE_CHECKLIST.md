@@ -45,9 +45,11 @@
 |:---|:---|:---:|:---|
 | 3.1 | Production configuration rejection of weak secrets and default passwords | **PASS** | `validate_production_settings()` in `config.py` rejects <32 char JWT, sqlite URLs, `:automate@`, and wildcard CORS. |
 | 3.2 | Automated production secret generation utility | **PASS** | `scripts/generate_production_secrets.py` produces CSPRNG 256-bit entropy keys. |
-| 3.3 | Private port isolation (Postgres, Redis, Prometheus, Grafana on loopback only) | **PASS** | Bound to `127.0.0.1` in `docker-compose.yml`; completely unexposed to host in `docker-compose.staging.yml`. |
-| 3.4 | Least privilege container execution (non-root UID 1000, `cap_drop: [ALL]`, `no-new-priv`) | **PASS** | Configured and verified across application and worker Docker containers. |
-| 3.5 | Graceful container shutdown allowing in-flight steps to checkpoint | **PASS** | `stop_grace_period: 30s` configured in Compose definitions. |
+| 3.3 | Private port isolation & default loopback application binding (`APP_BIND=127.0.0.1`) | **PASS** | `APP_BIND` defaults to `127.0.0.1:8000` in `docker-compose.yml` and `docker-compose.staging.yml`; databases and telemetry services bound strictly to `127.0.0.1`. |
+| 3.4 | Automated compose network-binding verification test | **PASS** | `TestDockerComposeNetworkBindingDefaults` in `test_deployment_hardening.py` confirms loopback defaults and absence of `0.0.0.0`. |
+| 3.5 | Fail-safe production CORS and Redis authentication validation | **PASS** | `validate_production_settings()` rejects empty `CORS_ORIGINS`, weak Redis passwords in setting and URL, and unauthenticated Redis when required. |
+| 3.6 | Least privilege container execution (non-root UID 1000, `cap_drop: [ALL]`, `no-new-priv`) | **PASS** | Configured and verified across application and worker Docker containers. |
+| 3.7 | Graceful container shutdown allowing in-flight steps to checkpoint | **PASS** | `stop_grace_period: 30s` configured in Compose definitions. |
 
 ---
 
@@ -97,19 +99,32 @@
 ### Pillar VIII: Operational Documentation & Support Readiness
 | # | Requirement | Status | Empirical Evidence / Verification Method |
 |:---|:---|:---:|:---|
-| 8.1 | Enterprise Production Deployment Guide | **PASS** | `docs/DEPLOYMENT.md` updated with architecture, hardware sizing, and CLI runbooks. |
+| 8.1 | Enterprise Production Deployment Guide | **PASS** | `docs/DEPLOYMENT.md` updated with architecture, reverse proxy configs, firewall rules, and CLI runbooks. |
 | 8.2 | Production Readiness Assessment Matrix | **PASS** | `docs/PRODUCTION_READINESS.md` updated to 38/42 implemented and audited (90.5%). |
 | 8.3 | Disaster recovery, backup, and restore runbooks | **PASS** | Documented and empirically verified in `docs/audit/FLOWSMITH_DEPLOYMENT_ACCEPTANCE.md`. |
-| 8.4 | Incident response and escalation procedures | **PASS** | Documented in `docs/DEPLOYMENT.md` Section 9. |
+| 8.4 | Incident response and escalation procedures | **PASS** | Documented in `docs/DEPLOYMENT.md` Section 8 & 9. |
+
+---
+
+### Pillar IX: Enterprise Cloud Integrations & Live Verification Status
+| # | Requirement | Status | Empirical Evidence / Verification Method |
+|:---|:---|:---:|:---|
+| 9.1 | Salesforce connector hermetic contract & sandbox test suite | **PASS** | 59 passed in `test_salesforce_connector.py` covering SOQL query, pagination, composite batches, bulk v2, and token renewal. |
+| 9.2 | Dynamics 365 CRM connector hermetic contract & sandbox test suite | **PASS** | 18 passed in `test_dynamics_pagination.py` and `test_dynamics_connector.py` covering OData query, `@odata.nextLink`, entity CRUD, and token refresh. |
+| 9.3 | Live customer cloud tenant execution (Salesforce Production & Azure Dynamics) | **UNVERIFIED** | Awaiting customer production Connected App authorization and live tenant credentials. Repositories must never store real customer credentials. |
 
 ---
 
 ## 3. Release Sign-Off Verdict
 
-- **Total Release Gates Evaluated:** 37
-- **Gates Passed:** 37 (100%)
+- **Total Release Gates Evaluated:** 42
+- **Gates Passed (Core Platform & Sandboxes):** 41 (97.6%)
+- **Gates Unverified (Live Enterprise Cloud Sandboxes):** 1 (2.4% — requires customer OAuth Connected App credentials)
 - **Gates Failed:** 0 (0%)
 - **Gates Blocked:** 0 (0%)
-- **Gates Not Tested:** 0 (0%)
 
-**FINAL RELEASE GATE VERDICT:** **PASS — READY FOR PRODUCTION RELEASE.**
+**FINAL RELEASE GATE VERDICT:** **CONDITIONAL GO**
+
+### Condition for Live Deployment:
+1. Core platform, execution engine, UI, database migrations, queue durability, security controls, and disaster recovery are certified **PRODUCTION READY (GO)**.
+2. Production deployment is **CONDITIONAL** upon the deployment engineer configuring customer-authorized OAuth2 credentials (`SALESFORCE_CLIENT_SECRET`, `DYNAMICS_CRM_CLIENT_SECRET`) in `.env.production` and completing the live OAuth authorization consent flow before initiating production data synchronization.

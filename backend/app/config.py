@@ -151,6 +151,7 @@ class Settings(BaseSettings):
     queue_backend: str = "db"
     redis_url: str = ""
     redis_password: str = ""
+    require_redis_auth: bool = False
     queue_embedded_consumer: bool = True
     worker_poll_interval_s: float = 0.5
     worker_heartbeat_s: float = 10.0
@@ -312,13 +313,43 @@ def validate_production_settings(settings: Settings | None = None) -> None:
     elif ":automate@" in db_url:
         missing.append("DATABASE_URL (default development password detected in production)")
     origins = [o.strip() for o in (settings.cors_origins or "").split(",") if o.strip()]
-    if "*" in origins:
+    if not origins:
+        missing.append("CORS_ORIGINS (explicit allowed origins must be configured in production)")
+    elif "*" in origins:
         # CORS allow_origins="*" combined with allow_credentials=True is an
         # unsafe combination for a deployed API surface (main.py sets
         # credentials=True unconditionally).
         missing.append("CORS_ORIGINS (wildcard '*' is not allowed in production)")
-    if settings.redis_password and settings.redis_password.lower() in ("changeme", "password", "redis", "default"):
+
+    # Redis authentication & queue integrity
+    redis_url = settings.redis_url or ""
+    url_pw = ""
+    if "@" in redis_url:
+        auth_part = redis_url.split("@")[0].split("//")[-1]
+        if ":" in auth_part:
+            url_pw = auth_part.split(":", 1)[1]
+    effective_redis_pw = settings.redis_password or url_pw
+    insecure_redis_passwords = {"changeme", "password", "redis", "default", "admin", "123456", "root"}
+
+    if effective_redis_pw and effective_redis_pw.lower() in insecure_redis_passwords:
         missing.append("REDIS_PASSWORD (insecure default password detected)")
+
+    if settings.queue_backend == "redis":
+        if not settings.redis_url:
+            missing.append("REDIS_URL (required when QUEUE_BACKEND=redis)")
+        elif settings.require_redis_auth and not effective_redis_pw:
+            missing.append("REDIS_PASSWORD (Redis authentication required when REQUIRE_REDIS_AUTH=true)")
+
+    if settings.require_redis_auth and not effective_redis_pw:
+        msg = "REDIS_PASSWORD (Redis authentication required when REQUIRE_REDIS_AUTH=true)"
+        if msg not in missing:
+            missing.append(msg)
+
+    if settings.billing_enforcement:
+        if not settings.stripe_secret_key:
+            missing.append("STRIPE_SECRET_KEY (required when BILLING_ENFORCEMENT=true)")
+        if not settings.stripe_webhook_secret:
+            missing.append("STRIPE_WEBHOOK_SECRET (required when BILLING_ENFORCEMENT=true)")
     if missing:
         raise ConfigError(
             "Refusing to start in production mode: missing "

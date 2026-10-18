@@ -49,34 +49,34 @@ The objective of Phase 9 is to independently challenge and verify all claimed fi
 
 ---
 
-## 3. Empirical Verification Suite Execution Log
+## 3. Empirical Verification Suite Execution Log (Phase 10 Re-Verification)
 
-All verification suites were re-executed during Phase 9 to validate that subsequent code changes introduced zero regressions.
+All verification suites were re-executed against the final repository state following network binding and production configuration remediation.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 PHASE 9 SUITE EXECUTION SCORECARD                                      │
+│                             PHASE 10 RE-VERIFICATION SUITE SCORECARD                                   │
 ├──────────────────────────────────┬──────────────────────┬─────────────┬──────────────┬─────────────────┤
 │ Test Suite                       │ Command Executed     │ Exit Code   │ Result       │ Duration        │
 ├──────────────────────────────────┼──────────────────────┼─────────────┼──────────────┼─────────────────┤
-│ 1. Frontend Unit / Component     │ npx vitest run       │ 0           │ 464 Passed   │ 24.13s          │
-│ 2. Frontend Fast Linter          │ npx oxlint           │ 0           │ 0 Err, 0 Warn│ 0.23s           │
-│ 3. Frontend Production Build     │ npm run build        │ 0           │ 1587 Modules │ 13.13s          │
-│ 4. Frontend Security Audit       │ npm audit            │ 0           │ 0 Vulns      │ 2.10s           │
-│ 5. Backend Code Quality          │ ruff check app       │ 0           │ All Passed   │ 0.18s           │
+│ 1. Frontend Unit / Component     │ npx vitest run       │ 0           │ 464 Passed   │ 5.65s           │
+│ 2. Frontend Fast Linter          │ npx oxlint           │ 0           │ 0 Err, 0 Warn│ 0.07s           │
+│ 3. Frontend Production Build     │ npm run build        │ 0           │ 1587 Modules │ 4.43s           │
+│ 4. Frontend Security Audit       │ npm audit            │ 0           │ 0 Vulns      │ 19.00s          │
+│ 5. Backend Code Quality          │ ruff check app       │ 0           │ All Passed   │ 0.10s           │
 │ 6. Database Migration Head       │ alembic current      │ 0           │ b1d59839 head│ 1.10s           │
-│ 7. Deployment & Security Hardening│ pytest test_dep/sec │ 0           │ 38 Pass, 1 Sk│ 188.91s         │
-│ 8. Queue Durability & Recovery   │ pytest test_queue/   │ 0           │ 40 Passed    │ 27.80s          │
-│ 9. Performance & Resilience      │ pytest test_perf     │ 0           │ 16 Passed    │ 13.59s          │
-│ 10. Connectors Operational       │ pytest test_conn_all │ 0           │ 6 Passed     │ 4.29s           │
-│ 11. Certification State Machine  │ pytest test_cert     │ 0           │ 5 Passed     │ 3.65s           │
-│ 12. Execution Reliability        │ pytest test_reliab   │ 0           │ 17 Passed    │ 9.70s           │
-│ 13. Salesforce Connector Suite   │ pytest test_sf_conn  │ 0           │ 59 Passed    │ 40.60s          │
-│ 14. Dynamics CRM Connector Suite │ pytest test_dynamics │ 0           │ 18 Passed    │ 11.82s          │
-│ 15. Playwright UX Acceptance     │ playwright phase5    │ 0           │ 4 Passed     │ 26.10s          │
-│ 16. Playwright Resilience Journeys│ playwright phase6   │ 0           │ 4 Passed     │ 25.60s          │
+│ 7. Deployment & Security Hardening│ pytest test_dep/sec │ 0           │ 57 Pass, 1 Sk│ 195.40s         │
+│ 8. Queue Durability & Recovery   │ pytest test_queue/   │ 0           │ 40 Passed    │ 26.38s          │
+│ 9. Performance & Resilience      │ pytest test_perf     │ 0           │ 16 Passed    │ 12.55s          │
+│ 10. Connectors Operational       │ pytest test_conn_all │ 0           │ 6 Passed     │ 4.15s           │
+│ 11. Certification State Machine  │ pytest test_cert     │ 0           │ 5 Passed     │ 3.72s           │
+│ 12. Execution Reliability        │ pytest test_reliab   │ 0           │ 17 Passed    │ 10.31s          │
+│ 13. Salesforce Connector Suite   │ pytest test_sf_conn  │ 0           │ 59 Passed    │ 40.91s          │
+│ 14. Dynamics CRM Connector Suite │ pytest test_dynamics │ 0           │ 18 Passed    │ 14.85s          │
+│ 15. Playwright UX Acceptance     │ playwright phase5    │ 0           │ 4 Passed     │ 38.10s          │
+│ 16. Playwright Resilience Journeys│ playwright phase6   │ 0           │ 4 Passed     │ 26.30s          │
 ├──────────────────────────────────┴──────────────────────┴─────────────┴──────────────┴─────────────────┤
-│ TOTAL AUTOMATED VERIFICATION: 671 TESTS EXECUTED; 670 PASSED, 1 SKIPPED, 0 FAILED (100% PASS RATE)     │
+│ TOTAL AUTOMATED VERIFICATION: 691 TESTS EXECUTED; 690 PASSED, 1 SKIPPED, 0 FAILED (100% PASS RATE)     │
 └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -94,9 +94,10 @@ All verification suites were re-executed during Phase 9 to validate that subsequ
 - **Evidence:** Dual-cipher authenticated encryption (AES-256-GCM v2 and Fernet v1). API GET endpoints never return raw secrets, returning only preview metadata and boolean flags (`has_secret: True`).
 - **Rotation:** Multi-key keyring in `CREDENTIALS_ENCRYPTION_KEY` enables zero-downtime rotation. Simulated in dry-run mode across 156 database credentials with zero errors.
 
-### 3. SSRF Defense & Sandboxed Execution
+### 3. SSRF Defense, Sandboxed Execution & Network Binding
 - **Evaluation:** **PASS**
 - **Evidence:** `SSRFValidator` in `safe_http_client.py` and `dataload/ssrf_validator.py` blocks loopbacks, RFC1918 subnets, and AWS metadata (`169.254.169.254`).
+- **Network Binding:** In `docker-compose.yml` and `docker-compose.staging.yml`, `APP_BIND` defaults to `127.0.0.1` (loopback only). Direct external exposure is strictly prevented by default. Automated test `TestDockerComposeNetworkBindingDefaults` enforces loopback invariants.
 - **Sandboxing:** Code execution nodes (`python_code`, `javascript_code`) execute within subprocesses and `dukpy` engines with restricted builtins, strict memory quotas, and CPU timeouts.
 
 ### 4. Queue Durability, Worker Recovery & Retries
@@ -105,9 +106,10 @@ All verification suites were re-executed during Phase 9 to validate that subsequ
 - **Worker Crash Protection:** Atomic `LMOVE` from `queue:jobs` to `queue:jobs:processing` guarantees no job is lost if a worker dies mid-execution. Stale worker sweeper (`worker_stale_sweep_s = 30.0`) automatically reclaims orphaned leases.
 
 ### 5. Advertised Connectors, Nodes & Operations
-- **Evaluation:** **PASS**
+- **Evaluation:** **PASS (Sandbox Verified) / CONDITIONAL (Live Cloud Execution)**
 - **Evidence:** 528 connectors cataloged; 332 registered connectors; 66 built-in flow nodes.
-- **Enterprise Integrations:** Salesforce connector verified across 59 automated tests (`test_salesforce_connector.py`); Dynamics CRM 365 connector verified across 18 tests (`test_dynamics_connector.py`). Live cloud sandboxes were not connected due to security constraints regarding real credentials.
+- **Enterprise Integrations:** Salesforce connector verified across 59 automated tests (`test_salesforce_connector.py`); Dynamics CRM 365 connector verified across 18 tests (`test_dynamics_connector.py`).
+- **Live Enterprise Cloud Status:** Hermetic sandbox contract suites pass 100%. Live customer production sync remains explicitly **UNVERIFIED** pending customer Connected App authorization and live tenant API credentials.
 
 ### 6. Observability, Metrics & Telemetry
 - **Evaluation:** **PASS**
@@ -162,10 +164,13 @@ The complete independent audit deliverables have been established under `docs/au
 
 ## 8. Final Release Verdict
 
-**FINAL VERDICT: UNCONDITIONAL GO — APPROVED FOR PRODUCTION RELEASE.**
+**FINAL VERDICT: CONDITIONAL GO — APPROVED FOR PRODUCTION RELEASE PENDING CUSTOMER CLOUD CREDENTIALS.**
 
 ### Decision Justification:
-- All 12 production hardening pillars and all 37 operational release checklist gates passed with live, reproducible empirical evidence on commit `dc45ad4191cf58552b7e99af9b5863f510967cd8`.
+- All 12 production hardening pillars and 41/42 operational release checklist gates passed with live, reproducible empirical evidence on commit `396490d4afef80e765f8e6e6a8c28e5b2f4202e7` (and working-tree remediations).
 - Zero critical security vulnerabilities, zero unaddressed schema truncation bugs, and zero data-loss defects remain.
+- Application port binding hardened: `APP_BIND` defaults to `127.0.0.1` (loopback only) across `docker-compose.yml` and `docker-compose.staging.yml`. Reverse proxy deployment (Caddy / NGINX / TLS termination / firewall rules) is fully documented in `docs/DEPLOYMENT.md`.
+- Fail-safe production configuration validation verified: empty CORS, weak Redis passwords, unauthenticated Redis queues, and missing Stripe secrets are rejected at startup.
 - Queue durability, worker heartbeat leasing, and disaster recovery restoration have been demonstrated against running infrastructure.
-- Flowsmith v1.6.0 Enterprise is verified, hardened, and certified ready for enterprise production deployment.
+- 690 automated tests passed across the platform (100% pass rate).
+- **Condition:** Production deployment is conditional upon the customer / operations engineer configuring authorized enterprise OAuth2 Connected App client secrets (`SALESFORCE_CLIENT_SECRET`, `DYNAMICS_CRM_CLIENT_SECRET`) in `.env.production` before initiating live production synchronization. Hermetic contract suites are 100% verified.

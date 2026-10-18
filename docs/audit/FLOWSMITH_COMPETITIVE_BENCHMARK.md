@@ -15,8 +15,8 @@ This audit evaluates Flowsmith against the primary workflow automation and integ
 To maintain empirical rigor, this evaluation separates:
 - **Verified Facts**: Source code structures, reproducible local benchmarks, and observed execution behavior.
 - **Measured Benchmark Results**: Empirical metrics from reproducible test scripts executed under documented workloads.
-- **Documented Vendor Claims**: Published specifications, public pricing models, and vendor documentation.
-- **Unknowns & Limitations**: Areas where closed-source vendor internal architectures cannot be directly inspected.
+- **Estimated Costs**: Calculated total-cost-of-ownership models based on current cloud compute pricing vs vendor tiers.
+- **Unverified Claims / Operational Prerequisites**: Areas where closed-source vendor internal architectures cannot be directly inspected, or where live enterprise cloud connectivity awaits customer production credentials.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -37,6 +37,17 @@ To maintain empirical rigor, this evaluation separates:
 
 ---
 
+### 1.1 Rigorous Classification of Benchmark Findings
+
+| Category | Description | Specific Flowsmith & Competitor Evaluation Items |
+|:---|:---|:---|
+| **1. Verified Features (Code-Proven)** | Features proven by source code inspection, AST verification, and automated tests. | • Native `pgvector` RAG collections (`app/models/rag.py`).<br>• Dual queue architecture: Redis atomic `LMOVE` + Postgres fallback.<br>• 3-panel Node Inspector (`NodeEditorModal.jsx`) & reverse ancestor data discovery.<br>• Multi-cipher encryption (AES-256-GCM v2 + Fernet keyring rotation).<br>• Fail-fast startup configuration guards (`validate_production_settings()`).<br>• Default loopback network binding (`APP_BIND=127.0.0.1`). |
+| **2. Measured Results (Empirically Timed)** | Concrete latency, throughput, and memory numbers captured on running machines. | • **Indexed Execution Search Latency:** p95 < 15ms across 10,000 telemetry records.<br>• **Burst Concurrency:** 25 simultaneous workflows at 18+ jobs/sec with 0 state contamination.<br>• **Soak Stability:** 50 sequential workflow runs with memory drift < 0.03 MB.<br>• **Disaster Recovery Restore:** 329.04 MB full database dump restored in under 15 seconds.<br>• **Automated Suite Execution:** 690 automated tests passed (100% pass rate). |
+| **3. Estimated Costs (Infrastructure Models)** | Model-based cost comparisons assuming identical 100,000 monthly execution volumes. | • **Flowsmith Self-Hosted:** $20–$50/mo (single 4-vCPU 8GB RAM Linux VM). Flat cost with $0 per-task tax.<br>• **n8n Self-Hosted:** $20–$50/mo (Infra only; Fair-Code license restricts commercial hosting/OEM).<br>• **Zapier Cloud:** $1,500–$3,000+/mo ($0.01–$0.03 per task; loop steps multiply cost).<br>• **Make Cloud:** $300–$800/mo ($0.001–$0.003 per operation; every module execution charged). |
+| **4. Unverified Claims / Operational Prerequisites** | Claims that cannot be verified without external proprietary data or live credentials. | • **Live Customer Cloud Sync (Salesforce / Dynamics):** Hermetic sandbox suites verified (59/59 SF, 18/18 Dynamics); live customer production tenant sync remains **UNVERIFIED** pending customer production Connected App credentials.<br>• **Competitor Internal Engine Metrics:** Vendor internal task queue latencies, broker memory overhead, and private cloud burst limits cannot be audited directly due to proprietary SaaS implementations. |
+
+---
+
 ## 2. In-Depth Comparative Evaluation (8 Core Dimensions)
 
 ### Dimension 1: Integration Breadth & Verified Operation Depth
@@ -53,6 +64,9 @@ To maintain empirical rigor, this evaluation separates:
 - **Flowsmith (v1.6.0 Enterprise):**
   - *Verified Facts:* 528 catalog connectors cataloged in `CANONICAL_APPLICATION_REGISTRY.json` and `flowsmith_connector_manifest.json`, with 332 registered connectors (69 native Python SDK implementations, 17 OpenAPI 3.0 imports, 246 catalog imports) and 66 built-in flow control nodes.
   - *Empirical Verification:* Governed by a 5-tier certification state machine (`STATIC` $\rightarrow$ `MOCK` $\rightarrow$ `CONTRACT` $\rightarrow$ `LIVE` $\rightarrow$ `PROD`) with automated sandbox test suites in `tests/test_all_connectors_and_nodes_operational.py` and dedicated SVG brand icons for all 528 connectors verified by Vitest (`auditNodeIcons.test.js`).
+  - *Explicit Verification Status:*
+    - **Hermetic Contract & Mock Test Suites:** **VERIFIED (100% PASS)** — 59 passed in `test_salesforce_connector.py`; 18 passed in `test_dynamics_connector.py` / `test_dynamics_pagination.py`.
+    - **Live Production Enterprise Cloud Sync:** **UNVERIFIED (Awaiting Customer Production Credentials)** — Requires client-provided Salesforce Connected App Consumer Secret and Microsoft Azure Entra ID Service Principal tenant credentials. Mock sandboxes do not substitute for authorized live enterprise OAuth tokens.
 
 ---
 

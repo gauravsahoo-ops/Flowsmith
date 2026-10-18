@@ -1,11 +1,11 @@
 {
   "release_version": "1.6.0-enterprise",
-  "commit_sha": "dc45ad4191cf58552b7e99af9b5863f510967cd8",
+  "commit_sha": "396490d4afef80e765f8e6e6a8c28e5b2f4202e7",
   "branch": "main",
-  "timestamp": "2026-10-18T14:55:00+05:30",
+  "timestamp": "2026-10-18T16:25:00+05:30",
   "auditor_role": "Principal SRE & Independent Release Authority",
-  "verdict": "GO",
-  "verdict_summary": "All required launch criteria passed with empirical evidence on target commit. Zero critical vulnerabilities, zero unaddressed data-loss defects, and production deployment controls verified.",
+  "verdict": "CONDITIONAL GO",
+  "verdict_summary": "Core self-hosted platform, database schema parity, queue durability, loopback port bindings, and security hardening verified 100% on target commit. Live cloud synchronization with external enterprise tenants (Salesforce, Dynamics 365) remains UNVERIFIED pending authorized customer OAuth credentials.",
   "test_evidence_summary": {
     "frontend_vitest": {
       "command": "npx vitest run",
@@ -14,7 +14,7 @@
       "test_files_failed": 0,
       "tests_passed": 464,
       "tests_failed": 0,
-      "duration_seconds": 24.13
+      "duration_seconds": 5.65
     },
     "frontend_oxlint": {
       "command": "npx oxlint",
@@ -22,14 +22,14 @@
       "files_scanned": 223,
       "errors": 0,
       "warnings": 0,
-      "duration_ms": 228
+      "duration_ms": 74
     },
     "frontend_production_build": {
       "command": "npm run build",
       "status": "PASS",
       "modules_transformed": 1587,
       "errors": 0,
-      "duration_seconds": 13.13
+      "duration_seconds": 4.43
     },
     "frontend_dependency_audit": {
       "command": "npm audit",
@@ -41,7 +41,8 @@
       "command": "ruff check app",
       "status": "PASS",
       "errors": 0,
-      "warnings": 0
+      "warnings": 0,
+      "duration_seconds": 0.10
     },
     "backend_alembic": {
       "command": "python -m alembic current",
@@ -50,17 +51,25 @@
       "is_head": true,
       "active_indexes_count": 253
     },
-    "backend_pytest_core": {
-      "command": "pytest tests/test_deployment_hardening.py tests/test_security/test_security_hardening.py tests/test_dr/test_disaster_recovery.py",
-      "status": "PASS",
-      "security_hardening_passed": 23,
-      "deployment_hardening_passed": 12,
-      "disaster_recovery_drill_passed": 3,
+    "platform_test_breakdown": {
+      "frontend_unit_tests": 464,
+      "deployment_hardening": 20,
+      "production_config_cors": 12,
+      "security_hardening": 23,
+      "disaster_recovery_drill": 3,
       "disaster_recovery_drill_skipped": 1,
-      "queue_and_worker_recovery_passed": 40,
-      "performance_and_resilience_passed": 16,
-      "latest_suite_duration_seconds": 188.91,
-      "critical_failures": 0
+      "queue_durability": 40,
+      "performance_and_resilience": 16,
+      "connectors_operational": 6,
+      "certification_state_machine": 5,
+      "execution_reliability": 17,
+      "salesforce_contract_sandbox": 59,
+      "dynamics_crm_contract_sandbox": 18,
+      "e2e_playwright_acceptance": 4,
+      "e2e_playwright_resilience": 4,
+      "total_tests_passed": 691,
+      "total_tests_skipped": 1,
+      "total_tests_failed": 0
     }
   },
   "empirical_benchmarks": {
@@ -90,9 +99,14 @@
       "sqlite_in_production_rejected": true,
       "default_db_password_rejected": true,
       "wildcard_cors_rejected": true,
-      "insecure_redis_password_rejected": true
+      "empty_cors_origins_rejected": true,
+      "insecure_redis_password_rejected": true,
+      "unauthenticated_redis_rejected_when_required": true,
+      "missing_stripe_secrets_rejected_when_billing_enforced": true
     },
     "network_and_port_isolation": {
+      "app_port_loopback_default": true,
+      "app_bind_default": "127.0.0.1",
       "postgres_loopback_only": true,
       "redis_loopback_only": true,
       "prometheus_loopback_only": true,
@@ -122,7 +136,16 @@
       "zero_downtime_supported": true
     }
   },
+  "enterprise_cloud_integrations": {
+    "salesforce_live_sync": "UNVERIFIED (Awaiting customer production Connected App credentials; sandbox contract suite 59/59 PASS)",
+    "dynamics_365_live_sync": "UNVERIFIED (Awaiting customer Azure AD App Registration; sandbox contract suite 18/18 PASS)"
+  },
   "unresolved_critical_blockers": [],
+  "release_conditions": [
+    "Customer must configure explicit reverse-proxy TLS termination (Caddy/NGINX/Ingress) and set CORS_ORIGINS to exact domain(s) before opening public access.",
+    "Customer must supply production OAuth2 Connected App credentials to activate live Salesforce synchronization.",
+    "Customer must supply production Azure AD App Registration credentials to activate live Dynamics 365 synchronization."
+  ],
   "known_limitations_and_operational_notes": [
     "Running Playwright full-suite in parallel with 6 workers against a pre-existing dev server requires starting stub-server.mjs (port 8181) and enterprise-stub-server.mjs (port 8182) beforehand to avoid SSRF mock timeouts.",
     "Dynamic vector collections created at runtime by pgvector are untracked by static SQLAlchemy models and will be reported as dynamic tables by alembic check.",

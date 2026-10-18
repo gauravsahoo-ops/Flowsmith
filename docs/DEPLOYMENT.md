@@ -45,9 +45,136 @@ Flowsmith is designed for zero-trust, multi-tenant enterprise orchestration. All
 ```
 
 ### Network Isolation Invariants:
-1. **Loopback-Only Infrastructure Binding:** PostgreSQL (`5432`), Redis (`6379`), Prometheus (`9090`), Grafana (`3000`), and MinIO (`9000/9001`) must bind strictly to `127.0.0.1` on the host, or remain purely internal to the Docker bridge network (`backend`).
-2. **Reverse Proxy TLS Termination:** The application port (`8000`) should be fronted by a reverse proxy (e.g. Caddy, NGINX, Cloudflare, or AWS ALB) enforcing HTTPS and HTTP/2.
-3. **No Wildcard CORS with Credentials:** In production (`APP_ENV=production`), `CORS_ORIGINS` must list explicit domains (e.g. `https://flowsmith.company.com`). Wildcards (`*`) are rejected at startup.
+1. **Loopback-Only Infrastructure Binding:** PostgreSQL (`5432`), Redis (`6379`), Prometheus (`9090`), Grafana (`3000`), and MinIO (`9000/9001`) bind strictly to `127.0.0.1` on the host, or remain purely internal to the Docker bridge network (`backend`).
+2. **Default Loopback Application Binding (`APP_BIND=127.0.0.1`):** In both `docker-compose.yml` and `docker-compose.staging.yml`, `APP_BIND` defaults to `127.0.0.1`. Local development and unconfigured deployments are never exposed to public network interfaces by default.
+3. **Deliberate Reverse Proxy TLS Termination:** Production deployments front port `8000` with an explicit reverse proxy (Caddy, NGINX, Cloud ALB, or Traefik) terminating TLS 1.3 and forwarding client IP and scheme headers.
+4. **No Wildcard CORS with Credentials:** In production (`APP_ENV=production`), `CORS_ORIGINS` must list explicit domains (e.g. `https://flowsmith.company.com`). Wildcards (`*`) and empty CORS configurations are rejected at startup.
+
+---
+
+### 1.1 Reverse Proxy Configurations & Firewall Requirements
+
+#### A. Production Caddy Configuration (`Caddyfile`)
+Caddy provides automated Let's Encrypt / ZeroSSL certificate management with zero maintenance:
+
+```caddyfile
+flowsmith.yourcompany.com {
+    encode gzip zstd
+
+    # Strict transport security & modern security headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Reverse proxy to Flowsmith application on loopback
+    reverse_proxy 127.0.0.1:8000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto "https"
+    }
+}
+```
+
+#### B. Production NGINX Configuration (`/etc/nginx/sites-available/flowsmith.conf`)
+For enterprise environments with managed SSL certificates:
+
+```nginx
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name flowsmith.yourcompany.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name flowsmith.yourcompany.com;
+
+    ssl_certificate /etc/letsencrypt/live/flowsmith.yourcompany.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/flowsmith.yourcompany.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    client_max_body_size 50M;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    # Flowsmith API and UI
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 60s;
+    }
+
+    # Live execution WebSocket streaming
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+```
+
+#### C. Host Firewall Invariants (UFW / firewalld)
+Only reverse proxy ports (`80/tcp` and `443/tcp`) plus SSH should be open to external traffic:
+
+```bash
+# Ubuntu / Debian (UFW)
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp comment 'SSH Administration'
+sudo ufw allow 80/tcp comment 'HTTP ACME Challenge'
+sudo ufw allow 443/tcp comment 'HTTPS Ingress'
+sudo ufw enable
+
+# Verify that internal ports are NOT exposed to public interfaces:
+sudo netstat -tlpn | grep -E "8000|5432|6379|9090|3000"
+# Expected: Bound to 127.0.0.1, or docker-proxy bound to 127.0.0.1
+```
+
+#### D. Verified HTTPS Termination & Health Audit
+Test that the reverse proxy correctly forwards HTTPS headers and terminates TLS:
+
+```bash
+# 1. Verify TLS handshake and certificate validity
+curl -Iv https://flowsmith.yourcompany.com/api/health
+
+# 2. Verify deep readiness check over TLS
+curl -fsS https://flowsmith.yourcompany.com/api/readyz
+# Expected: {"data":{"status":"ready","checks":{"postgres":"ok","redis":"ok"}}}
+
+# 3. Verify that direct unproxied access from external network interfaces is refused
+curl --connect-timeout 3 http://<PUBLIC_SERVER_IP>:8000/api/health
+# Expected: Connection refused (guaranteed by APP_BIND=127.0.0.1)
+```
 
 ---
 

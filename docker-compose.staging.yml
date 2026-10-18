@@ -119,7 +119,7 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       BILLING_ENFORCEMENT: ${BILLING_ENFORCEMENT:-false}
     ports:
-      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-8000}:8000"
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8000}:8000"
     volumes:
       - mat-app-data:/app/backend/data
     security_opt:
