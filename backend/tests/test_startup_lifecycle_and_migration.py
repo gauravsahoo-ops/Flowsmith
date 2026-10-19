@@ -400,3 +400,29 @@ def test_rate_limit_strict_auth_paths():
         res_limited = client.post("/api/auth/login")
         assert res_limited.status_code == 429
         assert res_limited.json()["error"] == "rate_limit_exceeded"
+
+
+# ==============================================================================
+# 7. Self-Healing Database Migration on Startup
+# ==============================================================================
+
+
+def test_init_db_auto_migrates_when_alembic_present():
+    """Verify init_db triggers _run_alembic_upgrade when alembic_version exists."""
+    from app.db import init_db
+
+    mock_settings = MagicMock()
+    mock_settings.app_env = "development"
+    mock_settings.run_migrations_on_startup = True
+
+    with patch("app.db.get_settings", return_value=mock_settings), \
+         patch("app.db.inspect") as mock_inspect, \
+         patch("app.db._run_alembic_upgrade") as mock_upgrade, \
+         patch("app.db._migrate_missing_columns"), \
+         patch("app.db._migrate_missing_indexes"):
+        mock_inspector = MagicMock()
+        mock_inspector.has_table.return_value = True
+        mock_inspect.return_value = mock_inspector
+
+        init_db()
+        mock_upgrade.assert_called_once()

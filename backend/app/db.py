@@ -222,7 +222,12 @@ def _run_alembic_upgrade() -> None:
 
     ini_path = Path(__file__).resolve().parents[1] / "alembic.ini"
     if not ini_path.is_file():  # packaged deployments without backend/
-        raise RuntimeError(f"alembic.ini not found at {ini_path}; cannot migrate.")
+        if (Path.cwd() / "alembic.ini").is_file():
+            ini_path = Path.cwd() / "alembic.ini"
+        elif (Path.cwd() / "backend" / "alembic.ini").is_file():
+            ini_path = Path.cwd() / "backend" / "alembic.ini"
+        else:
+            raise RuntimeError(f"alembic.ini not found at {ini_path}; cannot migrate.")
     cfg = Config(str(ini_path))
     cfg.set_main_option("sqlalchemy.url", engine.url.render_as_string(hide_password=False))
     import app.models  # noqa: F401  (register all tables before compare)
@@ -266,21 +271,32 @@ def init_db(url: str | None = None) -> None:
     import app.models  # noqa: F401  (register all tables)
 
     settings = get_settings()
-    if settings.app_env in ("production", "staging"):
-        if settings.run_migrations_on_startup:
-            # Deployed schema evolves through Alembic revisions safely serialized
-            _run_alembic_upgrade()
-            _migrate_missing_columns()
-            _migrate_missing_indexes()
-        else:
-            state = verify_schema_state(engine)
-            if not state["ok"]:
-                raise RuntimeError(
-                    f"Production startup blocked: database schema mismatch (current={state['current_revision']}, "
-                    f"expected={EXPECTED_ALEMBIC_HEAD}, missing_tables={state['missing_tables']}). "
-                    f"Run deployment migrations before starting workers."
-                )
+    is_prod_or_staging = settings.app_env in ("production", "staging")
+
+    has_alembic = False
+    try:
+        with engine.connect() as conn:
+            has_alembic = inspect(conn).has_table("alembic_version")
+    except Exception:
+        pass
+
+    if settings.run_migrations_on_startup and (is_prod_or_staging or has_alembic):
+        # Deployed schema evolves through Alembic revisions safely serialized
+        _run_alembic_upgrade()
+        _migrate_missing_columns()
+        _migrate_missing_indexes()
         return
+
+    if is_prod_or_staging:
+        state = verify_schema_state(engine)
+        if not state["ok"]:
+            raise RuntimeError(
+                f"Production startup blocked: database schema mismatch (current={state['current_revision']}, "
+                f"expected={EXPECTED_ALEMBIC_HEAD}, missing_tables={state['missing_tables']}). "
+                f"Run deployment migrations before starting workers."
+            )
+        return
+
     Base.metadata.create_all(bind=engine)
     _migrate_missing_columns()
     _migrate_missing_indexes()

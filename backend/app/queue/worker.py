@@ -286,9 +286,9 @@ def main() -> None:
     from app.config import get_settings
     settings = get_settings()
     if settings.app_env in ("production", "staging"):
-        from app.db import get_engine, verify_schema_state
+        from app.db import get_engine, verify_schema_state, _run_alembic_upgrade
         eng = get_engine()
-        deadline = time.monotonic() + 60.0
+        deadline = time.monotonic() + 30.0
         while time.monotonic() < deadline:
             try:
                 state = verify_schema_state(eng)
@@ -305,6 +305,23 @@ def main() -> None:
             time.sleep(2)
         else:
             state = verify_schema_state(eng)
+            # Self-healing fallback: if app container did not complete migrations within 30s,
+            # execute serialized Alembic upgrade under PostgreSQL advisory lock.
+            if not state.get("ok") and settings.run_migrations_on_startup:
+                logger.warning(
+                    "worker: database schema not at head after 30s wait (current=%s, expected=%s); "
+                    "running serialized Alembic migration under PostgreSQL advisory lock...",
+                    state.get("current_revision"),
+                    state.get("expected_revision"),
+                )
+                try:
+                    _run_alembic_upgrade()
+                    state = verify_schema_state(eng)
+                    if state.get("ok"):
+                        logger.info("worker: database schema successfully migrated to head revision %s", state.get("current_revision"))
+                except Exception as mexc:
+                    logger.exception("worker: migration attempt failed: %s", mexc)
+
             if not state.get("ok"):
                 logger.error("worker: startup aborted — database schema is not at expected head: %s", state)
                 sys.exit(1)
