@@ -37,14 +37,45 @@ def upgrade() -> None:
         existing_nullable=True,
     )
 
-    # 3. Expand staged_contacts.row_number from INTEGER to BIGINT to match ORM model
-    op.alter_column(
-        'staged_contacts',
-        'row_number',
-        existing_type=sa.INTEGER(),
-        type_=sa.BigInteger(),
-        existing_nullable=False,
-    )
+    # 3. staged_contacts: create it if no earlier migration did, otherwise widen row_number
+    bind = op.get_bind()
+    if not sa.inspect(bind).has_table('staged_contacts'):
+        op.create_table(
+            'staged_contacts',
+            sa.Column('id', sa.String(length=64), primary_key=True),
+            sa.Column('execution_id', sa.String(length=64), nullable=False),
+            sa.Column('row_number', sa.BigInteger(), nullable=False),
+            sa.Column('first_name', sa.String(length=255), nullable=True),
+            sa.Column('last_name', sa.String(length=255), nullable=False),
+            sa.Column('email', sa.String(length=255), nullable=True),
+            sa.Column('phone', sa.String(length=100), nullable=True),
+            sa.Column('department', sa.String(length=255), nullable=True),
+            sa.Column('title', sa.String(length=255), nullable=True),
+            sa.Column('mailing_street', sa.Text(), nullable=True),
+            sa.Column('mailing_city', sa.String(length=255), nullable=True),
+            sa.Column('mailing_state', sa.String(length=100), nullable=True),
+            sa.Column('mailing_postal_code', sa.String(length=50), nullable=True),
+            sa.Column('mailing_country', sa.String(length=100), nullable=True),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('raw_data', sa.JSON(), nullable=True),
+            sa.Column('status', sa.String(length=50), nullable=False),
+            sa.Column('salesforce_id', sa.String(length=50), nullable=True),
+            sa.Column('error_message', sa.Text(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+            sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        )
+        op.create_index('ix_staged_contacts_execution_id', 'staged_contacts', ['execution_id'])
+        op.create_index('ix_staged_contacts_email', 'staged_contacts', ['email'])
+        op.create_index('ix_staged_contacts_status', 'staged_contacts', ['status'])
+        op.create_index('ix_staged_contacts_salesforce_id', 'staged_contacts', ['salesforce_id'])
+    else:
+        op.alter_column(
+            'staged_contacts',
+            'row_number',
+            existing_type=sa.INTEGER(),
+            type_=sa.BigInteger(),
+            existing_nullable=False,
+        )
 
     # 4. Performance & multi-tenant index additions (idempotent with if_not_exists check)
     indexes_to_add = [

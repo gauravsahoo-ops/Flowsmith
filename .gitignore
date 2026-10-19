@@ -35,6 +35,8 @@ backend/tmp/
 *.db
 *.sqlite
 *.sqlite3
+*.sql
+*.bak
 backups/
 
 # Editors & OS
