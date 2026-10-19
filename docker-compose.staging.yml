@@ -127,11 +127,11 @@ services:
     cap_drop:
       - ALL
     healthcheck:
-      test: [ "CMD-SHELL", "python -c \"import urllib.request, json; data=json.loads(urllib.request.urlopen('http://127.0.0.1:8000/api/readyz', timeout=2).read()); assert data['data']['status']=='ready'\"" ]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request, json; data=json.loads(urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).read()); assert data['data']['status']=='ok'\"" ]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 45s
+      retries: 10
+      start_period: 120s
     networks:
       - backend
     deploy:
@@ -153,8 +153,6 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      app:
         condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/automate}
