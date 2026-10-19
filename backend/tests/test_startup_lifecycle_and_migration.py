@@ -73,6 +73,7 @@ def test_alembic_env_advisory_locking():
 
     mock_conn = MagicMock()
     mock_conn.dialect.name = "postgresql"
+    mock_conn.execute.return_value.scalar.return_value = True
     mock_engine = MagicMock()
     mock_engine.connect.return_value.__enter__.return_value = mock_conn
 
@@ -94,7 +95,7 @@ def test_alembic_env_advisory_locking():
         spec.loader.exec_module(alembic_env)
 
         executed_sqls = [str(call[0][0]) for call in mock_conn.execute.call_args_list if call[0]]
-        assert any(f"pg_advisory_lock({FLOWSMITH_MIGRATION_LOCK_ID})" in sql for sql in executed_sqls)
+        assert any(f"pg_try_advisory_lock({FLOWSMITH_MIGRATION_LOCK_ID})" in sql for sql in executed_sqls)
         assert any(f"pg_advisory_unlock({FLOWSMITH_MIGRATION_LOCK_ID})" in sql for sql in executed_sqls)
         mock_configure.assert_called_once()
         mock_run.assert_called_once()

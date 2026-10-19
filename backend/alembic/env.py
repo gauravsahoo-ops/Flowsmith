@@ -72,6 +72,8 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode with PostgreSQL advisory locking."""
+    import time
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -81,10 +83,61 @@ def run_migrations_online() -> None:
     with connectable.connect() as connection:
         is_postgres = connection.dialect.name == "postgresql"
         lock_id = FLOWSMITH_MIGRATION_LOCK_ID
+        acquired = False
         if is_postgres:
             from sqlalchemy import text
-            connection.execute(text(f"SELECT pg_advisory_lock({lock_id})"))
-            logger.info("alembic: acquired PostgreSQL advisory lock (%s) for migration serialization", lock_id)
+            try:
+                connection.execute(text("SET lock_timeout = '60s'"))
+            except Exception:
+                pass
+
+            # Attempt to acquire advisory lock with retry and orphan detection
+            for attempt in range(1, 16):
+                try:
+                    res = connection.execute(text(f"SELECT pg_try_advisory_lock({lock_id})")).scalar()
+                    if res:
+                        acquired = True
+                        logger.info("alembic: acquired PostgreSQL advisory lock (%s) for migration serialization", lock_id)
+                        break
+                except Exception as exc:
+                    logger.warning("alembic: try_advisory_lock attempt %d error: %s", attempt, exc)
+
+                logger.info("alembic: advisory lock (%s) held by another session; waiting (attempt %d/15)...", lock_id, attempt)
+                time.sleep(1)
+
+            if not acquired:
+                logger.warning("alembic: advisory lock (%s) not acquired after 15s; inspecting holding session...", lock_id)
+                try:
+                    holder = connection.execute(text(f"""
+                        SELECT l.pid, a.usename, a.state, a.backend_start, a.query
+                        FROM pg_locks l
+                        JOIN pg_stat_activity a ON l.pid = a.pid
+                        WHERE l.locktype = 'advisory' AND l.objid = {lock_id}
+                    """)).mappings().first()
+
+                    if holder:
+                        logger.warning(
+                            "alembic: lock (%s) held by PID %s (state=%s, query=%s, start=%s)",
+                            lock_id, holder.get("pid"), holder.get("state"), holder.get("query"), holder.get("backend_start")
+                        )
+                        if holder.get("state") in ("idle", "idle in transaction", "idle in transaction (aborted)"):
+                            logger.warning("alembic: terminating orphaned/idle session PID %s holding advisory lock", holder.get("pid"))
+                            connection.execute(text("SELECT pg_terminate_backend(:pid)"), {"pid": holder.get("pid")})
+                            time.sleep(1)
+                            res = connection.execute(text(f"SELECT pg_try_advisory_lock({lock_id})")).scalar()
+                            if res:
+                                acquired = True
+                                logger.info("alembic: acquired PostgreSQL advisory lock (%s) after clearing orphaned session", lock_id)
+                except Exception as exc:
+                    logger.warning("alembic: could not inspect or terminate lock holder: %s", exc)
+
+            if not acquired:
+                # Fallback to direct blocking lock with log
+                logger.warning("alembic: waiting on blocking pg_advisory_lock(%s)...", lock_id)
+                connection.execute(text(f"SELECT pg_advisory_lock({lock_id})"))
+                acquired = True
+                logger.info("alembic: acquired PostgreSQL advisory lock (%s)", lock_id)
+
         try:
             context.configure(
                 connection=connection,
@@ -95,7 +148,7 @@ def run_migrations_online() -> None:
             with context.begin_transaction():
                 context.run_migrations()
         finally:
-            if is_postgres:
+            if is_postgres and acquired:
                 from sqlalchemy import text
                 try:
                     connection.execute(text(f"SELECT pg_advisory_unlock({lock_id})"))
