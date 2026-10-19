@@ -27,6 +27,7 @@ class DataLoadService:
         source_mode: str = "auto",
         download_url: str = "",
         file_id: str = "",
+        file_name: str = "",
         file_path: str = "",
         csv_content: str = "",
         auth_type: str = "none",
@@ -59,15 +60,17 @@ class DataLoadService:
             return raw_bytes, hint, meta
 
         # 2. Upload / ObjectStore file_id mode
-        if file_id and file_id.strip():
-            clean_id = file_id.strip()
+        if (file_id and file_id.strip()) or (file_name and file_name.strip()):
+            clean_id = (file_id or file_name).strip()
+            clean_name = file_name.strip() if file_name and file_name.strip() else ""
             store = get_object_store()
             try:
                 # Try getting directly by object_key / file_id
                 raw_bytes = store.get(clean_id)
                 meta["source_type"] = "object_store"
                 meta["file_id"] = clean_id
-                return raw_bytes, clean_id, meta
+                hint = clean_name or clean_id
+                return raw_bytes, hint, meta
             except Exception:
                 pass
 
@@ -77,12 +80,15 @@ class DataLoadService:
                 from app.models.file import FileRecord
                 db = get_session()
                 try:
-                    rec = db.get(FileRecord, clean_id)
+                    if file_id and file_id.strip():
+                        rec = db.get(FileRecord, file_id.strip())
+                    if rec is None and clean_name:
+                        rec = db.query(FileRecord).filter(FileRecord.filename == clean_name).first()
                     if rec is not None:
                         try:
                             raw_bytes = store.get(rec.object_key)
                             meta["source_type"] = "object_store"
-                            meta["file_id"] = clean_id
+                            meta["file_id"] = rec.id
                             meta["filename"] = rec.filename
                             return raw_bytes, rec.filename, meta
                         except Exception:
@@ -98,9 +104,10 @@ class DataLoadService:
                 search_targets.append(rec.object_key)
             if rec and rec.filename:
                 search_targets.append(rec.filename)
-            search_targets.append(clean_id)
-            if file_name and file_name.strip():
-                search_targets.append(file_name.strip())
+            if clean_id:
+                search_targets.append(clean_id)
+            if clean_name and clean_name not in search_targets:
+                search_targets.append(clean_name)
 
             candidate_roots = [
                 Path(__file__).resolve().parents[3] / "backend" / "data" / "objects",
@@ -124,20 +131,24 @@ class DataLoadService:
                         meta["file_id"] = clean_id
                         meta["path"] = str(cand)
                         return cand.read_bytes(), cand.name, meta
-                # Recursive search in root for file matching clean_id
+                # Recursive search in root for file matching clean_id or clean_name
                 try:
-                    matches = list(root.glob(f"**/*{clean_id}*"))
-                    for match in matches:
-                        if match.is_file():
-                            meta["source_type"] = "disk_fallback"
-                            meta["file_id"] = clean_id
-                            meta["path"] = str(match)
-                            return match.read_bytes(), match.name, meta
+                    query_terms = [clean_id]
+                    if clean_name and clean_name not in query_terms:
+                        query_terms.append(clean_name)
+                    for term in query_terms:
+                        matches = list(root.glob(f"**/*{term}*"))
+                        for match in matches:
+                            if match.is_file():
+                                meta["source_type"] = "disk_fallback"
+                                meta["file_id"] = clean_id
+                                meta["path"] = str(match)
+                                return match.read_bytes(), match.name, meta
                 except Exception:
                     continue
 
             raise NodeExecutionError(
-                f"Uploaded file '{clean_id}' could not be located in object store or may have expired.",
+                f"Uploaded file '{clean_name or clean_id}' could not be located in object store or may have expired.",
                 code="FILE_NOT_FOUND",
                 node_id=node_id,
                 retryable=False,

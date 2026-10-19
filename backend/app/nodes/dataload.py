@@ -254,6 +254,7 @@ class DataLoadNode(BaseNode[DataLoadParams]):
                 source_mode=params.source_mode,
                 download_url=resolved_url,
                 file_id=params.file_id or str(first_item.get("file_id", "")),
+                file_name=params.file_name or str(first_item.get("file_name", first_item.get("filename", ""))),
                 file_path=params.file_path or str(first_item.get("file_path", "")),
                 csv_content=params.csv_content or str(first_item.get("csv", first_item.get("content", ""))),
                 auth_type=auth_type,
