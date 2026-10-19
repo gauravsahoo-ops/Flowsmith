@@ -30,6 +30,14 @@ CONTRACT_VALIDATED_CONNECTORS = frozenset({
     "switch",
     "code",
     "error_trigger",
+    "groq",
+    "deepseek",
+    "sharepoint",
+    "onedrive",
+    "notion",
+    "slack",
+    "jira",
+    "github",
 })
 
 LIVE_VALIDATED_CONNECTORS = frozenset({
