@@ -69,25 +69,79 @@ class DataLoadService:
                 meta["file_id"] = clean_id
                 return raw_bytes, clean_id, meta
             except Exception:
-                # Check FileRecord database table if exists
+                pass
+
+            # Check FileRecord database table if exists
+            rec = None
+            try:
+                from app.models.file import FileRecord
+                db = get_session()
                 try:
-                    from app.models.file import FileRecord
-                    with get_session() as db:
-                        rec = db.get(FileRecord, clean_id)
-                        if rec is not None:
+                    rec = db.get(FileRecord, clean_id)
+                    if rec is not None:
+                        try:
                             raw_bytes = store.get(rec.object_key)
                             meta["source_type"] = "object_store"
                             meta["file_id"] = clean_id
                             meta["filename"] = rec.filename
                             return raw_bytes, rec.filename, meta
+                        except Exception:
+                            pass
+                finally:
+                    db.close()
+            except Exception as e:
+                logger.warning("dataload: failed looking up FileRecord %s: %s", clean_id, e)
+
+            # Fallback: scan candidate paths on disk for the file by object_key, clean_id, or filename
+            search_targets: list[str] = []
+            if rec and rec.object_key:
+                search_targets.append(rec.object_key)
+            if rec and rec.filename:
+                search_targets.append(rec.filename)
+            search_targets.append(clean_id)
+            if file_name and file_name.strip():
+                search_targets.append(file_name.strip())
+
+            candidate_roots = [
+                Path(__file__).resolve().parents[3] / "backend" / "data" / "objects",
+                Path(__file__).resolve().parents[3] / "data" / "objects",
+                Path(__file__).resolve().parents[2] / "data" / "objects",
+                Path("/app/backend/data/objects"),
+                Path.cwd() / "data" / "objects",
+                Path.cwd() / "backend" / "data" / "objects",
+                Path(r"C:\Flowsmith\backend\data\objects"),
+                Path(r"C:\Flowsmith\data\objects"),
+            ]
+
+            for root in candidate_roots:
+                if not root.is_dir():
+                    continue
+                for target in search_targets:
+                    target_safe = target.lstrip("/").replace("..", "_")
+                    cand = root / target_safe
+                    if cand.is_file():
+                        meta["source_type"] = "disk_fallback"
+                        meta["file_id"] = clean_id
+                        meta["path"] = str(cand)
+                        return cand.read_bytes(), cand.name, meta
+                # Recursive search in root for file matching clean_id
+                try:
+                    matches = list(root.glob(f"**/*{clean_id}*"))
+                    for match in matches:
+                        if match.is_file():
+                            meta["source_type"] = "disk_fallback"
+                            meta["file_id"] = clean_id
+                            meta["path"] = str(match)
+                            return match.read_bytes(), match.name, meta
                 except Exception:
-                    pass
-                raise NodeExecutionError(
-                    f"Uploaded file '{clean_id}' could not be located in object store or may have expired.",
-                    code="FILE_NOT_FOUND",
-                    node_id=node_id,
-                    retryable=False,
-                )
+                    continue
+
+            raise NodeExecutionError(
+                f"Uploaded file '{clean_id}' could not be located in object store or may have expired.",
+                code="FILE_NOT_FOUND",
+                node_id=node_id,
+                retryable=False,
+            )
 
         # 3. Base64 Data URL (browser upload)
         if csv_content and csv_content.strip().startswith("data:") and ";base64," in csv_content:

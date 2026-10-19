@@ -12,12 +12,22 @@ class LocalObjectStore(ObjectStore):
     def __init__(self, base_path: str | None = None) -> None:
         settings = get_settings()
         raw = base_path or settings.object_store_local_path
+        backend_dir = Path(__file__).resolve().parents[1]  # backend root directory
+        p_raw = Path(raw)
+        if not p_raw.is_absolute():
+            # If backend_dir / raw exists (e.g. backend/data/objects), anchor to backend_dir
+            if (backend_dir / p_raw).exists() or not (Path.cwd() / p_raw).exists():
+                self._base = (backend_dir / p_raw).resolve()
+            else:
+                self._base = (Path.cwd() / p_raw).resolve()
+        else:
+            self._base = p_raw.resolve()
+
         # Treat bucket as subdirectory when one is configured so local and
         # S3 layouts stay comparable; empty bucket → base path directly.
         if settings.object_store_bucket:
-            self._base = Path(raw) / settings.object_store_bucket
-        else:
-            self._base = Path(raw)
+            self._base = self._base / settings.object_store_bucket
+
         self._base.mkdir(parents=True, exist_ok=True)
 
     def _path(self, object_key: str) -> Path:
@@ -40,9 +50,27 @@ class LocalObjectStore(ObjectStore):
 
     def get(self, object_key: str) -> bytes:
         p = self._path(object_key)
-        if not p.is_file():
-            raise FileNotFoundError(object_key)
-        return p.read_bytes()
+        if p.is_file():
+            return p.read_bytes()
+
+        # Multi-location fallback search across potential host/container roots
+        safe = object_key.lstrip("/").replace("..", "_")
+        candidates = [
+            Path(__file__).resolve().parents[1] / "data" / "objects" / safe,
+            Path(__file__).resolve().parents[2] / "backend" / "data" / "objects" / safe,
+            Path(__file__).resolve().parents[2] / "data" / "objects" / safe,
+            Path("/app/backend/data/objects") / safe,
+            Path.cwd() / "data" / "objects" / safe,
+            Path.cwd() / "backend" / "data" / "objects" / safe,
+        ]
+        for cand in candidates:
+            try:
+                if cand.is_file():
+                    return cand.read_bytes()
+            except Exception:
+                continue
+
+        raise FileNotFoundError(object_key)
 
     def delete(self, object_key: str) -> bool:
         p = self._path(object_key)
@@ -60,4 +88,16 @@ class LocalObjectStore(ObjectStore):
         return True
 
     def exists(self, object_key: str) -> bool:
-        return self._path(object_key).is_file()
+        p = self._path(object_key)
+        if p.is_file():
+            return True
+        safe = object_key.lstrip("/").replace("..", "_")
+        candidates = [
+            Path(__file__).resolve().parents[1] / "data" / "objects" / safe,
+            Path(__file__).resolve().parents[2] / "backend" / "data" / "objects" / safe,
+            Path(__file__).resolve().parents[2] / "data" / "objects" / safe,
+            Path("/app/backend/data/objects") / safe,
+            Path.cwd() / "data" / "objects" / safe,
+            Path.cwd() / "backend" / "data" / "objects" / safe,
+        ]
+        return any(cand.is_file() for cand in candidates)
