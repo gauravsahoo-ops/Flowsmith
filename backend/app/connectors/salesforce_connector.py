@@ -742,13 +742,21 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
             _normalize_salesforce_record(rec)
             for rec in params.records
         ]
+        ext_field = (params.external_id_field or "").strip()
+        if not ext_field and params.bulk_operation == "upsert" and clean_records:
+            sample = clean_records[0]
+            if "Id" in sample or "id" in sample:
+                ext_field = "Id"
+            elif object_name.lower() in ("contact", "lead") and any(k.lower() == "email" for k in sample.keys()):
+                ext_field = next((k for k in sample.keys() if k.lower() == "email"), "Email")
+
         try:
             result = await self._provider.bulk_ingest(
                 creds,
                 object_name,
                 params.bulk_operation,
                 clean_records,
-                external_id_field=params.external_id_field,
+                external_id_field=ext_field,
                 timeout=params.timeout_seconds,
                 poll_interval=params.poll_interval_seconds,
                 max_polls=params.max_polls,

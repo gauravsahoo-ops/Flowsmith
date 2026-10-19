@@ -346,6 +346,20 @@ export default function SalesforceNodeEditor({ node, onParamsChange, mapping = [
                 <option value="insert">Insert</option><option value="update">Update</option><option value="upsert">Upsert</option><option value="delete">Delete</option>
               </select>
             </label>
+            {(params.bulk_operation === 'upsert' || (!params.bulk_operation && false)) && (
+              <label>
+                <span>External ID field <span className="required-badge">*</span></span>
+                <input
+                  type="text"
+                  value={params.external_id_field || ''}
+                  onChange={e => handleChange('external_id_field', e.target.value)}
+                  placeholder={resource === 'Contact' || resource === 'Lead' ? 'Email (or Id / Custom_Id__c)' : 'Id or Custom_Id__c'}
+                />
+                <span className="hint" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  API name of the unique/external ID field to match existing records against (e.g. Email, Id, or a custom External ID field).
+                </span>
+              </label>
+            )}
             <label><span>Records</span><textarea value={typeof params.records === 'string' ? params.records : JSON.stringify(params.records || [], null, 2)} onChange={e => { try { handleChange('records', JSON.parse(e.target.value)) } catch { handleChange('records', e.target.value) } }} placeholder='[{"Name": "Acme"}]' rows={4} /></label>
           </>
         )}

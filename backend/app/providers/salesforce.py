@@ -763,13 +763,20 @@ class SalesforceProviderClient:
 
         job_body: dict[str, Any] = {"object": object_name, "operation": bulk_operation}
         if bulk_operation == "upsert":
-            if not external_id_field:
+            ext_field = (external_id_field or "").strip()
+            if not ext_field and records:
+                sample = records[0]
+                if "Id" in sample or "id" in sample:
+                    ext_field = "Id"
+                elif object_name.lower() in ("contact", "lead") and any(k.lower() == "email" for k in sample.keys()):
+                    ext_field = next((k for k in sample.keys() if k.lower() == "email"), "Email")
+            if not ext_field:
                 raise make_connector_error(
                     ConnectorErrorCode.BAD_REQUEST,
-                    "Bulk upsert requires external_id_field.",
+                    "Bulk upsert requires external_id_field (e.g. 'Email', 'Id', or a custom External ID API name). Specify external_id_field in the Salesforce node parameters.",
                     retryable=False,
                 )
-            job_body["externalIdFieldName"] = external_id_field
+            job_body["externalIdFieldName"] = ext_field
 
         create_resp = await self.request(
             creds, "POST", "/jobs/ingest", json=job_body, timeout=timeout
