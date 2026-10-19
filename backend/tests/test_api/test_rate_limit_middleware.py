@@ -84,10 +84,14 @@ def test_health_path_is_skipped(limited_client):
         assert limited_client.get("/api/health").status_code == 200
 
 
-def test_unauthenticated_requests_are_not_limited(limited_client):
-    # No Authorization/X-API-Key header -> no principal -> no limiting
-    for _ in range(10):
-        assert limited_client.get("/ping").status_code == 200
+def test_unauthenticated_requests_are_rate_limited_by_ip(limited_client):
+    # Unauthenticated requests fallback to client IP and are bounded by the budget
+    statuses = [limited_client.get("/ping").status_code for _ in range(5)]
+    assert statuses == [200, 200, 200, 429, 429]
+
+    # Different client IP gets its own independent budget
+    diff_ip_resp = limited_client.get("/ping", headers={"X-Forwarded-For": "198.51.100.42"})
+    assert diff_ip_resp.status_code == 200
 
 
 def test_api_key_has_separate_budget(mini_app, monkeypatch):

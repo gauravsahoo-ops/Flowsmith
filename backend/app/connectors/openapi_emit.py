@@ -480,7 +480,7 @@ def register_generated(registry: Any, directory: str) -> int:
     count = 0
     for instance, definition in discover_generated(directory):
         try:
-            registry.register(instance, definition)
+            registry.register(instance, definition, allow_idempotent=True)
             count += 1
         except Exception as exc:
             log.warning("generated connector %s not registered: %s", instance.connector_id, exc)

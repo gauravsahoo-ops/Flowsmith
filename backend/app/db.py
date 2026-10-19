@@ -12,6 +12,7 @@ flow through reviewed migration files.
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Generator
 from pathlib import Path
 
@@ -160,13 +161,60 @@ def _migrate_missing_indexes() -> None:
                 logger.debug("Index creation %s skipped or error: %s", idx_name, e)
 
 
+EXPECTED_ALEMBIC_HEAD: str = "b1d598391ba2"
+FLOWSMITH_MIGRATION_LOCK_ID: int = 84729104
+_migration_thread_lock = threading.Lock()
+
+
+def get_engine() -> Engine:
+    """Return the global SQLAlchemy Engine instance."""
+    return engine
+
+
+def get_current_revision(eng: Engine | None = None) -> str | None:
+    """Read the active revision string from the alembic_version table, if present."""
+    target_engine = eng or engine
+    try:
+        with target_engine.connect() as conn:
+            inspector = inspect(conn)
+            if not inspector.has_table("alembic_version"):
+                return None
+            val = conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).scalar()
+            return str(val).strip() if val else None
+    except Exception as exc:
+        logger.debug("Could not read alembic_version: %s", exc)
+        return None
+
+
+def verify_schema_state(eng: Engine | None = None) -> dict[str, Any]:
+    """Inspect and report database schema health, alembic revision, and drift."""
+    target_engine = eng or engine
+    current_rev = get_current_revision(target_engine)
+    inspector = inspect(target_engine)
+    existing_tables = set(inspector.get_table_names())
+    expected_tables = {t for t in Base.metadata.tables if t != "alembic_version"}
+    missing_tables = sorted(list(expected_tables - existing_tables))
+
+    is_at_head = (current_rev == EXPECTED_ALEMBIC_HEAD)
+    drift = len(missing_tables) > 0 or (current_rev is not None and not is_at_head)
+
+    status = "ok" if (is_at_head and not missing_tables) else ("drift_detected" if drift else "unmigrated")
+    return {
+        "ok": not drift and is_at_head,
+        "status": status,
+        "current_revision": current_rev,
+        "expected_revision": EXPECTED_ALEMBIC_HEAD,
+        "missing_tables": missing_tables,
+        "existing_table_count": len(existing_tables),
+    }
+
+
 def _run_alembic_upgrade() -> None:
     """Apply Alembic migrations up to head (production boot path).
 
-    Legacy deployments built with create_all (no ``alembic_version`` row)
-    but already at the current model shape are ADOPTED by stamping head
-    first — their schema is identical, so replaying the chain would try to
-    recreate existing tables."""
+    Synchronized via in-process lock and PostgreSQL advisory lock (FLOWSMITH_MIGRATION_LOCK_ID)
+    to ensure multiple replicas or workers never race or run duplicate DDL.
+    """
     from alembic import command
     from alembic.config import Config
 
@@ -177,21 +225,49 @@ def _run_alembic_upgrade() -> None:
     cfg.set_main_option("sqlalchemy.url", engine.url.render_as_string(hide_password=False))
     import app.models  # noqa: F401  (register all tables before compare)
 
-    inspector = inspect(engine)
-    has_version_table = inspector.has_table("alembic_version")
-    if not has_version_table:
-        known_tables = set(inspector.get_table_names())
-        model_tables = {t for t in Base.metadata.tables if t != "alembic_version"}
-        if model_tables and model_tables.issubset(known_tables):
-            command.stamp(cfg, "head")
-            logger.warning(
-                "db: pre-Alembic database adopted — stamped at head; "
-                "future changes flow through migrations only."
-            )
-            return
-        # Fresh or partially-created database: run the full chain.
-    command.upgrade(cfg, "head")
-    logger.info("db: alembic upgrade head complete")
+    with _migration_thread_lock:
+        is_postgres = engine.dialect.name == "postgresql"
+        raw_conn = None
+        if is_postgres:
+            try:
+                raw_conn = engine.connect()
+                raw_conn.execute(text(f"SELECT pg_advisory_lock({FLOWSMITH_MIGRATION_LOCK_ID})"))
+                logger.info("db: acquired PostgreSQL advisory lock for migration serialization")
+            except Exception as e:
+                logger.warning("db: could not acquire pg_advisory_lock (%s); proceeding with in-process lock", e)
+                raw_conn = None
+
+        try:
+            # Check if database is already at expected head (idempotent skip)
+            curr = get_current_revision(engine)
+            if curr == EXPECTED_ALEMBIC_HEAD:
+                logger.info("db: database schema is already at head revision %s; upgrade skipped", curr)
+                return
+
+            inspector = inspect(engine)
+            has_version_table = inspector.has_table("alembic_version")
+            if not has_version_table:
+                known_tables = set(inspector.get_table_names())
+                model_tables = {t for t in Base.metadata.tables if t != "alembic_version"}
+                if model_tables and model_tables.issubset(known_tables):
+                    command.stamp(cfg, "head")
+                    logger.warning(
+                        "db: pre-Alembic database adopted — stamped at head; "
+                        "future changes flow through migrations only."
+                    )
+                    return
+                # Fresh or partially-created database: run the full chain.
+            command.upgrade(cfg, "head")
+            logger.info("db: alembic upgrade head complete (revision=%s)", get_current_revision(engine))
+        finally:
+            if raw_conn is not None:
+                try:
+                    raw_conn.execute(text(f"SELECT pg_advisory_unlock({FLOWSMITH_MIGRATION_LOCK_ID})"))
+                    logger.info("db: released PostgreSQL advisory lock")
+                except Exception as e:
+                    logger.debug("db: advisory unlock failed: %s", e)
+                finally:
+                    raw_conn.close()
 
 
 def init_db(url: str | None = None) -> None:
@@ -208,11 +284,21 @@ def init_db(url: str | None = None) -> None:
             pass
     import app.models  # noqa: F401  (register all tables)
 
-    if get_settings().app_env == "production":
-        # Deployed schema evolves through Alembic revisions
-        _run_alembic_upgrade()
-        _migrate_missing_columns()
-        _migrate_missing_indexes()
+    settings = get_settings()
+    if settings.app_env in ("production", "staging"):
+        if settings.run_migrations_on_startup:
+            # Deployed schema evolves through Alembic revisions safely serialized
+            _run_alembic_upgrade()
+            _migrate_missing_columns()
+            _migrate_missing_indexes()
+        else:
+            state = verify_schema_state(engine)
+            if not state["ok"]:
+                raise RuntimeError(
+                    f"Production startup blocked: database schema mismatch (current={state['current_revision']}, "
+                    f"expected={EXPECTED_ALEMBIC_HEAD}, missing_tables={state['missing_tables']}). "
+                    f"Run deployment migrations before starting workers."
+                )
         return
     Base.metadata.create_all(bind=engine)
     _migrate_missing_columns()

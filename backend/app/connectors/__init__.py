@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from enum import Enum
 import logging
+import threading
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from pydantic import BaseModel
@@ -519,6 +520,9 @@ def ensure_builtin_connectors() -> None:
         register_builtin_connectors()
 
 
+_builtin_reg_lock = threading.Lock()
+
+
 def register_builtin_connectors(generated_dir: str | None = None) -> None:
     """Register the built-in connector set on the global registry.
 
@@ -760,51 +764,53 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (MQTTConnector(), build_mqtt_definition),
     ]
 
-    registry = get_registry()
-    registry.initialize()
-    for instance, definition_builder in builtins:
-        if definition_builder is not None:
-            defn = definition_builder()
-        else:
-            category = instance.category.value if isinstance(instance.category, ConnectorCategory) else instance.category
-            defn = ConnectorDefinitionV1(
-                connector_key=instance.connector_id,
-                display_name=instance.display_name,
-                description=instance.description,
-                category=category,
-                connector_version=instance.version,
-                lifecycle_status=ConnectorLifecycle.STABLE.value,
-                operations=_builtin_operations(instance.connector_id, instance.version),
-                triggers=_builtin_triggers(instance.connector_id, instance.version),
-                credential_types=_builtin_credential_types(instance.connector_id),
-            )
-        registry.register(instance, defn)
+    with _builtin_reg_lock:
+        registry = get_registry()
+        if not registry.is_initialized():
+            registry.initialize()
+        for instance, definition_builder in builtins:
+            if definition_builder is not None:
+                defn = definition_builder()
+            else:
+                category = instance.category.value if isinstance(instance.category, ConnectorCategory) else instance.category
+                defn = ConnectorDefinitionV1(
+                    connector_key=instance.connector_id,
+                    display_name=instance.display_name,
+                    description=instance.description,
+                    category=category,
+                    connector_version=instance.version,
+                    lifecycle_status=ConnectorLifecycle.STABLE.value,
+                    operations=_builtin_operations(instance.connector_id, instance.version),
+                    triggers=_builtin_triggers(instance.connector_id, instance.version),
+                    credential_types=_builtin_credential_types(instance.connector_id),
+                )
+            registry.register(instance, defn, allow_idempotent=True)
 
-    # OpenAPI-imported connectors (Phase 1): optional on-disk triples in
-    # app/connectors/generated/. Missing dir or broken files are skipped
-    # silently — builtins above are never affected.
-    try:
-        from pathlib import Path as _Path
+        # OpenAPI-imported connectors (Phase 1): optional on-disk triples in
+        # app/connectors/generated/. Missing dir or broken files are skipped
+        # silently — builtins above are never affected.
+        try:
+            from pathlib import Path as _Path
 
-        from app.connectors.openapi_emit import register_generated as _register_generated
+            from app.connectors.openapi_emit import register_generated as _register_generated
 
-        _generated_dir = _Path(generated_dir) if generated_dir else _Path(__file__).resolve().parent / "generated"
-        if _generated_dir.is_dir():
-            _count = _register_generated(registry, str(_generated_dir))
-            if _count:
-                logging.getLogger("connectors").info("registered %d generated connectors", _count)
-    except Exception:
-        logging.getLogger("connectors").exception("generated connector scan failed")
+            _generated_dir = _Path(generated_dir) if generated_dir else _Path(__file__).resolve().parent / "generated"
+            if _generated_dir.is_dir():
+                _count = _register_generated(registry, str(_generated_dir))
+                if _count:
+                    logging.getLogger("connectors").info("registered %d generated connectors", _count)
+        except Exception:
+            logging.getLogger("connectors").exception("generated connector scan failed")
 
-    # Parity Connectors: registers all connectors from the reference parity inventory
-    try:
-        from app.connectors.parity_connectors import register_parity_connectors
+        # Parity Connectors: registers all connectors from the reference parity inventory
+        try:
+            from app.connectors.parity_connectors import register_parity_connectors
 
-        _parity_count = register_parity_connectors(registry)
-        if _parity_count:
-            logging.getLogger("connectors").info("registered %d parity connectors", _parity_count)
-    except Exception:
-        logging.getLogger("connectors").exception("parity connector scan failed")
+            _parity_count = register_parity_connectors(registry)
+            if _parity_count:
+                logging.getLogger("connectors").info("registered %d parity connectors", _parity_count)
+        except Exception:
+            logging.getLogger("connectors").exception("parity connector scan failed")
 
 
 def _builtin_operations(connector_key: str, connector_version: str) -> Dict[str, ConnectorOperationV1]:

@@ -8,6 +8,8 @@ Phase 7: structured JSON logging is enabled here by default
 
 from __future__ import annotations
 
+from typing import Any
+
 import uvicorn
 
 from app.config import get_settings
@@ -18,17 +20,30 @@ def main() -> None:
     setup_logging()
     settings = get_settings()
     is_dev = settings.app_env == "development"
-    uvicorn.run(
-        "app.main:app",
-        host=settings.host,
-        port=settings.port,
-        reload=is_dev,
-        log_config=None,  # our root handler owns logging; uvicorn logs propagate
-        # Access logs duplicate MetricsMiddleware's structured line but add
-        # the full query string — webhook `?token=` secrets would land in
-        # container logs. Path-only app logging is the single source.
-        access_log=False,
-    )
+    uvicorn_kwargs: dict[str, Any] = {
+        "host": settings.host,
+        "port": settings.port,
+        "reload": is_dev,
+        "log_config": None,  # our root handler owns logging; uvicorn logs propagate
+        "access_log": False,
+    }
+    if is_dev:
+        uvicorn_kwargs["reload_dirs"] = ["app"]
+        uvicorn_kwargs["reload_includes"] = ["*.py"]
+        uvicorn_kwargs["reload_excludes"] = [
+            "*.log",
+            "*.db",
+            "*.sqlite*",
+            "data",
+            "data/*",
+            "tmp",
+            "tmp/*",
+            "worker_alive",
+            ".pytest_cache",
+            "__pycache__",
+        ]
+
+    uvicorn.run("app.main:app", **uvicorn_kwargs)
 
 
 if __name__ == "__main__":

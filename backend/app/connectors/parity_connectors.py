@@ -487,7 +487,7 @@ def register_parity_connectors(registry: ConnectorRegistry) -> int:
         if definition.connector_key in existing:
             continue
         try:
-            registry.register(instance, definition)
+            registry.register(instance, definition, allow_idempotent=True)
             existing.add(definition.connector_key)
             count += 1
         except Exception as exc:

@@ -170,6 +170,13 @@ class ConnectorRegistry:
             {}
         )  # connector_key -> active ConnectorDefinitionV1
         self._versions: Dict[str, List[str]] = {}  # connector_key -> registered versions (ascending)
+        self._diagnostics: Dict[str, int] = {
+            "attempts": 0,
+            "unique": 0,
+            "duplicates": 0,
+            "conflicts": 0,
+            "upgrades": 0,
+        }
         self._initialized: bool = False
 
     # ------------------------------------------------------------------
@@ -184,10 +191,21 @@ class ConnectorRegistry:
         self._by_lifecycle.clear()
         self._definitions.clear()
         self._versions.clear()
+        self._diagnostics = {
+            "attempts": 0,
+            "unique": 0,
+            "duplicates": 0,
+            "conflicts": 0,
+            "upgrades": 0,
+        }
         self._initialized = True
 
     def is_initialized(self) -> bool:
         return self._initialized
+
+    def get_diagnostics(self) -> Dict[str, int]:
+        """Return registration diagnostics (attempts, unique, duplicates, conflicts, upgrades)."""
+        return dict(self._diagnostics)
 
     # ------------------------------------------------------------------
     # Index maintenance
@@ -233,7 +251,7 @@ class ConnectorRegistry:
     # Definition management
     # ------------------------------------------------------------------
 
-    def set_definition(self, definition: ConnectorDefinitionV1) -> None:
+    def set_definition(self, definition: ConnectorDefinitionV1, allow_idempotent: bool = False) -> None:
         """Store a connector definition in the registry.
 
         Validates the definition on register; raises ConnectorError
@@ -250,11 +268,16 @@ class ConnectorRegistry:
             new_v = definition.connector_version
             active_v = active.connector_version
             if _version_tuple(new_v) == _version_tuple(active_v):
+                if allow_idempotent:
+                    self._diagnostics["duplicates"] += 1
+                    return
+                self._diagnostics["conflicts"] += 1
                 raise ConnectorError(
                     f"Connector definition '{cid}' version {new_v} is already registered.",
                     code=ConnectorErrorCode.VALIDATION_FAILED,
                 )
             if _version_tuple(new_v) < _version_tuple(active_v):
+                self._diagnostics["conflicts"] += 1
                 raise ConnectorError(
                     f"Cannot register connector '{cid}' version {new_v}: "
                     f"active version {active_v} is newer (no downgrade).",
@@ -262,6 +285,9 @@ class ConnectorRegistry:
                 )
             # Upgrade: swap indexes before replacing the active definition.
             self._unindex_definition(active)
+            self._diagnostics["upgrades"] += 1
+        else:
+            self._diagnostics["unique"] += 1
 
         self._definitions[cid] = definition
         self._versions.setdefault(cid, []).append(definition.connector_version)
@@ -291,7 +317,7 @@ class ConnectorRegistry:
     # Registration / Auto-registration
     # ------------------------------------------------------------------
 
-    def register(self, connector: ConnectorSDK, definition: ConnectorDefinitionV1) -> None:
+    def register(self, connector: ConnectorSDK, definition: ConnectorDefinitionV1, allow_idempotent: bool = False) -> None:
         """Register a connector instance and its definition in the registry.
 
         Prevents duplicate registration: the same connector key/version
@@ -299,12 +325,17 @@ class ConnectorRegistry:
         a newer one. A strictly newer version is an upgrade: the active
         definition and the connector instance are both replaced.
 
+        When allow_idempotent is True, re-registering an identical version
+        is treated as an idempotent no-op rather than raising an exception.
+
         The definition is validated and stored *before* the instance is
         inserted, so a failed registration never leaves an orphaned
         connector instance behind.
         """
+        self._diagnostics["attempts"] += 1
         cid = connector.connector_id
         if definition.connector_key != cid:
+            self._diagnostics["conflicts"] += 1
             raise ConnectorError(
                 f"Definition connector_key '{definition.connector_key}' does not match "
                 f"connector_id '{cid}'.",
@@ -315,9 +346,19 @@ class ConnectorRegistry:
         if cid in self._connectors:
             # Duplicate instance guard; a strictly-newer version is an
             # upgrade (replaces the instance), anything else is a duplicate.
+            if active is not None and _version_tuple(definition.connector_version) == _version_tuple(active.connector_version):
+                if allow_idempotent:
+                    self._diagnostics["duplicates"] += 1
+                    return
+                self._diagnostics["conflicts"] += 1
+                raise ConnectorError(
+                    f"Connector '{cid}' is already registered.",
+                    code=ConnectorErrorCode.VALIDATION_FAILED,
+                )
             if active is None or _version_tuple(definition.connector_version) <= _version_tuple(
                 active.connector_version
             ):
+                self._diagnostics["conflicts"] += 1
                 raise ConnectorError(
                     f"Connector '{cid}' is already registered.",
                     code=ConnectorErrorCode.VALIDATION_FAILED,
@@ -331,7 +372,7 @@ class ConnectorRegistry:
 
         # Definition first (validates + raises before any mutation of the
         # connector map), then the instance.
-        self.set_definition(definition)
+        self.set_definition(definition, allow_idempotent=allow_idempotent)
         self._connectors[cid] = connector
 
         # Index the instance's node types

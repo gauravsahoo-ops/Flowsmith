@@ -8,12 +8,11 @@ deployments).
 Limits (requests per minute, configurable via settings):
 - ``RATE_LIMIT_PER_MINUTE`` (default 300) for Bearer-token requests.
 - ``RATE_LIMIT_API_KEY_PER_MINUTE`` (default 600) for X-API-Key requests.
+- Anonymous / unauthenticated IP fallback with anti-abuse limits.
+- Sensitive auth endpoints (/api/auth/*) receive strict rate limits.
 
 Set ``RATE_LIMIT_ENABLED=false`` to disable the middleware entirely
 (tests, or deployments where an API gateway already enforces limits).
-The default budget is deliberately UI-safe: the canvas polls execution
-status every 500ms while a run is live, so a single active tab can
-legitimately issue hundreds of requests per minute.
 """
 
 from __future__ import annotations
@@ -31,16 +30,42 @@ from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-_SKIP_PATHS = frozenset({"/api/health", "/health", "/docs", "/openapi.json"})
+_SKIP_PATHS = frozenset({
+    "/api/health",
+    "/health",
+    "/readyz",
+    "/api/readyz",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+})
+
+_AUTH_PATHS = frozenset({
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/password-reset",
+    "/api/auth/forgot-password",
+})
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Per-user rate limiting (Redis sliding window, in-memory fallback)."""
 
-    def __init__(self, app, redis_client: Any | None = None):
+    def __init__(self, app: Any, redis_client: Any | None = None) -> None:
         super().__init__(app)
-        self.redis: Any = redis_client
+        self._redis_client: Any = redis_client
         self._memory_counts: dict[str, int] = {}
+
+    @property
+    def redis(self) -> Any | None:
+        if self._redis_client is not None:
+            return self._redis_client
+        try:
+            from app.security.redis_client import get_shared_redis
+
+            return get_shared_redis()
+        except Exception:
+            return None
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
@@ -48,15 +73,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not get_settings().rate_limit_enabled:
             return await call_next(request)
 
-        # Skip rate limiting for health checks and static docs
+        # Skip rate limiting for health checks, readiness probes, and static docs
         if request.url.path in _SKIP_PATHS:
             return await call_next(request)
 
         user_id = self._get_user_id(request)
-        if user_id is None:
-            return await call_next(request)
+        path = request.url.path
 
-        is_limited, retry_after = await self._check_rate_limit(user_id)
+        is_limited, retry_after = await self._check_rate_limit(user_id, path)
         if is_limited:
             from fastapi.responses import JSONResponse
 
@@ -68,8 +92,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         return await call_next(request)
 
-    def _get_user_id(self, request: Request) -> str | None:
-        """Extract a stable per-principal identifier from auth material."""
+    def _get_client_ip(self, request: Request) -> str:
+        """Extract remote IP considering forward proxies safely."""
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            client_ip = forwarded.split(",")[0].strip()
+            if client_ip:
+                return client_ip
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip and real_ip.strip():
+            return real_ip.strip()
+        if request.client and request.client.host:
+            return request.client.host
+        return "127.0.0.1"
+
+    def _get_user_id(self, request: Request) -> str:
+        """Extract a stable per-principal identifier from auth material or client IP."""
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header[len("Bearer "):]
@@ -77,67 +115,79 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         api_key = request.headers.get("X-API-Key")
         if api_key:
             return f"apikey:{hashlib.sha256(api_key.encode()).hexdigest()[:16]}"
-        return None
+        client_ip = self._get_client_ip(request)
+        return f"ip:{hashlib.sha256(client_ip.encode()).hexdigest()[:16]}"
 
-    def _limit_for(self, user_id: str) -> int:
+    def _limit_for(self, user_id: str, path: str = "") -> int:
         settings = get_settings()
+        if path in _AUTH_PATHS:
+            # Sensitive endpoints: brute force / credential stuffing prevention
+            return min(20, settings.rate_limit_per_minute)
         if user_id.startswith("apikey:"):
             return settings.rate_limit_api_key_per_minute
+        if user_id.startswith("ip:"):
+            # Anonymous IP budget
+            return min(120, settings.rate_limit_per_minute)
         return settings.rate_limit_per_minute
 
-    async def _check_rate_limit(self, user_id: str) -> tuple[bool, int]:
-        if self.redis is None:
-            return self._check_rate_limit_memory(user_id)
+    async def _check_rate_limit(self, user_id: str, path: str = "") -> tuple[bool, int]:
+        client = self.redis
+        if client is None:
+            return self._check_rate_limit_memory(user_id, path)
         try:
             # The shared client is sync redis: run its pipeline off-loop so
             # one slow Redis hop cannot stall every in-flight request.
-            return await asyncio.to_thread(self._redis_window_check, user_id)
+            return await asyncio.to_thread(self._redis_window_check, user_id, path)
         except Exception as e:
             logger.warning("Rate limit check failed: %s", e)
-            return self._check_rate_limit_memory(user_id)
+            return self._check_rate_limit_memory(user_id, path)
 
-    def _redis_window_check(self, user_id: str) -> tuple[bool, int]:
+    def _redis_window_check(self, user_id: str, path: str = "") -> tuple[bool, int]:
+        client = self.redis
+        if client is None:
+            return self._check_rate_limit_memory(user_id, path)
         now = time.time()
         window = 60
-        key = f"ratelimit:{user_id}:{int(now // window)}"
-        pipe = self.redis.pipeline()
+        key_prefix = f"ratelimit:auth:{user_id}" if path in _AUTH_PATHS else f"ratelimit:{user_id}"
+        key = f"{key_prefix}:{int(now // window)}"
+        pipe = client.pipeline()
         pipe.incr(key)
         pipe.expire(key, window + 1)
         count = pipe.execute()[0]
-        limit = self._limit_for(user_id)
+        limit = self._limit_for(user_id, path)
         if count > limit:
             return True, int(window - (now % window)) + 1
         return False, 0
 
-    def _check_rate_limit_memory(self, user_id: str) -> tuple[bool, int]:
+    def _check_rate_limit_memory(self, user_id: str, path: str = "") -> tuple[bool, int]:
         """In-memory fixed-window fallback (per-process)."""
         now = time.time()
         window = int(now // 60)
-        key = f"{user_id}:{window}"
+        key_prefix = f"auth:{user_id}" if path in _AUTH_PATHS else user_id
+        key = f"{key_prefix}:{window}"
 
         count = self._memory_counts.get(key, 0) + 1
         self._memory_counts[key] = count
 
         # Cleanup old windows
-        for old in [k for k in self._memory_counts if int(k.rsplit(":", 1)[-1]) < window]:
+        for old in [k for k in list(self._memory_counts.keys()) if int(k.rsplit(":", 1)[-1]) < window]:
             del self._memory_counts[old]
 
-        limit = self._limit_for(user_id)
+        limit = self._limit_for(user_id, path)
         if count > limit:
             retry_after = int((window + 1) * 60 - now) + 1
             return True, retry_after
         return False, 0
 
 
-def setup_rate_limiting(app, redis_client=None) -> None:
+def setup_rate_limiting(app: Any, redis_client: Any | None = None) -> None:
     """Configure rate limiting on the FastAPI app."""
     settings = get_settings()
     if not settings.rate_limit_enabled:
         logger.info("Rate limiting disabled by configuration")
         return
+    app.add_middleware(RateLimitMiddleware, redis_client=redis_client)
     if redis_client is not None:
-        app.add_middleware(RateLimitMiddleware, redis_client=redis_client)
-        logger.info("Rate limiting enabled with Redis backend")
+        logger.info("Rate limiting enabled with explicit Redis backend")
     else:
-        app.add_middleware(RateLimitMiddleware, redis_client=None)
-        logger.info("Rate limiting enabled with in-memory fallback")
+        logger.info("Rate limiting enabled with lazy Redis / in-memory fallback")

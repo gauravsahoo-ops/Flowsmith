@@ -39,7 +39,8 @@ logger = logging.getLogger("app.request")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     from app.config import validate_production_settings
-    from app.db import get_session, init_db
+    from app.db import get_engine, get_session, init_db, verify_schema_state
+    from app.lifecycle import StartupStage, get_lifecycle
     from app.maintenance import maintenance
     from app.queue.worker import ensure_embedded_consumer, stop_embedded_consumer
     from app.runner import runner
@@ -47,25 +48,84 @@ async def lifespan(_app: FastAPI):
     from app.services.connection_health_monitor import connection_health_monitor
     from app.triggers.registry import sync_webhooks
 
-    validate_production_settings()
+    lifecycle = get_lifecycle()
 
-    init_db()
-    db = get_session()
     try:
-        sync_webhooks(db)
-    finally:
-        db.close()
-    runner.submit(scheduler.ensure_started)
-    runner.submit(connection_health_monitor.ensure_started)
-    ensure_embedded_consumer()
-    # Register built-in connectors (connector-only node types; built-in
-    # node classes always take precedence at execution time).
-    from app.connectors import register_builtin_connectors
+        # Stage 1: CONFIG_VALIDATION
+        lifecycle.transition_to(StartupStage.CONFIG_VALIDATION, "Validating production settings")
+        validate_production_settings()
 
-    register_builtin_connectors()
+        # Stage 2: DATABASE_CONNECTIVITY
+        lifecycle.transition_to(StartupStage.DATABASE_CONNECTIVITY, "Establishing database engine connectivity")
+        eng = get_engine()
+        with eng.connect() as conn:
+            conn.execute(select(1))
+
+        # Stage 3: SCHEMA_REVISION_VERIFICATION
+        lifecycle.transition_to(StartupStage.SCHEMA_REVISION_VERIFICATION, "Verifying and synchronizing schema revisions")
+        init_db()
+        schema_info = verify_schema_state(eng)
+        lifecycle.set_metadata("schema_revision", schema_info.get("current_revision"))
+        lifecycle.set_metadata("expected_revision", schema_info.get("expected_revision"))
+        lifecycle.set_metadata("schema_drift_ok", schema_info.get("ok"))
+        if not schema_info.get("ok"):
+            logger.warning(
+                "Schema drift detected: current=%s expected=%s status=%s",
+                schema_info.get("current_revision"),
+                schema_info.get("expected_revision"),
+                schema_info.get("status"),
+            )
+
+        # Stage 4: CONNECTOR_REGISTRY_INIT
+        lifecycle.transition_to(StartupStage.CONNECTOR_REGISTRY_INIT, "Registering built-in and parity connectors")
+        from app.connectors import get_registry, register_builtin_connectors
+
+        register_builtin_connectors()
+        registry = get_registry()
+        lifecycle.set_metadata("connectors_count", len(registry.list_definitions()))
+        lifecycle.set_metadata("connector_diagnostics", registry.get_diagnostics())
+
+        # Stage 5: REDIS_CONNECTIVITY
+        lifecycle.transition_to(StartupStage.REDIS_CONNECTIVITY, "Verifying Redis client connection if configured")
+        needs_redis = bool(get_settings().redis_url) or get_settings().queue_backend == "redis"
+        if needs_redis:
+            from app.security.redis_client import get_shared_redis
+
+            r_client = get_shared_redis()
+            if r_client is not None:
+                r_client.ping()
+                lifecycle.set_metadata("redis", "connected")
+            else:
+                lifecycle.set_metadata("redis", "unavailable")
+        else:
+            lifecycle.set_metadata("redis", "not_configured")
+
+        # Stage 6: SERVICE_INITIALIZATION
+        lifecycle.transition_to(StartupStage.SERVICE_INITIALIZATION, "Initializing runner, scheduler, and workers")
+        db = get_session()
+        try:
+            sync_webhooks(db)
+        finally:
+            db.close()
+        runner.submit(scheduler.ensure_started)
+        runner.submit(connection_health_monitor.ensure_started)
+        ensure_embedded_consumer()
+
+        # Stage 7: STARTUP_COMPLETE
+        lifecycle.transition_to(StartupStage.STARTUP_COMPLETE, "Application startup complete.")
+        logger.info("Application startup complete.")
+
+        # Stage 8: READINESS_ENABLED
+        lifecycle.transition_to(StartupStage.READINESS_ENABLED, "Readiness probes active.")
+
+    except Exception as exc:
+        lifecycle.mark_failed(exc, lifecycle.current_stage)
+        logger.exception("Application startup failed at stage %s: %s", lifecycle.current_stage.value, exc)
+        raise
 
     yield
 
+    lifecycle.transition_to(StartupStage.SHUTTING_DOWN, "Graceful application shutdown initiated")
     stop_embedded_consumer()
     try:
         await connection_health_monitor.stop()
@@ -343,9 +403,8 @@ app.add_middleware(CSRFMiddleware, allowed_origins=_cors_origins)
 # fallback otherwise; see settings). Phase 35: multi-instance deployments
 # get a shared limiter instead of per-process budgets.
 from app.middleware.rate_limit import setup_rate_limiting
-from app.security.redis_client import get_shared_redis
 
-setup_rate_limiting(app, redis_client=get_shared_redis())
+setup_rate_limiting(app)
 
 app.include_router(auth.router)
 app.include_router(sso.router)
@@ -390,52 +449,64 @@ app.include_router(notifications.router)
 
 @app.get("/api/health", tags=["health"])
 def health() -> dict:
-    """Liveness probe — does NOT fail on external dependency outages."""
-    db = get_session()
-    try:
-        db.scalar(select(1))
-        database = "ok"
-    except Exception:
-        database = "error"
-    finally:
-        db.close()
+    """Liveness probe — verifies process responsiveness; does NOT query dependencies."""
+    from app.lifecycle import get_lifecycle
+
+    lc = get_lifecycle()
     return ok({
         "status": "ok",
         "version": "1.6.0",
         "developed_by": "Gaurav Sahoo (gauravsahoo-ops)",
         "public_url": settings.public_url,
         "uptime_s": int(time.monotonic() - _PROCESS_START),
-        "database": database,
+        "stage": lc.current_stage.value,
+        "pid": lc.pid,
     })
 
 
 @app.get("/readyz", tags=["health"])
 @app.get("/api/readyz", tags=["health"])
 def readyz() -> Any:
-    """Readiness probe — 503 while required dependencies are unavailable.
+    """Readiness probe — returns 503 while required dependencies or startup stages are incomplete.
 
-    Checks PostgreSQL always, and Redis when the deployment is configured
-    to use it (queue backend or explicit REDIS_URL). Used by Docker/K8s
-    healthchecks and load-balancer readiness.
+    Checks:
+    - Lifecycle readiness (is_ready == True)
+    - PostgreSQL connectivity & schema migration state (verify_schema_state)
+    - Redis connectivity when configured
     """
     from fastapi.responses import JSONResponse
 
+    from app.db import get_engine, verify_schema_state
+    from app.lifecycle import get_lifecycle
     from app.security.redis_client import get_shared_redis
 
+    lc = get_lifecycle()
     checks: dict[str, str] = {}
-    ready = True
+    ready = lc.is_ready
 
-    db = get_session()
+    if not ready:
+        checks["lifecycle"] = f"not_ready ({lc.current_stage.value})"
+
+    # 1. Database & Schema State
     try:
-        db.scalar(select(1))
+        eng = get_engine()
+        with eng.connect() as conn:
+            conn.execute(select(1))
         checks["postgres"] = "ok"
+
+        schema_info = verify_schema_state(eng)
+        if schema_info.get("ok"):
+            checks["schema"] = f"ok ({schema_info.get('current_revision')})"
+        else:
+            checks["schema"] = f"drift_detected (current={schema_info.get('current_revision')}, expected={schema_info.get('expected_revision')})"
+            ready = False
     except Exception as exc:
         logger.warning("readyz postgres check failed: %s", exc)
         checks["postgres"] = "error"
+        checks["schema"] = "error"
         ready = False
-    finally:
-        db.close()
 
+    # 2. Redis State
     needs_redis = bool(get_settings().redis_url) or get_settings().queue_backend == "redis"
     if needs_redis:
         client = get_shared_redis()
@@ -455,6 +526,7 @@ def readyz() -> Any:
 
     payload = ok({
         "status": "ready" if ready else "not_ready",
+        "stage": lc.current_stage.value,
         "checks": checks,
         "uptime_s": int(time.monotonic() - _PROCESS_START),
     })

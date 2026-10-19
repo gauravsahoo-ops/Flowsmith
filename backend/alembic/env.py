@@ -68,12 +68,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
+    """Run migrations in 'online' mode with PostgreSQL advisory locking."""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -81,14 +76,24 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-            compare_type=True,
-        )
+        is_postgres = connection.dialect.name == "postgresql"
+        lock_id = 84729104
+        if is_postgres:
+            from sqlalchemy import text
+            connection.execute(text(f"SELECT pg_advisory_lock({lock_id})"))
+        try:
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata,
+                compare_type=True,
+            )
 
-        with context.begin_transaction():
-            context.run_migrations()
+            with context.begin_transaction():
+                context.run_migrations()
+        finally:
+            if is_postgres:
+                from sqlalchemy import text
+                connection.execute(text(f"SELECT pg_advisory_unlock({lock_id})"))
 
 
 if context.is_offline_mode():

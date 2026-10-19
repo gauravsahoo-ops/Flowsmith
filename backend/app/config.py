@@ -84,6 +84,7 @@ class Settings(BaseSettings):
     # "production". Production startup refuses to run without the
     # mandatory secrets/backends (see validate_production_settings).
     app_env: str = "development"
+    run_migrations_on_startup: bool = True
 
     # Public deployment (M9): one port serves the built UI and the API.
     host: str = "127.0.0.1"
