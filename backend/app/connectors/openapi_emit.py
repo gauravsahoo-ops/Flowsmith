@@ -428,7 +428,7 @@ def discover_generated(directory: str) -> list[tuple[Any, Any]]:
 
     log = logging.getLogger("openapi-import")
     found: list[tuple[Any, Any]] = []
-    directory_path = str(directory)
+    directory_path = directory
     sys.path.insert(0, directory_path)
     try:
         for connector_file in sorted(Path(directory_path).glob("gen_*_connector.py")):
@@ -439,7 +439,7 @@ def discover_generated(directory: str) -> list[tuple[Any, Any]]:
                     provider_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_provider")
                     definition_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_definition")
                     connector_mod = importlib.import_module(f"app.connectors.generated.gen_{key}_connector")
-                except (ImportError, ModuleNotFoundError):
+                except ImportError:
                     provider_mod = importlib.import_module(f"gen_{key}_provider")
                     definition_mod = importlib.import_module(f"gen_{key}_definition")
                     connector_mod = importlib.import_module(f"gen_{key}_connector")
