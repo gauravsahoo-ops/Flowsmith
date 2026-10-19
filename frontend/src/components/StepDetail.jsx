@@ -37,7 +37,7 @@ export default function StepDetail({ execution, step, onRetryNode, search, highl
 
   const nodeType = step?.node_type
   const meta = useMemo(
-    () => catalogIndex.get(nodeType) || null,
+    () => (catalogIndex?.get ? catalogIndex.get(nodeType) || null : null),
     [catalogIndex, nodeType],
   )
 

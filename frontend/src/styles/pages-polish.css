@@ -1543,6 +1543,33 @@ kbd.kbd {
   font-weight: 700;
   background: rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.step-icon.status-success,
+.step-icon.status-completed {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.12);
+}
+.step-icon.status-failed,
+.step-icon.status-error {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+.step-icon.status-running,
+.step-icon.status-queued {
+  color: #818cf8;
+  background: rgba(129, 140, 248, 0.12);
+}
+.step-icon.status-waiting,
+.step-icon.status-waiting_approval,
+.step-icon.status-paused {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+}
+.step-icon.status-skipped,
+.step-icon.status-cancelled {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
 }
 .step-row.selected .step-icon {
   background: rgba(99, 102, 241, 0.3);

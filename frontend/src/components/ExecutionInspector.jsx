@@ -17,7 +17,6 @@ import ExecutionTimeline from './ExecutionTimeline'
 import StepDetail from './StepDetail'
 import ExecutionCompare from './ExecutionCompare'
 import Status from './shared/Status'
-import ErrorState from './shared/ErrorState'
 
 function fmtDuration(ms) {
   if (ms == null) return ''
@@ -28,6 +27,23 @@ function fmtDuration(ms) {
 function fmtTime(iso) {
   if (!iso) return ''
   return new Date(iso).toLocaleTimeString()
+}
+
+const STEP_ICON = {
+  success: '✓',
+  completed: '✓',
+  failed: '✕',
+  error: '✕',
+  running: '⋯',
+  queued: '⋯',
+  pending: '○',
+  waiting: '⏸',
+  waiting_approval: '⏸',
+  paused: '⏸',
+  skipped: '↷',
+  cancelled: '⊘',
+  retry: '↻',
+  idle: '○',
 }
 
 export default function ExecutionInspector({ onClose }) {
@@ -582,10 +598,10 @@ export default function ExecutionInspector({ onClose }) {
                 <button
                   key={`${s.node_id}-${i}`}
                   type="button"
-                  className={`step-row ${selectedStep?.node_id === s.node_id ? 'selected' : ''}`}
+                  className={`step-row step-${s.status} ${selectedStep?.node_id === s.node_id ? 'selected' : ''}`}
                   onClick={() => setSelectedStepId(s.node_id)}
                 >
-                  <span className="step-icon">{STEP_ICON[s.status] || '•'}</span>
+                  <span className={`step-icon status-${s.status || 'unknown'}`}>{STEP_ICON[s.status] || '•'}</span>
                   <span className="step-name">{s._name}</span>
                   <span className="muted">{s.node_type}</span>
                   {Boolean(s.retries) && <span className="step-badge badge-warn">↻{s.retries}</span>}
