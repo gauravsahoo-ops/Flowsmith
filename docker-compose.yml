@@ -158,6 +158,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      app:
+        condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/automate}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}

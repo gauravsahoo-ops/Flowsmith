@@ -280,6 +280,35 @@ def main() -> None:
     from app.connectors import register_builtin_connectors
 
     register_builtin_connectors()
+
+    # In production and staging, ensure schema migrations have reached expected head
+    # before claiming jobs from the queue to avoid races against in-flight DDL.
+    from app.config import get_settings
+    settings = get_settings()
+    if settings.app_env in ("production", "staging"):
+        from app.db import get_engine, verify_schema_state
+        eng = get_engine()
+        deadline = time.monotonic() + 60.0
+        while time.monotonic() < deadline:
+            try:
+                state = verify_schema_state(eng)
+                if state.get("ok"):
+                    logger.info("worker: database schema verified at head revision %s", state.get("current_revision"))
+                    break
+                logger.info(
+                    "worker: database schema not at head yet (current=%s, expected=%s); waiting for migrations...",
+                    state.get("current_revision"),
+                    state.get("expected_revision"),
+                )
+            except Exception as exc:
+                logger.warning("worker: error checking schema state: %s; waiting...", exc)
+            time.sleep(2)
+        else:
+            state = verify_schema_state(eng)
+            if not state.get("ok"):
+                logger.error("worker: startup aborted — database schema is not at expected head: %s", state)
+                sys.exit(1)
+
     worker = QueueWorker()
 
     loop = asyncio.new_event_loop()
