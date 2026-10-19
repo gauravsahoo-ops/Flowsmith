@@ -50,7 +50,7 @@ export default function ExecutionTimeline({ steps, selectedId, onSelect }) {
             title={`${step.node_id} · ${step.status} · ${fmt(step.duration_ms)}${step.retries ? ` · ${step.retries} retries` : ''}`}
             onClick={() => onSelect?.(step)}
           >
-            <span className="tl-label">{step.node_id}</span>
+            <span className="tl-label" title={step.node_id}>{step._name || step.node_id}</span>
             <span className="tl-track">
               <span
                 className={`tl-bar bar-${cls}${step.retries ? ' had-retries' : ''}`}

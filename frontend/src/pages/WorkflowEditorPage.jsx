@@ -253,7 +253,7 @@ export default function WorkflowEditorPage() {
             setSmithOpen(true)
           }}
         />
-        {activeError && (
+        {activeError && !debuggerOpen && (
           <div
             className="banner-inline err"
             style={{

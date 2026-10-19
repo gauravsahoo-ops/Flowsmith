@@ -56,6 +56,15 @@ export default function ExecutionInspector({ onClose }) {
   const [recentExecutions, setRecentExecutions] = useState([])
   const [loadingRecent, setLoadingRecent] = useState(false)
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [copiedId, setCopiedId] = useState(false)
+
+  function handleCopyExecId(e) {
+    e?.stopPropagation?.()
+    if (!executionId) return
+    navigator.clipboard?.writeText(executionId)
+    setCopiedId(true)
+    setTimeout(() => setCopiedId(false), 1800)
+  }
 
   // Full payload of THIS execution (results.outputs drive branch chips
   // and the compare baseline); fetched once per terminal state.
@@ -318,11 +327,13 @@ export default function ExecutionInspector({ onClose }) {
   return (
     <aside className="panel inspector debugger">
       <header>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)' }}>
-            <polyline points="4 17 10 11 4 5" />
-            <line x1="12" y1="19" x2="20" y2="19" />
-          </svg>
+        <div className="inspector-header-title">
+          <div className="inspector-header-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="4 17 10 11 4 5" />
+              <line x1="12" y1="19" x2="20" y2="19" />
+            </svg>
+          </div>
           <h2>Console</h2>
         </div>
         <div className="inspector-actions">
@@ -411,7 +422,7 @@ export default function ExecutionInspector({ onClose }) {
               )}
             </div>
           )}
-          <button className="ghost" onClick={onClose || clear} title="Close Console" style={{ padding: '4px 7px', minWidth: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button className="close-btn" onClick={onClose || clear} title="Close Console" aria-label="Close Console">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -435,35 +446,106 @@ export default function ExecutionInspector({ onClose }) {
           {approval.approved_at ? ` · ${new Date(approval.approved_at).toLocaleString()}` : ''}
         </div>
       )}
-      <div className="meta">
+
+      <div className="inspector-meta-bar">
         {status && (
-          <>
-            <span>Status</span>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Status status={status} live />
-            </div>
-          </>
+          <div className="meta-pill">
+            <span className="meta-pill-label">Status</span>
+            <Status status={status} live />
+          </div>
         )}
-        <span>Execution</span>
-        <code className="exec-id" title={executionId}>{executionId}</code>
-        <span>Version</span>
-        <span>{version ?? '—'}</span>
-        <span>Started</span>
-        <span>{fmtTime(startedAt)}</span>
-        <span>Duration</span>
-        <span>{fmtDuration(durationMs)}</span>
+        <div
+          className="meta-pill interactive"
+          onClick={handleCopyExecId}
+          title="Click to copy full Execution ID"
+        >
+          <span className="meta-pill-label">Execution</span>
+          <code className="exec-id-code">
+            {executionId ? (executionId.length > 20 ? `${executionId.slice(0, 10)}…${executionId.slice(-6)}` : executionId) : '—'}
+          </code>
+          <span className="meta-copy-indicator" aria-hidden="true">
+            {copiedId ? (
+              <span className="copied-pill">Copied!</span>
+            ) : (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+            )}
+          </span>
+        </div>
+        {version != null && (
+          <div className="meta-pill">
+            <span className="meta-pill-label">Version</span>
+            <span className="meta-pill-val">v{version}</span>
+          </div>
+        )}
+        {startedAt && (
+          <div className="meta-pill">
+            <span className="meta-pill-label">Started</span>
+            <span className="meta-pill-val">{fmtTime(startedAt)}</span>
+          </div>
+        )}
+        {durationMs != null && (
+          <div className="meta-pill">
+            <span className="meta-pill-label">Duration</span>
+            <span className="meta-pill-val duration-val">{fmtDuration(durationMs)}</span>
+          </div>
+        )}
       </div>
 
       {error && (
-        <ErrorState
-          title={error.code || 'Execution error'}
-          description={error.message || JSON.stringify(error)}
-          details={
-            Array.isArray(error.issues) && error.issues.length > 0
-              ? error.issues.map((issue) => `${issue.node_id ? issue.node_id + ': ' : ''}${issue.message || issue.code}`).join('\n')
-              : undefined
-          }
-        />
+        <div className="inspector-error-card" role="alert">
+          <div className="iec-top">
+            <div className="iec-badge-group">
+              <span className="iec-icon-wrap" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </span>
+              <span className="iec-code">{error.code || 'EXECUTION_FAILED'}</span>
+              {error.node_id && (
+                <span className="iec-node-tag" title="Failing node id">
+                  {nameOf(error.node_id) || error.node_id}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="iec-body">
+            {error.message || JSON.stringify(error)}
+          </div>
+          {(error.details || (Array.isArray(error.issues) && error.issues.length > 0)) && (
+            <details className="iec-details">
+              <summary>
+                <span>Technical details</span>
+                <button
+                  type="button"
+                  className="ghost small iec-copy-btn"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const payload = error.details || error.issues
+                    navigator.clipboard?.writeText(typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2))
+                  }}
+                  title="Copy technical details"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                  </svg>
+                  <span>Copy</span>
+                </button>
+              </summary>
+              <pre className="iec-pre">
+                {typeof error.details === 'string'
+                  ? error.details
+                  : JSON.stringify(error.details || error.issues, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
       )}
 
       {explain && (
