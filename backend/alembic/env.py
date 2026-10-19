@@ -10,8 +10,11 @@ from alembic import context
 # Add the backend directory to sys.path so we can import app modules
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import logging
 from app.config import get_settings
-from app.db import Base
+from app.db import Base, FLOWSMITH_MIGRATION_LOCK_ID
+
+logger = logging.getLogger("flowsmith.alembic")
 
 # Import all models so Base.metadata knows about them
 from app.models import (  # noqa: F401
@@ -77,10 +80,11 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         is_postgres = connection.dialect.name == "postgresql"
-        lock_id = 84729104
+        lock_id = FLOWSMITH_MIGRATION_LOCK_ID
         if is_postgres:
             from sqlalchemy import text
             connection.execute(text(f"SELECT pg_advisory_lock({lock_id})"))
+            logger.info("alembic: acquired PostgreSQL advisory lock (%s) for migration serialization", lock_id)
         try:
             context.configure(
                 connection=connection,
@@ -93,7 +97,11 @@ def run_migrations_online() -> None:
         finally:
             if is_postgres:
                 from sqlalchemy import text
-                connection.execute(text(f"SELECT pg_advisory_unlock({lock_id})"))
+                try:
+                    connection.execute(text(f"SELECT pg_advisory_unlock({lock_id})"))
+                    logger.info("alembic: released PostgreSQL advisory lock (%s)", lock_id)
+                except Exception as exc:
+                    logger.warning("alembic: failed to release advisory lock (%s): %s", lock_id, exc)
 
 
 if context.is_offline_mode():

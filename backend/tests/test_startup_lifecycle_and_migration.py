@@ -13,6 +13,7 @@ Covers:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -39,9 +40,8 @@ from app.db import Base
 # ==============================================================================
 
 
-def test_migration_advisory_locking_and_idempotent_skip():
-    """Verify advisory locking and idempotent skip when schema is at head."""
-    mock_conn = MagicMock()
+def test_migration_idempotent_skip():
+    """Verify idempotent skip when schema is at head and upgrade invocation when behind."""
     mock_inspector = MagicMock()
     mock_inspector.has_table.return_value = True
 
@@ -52,10 +52,8 @@ def test_migration_advisory_locking_and_idempotent_skip():
         _run_alembic_upgrade()
         mock_upgrade.assert_not_called()
 
-    # 2. Test migration execution under advisory lock when revision is behind
+    # 2. Test migration execution when revision is behind
     with patch("app.db.get_current_revision", side_effect=["a9b8c7d6e5f4", EXPECTED_ALEMBIC_HEAD]), patch(
-        "app.db.engine.dialect.name", "postgresql"
-    ), patch("app.db.engine.connect", return_value=mock_conn), patch(
         "app.db.inspect", return_value=mock_inspector
     ), patch(
         "alembic.command.upgrade"
@@ -63,9 +61,43 @@ def test_migration_advisory_locking_and_idempotent_skip():
         _run_alembic_upgrade()
         mock_upgrade.assert_called_once()
 
-        # Check pg_advisory_lock was requested
+
+def test_alembic_env_advisory_locking():
+    """Verify alembic/env.py acquires and releases PostgreSQL advisory lock during online migrations."""
+    import importlib.util
+    import alembic.context
+
+    env_path = Path(__file__).resolve().parents[1] / "alembic" / "env.py"
+    spec = importlib.util.spec_from_file_location("flowsmith_alembic_env", str(env_path))
+    alembic_env = importlib.util.module_from_spec(spec)
+
+    mock_conn = MagicMock()
+    mock_conn.dialect.name = "postgresql"
+    mock_engine = MagicMock()
+    mock_engine.connect.return_value.__enter__.return_value = mock_conn
+
+    mock_alembic_config = MagicMock()
+    mock_alembic_config.config_file_name = None
+    mock_alembic_config.get_section.return_value = {}
+
+    with patch.object(alembic.context, "config", mock_alembic_config, create=True), patch(
+        "sqlalchemy.engine_from_config", return_value=mock_engine
+    ), patch.object(
+        alembic.context, "is_offline_mode", return_value=False, create=True
+    ), patch.object(
+        alembic.context, "configure", create=True
+    ) as mock_configure, patch.object(
+        alembic.context, "begin_transaction", create=True
+    ), patch.object(
+        alembic.context, "run_migrations", create=True
+    ) as mock_run:
+        spec.loader.exec_module(alembic_env)
+
         executed_sqls = [str(call[0][0]) for call in mock_conn.execute.call_args_list if call[0]]
-        assert any(str(FLOWSMITH_MIGRATION_LOCK_ID) in sql for sql in executed_sqls)
+        assert any(f"pg_advisory_lock({FLOWSMITH_MIGRATION_LOCK_ID})" in sql for sql in executed_sqls)
+        assert any(f"pg_advisory_unlock({FLOWSMITH_MIGRATION_LOCK_ID})" in sql for sql in executed_sqls)
+        mock_configure.assert_called_once()
+        mock_run.assert_called_once()
 
 
 def test_verify_schema_state():

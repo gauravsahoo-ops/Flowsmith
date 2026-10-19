@@ -213,7 +213,8 @@ def verify_schema_state(eng: Engine | None = None) -> dict[str, Any]:
 def _run_alembic_upgrade() -> None:
     """Apply Alembic migrations up to head (production boot path).
 
-    Synchronized via in-process lock and PostgreSQL advisory lock (FLOWSMITH_MIGRATION_LOCK_ID)
+    Synchronized via in-process lock (_migration_thread_lock) and cross-process
+    PostgreSQL advisory lock (FLOWSMITH_MIGRATION_LOCK_ID inside alembic/env.py)
     to ensure multiple replicas or workers never race or run duplicate DDL.
     """
     from alembic import command
@@ -227,48 +228,27 @@ def _run_alembic_upgrade() -> None:
     import app.models  # noqa: F401  (register all tables before compare)
 
     with _migration_thread_lock:
-        is_postgres = engine.dialect.name == "postgresql"
-        raw_conn = None
-        if is_postgres:
-            try:
-                raw_conn = engine.connect()
-                raw_conn.execute(text(f"SELECT pg_advisory_lock({FLOWSMITH_MIGRATION_LOCK_ID})"))
-                logger.info("db: acquired PostgreSQL advisory lock for migration serialization")
-            except Exception as e:
-                logger.warning("db: could not acquire pg_advisory_lock (%s); proceeding with in-process lock", e)
-                raw_conn = None
+        # Check if database is already at expected head (idempotent skip)
+        curr = get_current_revision(engine)
+        if curr == EXPECTED_ALEMBIC_HEAD:
+            logger.info("db: database schema is already at head revision %s; upgrade skipped", curr)
+            return
 
-        try:
-            # Check if database is already at expected head (idempotent skip)
-            curr = get_current_revision(engine)
-            if curr == EXPECTED_ALEMBIC_HEAD:
-                logger.info("db: database schema is already at head revision %s; upgrade skipped", curr)
+        inspector = inspect(engine)
+        has_version_table = inspector.has_table("alembic_version")
+        if not has_version_table:
+            known_tables = set(inspector.get_table_names())
+            model_tables = {t for t in Base.metadata.tables if t != "alembic_version"}
+            if model_tables and model_tables.issubset(known_tables):
+                command.stamp(cfg, "head")
+                logger.warning(
+                    "db: pre-Alembic database adopted — stamped at head; "
+                    "future changes flow through migrations only."
+                )
                 return
-
-            inspector = inspect(engine)
-            has_version_table = inspector.has_table("alembic_version")
-            if not has_version_table:
-                known_tables = set(inspector.get_table_names())
-                model_tables = {t for t in Base.metadata.tables if t != "alembic_version"}
-                if model_tables and model_tables.issubset(known_tables):
-                    command.stamp(cfg, "head")
-                    logger.warning(
-                        "db: pre-Alembic database adopted — stamped at head; "
-                        "future changes flow through migrations only."
-                    )
-                    return
-                # Fresh or partially-created database: run the full chain.
-            command.upgrade(cfg, "head")
-            logger.info("db: alembic upgrade head complete (revision=%s)", get_current_revision(engine))
-        finally:
-            if raw_conn is not None:
-                try:
-                    raw_conn.execute(text(f"SELECT pg_advisory_unlock({FLOWSMITH_MIGRATION_LOCK_ID})"))
-                    logger.info("db: released PostgreSQL advisory lock")
-                except Exception as e:
-                    logger.debug("db: advisory unlock failed: %s", e)
-                finally:
-                    raw_conn.close()
+            # Fresh or partially-created database: run the full chain.
+        command.upgrade(cfg, "head")
+        logger.info("db: alembic upgrade head complete (revision=%s)", get_current_revision(engine))
 
 
 def init_db(url: str | None = None) -> None:
