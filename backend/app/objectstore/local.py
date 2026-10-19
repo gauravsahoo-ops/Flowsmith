@@ -67,6 +67,33 @@ class LocalObjectStore(ObjectStore):
             try:
                 if cand.is_file():
                     return cand.read_bytes()
+                # Check if parent directory contains a file starting with target stem
+                parent = cand.parent
+                if parent.is_dir():
+                    stem = cand.name
+                    for child in parent.iterdir():
+                        if child.is_file() and child.name.startswith(stem):
+                            return child.read_bytes()
+            except Exception:
+                continue
+
+        # Recursive search across roots for files matching stem
+        roots = [
+            self._base,
+            Path(__file__).resolve().parents[1] / "data" / "objects",
+            Path(__file__).resolve().parents[2] / "backend" / "data" / "objects",
+            Path(__file__).resolve().parents[2] / "data" / "objects",
+            Path("/app/backend/data/objects"),
+            Path.cwd() / "data" / "objects",
+            Path.cwd() / "backend" / "data" / "objects",
+        ]
+        target_name = Path(safe).name
+        for root in roots:
+            try:
+                if root.is_dir():
+                    for match in root.glob(f"**/*{target_name}*"):
+                        if match.is_file():
+                            return match.read_bytes()
             except Exception:
                 continue
 
@@ -100,4 +127,35 @@ class LocalObjectStore(ObjectStore):
             Path.cwd() / "data" / "objects" / safe,
             Path.cwd() / "backend" / "data" / "objects" / safe,
         ]
-        return any(cand.is_file() for cand in candidates)
+        for cand in candidates:
+            try:
+                if cand.is_file():
+                    return True
+                parent = cand.parent
+                if parent.is_dir():
+                    stem = cand.name
+                    if any(child.is_file() and child.name.startswith(stem) for child in parent.iterdir()):
+                        return True
+            except Exception:
+                continue
+
+        roots = [
+            self._base,
+            Path(__file__).resolve().parents[1] / "data" / "objects",
+            Path(__file__).resolve().parents[2] / "backend" / "data" / "objects",
+            Path(__file__).resolve().parents[2] / "data" / "objects",
+            Path("/app/backend/data/objects"),
+            Path.cwd() / "data" / "objects",
+            Path.cwd() / "backend" / "data" / "objects",
+        ]
+        target_name = Path(safe).name
+        for root in roots:
+            try:
+                if root.is_dir():
+                    for match in root.glob(f"**/*{target_name}*"):
+                        if match.is_file():
+                            return True
+            except Exception:
+                continue
+
+        return False
