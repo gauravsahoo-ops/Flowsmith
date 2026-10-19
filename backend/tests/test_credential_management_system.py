@@ -311,28 +311,34 @@ def test_credential_update_and_rotation_in_place():
 # ==============================================================================
 
 def test_unimplemented_connectors_marked_coming_soon():
-    """Verify backlog connectors (groq, deepseek, sharepoint, onedrive) are marked coming_soon."""
-    unimplemented = ["groq", "deepseek", "sharepoint", "onedrive"]
-    for cid in unimplemented:
+    """Verify active connectors (groq, deepseek, sharepoint, onedrive) are marked available and implemented."""
+    activated = ["groq", "deepseek", "sharepoint", "onedrive"]
+    for cid in activated:
         meta = get_connector_auth_metadata(cid)
         assert meta is not None
-        assert meta.status == ImplementationStatus.COMING_SOON
-        assert not is_implemented(cid)
+        assert meta.status == ImplementationStatus.AVAILABLE
+        assert is_implemented(cid)
 
 
-def test_credential_resolver_rejects_unimplemented_connector():
+def test_credential_resolver_rejects_unimplemented_connector(monkeypatch):
     """Verify CredentialResolver raises CONNECTOR_UNAVAILABLE for unimplemented connector."""
+    from app.credentials.type_registry import get_credential_type_registry
+    type_reg = get_credential_type_registry()
+    monkeypatch.setitem(type_reg._by_id, "mock_unimplemented", {"id": "mock_unimplemented", "implemented": False})
     with get_session() as db:
         user = _get_or_create_test_user(db)
         resolver = CredentialResolver()
         with pytest.raises(CredentialError) as exc_info:
-            resolver.resolve(db=db, user_id=user.id, cred_type="groq", cred_id="cred_groq_123")
+            resolver.resolve(db=db, user_id=user.id, cred_type="mock_unimplemented", cred_id="cred_mock_123")
         assert exc_info.value.code == "CONNECTOR_UNAVAILABLE"
-        assert "Connector 'groq' unavailable — implementation pending." in str(exc_info.value)
+        assert "Connector 'mock_unimplemented' unavailable — implementation pending." in str(exc_info.value)
 
 
-async def test_workflow_execution_rejects_unimplemented_connector_credential():
+async def test_workflow_execution_rejects_unimplemented_connector_credential(monkeypatch):
     """Verify executor blocks execution when resolving credentials for an unimplemented connector."""
+    from app.credentials.type_registry import get_credential_type_registry
+    type_reg = get_credential_type_registry()
+    monkeypatch.setitem(type_reg._by_id, "mock_unimplemented", {"id": "mock_unimplemented", "implemented": False})
     with get_session() as db:
         user = _get_or_create_test_user(db)
 
@@ -347,7 +353,7 @@ async def test_workflow_execution_rejects_unimplemented_connector_credential():
             ],
             [conn("trigger", "http")],
         )
-        wf.nodes[1].credentials = {"groq": "cred_fake"}
+        wf.nodes[1].credentials = {"mock_unimplemented": "cred_fake"}
 
         def test_resolver(refs):
             # Centralized Credential Resolver invocation
@@ -357,4 +363,4 @@ async def test_workflow_execution_rejects_unimplemented_connector_credential():
         assert result.status == "failed"
         assert result.error is not None
         assert result.error.code == "CONNECTOR_UNAVAILABLE"
-        assert "Connector 'groq' unavailable — implementation pending." in str(result.error.message)
+        assert "Connector 'mock_unimplemented' unavailable — implementation pending." in str(result.error.message)

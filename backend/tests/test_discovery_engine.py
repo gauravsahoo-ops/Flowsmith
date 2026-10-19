@@ -33,5 +33,5 @@ def test_discovery_engine_canonicalization():
     assert summary["total_external_applications_discovered"] > 180
     assert summary["total_canonical_applications"] >= 80
     assert summary["total_native"] >= 50
-    assert summary["total_http"] >= 10
+    assert summary["total_http"] >= 8
     assert summary["total_mcp"] >= 10

@@ -191,7 +191,7 @@ def test_manifest_automated_completeness_gate():
     # Verify canonical nodes completeness (excluding test fixture stubs injected by conftest)
     canonical_runtime_nodes = {
         k: v for k, v in NODE_REGISTRY.items()
-        if k not in ("db", "boom", "slow")
+        if k not in ("db", "boom", "slow", "flaky")
     }
     assert len(canonical_runtime_nodes) == manifest["summary"]["total_canonical_nodes"], (
         f"NODE_REGISTRY count {len(canonical_runtime_nodes)} != Manifest nodes {manifest['summary']['total_canonical_nodes']}"
