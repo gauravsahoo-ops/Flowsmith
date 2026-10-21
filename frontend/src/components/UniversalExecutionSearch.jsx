@@ -381,13 +381,14 @@ export default function UniversalExecutionSearch({
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: 'rgba(15, 20, 31, 0.88)',
-          border: dropdownOpen ? '1px solid rgba(99, 102, 241, 0.7)' : '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'rgba(15, 20, 31, 0.92)',
+          border: dropdownOpen ? '1px solid rgba(129, 140, 248, 0.65)' : '1px solid rgba(255, 255, 255, 0.12)',
           boxShadow: dropdownOpen
             ? '0 0 0 3px rgba(99, 102, 241, 0.2), 0 8px 24px rgba(0, 0, 0, 0.45)'
             : '0 4px 14px rgba(0, 0, 0, 0.25)',
           borderRadius: 9999,
-          padding: '2px 4px 2px 14px',
+          padding: '3px 6px 3px 16px',
+          minHeight: 42,
           transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
           backdropFilter: 'blur(20px)',
         }}
@@ -427,23 +428,50 @@ export default function UniversalExecutionSearch({
             appearance: 'none',
             color: '#f8fafc',
             fontSize: 13.5,
-            padding: '8px 8px',
+            padding: '8px 10px 8px 4px',
             fontFamily: 'inherit',
           }}
         />
 
-        {/* Clear Button */}
+        {/* Keyboard hint shortcut */}
+        {!query && (
+          <kbd
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 20,
+              height: 20,
+              padding: '0 6px',
+              fontSize: 11,
+              fontWeight: 600,
+              color: '#64748b',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 5,
+              marginRight: 6,
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}
+            title="Press / or Ctrl+K to search"
+          >
+            /
+          </kbd>
+        )}
+
+        {/* Clear Button (Visible 'X' cross sign) */}
         {query && (
           <button
             type="button"
             onClick={handleClear}
-            title="Clear search"
+            title="Clear search query"
+            aria-label="Clear search"
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: 'none',
-              color: '#94a3b8',
-              width: 22,
-              height: 22,
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              color: '#cbd5e1',
+              width: 24,
+              height: 24,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
@@ -452,17 +480,20 @@ export default function UniversalExecutionSearch({
               marginRight: 6,
               transition: 'all 0.15s ease',
               flexShrink: 0,
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#fff'
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'
+              e.currentTarget.style.color = '#ffffff'
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)'
+              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#94a3b8'
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'
+              e.currentTarget.style.color = '#cbd5e1'
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.14)'
             }}
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -475,10 +506,10 @@ export default function UniversalExecutionSearch({
           onClick={() => handleSubmitSearch()}
           title="Search execution logs"
           style={{
-            background: 'rgba(99, 102, 241, 0.16)',
-            border: '1px solid rgba(99, 102, 241, 0.35)',
-            color: '#c7d2fe',
-            padding: '6px 16px',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.28) 0%, rgba(79, 70, 229, 0.38) 100%)',
+            border: '1px solid rgba(99, 102, 241, 0.45)',
+            color: '#e0e7ff',
+            padding: '6px 14px',
             borderRadius: 9999,
             cursor: 'pointer',
             fontSize: 12.5,
@@ -488,19 +519,24 @@ export default function UniversalExecutionSearch({
             gap: 6,
             transition: 'all 0.15s ease',
             flexShrink: 0,
-            marginLeft: 4,
+            marginLeft: 2,
+            marginRight: 2,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.28)'
-            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.55)'
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.45) 0%, rgba(79, 70, 229, 0.55) 100%)'
+            e.currentTarget.style.borderColor = 'rgba(129, 140, 248, 0.75)'
             e.currentTarget.style.color = '#ffffff'
+            e.currentTarget.style.boxShadow = '0 0 12px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(99, 102, 241, 0.16)'
-            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.35)'
-            e.currentTarget.style.color = '#c7d2fe'
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.28) 0%, rgba(79, 70, 229, 0.38) 100%)'
+            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.45)'
+            e.currentTarget.style.color = '#e0e7ff'
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
           }}
         >
+          <SearchIcon size={13} color="currentColor" />
           <span>Search</span>
         </button>
       </div>

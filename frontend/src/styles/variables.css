@@ -111,6 +111,28 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Universal Browser Native Input Decorator Cleanups (Edge / Blink / WebKit) */
+input::-ms-clear,
+input::-ms-reveal {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+input::-webkit-search-decoration,
+input::-webkit-search-cancel-button,
+input::-webkit-search-results-button,
+input::-webkit-search-results-decoration {
+  -webkit-appearance: none !important;
+  display: none !important;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden !important;
+  position: absolute !important;
+  right: 0 !important;
+}
+
 html {
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;

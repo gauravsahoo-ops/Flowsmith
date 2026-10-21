@@ -354,7 +354,7 @@ export default function Login({ onAuthed }) {
                     </svg>
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      className="styled-input"
+                      className="styled-input has-toggle"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
