@@ -453,32 +453,6 @@ export default function UniversalExecutionSearch({
           }}
         />
 
-        {/* Keyboard hint shortcut */}
-        {!query && (
-          <kbd
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: 20,
-              height: 20,
-              padding: '0 6px',
-              fontSize: 11,
-              fontWeight: 600,
-              color: '#64748b',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: 5,
-              marginRight: 6,
-              userSelect: 'none',
-              pointerEvents: 'none',
-            }}
-            title="Press / or Ctrl+K to search"
-          >
-            /
-          </kbd>
-        )}
-
         {/* Clear Button (Visible 'X' cross sign) */}
         {query && (
           <button
