@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import uuid
 from sqlalchemy import JSON, BigInteger, DateTime, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,7 +17,7 @@ class StagedContactRecord(Base):
         Index("ix_staged_contacts_exec_row", "execution_id", "row_number"),
     )
 
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"stg_{uuid.uuid4().hex[:16]}")
     execution_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     row_number: Mapped[int] = mapped_column(BigInteger, nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)

@@ -637,8 +637,8 @@ def get_credential_policy(
             "supports_client_credentials": cap.supports_client_credentials,
             "requires_interactive_reauth": cap.requires_interactive_reauth,
             "supports_health_check": cap.supports_health_check,
-            "supports_revocation_detection": cap.supports_revocation_detection,
-            "default_recovery_mode": cap.default_recovery_mode.value,
+            "supports_revocation_detection": getattr(cap, "supports_revocation_detection", getattr(cap, "supports_revocation", False)),
+            "default_recovery_mode": getattr(getattr(cap, "default_recovery_mode", None), "value", getattr(cap, "default_recovery_mode", getattr(policy, "mode", "automatic"))),
         },
     })
 

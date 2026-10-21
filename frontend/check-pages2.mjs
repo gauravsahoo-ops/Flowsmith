@@ -4,7 +4,7 @@ const apiBase = 'http://127.0.0.1:8000';
 
 async function main() {
   const email = `check2_${Date.now()}@example.com`;
-  const pw = 'password123';
+  const pw = 'Password123!';
   const req = await request.newContext();
   await req.post(`${apiBase}/api/auth/register`, { data: { email, password: pw } });
   const login = await req.post(`${apiBase}/api/auth/login`, { data: { email, password: pw } });
@@ -16,7 +16,7 @@ async function main() {
   await page.goto(base);
   await page.evaluate((t) => localStorage.setItem('mat_token', t), token);
   await page.goto(base + '/overview');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   console.log('at overview', page.url());
 
   const routes = [
@@ -36,8 +36,8 @@ async function main() {
 
   for (const r of routes) {
     try {
-      await page.goto(base + r, { waitUntil: 'networkidle', timeout: 10000 });
-      await page.waitForTimeout(400);
+      await page.goto(base + r, { waitUntil: 'domcontentloaded', timeout: 5000 });
+      await page.waitForTimeout(300);
       const title = await page.locator('.page-title').first().textContent({ timeout: 3000 }).catch(() => null);
       const url = page.url();
       console.log(`${r} -> ${url} | title: ${title}`);
@@ -55,7 +55,7 @@ async function main() {
   const listJson = await listRes.json();
   const wfId = listJson.data?.[0]?.id;
   if (wfId) {
-    await page.goto(base + `/workflows/${wfId}`, { waitUntil: 'networkidle', timeout: 10000 });
+    await page.goto(base + `/workflows/${wfId}`, { waitUntil: 'domcontentloaded', timeout: 10000 });
     await page.waitForTimeout(1000);
     const canvas = await page.locator('.canvas').count();
     console.log(`workflow editor ${wfId} canvas count`, canvas);

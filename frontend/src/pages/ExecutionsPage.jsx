@@ -692,6 +692,15 @@ export default function ExecutionsPage() {
                           {occ.location_badge}
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {occ.started_at && (
+                            <span style={{ fontSize: 11, color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                              </svg>
+                              <HighlightMatch text={fmtTime(occ.started_at)} query={debouncedSearch} />
+                            </span>
+                          )}
                           <span className={`status-label status-${occ.status}`} style={{ fontSize: 10.5, padding: '1px 6px' }}>
                             {STATUS_LABEL[occ.status] || occ.status}
                           </span>

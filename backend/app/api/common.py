@@ -49,8 +49,9 @@ def validate_workflow_payload(payload: dict) -> Workflow:
         validate_graph(workflow, validate_params=False)
         topological_sort(build_graph(workflow))
     except (ValueError, WorkflowValidationError) as exc:
+        nodes_raw = payload.get("nodes")
+        node_types = [n.get("type") for n in nodes_raw if isinstance(n, dict)] if isinstance(nodes_raw, list) else []
         _log.error("Validation failed: %s | payload keys=%s node_types=%s",
-                   exc, list(payload.keys()),
-                   [n.get("type") for n in payload.get("nodes", [])])
+                   exc, list(payload.keys()), node_types)
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
     return workflow

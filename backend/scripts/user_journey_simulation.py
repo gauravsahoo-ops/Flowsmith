@@ -142,7 +142,7 @@ def run_user_journey() -> int:
     print(f"  [OK] Workflow triggered: Execution ID = {exec_id}")
 
     # Poll execution until terminal state
-    terminal_statuses = ("completed", "failed", "error", "cancelled", "conditionally_skipped")
+    terminal_statuses = ("completed", "success", "failed", "error", "cancelled", "conditionally_skipped")
     final_status = "pending"
     for poll in range(1, 25):
         time.sleep(1)

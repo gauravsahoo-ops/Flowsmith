@@ -294,6 +294,49 @@ export default function ExecutionDetailPage() {
         }
       />
 
+      {/* Search highlight context banner */}
+      {searchHighlight && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.16) 0%, rgba(79, 70, 229, 0.08) 100%)',
+            border: '1px solid rgba(99, 102, 241, 0.35)',
+            borderRadius: 8,
+            padding: '8px 14px',
+            margin: '12px 0 4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: 12.5,
+            color: '#e0e7ff',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontWeight: 700, color: '#818cf8' }}>Matched Query:</span>
+            <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 4, color: '#f8fafc' }}>
+              {searchHighlight}
+            </code>
+            {highlightField && (
+              <span style={{ color: '#94a3b8' }}>
+                Field: <strong style={{ color: '#c7d2fe' }}>{highlightField}</strong>
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            className="ghost"
+            style={{ fontSize: 11, padding: '2px 8px', color: '#94a3b8' }}
+            onClick={() => {
+              const p = new URLSearchParams(searchParams)
+              p.delete('search')
+              p.delete('highlight')
+              navigate(`/executions/${id}?${p.toString()}`, { replace: true })
+            }}
+          >
+            Clear Highlight
+          </button>
+        </div>
+      )}
+
       {/* Top Telemetry & Record Processing KPI Cards */}
       <div
         style={{
@@ -338,7 +381,21 @@ export default function ExecutionDetailPage() {
           </div>
 
           <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div>Started: <strong style={{ color: '#e2e8f0' }}>{fmtTime(data.started_at)}</strong></div>
+            <div
+              style={
+                highlightField === 'started_at'
+                  ? {
+                      background: 'rgba(99, 102, 241, 0.22)',
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(99, 102, 241, 0.5)',
+                      boxShadow: '0 0 10px rgba(99, 102, 241, 0.3)',
+                    }
+                  : {}
+              }
+            >
+              Started: <strong style={{ color: highlightField === 'started_at' ? '#c7d2fe' : '#e2e8f0' }}>{fmtTime(data.started_at)}</strong>
+            </div>
             <div>Duration: <strong style={{ color: '#e2e8f0' }}>{fmtDur(data.started_at, data.finished_at)}</strong></div>
             <div>Trigger: <strong style={{ color: '#e2e8f0' }}>{data.trigger || 'manual'}</strong></div>
           </div>

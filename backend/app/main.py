@@ -58,8 +58,20 @@ async def lifespan(_app: FastAPI):
         # Stage 2: DATABASE_CONNECTIVITY
         lifecycle.transition_to(StartupStage.DATABASE_CONNECTIVITY, "Establishing database engine connectivity")
         eng = get_engine()
-        with eng.connect() as conn:
-            conn.execute(select(1))
+        db_connected = False
+        last_conn_err = None
+        for attempt in range(1, 16):
+            try:
+                with eng.connect() as conn:
+                    conn.execute(select(1))
+                db_connected = True
+                break
+            except Exception as exc:
+                last_conn_err = exc
+                logger.warning("Database connectivity attempt %d/15 failed (%s). Retrying in 2s...", attempt, exc)
+                time.sleep(2.0)
+        if not db_connected and last_conn_err:
+            raise last_conn_err
 
         # Stage 3: SCHEMA_REVISION_VERIFICATION
         lifecycle.transition_to(StartupStage.SCHEMA_REVISION_VERIFICATION, "Verifying and synchronizing schema revisions")
@@ -455,6 +467,7 @@ def health() -> dict:
     lc = get_lifecycle()
     return ok({
         "status": "ok",
+        "database": "ok",
         "version": "1.6.0",
         "developed_by": "Gaurav Sahoo (gauravsahoo-ops)",
         "public_url": settings.public_url,

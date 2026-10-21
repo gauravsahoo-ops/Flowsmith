@@ -883,3 +883,165 @@ def test_universal_execution_search_endpoint(client):
     assert len(resp_other.json()["data"]) == 0
 
 
+def test_universal_execution_deep_datetime_record_and_mail_search(client):
+    """Verify universal search for natural language datetimes, record mailings, email fields, and exact location badges."""
+    from app.models.staged_record import StagedContactRecord
+
+    headers, user = _setup_user(client)
+    wf_id = f"wf_date_test_{uuid.uuid4().hex[:6]}"
+    client.post("/api/workflows", json=make_workflow(wf_id, "Enterprise Mail & Billing Flow"), headers=headers)
+
+    exec_id = f"exec_deep_{uuid.uuid4().hex[:8]}"
+    start_dt = datetime(2026, 10, 21, 7, 20, 20, tzinfo=timezone.utc)
+    finish_dt = datetime(2026, 10, 21, 7, 20, 45, tzinfo=timezone.utc)
+
+    with session_scope() as session:
+        _create_execution(
+            session,
+            id=exec_id,
+            workflow_id=wf_id,
+            user_id=user["id"],
+            workflow_version=1,
+            status="success",
+            trigger="schedule",
+            started_at=start_dt,
+            finished_at=finish_dt,
+            duration_ms=25000.0,
+            records_read=10,
+            records_processed=10,
+            records_created=10,
+            records_updated=0,
+            records_skipped=0,
+            records_failed=0,
+            search_text=None,
+        )
+
+        # Add step with email details
+        session.add(ExecutionStep(
+            id=f"step_{uuid.uuid4().hex[:8]}",
+            execution_id=exec_id,
+            node_id="send_email_node",
+            step_name="Send Order Notification",
+            node_type="email_sender",
+            status="success",
+            inputs={
+                "to": "client.exec@acmecorp.com",
+                "subject": "Quarterly Billing Invoices 2026",
+                "body": "Please find attached the invoice.",
+            },
+            outputs={"sent": True, "message_id": "msg_987654"},
+            started_at=start_dt,
+            completed_at=start_dt + timedelta(seconds=2),
+            duration_ms=2000.0,
+        ))
+
+        # Add staged contact record with full mailing address and contact email
+        session.add(StagedContactRecord(
+            id=f"stg_{uuid.uuid4().hex[:12]}",
+            execution_id=exec_id,
+            row_number=10,
+            first_name="Homer",
+            last_name="Simpson",
+            email="homer.simpson@springfieldpower.org",
+            mailing_street="742 Evergreen Terrace",
+            mailing_city="Springfield",
+            mailing_state="OR",
+            mailing_postal_code="97477",
+            mailing_country="USA",
+            department="Nuclear Safety",
+            title="Safety Inspector",
+            description="Nuclear safety inspector mailings",
+            status="imported",
+            raw_data={"notes": "Special delivery instructions for nuclear sector"},
+            created_at=start_dt,
+        ))
+
+        # Add API telemetry with custom headers and mail endpoint
+        session.add(ApiRequestTelemetry(
+            id=f"req_{uuid.uuid4().hex[:8]}",
+            execution_id=exec_id,
+            node_id="send_email_node",
+            connector_name="mailgun",
+            http_method="POST",
+            endpoint_url="https://api.mailgun.net/v3/mg.acmecorp.com/messages",
+            http_status_code=200,
+            duration_ms=850.0,
+            request_headers={"Authorization": "Bearer mg_key", "X-Mail-Campaign": "Campaign-Fall-2026"},
+            request_payload={"to": "client.exec@acmecorp.com", "subject": "Quarterly Billing Invoices 2026"},
+            response_payload={"id": "<20261021.987654@acmecorp.com>", "message": "Queued. Thank you."},
+            created_at=start_dt,
+        ))
+
+    # 1. Natural language timestamp search: "October 21st 2026, 7:20:20 am"
+    resp_dt = client.get("/api/executions/universal-search?q=October 21st 2026, 7:20:20 am", headers=headers)
+    assert resp_dt.status_code == 200, resp_dt.text
+    dt_results = resp_dt.json()["data"]
+    occ_dt = next((o for o in dt_results if o["execution_id"] == exec_id and o["field"] == "started_at"), None)
+    assert occ_dt is not None, f"Expected started_at occurrence in {dt_results}"
+    assert occ_dt["location_badge"] == "Timeline › Execution Started"
+    assert occ_dt["field"] == "started_at"
+    assert "highlight=started_at" in occ_dt["url"]
+    assert "tab=timeline" in occ_dt["url"]
+    assert "2026-10-21T07:20:20" in occ_dt["started_at"]
+
+    # 2. Natural language date search: "October 21, 2026"
+    resp_date = client.get("/api/executions/universal-search?q=October 21, 2026", headers=headers)
+    assert resp_date.status_code == 200
+    assert any(o["execution_id"] == exec_id for o in resp_date.json()["data"])
+
+    # 3. Mailing address search inside staged records: "Evergreen Terrace"
+    resp_addr = client.get("/api/executions/universal-search?q=Evergreen Terrace", headers=headers)
+    assert resp_addr.status_code == 200, resp_addr.text
+    addr_results = resp_addr.json()["data"]
+    occ_addr = next((o for o in addr_results if o["execution_id"] == exec_id and "mailing" in o["field"]), None)
+    assert occ_addr is not None, f"Expected mailing occurrence in {addr_results}"
+    assert occ_addr["location_badge"] == "Record #10 › Mailing Address"
+    assert "tab=steps" in occ_addr["url"]
+    assert "record_id" in occ_addr["url"]
+    assert "742 Evergreen Terrace" in occ_addr["snippet"]
+
+    # 4. Contact email inside staged records: "homer.simpson@springfieldpower.org"
+    resp_email = client.get("/api/executions/universal-search?q=homer.simpson@springfieldpower.org", headers=headers)
+    assert resp_email.status_code == 200, resp_email.text
+    email_results = resp_email.json()["data"]
+    occ_email = next((o for o in email_results if o["execution_id"] == exec_id and o["field"] == "email"), None)
+    assert occ_email is not None, f"Expected email occurrence in {email_results}"
+    assert occ_email["location_badge"] == "Record #10 › Email"
+    assert "homer.simpson@springfieldpower.org" in occ_email["snippet"]
+
+    # 5. Step email recipient search: "client.exec@acmecorp.com"
+    resp_step = client.get("/api/executions/universal-search?q=client.exec@acmecorp.com", headers=headers)
+    assert resp_step.status_code == 200, resp_step.text
+    step_results = resp_step.json()["data"]
+    occ_step = next((o for o in step_results if o["execution_id"] == exec_id and o["category"] == "steps" and "to" in o["field"]), None)
+    assert occ_step is not None, f"Expected step email recipient in {step_results}"
+    assert "Step: Send Order Notification › Email Recipient (to)" in occ_step["location_badge"]
+    assert "tab=steps" in occ_step["url"]
+    assert "node=send_email_node" in occ_step["url"]
+
+    # 6. Outbound API header search: "Campaign-Fall-2026"
+    resp_hdr = client.get("/api/executions/universal-search?q=Campaign-Fall-2026", headers=headers)
+    assert resp_hdr.status_code == 200, resp_hdr.text
+    hdr_results = resp_hdr.json()["data"]
+    occ_hdr = next((o for o in hdr_results if o["execution_id"] == exec_id), None)
+    assert occ_hdr is not None, f"Expected header occurrence in {hdr_results}"
+    assert "Header (X-Mail-Campaign)" in occ_hdr["location_badge"] or "header (x-mail-campaign)" in occ_hdr["location_badge"].lower()
+    assert "tab=requests" in occ_hdr["url"]
+
+    # 7. Execution list endpoint (/api/executions?search=...) with natural language date & mailing address
+    resp_list_dt = client.get("/api/executions?search=October 21st 2026, 7:20:20 am", headers=headers)
+    assert resp_list_dt.status_code == 200
+    list_dt_data = resp_list_dt.json()["data"]
+    exec_dt_match = next((e for e in list_dt_data if e["id"] == exec_id), None)
+    assert exec_dt_match is not None, f"Expected exec in search results: {list_dt_data}"
+    assert len(exec_dt_match["search_matches"]) > 0
+
+    resp_list_addr = client.get("/api/executions?search=Evergreen Terrace", headers=headers)
+    assert resp_list_addr.status_code == 200
+    list_addr_data = resp_list_addr.json()["data"]
+    exec_addr_match = next((e for e in list_addr_data if e["id"] == exec_id), None)
+    assert exec_addr_match is not None
+    assert any("Evergreen" in m["snippet"] for m in exec_addr_match["search_matches"])
+
+
+

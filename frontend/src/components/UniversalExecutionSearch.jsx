@@ -138,29 +138,89 @@ const DEFAULT_POPULAR_QUERIES = [
   'records_read',
 ]
 
+function fmtDropdownTime(iso) {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  } catch {
+    return String(iso)
+  }
+}
+
 export function HighlightMatch({ text, query }) {
   if (!text) return null
   if (!query || !query.trim()) return <>{text}</>
   const str = String(text)
   const q = query.trim().toLowerCase()
+
+  // 1. Direct exact substring match
   const idx = str.toLowerCase().indexOf(q)
-  if (idx === -1) return <>{str}</>
+  if (idx !== -1) {
+    return (
+      <>
+        {str.slice(0, idx)}
+        <mark
+          style={{
+            background: 'rgba(99, 102, 241, 0.28)',
+            color: '#e0e7ff',
+            padding: '1px 4px',
+            borderRadius: 3,
+            fontWeight: 600,
+            border: '1px solid rgba(99, 102, 241, 0.45)',
+          }}
+        >
+          {str.slice(idx, idx + q.length)}
+        </mark>
+        <HighlightMatch text={str.slice(idx + q.length)} query={query} />
+      </>
+    )
+  }
+
+  // 2. Multi-token match (supports dates like "October 21st 2026" matching "2026-10-21" or "October 21")
+  const rawTokens = q
+    .split(/[\s,]+/)
+    .map((t) => t.replace(/(st|nd|rd|th)$/i, ''))
+    .filter((t) => t.length >= 2)
+
+  if (!rawTokens.length) return <>{str}</>
+
+  // Escape special regex chars in tokens
+  const escaped = rawTokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const pattern = new RegExp(`(${escaped.join('|')})`, 'gi')
+  const parts = str.split(pattern)
+  if (parts.length <= 1) return <>{str}</>
+
   return (
     <>
-      {str.slice(0, idx)}
-      <mark
-        style={{
-          background: 'rgba(99, 102, 241, 0.28)',
-          color: '#e0e7ff',
-          padding: '1px 4px',
-          borderRadius: 3,
-          fontWeight: 600,
-          border: '1px solid rgba(99, 102, 241, 0.45)',
-        }}
-      >
-        {str.slice(idx, idx + q.length)}
-      </mark>
-      {str.slice(idx + q.length)}
+      {parts.map((part, i) => {
+        const isMatch = rawTokens.some((t) => t.toLowerCase() === part.toLowerCase())
+        if (isMatch) {
+          return (
+            <mark
+              key={i}
+              style={{
+                background: 'rgba(99, 102, 241, 0.28)',
+                color: '#e0e7ff',
+                padding: '1px 4px',
+                borderRadius: 3,
+                fontWeight: 600,
+                border: '1px solid rgba(99, 102, 241, 0.45)',
+              }}
+            >
+              {part}
+            </mark>
+          )
+        }
+        return <span key={i}>{part}</span>
+      })}
     </>
   )
 }
@@ -721,6 +781,29 @@ export default function UniversalExecutionSearch({
                             <code style={{ fontSize: 11, color: '#94a3b8', background: 'rgba(255, 255, 255, 0.04)', padding: '1px 5px', borderRadius: 4 }}>
                               <HighlightMatch text={item.execution_id?.slice(0, 14)} query={query} />
                             </code>
+
+                            {/* Execution Timestamp */}
+                            {item.started_at && (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  color: '#94a3b8',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  background: 'rgba(255, 255, 255, 0.04)',
+                                  padding: '1px 6px',
+                                  borderRadius: 4,
+                                }}
+                                title={`Executed: ${item.started_at}`}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" style={{ flexShrink: 0 }}>
+                                  <circle cx="12" cy="12" r="10" />
+                                  <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                <span><HighlightMatch text={fmtDropdownTime(item.started_at)} query={query} /></span>
+                              </span>
+                            )}
 
                             {/* Duration */}
                             {item.duration_ms != null && (

@@ -11,11 +11,13 @@ Provides:
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
+from dateutil import parser as date_parser
 from sqlalchemy.orm import Session
 
 from app.engine.redact import (
@@ -541,6 +543,185 @@ def extract_search_strings(obj: Any, max_chars: int = 4000) -> str:
     return " ".join(terms)[:max_chars]
 
 
+MONTH_NAMES = frozenset({
+    "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+    "january", "february", "march", "april", "june", "july", "august", "september", "october", "november", "december"
+})
+
+
+def format_datetime_variants(dt: datetime | str | None) -> list[str]:
+    """Generate all natural language, formal, ordinal, ISO, and human representations for a datetime."""
+    if not dt:
+        return []
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+        except Exception:
+            try:
+                dt = date_parser.parse(dt)
+            except Exception:
+                return [dt]
+    try:
+        day = dt.day
+        suffix = "th" if 4 <= day <= 20 or 24 <= day <= 30 else ["st", "nd", "rd"][day % 10 - 1] if day % 10 in (1, 2, 3) else "th"
+        hour12 = dt.strftime("%I:%M:%S %p").lstrip("0")
+        time_lower = hour12.lower()
+        month_name = dt.strftime("%B")
+        month_abbr = dt.strftime("%b")
+        hms = dt.strftime("%H:%M:%S")
+
+        return [
+            f"{month_name} {day}{suffix} {dt.year}, {time_lower}",
+            f"{month_name} {day}{suffix} {dt.year} {time_lower}",
+            f"{month_name} {day}, {dt.year} {hms}",
+            f"{month_name} {day}, {dt.year}",
+            f"{month_abbr} {day}, {dt.year} {hour12}",
+            f"{month_abbr} {day} {dt.year} {hms}",
+            f"{month_abbr} {day}, {dt.year}",
+            dt.strftime("%Y-%m-%d %H:%M:%S"),
+            dt.strftime("%Y-%m-%d"),
+            time_lower,
+            hms,
+            f"{month_name} {day}",
+            f"{month_name} {day}{suffix}",
+            f"{month_abbr} {day}",
+            dt.isoformat(),
+        ]
+    except Exception:
+        return [str(dt)]
+
+
+def format_human_timestamp(dt: datetime | str | None) -> str:
+    """Format a datetime into a standard natural timestamp like 'October 21st 2026, 7:20:20 am'."""
+    if not dt:
+        return ""
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+        except Exception:
+            try:
+                dt = date_parser.parse(dt)
+            except Exception:
+                return str(dt)
+    try:
+        day = dt.day
+        suffix = "th" if 4 <= day <= 20 or 24 <= day <= 30 else ["st", "nd", "rd"][day % 10 - 1] if day % 10 in (1, 2, 3) else "th"
+        hour12 = dt.strftime("%I:%M:%S %p").lstrip("0").lower()
+        return f"{dt.strftime('%B')} {day}{suffix} {dt.year}, {hour12}"
+    except Exception:
+        return str(dt)
+
+
+def parse_datetime_query(query: str) -> dict[str, Any] | None:
+    """Safely parse user search queries that represent natural dates, times, or timestamps."""
+    if not query or not query.strip():
+        return None
+    q = query.strip()
+    q_lower = q.lower()
+
+    has_month = any(m in q_lower for m in MONTH_NAMES)
+    has_iso = bool(re.search(r"\b\d{4}-\d{2}(-\d{2})?\b", q))
+    has_slash_date = bool(re.search(r"\b\d{1,2}/\d{1,2}(/\d{2,4})?\b", q))
+    has_time = bool(re.search(r"\b\d{1,2}:\d{2}(:\d{2})?\s*(am|pm)?\b", q_lower))
+
+    if not (has_month or has_iso or has_slash_date or has_time):
+        return None
+
+    clean = re.sub(r"(\d+)(st|nd|rd|th)", r"\1", q, flags=re.I)
+    try:
+        dt = date_parser.parse(clean, fuzzy=False)
+    except Exception:
+        return None
+
+    if clean.isdigit():
+        return None
+
+    has_seconds = bool(re.search(r":\d{2}:\d{2}", clean))
+    has_year = bool(re.search(r"\b20\d{2}\b", clean)) or has_iso
+
+    if has_seconds and (has_month or has_iso or has_slash_date or has_year):
+        precision = "exact_second"
+        win = (dt - timedelta(seconds=2), dt + timedelta(seconds=2))
+    elif has_time and (has_month or has_iso or has_slash_date or has_year):
+        precision = "minute"
+        win = (dt.replace(second=0), dt.replace(second=59) + timedelta(seconds=1))
+    elif has_month or has_iso or has_slash_date or has_year:
+        precision = "day"
+        win = (
+            dt.replace(hour=0, minute=0, second=0, microsecond=0),
+            dt.replace(hour=23, minute=59, second=59, microsecond=999999),
+        )
+    elif has_seconds:
+        precision = "time_only_second"
+        win = None
+    else:
+        precision = "time_only"
+        win = None
+
+    return {"dt": dt, "precision": precision, "window": win, "clean": clean}
+
+
+def matches_datetime(target_dt: datetime | str | None, raw_term: str, parsed: dict[str, Any] | None = None) -> bool:
+    """Check if a datetime field matches the search query string or parsed datetime range."""
+    if not target_dt:
+        return False
+    if isinstance(target_dt, str):
+        try:
+            target_dt = datetime.fromisoformat(target_dt.replace("Z", "+00:00"))
+        except Exception:
+            try:
+                target_dt = date_parser.parse(target_dt)
+            except Exception:
+                return False
+
+    if parsed is None:
+        parsed = parse_datetime_query(raw_term)
+
+    variants = format_datetime_variants(target_dt)
+    term_lower = raw_term.strip().lower()
+    clean_term = re.sub(r"(\d+)(st|nd|rd|th)", r"\1", term_lower)
+
+    if any(term_lower in v.lower() or clean_term in v.lower() for v in variants):
+        return True
+
+    if parsed and parsed.get("window"):
+        start_w, end_w = parsed["window"]
+        if target_dt.tzinfo is not None and start_w.tzinfo is None:
+            start_w = start_w.replace(tzinfo=target_dt.tzinfo)
+            end_w = end_w.replace(tzinfo=target_dt.tzinfo)
+        elif target_dt.tzinfo is None and start_w.tzinfo is not None:
+            target_dt = target_dt.replace(tzinfo=start_w.tzinfo)
+        if start_w <= target_dt <= end_w:
+            return True
+
+    if parsed and parsed.get("precision") in ("time_only_second", "time_only"):
+        p_dt = parsed["dt"]
+        if p_dt.hour == target_dt.hour and p_dt.minute == target_dt.minute:
+            if parsed["precision"] == "time_only_second":
+                return abs(p_dt.second - target_dt.second) <= 2
+            return True
+
+    return False
+
+
+def _format_step_match_label(ntitle: str, path: str, key: str, is_output: bool = False) -> str:
+    """Format an informative, location-aware label for step inputs and outputs."""
+    direction = "Output" if is_output else "Input"
+    k_lower = key.lower()
+    path_lower = path.lower()
+    if k_lower in ("to", "recipient", "recipients") or ("email" in k_lower and "template" not in k_lower):
+        return f"Step: {ntitle} › Email Recipient ({path})"
+    if k_lower in ("from", "sender"):
+        return f"Step: {ntitle} › Email Sender ({path})"
+    if k_lower == "subject" or "subject" in path_lower:
+        return f"Step: {ntitle} › Email Subject"
+    if k_lower in ("body", "html", "text", "message", "content"):
+        return f"Step: {ntitle} › Email Content ({direction})"
+    if k_lower in ("cc", "bcc", "reply_to"):
+        return f"Step: {ntitle} › Email {k_lower.upper()} ({path})"
+    return f"Step: {ntitle} › {direction}.{path}"
+
+
 def build_execution_search_text(
     rec: Any,
     workflow_name: str | None = None,
@@ -584,6 +765,12 @@ def build_execution_search_text(
         if v:
             parts.append(str(v))
 
+    # Timestamp indexing across human, ordinal, ISO, and natural date variations
+    if getattr(rec, "started_at", None):
+        parts.extend(format_datetime_variants(rec.started_at))
+    if getattr(rec, "finished_at", None):
+        parts.extend(format_datetime_variants(rec.finished_at))
+
     sc = getattr(rec, "http_status_code", None)
     if sc:
         parts.append(str(sc))
@@ -591,6 +778,10 @@ def build_execution_search_text(
     err = getattr(rec, "error", None)
     if err:
         parts.append(extract_search_strings(err, max_chars=1000))
+
+    pause = getattr(rec, "pause_state", None)
+    if pause:
+        parts.append(extract_search_strings(pause, max_chars=500))
 
     td = getattr(rec, "trigger_data", None)
     if td:
@@ -603,6 +794,8 @@ def build_execution_search_text(
                 parts.append(str(step.get("node_id") or ""))
                 parts.append(str(step.get("node_title") or ""))
                 parts.append(str(step.get("node_type") or ""))
+                if step.get("started_at"):
+                    parts.extend(format_datetime_variants(step["started_at"]))
                 if step.get("error"):
                     parts.append(extract_search_strings(step["error"], max_chars=500))
                 if step.get("inputs"):
@@ -735,6 +928,7 @@ def extract_execution_search_matches(
     preloaded_staged: list[Any] | None = None,
     preloaded_api_reqs: list[Any] | None = None,
     preloaded_errors: list[Any] | None = None,
+    preloaded_steps: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Extract prioritized structured match descriptors for search highlighting and deep-linking."""
     if not search_term or not search_term.strip():
@@ -742,6 +936,7 @@ def extract_execution_search_matches(
 
     term = search_term.strip()
     term_lower = term.lower()
+    parsed_date = parse_datetime_query(term)
     matches: list[dict[str, Any]] = []
     seen_snippets: set[str] = set()
 
@@ -774,25 +969,39 @@ def extract_execution_search_matches(
                 url += f"&highlight={field_name}"
         elif target == "requests" and request_id:
             url += f"?tab=requests&request_id={request_id}&search={term}"
+            if field_name:
+                url += f"&highlight={field_name}"
         elif target == "requests":
             url += f"?tab=requests&search={term}"
+            if field_name:
+                url += f"&highlight={field_name}"
         elif target == "steps" and node_id:
             url += f"?tab=steps&node={node_id}&search={term}"
+            if field_name:
+                url += f"&highlight={field_name}"
+        elif target == "steps" and record_id:
+            url += f"?tab=steps&record_id={record_id}&search={term}"
+            if field_name:
+                url += f"&highlight={field_name}"
         elif target == "steps":
             url += f"?tab=steps&search={term}"
+            if field_name:
+                url += f"&highlight={field_name}"
         elif target == "trace":
             url += f"?tab=trace&search={term}"
+            if field_name:
+                url += f"&highlight={field_name}"
         elif target == "workflow" and workflow_id:
             url = f"/workflows/{workflow_id}"
 
         if not category:
-            if mtype in ("node", "input", "output", "step"):
+            if mtype in ("node", "input", "output", "step", "step_time"):
                 category = "steps"
             elif mtype in ("error", "error_code", "error_type"):
                 category = "errors"
-            elif mtype in ("staged_record", "record"):
+            elif mtype in ("staged_record", "record", "record_time"):
                 category = "records"
-            elif mtype in ("api", "api_request"):
+            elif mtype in ("api", "api_request", "api_time"):
                 category = "api_requests"
             elif mtype in ("trigger", "payload", "result"):
                 category = "payloads"
@@ -827,12 +1036,41 @@ def extract_execution_search_matches(
     elif rec_wf_id and term_lower in rec_wf_id.lower():
         _add_match("workflow", "Workflow ID", rec_wf_id, workflow_id=rec_wf_id, target="workflow", category="metadata", field_name="workflow_id", field_value=rec_wf_id)
 
-    # 3. User / Email
+    # 3. Execution Timestamps (e.g. "October 21st 2026, 7:20:20 am", "Oct 21, 2026", "2026-10-21")
+    rec_start = getattr(rec, "started_at", None)
+    if rec_start and matches_datetime(rec_start, term, parsed=parsed_date):
+        human_start = format_human_timestamp(rec_start)
+        _add_match(
+            "started_at",
+            "Timeline › Execution Started",
+            f"Execution started at {human_start}",
+            target="timeline",
+            category="metadata",
+            field_name="started_at",
+            field_value=human_start,
+        )
+
+    rec_finish = getattr(rec, "finished_at", None)
+    if rec_finish and matches_datetime(rec_finish, term, parsed=parsed_date):
+        human_finish = format_human_timestamp(rec_finish)
+        dur = getattr(rec, "duration_ms", None)
+        dur_str = f" (Duration: {round(dur)}ms)" if dur is not None else ""
+        _add_match(
+            "finished_at",
+            "Timeline › Execution Finished",
+            f"Execution finished at {human_finish}{dur_str}",
+            target="timeline",
+            category="metadata",
+            field_name="finished_at",
+            field_value=human_finish,
+        )
+
+    # 4. User / Email
     u_email = user_email or getattr(rec, "user_email", "") or ""
     if u_email and term_lower in u_email.lower():
         _add_match("user", "User Email", u_email, target="execution", category="metadata", field_name="email", field_value=u_email)
 
-    # 4. Status & Trigger
+    # 5. Status & Trigger
     status_val = getattr(rec, "status", "") or ""
     if status_val and term_lower in status_val.lower():
         _add_match("status", f"Status: {status_val.upper()}", f"Execution status: {status_val}", target="timeline", category="metadata", field_name="status", field_value=status_val)
@@ -841,7 +1079,7 @@ def extract_execution_search_matches(
     if trigger_val and term_lower in trigger_val.lower():
         _add_match("trigger", f"Trigger: {trigger_val}", f"Trigger type: {trigger_val}", target="timeline", category="metadata", field_name="trigger", field_value=trigger_val)
 
-    # 5. Connectors & Objects
+    # 6. Connectors & Objects
     src_c = getattr(rec, "source_connector", "") or ""
     dst_c = getattr(rec, "destination_connector", "") or ""
     if src_c and term_lower in src_c.lower():
@@ -854,7 +1092,7 @@ def extract_execution_search_matches(
     if (src_o and term_lower in src_o.lower()) or (dst_o and term_lower in dst_o.lower()):
         _add_match("object", "Entity Object", f"{src_o or '—'} → {dst_o or '—'}", target="execution", category="metadata", field_name="object", field_value=f"{src_o} -> {dst_o}")
 
-    # 6. HTTP Endpoint & Method
+    # 7. HTTP Endpoint & Method
     api_ep = getattr(rec, "api_endpoint", "") or ""
     http_m = getattr(rec, "http_method", "") or ""
     http_sc = getattr(rec, "http_status_code", None)
@@ -863,7 +1101,7 @@ def extract_execution_search_matches(
     elif http_sc and str(http_sc) == term:
         _add_match("api", "HTTP Status", f"HTTP {http_sc} ({http_m or 'POST'})", target="requests", category="api_requests", field_name="status_code", field_value=str(http_sc))
 
-    # 7. Error details
+    # 8. Error details
     err_sum = getattr(rec, "error_summary", "") or ""
     if err_sum and term_lower in err_sum.lower():
         _add_match("error", "Error Diagnostic", err_sum, target="timeline", category="errors", field_name="error_summary", field_value=err_sum)
@@ -879,7 +1117,7 @@ def extract_execution_search_matches(
         if err_snip:
             _add_match("error", "Error Details", err_snip, target="timeline", category="errors", field_name="error_details", field_value=err_snip)
 
-    # 8. Trace steps (Nodes, inputs, outputs, step errors)
+    # 9. Trace steps (Nodes, inputs, outputs, step errors, mail payloads)
     trace = getattr(rec, "trace", None) or []
     if isinstance(trace, list):
         for step in trace:
@@ -893,21 +1131,38 @@ def extract_execution_search_matches(
             if term_lower in ntitle.lower() or term_lower in nid.lower() or term_lower in ntype.lower():
                 _add_match("node", f"Step: {ntitle}", f"{ntitle} ({ntype})", node_id=nid, target="timeline", category="steps", field_name="node_title", field_value=ntitle)
 
-            # Check node inputs (deep JSON match)
+            # Check step timestamp
+            step_start = step.get("started_at")
+            if step_start and matches_datetime(step_start, term, parsed=parsed_date):
+                human_step = format_human_timestamp(step_start)
+                _add_match(
+                    "step_time",
+                    f"Step: {ntitle} › Started At",
+                    f"{ntitle} ran at {human_step}",
+                    node_id=nid,
+                    target="timeline",
+                    category="steps",
+                    field_name="started_at",
+                    field_value=human_step,
+                )
+
+            # Check node inputs (deep JSON match, highlighting emails and payloads)
             if step.get("inputs"):
                 in_matches = find_all_json_matches(step["inputs"], term, max_matches=2)
                 for im in in_matches:
-                    _add_match("input", f"Step: {ntitle} › Input.{im['path']}", im["snippet"], node_id=nid, target="timeline", category="steps", field_name=im["key"], field_value=im["value"])
+                    step_lbl = _format_step_match_label(ntitle, im["path"], im["key"], is_output=False)
+                    _add_match("input", step_lbl, im["snippet"], node_id=nid, target="timeline", category="steps", field_name=im["key"], field_value=im["value"])
                 if not in_matches:
                     in_snip = find_structured_snippet(step["inputs"], term)
                     if in_snip:
                         _add_match("input", f"Input ({ntitle})", in_snip, node_id=nid, target="timeline", category="steps")
 
-            # Check node outputs (deep JSON match)
+            # Check node outputs (deep JSON match, highlighting emails and payloads)
             if step.get("outputs"):
                 out_matches = find_all_json_matches(step["outputs"], term, max_matches=3)
                 for om in out_matches:
-                    _add_match("output", f"Step: {ntitle} › Output.{om['path']}", om["snippet"], node_id=nid, target="timeline", category="steps", field_name=om["key"], field_value=om["value"])
+                    step_lbl = _format_step_match_label(ntitle, om["path"], om["key"], is_output=True)
+                    _add_match("output", step_lbl, om["snippet"], node_id=nid, target="timeline", category="steps", field_name=om["key"], field_value=om["value"])
                 if not out_matches:
                     out_snip = find_structured_snippet(step["outputs"], term)
                     if out_snip:
@@ -919,18 +1174,71 @@ def extract_execution_search_matches(
                 if step_err_snip:
                     _add_match("error", f"Node Error ({ntitle})", step_err_snip, node_id=nid, target="timeline", category="errors")
 
-    # 9. Trigger data (Inputs / Webhooks)
+    # 9b. ExecutionStep database records (when trace is empty/deferred or preloaded)
+    if (preloaded_steps is not None or (db and rec_id)) and len(matches) < max_matches:
+        try:
+            db_steps = preloaded_steps
+            if db_steps is None and db and rec_id:
+                from app.models.monitoring_telemetry import ExecutionStep
+                from sqlalchemy import select, or_, cast, String
+                step_stmt = select(ExecutionStep).where(
+                    ExecutionStep.execution_id == rec_id,
+                    or_(
+                        ExecutionStep.step_name.ilike(f"%{term}%"),
+                        ExecutionStep.node_id.ilike(f"%{term}%"),
+                        ExecutionStep.node_type.ilike(f"%{term}%"),
+                        ExecutionStep.error_message.ilike(f"%{term}%"),
+                        cast(ExecutionStep.inputs, String).ilike(f"%{term}%"),
+                        cast(ExecutionStep.outputs, String).ilike(f"%{term}%"),
+                    ),
+                ).limit(5)
+                db_steps = db.scalars(step_stmt).all()
+            if db_steps:
+                for estep in db_steps:
+                    snid = estep.node_id or ""
+                    sname = estep.step_name or snid or "Step"
+                    # Check node name/id
+                    if term_lower in sname.lower() or term_lower in snid.lower():
+                        _add_match("node", f"Step: {sname}", f"{sname} ({estep.node_type or 'step'})", node_id=snid, target="steps", category="steps", field_name="step_name", field_value=sname)
+                    # Check inputs (deep JSON match, highlighting emails and payloads)
+                    if estep.inputs:
+                        in_m = find_all_json_matches(estep.inputs, term, max_matches=2)
+                        for inm in in_m:
+                            lbl = _format_step_match_label(sname, inm["path"], inm["key"], is_output=False)
+                            _add_match("input", lbl, inm["snippet"], node_id=snid, target="steps", category="steps", field_name=inm["key"], field_value=inm["value"])
+                    # Check outputs
+                    if estep.outputs:
+                        out_m = find_all_json_matches(estep.outputs, term, max_matches=2)
+                        for outm in out_m:
+                            lbl = _format_step_match_label(sname, outm["path"], outm["key"], is_output=True)
+                            _add_match("output", lbl, outm["snippet"], node_id=snid, target="steps", category="steps", field_name=outm["key"], field_value=outm["value"])
+                    # Check error
+                    if estep.error_message and term_lower in estep.error_message.lower():
+                        _add_match("error", f"Step: {sname} › Error", estep.error_message, node_id=snid, target="steps", category="errors", field_name="error_message", field_value=estep.error_message)
+                    # Check timestamp
+                    if estep.started_at and matches_datetime(estep.started_at, term, parsed=parsed_date):
+                        h_time = format_human_timestamp(estep.started_at)
+                        _add_match("step_time", f"Step: {sname} › Started At", f"{sname} ran at {h_time}", node_id=snid, target="steps", category="steps", field_name="started_at", field_value=h_time)
+        except Exception:
+            pass
+
+    # 10. Trigger data (Inputs / Webhooks / Incoming Mails)
     td = getattr(rec, "trigger_data", None)
     if td:
         td_matches = find_all_json_matches(td, term, max_matches=2)
         for tm in td_matches:
-            _add_match("trigger", f"Trigger Payload › {tm['path']}", tm["snippet"], target="timeline", category="payloads", field_name=tm["key"], field_value=tm["value"])
+            k_lower = tm["key"].lower()
+            if "mail" in k_lower or "email" in k_lower or k_lower in ("to", "from", "recipient", "sender"):
+                t_lbl = f"Trigger Payload › Email Field ({tm['path']})"
+            else:
+                t_lbl = f"Trigger Payload › {tm['path']}"
+            _add_match("trigger", t_lbl, tm["snippet"], target="timeline", category="payloads", field_name=tm["key"], field_value=tm["value"])
         if not td_matches:
             td_snip = find_structured_snippet(td, term)
             if td_snip:
                 _add_match("input", "Trigger Input", td_snip, target="timeline", category="payloads")
 
-    # 10. Results (Outputs)
+    # 11. Results (Outputs / Response Data)
     res = getattr(rec, "results", None)
     if res and not trace:
         res_matches = find_all_json_matches(res, term, max_matches=2)
@@ -941,7 +1249,7 @@ def extract_execution_search_matches(
             if res_snip:
                 _add_match("output", "Execution Output", res_snip, target="timeline", category="payloads")
 
-    # 11. Staged contact records (CSV, Data Load, Salesforce Bulk) - batch preloaded or fallback
+    # 12. Staged contact records (CSV, Data Load, Salesforce Bulk, Record Mails & Addresses)
     if (preloaded_staged is not None or (db and rec_id)) and len(matches) < max_matches:
         try:
             staged_rows = preloaded_staged
@@ -957,42 +1265,108 @@ def extract_execution_search_matches(
                         StagedContactRecord.phone.ilike(f"%{term}%"),
                         StagedContactRecord.department.ilike(f"%{term}%"),
                         StagedContactRecord.title.ilike(f"%{term}%"),
+                        StagedContactRecord.mailing_street.ilike(f"%{term}%"),
+                        StagedContactRecord.mailing_city.ilike(f"%{term}%"),
+                        StagedContactRecord.mailing_state.ilike(f"%{term}%"),
+                        StagedContactRecord.mailing_postal_code.ilike(f"%{term}%"),
+                        StagedContactRecord.mailing_country.ilike(f"%{term}%"),
+                        StagedContactRecord.description.ilike(f"%{term}%"),
+                        StagedContactRecord.status.ilike(f"%{term}%"),
                         StagedContactRecord.error_message.ilike(f"%{term}%"),
                         StagedContactRecord.salesforce_id.ilike(f"%{term}%"),
                         cast(StagedContactRecord.raw_data, String).ilike(f"%{term}%"),
                     )
-                ).limit(3)
+                ).limit(5)
                 staged_rows = db.scalars(staged_stmt).all()
             if staged_rows:
-                for srow in staged_rows[:3]:
-                    mfield = "Record"
-                    val = ""
-                    for field in ("email", "first_name", "last_name", "phone", "department", "title", "salesforce_id", "error_message"):
-                        fv = getattr(srow, field, None)
-                        if fv and term_lower in str(fv).lower():
-                            mfield = field
-                            val = str(fv)
+                for srow in staged_rows[:5]:
+                    row_num = srow.row_number
+                    # Email match (record mails)
+                    if srow.email and term_lower in srow.email.lower():
+                        _add_match(
+                            "staged_record",
+                            f"Record #{row_num} › Email",
+                            f"Row #{row_num}: {srow.first_name or ''} {srow.last_name or ''} <{srow.email}>".strip(),
+                            record_id=srow.id,
+                            target="steps",
+                            category="records",
+                            field_name="email",
+                            field_value=srow.email,
+                        )
+                    # Mailing Address match
+                    for mf in ("mailing_street", "mailing_city", "mailing_state", "mailing_postal_code", "mailing_country"):
+                        mv = getattr(srow, mf, None)
+                        if mv and term_lower in str(mv).lower():
+                            parts_list = [p for p in (srow.mailing_street, srow.mailing_city, srow.mailing_state, srow.mailing_postal_code, srow.mailing_country) if p]
+                            _add_match(
+                                "staged_record",
+                                f"Record #{row_num} › Mailing Address",
+                                f"Row #{row_num} ({mf}): {', '.join(parts_list)}",
+                                record_id=srow.id,
+                                target="steps",
+                                category="records",
+                                field_name=mf,
+                                field_value=str(mv),
+                            )
                             break
-                    if not val and srow.raw_data:
-                        raw_snip = find_structured_snippet(srow.raw_data, term)
-                        if raw_snip:
-                            val = raw_snip
-                    if not val:
-                        val = f"{srow.first_name or ''} {srow.last_name or ''}".strip() or srow.email or f"Row #{srow.row_number}"
-                    _add_match(
-                        "staged_record",
-                        f"Record #{srow.row_number} ({mfield})",
-                        f"Row {srow.row_number}: {val}",
-                        record_id=srow.id,
-                        target="steps",
-                        category="records",
-                        field_name=mfield,
-                        field_value=val,
-                    )
+                    # Name, Phone, Dept, Title, Salesforce ID, Status
+                    for cf in ("first_name", "last_name", "phone", "department", "title", "description", "salesforce_id", "status"):
+                        cv = getattr(srow, cf, None)
+                        if cv and term_lower in str(cv).lower():
+                            _add_match(
+                                "staged_record",
+                                f"Record #{row_num} › {cf.replace('_', ' ').title()}",
+                                f"Row #{row_num} {cf}: {cv}",
+                                record_id=srow.id,
+                                target="steps",
+                                category="records",
+                                field_name=cf,
+                                field_value=str(cv),
+                            )
+                            break
+                    # Error message
+                    if srow.error_message and term_lower in srow.error_message.lower():
+                        _add_match(
+                            "staged_record",
+                            f"Record #{row_num} › Ingestion Error",
+                            f"Row #{row_num} Error: {srow.error_message}",
+                            record_id=srow.id,
+                            target="steps",
+                            category="records",
+                            field_name="error_message",
+                            field_value=srow.error_message,
+                        )
+                    # Created timestamp
+                    if srow.created_at and matches_datetime(srow.created_at, term, parsed=parsed_date):
+                        h_time = format_human_timestamp(srow.created_at)
+                        _add_match(
+                            "record_time",
+                            f"Record #{row_num} › Ingested At",
+                            f"Row #{row_num} ingested at {h_time}",
+                            record_id=srow.id,
+                            target="steps",
+                            category="records",
+                            field_name="created_at",
+                            field_value=h_time,
+                        )
+                    # Deep raw_data match
+                    if srow.raw_data:
+                        raw_matches = find_all_json_matches(srow.raw_data, term, max_matches=2)
+                        for rm in raw_matches:
+                            _add_match(
+                                "staged_record",
+                                f"Record #{row_num} › Raw Data.{rm['path']}",
+                                f"Row #{row_num}: {rm['snippet']}",
+                                record_id=srow.id,
+                                target="steps",
+                                category="records",
+                                field_name=rm["key"],
+                                field_value=rm["value"],
+                            )
         except Exception:
             pass
 
-    # 12. Outbound API Requests logs - batch preloaded or fallback
+    # 13. Outbound API Requests logs (HTTP methods, endpoints, payloads, headers, emails)
     if (preloaded_api_reqs is not None or (db and rec_id)) and len(matches) < max_matches:
         try:
             matching_reqs = preloaded_api_reqs
@@ -1003,30 +1377,95 @@ def extract_execution_search_matches(
                     ApiRequestTelemetry.execution_id == rec_id,
                     or_(
                         ApiRequestTelemetry.endpoint_url.ilike(f"%{term}%"),
+                        ApiRequestTelemetry.connector_name.ilike(f"%{term}%"),
                         ApiRequestTelemetry.error_message.ilike(f"%{term}%"),
                         cast(ApiRequestTelemetry.request_payload, String).ilike(f"%{term}%"),
                         cast(ApiRequestTelemetry.response_payload, String).ilike(f"%{term}%"),
+                        cast(ApiRequestTelemetry.request_headers, String).ilike(f"%{term}%"),
+                        cast(ApiRequestTelemetry.response_headers, String).ilike(f"%{term}%"),
+                        cast(ApiRequestTelemetry.query_params, String).ilike(f"%{term}%"),
                     )
-                ).limit(3)
+                ).limit(4)
                 matching_reqs = db.scalars(req_stmt).all()
             if matching_reqs:
-                for mreq in matching_reqs[:3]:
-                    req_snip = find_structured_snippet(mreq.request_payload, term) or find_structured_snippet(mreq.response_payload, term) or mreq.endpoint_url
-                    _add_match(
-                        "api_request",
-                        f"API: {mreq.http_method} {mreq.connector_name or ''}",
-                        req_snip,
-                        request_id=mreq.id,
-                        node_id=mreq.node_id,
-                        target="requests",
-                        category="api_requests",
-                        field_name="api_payload",
-                        field_value=req_snip,
-                    )
+                for mreq in matching_reqs[:4]:
+                    prefix = f"API: {mreq.http_method} {mreq.connector_name or ''}".strip()
+                    # URL match
+                    if term_lower in mreq.endpoint_url.lower():
+                        _add_match(
+                            "api_request",
+                            f"{prefix} › Endpoint URL",
+                            mreq.endpoint_url,
+                            request_id=mreq.id,
+                            node_id=mreq.node_id,
+                            target="requests",
+                            category="api_requests",
+                            field_name="endpoint_url",
+                            field_value=mreq.endpoint_url,
+                        )
+                    # Request payload deep match
+                    if mreq.request_payload:
+                        p_matches = find_all_json_matches(mreq.request_payload, term, max_matches=2)
+                        for pm in p_matches:
+                            _add_match(
+                                "api_request",
+                                f"{prefix} › Request Payload.{pm['path']}",
+                                pm["snippet"],
+                                request_id=mreq.id,
+                                node_id=mreq.node_id,
+                                target="requests",
+                                category="api_requests",
+                                field_name=pm["key"],
+                                field_value=pm["value"],
+                            )
+                    # Response payload deep match
+                    if mreq.response_payload:
+                        rp_matches = find_all_json_matches(mreq.response_payload, term, max_matches=2)
+                        for rpm in rp_matches:
+                            _add_match(
+                                "api_request",
+                                f"{prefix} › Response Body.{rpm['path']}",
+                                rpm["snippet"],
+                                request_id=mreq.id,
+                                node_id=mreq.node_id,
+                                target="requests",
+                                category="api_requests",
+                                field_name=rpm["key"],
+                                field_value=rpm["value"],
+                            )
+                    # Headers match
+                    if mreq.request_headers:
+                        h_matches = find_all_json_matches(mreq.request_headers, term, max_matches=1)
+                        for hm in h_matches:
+                            _add_match(
+                                "api_request",
+                                f"{prefix} › Header ({hm['key']})",
+                                hm["snippet"],
+                                request_id=mreq.id,
+                                node_id=mreq.node_id,
+                                target="requests",
+                                category="api_requests",
+                                field_name=hm["key"],
+                                field_value=hm["value"],
+                            )
+                    # Timestamp match
+                    if mreq.request_timestamp and matches_datetime(mreq.request_timestamp, term, parsed=parsed_date):
+                        h_req = format_human_timestamp(mreq.request_timestamp)
+                        _add_match(
+                            "api_time",
+                            f"{prefix} › Sent At",
+                            f"API request sent at {h_req}",
+                            request_id=mreq.id,
+                            node_id=mreq.node_id,
+                            target="requests",
+                            category="api_requests",
+                            field_name="request_timestamp",
+                            field_value=h_req,
+                        )
         except Exception:
             pass
 
-    # 13. Error events - batch preloaded or fallback
+    # 14. Error events - batch preloaded or fallback
     if (preloaded_errors is not None or (db and rec_id)) and len(matches) < max_matches:
         try:
             matching_errs = preloaded_errors
@@ -1141,6 +1580,9 @@ def search_universal_executions(
         ).all()
     ]
 
+    parsed_date = parse_datetime_query(term)
+    date_win = parsed_date.get("window") if parsed_date else None
+
     # 3. ExecutionStep candidate IDs (only if category needs steps or payloads or all)
     matching_step_exec_ids = []
     step_preds = [
@@ -1165,6 +1607,17 @@ def search_universal_executions(
                 .limit(300)
             ).all()
         ]
+        if date_win:
+            w_start, w_end = date_win
+            date_step_ids = [
+                eid for (eid,) in db.execute(
+                    select(ExecutionStep.execution_id)
+                    .where(ExecutionStep.started_at.between(w_start, w_end))
+                    .distinct()
+                    .limit(200)
+                ).all()
+            ]
+            matching_step_exec_ids.extend(date_step_ids)
 
     # 4. ApiRequestTelemetry candidate IDs (only if category needs api_requests or all)
     matching_req_exec_ids = []
@@ -1176,10 +1629,12 @@ def search_universal_executions(
         cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
         cast(ApiRequestTelemetry.request_headers, String).ilike(sterm),
         cast(ApiRequestTelemetry.response_headers, String).ilike(sterm),
+        cast(ApiRequestTelemetry.query_params, String).ilike(sterm),
     ]
     for w in words[:3]:
         api_preds.append(cast(ApiRequestTelemetry.request_payload, String).ilike(f"%{w}%"))
         api_preds.append(cast(ApiRequestTelemetry.response_payload, String).ilike(f"%{w}%"))
+        api_preds.append(ApiRequestTelemetry.endpoint_url.ilike(f"%{w}%"))
 
     if category in ("all", "api_requests"):
         matching_req_exec_ids = [
@@ -1190,6 +1645,17 @@ def search_universal_executions(
                 .limit(300)
             ).all()
         ]
+        if date_win:
+            w_start, w_end = date_win
+            date_req_ids = [
+                eid for (eid,) in db.execute(
+                    select(ApiRequestTelemetry.execution_id)
+                    .where(ApiRequestTelemetry.request_timestamp.between(w_start, w_end))
+                    .distinct()
+                    .limit(200)
+                ).all()
+            ]
+            matching_req_exec_ids.extend(date_req_ids)
 
     # 5. StagedContactRecord candidate IDs (only if category needs records or all)
     matching_staged_exec_ids = []
@@ -1200,10 +1666,24 @@ def search_universal_executions(
         StagedContactRecord.phone.ilike(sterm),
         StagedContactRecord.department.ilike(sterm),
         StagedContactRecord.title.ilike(sterm),
+        StagedContactRecord.mailing_street.ilike(sterm),
+        StagedContactRecord.mailing_city.ilike(sterm),
+        StagedContactRecord.mailing_state.ilike(sterm),
+        StagedContactRecord.mailing_postal_code.ilike(sterm),
+        StagedContactRecord.mailing_country.ilike(sterm),
+        StagedContactRecord.description.ilike(sterm),
+        StagedContactRecord.status.ilike(sterm),
         StagedContactRecord.error_message.ilike(sterm),
         StagedContactRecord.salesforce_id.ilike(sterm),
         cast(StagedContactRecord.raw_data, String).ilike(sterm),
     ]
+    for w in words[:3]:
+        staged_preds.append(StagedContactRecord.email.ilike(f"%{w}%"))
+        staged_preds.append(StagedContactRecord.first_name.ilike(f"%{w}%"))
+        staged_preds.append(StagedContactRecord.last_name.ilike(f"%{w}%"))
+        staged_preds.append(StagedContactRecord.mailing_street.ilike(f"%{w}%"))
+        staged_preds.append(cast(StagedContactRecord.raw_data, String).ilike(f"%{w}%"))
+
     if category in ("all", "records"):
         matching_staged_exec_ids = [
             eid for (eid,) in db.execute(
@@ -1213,6 +1693,17 @@ def search_universal_executions(
                 .limit(300)
             ).all()
         ]
+        if date_win:
+            w_start, w_end = date_win
+            date_staged_ids = [
+                eid for (eid,) in db.execute(
+                    select(StagedContactRecord.execution_id)
+                    .where(StagedContactRecord.created_at.between(w_start, w_end))
+                    .distinct()
+                    .limit(200)
+                ).all()
+            ]
+            matching_staged_exec_ids.extend(date_staged_ids)
 
     # 6. ErrorEvent candidate IDs (only if category needs errors or all)
     matching_err_exec_ids = []
@@ -1255,7 +1746,24 @@ def search_universal_executions(
         cast(Execution.results, String).ilike(sterm),
         cast(Execution.trace, String).ilike(sterm),
         cast(Execution.workflow_data, String).ilike(sterm),
+        cast(Execution.started_at, String).ilike(sterm),
+        cast(Execution.finished_at, String).ilike(sterm),
     ]
+
+    # Timestamp query matching
+    if date_win:
+        w_start, w_end = date_win
+        exec_preds.append(Execution.started_at.between(w_start, w_end))
+        exec_preds.append(Execution.finished_at.between(w_start, w_end))
+
+    if parsed_date and parsed_date.get("dt"):
+        iso_d = parsed_date["dt"].strftime("%Y-%m-%d")
+        exec_preds.append(cast(Execution.started_at, String).ilike(f"%{iso_d}%"))
+        exec_preds.append(cast(Execution.finished_at, String).ilike(f"%{iso_d}%"))
+
+    if parsed_date and parsed_date.get("clean"):
+        clean_date_term = f"%{parsed_date['clean']}%"
+        exec_preds.append(Execution.search_text.ilike(clean_date_term))
 
     if term.isdigit() and len(term) == 3:
         try:
@@ -1335,8 +1843,24 @@ def search_universal_executions(
     staged_by_exec: dict[str, list[Any]] = defaultdict(list)
     api_by_exec: dict[str, list[Any]] = defaultdict(list)
     err_by_exec: dict[str, list[Any]] = defaultdict(list)
+    steps_by_exec: dict[str, list[Any]] = defaultdict(list)
 
     if rec_ids:
+        if category in ("all", "steps", "payloads"):
+            try:
+                from app.models.monitoring_telemetry import ExecutionStep
+                step_rows = db.scalars(
+                    select(ExecutionStep).where(
+                        ExecutionStep.execution_id.in_(rec_ids),
+                        or_(*step_preds),
+                    ).limit(300)
+                ).all()
+                for st in step_rows:
+                    if st.execution_id:
+                        steps_by_exec[st.execution_id].append(st)
+            except Exception:
+                pass
+
         if category in ("all", "records"):
             try:
                 staged_rows = db.scalars(
@@ -1402,6 +1926,7 @@ def search_universal_executions(
             preloaded_staged=staged_by_exec.get(rec.id, []),
             preloaded_api_reqs=api_by_exec.get(rec.id, []),
             preloaded_errors=err_by_exec.get(rec.id, []),
+            preloaded_steps=steps_by_exec.get(rec.id, []),
         )
 
         for occ in occ_list:
@@ -1430,6 +1955,8 @@ def search_universal_executions(
                 "destination_connector": rec.destination_connector or "flowsmith_output",
                 "category": cat,
                 "location_badge": occ.get("label") or f"{cat.capitalize()}",
+                "location_label": occ.get("label") or f"{cat.capitalize()}",
+                "field": occ.get("field_name") or occ.get("type"),
                 "matched_field": occ.get("field_name") or occ.get("type"),
                 "matched_value": occ.get("field_value"),
                 "snippet": occ.get("snippet") or "",
@@ -1439,6 +1966,7 @@ def search_universal_executions(
                 "target_request_id": occ.get("request_id"),
                 "target_record_id": occ.get("record_id"),
                 "url": occ.get("url") or f"/executions/{rec.id}",
+                "deep_link_url": occ.get("url") or f"/executions/{rec.id}",
             })
 
     # Filter by category if specified and not 'all'

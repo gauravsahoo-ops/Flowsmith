@@ -6,7 +6,7 @@ const apiBase = 'http://127.0.0.1:8000';
 
 async function main() {
   const email = `check_${Date.now()}@example.com`;
-  const pw = 'password123';
+  const pw = 'Password123!';
   const req = await request.newContext();
   await req.post(`${apiBase}/api/auth/register`, { data: { email, password: pw } });
   const login = await req.post(`${apiBase}/api/auth/login`, { data: { email, password: pw } });
@@ -39,8 +39,8 @@ async function main() {
 
   for (const r of routes) {
     await page.goto(base + r);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(300);
     const title = await page.locator('.page-title, h1').first().textContent().catch(() => 'no title');
     const hasContent = await page.locator('.page, .app-content').first().isVisible().catch(() => false);
     console.log(`${r} -> ${page.url()} | title: ${String(title).slice(0,60)} | visible: ${hasContent}`);
@@ -51,12 +51,12 @@ async function main() {
 
   // Test workflow list and open
   await page.goto(base + '/workflows');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   const wfCount = await page.locator('.data-table tbody tr').count().catch(() => 0);
   console.log('workflows count', wfCount);
   // Test sidebar collapse
   await page.goto(base + '/overview');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   const sidebar = page.locator('.app-sidebar');
   console.log('sidebar exists', await sidebar.count());
   // Check collapsed state

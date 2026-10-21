@@ -528,6 +528,10 @@ def _build_execution_query(
         from app.models.user import User
         from app.models.workflow import WorkflowRecord
         from app.models.monitoring_telemetry import ExecutionStep, ApiRequestTelemetry
+        from app.services.telemetry_service import parse_datetime_query
+        parsed_dt = parse_datetime_query(term)
+        date_win = parsed_dt.get("window") if parsed_dt else None
+        dt_start, dt_end = date_win if date_win else (None, None)
 
         matching_wf_ids = [
             wid for (wid,) in db.execute(
@@ -547,37 +551,45 @@ def _build_execution_query(
         ]
 
         # ExecutionStep matches
+        step_preds = [
+            ExecutionStep.step_name.ilike(sterm),
+            ExecutionStep.node_id.ilike(sterm),
+            ExecutionStep.node_type.ilike(sterm),
+            ExecutionStep.error_message.ilike(sterm),
+            cast(ExecutionStep.inputs, String).ilike(sterm),
+            cast(ExecutionStep.outputs, String).ilike(sterm),
+        ]
+        if dt_start and dt_end:
+            step_preds.append(ExecutionStep.started_at.between(dt_start, dt_end))
+            step_preds.append(ExecutionStep.completed_at.between(dt_start, dt_end))
+
         matching_step_exec_ids = [
             eid for (eid,) in db.execute(
                 select(ExecutionStep.execution_id)
-                .where(
-                    or_(
-                        ExecutionStep.step_name.ilike(sterm),
-                        ExecutionStep.node_id.ilike(sterm),
-                        ExecutionStep.node_type.ilike(sterm),
-                        ExecutionStep.error_message.ilike(sterm),
-                        cast(ExecutionStep.inputs, String).ilike(sterm),
-                        cast(ExecutionStep.outputs, String).ilike(sterm),
-                    )
-                )
+                .where(or_(*step_preds))
                 .distinct()
                 .limit(500)
             ).all()
         ]
 
         # ApiRequestTelemetry matches
+        api_preds = [
+            ApiRequestTelemetry.endpoint_url.ilike(sterm),
+            ApiRequestTelemetry.connector_name.ilike(sterm),
+            ApiRequestTelemetry.http_method.ilike(sterm),
+            ApiRequestTelemetry.error_message.ilike(sterm),
+            cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
+            cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
+            cast(ApiRequestTelemetry.request_headers, String).ilike(sterm),
+            cast(ApiRequestTelemetry.query_params, String).ilike(sterm),
+        ]
+        if dt_start and dt_end:
+            api_preds.append(ApiRequestTelemetry.created_at.between(dt_start, dt_end))
+
         matching_req_exec_ids = [
             eid for (eid,) in db.execute(
                 select(ApiRequestTelemetry.execution_id)
-                .where(
-                    or_(
-                        ApiRequestTelemetry.endpoint_url.ilike(sterm),
-                        ApiRequestTelemetry.connector_name.ilike(sterm),
-                        ApiRequestTelemetry.error_message.ilike(sterm),
-                        cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
-                        cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
-                    )
-                )
+                .where(or_(*api_preds))
                 .distinct()
                 .limit(500)
             ).all()
@@ -587,22 +599,31 @@ def _build_execution_query(
         matching_staged_exec_ids = []
         try:
             from app.models.staged_record import StagedContactRecord
+            staged_preds = [
+                StagedContactRecord.first_name.ilike(sterm),
+                StagedContactRecord.last_name.ilike(sterm),
+                StagedContactRecord.email.ilike(sterm),
+                StagedContactRecord.phone.ilike(sterm),
+                StagedContactRecord.department.ilike(sterm),
+                StagedContactRecord.title.ilike(sterm),
+                StagedContactRecord.status.ilike(sterm),
+                StagedContactRecord.mailing_street.ilike(sterm),
+                StagedContactRecord.mailing_city.ilike(sterm),
+                StagedContactRecord.mailing_state.ilike(sterm),
+                StagedContactRecord.mailing_postal_code.ilike(sterm),
+                StagedContactRecord.mailing_country.ilike(sterm),
+                StagedContactRecord.description.ilike(sterm),
+                StagedContactRecord.error_message.ilike(sterm),
+                StagedContactRecord.salesforce_id.ilike(sterm),
+                cast(StagedContactRecord.raw_data, String).ilike(sterm),
+            ]
+            if dt_start and dt_end:
+                staged_preds.append(StagedContactRecord.created_at.between(dt_start, dt_end))
+
             matching_staged_exec_ids = [
                 eid for (eid,) in db.execute(
                     select(StagedContactRecord.execution_id)
-                    .where(
-                        or_(
-                            StagedContactRecord.first_name.ilike(sterm),
-                            StagedContactRecord.last_name.ilike(sterm),
-                            StagedContactRecord.email.ilike(sterm),
-                            StagedContactRecord.phone.ilike(sterm),
-                            StagedContactRecord.department.ilike(sterm),
-                            StagedContactRecord.title.ilike(sterm),
-                            StagedContactRecord.error_message.ilike(sterm),
-                            StagedContactRecord.salesforce_id.ilike(sterm),
-                            cast(StagedContactRecord.raw_data, String).ilike(sterm),
-                        )
-                    )
+                    .where(or_(*staged_preds))
                     .distinct()
                     .limit(500)
                 ).all()
@@ -614,18 +635,22 @@ def _build_execution_query(
         matching_err_exec_ids = []
         try:
             from app.models.error_event import ErrorEvent
+            err_preds = [
+                ErrorEvent.message.ilike(sterm),
+                ErrorEvent.title.ilike(sterm),
+                ErrorEvent.code.ilike(sterm),
+                ErrorEvent.category.ilike(sterm),
+                ErrorEvent.resolution.ilike(sterm),
+            ]
+            if dt_start and dt_end:
+                err_preds.append(ErrorEvent.occurred_at.between(dt_start, dt_end))
+
             matching_err_exec_ids = [
                 eid for (eid,) in db.execute(
                     select(ErrorEvent.execution_id)
                     .where(
                         ErrorEvent.execution_id.isnot(None),
-                        or_(
-                            ErrorEvent.message.ilike(sterm),
-                            ErrorEvent.title.ilike(sterm),
-                            ErrorEvent.code.ilike(sterm),
-                            ErrorEvent.category.ilike(sterm),
-                            ErrorEvent.resolution.ilike(sterm),
-                        )
+                        or_(*err_preds),
                     )
                     .distinct()
                     .limit(500)
@@ -656,6 +681,10 @@ def _build_execution_query(
             cast(Execution.trace, String).ilike(sterm),
             cast(Execution.workflow_data, String).ilike(sterm),
         ]
+
+        if dt_start and dt_end:
+            predicates.append(Execution.started_at.between(dt_start, dt_end))
+            predicates.append(Execution.finished_at.between(dt_start, dt_end))
 
         if term.isdigit() and len(term) == 3:
             try:
@@ -807,23 +836,40 @@ def list_executions(
     err_by_exec: dict[str, list[Any]] = defaultdict(list)
 
     if search and search.strip() and rec_ids:
-        sterm = f"%{search.strip()}%"
+        term_clean = search.strip()
+        sterm = f"%{term_clean}%"
+        from app.services.telemetry_service import parse_datetime_query
+        parsed_dt = parse_datetime_query(term_clean)
+        date_win = parsed_dt.get("window") if parsed_dt else None
+        dt_start, dt_end = date_win if date_win else (None, None)
+
         try:
             from app.models.staged_record import StagedContactRecord
+            staged_filters = [
+                StagedContactRecord.first_name.ilike(sterm),
+                StagedContactRecord.last_name.ilike(sterm),
+                StagedContactRecord.email.ilike(sterm),
+                StagedContactRecord.phone.ilike(sterm),
+                StagedContactRecord.department.ilike(sterm),
+                StagedContactRecord.title.ilike(sterm),
+                StagedContactRecord.status.ilike(sterm),
+                StagedContactRecord.mailing_street.ilike(sterm),
+                StagedContactRecord.mailing_city.ilike(sterm),
+                StagedContactRecord.mailing_state.ilike(sterm),
+                StagedContactRecord.mailing_postal_code.ilike(sterm),
+                StagedContactRecord.mailing_country.ilike(sterm),
+                StagedContactRecord.description.ilike(sterm),
+                StagedContactRecord.error_message.ilike(sterm),
+                StagedContactRecord.salesforce_id.ilike(sterm),
+                cast(StagedContactRecord.raw_data, String).ilike(sterm),
+            ]
+            if dt_start and dt_end:
+                staged_filters.append(StagedContactRecord.created_at.between(dt_start, dt_end))
+
             for s in db.scalars(
                 select(StagedContactRecord).where(
                     StagedContactRecord.execution_id.in_(rec_ids),
-                    or_(
-                        StagedContactRecord.first_name.ilike(sterm),
-                        StagedContactRecord.last_name.ilike(sterm),
-                        StagedContactRecord.email.ilike(sterm),
-                        StagedContactRecord.phone.ilike(sterm),
-                        StagedContactRecord.department.ilike(sterm),
-                        StagedContactRecord.title.ilike(sterm),
-                        StagedContactRecord.error_message.ilike(sterm),
-                        StagedContactRecord.salesforce_id.ilike(sterm),
-                        cast(StagedContactRecord.raw_data, String).ilike(sterm),
-                    ),
+                    or_(*staged_filters),
                 ).limit(300)
             ).all():
                 if s.execution_id:
@@ -832,16 +878,23 @@ def list_executions(
             pass
 
         try:
+            api_filters = [
+                ApiRequestTelemetry.endpoint_url.ilike(sterm),
+                ApiRequestTelemetry.connector_name.ilike(sterm),
+                ApiRequestTelemetry.http_method.ilike(sterm),
+                ApiRequestTelemetry.error_message.ilike(sterm),
+                cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
+                cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
+                cast(ApiRequestTelemetry.request_headers, String).ilike(sterm),
+                cast(ApiRequestTelemetry.query_params, String).ilike(sterm),
+            ]
+            if dt_start and dt_end:
+                api_filters.append(ApiRequestTelemetry.created_at.between(dt_start, dt_end))
+
             for r in db.scalars(
                 select(ApiRequestTelemetry).where(
                     ApiRequestTelemetry.execution_id.in_(rec_ids),
-                    or_(
-                        ApiRequestTelemetry.endpoint_url.ilike(sterm),
-                        ApiRequestTelemetry.connector_name.ilike(sterm),
-                        ApiRequestTelemetry.error_message.ilike(sterm),
-                        cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
-                        cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
-                    ),
+                    or_(*api_filters),
                 ).limit(300)
             ).all():
                 if r.execution_id:
@@ -851,14 +904,18 @@ def list_executions(
 
         try:
             from app.models.error_event import ErrorEvent
+            err_filters = [
+                ErrorEvent.message.ilike(sterm),
+                ErrorEvent.title.ilike(sterm),
+                ErrorEvent.code.ilike(sterm),
+            ]
+            if dt_start and dt_end:
+                err_filters.append(ErrorEvent.occurred_at.between(dt_start, dt_end))
+
             for e in db.scalars(
                 select(ErrorEvent).where(
                     ErrorEvent.execution_id.in_(rec_ids),
-                    or_(
-                        ErrorEvent.message.ilike(sterm),
-                        ErrorEvent.title.ilike(sterm),
-                        ErrorEvent.code.ilike(sterm),
-                    ),
+                    or_(*err_filters),
                 ).limit(300)
             ).all():
                 if e.execution_id:
