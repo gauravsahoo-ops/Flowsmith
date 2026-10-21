@@ -14,7 +14,7 @@ import logging
 import re
 import threading
 import uuid
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from dateutil import parser as date_parser
@@ -602,7 +602,7 @@ def format_human_timestamp(dt: datetime | str | None) -> str:
             try:
                 dt = date_parser.parse(dt)
             except Exception:
-                return str(dt)
+                return dt
     try:
         day = dt.day
         suffix = "th" if 4 <= day <= 20 or 24 <= day <= 30 else ["st", "nd", "rd"][day % 10 - 1] if day % 10 in (1, 2, 3) else "th"
