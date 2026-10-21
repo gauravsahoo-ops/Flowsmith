@@ -11,6 +11,26 @@ export function SearchIcon({ size = 15, color = 'currentColor' }) {
   )
 }
 
+export function ClearIcon({ size = 11, color = '#ffffff' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: 'block', pointerEvents: 'none', flexShrink: 0 }}
+      aria-hidden="true"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  )
+}
+
 export function StepsIcon({ size = 14, color = 'currentColor' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -463,40 +483,12 @@ export default function UniversalExecutionSearch({
         {query && (
           <button
             type="button"
+            className="universal-search-clear-btn"
             onClick={handleClear}
             title="Clear search query"
             aria-label="Clear search"
-            style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.14)',
-              color: '#cbd5e1',
-              width: 24,
-              height: 24,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '50%',
-              marginRight: 6,
-              transition: 'all 0.15s ease',
-              flexShrink: 0,
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ffffff'
-              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)'
-              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#cbd5e1'
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.14)'
-            }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <ClearIcon size={11} color="#ffffff" />
           </button>
         )}
 
