@@ -2212,16 +2212,42 @@ def finalize_execution_telemetry(
         u_email = getattr(job, "user_email", None) or getattr(rec, "user_email", None)
         rec.search_text = build_execution_search_text(rec, workflow_name=wf_name, user_email=u_email)
 
-        # 10. Batch add to session
-        for s_row in step_db_rows:
-            db.merge(s_row)
-        for a_row in api_db_rows:
-            db.merge(a_row)
-
-        db.commit()
+        # 10. Batch add to session with layered fallback
+        try:
+            for s_row in step_db_rows:
+                db.merge(s_row)
+            for a_row in api_db_rows:
+                db.merge(a_row)
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            logger.warning(
+                "Telemetry batch commit failed for execution %s (%s); retrying with core steps only",
+                getattr(rec, "id", "unknown"),
+                exc,
+            )
+            try:
+                for s_row in step_db_rows:
+                    db.merge(s_row)
+                db.commit()
+            except Exception as step_exc:
+                db.rollback()
+                logger.warning(
+                    "Telemetry step commit failed for execution %s (%s); saving core execution status",
+                    getattr(rec, "id", "unknown"),
+                    step_exc,
+                )
+                try:
+                    db.commit()
+                except Exception:
+                    db.rollback()
     except Exception as exc:
         logger.exception("Failed to finalize telemetry for execution %s: %s", getattr(rec, "id", "unknown"), exc)
-        db.rollback()
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
 
 
 def backfill_execution_telemetry_metadata(db: Session | None = None) -> int:

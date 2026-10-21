@@ -77,7 +77,24 @@ def upgrade() -> None:
             existing_nullable=False,
         )
 
-    # 4. Performance & multi-tenant index additions (idempotent with if_not_exists check)
+    # 4. Telemetry and search drift alignment for executions, api_request_logs, and execution_retries
+    drift_columns = [
+        ('executions', 'search_text', 'TEXT'),
+        ('executions', 'queue_wait_ms', 'FLOAT'),
+        ('api_request_logs', 'node_id', 'VARCHAR(64)'),
+        ('api_request_logs', 'connector_name', 'VARCHAR(64)'),
+        ('api_request_logs', 'error_message', 'TEXT'),
+        ('api_request_logs', 'is_truncated', 'BOOLEAN DEFAULT FALSE'),
+        ('api_request_logs', 'created_at', 'TIMESTAMPTZ DEFAULT NOW()'),
+        ('execution_retries', 'retry_trigger', "VARCHAR(32) DEFAULT 'manual'"),
+        ('execution_retries', 'retry_policy', 'VARCHAR(128)'),
+        ('execution_retries', 'failed_step_id', 'VARCHAR(64)'),
+    ]
+    for table_name, col_name, col_type in drift_columns:
+        if sa.inspect(bind).has_table(table_name):
+            bind.execute(sa.text(f'ALTER TABLE "{table_name}" ADD COLUMN IF NOT EXISTS "{col_name}" {col_type};'))
+
+    # 5. Performance & multi-tenant index additions (idempotent with if_not_exists check)
     indexes_to_add = [
         ('ix_auth_sessions_user_id', 'auth_sessions', ['user_id']),
         ('ix_executions_workspace_id', 'executions', ['workspace_id']),
@@ -91,18 +108,30 @@ def upgrade() -> None:
         ('ix_executions_http_status_code', 'executions', ['http_status_code']),
         ('ix_staged_contacts_exec_row', 'staged_contacts', ['execution_id', 'row_number']),
         ('ix_staged_contacts_exec_status', 'staged_contacts', ['execution_id', 'status']),
+        ('ix_api_req_step', 'api_request_logs', ['step_id']),
+        ('ix_api_req_connector', 'api_request_logs', ['connector_id']),
+        ('ix_api_req_status', 'api_request_logs', ['http_status_code']),
+        ('ix_api_req_org', 'api_request_logs', ['organization_id', 'request_timestamp']),
+        ('ix_api_req_connector_name', 'api_request_logs', ['connector_name']),
+        ('ix_exec_retries_retry_policy', 'execution_retries', ['retry_policy']),
     ]
 
-    bind = op.get_bind()
     for idx_name, table_name, cols in indexes_to_add:
-        bind.execute(
-            sa.text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name} ({', '.join(cols)});")
-        )
+        if sa.inspect(bind).has_table(table_name):
+            bind.execute(
+                sa.text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name} ({', '.join(cols)});")
+            )
 
 
 def downgrade() -> None:
     bind = op.get_bind()
     indexes_to_drop = [
+        'ix_exec_retries_retry_policy',
+        'ix_api_req_connector_name',
+        'ix_api_req_org',
+        'ix_api_req_status',
+        'ix_api_req_connector',
+        'ix_api_req_step',
         'ix_staged_contacts_exec_status',
         'ix_staged_contacts_exec_row',
         'ix_executions_http_status_code',
@@ -140,3 +169,4 @@ def downgrade() -> None:
         type_=sa.VARCHAR(length=16),
         existing_nullable=False,
     )
+

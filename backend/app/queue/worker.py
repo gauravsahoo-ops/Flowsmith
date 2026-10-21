@@ -286,7 +286,13 @@ def main() -> None:
     from app.config import get_settings
     settings = get_settings()
     if settings.app_env in ("production", "staging"):
-        from app.db import get_engine, verify_schema_state, _run_alembic_upgrade
+        from app.db import (
+            get_engine,
+            verify_schema_state,
+            _run_alembic_upgrade,
+            _migrate_missing_columns,
+            _migrate_missing_indexes,
+        )
         eng = get_engine()
         deadline = time.monotonic() + 30.0
         while time.monotonic() < deadline:
@@ -294,6 +300,8 @@ def main() -> None:
                 state = verify_schema_state(eng)
                 if state.get("ok"):
                     logger.info("worker: database schema verified at head revision %s", state.get("current_revision"))
+                    _migrate_missing_columns()
+                    _migrate_missing_indexes()
                     break
                 logger.info(
                     "worker: database schema not at head yet (current=%s, expected=%s); waiting for migrations...",
@@ -317,6 +325,8 @@ def main() -> None:
                 )
                 try:
                     _run_alembic_upgrade()
+                    _migrate_missing_columns()
+                    _migrate_missing_indexes()
                     state = verify_schema_state(eng)
                     if state.get("ok"):
                         logger.info("worker: database schema successfully migrated to head revision %s", state.get("current_revision"))
@@ -326,6 +336,11 @@ def main() -> None:
             if not state.get("ok"):
                 logger.error("worker: startup aborted — database schema is not at expected head: %s", state)
                 sys.exit(1)
+    else:
+        from app.db import _migrate_missing_columns, _migrate_missing_indexes
+        _migrate_missing_columns()
+        _migrate_missing_indexes()
+
 
     worker = QueueWorker()
 
