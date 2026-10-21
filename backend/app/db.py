@@ -280,7 +280,8 @@ def init_db(url: str | None = None) -> None:
     except Exception:
         pass
 
-    if settings.run_migrations_on_startup and (is_prod_or_staging or has_alembic):
+    run_migrations = getattr(settings, "run_migrations_on_startup", True)
+    if run_migrations and (is_prod_or_staging or has_alembic):
         # Deployed schema evolves through Alembic revisions safely serialized
         _run_alembic_upgrade()
         _migrate_missing_columns()

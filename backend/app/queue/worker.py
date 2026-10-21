@@ -307,7 +307,8 @@ def main() -> None:
             state = verify_schema_state(eng)
             # Self-healing fallback: if app container did not complete migrations within 30s,
             # execute serialized Alembic upgrade under PostgreSQL advisory lock.
-            if not state.get("ok") and settings.run_migrations_on_startup:
+            run_migrations = getattr(settings, "run_migrations_on_startup", True)
+            if not state.get("ok") and run_migrations:
                 logger.warning(
                     "worker: database schema not at head after 30s wait (current=%s, expected=%s); "
                     "running serialized Alembic migration under PostgreSQL advisory lock...",
