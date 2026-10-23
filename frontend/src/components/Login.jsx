@@ -120,13 +120,6 @@ export default function Login({ onAuthed }) {
       <div className="login-container">
         {/* Left Side: Enterprise Feature Showcase */}
         <div className="login-hero">
-          <div className="login-badge">
-            <span className="badge-pulse-dot" />
-            <span className="badge-title">FLOWSMITH PLATFORM</span>
-            <span className="badge-pill">v2.5 Enterprise Live</span>
-            <span className="badge-pill badge-pill-accent">SOC-2 Ready</span>
-          </div>
-
           <h1 className="hero-heading">
             Automate at the <span className="gradient-text">speed of thought.</span>
           </h1>
@@ -255,7 +248,7 @@ export default function Login({ onAuthed }) {
           <div className="hero-features-list">
             <div className="feature-chip">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>100+ Visual Connectors</span>
+              <span>528 Visual Connectors</span>
             </div>
             <div className="feature-chip">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -466,12 +459,8 @@ export default function Login({ onAuthed }) {
               </button>
             )}
 
-            {/* Footer Credit & System Status */}
+            {/* Footer Credit */}
             <div className="login-card-footer">
-              <div className="footer-status-pill">
-                <span className="status-live-dot" />
-                <span>All systems operational</span>
-              </div>
               <span className="footer-credit">
                 Engineered with precision by <strong className="credit-name">Gaurav</strong>
               </span>

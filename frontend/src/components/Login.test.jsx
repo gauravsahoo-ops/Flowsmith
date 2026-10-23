@@ -7,10 +7,11 @@ describe('Login Component Suite', () => {
   it('renders modern v2.5 platform hero with badges, metrics, and live pipeline', () => {
     const html = renderToStaticMarkup(React.createElement(Login, { onAuthed: () => {} }))
 
-    // Badges & Platform Branding
-    expect(html).toContain('FLOWSMITH PLATFORM')
-    expect(html).toContain('v2.5 Enterprise Live')
-    expect(html).toContain('SOC-2 Ready')
+    // Ensure removed badges and system status pill are absent
+    expect(html).not.toContain('FLOWSMITH PLATFORM')
+    expect(html).not.toContain('v2.5 Enterprise Live')
+    expect(html).not.toContain('SOC-2 Ready')
+    expect(html).not.toContain('All systems operational')
 
     // Headline & Subheading
     expect(html).toContain('Automate at the')
@@ -30,8 +31,8 @@ describe('Login Component Suite', () => {
     expect(html).toContain('Dual Redis + WS')
     expect(html).toContain('45k ops/s')
 
-    // Capability Badges
-    expect(html).toContain('100+ Visual Connectors')
+    // Capability Badges (Valid 528 Connectors)
+    expect(html).toContain('528 Visual Connectors')
     expect(html).toContain('Autonomous AI Agents')
     expect(html).toContain('Self-Healing Execution')
     expect(html).toContain('Zero-Trust Encryption')
@@ -43,8 +44,7 @@ describe('Login Component Suite', () => {
     expect(html).toContain('Password')
     expect(html).toContain('Sign In to Workspace')
 
-    // System Status & Engineer Credit
-    expect(html).toContain('All systems operational')
+    // Engineer Credit
     expect(html).toContain('Gaurav')
   })
 })
