@@ -138,6 +138,7 @@ export default function Login({ onAuthed }) {
                   <span className="dot dot-green" />
                 </div>
                 <span className="flow-card-title">Live Pipeline • sync-crm-contacts</span>
+                <span className="flow-exec-id">#84,219</span>
               </div>
               <div className="flow-card-header-right">
                 <span className="flow-status-pill">
@@ -166,17 +167,19 @@ export default function Login({ onAuthed }) {
                       <span className="node-sub">POST /v1/ingest</span>
                     </div>
                   </div>
-                  <span className="node-handle handle-out" aria-hidden="true" />
+                  <span className="node-handle handle-out" aria-hidden="true" title="Output Port" />
                 </div>
 
-                <div className="flow-connector">
+                {/* Animated Data Wire 1 -> 2 */}
+                <div className="flow-connector" aria-hidden="true">
                   <span className="connector-wire" />
                   <span className="connector-pulse" />
+                  <span className="connector-wire-glow" />
                 </div>
 
                 {/* Node 2: Salesforce Sync */}
                 <div className="flow-node node-salesforce">
-                  <span className="node-handle handle-in" aria-hidden="true" />
+                  <span className="node-handle handle-in" aria-hidden="true" title="Input Port" />
                   <div className="node-card-top">
                     <span className="node-type-tag">CONNECTOR</span>
                     <span className="node-badge-status status-sync">Streamed</span>
@@ -192,23 +195,25 @@ export default function Login({ onAuthed }) {
                       <span className="node-sub">Sync Record</span>
                     </div>
                   </div>
-                  <span className="node-handle handle-out" aria-hidden="true" />
+                  <span className="node-handle handle-out" aria-hidden="true" title="Output Port" />
                 </div>
 
-                <div className="flow-connector">
+                {/* Animated Data Wire 2 -> 3 */}
+                <div className="flow-connector" aria-hidden="true">
                   <span className="connector-wire" />
-                  <span className="connector-pulse" style={{ animationDelay: '0.9s' }} />
+                  <span className="connector-pulse pulse-delay-1" />
+                  <span className="connector-wire-glow" />
                 </div>
 
                 {/* Node 3: AI Agent */}
                 <div className="flow-node node-ai">
-                  <span className="node-handle handle-in" aria-hidden="true" />
+                  <span className="node-handle handle-in" aria-hidden="true" title="Input Port" />
                   <div className="node-card-top">
                     <span className="node-type-tag">AI RUNTIME</span>
                     <span className="node-badge-status status-ai">Complete</span>
                   </div>
                   <div className="node-body">
-                    <div className="node-icon">
+                    <div className="node-icon ai-glow-icon">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                       </svg>
@@ -218,6 +223,31 @@ export default function Login({ onAuthed }) {
                       <span className="node-sub">Enrich Data</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Real-time Execution Stream Ticker */}
+            <div className="flow-execution-log">
+              <div className="flow-log-header">
+                <span className="flow-log-label">
+                  <span className="flow-log-beacon" />
+                  LIVE EXECUTION STREAM
+                </span>
+                <span className="flow-log-timer">0.038s total</span>
+              </div>
+              <div className="flow-log-entries">
+                <div className="flow-log-row">
+                  <span className="log-badge-subtle badge-green">INGEST</span>
+                  <span className="log-code">POST /v1/ingest</span>
+                  <span className="log-arrow" aria-hidden="true">→</span>
+                  <span className="log-desc">24 records payload parsed</span>
+                </div>
+                <div className="flow-log-row">
+                  <span className="log-badge-subtle badge-purple">AI REASON</span>
+                  <span className="log-code">Claude 3.5 Sonnet</span>
+                  <span className="log-arrow" aria-hidden="true">→</span>
+                  <span className="log-desc">Autonomous lead scoring complete</span>
                 </div>
               </div>
             </div>
