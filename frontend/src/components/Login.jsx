@@ -138,59 +138,93 @@ export default function Login({ onAuthed }) {
           {/* Interactive Visual Flow Diagram Preview */}
           <div className="hero-flow-card">
             <div className="flow-card-header">
-              <div className="flow-card-dots">
-                <span className="dot dot-red" />
-                <span className="dot dot-yellow" />
-                <span className="dot dot-green" />
+              <div className="flow-card-header-left">
+                <div className="flow-card-dots">
+                  <span className="dot dot-red" />
+                  <span className="dot dot-yellow" />
+                  <span className="dot dot-green" />
+                </div>
+                <span className="flow-card-title">Live Pipeline • sync-crm-contacts</span>
               </div>
-              <span className="flow-card-title">Live Pipeline • sync-crm-contacts</span>
-              <span className="flow-status-pill">Active • 99.99% SLA</span>
+              <div className="flow-card-header-right">
+                <span className="flow-status-pill">
+                  <span className="flow-status-beacon" />
+                  Active • 99.99% SLA
+                </span>
+              </div>
             </div>
 
-            <div className="flow-nodes-track">
-              <div className="flow-node node-trigger">
-                <div className="node-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
+            <div className="flow-canvas-grid">
+              <div className="flow-nodes-track">
+                {/* Node 1: Webhook Trigger */}
+                <div className="flow-node node-trigger">
+                  <div className="node-card-top">
+                    <span className="node-type-tag">TRIGGER</span>
+                    <span className="node-badge-status status-ok">200 OK</span>
+                  </div>
+                  <div className="node-body">
+                    <div className="node-icon">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                      </svg>
+                    </div>
+                    <div className="node-info">
+                      <span className="node-name">Webhook</span>
+                      <span className="node-sub">POST /v1/ingest</span>
+                    </div>
+                  </div>
+                  <span className="node-handle handle-out" aria-hidden="true" />
                 </div>
-                <div className="node-info">
-                  <span className="node-name">Webhook</span>
-                  <span className="node-sub">Trigger</span>
-                </div>
-              </div>
 
-              <div className="flow-connector">
-                <span className="connector-line" />
-                <span className="connector-pulse" />
-              </div>
-
-              <div className="flow-node node-salesforce">
-                <div className="node-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-                  </svg>
+                <div className="flow-connector">
+                  <span className="connector-wire" />
+                  <span className="connector-pulse" />
                 </div>
-                <div className="node-info">
-                  <span className="node-name">Salesforce</span>
-                  <span className="node-sub">Sync Record</span>
-                </div>
-              </div>
 
-              <div className="flow-connector">
-                <span className="connector-line" />
-                <span className="connector-pulse" style={{ animationDelay: '0.9s' }} />
-              </div>
-
-              <div className="flow-node node-ai">
-                <div className="node-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                  </svg>
+                {/* Node 2: Salesforce Sync */}
+                <div className="flow-node node-salesforce">
+                  <span className="node-handle handle-in" aria-hidden="true" />
+                  <div className="node-card-top">
+                    <span className="node-type-tag">CONNECTOR</span>
+                    <span className="node-badge-status status-sync">Streamed</span>
+                  </div>
+                  <div className="node-body">
+                    <div className="node-icon">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+                      </svg>
+                    </div>
+                    <div className="node-info">
+                      <span className="node-name">Salesforce</span>
+                      <span className="node-sub">Sync Record</span>
+                    </div>
+                  </div>
+                  <span className="node-handle handle-out" aria-hidden="true" />
                 </div>
-                <div className="node-info">
-                  <span className="node-name">AI Agent</span>
-                  <span className="node-sub">Enrich Data</span>
+
+                <div className="flow-connector">
+                  <span className="connector-wire" />
+                  <span className="connector-pulse" style={{ animationDelay: '0.9s' }} />
+                </div>
+
+                {/* Node 3: AI Agent */}
+                <div className="flow-node node-ai">
+                  <span className="node-handle handle-in" aria-hidden="true" />
+                  <div className="node-card-top">
+                    <span className="node-type-tag">AI RUNTIME</span>
+                    <span className="node-badge-status status-ai">Complete</span>
+                  </div>
+                  <div className="node-body">
+                    <div className="node-icon">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                      </svg>
+                    </div>
+                    <div className="node-info">
+                      <span className="node-name">AI Agent</span>
+                      <span className="node-sub">Enrich Data</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
