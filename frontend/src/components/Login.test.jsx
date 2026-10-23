@@ -19,14 +19,12 @@ describe('Login Component Suite', () => {
     expect(html).toContain('autonomous AI agents')
 
     // Live Pipeline Card & Nodes
-    expect(html).toContain('Live Pipeline • sync-crm-contacts')
-    expect(html).toContain('#84,219')
+    expect(html).toContain('Live Pipeline Execution')
+    expect(html).not.toContain('sync-crm-contacts')
     expect(html).toContain('Active • 99.99% SLA')
     expect(html).toContain('Webhook')
     expect(html).toContain('Salesforce')
     expect(html).toContain('AI Agent')
-    expect(html).toContain('LIVE EXECUTION STREAM')
-    expect(html).toContain('Claude 3.5 Sonnet')
 
     // Enterprise Performance Metrics
     expect(html).toContain('12ms (P99)')
