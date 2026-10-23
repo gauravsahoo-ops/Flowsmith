@@ -9,6 +9,7 @@ secret unset).
 from __future__ import annotations
 
 import logging
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
@@ -64,6 +65,38 @@ def _require_org(db: Session, org_id: str, user: User) -> Organization:
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Organization not found.")
     return org
+
+
+def _safe_return_url(value: str, *, base: str, default_path: str) -> str:
+    """Constrain Stripe success/cancel URLs to the deployment origin.
+
+    Allowing an arbitrary absolute URL turns checkout into an open redirect
+    and can leak the Stripe session id to a third party. Relative paths are
+    allowed only when they start with ``/``.
+    """
+    raw = (value or "").strip()
+    if not raw:
+        return f"{base}{default_path}" if base else default_path
+    parsed = urlparse(raw)
+    if parsed.scheme or parsed.netloc:
+        base_parsed = urlparse(base)
+        if not base_parsed.scheme or not base_parsed.netloc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "PUBLIC_URL must be configured before using billing.",
+            )
+        if (parsed.scheme, parsed.netloc) != (base_parsed.scheme, base_parsed.netloc):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Billing return URLs must stay on the configured PUBLIC_URL origin.",
+            )
+        return raw
+    if not raw.startswith("/") or raw.startswith("//"):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Billing return URLs must be absolute on PUBLIC_URL or start with '/'.",
+        )
+    return f"{base}{raw}" if base else raw
 
 
 @router.get("/api/billing/plans")
@@ -122,9 +155,13 @@ async def start_checkout(
     org = _require_org(db, body.organization_id, user)
 
     settings = get_settings()
-    base = (settings.public_url or "").rstrip("/")
-    success_url = body.success_url or f"{base}/?billing=success"
-    cancel_url = body.cancel_url or f"{base}/?billing=cancelled"
+    base = (settings.public_url or "").strip().rstrip("/")
+    success_url = _safe_return_url(
+        body.success_url, base=base, default_path="/?billing=success"
+    )
+    cancel_url = _safe_return_url(
+        body.cancel_url, base=base, default_path="/?billing=cancelled"
+    )
 
     try:
         result = await create_checkout_session(

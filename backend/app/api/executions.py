@@ -110,7 +110,7 @@ def _to_dict(
 
     # Dynamic fallback if integration metadata or status code is missing/default
     # CRITICAL PERFORMANCE GUARD: Avoid triggering lazy loading on deferred columns (trace, workflow_data)
-    from sqlalchemy.orm.attributes import NO_VALUE
+    from sqlalchemy.orm.base import NO_VALUE
 
     raw_wf_data = rec.__dict__.get("workflow_data")
     wf_data = raw_wf_data if (raw_wf_data is not None and raw_wf_data is not NO_VALUE) else None
@@ -257,7 +257,7 @@ def start_execution(
     parent_execution_id: str | None = None,
     retry_count: int = 0,
     correlation_id: str | None = None,
-    organization_id: int | None = None,
+    organization_id: str | None = None,
 ) -> str:
     """Create the execution row (queued) and enqueue the job (spec 25/13).
 
@@ -496,14 +496,19 @@ def _build_execution_query(
         else:
             stmt = stmt.where(Execution.status == status)
     if connector:
-        term = f"%{connector.strip()}%"
+        conn_term = connector.strip()
         stmt = stmt.where(
-            (Execution.source_connector.ilike(term)) | (Execution.destination_connector.ilike(term))
+            (Execution.source_connector.icontains(conn_term, autoescape=True))
+            | (Execution.destination_connector.icontains(conn_term, autoescape=True))
         )
     if source_object:
-        stmt = stmt.where(Execution.source_object.ilike(f"%{source_object.strip()}%"))
+        stmt = stmt.where(
+            Execution.source_object.icontains(source_object.strip(), autoescape=True)
+        )
     if destination_object:
-        stmt = stmt.where(Execution.destination_object.ilike(f"%{destination_object.strip()}%"))
+        stmt = stmt.where(
+            Execution.destination_object.icontains(destination_object.strip(), autoescape=True)
+        )
     if http_status is not None:
         stmt = stmt.where(Execution.http_status_code == http_status)
     if error_type:
@@ -524,7 +529,6 @@ def _build_execution_query(
             pass
     if search and search.strip():
         term = search.strip()
-        sterm = f"%{term}%"
         from app.models.user import User
         from app.models.workflow import WorkflowRecord
         from app.models.monitoring_telemetry import ExecutionStep, ApiRequestTelemetry
@@ -536,28 +540,34 @@ def _build_execution_query(
         matching_wf_ids = [
             wid for (wid,) in db.execute(
                 select(WorkflowRecord.id).where(
+                    WorkflowRecord.id.in_(ids),
                     or_(
-                        WorkflowRecord.name.ilike(sterm),
-                        WorkflowRecord.description.ilike(sterm),
-                    )
+                        WorkflowRecord.name.icontains(term, autoescape=True),
+                        WorkflowRecord.description.icontains(term, autoescape=True),
+                    ),
                 )
             ).all()
         ]
 
         matching_user_ids = [
             uid for (uid,) in db.execute(
-                select(User.id).where(User.email.ilike(sterm))
+                select(User.id).where(
+                    User.id.in_(
+                        select(Execution.user_id).where(Execution.workflow_id.in_(ids))
+                    ),
+                    User.email.icontains(term, autoescape=True),
+                )
             ).all()
         ]
 
         # ExecutionStep matches
         step_preds = [
-            ExecutionStep.step_name.ilike(sterm),
-            ExecutionStep.node_id.ilike(sterm),
-            ExecutionStep.node_type.ilike(sterm),
-            ExecutionStep.error_message.ilike(sterm),
-            cast(ExecutionStep.inputs, String).ilike(sterm),
-            cast(ExecutionStep.outputs, String).ilike(sterm),
+            ExecutionStep.step_name.icontains(term, autoescape=True),
+            ExecutionStep.node_id.icontains(term, autoescape=True),
+            ExecutionStep.node_type.icontains(term, autoescape=True),
+            ExecutionStep.error_message.icontains(term, autoescape=True),
+            cast(ExecutionStep.inputs, String).icontains(term, autoescape=True),
+            cast(ExecutionStep.outputs, String).icontains(term, autoescape=True),
         ]
         if dt_start and dt_end:
             step_preds.append(ExecutionStep.started_at.between(dt_start, dt_end))
@@ -566,7 +576,8 @@ def _build_execution_query(
         matching_step_exec_ids = [
             eid for (eid,) in db.execute(
                 select(ExecutionStep.execution_id)
-                .where(or_(*step_preds))
+                .join(Execution, ExecutionStep.execution_id == Execution.id)
+                .where(Execution.workflow_id.in_(ids), or_(*step_preds))
                 .distinct()
                 .limit(500)
             ).all()
@@ -574,14 +585,14 @@ def _build_execution_query(
 
         # ApiRequestTelemetry matches
         api_preds = [
-            ApiRequestTelemetry.endpoint_url.ilike(sterm),
-            ApiRequestTelemetry.connector_name.ilike(sterm),
-            ApiRequestTelemetry.http_method.ilike(sterm),
-            ApiRequestTelemetry.error_message.ilike(sterm),
-            cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
-            cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
-            cast(ApiRequestTelemetry.request_headers, String).ilike(sterm),
-            cast(ApiRequestTelemetry.query_params, String).ilike(sterm),
+            ApiRequestTelemetry.endpoint_url.icontains(term, autoescape=True),
+            ApiRequestTelemetry.connector_name.icontains(term, autoescape=True),
+            ApiRequestTelemetry.http_method.icontains(term, autoescape=True),
+            ApiRequestTelemetry.error_message.icontains(term, autoescape=True),
+            cast(ApiRequestTelemetry.request_payload, String).icontains(term, autoescape=True),
+            cast(ApiRequestTelemetry.response_payload, String).icontains(term, autoescape=True),
+            cast(ApiRequestTelemetry.request_headers, String).icontains(term, autoescape=True),
+            cast(ApiRequestTelemetry.query_params, String).icontains(term, autoescape=True),
         ]
         if dt_start and dt_end:
             api_preds.append(ApiRequestTelemetry.created_at.between(dt_start, dt_end))
@@ -589,7 +600,8 @@ def _build_execution_query(
         matching_req_exec_ids = [
             eid for (eid,) in db.execute(
                 select(ApiRequestTelemetry.execution_id)
-                .where(or_(*api_preds))
+                .join(Execution, ApiRequestTelemetry.execution_id == Execution.id)
+                .where(Execution.workflow_id.in_(ids), or_(*api_preds))
                 .distinct()
                 .limit(500)
             ).all()
@@ -600,22 +612,22 @@ def _build_execution_query(
         try:
             from app.models.staged_record import StagedContactRecord
             staged_preds = [
-                StagedContactRecord.first_name.ilike(sterm),
-                StagedContactRecord.last_name.ilike(sterm),
-                StagedContactRecord.email.ilike(sterm),
-                StagedContactRecord.phone.ilike(sterm),
-                StagedContactRecord.department.ilike(sterm),
-                StagedContactRecord.title.ilike(sterm),
-                StagedContactRecord.status.ilike(sterm),
-                StagedContactRecord.mailing_street.ilike(sterm),
-                StagedContactRecord.mailing_city.ilike(sterm),
-                StagedContactRecord.mailing_state.ilike(sterm),
-                StagedContactRecord.mailing_postal_code.ilike(sterm),
-                StagedContactRecord.mailing_country.ilike(sterm),
-                StagedContactRecord.description.ilike(sterm),
-                StagedContactRecord.error_message.ilike(sterm),
-                StagedContactRecord.salesforce_id.ilike(sterm),
-                cast(StagedContactRecord.raw_data, String).ilike(sterm),
+                StagedContactRecord.first_name.icontains(term, autoescape=True),
+                StagedContactRecord.last_name.icontains(term, autoescape=True),
+                StagedContactRecord.email.icontains(term, autoescape=True),
+                StagedContactRecord.phone.icontains(term, autoescape=True),
+                StagedContactRecord.department.icontains(term, autoescape=True),
+                StagedContactRecord.title.icontains(term, autoescape=True),
+                StagedContactRecord.status.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_street.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_city.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_state.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_postal_code.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_country.icontains(term, autoescape=True),
+                StagedContactRecord.description.icontains(term, autoescape=True),
+                StagedContactRecord.error_message.icontains(term, autoescape=True),
+                StagedContactRecord.salesforce_id.icontains(term, autoescape=True),
+                cast(StagedContactRecord.raw_data, String).icontains(term, autoescape=True),
             ]
             if dt_start and dt_end:
                 staged_preds.append(StagedContactRecord.created_at.between(dt_start, dt_end))
@@ -623,7 +635,8 @@ def _build_execution_query(
             matching_staged_exec_ids = [
                 eid for (eid,) in db.execute(
                     select(StagedContactRecord.execution_id)
-                    .where(or_(*staged_preds))
+                    .join(Execution, StagedContactRecord.execution_id == Execution.id)
+                    .where(Execution.workflow_id.in_(ids), or_(*staged_preds))
                     .distinct()
                     .limit(500)
                 ).all()
@@ -636,19 +649,21 @@ def _build_execution_query(
         try:
             from app.models.error_event import ErrorEvent
             err_preds = [
-                ErrorEvent.message.ilike(sterm),
-                ErrorEvent.title.ilike(sterm),
-                ErrorEvent.code.ilike(sterm),
-                ErrorEvent.category.ilike(sterm),
-                ErrorEvent.resolution.ilike(sterm),
+                ErrorEvent.message.icontains(term, autoescape=True),
+                ErrorEvent.title.icontains(term, autoescape=True),
+                ErrorEvent.code.icontains(term, autoescape=True),
+                ErrorEvent.category.icontains(term, autoescape=True),
+                ErrorEvent.resolution.icontains(term, autoescape=True),
             ]
             if dt_start and dt_end:
-                err_preds.append(ErrorEvent.occurred_at.between(dt_start, dt_end))
+                err_preds.append(ErrorEvent.created_at.between(dt_start, dt_end))
 
             matching_err_exec_ids = [
                 eid for (eid,) in db.execute(
                     select(ErrorEvent.execution_id)
+                    .join(Execution, ErrorEvent.execution_id == Execution.id)
                     .where(
+                        Execution.workflow_id.in_(ids),
                         ErrorEvent.execution_id.isnot(None),
                         or_(*err_preds),
                     )
@@ -659,27 +674,27 @@ def _build_execution_query(
         except Exception:
             pass
 
-        predicates = [
-            Execution.id.ilike(sterm),
-            Execution.source_connector.ilike(sterm),
-            Execution.destination_connector.ilike(sterm),
-            Execution.source_object.ilike(sterm),
-            Execution.destination_object.ilike(sterm),
-            Execution.trigger.ilike(sterm),
-            Execution.status.ilike(sterm),
-            Execution.api_endpoint.ilike(sterm),
-            Execution.http_method.ilike(sterm),
-            Execution.error_summary.ilike(sterm),
-            Execution.error_code.ilike(sterm),
-            Execution.error_type.ilike(sterm),
-            Execution.correlation_id.ilike(sterm),
-            Execution.parent_execution_id.ilike(sterm),
-            Execution.search_text.ilike(sterm),
-            cast(Execution.error, String).ilike(sterm),
-            cast(Execution.trigger_data, String).ilike(sterm),
-            cast(Execution.results, String).ilike(sterm),
-            cast(Execution.trace, String).ilike(sterm),
-            cast(Execution.workflow_data, String).ilike(sterm),
+        predicates: list[Any] = [
+            Execution.id.icontains(term, autoescape=True),
+            Execution.source_connector.icontains(term, autoescape=True),
+            Execution.destination_connector.icontains(term, autoescape=True),
+            Execution.source_object.icontains(term, autoescape=True),
+            Execution.destination_object.icontains(term, autoescape=True),
+            Execution.trigger.icontains(term, autoescape=True),
+            Execution.status.icontains(term, autoescape=True),
+            Execution.api_endpoint.icontains(term, autoescape=True),
+            Execution.http_method.icontains(term, autoescape=True),
+            Execution.error_summary.icontains(term, autoescape=True),
+            Execution.error_code.icontains(term, autoescape=True),
+            Execution.error_type.icontains(term, autoescape=True),
+            Execution.correlation_id.icontains(term, autoescape=True),
+            Execution.parent_execution_id.icontains(term, autoescape=True),
+            Execution.search_text.icontains(term, autoescape=True),
+            cast(Execution.error, String).icontains(term, autoescape=True),
+            cast(Execution.trigger_data, String).icontains(term, autoescape=True),
+            cast(Execution.results, String).icontains(term, autoescape=True),
+            cast(Execution.trace, String).icontains(term, autoescape=True),
+            cast(Execution.workflow_data, String).icontains(term, autoescape=True),
         ]
 
         if dt_start and dt_end:
@@ -696,13 +711,12 @@ def _build_execution_query(
         words = [w.strip() for w in term.split() if len(w.strip()) >= 2]
         if len(words) > 1:
             for word in words[:4]:
-                wterm = f"%{word}%"
-                predicates.append(Execution.search_text.ilike(wterm))
-                predicates.append(Execution.id.ilike(wterm))
-                predicates.append(Execution.status.ilike(wterm))
-                predicates.append(Execution.source_connector.ilike(wterm))
-                predicates.append(Execution.destination_connector.ilike(wterm))
-                predicates.append(Execution.error_summary.ilike(wterm))
+                predicates.append(Execution.search_text.icontains(word, autoescape=True))
+                predicates.append(Execution.id.icontains(word, autoescape=True))
+                predicates.append(Execution.status.icontains(word, autoescape=True))
+                predicates.append(Execution.source_connector.icontains(word, autoescape=True))
+                predicates.append(Execution.destination_connector.icontains(word, autoescape=True))
+                predicates.append(Execution.error_summary.icontains(word, autoescape=True))
 
         if matching_wf_ids:
             predicates.append(Execution.workflow_id.in_(matching_wf_ids))
@@ -787,7 +801,7 @@ def list_executions(
 
     stmt = _build_execution_query(
         db,
-        ids,
+        list(ids),
         workflow_id=workflow_id,
         status=status,
         connector=connector,
@@ -836,32 +850,31 @@ def list_executions(
     err_by_exec: dict[str, list[Any]] = defaultdict(list)
 
     if search and search.strip() and rec_ids:
-        term_clean = search.strip()
-        sterm = f"%{term_clean}%"
+        term = search.strip()
         from app.services.telemetry_service import parse_datetime_query
-        parsed_dt = parse_datetime_query(term_clean)
+        parsed_dt = parse_datetime_query(term)
         date_win = parsed_dt.get("window") if parsed_dt else None
         dt_start, dt_end = date_win if date_win else (None, None)
 
         try:
             from app.models.staged_record import StagedContactRecord
             staged_filters = [
-                StagedContactRecord.first_name.ilike(sterm),
-                StagedContactRecord.last_name.ilike(sterm),
-                StagedContactRecord.email.ilike(sterm),
-                StagedContactRecord.phone.ilike(sterm),
-                StagedContactRecord.department.ilike(sterm),
-                StagedContactRecord.title.ilike(sterm),
-                StagedContactRecord.status.ilike(sterm),
-                StagedContactRecord.mailing_street.ilike(sterm),
-                StagedContactRecord.mailing_city.ilike(sterm),
-                StagedContactRecord.mailing_state.ilike(sterm),
-                StagedContactRecord.mailing_postal_code.ilike(sterm),
-                StagedContactRecord.mailing_country.ilike(sterm),
-                StagedContactRecord.description.ilike(sterm),
-                StagedContactRecord.error_message.ilike(sterm),
-                StagedContactRecord.salesforce_id.ilike(sterm),
-                cast(StagedContactRecord.raw_data, String).ilike(sterm),
+                StagedContactRecord.first_name.icontains(term, autoescape=True),
+                StagedContactRecord.last_name.icontains(term, autoescape=True),
+                StagedContactRecord.email.icontains(term, autoescape=True),
+                StagedContactRecord.phone.icontains(term, autoescape=True),
+                StagedContactRecord.department.icontains(term, autoescape=True),
+                StagedContactRecord.title.icontains(term, autoescape=True),
+                StagedContactRecord.status.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_street.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_city.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_state.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_postal_code.icontains(term, autoescape=True),
+                StagedContactRecord.mailing_country.icontains(term, autoescape=True),
+                StagedContactRecord.description.icontains(term, autoescape=True),
+                StagedContactRecord.error_message.icontains(term, autoescape=True),
+                StagedContactRecord.salesforce_id.icontains(term, autoescape=True),
+                cast(StagedContactRecord.raw_data, String).icontains(term, autoescape=True),
             ]
             if dt_start and dt_end:
                 staged_filters.append(StagedContactRecord.created_at.between(dt_start, dt_end))
@@ -879,14 +892,14 @@ def list_executions(
 
         try:
             api_filters = [
-                ApiRequestTelemetry.endpoint_url.ilike(sterm),
-                ApiRequestTelemetry.connector_name.ilike(sterm),
-                ApiRequestTelemetry.http_method.ilike(sterm),
-                ApiRequestTelemetry.error_message.ilike(sterm),
-                cast(ApiRequestTelemetry.request_payload, String).ilike(sterm),
-                cast(ApiRequestTelemetry.response_payload, String).ilike(sterm),
-                cast(ApiRequestTelemetry.request_headers, String).ilike(sterm),
-                cast(ApiRequestTelemetry.query_params, String).ilike(sterm),
+                ApiRequestTelemetry.endpoint_url.icontains(term, autoescape=True),
+                ApiRequestTelemetry.connector_name.icontains(term, autoescape=True),
+                ApiRequestTelemetry.http_method.icontains(term, autoescape=True),
+                ApiRequestTelemetry.error_message.icontains(term, autoescape=True),
+                cast(ApiRequestTelemetry.request_payload, String).icontains(term, autoescape=True),
+                cast(ApiRequestTelemetry.response_payload, String).icontains(term, autoescape=True),
+                cast(ApiRequestTelemetry.request_headers, String).icontains(term, autoescape=True),
+                cast(ApiRequestTelemetry.query_params, String).icontains(term, autoescape=True),
             ]
             if dt_start and dt_end:
                 api_filters.append(ApiRequestTelemetry.created_at.between(dt_start, dt_end))
@@ -905,12 +918,12 @@ def list_executions(
         try:
             from app.models.error_event import ErrorEvent
             err_filters = [
-                ErrorEvent.message.ilike(sterm),
-                ErrorEvent.title.ilike(sterm),
-                ErrorEvent.code.ilike(sterm),
+                ErrorEvent.message.icontains(term, autoescape=True),
+                ErrorEvent.title.icontains(term, autoescape=True),
+                ErrorEvent.code.icontains(term, autoescape=True),
             ]
             if dt_start and dt_end:
-                err_filters.append(ErrorEvent.occurred_at.between(dt_start, dt_end))
+                err_filters.append(ErrorEvent.created_at.between(dt_start, dt_end))
 
             for e in db.scalars(
                 select(ErrorEvent).where(
@@ -973,7 +986,7 @@ def export_executions_csv(
 
     stmt = _build_execution_query(
         db,
-        ids,
+        list(ids),
         workflow_id=workflow_id,
         status=status,
         connector=connector,
@@ -1068,7 +1081,7 @@ def get_execution(
 
     from app.models.workflow import WorkflowRecord
     wf_rec = db.get(WorkflowRecord, rec.workflow_id)
-    rec.workflow_name = wf_rec.name if wf_rec else rec.workflow_id
+    workflow_name = wf_rec.name if wf_rec else rec.workflow_id
 
     results_outputs = (rec.results or {}).get("outputs") if isinstance(rec.results, dict) else {}
     results_inputs = (rec.results or {}).get("inputs") if isinstance(rec.results, dict) else {}
@@ -1092,7 +1105,7 @@ def get_execution(
     trace = redact_trace_steps(trace)
 
     data = {
-        **_to_dict(rec),
+        **_to_dict(rec, wf_name=workflow_name),
         "results": redact_results(raw_results),
         "node_statuses": rec.node_statuses,
         "trace": trace,
@@ -1656,7 +1669,7 @@ def cancel_execution(execution_id: str, user: User = Depends(get_current_user), 
 
     # 1. Waiting approval/auth: terminal immediately
     if rec.status in ("waiting_approval", "waiting_auth"):
-        values = {
+        values: dict[Any, Any] = {
             "status": "cancelled",
             "finished_at": datetime.now(UTC),
             "pause_state": None,
@@ -1682,7 +1695,7 @@ def cancel_execution(execution_id: str, user: User = Depends(get_current_user), 
 
     # 2. Queued execution: not claimed by a worker yet -> transition directly to cancelled
     if rec.status == "queued":
-        values = {
+        values: dict[Any, Any] = {
             "status": "cancelled",
             "finished_at": datetime.now(UTC),
             "error": rec.error or {"code": "CANCELLED_IN_QUEUE", "message": "Execution cancelled before starting."},
@@ -1707,7 +1720,7 @@ def cancel_execution(execution_id: str, user: User = Depends(get_current_user), 
 
     # 3. Already cancelling -> FORCE CANCEL immediately
     if rec.status == "cancelling":
-        values = {
+        values: dict[Any, Any] = {
             "status": "cancelled",
             "finished_at": datetime.now(UTC),
             "error": rec.error or {"code": "FORCE_CANCELLED", "message": "Execution force-cancelled by user."},

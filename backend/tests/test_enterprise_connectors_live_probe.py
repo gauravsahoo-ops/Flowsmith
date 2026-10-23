@@ -88,7 +88,7 @@ async def test_mysql_connector_live_probe_success():
 @pytest.mark.asyncio
 async def test_mongodb_connector_live_probe_success():
     conn = MongoDBConnector()
-    conn._provider._run = AsyncMock(return_value={"ok": 1.0})
+    conn._provider.ping = AsyncMock(return_value={"ok": 1.0})
 
     res = await conn.test_connection({"uri": "mongodb://localhost:27017"})
     assert res["ok"] is True

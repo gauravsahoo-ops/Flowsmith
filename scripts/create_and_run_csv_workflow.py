@@ -2,6 +2,7 @@ import uuid
 import json
 import asyncio
 import sys
+from typing import Any
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 from datetime import datetime, timezone
@@ -157,8 +158,9 @@ return [{
                 exec_row.error = {"message": str(result.error)}
             db.commit()
             print(f"Execution finished: Status={exec_row.status}")
-            print(f"Trace events recorded: {len(exec_row.trace or [])}")
-            for item in (exec_row.trace or []):
+            trace_items: Any = getattr(exec_row, "trace", None) or []
+            print(f"Trace events recorded: {len(trace_items)}")
+            for item in trace_items:
                 print(f" - Node {item.get('node_id')} ({item.get('node_type')}): status={item.get('status')}")
 
     print("\n--- WORKFLOW READY ---")

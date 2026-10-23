@@ -56,7 +56,7 @@ def rotate_keys(apply: bool = False) -> tuple[str, int, int]:
             # Encrypt with new key
             new_token = fernet_new.encrypt(raw_plaintext.encode()).decode()
             if apply:
-                c.data = f"k0:{new_token}"
+                c.data = f"k0:{new_token}".encode()
             credentials_count += 1
 
         # 2. Re-encrypt environments table

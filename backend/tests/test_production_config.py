@@ -14,6 +14,7 @@ def _settings(**overrides) -> Settings:
         "jwt_secret": "prod-secret-that-is-long-enough-32-bytes",
         "database_url": "postgresql://u:p@localhost:5432/db",
         "cors_origins": "https://app.example.com",
+        "registration_bootstrap_token": "bootstrap-token-with-at-least-32-characters",
         # Hermetic: the ambient backend\.env sets a dev SSRF allowlist that
         # would otherwise trip the production bypass gate.
         "safe_http_allowed_hosts": "",

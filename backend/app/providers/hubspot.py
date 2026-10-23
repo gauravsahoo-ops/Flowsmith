@@ -492,6 +492,8 @@ class HubSpotProviderClient:
         self._raise_for_status(response, "get properties")
         data = response.json()
         props = data.get("results") if isinstance(data, dict) else []
+        if not isinstance(props, list):
+            props = []
         return {"object_type": ot, "properties": props, "count": len(props), "success": True}
 
     async def associate_records(

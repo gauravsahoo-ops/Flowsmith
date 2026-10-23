@@ -282,10 +282,15 @@ def init_db(url: str | None = None) -> None:
 
     run_migrations = getattr(settings, "run_migrations_on_startup", True)
     if run_migrations and (is_prod_or_staging or has_alembic):
-        # Deployed schema evolves through Alembic revisions safely serialized
+        # Deployed schema evolves through Alembic revisions safely serialized.
         _run_alembic_upgrade()
-        _migrate_missing_columns()
-        _migrate_missing_indexes()
+        if not is_prod_or_staging:
+            # The ad-hoc column/index patcher is a development convenience for
+            # pre-Alembic SQLite databases. In production every schema change
+            # must be represented by a reviewed revision; issuing DDL from the
+            # startup path can race across replicas and bypass migration tests.
+            _migrate_missing_columns()
+            _migrate_missing_indexes()
         return
 
     if is_prod_or_staging:

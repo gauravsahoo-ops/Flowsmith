@@ -52,6 +52,9 @@ test_report.html
 Smithflow/
 Flowsmith/
 my-automation-tool
+route_scan.py
+pyright_audit.json
+
 
 # Agent rules & local customizations
 .agents/

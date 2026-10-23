@@ -160,6 +160,7 @@ def _resolve_access(db: Session, access: RagAccess) -> None:
             .join(OrganizationMember, Workspace.organization_id == OrganizationMember.organization_id)
             .where(
                 OrganizationMember.user_id == access.user_id,
+                Workspace.is_private.is_(False),
                 Workspace.id.notin_(list(access.readable_workspaces)),
             )
         ).all()

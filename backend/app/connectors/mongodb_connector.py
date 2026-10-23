@@ -61,7 +61,7 @@ class MongoDBConnector(ConnectorSDK):
         import time
         start_t = time.perf_counter()
         try:
-            res = await self._provider._run(creds, "ping", lambda c: c.admin.command("ping"))
+            res = await self._provider.ping(creds)
             elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
             if res.get("ok"):
                 return {"ok": True, "message": "Successfully connected to MongoDB (ping OK).", "latency_ms": elapsed_ms}

@@ -283,25 +283,15 @@ def connect_provider(
     try:
         db.commit()
     except Exception as exc:
+        # Schema changes belong to migrations. Running DDL from a request
+        # path is unsafe under concurrency and can block behind table locks;
+        # fail clearly instead of silently mutating production schema.
         db.rollback()
-        logger.warning("Failed to store OAuthState, attempting self-healing migration: %s", exc)
-        from sqlalchemy import text
-        try:
-            if db.bind and db.bind.dialect.name == "postgresql":
-                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_id VARCHAR(255)"))
-                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS client_secret VARCHAR(512)"))
-                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS name VARCHAR(255)"))
-                db.execute(text("ALTER TABLE oauth_states ADD COLUMN IF NOT EXISTS allowed_domains VARCHAR(512)"))
-            db.commit()
-            db.add(oauth_row)
-            db.commit()
-        except Exception as retry_exc:
-            db.rollback()
-            logger.error("Could not self-heal oauth_states schema: %s", retry_exc)
-            raise HTTPException(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "Failed to record OAuth session state.",
-            )
+        logger.error("Failed to store OAuthState: %s", exc)
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "Failed to record OAuth session state.",
+        ) from exc
 
     prompt = (body.prompt or "").strip() if body else ""
     try:

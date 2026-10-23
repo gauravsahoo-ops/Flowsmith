@@ -307,8 +307,16 @@ def test_api_restart_recovers_pending_jobs(client):
         assert db.scalar(
             select(func.count()).select_from(Execution).where(Execution.id == execution_id)
         ) == 1
+        # The execution becomes terminal just before queue.complete(); wait
+        # for the job row rather than racing the final queue transition.
         row = db.get(Job, f"job_{execution_id}")
-        assert row.status == DONE
+        for _ in range(60):
+            db.expire_all()
+            row = db.get(Job, f"job_{execution_id}")
+            if row is not None and row.status == DONE:
+                break
+            time.sleep(0.05)
+        assert row is not None and row.status == DONE
         assert row.attempts == 1
     finally:
         db.close()

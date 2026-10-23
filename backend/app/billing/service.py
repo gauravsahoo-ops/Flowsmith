@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.models import Organization, Subscription, WorkflowRecord, Workspace
@@ -159,6 +159,16 @@ def enforce_plan_limit(db: Session, workspace_id: str | None, limit_type: str) -
                 "workflow has no workspace to bill the quota against. Move it into "
                 "a workspace to continue."
             ),
+        )
+    # Serialize the check with the caller's following insert/commit. Without
+    # this, two concurrent starts both read the last remaining quota slot and
+    # both commit. PostgreSQL transaction-scoped advisory locks make the
+    # check+insert atomic across API replicas; SQLite is single-process and
+    # development-only.
+    if db.get_bind().dialect.name == "postgresql":
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:scope), 7)"),
+            {"scope": f"quota:{workspace_id}"},
         )
     report = check_within_limit(db, workspace_id, limit_type)
     if report["within_limit"]:

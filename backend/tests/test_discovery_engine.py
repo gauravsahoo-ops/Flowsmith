@@ -8,7 +8,16 @@ Verifies:
 """
 
 import pytest
+
+import app.integrations.catalog.discovery_engine as discovery_engine
 from app.integrations.catalog.discovery_engine import DiscoveryEngine
+
+
+@pytest.fixture(autouse=True)
+def _isolated_artifacts(tmp_path, monkeypatch):
+    """The pipeline writes certification artifacts; tests must not mutate the
+    tracked docs/ tree (audit M-13)."""
+    monkeypatch.setattr(discovery_engine, "DOCS_DIR", tmp_path)
 
 
 def test_discovery_engine_ingestion():

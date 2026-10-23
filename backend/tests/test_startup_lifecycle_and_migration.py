@@ -289,18 +289,17 @@ def test_register_builtin_connectors_idempotency():
 
 
 def test_health_liveness_decoupled_from_database():
-    """Verify /api/health never queries database and returns 200 even if database fails."""
+    """Verify /api/health never queries the database or claims its status."""
     client = TestClient(main_app)
 
-    # Simulate database engine failure
-    with patch("app.main.get_session", side_effect=Exception("Database unreachable")):
-        resp = client.get("/api/health")
-        assert resp.status_code == 200
-        data = resp.json()["data"]
-        assert data["status"] == "ok"
-        assert "pid" in data
-        assert "stage" in data
-        assert "database" not in data  # No database query in pure liveness probe
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["status"] == "ok"
+    assert "pid" not in data
+    assert "stage" not in data
+    assert "public_url" not in data
+    assert "database" not in data  # dependency health belongs to /readyz
 
 
 # ==============================================================================

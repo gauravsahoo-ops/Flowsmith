@@ -83,8 +83,15 @@ def get_discovery_overview(
 ) -> dict:
     """Returns canonical multi-ecosystem application registry and discovery metrics."""
     import json
+    import os
     from pathlib import Path
-    disc_file = Path(r"c:\Flowsmith\docs\integration-platform\CANONICAL_APPLICATION_REGISTRY.json")
+    docs_dir = Path(
+        os.environ.get(
+            "FLOWSMITH_INTEGRATION_DOCS_DIR",
+            Path(__file__).resolve().parents[3] / "docs" / "integration-platform",
+        )
+    )
+    disc_file = docs_dir / "CANONICAL_APPLICATION_REGISTRY.json"
     if disc_file.exists():
         with open(disc_file, "r", encoding="utf-8") as f:
             data = json.load(f)

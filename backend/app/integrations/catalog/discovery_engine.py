@@ -12,14 +12,25 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict
 
 logger = logging.getLogger("integrations.discovery_engine")
 
-WORKSPACE_ROOT = Path(r"c:\Flowsmith")
-DOCS_DIR = WORKSPACE_ROOT / "docs" / "integration-platform"
+# Resolve the repository root from this file instead of a hard-coded drive
+# letter so the engine works on any checkout and in containers. Both values
+# can be overridden for tests or out-of-tree artifact generation.
+WORKSPACE_ROOT = Path(
+    os.environ.get("FLOWSMITH_WORKSPACE_ROOT", Path(__file__).resolve().parents[4])
+)
+DOCS_DIR = Path(
+    os.environ.get(
+        "FLOWSMITH_INTEGRATION_DOCS_DIR",
+        WORKSPACE_ROOT / "docs" / "integration-platform",
+    )
+)
 
 
 # -----------------------------------------------------------------------------

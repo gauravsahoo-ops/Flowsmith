@@ -17,6 +17,7 @@ Execution:
 from __future__ import annotations
 
 import ast
+import asyncio
 import logging
 import os
 import sys
@@ -31,6 +32,14 @@ from app.engine.node_base import BaseNode, NodeContext, NodeResult
 from app.nodes.registry import register
 
 logger = logging.getLogger("code")
+
+# Hard ceiling on submitted source. This is not a substitute for a memory
+# cap, but it prevents a single node from carrying an unbounded program into
+# the sandbox and keeps syntax validation/compilation bounded.
+MAX_CODE_CHARS = 200_000
+# Per-item mode re-runs the full sandbox for every input. Bound it so one
+# node cannot multiply the timeout by an unbounded item count.
+MAX_PER_ITEM_INPUTS = 1_000
 
 
 def _safe_print(*args: Any, **kwargs: Any) -> None:
@@ -49,7 +58,7 @@ class CodeParams(BaseModel):
     jsCode: str | None = Field(default=None, description="Alias for code (import compatibility).")
     language: str = Field(default="javascript", description="javascript or python")
     mode: str = Field(default="runOnceForAllItems", description="Run Once for All Items or Run Once for Each Item")
-    max_memory_mb: int = Field(default=64, ge=16, le=512, description="Memory budget (MB) for JS execution. Enforced in the child process on platforms that support setrlimit.")
+    max_memory_mb: int = Field(default=256, ge=64, le=1024, description="Memory budget (MB) for code execution, enforced in the child sandbox process.")
 
     @model_validator(mode="before")
     @classmethod
@@ -310,61 +319,6 @@ def validate_code(code: str, language: str = "javascript") -> tuple[bool, str | 
 
 # Alias for internal/audit test compatibility
 _validate_syntax = validate_code
-
-
-def _exec_with_timeout(code: str, namespace: dict[str, Any], timeout: float = 5.0) -> dict[str, Any]:
-    """Execute code in a worker thread with a hard deadline.
-
-    Python cannot kill threads, so ``join(timeout)`` alone would leak a
-    permanently spinning thread when user code loops forever. A trace hook
-    installed *inside the worker thread* raises at the deadline on the next
-    line event, guaranteeing the thread unwinds and exits.
-    """
-    # Enforce AST sandbox security checks before execution
-    try:
-        tree = ast.parse(code)
-        PythonSecurityAnalyzer().visit(tree)
-    except NodeExecutionError:
-        raise
-    except SyntaxError as e:
-        raise NodeExecutionError(f"SyntaxError: {e.msg}", code="CODE_SYNTAX", node_id="code", retryable=False, details={"line": e.lineno, "col": e.offset}) from e
-
-    import threading
-
-    result = {}
-    error = {}
-    deadline = time.monotonic() + timeout
-
-    def target():
-        def _deadline_watch(frame, event, arg):
-            if time.monotonic() > deadline:
-                raise NodeExecutionError(
-                    f"Code execution timed out after {timeout}s",
-                    code="CODE_TIMEOUT", node_id="code", retryable=False,
-                )
-            return _deadline_watch
-
-        sys.settrace(_deadline_watch)
-        try:
-            exec(code, {"__builtins__": _SAFE_BUILTINS}, namespace)
-            result["namespace"] = namespace
-        except Exception as e:
-            error["exception"] = e
-        finally:
-            sys.settrace(None)
-
-    thread = threading.Thread(target=target, daemon=True)
-    thread.start()
-    # Small grace period so the trace-hook watchdog can fire and unwind the
-    # thread after the deadline instead of hitting the leak path below.
-    thread.join(timeout + 0.25)
-    if thread.is_alive():
-        # No line events seen (blocked without executing bytecode); the
-        # watchdog will still kill the thread as soon as one fires.
-        raise NodeExecutionError(f"Code execution timed out after {timeout}s", code="CODE_TIMEOUT", node_id="code", retryable=False)
-    if "exception" in error:
-        raise error["exception"]
-    return result.get("namespace", namespace)
 
 
 def _prepare_js_code(code: str, mode: str) -> str:
@@ -768,42 +722,171 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         raise NodeExecutionError(f"Code execution failed: _normalize_output error {exc} output={output!r}", code="CODE_ERROR", node_id="code", retryable=False) from exc
 
 
-def _exec_python_code(code: str, items: List[dict[str, Any]], mode: str, timeout: float = 5.0) -> List[dict[str, Any]]:
-    """Execute Python code."""
-    logs: List[str] = []
+_PYTHON_SANDBOX = r'''
+import json
+import sys
+import traceback
+
+
+class InputWrapper:
+    def __init__(self, items, current_idx=0):
+        normalized = []
+        for it in items:
+            if isinstance(it, dict) and "json" in it and len(it) == 1:
+                normalized.append(it)
+            elif isinstance(it, dict):
+                normalized.append({"json": it})
+            else:
+                normalized.append({"json": {"value": it}})
+        self._items = normalized
+        self._current_idx = current_idx
+
+    def all(self):
+        return self._items
+
+    @property
+    def item(self):
+        if 0 <= self._current_idx < len(self._items):
+            return self._items[self._current_idx]
+        return {"json": {}}
+
+    @property
+    def json(self):
+        item = self.item
+        if isinstance(item, dict) and "json" in item:
+            return item["json"]
+        return item
+
+
+SAFE_BUILTINS = {
+    "len": len, "str": str, "int": int, "float": float, "bool": bool,
+    "list": list, "dict": dict, "set": set, "tuple": tuple, "range": range,
+    "enumerate": enumerate, "zip": zip, "map": map, "filter": filter,
+    "sorted": sorted, "sum": sum, "min": min, "max": max, "abs": abs,
+    "any": any, "all": all, "round": round, "reversed": reversed,
+    "print": print, "True": True, "False": False, "None": None,
+}
+
+
+def apply_memory_limit(limit_mb):
+    limit = max(64, int(limit_mb)) * 1024 * 1024
+    try:
+        import resource
+        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+        return
+    except Exception:
+        pass
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class IO_COUNTERS(ctypes.Structure):
+            _fields_ = [
+                ("ReadOperationCount", ctypes.c_ulonglong),
+                ("WriteOperationCount", ctypes.c_ulonglong),
+                ("OtherOperationCount", ctypes.c_ulonglong),
+                ("ReadTransferCount", ctypes.c_ulonglong),
+                ("WriteTransferCount", ctypes.c_ulonglong),
+                ("OtherTransferCount", ctypes.c_ulonglong),
+            ]
+
+        class BASIC_LIMIT(ctypes.Structure):
+            _fields_ = [
+                ("PerProcessUserTimeLimit", ctypes.c_longlong),
+                ("PerJobUserTimeLimit", ctypes.c_longlong),
+                ("LimitFlags", wintypes.DWORD),
+                ("MinimumWorkingSetSize", ctypes.c_size_t),
+                ("MaximumWorkingSetSize", ctypes.c_size_t),
+                ("ActiveProcessLimit", wintypes.DWORD),
+                ("Affinity", ctypes.c_size_t),
+                ("PriorityClass", wintypes.DWORD),
+                ("SchedulingClass", wintypes.DWORD),
+            ]
+
+        class EXTENDED_LIMIT(ctypes.Structure):
+            _fields_ = [
+                ("BasicLimitInformation", BASIC_LIMIT),
+                ("IoInfo", IO_COUNTERS),
+                ("ProcessMemoryLimit", ctypes.c_size_t),
+                ("JobMemoryLimit", ctypes.c_size_t),
+                ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                ("PeakJobMemoryUsed", ctypes.c_size_t),
+            ]
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+        job = kernel32.CreateJobObjectW(None, None)
+        if not job:
+            return
+        info = EXTENDED_LIMIT()
+        # JOB_OBJECT_LIMIT_PROCESS_MEMORY | KILL_ON_JOB_CLOSE
+        info.BasicLimitInformation.LimitFlags = 0x00000100 | 0x00002000
+        info.ProcessMemoryLimit = limit
+        if not kernel32.SetInformationJobObject(
+            job, 9, ctypes.byref(info), ctypes.sizeof(info)
+        ):
+            return
+        kernel32.AssignProcessToJobObject(job, kernel32.GetCurrentProcess())
+    except Exception:
+        pass
+
+
+def current_memory_mb():
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            from ctypes import wintypes
+
+            class PMC(ctypes.Structure):
+                _fields_ = [
+                    ("cb", wintypes.DWORD),
+                    ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", ctypes.c_size_t),
+                    ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                    ("PagefileUsage", ctypes.c_size_t),
+                    ("PeakPagefileUsage", ctypes.c_size_t),
+                ]
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+            psapi = ctypes.WinDLL("psapi")
+            psapi.GetProcessMemoryInfo.argtypes = [
+                wintypes.HANDLE, ctypes.POINTER(PMC), wintypes.DWORD
+            ]
+            counters = PMC()
+            counters.cb = ctypes.sizeof(counters)
+            if psapi.GetProcessMemoryInfo(
+                kernel32.GetCurrentProcess(), ctypes.byref(counters), counters.cb
+            ):
+                return max(counters.WorkingSetSize, counters.PagefileUsage) / (1024 * 1024)
+        else:
+            import resource
+            usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            # Linux reports KiB, macOS reports bytes.
+            return usage / 1024 if sys.platform.startswith("linux") else usage / (1024 * 1024)
+    except Exception:
+        pass
+    return 0.0
+
+
+payload = json.loads(sys.stdin.readline())
+try:
+    max_memory_mb = max(64, int(payload.get("max_memory_mb", 64)))
+    apply_memory_limit(max_memory_mb)
+    items = payload.get("items") or []
+    input_wrapper = InputWrapper(items, 0)
+    logs = []
 
     def console_log(*args):
         logs.append(" ".join(str(a) for a in args))
 
-    if mode == "runOnceForEachItem":
-        # For per-item mode, this should be called per item, not here
-        # But for AllItems mode with Python, we provide items
-        pass
-
-    # Prepare $input
-    input_wrapper = InputWrapper(items, 0)
-    # Transform return -> __output
-    lines = code.strip().splitlines()
-    transformed = []
-    for line in lines:
-        stripped = line.lstrip()
-        if stripped.startswith("return "):
-            indent = line[: len(line) - len(stripped)]
-            rest = stripped[len("return "):].replace("$input", "input_wrapper")
-            transformed.append(indent + "__output = " + rest)
-        elif stripped == "return":
-            transformed.append("    __output = input_wrapper.all()")
-        else:
-            # Replace $input with input_wrapper for Python
-            transformed.append(line.replace("$input", "input_wrapper"))
-    exec_code = "\n".join(transformed)
-    # Handle console.log
-    exec_code = exec_code.replace("console.log", "print")
-
-    if "__output" not in exec_code and "return" not in code:
-        exec_code += "\ntry:\n    __output\nexcept NameError:\n    try:\n        __output = input_wrapper.all()\n    except Exception: __output = []"
-
-    namespace: dict[str, Any] = {
+    namespace = {
         "input_wrapper": input_wrapper,
         "items": items,
         "item": items[0] if len(items) == 1 else None,
@@ -814,26 +897,219 @@ def _exec_python_code(code: str, items: List[dict[str, Any]], mode: str, timeout
         "print": console_log,
         "InputWrapper": InputWrapper,
     }
-    # Add $input.all and $input.item for JS-style code that was translated
-    # Also handle Python's print vs console.log
+    exec(payload["code"], {"__builtins__": SAFE_BUILTINS}, namespace)
+    output = namespace.get("__output", items)
+    if current_memory_mb() > max_memory_mb * 1.1:
+        json.dump({
+            "err": {
+                "message": f"Python code exceeded its {max_memory_mb} MB memory budget.",
+                "code": "CODE_MEMORY_LIMIT",
+                "line": None,
+                "logs": logs,
+            }
+        }, sys.stdout)
+        sys.exit(0)
+    json.dump({"ok": output, "logs": logs}, sys.stdout)
+except BaseException as exc:
+    tb = traceback.extract_tb(exc.__traceback__)
+    line = tb[-1].lineno if tb else None
+    json.dump({
+        "err": {
+            "message": f"Code execution failed: {exc}",
+            "line": line,
+            "logs": logs if "logs" in locals() else [],
+        }
+    }, sys.stdout)
+'''
 
+
+def _sandbox_memory_mb(pid: int) -> float:
+    """Best-effort RSS/private-usage read for the parent-side watchdog."""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class PMC(ctypes.Structure):
+                _fields_ = [
+                    ("cb", wintypes.DWORD),
+                    ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", ctypes.c_size_t),
+                    ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                    ("PagefileUsage", ctypes.c_size_t),
+                    ("PeakPagefileUsage", ctypes.c_size_t),
+                ]
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+            handle = kernel32.OpenProcess(0x1000, False, pid)
+            if not handle:
+                return 0.0
+            try:
+                counters = PMC()
+                counters.cb = ctypes.sizeof(counters)
+                psapi = ctypes.WinDLL("psapi")
+                psapi.GetProcessMemoryInfo.argtypes = [
+                    wintypes.HANDLE, ctypes.POINTER(PMC), wintypes.DWORD
+                ]
+                if not psapi.GetProcessMemoryInfo(
+                    handle, ctypes.byref(counters), counters.cb
+                ):
+                    return 0.0
+                return max(counters.WorkingSetSize, counters.PagefileUsage) / (1024 * 1024)
+            finally:
+                kernel32.CloseHandle(handle)
+        except Exception:
+            return 0.0
     try:
-        # Use timeout
-        result = _exec_with_timeout(exec_code, namespace, timeout)
-        output = result.get("__output", items)
-        return _normalize_output(output, logs)
+        with open(f"/proc/{pid}/status", encoding="ascii") as status:
+            for line in status:
+                if line.startswith("VmRSS:"):
+                    return float(line.split()[1]) / 1024
+    except Exception:
+        return 0.0
+    return 0.0
+
+
+def _exec_python_code(
+    code: str,
+    items: List[dict[str, Any]],
+    mode: str,
+    timeout: float = 5.0,
+    max_memory_mb: int = 64,
+) -> List[dict[str, Any]]:
+    """Execute Python in a killable, memory-capped child process."""
+    # Transform top-level `return` -> `__output`; the child only executes.
+    lines = code.strip().splitlines()
+    transformed = []
+    for raw_line in lines:
+        stripped = raw_line.lstrip()
+        if stripped.startswith("return "):
+            indent = raw_line[: len(raw_line) - len(stripped)]
+            rest = stripped[len("return "):].replace("$input", "input_wrapper")
+            transformed.append(indent + "__output = " + rest)
+        elif stripped == "return":
+            transformed.append("    __output = input_wrapper.all()")
+        else:
+            transformed.append(raw_line.replace("$input", "input_wrapper"))
+    exec_code = "\n".join(transformed).replace("console.log", "print")
+
+    if "__output" not in exec_code and "return" not in code:
+        exec_code += "\ntry:\n    __output\nexcept NameError:\n    try:\n        __output = input_wrapper.all()\n    except Exception: __output = []"
+
+    # Security-check the code that will actually execute. `_exec_python_code`
+    # is called directly by tests/other nodes, so this cannot rely on
+    # CodeNode.run having validated already.
+    try:
+        _tree = ast.parse(exec_code)
+        PythonSecurityAnalyzer().visit(_tree)
     except NodeExecutionError:
         raise
-    except Exception as exc:
-        # Try to get line info
-        import traceback
-        tb = traceback.extract_tb(exc.__traceback__)
-        line = None
-        col = None
-        if tb:
-            line = tb[-1].lineno
-            col = tb[-1].colno if hasattr(tb[-1], 'colno') else None
-        raise NodeExecutionError(f"Code execution failed: {exc}", code="CODE_ERROR", node_id="code", retryable=False, details={"line": line, "column": col, "logs": logs}) from exc
+    except SyntaxError as exc:
+        raise NodeExecutionError(
+            f"SyntaxError: {exc.msg}",
+            code="CODE_SYNTAX_ERROR",
+            node_id="code",
+            retryable=False,
+            details={"line": exc.lineno, "column": exc.offset},
+        ) from exc
+
+    import json as _json
+    import subprocess
+
+    payload = _json.dumps({
+        "code": exec_code,
+        "items": items,
+        "mode": mode,
+        "max_memory_mb": max(64, int(max_memory_mb)),
+    })
+    proc = subprocess.Popen(
+        [sys.executable, "-I", "-S", "-c", _PYTHON_SANDBOX],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    memory_killed = False
+
+    def _memory_watch() -> None:
+        nonlocal memory_killed
+        while proc.poll() is None:
+            if _sandbox_memory_mb(proc.pid) > max_memory_mb * 1.1:
+                memory_killed = True
+                proc.kill()
+                return
+            time.sleep(0.05)
+
+    watcher = threading.Thread(target=_memory_watch, name="python-sandbox-memory", daemon=True)
+    watcher.start()
+    try:
+        stdout, stderr = proc.communicate(
+            input=payload, timeout=max(0.5, float(timeout)) + 0.5
+        )
+    except subprocess.TimeoutExpired as exc:
+        proc.kill()
+        proc.communicate()
+        raise NodeExecutionError(
+            f"Code execution timed out after {timeout}s",
+            code="CODE_TIMEOUT",
+            node_id="code",
+            retryable=False,
+        ) from exc
+    finally:
+        watcher.join(timeout=1.0)
+        if proc.poll() is None:
+            proc.kill()
+            proc.communicate()
+
+    if memory_killed:
+        raise NodeExecutionError(
+            f"Python code exceeded its {max_memory_mb} MB memory budget.",
+            code="CODE_MEMORY_LIMIT",
+            node_id="code",
+            retryable=False,
+        )
+    if proc.returncode != 0 or not stdout.strip():
+        detail = (stderr or "").strip()[-500:]
+        raise NodeExecutionError(
+            f"Python sandbox terminated (exit code {proc.returncode}); "
+            f"the script may have exceeded its {max_memory_mb} MB memory budget."
+            + (f" {detail}" if detail else ""),
+            code="CODE_SANDBOX_CRASH",
+            node_id="code",
+            retryable=False,
+        )
+
+    try:
+        result = _json.loads(stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError) as exc:
+        raise NodeExecutionError(
+            "Python sandbox returned an invalid result.",
+            code="CODE_SANDBOX_CRASH",
+            node_id="code",
+            retryable=False,
+        ) from exc
+
+    if "err" in result:
+        error = result["err"]
+        raise NodeExecutionError(
+            error.get("message", "Code execution failed."),
+            code=error.get("code", "CODE_ERROR"),
+            node_id="code",
+            retryable=False,
+            details={
+                "line": error.get("line"),
+                "column": None,
+                "logs": error.get("logs", []),
+            },
+        )
+    return _normalize_output(result.get("ok", items), result.get("logs", []))
 
 
 @register
@@ -855,6 +1131,13 @@ class CodeNode(BaseNode[CodeParams]):
     ) -> NodeResult:
         if not params.code.strip():
             return NodeResult(output_items=input_items or [{}])
+        if len(params.code) > MAX_CODE_CHARS:
+            raise NodeExecutionError(
+                f"Code exceeds the {MAX_CODE_CHARS:,}-character limit.",
+                code="CODE_TOO_LARGE",
+                node_id="code",
+                retryable=False,
+            )
 
         # Validate language
         if params.language.lower() not in ("javascript", "js", "python", "py"):
@@ -869,7 +1152,11 @@ class CodeNode(BaseNode[CodeParams]):
         code_to_validate = params.code
         if params.language.lower() in ("python", "py"):
             code_to_validate = params.code.replace("$input", "input_wrapper")
-        is_valid, error_msg, line, col = _validate_syntax(code_to_validate, params.language)
+        # Syntax validation can execute the JS engine or parse a large AST;
+        # keep both off the event loop.
+        is_valid, error_msg, line, col = await asyncio.to_thread(
+            _validate_syntax, code_to_validate, params.language
+        )
         if not is_valid:
             raise NodeExecutionError(
                 f"SyntaxError: {error_msg}",
@@ -897,13 +1184,23 @@ class CodeNode(BaseNode[CodeParams]):
 
         try:
             if mode == "runOnceForEachItem":
+                if len(input_items) > MAX_PER_ITEM_INPUTS:
+                    raise NodeExecutionError(
+                        f"Per-item code execution is limited to {MAX_PER_ITEM_INPUTS:,} "
+                        f"items (received {len(input_items):,}). Use 'Run Once for All Items'.",
+                        code="TOO_MANY_ITEMS",
+                        node_id="code",
+                        retryable=False,
+                    )
                 # Run code once per item
                 all_output: List[dict[str, Any]] = []
                 for idx, item in enumerate(input_items):
                     single_input = [item]
                     # For each item, $input.all() should return [item] and $input.item is item
                     if params.language.lower() in ("javascript", "js"):
-                        output = _exec_javascript(params.code, single_input, mode, timeout)
+                        output = await asyncio.to_thread(
+                            _exec_javascript, params.code, single_input, mode, timeout
+                        )
                         # For per-item, code is expected to return $input.item or single item
                         # _exec_javascript will return a list; we need to collect the first item or all
                         # For per-item, we expect return $input.item (single dict)
@@ -917,7 +1214,10 @@ class CodeNode(BaseNode[CodeParams]):
                         else:
                             all_output.append({"json": {}})
                     else:
-                        output = _exec_python_code(params.code, single_input, mode, timeout)
+                        output = await asyncio.to_thread(
+                            _exec_python_code, params.code, single_input, mode, timeout,
+                            params.max_memory_mb
+                        )
                         if output and len(output) == 1:
                             all_output.append(output[0])
                         elif output:
@@ -928,9 +1228,14 @@ class CodeNode(BaseNode[CodeParams]):
             else:
                 # Run Once for All Items
                 if params.language.lower() in ("javascript", "js"):
-                    output = _exec_javascript(params.code, input_items, mode, timeout)
+                    output = await asyncio.to_thread(
+                        _exec_javascript, params.code, input_items, mode, timeout
+                    )
                 else:
-                    output = _exec_python_code(params.code, input_items, mode, timeout)
+                    output = await asyncio.to_thread(
+                        _exec_python_code, params.code, input_items, mode, timeout,
+                    params.max_memory_mb
+                    )
                 return NodeResult(output_items=output or [{}])
         except NodeExecutionError:
             raise

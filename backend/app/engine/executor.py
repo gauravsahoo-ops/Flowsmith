@@ -544,7 +544,10 @@ async def _run_via_connector(
             raw_result = await op
             break
         except asyncio.TimeoutError:
-            assert timeout is not None  # wait_for was only applied when set
+            if timeout is None:
+                # No wait_for was applied; an incidental TimeoutError from the
+                # operation must propagate instead of being mislabeled.
+                raise
             node_error = NodeTimeoutError(node.id, timeout)
             if _current_retries:
                 node_error.details = {"retries": _current_retries}
@@ -895,10 +898,72 @@ async def _run_one(
             per_raw_params = expressions.resolve(node.parameters, per_context)
             per_params = node_instance.build_params(per_raw_params)
             per_started = time.monotonic()
-            try:
-                per_result = await _run_attempt(
-                    node_cls, ctx, per_params, [single_item], cancelled, timeout, node.id,
-                )
+            item_retries = 0
+            per_result = None
+            while True:
+                try:
+                    per_result = await _run_attempt(
+                        node_cls, ctx, per_params, [single_item], cancelled, timeout, node.id,
+                    )
+                    break
+                except (NodeCancelledError, asyncio.CancelledError):
+                    raise
+                except NodeExecutionError as exc:
+                    if item_retries + 1 >= max_attempts or not exc.retryable:
+                        if not node.settings.get("continue_on_error"):
+                            raise
+                        error_item = {
+                            "$error": exc.to_dict(),
+                            "success": False,
+                            "item": single_item,
+                        }
+                        all_output_items.append(error_item)
+                        if is_large_batch:
+                            batch_outputs.append(error_item)
+                        batch_errors.append(f"Item {idx + 1}: {exc}")
+                        break
+                    item_retries += 1
+                    computed_delay = min(
+                        backoff * (2 ** (item_retries - 1)), MAX_RETRY_BACKOFF_S
+                    )
+                    delay = min(
+                        getattr(exc, "retry_after", None) or computed_delay,
+                        MAX_RETRY_BACKOFF_S,
+                    )
+                    emit(
+                        "node.retry",
+                        node_id=node.id,
+                        status="retry",
+                        attempt=item_retries,
+                        max_attempts=max_attempts,
+                        retry_after_s=delay,
+                        error={"message": str(exc), "code": exc.code},
+                    )
+                    await asyncio.sleep(delay)
+                    if cancelled.is_set() or ctx.is_cancelled():
+                        raise NodeCancelledError(node.id)
+                except Exception as exc:
+                    # Unexpected exceptions are not retried in the single-item
+                    # path either, but continue_on_error must still preserve
+                    # the item instead of collapsing the whole batch to one
+                    # synthetic error.
+                    if not node.settings.get("continue_on_error"):
+                        raise
+                    wrapped = NodeExecutionError(
+                        str(exc), code="NODE_ERROR", node_id=node.id, retryable=False
+                    )
+                    error_item = {
+                        "$error": wrapped.to_dict(),
+                        "success": False,
+                        "item": single_item,
+                    }
+                    all_output_items.append(error_item)
+                    if is_large_batch:
+                        batch_outputs.append(error_item)
+                    batch_errors.append(f"Item {idx + 1}: {wrapped}")
+                    break
+
+            if per_result is not None:
                 if per_result.output_items:
                     all_output_items.extend(per_result.output_items)
                     if is_large_batch:
@@ -913,13 +978,28 @@ async def _run_one(
                         inputs=_cap({"main": [single_item]}),
                         outputs=_cap({"main": per_result.output_items or []}),
                         note=f"Per-item {idx + 1}/{len(input_items)}.",
-                        attempts=1,
+                        attempts=item_retries + 1,
+                        retries=item_retries,
                     )
-            except NodeExecutionError:
-                raise
-            except Exception as exc:
-                batch_errors.append(f"Item {idx + 1}: {exc}")
-                raise
+            elif not is_large_batch:
+                # continue_on_error: keep the failure in the trace so a
+                # "successful" batch is not silently missing items.
+                per_elapsed = (time.monotonic() - per_started) * 1000
+                last_error = next(
+                    (e for e in reversed(batch_errors) if e.startswith(f"Item {idx + 1}:")),
+                    f"Item {idx + 1}: failed",
+                )
+                _add_step(
+                    result, node_id=node.id, node_type=node.type, status="error",
+                    started_at=datetime.now(UTC).isoformat(),
+                    duration_ms=per_elapsed,
+                    inputs=_cap({"main": [single_item]}),
+                    outputs=_cap({"main": []}),
+                    error={"message": last_error},
+                    note=f"Per-item {idx + 1}/{len(input_items)} failed; continuing.",
+                    attempts=item_retries + 1,
+                    retries=item_retries,
+                )
             if cancelled.is_set() or ctx.is_cancelled():
                 raise NodeCancelledError(node.id)
 

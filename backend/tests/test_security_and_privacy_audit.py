@@ -392,6 +392,7 @@ def test_dependency_vulnerabilities_and_insecure_configurations():
         "jwt_secret": "a-secure-production-jwt-secret-that-has-sufficient-entropy-32b",
         "database_url": "postgresql://user:pass@db:5432/flowsmith",
         "cors_origins": "https://flowsmith.app",
+        "registration_bootstrap_token": "bootstrap-token-with-at-least-32-characters",
         "safe_http_allowed_hosts": "",
         "safe_http_allowed_ports": "",
     }

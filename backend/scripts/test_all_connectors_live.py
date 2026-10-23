@@ -52,7 +52,7 @@ categories = {}
 total_ops = 0
 total_triggers = 0
 for d in definitions:
-    cat = str(d.category.value if hasattr(d.category, "value") else d.category)
+    cat = str(getattr(d.category, "value", d.category))
     categories.setdefault(cat, []).append(d.connector_key)
     total_ops += len(d.operations)
     total_triggers += len(d.triggers)

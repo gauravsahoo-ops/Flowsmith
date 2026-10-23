@@ -84,14 +84,18 @@ def test_health_path_is_skipped(limited_client):
         assert limited_client.get("/api/health").status_code == 200
 
 
-def test_unauthenticated_requests_are_rate_limited_by_ip(limited_client):
+def test_unauthenticated_requests_are_rate_limited_by_ip(limited_client, mini_app):
     # Unauthenticated requests fallback to client IP and are bounded by the budget
     statuses = [limited_client.get("/ping").status_code for _ in range(5)]
     assert statuses == [200, 200, 200, 429, 429]
 
-    # Different client IP gets its own independent budget
-    diff_ip_resp = limited_client.get("/ping", headers={"X-Forwarded-For": "198.51.100.42"})
-    assert diff_ip_resp.status_code == 200
+    # An untrusted peer cannot rotate X-Forwarded-For to reset its budget.
+    spoofed = limited_client.get("/ping", headers={"X-Forwarded-For": "198.51.100.42"})
+    assert spoofed.status_code == 429
+
+    # A genuinely different socket peer gets its own independent budget.
+    other_peer = TestClient(mini_app, client=("198.51.100.42", 50000))
+    assert other_peer.get("/ping").status_code == 200
 
 
 def test_api_key_has_separate_budget(mini_app, monkeypatch):

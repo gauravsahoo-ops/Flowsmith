@@ -27,6 +27,7 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from app.config import get_settings
+from app.security.client_ip import client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ _SKIP_PATHS = frozenset({
 _AUTH_PATHS = frozenset({
     "/api/auth/login",
     "/api/auth/register",
-    "/api/auth/password-reset",
+    "/api/auth/reset-password",
     "/api/auth/forgot-password",
 })
 
@@ -93,18 +94,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
     def _get_client_ip(self, request: Request) -> str:
-        """Extract remote IP considering forward proxies safely."""
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            client_ip = forwarded.split(",")[0].strip()
-            if client_ip:
-                return client_ip
-        real_ip = request.headers.get("x-real-ip")
-        if real_ip and real_ip.strip():
-            return real_ip.strip()
-        if request.client and request.client.host:
-            return request.client.host
-        return "127.0.0.1"
+        """Extract the client IP, trusting forwarding headers only from
+        configured proxies (see ``app.security.client_ip``)."""
+        return client_ip(request)
 
     def _get_user_id(self, request: Request) -> str:
         """Extract a stable per-principal identifier from auth material or client IP."""

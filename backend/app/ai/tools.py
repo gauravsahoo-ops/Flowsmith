@@ -594,6 +594,7 @@ async def _workflow_run_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
 
     from app.db import SessionLocal
     from app.api.executions import start_execution
+    from app.billing.service import enforce_can_start_execution
 
     with SessionLocal() as db:
         rec = _require_workflow(db, workflow_id, ctx, edit=True)
@@ -601,6 +602,7 @@ async def _workflow_run_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
             return {"error": f"Workflow '{workflow_id}' not found."}
         user_id = getattr(ctx, "user_id", None) or rec.user_id
         try:
+            enforce_can_start_execution(db, rec.workspace_id)
             exec_id = start_execution(
                 db,
                 workflow_id=workflow_id,

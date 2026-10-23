@@ -174,21 +174,23 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
     _ACTIVE_CANCEL_EVENTS[execution_id] = cancel_event
     db = get_session()
 
+    # Execution-scoped cache: created fresh for this run_job call, so a
+    # rotated/deleted credential is re-resolved on the next execution. Do not
+    # move this to a function/module attribute (audit H-5 correction).
+    credential_cache: dict[str, dict] = {}
+
     def resolve_credentials(refs: dict[str, str]) -> dict:
         try:
             from app.credentials.resolver import get_credential_resolver
-            # Per-run credential cache: same cred fetched/decrypted once per execution
-            if not hasattr(resolve_credentials, "_cache"):
-                resolve_credentials._cache = {}  # type: ignore[attr-defined]
             out = {}
             for ctype, cid in refs.items():
                 cache_key = f"{job.user_id}:{cid}"
-                if cache_key not in resolve_credentials._cache:  # type: ignore[attr-defined]
+                if cache_key not in credential_cache:
                     resolved_map = get_credential_resolver().resolve_map(db, job.user_id, {ctype: cid})
                     if ctype in resolved_map and isinstance(resolved_map[ctype], dict):
                         resolved_map[ctype]["_credential_id"] = cid
-                    resolve_credentials._cache[cache_key] = resolved_map  # type: ignore[attr-defined]
-                out[ctype] = resolve_credentials._cache[cache_key][ctype]  # type: ignore[attr-defined]
+                    credential_cache[cache_key] = resolved_map
+                out[ctype] = credential_cache[cache_key][ctype]
             return out
         except (credential_service.CredentialError, ValueError) as exc:
             code = getattr(exc, "code", None) or ("CREDENTIAL_PROVIDER_NOT_IMPLEMENTED" if "not implemented" in str(exc).lower() else "CREDENTIALS_REQUIRED")
@@ -639,6 +641,10 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 rec.results = stored
                 rec.error = result.error.to_dict() if result.error else None
                 rec.pause_state = None
+                # Commit the delivery outcome in the same transaction as the
+                # terminal execution state so a client that observes
+                # "success" cannot still see a stale "queued" delivery.
+                await asyncio.to_thread(_mark_deliveries, db, execution_id, result.status)
                 await _commit(db)
 
                 try:
@@ -835,6 +841,20 @@ def _resolve_env_vars(db: Session, job: QueueJob) -> dict[str, str]:
     workspace_id = job.workspace_id or workflow_workspace(db, job.workflow_id)
     if not workspace_id and job.user_id:
         workspace_id = f"ws_personal_{job.user_id}"
+    if workspace_id and job.user_id:
+        from app.api.access import workspace_can_view
+
+        # A workflow can be shared to a user who is not a member of the
+        # workspace that scopes its environment. Never hand that user the
+        # workspace's secrets merely because they can execute the workflow.
+        if not workspace_can_view(db, workspace_id, job.user_id):
+            logger.warning(
+                "env resolution denied for %s: user %s cannot access workspace %s",
+                job.execution_id,
+                job.user_id,
+                workspace_id,
+            )
+            return {}
     try:
         return resolve_env_vars(db, workspace_id)
     except Exception:

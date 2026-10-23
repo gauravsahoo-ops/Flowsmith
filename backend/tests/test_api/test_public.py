@@ -64,7 +64,9 @@ def test_cors_headers_present(client):
     assert resp.headers.get("access-control-allow-origin") in ("*", origin)
 
 
-def test_health_reports_public_url(client):
+def test_health_does_not_expose_deployment_metadata(client):
     data = client.get("/api/health").json()["data"]
-    assert "public_url" in data
-    assert data["public_url"] == get_settings().public_url
+    assert "public_url" not in data
+    assert "pid" not in data
+    assert "stage" not in data
+    assert "database" not in data

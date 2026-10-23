@@ -10,6 +10,7 @@ GET /api/metrics.
 from __future__ import annotations
 
 import logging
+import secrets
 import time
 from typing import Any
 from contextlib import asynccontextmanager
@@ -18,7 +19,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from sqlalchemy import func, select
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -29,7 +30,6 @@ from app.api import admin, ai, audit, auth, billing, branding, code, connectors,
 from app.api.auth import get_metrics_user
 from app.api.common import ok
 from app.config import get_settings
-from app.db import get_session
 from app.metrics import http_duration, http_requests
 from app.telemetry.middleware import OpenTelemetryMiddleware
 
@@ -173,6 +173,25 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
     never touched, so router semantics (404/405/…) are preserved.
     """
 
+    @staticmethod
+    def _index_response(request: Request) -> HTMLResponse:
+        """Serve index.html with a per-response CSP nonce for style injection.
+
+        Monaco (and some UI libraries) create <style> elements at runtime.
+        A nonce lets the built UI run without `style-src 'unsafe-inline'`
+        while static React style attributes remain covered by style-src-attr.
+        """
+        assert FRONTEND_DIST is not None
+        from html import escape
+
+        nonce = secrets.token_urlsafe(18)
+        request.state.csp_nonce = nonce
+        html = (FRONTEND_DIST / "index.html").read_text(encoding="utf-8")
+        meta = f'<meta name="csp-nonce" content="{escape(nonce)}" />'
+        if "</head>" in html:
+            html = html.replace("</head>", meta + "</head>", 1)
+        return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
+
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.method not in ("GET", "HEAD"):
             return await call_next(request)
@@ -183,6 +202,8 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
             root = FRONTEND_DIST.resolve()
             candidate = (root / path.lstrip("/")).resolve()
             if candidate.is_relative_to(root) and candidate.is_file():
+                if candidate.name == "index.html":
+                    return self._index_response(request)
                 headers: dict[str, str] = {}
                 if "/assets/" in path or path.startswith("assets/"):
                     headers["Cache-Control"] = "public, max-age=31536000, immutable"
@@ -194,10 +215,7 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
             and FRONTEND_DIST is not None
             and (FRONTEND_DIST / "index.html").is_file()
         ):
-            return FileResponse(
-                FRONTEND_DIST / "index.html",
-                headers={"Cache-Control": "no-cache, must-revalidate"},
-            )
+            return self._index_response(request)
         return response
 
 
@@ -217,17 +235,27 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # blob: is required for same-origin object-URL previews (images,
         # sandboxed PDF iframes, and fetch() of fetched file blobs);
         # fonts.* origins back the Google Fonts <link> in index.html.
+        # Served UI responses carry a per-response nonce for dynamic <style>
+        # elements (Monaco); API responses have no nonce and keep the
+        # attribute-only allowance.
+        nonce = getattr(request.state, "csp_nonce", None)
+        if nonce:
+            style_src = f"style-src 'self' 'nonce-{nonce}' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; "
+        else:
+            style_src = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "font-src 'self' data: https://fonts.gstatic.com; "
+            + style_src
+            + "font-src 'self' data: https://fonts.gstatic.com; "
             "img-src 'self' data: blob:; media-src 'self' data: blob:; "
             "connect-src 'self' blob:; worker-src 'self' blob:; "
             "frame-src 'self' blob: data:; frame-ancestors 'none'; "
             "base-uri 'self'; form-action 'self'; object-src 'none'"
         )
-        host = request.url.hostname or ""
-        if host and host not in ("127.0.0.1", "localhost", "::1"):
+        # HSTS is a deployment property, not a request property: deciding it
+        # from the Host header lets a forged/plain-HTTP request suppress it.
+        settings = get_settings()
+        if settings.app_env == "production" or (settings.public_url or "").lower().startswith("https://"):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         return response
 
@@ -349,8 +377,10 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(MetricsMiddleware)
 app.add_middleware(OpenTelemetryMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
+# SPAFallback must be inside SecurityHeaders so index.html responses receive
+# the CSP nonce header (and every static response gets hardening headers).
 app.add_middleware(SPAFallbackMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
@@ -462,18 +492,13 @@ app.include_router(notifications.router)
 @app.get("/api/health", tags=["health"])
 def health() -> dict:
     """Liveness probe — verifies process responsiveness; does NOT query dependencies."""
-    from app.lifecycle import get_lifecycle
-
-    lc = get_lifecycle()
+    # Liveness only: no dependency checks and no deployment metadata. The
+    # previous hard-coded "database": "ok" was actively misleading during an
+    # outage; /readyz performs the real PostgreSQL/schema/Redis checks.
     return ok({
         "status": "ok",
-        "database": "ok",
         "version": "1.6.0",
-        "developed_by": "Gaurav Sahoo (gauravsahoo-ops)",
-        "public_url": settings.public_url,
         "uptime_s": int(time.monotonic() - _PROCESS_START),
-        "stage": lc.current_stage.value,
-        "pid": lc.pid,
     })
 
 

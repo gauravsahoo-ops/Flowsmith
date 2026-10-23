@@ -30,6 +30,7 @@ def req(
             return err.code, parsed if isinstance(parsed, dict) else {"raw": parsed}
         except (json.JSONDecodeError, ValueError):
             return err.code, {"raw": raw}
+    raise RuntimeError("unreachable request error path")
 
 def main():
     print("=" * 60)
@@ -38,7 +39,8 @@ def main():
 
     # 1. Health check
     status, res = req("/api/health")
-    health_data = res.get("data") if isinstance(res.get("data"), dict) else {}
+    raw_health = res.get("data")
+    health_data = raw_health if isinstance(raw_health, dict) else {}
     print(f"1. [HEALTH CHECK] HTTP {status}: status={health_data.get('status')}, version={health_data.get('version')}")
     assert status == 200, f"Expected 200, got {status}"
     assert health_data.get("status") == "ok"
@@ -86,7 +88,8 @@ def main():
     }
     status, wf_res = req("/api/workflows", method="POST", data=wf_payload, headers=auth_headers)
     assert status in (200, 201), f"Failed to create workflow: {wf_res}"
-    wf_data = wf_res.get("data") if isinstance(wf_res.get("data"), dict) else {}
+    raw_wf_data = wf_res.get("data")
+    wf_data = raw_wf_data if isinstance(raw_wf_data, dict) else {}
     wf_id = str(wf_data.get("id", ""))
     print(f"5. [WORKFLOW CREATION] HTTP {status}: Workflow ID={wf_id} created with 3 nodes & 2 edges")
 
@@ -94,7 +97,8 @@ def main():
     status, exec_res = req(f"/api/workflows/{wf_id}/run", method="POST", data={"data": {"test_run": True}}, headers=auth_headers)
     print(f"6. [WORKFLOW EXECUTION TRIGGER] HTTP {status}")
     assert status in (200, 201, 202), f"Failed to execute workflow: {exec_res}"
-    exec_data: dict[str, Any] = exec_res.get("data") if isinstance(exec_res.get("data"), dict) else exec_res
+    raw_exec_data = exec_res.get("data")
+    exec_data: dict[str, Any] = raw_exec_data if isinstance(raw_exec_data, dict) else exec_res
     exec_id = exec_data.get("execution_id") or exec_data.get("id")
     print(f"   Execution Job ID: {exec_id}, Initial Status: 'queued'")
     assert exec_id, f"Execution ID missing from {exec_res}"

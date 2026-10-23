@@ -222,13 +222,14 @@ async def run_benchmark():
             .where(StagedContactRecord.execution_id == execution_id)
         )
 
-        staged_status_counts = dict(
-            db.execute(
+        staged_status_counts = {
+            status: count
+            for status, count in db.execute(
                 select(StagedContactRecord.status, func.count(StagedContactRecord.id))
                 .where(StagedContactRecord.execution_id == execution_id)
                 .group_by(StagedContactRecord.status)
             ).all()
-        )
+        }
 
     print(f"  Persisted {persist_res.total_processed:,} records to staged_contacts.")
     print(f"  Inserted valid: {persist_res.inserted_count:,}")
@@ -303,13 +304,14 @@ async def run_benchmark():
             successful_records=bulk_res.get("successful_records", []),
             failed_records=bulk_res.get("failed_records", []),
         )
-        final_db_statuses = dict(
-            db.execute(
+        final_db_statuses = {
+            status: count
+            for status, count in db.execute(
                 select(StagedContactRecord.status, func.count(StagedContactRecord.id))
                 .where(StagedContactRecord.execution_id == execution_id)
                 .group_by(StagedContactRecord.status)
             ).all()
-        )
+        }
     t1_rec = time.perf_counter()
     rec_duration_s = t1_rec - t0_rec
 

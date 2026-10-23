@@ -26,6 +26,7 @@ def _valid_prod_settings(**overrides) -> Settings:
         "jwt_secret": "secure-high-entropy-production-secret-min-32-chars",
         "database_url": "postgresql://flowsmith_user:StrongProdPassword123!@localhost:5432/automate",
         "cors_origins": "https://flowsmith.company.com,https://app.flowsmith.com",
+        "registration_bootstrap_token": "bootstrap-token-with-at-least-32-characters",
         "safe_http_allowed_hosts": "",
         "safe_http_allowed_ports": "",
     }

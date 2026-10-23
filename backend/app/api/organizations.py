@@ -10,14 +10,25 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params
 from app.audit import log_event
 from app.db import get_db
-from app.models import Organization, OrganizationMember, User
+from app.models import (
+    Environment,
+    FileRecord,
+    Organization,
+    OrganizationMember,
+    RagCollection,
+    Subscription,
+    User,
+    WorkflowRecord,
+    Workspace,
+    WorkspaceMember,
+)
 
 router = APIRouter()
 
@@ -152,9 +163,49 @@ def update_organization(org_id: str, payload: OrganizationUpdate, user: User = D
 
 @router.delete("/api/organizations/{org_id}")
 def delete_organization(org_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    """Delete an organization (founder only)."""
+    """Delete an organization (founder only).
+
+    Refuses to delete while its workspaces still contain workflows: those
+    rows own credentials, versions, and execution history that must not be
+    destroyed implicitly. Empty workspaces, subscriptions, and memberships
+    are cleaned up with the organization.
+    """
     org = _require_org_owner(db, org_id, user)
-    # Remove all members first
+    ws_ids = list(
+        db.scalars(select(Workspace.id).where(Workspace.organization_id == org_id)).all()
+    )
+    if ws_ids:
+        workflow_count = db.scalar(
+            select(func.count())
+            .select_from(WorkflowRecord)
+            .where(WorkflowRecord.workspace_id.in_(ws_ids))
+        ) or 0
+        if workflow_count:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Delete or move the organization's workflows before deleting it.",
+            )
+        # Users may still point at a workspace/org directly (legacy fields).
+        db.execute(
+            update(User)
+            .where(User.workspace_id.in_(ws_ids))
+            .values(workspace_id=None)
+        )
+        db.execute(
+            update(FileRecord)
+            .where(FileRecord.workspace_id.in_(ws_ids))
+            .values(workspace_id=None)
+        )
+        db.execute(
+            update(RagCollection)
+            .where(RagCollection.workspace_id.in_(ws_ids))
+            .values(workspace_id=None)
+        )
+        db.execute(delete(Environment).where(Environment.workspace_id.in_(ws_ids)))
+    db.execute(update(User).where(User.organization_id == org_id).values(organization_id=None))
+    db.execute(delete(WorkspaceMember).where(WorkspaceMember.workspace_id.in_(ws_ids)))
+    db.execute(delete(Workspace).where(Workspace.organization_id == org_id))
+    db.execute(delete(Subscription).where(Subscription.organization_id == org_id))
     db.query(OrganizationMember).where(OrganizationMember.organization_id == org_id).delete()
     db.delete(org)
     db.commit()

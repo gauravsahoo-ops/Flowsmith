@@ -57,13 +57,16 @@ def test_metrics_include_db_gauges_and_request_counter(client):
     assert value is not None and value >= 1
 
 
-def test_health_reports_uptime_and_database(client):
+def test_health_reports_liveness_only(client):
     resp = client.get("/api/health")
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["database"] == "ok"
+    assert data["status"] == "ok"
     assert isinstance(data["uptime_s"], int) and data["uptime_s"] >= 0
     assert data["version"]
+    assert "database" not in data
+    assert "pid" not in data
+    assert "stage" not in data
 
 
 def _await_finished(client, headers, exec_id, timeout=20):

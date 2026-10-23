@@ -58,9 +58,9 @@ def _create_drop_db(admin_url: str, db: str, create: bool) -> None:
             cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db,))
             exists = cur.fetchone() is not None
             if exists and not create:
-                cur.execute(f'DROP DATABASE "{db}"')
+                cur.execute(f'DROP DATABASE "{db}"')  # type: ignore
             elif create and not exists:
-                cur.execute(f'CREATE DATABASE "{db}"')
+                cur.execute(f'CREATE DATABASE "{db}"')  # type: ignore
     finally:
         conn.close()
 

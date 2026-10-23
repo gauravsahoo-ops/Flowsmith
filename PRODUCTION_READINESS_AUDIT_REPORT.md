@@ -1,3 +1,10 @@
+> **SUPERSEDED — 2026-10-22.** This document's "zero unresolved critical or
+> high-severity vulnerabilities" and "READY FOR PRODUCTION" claims were
+> contradicted by the independent audit in
+> [`AUDIT_REPORT_2026-10-22.md`](AUDIT_REPORT_2026-10-22.md), which found one
+> critical and seven high-severity issues. The issues have since been fixed;
+> use the newer report for current status and verification evidence.
+
 # FLOWSMITH COMPLETE PRODUCTION-READINESS AUDIT & LIVE LAUNCH REPORT
 
 **Document Version:** 2.0.0 — Production Release Candidate 1 (RC1)  

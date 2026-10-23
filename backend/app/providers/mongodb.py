@@ -100,7 +100,25 @@ def _looks_transient(exc: Exception) -> bool:
 
 
 class MongoProviderClient:
-    """Low-level MongoDB operations (find/insert/update/delete)."""
+    """Low-level MongoDB operations (ping/find/insert/update/delete)."""
+
+    async def ping(self, creds: dict, timeout: float = 30.0) -> dict:
+        """Verify connectivity with the MongoDB ``ping`` admin command."""
+
+        def job() -> dict[str, Any]:
+            pymongo, PyMongoError = _require_pymongo()
+            try:
+                client = pymongo.MongoClient(
+                    _require_uri(creds), serverSelectionTimeoutMS=int(timeout * 1000)
+                )
+                try:
+                    return client.admin.command("ping")
+                finally:
+                    client.close()
+            except PyMongoError as exc:
+                _translate(exc, "ping")
+
+        return await asyncio.to_thread(job)
 
     async def find(self, creds: dict, database: str, collection: str,
                    filter_query: dict | None = None, limit: int = 50,

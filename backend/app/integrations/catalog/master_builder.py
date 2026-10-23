@@ -664,8 +664,12 @@ class MasterCatalogBuilder:
     computes multi-dimensional coverage across ecosystems, ranks implementation
     backlog, and generates full documentation diffs."""
 
-    def __init__(self, workspace_root: str = r"c:\Flowsmith") -> None:
-        self.root = Path(workspace_root)
+    def __init__(self, workspace_root: str | None = None) -> None:
+        self.root = (
+            Path(workspace_root)
+            if workspace_root
+            else Path(__file__).resolve().parents[4]
+        )
         self.docs_dir = self.root / "docs" / "integration-platform"
         self.catalog_docs_dir = self.docs_dir / "catalog"
         self.discovery_timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()

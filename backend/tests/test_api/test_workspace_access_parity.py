@@ -56,6 +56,7 @@ def scenario():
         name="Parity WS",
         organization_id=org.id,
         creator_id=users["creator"].id,
+        is_private=True,
     )
     db.add(ws)
     db.add(WorkspaceMember(workspace_id=ws.id, user_id=users["viewer"].id, role="member", permission="view"))
@@ -72,8 +73,9 @@ CASES = [
     ("creator", "creator", True, True),
     ("ws-viewer", "viewer", True, False),
     ("ws-editor", "editor", True, True),
-    ("org-member", "org_member", True, False),
-    ("org-founder", "org_founder", True, True),
+    # Private workspaces are member-only: org membership alone grants nothing.
+    ("org-member", "org_member", False, False),
+    ("org-founder", "org_founder", False, False),
     ("outsider", "outsider", False, False),
 ]
 
@@ -99,6 +101,28 @@ def test_workspace_permission_parity(label, user_key, expect_view, expect_edit, 
     _resolve_access(db, access)
     assert (ws_id in access.readable_workspaces) is expect_view
     assert (ws_id in access.editable_workspaces) is expect_edit
+
+
+def test_public_workspace_org_roles(scenario):
+    """Non-private workspaces are visible/editable by org roles as before."""
+    db, users, _ws_id = scenario
+    org_id = db.get(Workspace, "ws_parity").organization_id
+    public = Workspace(
+        id="ws_parity_public",
+        name="Public Parity WS",
+        organization_id=org_id,
+        creator_id=users["creator"].id,
+        is_private=False,
+    )
+    db.add(public)
+    db.commit()
+
+    assert workspace_can_view(db, public.id, users["org_member"].id) is True
+    assert workspace_can_edit(db, public.id, users["org_member"].id) is False
+    assert workspace_can_view(db, public.id, users["org_founder"].id) is True
+    assert workspace_can_edit(db, public.id, users["org_founder"].id) is True
+    assert workspace_can_view(db, public.id, users["outsider"].id) is False
+    assert workspace_can_edit(db, public.id, users["outsider"].id) is False
 
 
 def test_files_no_workspace_grants_nothing(scenario):

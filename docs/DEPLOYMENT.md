@@ -232,6 +232,15 @@ REDIS_URL=redis://redis:6379/0
 # Comma-separated list of allowed origins. Wildcard '*' is strictly blocked in production.
 CORS_ORIGINS=https://flowsmith.yourcompany.com
 
+# Registration/bootstrap policy. The first admin must present this token;
+# generate with `openssl rand -hex 32`. After admin creation, use closed or
+# invite mode so public signup cannot create accounts.
+REGISTRATION_MODE=closed
+REGISTRATION_BOOTSTRAP_TOKEN=replace-with-openssl-rand-hex-32-output
+
+# Reverse proxies whose X-Forwarded-For may be trusted (never trust all peers).
+TRUSTED_PROXIES=127.0.0.1,::1
+
 # ── Monitoring & Observability (Optional) ───────────────────────
 GRAFANA_USER=admin
 GRAFANA_PASSWORD=SrK_Yh0AQN4TVL5f2hLiWjUzjhg
@@ -265,9 +274,12 @@ docker compose --env-file .env.production -f docker-compose.yml up -d --build
 ```
 
 ### Step 2: Run Alembic Database Migrations
-Migrations are idempotent and apply automatically during container bootstrap, or can be verified manually:
+Schema changes run in a dedicated one-shot service before the app or worker
+starts. Application containers have `RUN_MIGRATIONS_ON_STARTUP=false`, so they
+never issue DDL:
 ```bash
-docker exec -it mat-app alembic upgrade head
+docker compose run --rm migrate
+docker compose run --rm migrate python -m app.scripts.migrate --check-only
 ```
 
 ### Step 3: Verify Health and Readiness

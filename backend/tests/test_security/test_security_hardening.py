@@ -386,6 +386,7 @@ class TestProductionStartupValidation:
             jwt_secret="super-strong-jwt-secret-with-sufficient-entropy-12345",
             database_url="postgresql+psycopg://user:pass@db:5432/automate",
             cors_origins="https://app.flowsmith.io",
+            registration_bootstrap_token="bootstrap-token-with-at-least-32-characters",
         )
         with pytest.raises(ConfigError) as exc_info:
             validate_production_settings(s)
@@ -398,6 +399,7 @@ class TestProductionStartupValidation:
             jwt_secret="dev-only-secret-change-me",
             database_url="postgresql+psycopg://user:pass@db:5432/automate",
             cors_origins="https://app.flowsmith.io",
+            registration_bootstrap_token="bootstrap-token-with-at-least-32-characters",
         )
         with pytest.raises(ConfigError) as exc_info:
             validate_production_settings(s)
@@ -410,6 +412,7 @@ class TestProductionStartupValidation:
             jwt_secret="super-strong-jwt-secret-with-sufficient-entropy-12345",
             database_url="sqlite:///test.db",
             cors_origins="https://app.flowsmith.io",
+            registration_bootstrap_token="bootstrap-token-with-at-least-32-characters",
         )
         with pytest.raises(ConfigError) as exc_info:
             validate_production_settings(s)
@@ -422,6 +425,7 @@ class TestProductionStartupValidation:
             jwt_secret="super-strong-jwt-secret-with-sufficient-entropy-12345",
             database_url="postgresql+psycopg://user:pass@db:5432/automate",
             cors_origins="*",
+            registration_bootstrap_token="bootstrap-token-with-at-least-32-characters",
         )
         with pytest.raises(ConfigError) as exc_info:
             validate_production_settings(s)
@@ -434,6 +438,7 @@ class TestProductionStartupValidation:
             jwt_secret="super-strong-jwt-secret-with-sufficient-entropy-12345",
             database_url="postgresql+psycopg://user:pass@db:5432/automate",
             cors_origins="https://app.flowsmith.io",
+            registration_bootstrap_token="bootstrap-token-with-at-least-32-characters",
             safe_http_allowed_hosts="internal.corp",
             allow_ssrf_bypass="",
         )

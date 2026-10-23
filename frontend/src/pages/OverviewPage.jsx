@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
@@ -163,7 +163,7 @@ function RecentWorkflows({ workflows, loading }) {
             </span>
           </div>
           <div className="hint" style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', marginTop: 4, color: '#64748b' }}>
-            {w.id.slice(0, 8)} · v{w.version} · {w.updated_at ? new Date(w.updated_at).toLocaleDateString() : '—'}
+            {w.id.slice(0, 8)} Â· v{w.version} Â· {w.updated_at ? new Date(w.updated_at).toLocaleDateString() : 'â€”'}
           </div>
           <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
@@ -171,7 +171,7 @@ function RecentWorkflows({ workflows, loading }) {
               background: 'rgba(255, 255, 255, 0.04)', color: '#94a3b8',
               border: '1px solid rgba(255, 255, 255, 0.06)'
             }}>
-              {(w.data?.nodes?.length ?? w.node_count ?? 0)} nodes · {(w.data?.connections?.length ?? 0)} links
+              {(w.data?.nodes?.length ?? w.node_count ?? 0)} nodes Â· {(w.data?.connections?.length ?? 0)} links
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button
@@ -191,7 +191,7 @@ function RecentWorkflows({ workflows, loading }) {
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 <span>Run</span>
               </button>
-              <span className="overview-card-arrow">→</span>
+              <span className="overview-card-arrow">â†’</span>
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@ function RecentExecutions({ executions, loading }) {
       />
     )
   }
-  const fmt = (iso) => iso ? new Date(iso).toLocaleString() : '—'
+  const fmt = (iso) => iso ? new Date(iso).toLocaleString() : 'â€”'
   const dur = (s, f) => {
     if (!s) return ''
     const ms = f ? new Date(f) - new Date(s) : Date.now() - new Date(s)
@@ -255,11 +255,11 @@ function RecentExecutions({ executions, loading }) {
                   padding: '2px 7px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)',
                   color: '#cbd5e1'
                 }}>
-                  {dur(e.started_at, e.finished_at) || '—'}
+                  {dur(e.started_at, e.finished_at) || 'â€”'}
                 </span>
               </td>
               <td style={{ textAlign: 'right' }}>
-                <span style={{ color: '#6366f1', fontSize: 12, fontWeight: 500 }}>Trace →</span>
+                <span style={{ color: '#6366f1', fontSize: 12, fontWeight: 500 }}>Trace â†’</span>
               </td>
             </tr>
           ))}
@@ -343,7 +343,7 @@ export default function OverviewPage() {
     <div className="page overview-page">
       <PageHeader
         title="Overview"
-        description="Your automation workspace — workflows, executions, and shortcuts."
+        description="Your automation workspace â€” workflows, executions, and shortcuts."
         actions={<>
           <button className="ghost" onClick={() => navigate('/workflows')}>Manage workflows</button>
           <button className="primary" onClick={() => navigate('/workflows')}>Create workflow</button>
@@ -385,7 +385,7 @@ export default function OverviewPage() {
           iconName="workflows"
           iconColor="#818cf8"
           label="Workflows"
-          value={loading ? '…' : workflows.length}
+          value={loading ? 'â€¦' : workflows.length}
           hint={loading ? '' : `${activeCount} active`}
           onClick={() => navigate('/workflows')}
         />
@@ -393,7 +393,7 @@ export default function OverviewPage() {
           iconName="executions"
           iconColor="#38bdf8"
           label="Recent executions"
-          value={loading ? '…' : executions.length}
+          value={loading ? 'â€¦' : executions.length}
           hint={failedRecent ? `${failedRecent} failed` : 'All recent runs fetched'}
           onClick={() => navigate('/executions')}
         />
@@ -401,7 +401,7 @@ export default function OverviewPage() {
           iconName="health"
           iconColor="#10b981"
           label="Success Rate"
-          value={loading ? '…' : executions.length ? `${Math.round(((executions.length - failedRecent) / executions.length) * 100)}%` : '100%'}
+          value={loading ? 'â€¦' : executions.length ? `${Math.round(((executions.length - failedRecent) / executions.length) * 100)}%` : '100%'}
           hint="Operational telemetry"
           onClick={() => navigate('/monitoring')}
         />
@@ -409,7 +409,7 @@ export default function OverviewPage() {
           iconName="credentials"
           iconColor="#fbbf24"
           label="Credentials"
-          value={loading ? '…' : credentials.length}
+          value={loading ? 'â€¦' : credentials.length}
           hint={`${credentials.length ? 'Encrypted at rest' : 'No credentials yet'}`}
           onClick={() => navigate('/credentials')}
         />
@@ -417,7 +417,7 @@ export default function OverviewPage() {
           iconName="data-tables"
           iconColor="#c084fc"
           label="Data Tables"
-          value={loading ? '…' : dataTables.length}
+          value={loading ? 'â€¦' : dataTables.length}
           hint={`${dataTables.reduce((s, t) => s + (t.row_count||0), 0)} rows`}
           onClick={() => navigate('/data-tables')}
         />
@@ -425,7 +425,7 @@ export default function OverviewPage() {
           iconName="templates"
           iconColor="#f43f5e"
           label="Templates"
-          value={loading ? '…' : templates.length}
+          value={loading ? 'â€¦' : templates.length}
           hint="Reusable blueprints"
           onClick={() => navigate('/templates')}
         />
@@ -434,14 +434,14 @@ export default function OverviewPage() {
       {health && (
         <div className="health-banner">
           <span className="dot" />
-          <span>System: <strong>{health.status}</strong> · DB: <strong>{health.database}</strong> · Uptime: <strong>{Math.floor((health.uptime_s||0)/60)}m</strong> · v{health.version}</span>
+          <span>System: <strong>{health.status}</strong> | Uptime: <strong>{Math.floor((health.uptime_s || 0) / 60)}m</strong> | v{health.version}</span>
         </div>
       )}
 
       <section className="overview-section">
         <div className="section-head">
           <h2>Workflows</h2>
-          <button className="ghost" onClick={() => navigate('/workflows')}>View all →</button>
+          <button className="ghost" onClick={() => navigate('/workflows')}>View all â†’</button>
         </div>
         <RecentWorkflows workflows={workflows} loading={loading} />
       </section>
@@ -449,7 +449,7 @@ export default function OverviewPage() {
       <section className="overview-section">
         <div className="section-head">
           <h2>Recent executions</h2>
-          <button className="ghost" onClick={() => navigate('/executions')}>View all →</button>
+          <button className="ghost" onClick={() => navigate('/executions')}>View all â†’</button>
         </div>
         <RecentExecutions executions={executions} loading={loading} />
       </section>

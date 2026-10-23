@@ -72,7 +72,9 @@ async def run_audit():
     print("\nExecuting comprehensive verification across all 528 components...")
 
     for idx, item in enumerate(target_inventory, 1):
-        cid = item.get("integration_id")
+        cid = str(item.get("integration_id") or "")
+        if not cid:
+            continue
         display_name = item.get("display_name") or cid
         category = item.get("category") or "api"
         trigger_or_action = item.get("trigger_or_action") or "action"

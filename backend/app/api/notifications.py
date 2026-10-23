@@ -277,10 +277,11 @@ def acknowledge_notification(
     ev.status = "ACKNOWLEDGED"
     ev.acknowledged_at = now_utc
     db.commit()
+    acknowledged_at = ev.acknowledged_at or now_utc
     return ok({
         "id": ev.id,
         "status": ev.status,
-        "acknowledged_at": ev.acknowledged_at.isoformat() if ev.acknowledged_at else now_utc.isoformat(),
+        "acknowledged_at": acknowledged_at.isoformat(),
     })
 
 
@@ -302,10 +303,11 @@ def resolve_notification(
     ev.status = "RESOLVED"
     ev.resolved_at = now_utc
     db.commit()
+    resolved_at = ev.resolved_at or now_utc
     return ok({
         "id": ev.id,
         "status": ev.status,
-        "resolved_at": ev.resolved_at.isoformat() if ev.resolved_at else now_utc.isoformat(),
+        "resolved_at": resolved_at.isoformat(),
     })
 
 

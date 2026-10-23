@@ -19,7 +19,7 @@ _backend_root = Path(__file__).resolve().parent.parent.parent
 if str(_backend_root) not in sys.path:
     sys.path.insert(0, str(_backend_root))
 
-from app.db import _run_alembic_upgrade, engine, get_current_revision, verify_schema_state, EXPECTED_ALEMBIC_HEAD
+from app.db import _run_alembic_upgrade, engine, verify_schema_state, EXPECTED_ALEMBIC_HEAD
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("flowsmith.migrate")

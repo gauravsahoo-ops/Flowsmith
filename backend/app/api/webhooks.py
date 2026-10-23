@@ -256,17 +256,50 @@ async def webhook_receive(
 ) -> Any:
     wait_seconds = max(1.0, min(float(wait_seconds or 30.0), 120.0))
     db = get_session()
+    request_db = db
     try:
         wh = await asyncio.to_thread(get_webhook, db, path)
         if wh is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown webhook path.")
         if request.method != wh.method:
             raise HTTPException(status.HTTP_405_METHOD_NOT_ALLOWED, f"Webhook expects {wh.method}.")
+        # Snapshot the row before commit/close: SQLAlchemy expires ORM
+        # attributes on commit, and the response wait below must not hold a
+        # pooled request session for up to two minutes.
+        workflow_id = wh.workflow_id
+        owner_id = wh.user_id
+        workflow_data = wh.workflow_data
 
         idempotency_key = request.headers.get("idempotency-key")
+        allowed, retry_after = _limiter.allow(f"webhook:{path}")
+        if not allowed:
+            ratelimit_rejected.inc(("webhook",))
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Webhook rate limit exceeded.",
+                headers={"Retry-After": str(retry_after)},
+            )
+
+        length = request.headers.get("content-length")
+        if length:
+            try:
+                declared_length = int(length)
+            except ValueError:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid Content-Length header.")
+            if declared_length > MAX_WEBHOOK_BODY:
+                raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Body exceeds 5 MB limit.")
+        raw = await request.body()
+        if len(raw) > MAX_WEBHOOK_BODY:
+            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Body exceeds 5 MB limit.")
+
+        # Phase 13: Enterprise signature verification & replay protection.
+        # Verify BEFORE consulting the idempotency key so an unauthenticated
+        # caller cannot probe delivery/execution existence by guessing keys.
+        await asyncio.to_thread(_verify_webhook_signature, wh, request, raw)
+
         if idempotency_key:
             replay = await asyncio.to_thread(
-                lambda: db.scalars(
+                lambda: request_db.scalars(
                     select(WebhookDelivery).where(
                         WebhookDelivery.path == path,
                         WebhookDelivery.idempotency_key == idempotency_key,
@@ -283,25 +316,6 @@ async def webhook_receive(
                     "replayed": True,
                 })
 
-        allowed, retry_after = _limiter.allow(f"webhook:{path}")
-        if not allowed:
-            ratelimit_rejected.inc(("webhook",))
-            raise HTTPException(
-                status.HTTP_429_TOO_MANY_REQUESTS,
-                "Webhook rate limit exceeded.",
-                headers={"Retry-After": str(retry_after)},
-            )
-
-        length = request.headers.get("content-length")
-        if length and int(length) > MAX_WEBHOOK_BODY:
-            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Body exceeds 5 MB limit.")
-        raw = await request.body()
-        if len(raw) > MAX_WEBHOOK_BODY:
-            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Body exceeds 5 MB limit.")
-
-        # Phase 13: Enterprise signature verification & replay protection
-        await asyncio.to_thread(_verify_webhook_signature, wh, request, raw)
-
         delivery_id = f"dlv_{uuid.uuid4().hex[:12]}"
         trigger_items = [{
             "body": _payload(raw),
@@ -313,12 +327,12 @@ async def webhook_receive(
         from app.api.executions import has_running_execution, start_execution, workflow_workspace
         from app.billing.service import enforce_can_start_execution
 
-        if await asyncio.to_thread(has_running_execution, db, wh.workflow_id):
+        if await asyncio.to_thread(has_running_execution, db, workflow_id):
             webhook_deliveries.inc(("skipped",))
             db.add(WebhookDelivery(
                 id=delivery_id,
-                workflow_id=wh.workflow_id,
-                user_id=wh.user_id,
+                workflow_id=workflow_id,
+                user_id=owner_id,
                 path=path,
                 status="skipped",
                 response_code=status.HTTP_202_ACCEPTED,
@@ -340,10 +354,10 @@ async def webhook_receive(
             execution_id = await asyncio.to_thread(
                 start_execution,
                 db,
-                workflow_id=wh.workflow_id,
-                user_id=wh.user_id,
+                workflow_id=workflow_id,
+                user_id=owner_id,
                 version=wh.workflow_version,
-                workflow_data=wh.workflow_data,
+                workflow_data=workflow_data,
                 trigger="webhook",
                 trigger_items=trigger_items,
                 workspace_id=ws_id,
@@ -357,8 +371,8 @@ async def webhook_receive(
         webhook_deliveries.inc(("queued",))
         db.add(WebhookDelivery(
             id=delivery_id,
-            workflow_id=wh.workflow_id,
-            user_id=wh.user_id,
+            workflow_id=workflow_id,
+            user_id=owner_id,
             path=path,
             status="queued",
             response_code=status.HTTP_202_ACCEPTED,
@@ -367,7 +381,12 @@ async def webhook_receive(
         ))
         await asyncio.to_thread(db.commit)
         if respond:
-            answered = await _await_webhook_response(execution_id, wh.workflow_data, wait_seconds)
+            # Release the request-scoped DB connection before waiting for
+            # the execution. The waiter uses short-lived sessions, so a slow
+            # workflow cannot exhaust the pool with idle request sessions.
+            db.close()
+            db = None
+            answered = await _await_webhook_response(execution_id, workflow_data, wait_seconds)
             if answered is not None:
                 code, body = answered
                 if body is None:
@@ -387,7 +406,8 @@ async def webhook_receive(
             "skipped": False,
         })
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 
 @router.get("/deliveries")
@@ -508,6 +528,8 @@ def form_definition(slug: str) -> dict:
         if wh is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown form.")
         params = _form_node_params(wh.workflow_data) or {}
+        if params.get("public_enabled") is False:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown form.")
         return ok({
             "path": wh.path,
             "title": params.get("title", "Form"),
@@ -527,6 +549,8 @@ async def form_submit(slug: str, request: Request) -> dict:
         if wh is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown form.")
         params = _form_node_params(wh.workflow_data) or {}
+        if params.get("public_enabled") is False:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown form.")
         _require_configured_secret(request, params)
 
         allowed, retry_after = _limiter.allow(f"webhook:{path}")
@@ -539,8 +563,13 @@ async def form_submit(slug: str, request: Request) -> dict:
             )
 
         length = request.headers.get("content-length")
-        if length and int(length) > MAX_WEBHOOK_BODY:
-            raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Body exceeds 5 MB limit.")
+        if length:
+            try:
+                declared_length = int(length)
+            except ValueError:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid Content-Length header.")
+            if declared_length > MAX_WEBHOOK_BODY:
+                raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Body exceeds 5 MB limit.")
         raw = await request.body()
         if len(raw) > MAX_WEBHOOK_BODY:
             raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Body exceeds 5 MB limit.")
@@ -654,6 +683,8 @@ def chat_definition(slug: str) -> dict:
         if wh is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown chat.")
         params = _chat_node_params(wh.workflow_data) or {}
+        if params.get("public_enabled") is False:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown chat.")
         return ok({
             "path": wh.path,
             "title": params.get("title", "Chat"),
@@ -676,7 +707,12 @@ async def chat_message(slug: str, request: Request) -> dict:
         wh = await asyncio.to_thread(get_webhook, db, path)
         if wh is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown chat.")
-        params = _chat_node_params(wh.workflow_data) or {}
+        workflow_id = wh.workflow_id
+        owner_id = wh.user_id
+        workflow_data = wh.workflow_data
+        params = _chat_node_params(workflow_data) or {}
+        if params.get("public_enabled") is False:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown chat.")
         _require_configured_secret(request, params)
 
         allowed, retry_after = _limiter.allow(f"webhook:{path}")
@@ -714,16 +750,16 @@ async def chat_message(slug: str, request: Request) -> dict:
         from app.models import Execution as _Execution
         trigger_items = [{"message": message, "session_id": session_id, "history": history}]
         try:
-            ws_id = await asyncio.to_thread(workflow_workspace, db, wh.workflow_id)
+            ws_id = await asyncio.to_thread(workflow_workspace, db, workflow_id)
             # Plan quota (audit H9): chat rounds are executions too.
             await asyncio.to_thread(enforce_can_start_execution, db, ws_id)
             execution_id = await asyncio.to_thread(
                 start_execution,
                 db,
-                workflow_id=wh.workflow_id,
-                user_id=wh.user_id,
+                workflow_id=workflow_id,
+                user_id=owner_id,
                 version=wh.workflow_version,
-                workflow_data=wh.workflow_data,
+                workflow_data=workflow_data,
                 trigger="chat",
                 trigger_items=trigger_items,
                 workspace_id=ws_id,
@@ -737,8 +773,8 @@ async def chat_message(slug: str, request: Request) -> dict:
         webhook_deliveries.inc(("queued",))
         db.add(WebhookDelivery(
             id=delivery_id,
-            workflow_id=wh.workflow_id,
-            user_id=wh.user_id,
+            workflow_id=workflow_id,
+            user_id=owner_id,
             path=path,
             status="queued",
             response_code=status.HTTP_200_OK,
@@ -746,37 +782,54 @@ async def chat_message(slug: str, request: Request) -> dict:
         ))
         await asyncio.to_thread(db.commit)
 
+        # Public chat waits for up to CHAT_WAIT_SECONDS. Do not keep the
+        # request-scoped session (and its pool connection) for that whole
+        # time: a handful of slow chats would otherwise starve the API.
+        db.close()
+        db = None
+
         deadline = time.monotonic() + CHAT_WAIT_SECONDS
-        final = None
+        final_status: str | None = None
+        final_error: dict | None = None
+        final_results: dict | None = None
         while time.monotonic() < deadline:
 
-            def _poll_execution():
-                db.expire_all()
-                rec = db.get(_Execution, execution_id)
-                if rec is not None and rec.status not in ("queued", "running", "cancelling"):
-                    return rec
-                return None
+            def _poll_execution() -> tuple[str, dict | None, dict | None] | None:
+                poll_db = get_session()
+                try:
+                    rec = poll_db.get(_Execution, execution_id)
+                    if rec is not None and rec.status not in ("queued", "running", "cancelling"):
+                        return rec.status, rec.error, rec.results
+                    return None
+                finally:
+                    poll_db.close()
 
-            final = await asyncio.to_thread(_poll_execution)
-            if final is not None:
+            polled = await asyncio.to_thread(_poll_execution)
+            if polled is not None:
+                final_status, final_error, final_results = polled
                 break
             await asyncio.sleep(0.25)
-        if final is None:
+        if final_status is None:
             return ok({
                 "reply": "", "session_id": session_id, "execution_id": execution_id,
                 "status": "timeout", "timeout": True,
             })
-        await asyncio.to_thread(_mark_deliveries, db, execution_id, final.status)
-        if final.status != "success":
-            err = final.error or {}
+        mark_db = get_session()
+        try:
+            await asyncio.to_thread(_mark_deliveries, mark_db, execution_id, final_status)
+        finally:
+            mark_db.close()
+        if final_status != "success":
+            err = final_error or {}
             return ok({
                 "reply": "", "session_id": session_id, "execution_id": execution_id,
-                "status": final.status, "error": err,
+                "status": final_status, "error": err,
             })
-        reply = _extract_reply(wh.workflow_data, final.results)
+        reply = _extract_reply(workflow_data, final_results)
         return ok({
             "reply": reply, "session_id": session_id,
             "execution_id": execution_id, "status": "success",
         })
     finally:
-        db.close()
+        if db is not None:
+            db.close()

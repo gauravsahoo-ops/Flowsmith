@@ -31,6 +31,10 @@ class ChatTriggerParams(BaseModel):
     path: str = Field(min_length=1, description="Public path, e.g. 'chat/support-abcdefgh12345678'.")
     title: str = Field(default="Chat", max_length=120)
     greeting: str = Field(default="How can I help?", max_length=500)
+    public_enabled: bool = Field(
+        default=False,
+        description="Explicitly expose the public chat URL. New triggers default offline; enable this to publish. Legacy workflows without the field remain enabled.",
+    )
     secret: str | None = Field(
         default=None,
         max_length=256,

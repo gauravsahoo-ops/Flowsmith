@@ -59,7 +59,17 @@ class DataLoadService:
             meta["source_type"] = "download_url"
             return raw_bytes, hint, meta
 
-        # 2. Upload / ObjectStore file_id mode
+        # 2. Base64 Data URL (browser upload). Checked before file_id/
+        # file_name because a request can carry both a stale upload field and
+        # inline content; the caller's explicit inline payload must win.
+        if csv_content and csv_content.strip().startswith("data:") and ";base64," in csv_content:
+            header, b64_data = csv_content.split(";base64,", 1)
+            raw_bytes = base64.b64decode(b64_data)
+            hint = "archive.zip" if "zip" in header.lower() else ("data.gz" if "gzip" in header.lower() else "data.csv")
+            meta["source_type"] = "upload_data_url"
+            return raw_bytes, hint, meta
+
+        # 3. Upload / ObjectStore file_id mode
         if (file_id and file_id.strip()) or (file_name and file_name.strip()):
             clean_id = (file_id or file_name).strip()
             clean_name = file_name.strip() if file_name and file_name.strip() else ""
@@ -153,14 +163,6 @@ class DataLoadService:
                 node_id=node_id,
                 retryable=False,
             )
-
-        # 3. Base64 Data URL (browser upload)
-        if csv_content and csv_content.strip().startswith("data:") and ";base64," in csv_content:
-            header, b64_data = csv_content.split(";base64,", 1)
-            raw_bytes = base64.b64decode(b64_data)
-            hint = "archive.zip" if "zip" in header.lower() else ("data.gz" if "gzip" in header.lower() else "data.csv")
-            meta["source_type"] = "upload_data_url"
-            return raw_bytes, hint, meta
 
         # 4. Local or Container File Path
         clean_path = file_path.strip() if file_path else ""

@@ -161,3 +161,11 @@ class RabbitMQConnector(ConnectorSDK, ConnectorOperations):
                 f"RabbitMQ error: {exc}",
                 retryable=True,
             ) from exc
+
+        # Defensive: the allowed-operation check above should make this
+        # unreachable, but the declared return type must hold on every path.
+        raise make_connector_error(
+            ConnectorErrorCode.INVALID_OPERATION,
+            f"Unhandled RabbitMQ operation '{op_name}'.",
+            retryable=False,
+        )

@@ -553,9 +553,8 @@ async def test_parallel_branches_with_independent_data():
 @pytest.mark.asyncio
 async def test_loop_per_item_failure_with_continue():
     """Split fans out 3 items; the downstream boom node fails with
-    continue_on_error. In the batch execution path the first item's
-    failure immediately breaks the loop and _fail() produces a single
-    $error item. C then receives that one item and runs."""
+    continue_on_error. The batch execution path records one $error item per
+    failed input (audit M-3) and C runs once for each of them."""
     wf = make_workflow(
         [
             make_node("trigger", "manual_trigger"),
@@ -573,14 +572,13 @@ async def test_loop_per_item_failure_with_continue():
     result = await execute_workflow(wf, [{"start": True}])
 
     assert result.status == "success"
-    # The batch path fails on the first item and _fail() stores one $error
-    # item (not one per input). Downstream C sees that single item.
+    # Every failed item is preserved as a $error item; none is dropped.
     b_items = result.results["B"]["main"]
-    assert len(b_items) == 1
-    assert "$error" in b_items[0]
+    assert len(b_items) == 3
+    assert all("$error" in item for item in b_items)
     c_items = result.results["C"]["main"]
-    assert len(c_items) == 1
-    assert c_items[0]["checked"] is True
+    assert len(c_items) == 3
+    assert all(item["checked"] is True for item in c_items)
 
 
 # ── Edge: expression evaluates to null/missing ────────────────────────────────

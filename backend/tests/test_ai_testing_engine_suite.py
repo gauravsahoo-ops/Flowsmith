@@ -79,8 +79,10 @@ def test_api_health_contract(client):
     data = resp.json()["data"]
     assert data["status"] == "ok"
     assert "version" in data
-    assert "stage" in data
-    assert "pid" in data
+    # Liveness must not expose deployment metadata or claim dependency health.
+    assert "stage" not in data
+    assert "pid" not in data
+    assert "database" not in data
 
 
 def test_api_readyz_contract(client):

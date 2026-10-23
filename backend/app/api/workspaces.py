@@ -120,12 +120,16 @@ def list_workspaces(user: User = Depends(get_current_user), db: Session = Depend
     created = select(Workspace.id).where(Workspace.creator_id == user.id)
     # Get workspaces where user is a member
     member_of = select(WorkspaceMember.workspace_id).where(WorkspaceMember.user_id == user.id)
-    # Get workspaces in user's organizations
+    # Get non-private workspaces in the user's organizations. Private
+    # workspaces are visible only to their creator and explicit members.
     org_ws = select(Workspace.id).join(
         Organization, Workspace.organization_id == Organization.id
     ).join(
         OrganizationMember, OrganizationMember.organization_id == Organization.id
-    ).where(OrganizationMember.user_id == user.id)
+    ).where(
+        OrganizationMember.user_id == user.id,
+        Workspace.is_private.is_(False),
+    )
 
     stmt = select(Workspace).where(
         Workspace.id.in_(created.union(member_of, org_ws))

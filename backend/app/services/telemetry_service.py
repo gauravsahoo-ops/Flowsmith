@@ -2014,8 +2014,9 @@ def finalize_execution_telemetry(
             rec.duration_ms = round(float(result.duration_ms), 2)
         else:
             raw_duration_ms = max(0.0, (finished_at - started_at).total_seconds() * 1000.0)
-            if getattr(rec, "queue_wait_ms", None):
-                rec.duration_ms = round(max(0.0, raw_duration_ms - rec.queue_wait_ms), 2)
+            queue_wait_ms = getattr(rec, "queue_wait_ms", None)
+            if queue_wait_ms:
+                rec.duration_ms = round(max(0.0, raw_duration_ms - float(queue_wait_ms)), 2)
             else:
                 rec.duration_ms = round(raw_duration_ms, 2)
 

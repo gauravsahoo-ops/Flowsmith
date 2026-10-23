@@ -331,3 +331,14 @@ class TestTimeout:
                 "runOnceForAllItems",
                 timeout=2.0,
             )
+
+    def test_python_memory_budget_enforced(self):
+        with pytest.raises(NodeExecutionError) as exc_info:
+            _exec_python_code(
+                'x = "a" * (200 * 1024 * 1024)\nreturn [{"ok": True}]',
+                [{}],
+                "runOnceForAllItems",
+                timeout=5.0,
+                max_memory_mb=64,
+            )
+        assert exc_info.value.code in ("CODE_MEMORY_LIMIT", "CODE_SANDBOX_CRASH")

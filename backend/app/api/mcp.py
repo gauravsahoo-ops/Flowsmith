@@ -323,12 +323,15 @@ async def call_mcp_tool(
 
         elif payload.name == "trigger_workflow":
             from app.api.executions import start_execution, workflow_workspace
+            from app.billing.service import enforce_can_start_execution
             perm = get_permission(db, args["workflow_id"], user)
             if perm is None or perm == PERMISSION_VIEW:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found or insufficient permissions.")
             wf = db.get(WorkflowRecord, args["workflow_id"])
             input_data = args.get("input_data") or {}
             trigger_items = input_data if isinstance(input_data, list) else [input_data]
+            ws_id = workflow_workspace(db, wf.id)
+            enforce_can_start_execution(db, ws_id)
             exec_id = start_execution(
                 db,
                 workflow_id=wf.id,
@@ -337,7 +340,7 @@ async def call_mcp_tool(
                 workflow_data=wf.data,
                 trigger="mcp",
                 trigger_items=trigger_items,
-                workspace_id=workflow_workspace(db, wf.id),
+                workspace_id=ws_id,
             )
             result = {"execution_id": exec_id, "status": "queued"}
 

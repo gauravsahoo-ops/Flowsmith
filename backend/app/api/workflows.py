@@ -42,6 +42,7 @@ from app.api.access import (
     get_permission,
     get_workflow,
     is_owner,
+    workspace_can_edit,
 )
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params, validate_workflow_payload
@@ -265,6 +266,20 @@ def import_workflow(
     already taken, so re-importing never clobbers an existing workflow.
     Always creates the workflow in Draft / Inactive status without active triggers.
     """
+    target_workspace_id = body.get("workspace_id") if isinstance(body, dict) else None
+    if target_workspace_id is not None:
+        from app.api.workspaces import _require_ws_member
+        from app.billing.service import enforce_plan_limit
+
+        _require_ws_member(db, str(target_workspace_id), user)
+        if not workspace_can_edit(db, str(target_workspace_id), user.id):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Workspace edit access is required to import into it.",
+            )
+        enforce_plan_limit(db, str(target_workspace_id), "workflows")
+        target_workspace_id = str(target_workspace_id)
+
     try:
         native = parse_import(body)
     except WorkflowImportError as exc:
@@ -302,6 +317,7 @@ def import_workflow(
     rec = WorkflowRecord(
         id=workflow.id,
         user_id=user.id,
+        workspace_id=target_workspace_id,
         name=workflow.name,
         description=workflow.settings.get("description", ""),
         version=workflow.version,
@@ -341,7 +357,7 @@ def duplicate_workflow(
     - Enforces Draft / Inactive lifecycle state (active = False, status = 'draft')
     - Never triggers or registers active schedules or executions
     """
-    rec = get_workflow(db, workflow_id, user, require_edit=False)
+    rec = get_workflow(db, workflow_id, user, require_edit=True)
     raw_data = dict(rec.data or {})
 
     # Deep copy and sanitize data (strip credentials, secrets, runtime states)
@@ -381,10 +397,23 @@ def duplicate_workflow(
     new_data["status"] = "draft"
     new_data["active"] = False
 
+    # Never carry a workspace the duplicating user cannot edit: doing so
+    # would let a view/edit sharee clone a workflow into their account while
+    # retaining the original workspace's environment variables and secrets.
+    target_workspace_id = (
+        rec.workspace_id
+        if rec.workspace_id and workspace_can_edit(db, rec.workspace_id, user.id)
+        else None
+    )
+    if target_workspace_id:
+        from app.billing.service import enforce_plan_limit
+
+        enforce_plan_limit(db, target_workspace_id, "workflows")
+
     new_rec = WorkflowRecord(
         id=new_id,
         user_id=user.id,
-        workspace_id=rec.workspace_id,
+        workspace_id=target_workspace_id,
         name=new_name,
         description=rec.description or "",
         version=1,
@@ -432,6 +461,13 @@ def create_workflow(body: dict, user: User = Depends(get_current_user), db: Sess
         from app.billing.service import enforce_plan_limit
 
         _require_ws_member(db, str(workspace_id), user)
+        # Creating a workflow in a workspace is a write: a view-only member
+        # must not be able to attach a workflow and read its environment.
+        if not workspace_can_edit(db, str(workspace_id), user.id):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Workspace edit access is required to create workflows in it.",
+            )
         enforce_plan_limit(db, str(workspace_id), "workflows")
     # Check if a workflow with this id already exists (by record id)
     if db.get(WorkflowRecord, workflow.id) is not None:

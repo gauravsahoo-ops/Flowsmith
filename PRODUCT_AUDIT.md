@@ -1,3 +1,8 @@
+> **SUPERSEDED — 2026-10-22.** Test counts and scalability/security claims in
+> this document are stale. See
+> [`AUDIT_REPORT_2026-10-22.md`](AUDIT_REPORT_2026-10-22.md) for the current
+> independent audit, findings, and remediation evidence.
+
 # FLOWSMITH — COMPREHENSIVE PRODUCT & ARCHITECTURE AUDIT
 
 > **Audit Date:** October 2026  

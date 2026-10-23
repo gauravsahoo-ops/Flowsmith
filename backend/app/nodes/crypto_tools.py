@@ -331,7 +331,7 @@ class CryptoToolsNode(BaseNode[CryptoToolsParams]):
         # and would make an expired one look malformed instead of expired.
         # Algorithms are pinned unconditionally, and that is the check which
         # actually has to be unconditional.
-        options: dict[str, Any] = {"require": []}
+        options: Any = {"require": []}
 
         try:
             # Pinning `algorithms` is what blocks algorithm confusion: a token

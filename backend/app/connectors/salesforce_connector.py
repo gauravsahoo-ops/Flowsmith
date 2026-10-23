@@ -177,7 +177,10 @@ class SalesforceConnectorParams(BaseModel):
                 raise ValueError(
                     f"Expression '{s}' was not resolved to a valid record batch. Ensure the referenced node has executed and produced records."
                 )
-        return v
+            raise ValueError("records must be a JSON array of objects.")
+        if isinstance(v, dict):
+            return [v]
+        return []
     external_id_field: str = Field(
         default="",
         description="External-id field API name (operation=upsert; bulk_operation=upsert).",

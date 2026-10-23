@@ -67,7 +67,18 @@ def _test_redis_url() -> str:
     if not base:
         return ""
     worker = os.environ.get("PYTEST_XDIST_WORKER", "").strip()
-    db_num = "14" if worker else "15"
+    # Each xdist worker needs its own Redis logical DB, otherwise queue
+    # consumers steal each other's jobs and rate-limit keys leak across
+    # workers (the source of the earlier parallel-suite false failures).
+    if worker:
+        try:
+            db_num = str(8 + (int(worker.removeprefix("gw")) % 7))
+        except ValueError:
+            db_num = "14"
+    else:
+        db_num = "15"
+    if db_num == "0":
+        db_num = "15"
     if "/" in base:
         prefix = base.rsplit("/", 1)[0]
         return f"{prefix}/{db_num}"
@@ -175,6 +186,13 @@ def _clean_db(_pg_harness):
     for attempt in range(max_retries):
         try:
             with cleanup_engine.begin() as conn:
+                # Background workers from the previous test can still hold
+                # pooled connections/transactions; terminate only this test
+                # database's other sessions so TRUNCATE is not blocked.
+                conn.execute(text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = current_database() AND pid <> pg_backend_pid()"
+                ))
                 conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
             break
         except Exception as exc:

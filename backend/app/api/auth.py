@@ -9,13 +9,16 @@ from __future__ import annotations
 
 import logging
 import re
+import secrets
+import threading
 
 import jwt as pyjwt
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field, model_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.common import ok
@@ -24,6 +27,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.metrics import ratelimit_rejected
 from app.models import PasswordResetToken, User
+from app.security.client_ip import client_ip as _trusted_client_ip
 from app.security.jwt import (
     DUMMY_PASSWORD_HASH,
     create_token,
@@ -45,6 +49,13 @@ login_throttle = get_login_throttle()
 _register_limiter = SlidingWindowLimiter(capacity=100, window_s=60)  # 100 per minute per IP
 _forgot_password_limiter = SlidingWindowLimiter(capacity=20, window_s=60)  # 20 per minute per IP
 
+# Serializes the "is this the first account?" count+insert. PostgreSQL uses
+# an advisory transaction lock so multiple API replicas cannot both bootstrap
+# an admin; SQLite (development/tests) falls back to a process lock because
+# SQLite deployments are single-process by design.
+_REGISTRATION_BOOTSTRAP_LOCK = threading.Lock()
+_BOOTSTRAP_ADVISORY_KEY = 0x46534D54
+
 
 class _StrippedBody(BaseModel):
     """Strip whitespace on identity fields BEFORE validation so autofill/
@@ -54,7 +65,7 @@ class _StrippedBody(BaseModel):
     @classmethod
     def _strip_identity_fields(cls, data: Any):
         if isinstance(data, dict):
-            for key in ("email", "password"):
+            for key in ("email", "password", "invite_code", "bootstrap_token"):
                 if isinstance(data.get(key), str):
                     data[key] = data[key].strip()
         return data
@@ -63,6 +74,8 @@ class _StrippedBody(BaseModel):
 class RegisterRequest(_StrippedBody):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    invite_code: str | None = None
+    bootstrap_token: str | None = None
 
 
 class LoginRequest(_StrippedBody):
@@ -132,7 +145,7 @@ def _auth_payload(
 
 
 def _client_key(request: Request) -> str:
-    return request.client.host if request.client is not None else "unknown"
+    return _trusted_client_ip(request)
 
 
 def _raise_locked(key: str) -> None:
@@ -151,22 +164,69 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     if not allowed:
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many registration attempts.", headers={"Retry-After": str(retry)})
     _validate_password_complexity(body.password)
-    existing = db.scalar(select(User).where(User.email == body.email.lower()))
-    if existing:
-        raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
     # Normalize inputs deterministically: stray whitespace (autofill,
     # copy-paste) must not silently change identity material. Email is
     # case-insensitive by convention (strip already applied in model).
     body.email = body.email.lower()
-    is_first = (db.scalar(select(func.count()).select_from(User)) or 0) == 0
-    user = User(
-        email=body.email.lower(),
-        password_hash=hash_password(body.password),
-        role="admin" if is_first else "member",
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    settings = get_settings()
+    mode = (settings.registration_mode or "open").strip().lower()
+    password_hash = hash_password(body.password)
+
+    with _REGISTRATION_BOOTSTRAP_LOCK:
+        try:
+            # Hold the lock through commit: the count and insert must be one
+            # atomic unit or two replicas can both see zero users and both
+            # create an admin.
+            if db.get_bind().dialect.name == "postgresql":
+                db.execute(
+                    text("SELECT pg_advisory_xact_lock(:key)"),
+                    {"key": _BOOTSTRAP_ADVISORY_KEY},
+                )
+
+            existing = db.scalar(select(User).where(User.email == body.email))
+            if existing:
+                raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
+            is_first = (db.scalar(select(func.count()).select_from(User)) or 0) == 0
+            if is_first and settings.registration_bootstrap_token:
+                supplied_bootstrap = body.bootstrap_token or ""
+                if not supplied_bootstrap or not secrets.compare_digest(
+                    supplied_bootstrap, settings.registration_bootstrap_token
+                ):
+                    raise HTTPException(
+                        status.HTTP_403_FORBIDDEN,
+                        "A valid REGISTRATION_BOOTSTRAP_TOKEN is required to create the first admin.",
+                    )
+            if not is_first:
+                if mode == "closed":
+                    raise HTTPException(
+                        status.HTTP_403_FORBIDDEN,
+                        "Self-service registration is disabled. Contact an administrator.",
+                    )
+                if mode == "invite":
+                    expected = settings.registration_invite_code or ""
+                    supplied = body.invite_code or ""
+                    if not expected or not supplied or not secrets.compare_digest(supplied, expected):
+                        raise HTTPException(
+                            status.HTTP_403_FORBIDDEN,
+                            "A valid invitation code is required to register.",
+                        )
+            user = User(
+                email=body.email,
+                password_hash=password_hash,
+                role="admin" if is_first else "member",
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        except IntegrityError as exc:
+            db.rollback()
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "An account with this email already exists."
+            ) from exc
+        except Exception:
+            db.rollback()
+            raise
+
     log_event(db, REGISTER, target_type="user", target_id=str(user.id), user_id=user.id)
     log_event(db, LOGIN, target_type="user", target_id=str(user.id), user_id=user.id)
     ua = request.headers.get("user-agent", "")

@@ -205,6 +205,7 @@ def test_03_environment_variables_and_secret_configuration():
         database_url="postgresql://produser:str0ng_p4ssw0rd!@prodhost:5432/automate",
         cors_origins="https://flowsmith.example.com,https://app.flowsmith.com",
         redis_password="secure_redis_pwd_12345",
+        registration_bootstrap_token="bootstrap-token-with-at-least-32-characters",
         safe_http_allowed_hosts="",
         safe_http_allowed_ports="",
     )
@@ -259,7 +260,7 @@ def test_05_health_checks_startup_failures_and_graceful_shutdown(client):
     assert health_resp.status_code == 200
     h_data = health_resp.json()["data"]
     assert h_data["status"] == "ok"
-    assert h_data["database"] == "ok"
+    assert "database" not in h_data
     assert "uptime_s" in h_data
     assert "version" in h_data
 

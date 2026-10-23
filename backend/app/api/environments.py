@@ -110,9 +110,14 @@ def list_env(workspace_id: str, user: User = Depends(get_current_user), db: Sess
 @router.post("/api/environments")
 def create_env(payload: EnvironmentCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     """Create or update an environment variable."""
-    ws = _require_ws_exists(db, payload.workspace_id)
-    if ws.creator_id != user.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only workspace owner can manage environment.")
+    _require_ws_exists(db, payload.workspace_id)
+    from app.api.access import workspace_can_edit
+
+    if not workspace_can_edit(db, payload.workspace_id, user.id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Workspace edit access is required to manage environment variables.",
+        )
 
     # Encrypted at rest with the credential keyring (spec 29); values
     # decrypt only at execution time inside the worker.
@@ -152,9 +157,15 @@ def delete_env(env_id: int, user: User = Depends(get_current_user), db: Session 
     env = db.get(Environment, env_id)
     if env is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found.")
-    ws = db.get(Workspace, env.workspace_id)
-    if ws is None or ws.creator_id != user.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only workspace owner can manage environment.")
+    if db.get(Workspace, env.workspace_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found.")
+    from app.api.access import workspace_can_edit
+
+    if not workspace_can_edit(db, env.workspace_id, user.id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Workspace edit access is required to manage environment variables.",
+        )
     db.delete(env)
     db.commit()
     log_event(db, ENV_DELETED, target_type="environment", target_id=str(env_id), user_id=user.id)
@@ -351,28 +362,37 @@ DEFAULT_TEMPLATES = [
 ]
 
 
+_DEFAULT_TEMPLATE_NAMES = frozenset(t["name"] for t in DEFAULT_TEMPLATES)
+
+
 def ensure_default_templates(db: Session, user_id: int) -> None:
-    public_templates = db.execute(select(WorkflowTemplate).where(WorkflowTemplate.is_public == True)).scalars().all()
-    if not public_templates:
-        for t in DEFAULT_TEMPLATES:
-            tmpl = WorkflowTemplate(
-                name=t["name"],
-                description=t["description"],
-                category=t["category"],
-                workflow_data=json.dumps(t["workflow_data"]),
+    """Idempotently seed/update the built-in template gallery.
+
+    Seeding is keyed by reserved template names instead of "any public
+    template exists", so a user-created public template cannot suppress the
+    defaults. Creation/update rejects those reserved names.
+    """
+    existing = {
+        t.name: t
+        for t in db.execute(
+            select(WorkflowTemplate).where(WorkflowTemplate.name.in_(_DEFAULT_TEMPLATE_NAMES))
+        ).scalars().all()
+    }
+    for default in DEFAULT_TEMPLATES:
+        tmpl = existing.get(default["name"])
+        if tmpl is None:
+            db.add(WorkflowTemplate(
+                name=default["name"],
+                description=default["description"],
+                category=default["category"],
+                workflow_data=json.dumps(default["workflow_data"]),
                 is_public=True,
                 created_by=user_id,
-            )
-            db.add(tmpl)
-        db.commit()
-    else:
-        # Sync all public default templates with updated definitions
-        for pt in public_templates:
-            for dt in DEFAULT_TEMPLATES:
-                if dt["name"] == pt.name:
-                    pt.workflow_data = json.dumps(dt["workflow_data"])
-                    break
-        db.commit()
+            ))
+        else:
+            tmpl.is_public = True
+            tmpl.workflow_data = json.dumps(default["workflow_data"])
+    db.commit()
 
 
 @router.get("/api/templates")
@@ -402,6 +422,8 @@ def delete_template(template_id: int, user: User = Depends(get_current_user), db
     tmpl = db.get(WorkflowTemplate, template_id)
     if tmpl is None or tmpl.created_by != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Template not found.")
+    if tmpl.name in _DEFAULT_TEMPLATE_NAMES:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Built-in templates cannot be deleted.")
     db.delete(tmpl)
     db.commit()
     log_event(db, TEMPLATE_DELETED, target_type="template", target_id=str(template_id), user_id=user.id)
@@ -419,7 +441,11 @@ def update_template(
     tmpl = db.get(WorkflowTemplate, template_id)
     if tmpl is None or tmpl.created_by != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Template not found.")
+    if tmpl.name in _DEFAULT_TEMPLATE_NAMES:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Built-in templates cannot be modified.")
     if payload.name is not None:
+        if payload.name in _DEFAULT_TEMPLATE_NAMES:
+            raise HTTPException(status.HTTP_409_CONFLICT, "That template name is reserved.")
         tmpl.name = payload.name
     if payload.description is not None:
         tmpl.description = payload.description
@@ -458,6 +484,8 @@ def get_template(template_id: int, user: User = Depends(get_current_user), db: S
 @router.post("/api/templates")
 def create_template(payload: TemplateCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     """Create a workflow template."""
+    if payload.name in _DEFAULT_TEMPLATE_NAMES:
+        raise HTTPException(status.HTTP_409_CONFLICT, "That template name is reserved.")
     sanitized = sanitize_workflow_data(payload.workflow_data, strip_credentials=True, strip_secrets=True)
     tmpl = WorkflowTemplate(
         name=payload.name,

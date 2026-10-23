@@ -24,55 +24,66 @@ def get_stats(
     db: Session = Depends(get_db),
 ) -> dict:
     """Return execution statistics, queue depth, and system health."""
+    from app.api.access import accessible_ids
+
     now = datetime.now(timezone.utc)
     hour_ago = now - timedelta(hours=1)
     day_ago = now - timedelta(days=1)
+    ids = list(accessible_ids(db, user))
 
-    # Total workflows
-    total_workflows = db.scalar(select(func.count()).select_from(WorkflowRecord)) or 0
-    active_workflows = db.scalar(
-        select(func.count()).select_from(WorkflowRecord).where(WorkflowRecord.active.is_(True))
-    ) or 0
+    # Every aggregate is scoped to workflows the caller can access. The
+    # dashboard is not an installation-wide admin surface.
+    wf_scope = WorkflowRecord.id.in_(ids) if ids else None
+    exec_scope = Execution.workflow_id.in_(ids) if ids else None
+    delivery_scope = WebhookDelivery.workflow_id.in_(ids) if ids else None
 
-    # Execution counts
-    total_executions = db.scalar(select(func.count()).select_from(Execution)) or 0
-    running_executions = db.scalar(
-        select(func.count()).select_from(Execution).where(Execution.status == "running")
-    ) or 0
-    queued_executions = db.scalar(
-        select(func.count()).select_from(Execution).where(Execution.status == "queued")
-    ) or 0
+    def count(model, *where) -> int:
+        if not ids:
+            return 0
+        return db.scalar(select(func.count()).select_from(model).where(*where)) or 0
 
-    # Success/failure rates (last hour)
-    hour_success = db.scalar(
-        select(func.count()).select_from(Execution)
-        .where(Execution.status == "success")
-        .where(Execution.started_at >= hour_ago)
-    ) or 0
-    hour_failed = db.scalar(
-        select(func.count()).select_from(Execution)
-        .where(Execution.status == "failed")
-        .where(Execution.started_at >= hour_ago)
-    ) or 0
-
-    # Success/failure rates (last 24h)
-    day_success = db.scalar(
-        select(func.count()).select_from(Execution)
-        .where(Execution.status == "success")
-        .where(Execution.started_at >= day_ago)
-    ) or 0
-    day_failed = db.scalar(
-        select(func.count()).select_from(Execution)
-        .where(Execution.status == "failed")
-        .where(Execution.started_at >= day_ago)
-    ) or 0
-
-    # Webhook deliveries
-    total_deliveries = db.scalar(select(func.count()).select_from(WebhookDelivery)) or 0
-    recent_deliveries = db.scalar(
-        select(func.count()).select_from(WebhookDelivery)
-        .where(WebhookDelivery.received_at >= hour_ago)
-    ) or 0
+    total_workflows = count(WorkflowRecord, wf_scope) if wf_scope is not None else 0
+    active_workflows = (
+        count(WorkflowRecord, wf_scope, WorkflowRecord.active.is_(True))
+        if wf_scope is not None else 0
+    )
+    total_executions = count(Execution, exec_scope) if exec_scope is not None else 0
+    running_executions = (
+        count(Execution, exec_scope, Execution.status == "running")
+        if exec_scope is not None else 0
+    )
+    queued_executions = (
+        count(Execution, exec_scope, Execution.status == "queued")
+        if exec_scope is not None else 0
+    )
+    hour_success = (
+        count(Execution, exec_scope, Execution.status == "success",
+              Execution.started_at >= hour_ago)
+        if exec_scope is not None else 0
+    )
+    hour_failed = (
+        count(Execution, exec_scope, Execution.status == "failed",
+              Execution.started_at >= hour_ago)
+        if exec_scope is not None else 0
+    )
+    day_success = (
+        count(Execution, exec_scope, Execution.status == "success",
+              Execution.started_at >= day_ago)
+        if exec_scope is not None else 0
+    )
+    day_failed = (
+        count(Execution, exec_scope, Execution.status == "failed",
+              Execution.started_at >= day_ago)
+        if exec_scope is not None else 0
+    )
+    total_deliveries = (
+        count(WebhookDelivery, delivery_scope)
+        if delivery_scope is not None else 0
+    )
+    recent_deliveries = (
+        count(WebhookDelivery, delivery_scope, WebhookDelivery.received_at >= hour_ago)
+        if delivery_scope is not None else 0
+    )
 
     # System uptime
     uptime_seconds = time.monotonic() - _PROCESS_START
@@ -96,12 +107,25 @@ def get_metrics(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Return Prometheus-style metrics as JSON."""
-    total_workflows = db.scalar(select(func.count()).select_from(WorkflowRecord)) or 0
-    total_executions = db.scalar(select(func.count()).select_from(Execution)) or 0
-    running = db.scalar(
-        select(func.count()).select_from(Execution).where(Execution.status == "running")
-    ) or 0
+    """Return Prometheus-style metrics as JSON, scoped to the caller."""
+    from app.api.access import accessible_ids
+
+    ids = list(accessible_ids(db, user))
+    if ids:
+        total_workflows = db.scalar(
+            select(func.count()).select_from(WorkflowRecord)
+            .where(WorkflowRecord.id.in_(ids))
+        ) or 0
+        total_executions = db.scalar(
+            select(func.count()).select_from(Execution)
+            .where(Execution.workflow_id.in_(ids))
+        ) or 0
+        running = db.scalar(
+            select(func.count()).select_from(Execution)
+            .where(Execution.workflow_id.in_(ids), Execution.status == "running")
+        ) or 0
+    else:
+        total_workflows = total_executions = running = 0
     uptime = round(time.monotonic() - _PROCESS_START, 1)
 
     return ok({

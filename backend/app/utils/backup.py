@@ -36,10 +36,19 @@ BACKUP_DIR = Path(os.getenv("MAT_BACKUP_DIR", "backups"))
 _CHUNK = 1 << 20  # 1 MiB
 
 
+def _default_dsn() -> str:
+    """Use the live engine URL so tests/backups target the active database."""
+    try:
+        from app.db import get_engine
+
+        return str(get_engine().url.render_as_string(hide_password=False))
+    except Exception:
+        return get_settings().database_url
+
+
 def _get_pg_env(dsn: str | None = None) -> dict[str, str]:
     """Environment for local-mode clients, parsed from the DSN."""
-    settings = get_settings()
-    target = dsn or settings.database_url
+    target = dsn or _default_dsn()
     env = os.environ.copy()
     if "postgresql" in target:
         parsed = urllib.parse.urlparse(target)
@@ -52,7 +61,7 @@ def _get_pg_env(dsn: str | None = None) -> dict[str, str]:
 
 
 def _dsn_parts(dsn: str | None = None) -> dict[str, str]:
-    target = dsn or get_settings().database_url
+    target = dsn or _default_dsn()
     parsed = urllib.parse.urlparse(target)
     return {
         "host": parsed.hostname or "localhost",

@@ -140,8 +140,11 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
             "table": table,
         }
 
-    async def op_update(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def op_update(
+        self, payload: Dict[str, Any], context: Dict[str, Any] | None = None
+    ) -> Dict[str, Any]:
         """Update records in an Oracle table."""
+        params = payload
         table = params.get("table", "").strip()
         data = params.get("data", {})
         if not table or not data:
@@ -155,8 +158,11 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
             "table": table,
         }
 
-    async def op_delete(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def op_delete(
+        self, payload: Dict[str, Any], context: Dict[str, Any] | None = None
+    ) -> Dict[str, Any]:
         """Delete records in an Oracle table."""
+        params = payload
         table = params.get("table", "").strip()
         if not table:
             raise make_connector_error(

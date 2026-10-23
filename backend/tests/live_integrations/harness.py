@@ -21,7 +21,15 @@ import pytest
 
 logger = logging.getLogger("flowsmith.live_tests")
 
-LIVE_AUDIT_LOG_PATH = Path(r"c:\Flowsmith\docs\integration-platform\LIVE_API_AUDIT_RESULTS.json")
+LIVE_AUDIT_LOG_PATH = Path(
+    os.environ.get(
+        "FLOWSMITH_LIVE_AUDIT_RESULTS",
+        Path(__file__).resolve().parents[3]
+        / "docs"
+        / "integration-platform"
+        / "LIVE_API_AUDIT_RESULTS.json",
+    )
+)
 
 
 @dataclass

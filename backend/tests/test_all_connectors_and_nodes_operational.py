@@ -188,11 +188,20 @@ def test_manifest_automated_completeness_gate():
         # Verify test coverage
         assert len(m_conn["test_suite_coverage"]) > 0, f"Connector '{cid}' has no declared test coverage"
 
-    # Verify canonical nodes completeness (excluding test fixture stubs injected by conftest)
-    canonical_runtime_nodes = {
-        k: v for k, v in NODE_REGISTRY.items()
-        if k not in ("db", "boom", "slow", "flaky")
+    # Verify canonical nodes completeness against the manifest's explicit node
+    # list. Test fixtures replace a few real node types (e.g. slack) and add
+    # stubs, so a raw registry count is not meaningful; extra app-registered
+    # nodes still fail the gate.
+    manifest_node_types = {n["node_type"] for n in manifest["nodes"]}
+    assert len(manifest_node_types) == manifest["summary"]["total_canonical_nodes"]
+    missing_nodes = manifest_node_types - set(NODE_REGISTRY)
+    assert not missing_nodes, f"Manifest nodes missing from runtime registry: {sorted(missing_nodes)}"
+    extra_nodes = {
+        k for k, v in NODE_REGISTRY.items()
+        if k not in manifest_node_types
+        and not (
+            getattr(v, "__module__", "").startswith("tests")
+            or getattr(v, "__module__", "") == "conftest"
+        )
     }
-    assert len(canonical_runtime_nodes) == manifest["summary"]["total_canonical_nodes"], (
-        f"NODE_REGISTRY count {len(canonical_runtime_nodes)} != Manifest nodes {manifest['summary']['total_canonical_nodes']}"
-    )
+    assert not extra_nodes, f"Runtime nodes missing from certification manifest: {sorted(extra_nodes)}"

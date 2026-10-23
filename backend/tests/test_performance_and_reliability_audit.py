@@ -475,7 +475,9 @@ async def test_07_redis_outages_provider_outages_and_network_interruptions():
     # 2. Redis outage simulation
     # Creating a Redis client directed to an invalid/dead port
     dead_redis = redis.Redis(host="127.0.0.1", port=65530, socket_connect_timeout=0.1)
-    with pytest.raises(redis.ConnectionError):
+    # redis-py versions differ: a dead port can surface as TimeoutError rather
+    # than ConnectionError. Both prove the outage path is isolated.
+    with pytest.raises((redis.ConnectionError, redis.TimeoutError)):
         dead_redis.ping()
 
 

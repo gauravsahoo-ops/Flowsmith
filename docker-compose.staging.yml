@@ -2,7 +2,7 @@ services:
   postgres:
     # pgvector-enabled PostgreSQL (16). Same official-image entrypoint;
     # the named volume below carries existing data across the swap.
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
     container_name: mat-postgres
     restart: unless-stopped
     environment:
@@ -29,7 +29,7 @@ services:
         max-file: "5"
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:57e4255cc971b1c8d6f8a6ca283ac01bc3ecdd914273ef6bfaede87aaecd6541
     container_name: mat-redis
     restart: unless-stopped
     # Require a password when REDIS_PASSWORD is set (production).
@@ -55,11 +55,31 @@ services:
         max-size: "20m"
         max-file: "3"
 
+  migrate:
+    build: .
+    container_name: mat-migrate
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/automate}
+      APP_ENV: production
+    command: ["python", "-m", "app.scripts.migrate"]
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   app:
     build: .
     container_name: mat-app
     restart: unless-stopped
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -74,7 +94,12 @@ services:
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
       PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
       APP_ENV: production
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://flowsmith.dev.idslogic.net,http://localhost:8000,http://localhost:5173}
+      RUN_MIGRATIONS_ON_STARTUP: "false"
+      REGISTRATION_MODE: ${REGISTRATION_MODE:-closed}
+      REGISTRATION_INVITE_CODE: ${REGISTRATION_INVITE_CODE:-}
+      REGISTRATION_BOOTSTRAP_TOKEN: ${REGISTRATION_BOOTSTRAP_TOKEN:-}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1,::1}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://flowsmith.dev.idslogic.net}
       OBJECT_STORE_BACKEND: ${OBJECT_STORE_BACKEND:-local}
       OBJECT_STORE_LOCAL_PATH: ${OBJECT_STORE_LOCAL_PATH:-/app/backend/data/objects}
       OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-}
@@ -150,6 +175,8 @@ services:
     container_name: mat-worker
     restart: unless-stopped
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -164,6 +191,11 @@ services:
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
       PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
       APP_ENV: production
+      RUN_MIGRATIONS_ON_STARTUP: "false"
+      REGISTRATION_MODE: ${REGISTRATION_MODE:-closed}
+      REGISTRATION_INVITE_CODE: ${REGISTRATION_INVITE_CODE:-}
+      REGISTRATION_BOOTSTRAP_TOKEN: ${REGISTRATION_BOOTSTRAP_TOKEN:-}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1,::1}
       OBJECT_STORE_BACKEND: ${OBJECT_STORE_BACKEND:-local}
       OBJECT_STORE_LOCAL_PATH: ${OBJECT_STORE_LOCAL_PATH:-/app/backend/data/objects}
       OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-}
@@ -238,7 +270,7 @@ services:
   # NOTE: minio/minio was deleted from Docker Hub on 2026-09-11 upstream;
   # bitnamilegacy/minio is the anonymously-pullable mirror (pinned).
   minio:
-    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5@sha256:6dabb4a2088c9a79908de3bc05f4586c23ad2182c8908e7e3acbf61c1467fb20
     container_name: mat-minio
     profiles: [ "s3" ]
     restart: unless-stopped
@@ -259,7 +291,7 @@ services:
   # ── Monitoring (enable with: docker compose --profile monitoring up -d) ──
 
   prometheus:
-    image: prom/prometheus:v3.15.0
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
     container_name: mat-prometheus
     profiles: [ "monitoring" ]
     restart: unless-stopped
@@ -274,7 +306,7 @@ services:
       - backend
 
   grafana:
-    image: grafana/grafana:12.4.12
+    image: grafana/grafana:12.4.12@sha256:83be3e511ede559bee80e2215bb1987cb1246075461cb961beb515b0341e7aea
     container_name: mat-grafana
     profiles: [ "monitoring" ]
     restart: unless-stopped

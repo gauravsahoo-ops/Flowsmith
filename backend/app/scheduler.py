@@ -183,6 +183,19 @@ class Scheduler:
                 pass
 
     @staticmethod
+    def _as_utc(value: datetime | None) -> datetime | None:
+        """Normalize a persisted datetime for safe comparison.
+
+        SQLite returns naive datetimes even for ``DateTime(timezone=True)``;
+        treating them as local time can move a watermark by hours.
+        """
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    @staticmethod
     def _next_occurrence(cron: str, after: datetime, tz: ZoneInfo, local_now: datetime) -> datetime:
         """Next cron occurrence (UTC instant) strictly after both inputs.
 
@@ -282,7 +295,7 @@ class Scheduler:
             if next_fire is None:
                 # First tick after restart: catch up if last_fired_at is set and we missed fires
                 if rule.last_fired_at:
-                    last_utc = rule.last_fired_at.astimezone(timezone.utc)
+                    last_utc = self._as_utc(rule.last_fired_at) or now_utc
                     missed = now_utc - last_utc
                     if missed >= timedelta(seconds=interval_s):
                         # Fire immediately for missed interval(s), then schedule next
@@ -302,6 +315,19 @@ class Scheduler:
                 return False
             if now_utc < next_fire:
                 return False
+            # Cross-replica watermark: another scheduler may already have
+            # consumed this slot while this process still holds its stale
+            # in-memory next_fire. The persisted last_fired_at is refreshed
+            # on every tick under the advisory lock.
+            persisted_last = self._as_utc(rule.last_fired_at)
+            if persisted_last is not None and next_fire <= persisted_last:
+                logger.info(
+                    "scheduler: workflow %s seconds slot %s already fired",
+                    rule.workflow_id,
+                    next_fire.isoformat(),
+                )
+                self._next_fire[key] = max(persisted_last, now_utc) + timedelta(seconds=interval_s)
+                return False
             # Fire and schedule next from NOW (not from expected time)
             self._next_fire[key] = now_utc + timedelta(seconds=interval_s)
             rule.last_fired_at = now_utc
@@ -318,7 +344,7 @@ class Scheduler:
         if next_fire is None:
             # First tick after restart: catch up if last_fired_at is set
             if rule.last_fired_at:
-                last_utc = rule.last_fired_at.astimezone(timezone.utc)
+                last_utc = self._as_utc(rule.last_fired_at) or local_now.astimezone(timezone.utc)
                 limit_utc = local_now.astimezone(timezone.utc)
                 # Check how many fires were missed (wall clock in rule tz)
                 missed_iter = croniter(rule.cron, last_utc.astimezone(tz).replace(tzinfo=None))
@@ -367,9 +393,13 @@ class Scheduler:
             return False
 
         prev_fire = self._last_fired_for.get(key)
-        if prev_fire is not None and next_fire <= prev_fire:
-            # Same occurrence already consumed (DST wall-time repeat or a
-            # clock step backwards): skip it and move on (audit H18).
+        persisted_last = self._as_utc(rule.last_fired_at)
+        if (prev_fire is not None and next_fire <= prev_fire) or (
+            persisted_last is not None and next_fire <= persisted_last
+        ):
+            # Same occurrence already consumed (DST wall-time repeat, a
+            # clock step backwards, or another scheduler replica that won
+            # the persisted watermark): skip it and move on.
             logger.warning(
                 "scheduler: workflow %s occurrence %s already fired; skipping",
                 rule.workflow_id, next_fire.isoformat(),

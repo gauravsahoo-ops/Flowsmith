@@ -86,6 +86,23 @@ class Settings(BaseSettings):
     app_env: str = "development"
     run_migrations_on_startup: bool = True
 
+    # Self-service registration policy. The very first account is always
+    # allowed (it bootstraps the installation and becomes the admin).
+    # "open" = anyone; "invite" = requires REGISTRATION_INVITE_CODE;
+    # "closed" = admins create accounts (no public self-service).
+    registration_mode: str = "open"
+    registration_invite_code: str = ""
+    # Required in production. The first (admin) account must present this
+    # out-of-band secret, so an attacker who reaches a fresh public instance
+    # before the operator cannot win the admin role.
+    registration_bootstrap_token: str = ""
+
+    # Comma-separated proxy IPs/CIDRs whose X-Forwarded-For header may be
+    # trusted. Localhost is safe by default; Docker/nginx deployments should
+    # add their proxy network. Headers from any other peer are ignored, so a
+    # direct internet client cannot spoof another client's IP.
+    trusted_proxies: str = "127.0.0.1,::1"
+
     # Public deployment (M9): one port serves the built UI and the API.
     host: str = "127.0.0.1"
     port: int = 8000
@@ -321,6 +338,11 @@ def validate_production_settings(settings: Settings | None = None) -> None:
         # unsafe combination for a deployed API surface (main.py sets
         # credentials=True unconditionally).
         missing.append("CORS_ORIGINS (wildcard '*' is not allowed in production)")
+    reg_mode = (settings.registration_mode or "open").strip().lower()
+    if reg_mode not in ("open", "invite", "closed"):
+        missing.append("REGISTRATION_MODE (must be open, invite, or closed)")
+    elif reg_mode == "invite" and len(settings.registration_invite_code or "") < 16:
+        missing.append("REGISTRATION_INVITE_CODE (at least 16 characters when REGISTRATION_MODE=invite)")
 
     # Redis authentication & queue integrity
     redis_url = settings.redis_url or ""

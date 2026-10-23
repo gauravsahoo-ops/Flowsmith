@@ -417,6 +417,7 @@ class ConnectorHealthCheck(BaseModel):
 
     healthy: bool
     message: str
+    latency_ms: float | None = None
 
 
 class ConnectorInfo(BaseModel):

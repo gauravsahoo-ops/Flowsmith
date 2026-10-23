@@ -2,7 +2,7 @@
 # (UI + API + webhooks + stream) into one image that runs on one port.
 
 # ---- frontend build stage ----
-FROM node:22-alpine AS frontend
+FROM node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS frontend
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
@@ -10,7 +10,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---- runtime stage ----
-FROM python:3.12-slim
+FROM python:3.12-slim@sha256:cb33f7f771ecec2ef1225cf39b159591a040391bd73e4c01f00fdfc4c47611d2
 
 LABEL maintainer="flowsmith" \
       version="1.6.0" \

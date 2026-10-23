@@ -37,6 +37,10 @@ class FormTriggerParams(BaseModel):
     path: str = Field(min_length=1, description="Public path, e.g. 'form/contact-abcdefgh12345678'.")
     title: str = Field(default="Form", max_length=120)
     fields: list[FormField] = Field(default_factory=list, max_length=50)
+    public_enabled: bool = Field(
+        default=False,
+        description="Explicitly expose the public form URL. New triggers default offline; enable this to publish. Legacy workflows without the field remain enabled.",
+    )
     secret: str | None = Field(
         default=None,
         max_length=256,

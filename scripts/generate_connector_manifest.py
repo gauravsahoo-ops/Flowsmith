@@ -181,8 +181,9 @@ def build_manifest() -> dict:
         trigs_dict = {}
         for tr_key, tr in defn.triggers.items():
             config_fields = []
-            if hasattr(tr, "config_schema") and isinstance(tr.config_schema, dict):
-                props = tr.config_schema.get("properties", {})
+            config_schema = getattr(tr, "config_schema", None)
+            if isinstance(config_schema, dict):
+                props = config_schema.get("properties", {})
                 config_fields = sorted(list(props.keys()))
 
             trigs_dict[tr_key] = {

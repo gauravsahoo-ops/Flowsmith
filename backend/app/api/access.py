@@ -28,11 +28,11 @@ SHARE_PERMISSIONS = (PERMISSION_VIEW, PERMISSION_EDIT)
 
 
 def workspace_can_view(db: Session, ws_id: str, user_id: int) -> bool:
-    """View access to a workspace: creator, workspace member, or org member.
+    """View access to a workspace.
 
-    Single source of truth for workspace membership (mirrors the historical
-    ``workspaces._require_ws_member`` rules). Personal/absent workspaces
-    (``ws is None``) grant nothing.
+    The creator and explicit workspace members always have access. Other
+    members of the owning organization only see the workspace when it is
+    not private (``is_private``). Personal/absent workspaces grant nothing.
     """
     ws = db.get(Workspace, ws_id)
     if ws is None:
@@ -47,6 +47,8 @@ def workspace_can_view(db: Session, ws_id: str, user_id: int) -> bool:
     )
     if member is not None:
         return True
+    if ws.is_private:
+        return False
     org_member = db.scalar(
         select(OrganizationMember).where(
             OrganizationMember.organization_id == ws.organization_id,
@@ -57,8 +59,12 @@ def workspace_can_view(db: Session, ws_id: str, user_id: int) -> bool:
 
 
 def workspace_can_edit(db: Session, ws_id: str, user_id: int) -> bool:
-    """Edit grant for a workspace: creator, member with edit rights, or
-    org member with edit rights. Viewers and non-members get nothing."""
+    """Edit grant for a workspace.
+
+    The creator and explicit workspace members with edit rights always win.
+    Organization-level edit grants apply only to non-private workspaces.
+    Viewers and non-members get nothing.
+    """
     ws = db.get(Workspace, ws_id)
     if ws is None:
         return False
@@ -72,6 +78,8 @@ def workspace_can_edit(db: Session, ws_id: str, user_id: int) -> bool:
     )
     if member is not None:
         return (member.role or "") in ("owner", "admin", "editor") or (member.permission or "") in ("edit", "admin")
+    if ws.is_private:
+        return False
     org_member = db.scalar(
         select(OrganizationMember).where(
             OrganizationMember.organization_id == ws.organization_id,
