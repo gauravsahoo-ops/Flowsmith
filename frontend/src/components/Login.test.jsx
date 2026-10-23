@@ -31,8 +31,8 @@ describe('Login Component Suite', () => {
     expect(html).toContain('Dual Redis + WS')
     expect(html).toContain('45k ops/s')
 
-    // Capability Badges (Valid 528 Connectors)
-    expect(html).toContain('528 Visual Connectors')
+    // Capability Badges (Valid 528+ Connectors)
+    expect(html).toContain('528+ Visual Connectors')
     expect(html).toContain('Autonomous AI Agents')
     expect(html).toContain('Self-Healing Execution')
     expect(html).toContain('Zero-Trust Encryption')
