@@ -236,11 +236,11 @@ const FRIENDLY_NODE_LABELS = {
   'rss_feed': 'RSS Feed Trigger',
 
   // Core Data & API Nodes
-  'flowsmith.data_load': 'DataLoad',
-  'data_load': 'DataLoad',
-  'csv': 'DataLoad',
-  'csv_parser': 'DataLoad',
-  'dataload': 'DataLoad',
+  'flowsmith.data_load': 'CSV Parser',
+  'data_load': 'CSV Parser',
+  'csv': 'CSV Parser',
+  'csv_parser': 'CSV Parser',
+  'dataload': 'CSV Parser',
   'http_request': 'HTTP Request',
   'graphql': 'GraphQL Query',
   'soap_request': 'SOAP Request',

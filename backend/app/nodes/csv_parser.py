@@ -62,24 +62,11 @@ class CsvParserParams(BaseModel):
         default=1000, ge=1, le=10000, description="Processing and database batch size (range: 1-10000)."
     )
     target_object: str = Field(
-        default="Contact", description="Target Salesforce object (Contact, Lead, Account, etc.)."
+        default="", description="Optional target schema object (Contact, Lead, Account, etc.)."
     )
     field_mapping: dict[str, str] = Field(
-        default_factory=lambda: {
-            "FirstName": "FirstName",
-            "LastName": "LastName",
-            "Email": "Email",
-            "Phone": "Phone",
-            "Department": "Department",
-            "Title": "Title",
-            "MailingStreet": "MailingStreet",
-            "MailingCity": "MailingCity",
-            "MailingState": "MailingState",
-            "MailingPostalCode": "MailingPostalCode",
-            "MailingCountry": "MailingCountry",
-            "Description": "Description",
-        },
-        description="Source CSV column to destination Salesforce field mapping.",
+        default_factory=dict,
+        description="Optional source CSV column to destination field mapping.",
     )
     duplicate_policy: Literal["skip", "update", "error"] = Field(
         default="skip", description="Duplicate handling policy: skip, update, or error."
@@ -88,7 +75,7 @@ class CsvParserParams(BaseModel):
         default="Email", description="Primary key used for duplicate detection."
     )
     persist_to_db: bool = Field(
-        default=True, description="Persist parsed and validated records into staged_contacts table."
+        default=False, description="Persist parsed records into staged database table."
     )
     execution_id: str = Field(
         default="", description="Execution correlation ID (auto-generated if empty)."
@@ -97,9 +84,9 @@ class CsvParserParams(BaseModel):
 
 class CsvParserNode(BaseNode[CsvParserParams]):
     node_type = "csv_parser"
-    display_name = "Flowsmith DataLoad"
+    display_name = "CSV Parser"
     version = 1
-    description = "Import, download, extract, parse, validate, and transform files for downstream workflow processing."
+    description = "Download, import, and parse CSV, TSV, and delimited files into clean records."
     category = "Data Transformation"
     icon = "data_load"
     parameters_schema = CsvParserParams
@@ -164,22 +151,12 @@ class CsvParserNode(BaseNode[CsvParserParams]):
 
         exec_id = params.execution_id or (getattr(ctx, "execution_id", None) or f"exec_{uuid.uuid4().hex[:12]}")
 
-        # Stream, validate, and persist in bounded chunks (O(1) Memory Streaming Architecture)
+        # Stream and parse records (Single Responsibility Principle)
         total_parsed = 0
-        unique_count = 0
-        duplicate_count = 0
-        invalid_count = 0
+        accumulated_records: list[dict[str, Any]] = []
+        MAX_IN_MEMORY_RECORDS = 10000
         persisted_count = 0
         persisted_duration_ms = 0.0
-
-        seen_keys: set[str] = set()
-        accumulated_records: list[dict[str, Any]] = []
-        sample_invalid: list[dict[str, Any]] = []
-        sample_duplicates: list[dict[str, Any]] = []
-
-        # Keep in-memory records up to 10,000 for downstream compatibility;
-        # beyond 10,000, rows are staged in PostgreSQL to protect RAM from OOM.
-        MAX_IN_MEMORY_RECORDS = 10000
 
         meta_info: dict[str, Any] = {}
 
@@ -192,29 +169,23 @@ class CsvParserNode(BaseNode[CsvParserParams]):
                 archive_inner_file=params.archive_inner_file or None,
                 source_meta_out=meta_info,
             ):
-                val_res = CsvService.map_and_validate(
-                    rows=batch,
-                    field_mapping=params.field_mapping,
-                    target_object=params.target_object,
-                    duplicate_policy=params.duplicate_policy,
-                    dedup_key=params.dedup_key,
-                    seen_keys=seen_keys,
-                )
+                # Pure parsing: if optional field_mapping is provided, apply column mapping
+                if params.field_mapping:
+                    processed_batch = []
+                    for row in batch:
+                        mapped_row = {params.field_mapping.get(k, k): v for k, v in row.items()}
+                        processed_batch.append(mapped_row)
+                    batch = processed_batch
 
-                total_parsed += val_res.total_parsed
-                unique_count += val_res.unique_count
-                duplicate_count += val_res.duplicate_count
-                invalid_count += val_res.invalid_count
+                total_parsed += len(batch)
 
-                # Persist chunk immediately to database if configured
-                if params.persist_to_db and (val_res.valid_records or val_res.duplicate_records or val_res.invalid_records):
+                # Persist chunk to database if requested
+                if params.persist_to_db and batch:
                     try:
                         p_res = CsvService.persist_staged_records(
                             db=db,
                             execution_id=exec_id,
-                            valid_records=val_res.valid_records,
-                            duplicate_records=val_res.duplicate_records,
-                            invalid_records=val_res.invalid_records,
+                            valid_records=batch,
                             batch_size=params.batch_size,
                         )
                         persisted_count += p_res.inserted_count
@@ -222,16 +193,15 @@ class CsvParserNode(BaseNode[CsvParserParams]):
                     except Exception as exc:
                         logger.error("Failed to persist staged records chunk to database: %s", exc)
 
-                # Collect records up to bounded threshold for downstream nodes
                 if len(accumulated_records) < MAX_IN_MEMORY_RECORDS:
                     available_slots = MAX_IN_MEMORY_RECORDS - len(accumulated_records)
-                    accumulated_records.extend(val_res.valid_records[:available_slots])
+                    accumulated_records.extend(batch[:available_slots])
 
-                # Sample up to 50 invalid & duplicates for UI debug inspection
-                if len(sample_invalid) < 50:
-                    sample_invalid.extend(val_res.invalid_records[:50 - len(sample_invalid)])
-                if len(sample_duplicates) < 50:
-                    sample_duplicates.extend(val_res.duplicate_records[:50 - len(sample_duplicates)])
+        # Calculate metrics using independent separate methods (SRP)
+        dedup_key = params.dedup_key if params.dedup_key else None
+        unique_count = CsvService.calculate_unique_count(accumulated_records, key=dedup_key)
+        duplicate_count = CsvService.calculate_duplicate_count(accumulated_records, key=dedup_key)
+        duplicate_records = CsvService.find_duplicates(accumulated_records, key=dedup_key) if duplicate_count > 0 else []
 
         summary = {
             "success": True,
@@ -244,9 +214,10 @@ class CsvParserNode(BaseNode[CsvParserParams]):
                 "url" if download_url else ("file_id" if file_id else ("file_path" if params.file_path else "inline_or_upload"))
             ),
             "total_parsed": total_parsed,
+            "total_records": total_parsed,
             "unique_count": unique_count,
             "duplicate_count": duplicate_count,
-            "invalid_count": invalid_count,
+            "invalid_count": 0,
             "persisted_count": persisted_count,
             "persistence_duration_ms": round(persisted_duration_ms, 2),
             "target_object": params.target_object,
@@ -255,13 +226,12 @@ class CsvParserNode(BaseNode[CsvParserParams]):
             "staged_table": "staged_contacts" if params.persist_to_db else None,
         }
 
-        # Provide output usable by downstream nodes (e.g. Salesforce bulk node)
         output_item = {
             "summary": summary,
             "records": accumulated_records,
             "rows": accumulated_records,
-            "invalid_records": sample_invalid,
-            "duplicate_records": sample_duplicates,
+            "invalid_records": [],
+            "duplicate_records": duplicate_records[:50],
         }
 
         return NodeResult(output_items=[output_item])

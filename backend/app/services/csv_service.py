@@ -511,6 +511,132 @@ class CsvService:
             yield chunk
 
     @classmethod
+    def parse_csv(
+        cls,
+        csv_source: str | bytes | io.TextIOBase,
+        options: CsvParseOptions | None = None,
+        *,
+        file_id: str | None = None,
+        download_url: str | None = None,
+        archive_inner_file: str | None = None,
+        source_meta_out: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Parse CSV or tabular source into structured records.
+
+        Follows Single Responsibility Principle (SRP):
+        This method is strictly responsible for parsing CSV tabular data into record dictionaries.
+        It does NOT perform duplicate calculations, unique counting, schema validations, or transformations.
+        """
+        records: list[dict[str, Any]] = []
+        for chunk in cls.stream_parsed_rows(
+            csv_source=csv_source,
+            options=options,
+            file_id=file_id,
+            download_url=download_url,
+            archive_inner_file=archive_inner_file,
+            source_meta_out=source_meta_out,
+        ):
+            records.extend(chunk)
+        return records
+
+    @staticmethod
+    def calculate_unique_count(records: list[dict[str, Any]], key: str | None = None) -> int:
+        """Calculate the number of unique records independently from the parsing method.
+
+        Follows Single Responsibility Principle (SRP):
+        - If key is provided: counts unique non-empty values of that column (case-insensitive for string keys).
+        - If key is None: counts unique record objects based on their key-value pairs (excluding internal '_' keys).
+        """
+        if not records:
+            return 0
+        if key:
+            seen_keys: set[str] = set()
+            for rec in records:
+                val = rec.get(key)
+                if val is not None and str(val).strip() != "":
+                    seen_keys.add(str(val).strip().lower())
+            return len(seen_keys)
+
+        seen_records: set[tuple[tuple[str, Any], ...]] = set()
+        for rec in records:
+            item_tuple = tuple(sorted((k, str(v)) for k, v in rec.items() if not k.startswith("_")))
+            seen_records.add(item_tuple)
+        return len(seen_records)
+
+    @staticmethod
+    def calculate_duplicate_count(records: list[dict[str, Any]], key: str | None = None) -> int:
+        """Calculate the number of duplicate records independently from the parsing method.
+
+        Follows Single Responsibility Principle (SRP):
+        - Returns total records minus unique records.
+        """
+        if not records:
+            return 0
+        if key:
+            seen_keys: set[str] = set()
+            dup_count = 0
+            for rec in records:
+                val = rec.get(key)
+                if val is not None and str(val).strip() != "":
+                    norm = str(val).strip().lower()
+                    if norm in seen_keys:
+                        dup_count += 1
+                    else:
+                        seen_keys.add(norm)
+            return dup_count
+
+        unique_count = CsvService.calculate_unique_count(records, key=None)
+        return max(0, len(records) - unique_count)
+
+    @staticmethod
+    def find_duplicates(records: list[dict[str, Any]], key: str | None = None) -> list[dict[str, Any]]:
+        """Identify and return duplicate records in a separate, dedicated method (SRP)."""
+        if not records:
+            return []
+        seen: set[Any] = set()
+        duplicates: list[dict[str, Any]] = []
+        for rec in records:
+            if key:
+                val = rec.get(key)
+                if val is not None and str(val).strip() != "":
+                    norm = str(val).strip().lower()
+                    if norm in seen:
+                        duplicates.append(rec)
+                    else:
+                        seen.add(norm)
+            else:
+                item_tuple = tuple(sorted((k, str(v)) for k, v in rec.items() if not k.startswith("_")))
+                if item_tuple in seen:
+                    duplicates.append(rec)
+                else:
+                    seen.add(item_tuple)
+        return duplicates
+
+    @staticmethod
+    def filter_unique_records(records: list[dict[str, Any]], key: str | None = None) -> list[dict[str, Any]]:
+        """Filter records to retain only the first unique instance (SRP)."""
+        if not records:
+            return []
+        seen: set[Any] = set()
+        unique_records: list[dict[str, Any]] = []
+        for rec in records:
+            if key:
+                val = rec.get(key)
+                norm = str(val).strip().lower() if (val is not None and str(val).strip() != "") else None
+                if norm is not None:
+                    if norm not in seen:
+                        seen.add(norm)
+                        unique_records.append(rec)
+                else:
+                    unique_records.append(rec)
+            else:
+                item_tuple = tuple(sorted((k, str(v)) for k, v in rec.items() if not k.startswith("_")))
+                if item_tuple not in seen:
+                    seen.add(item_tuple)
+                    unique_records.append(rec)
+        return unique_records
+
+    @classmethod
     def map_and_validate(
         cls,
         rows: list[dict[str, Any]],

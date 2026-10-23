@@ -12,6 +12,7 @@ Supports:
 
 from __future__ import annotations
 
+import inspect
 import logging
 import uuid
 from typing import Any, Literal
@@ -149,25 +150,12 @@ class DataLoadParams(BaseModel):
         description="Maximum rows to process (0 for unlimited).",
     )
     target_object: str = Field(
-        default="Contact",
-        description="Target schema object (Contact, Lead, etc.).",
+        default="",
+        description="Optional target schema object (Contact, Lead, etc.).",
     )
     field_mapping: dict[str, str] = Field(
-        default_factory=lambda: {
-            "FirstName": "FirstName",
-            "LastName": "LastName",
-            "Email": "Email",
-            "Phone": "Phone",
-            "Department": "Department",
-            "Title": "Title",
-            "MailingStreet": "MailingStreet",
-            "MailingCity": "MailingCity",
-            "MailingState": "MailingState",
-            "MailingPostalCode": "MailingPostalCode",
-            "MailingCountry": "MailingCountry",
-            "Description": "Description",
-        },
-        description="Source column to target field mapping.",
+        default_factory=dict,
+        description="Optional source column to target field mapping.",
     )
     duplicate_policy: Literal["skip", "update", "error"] = Field(
         default="skip",
@@ -178,8 +166,8 @@ class DataLoadParams(BaseModel):
         description="Primary key used for duplicate detection.",
     )
     persist_to_db: bool = Field(
-        default=True,
-        description="Persist parsed and validated records into staged_contacts table.",
+        default=False,
+        description="Persist parsed records into staged database table.",
     )
     execution_id: str = Field(
         default="",
@@ -190,9 +178,9 @@ class DataLoadParams(BaseModel):
 @register
 class DataLoadNode(BaseNode[DataLoadParams]):
     node_type = "flowsmith.data_load"
-    display_name = "Flowsmith DataLoad"
+    display_name = "CSV Parser"
     version = 1
-    description = "Import, download, extract, parse, validate, and transform files for downstream workflow processing."
+    description = "Download, import, and parse CSV, TSV, and delimited files into clean records."
     category = "Data Transformation"
     icon = "data_load"
     parameters_schema = DataLoadParams
@@ -221,9 +209,15 @@ class DataLoadNode(BaseNode[DataLoadParams]):
         # Check credentials from ctx if credential_id is set
         auth_type = params.auth_type
         auth_token = params.auth_token
-        if params.credential_id and hasattr(ctx, "get_credential"):
+        get_credential: Any = getattr(ctx, "get_credential", None)
+        if params.credential_id and callable(get_credential):
             try:
-                cred = await ctx.get_credential(params.credential_id)
+                credential_result = get_credential(params.credential_id)
+                cred: Any = (
+                    await credential_result
+                    if inspect.isawaitable(credential_result)
+                    else credential_result
+                )
                 if cred:
                     if "token" in cred:
                         auth_type = "bearer"
@@ -287,19 +281,12 @@ class DataLoadNode(BaseNode[DataLoadParams]):
 
         exec_id = params.execution_id or (getattr(ctx, "execution_id", None) or f"exec_{uuid.uuid4().hex[:12]}")
 
-        # 4. Stream, validate, deduplicate, and stage records
+        # 4. Stream and parse records (Single Responsibility Principle)
         total_parsed = 0
-        unique_count = 0
-        duplicate_count = 0
-        invalid_count = 0
+        accumulated_records: list[dict[str, Any]] = []
+        MAX_IN_MEMORY_RECORDS = 10000
         persisted_count = 0
         persisted_duration_ms = 0.0
-
-        seen_keys: set[str] = set()
-        accumulated_records: list[dict[str, Any]] = []
-        sample_invalid: list[dict[str, Any]] = []
-        sample_duplicates: list[dict[str, Any]] = []
-        MAX_IN_MEMORY_RECORDS = 10000
 
         try:
             with get_session() as db:
@@ -309,29 +296,23 @@ class DataLoadNode(BaseNode[DataLoadParams]):
                     options=load_opts,
                     node_id="flowsmith.data_load",
                 ):
-                    val_res = CsvService.map_and_validate(
-                        rows=batch,
-                        field_mapping=params.field_mapping,
-                        target_object=params.target_object,
-                        duplicate_policy=params.duplicate_policy,
-                        dedup_key=params.dedup_key,
-                        seen_keys=seen_keys,
-                    )
+                    # Pure parsing: if optional field_mapping is provided, apply column mapping
+                    if params.field_mapping:
+                        processed_batch = []
+                        for row in batch:
+                            mapped_row = {params.field_mapping.get(k, k): v for k, v in row.items()}
+                            processed_batch.append(mapped_row)
+                        batch = processed_batch
 
-                    total_parsed += val_res.total_parsed
-                    unique_count += val_res.unique_count
-                    duplicate_count += val_res.duplicate_count
-                    invalid_count += val_res.invalid_count
+                    total_parsed += len(batch)
 
-                    # Persist chunk to database if enabled
-                    if params.persist_to_db and (val_res.valid_records or val_res.duplicate_records or val_res.invalid_records):
+                    # Persist chunk to database if requested
+                    if params.persist_to_db and batch:
                         try:
                             p_res = CsvService.persist_staged_records(
                                 db=db,
                                 execution_id=exec_id,
-                                valid_records=val_res.valid_records,
-                                duplicate_records=val_res.duplicate_records,
-                                invalid_records=val_res.invalid_records,
+                                valid_records=batch,
                                 batch_size=params.batch_size,
                             )
                             persisted_count += p_res.inserted_count
@@ -341,12 +322,7 @@ class DataLoadNode(BaseNode[DataLoadParams]):
 
                     if len(accumulated_records) < MAX_IN_MEMORY_RECORDS:
                         avail = MAX_IN_MEMORY_RECORDS - len(accumulated_records)
-                        accumulated_records.extend(val_res.valid_records[:avail])
-
-                    if len(sample_invalid) < 50:
-                        sample_invalid.extend(val_res.invalid_records[:50 - len(sample_invalid)])
-                    if len(sample_duplicates) < 50:
-                        sample_duplicates.extend(val_res.duplicate_records[:50 - len(sample_duplicates)])
+                        accumulated_records.extend(batch[:avail])
 
         except NodeExecutionError as exc:
             logger.warning("DataLoadNode failed during parsing: %s", exc)
@@ -357,15 +333,22 @@ class DataLoadNode(BaseNode[DataLoadParams]):
                 "total_parsed": total_parsed,
             }])
 
+        # Calculate metrics using independent separate methods (SRP)
+        dedup_key = params.dedup_key if params.dedup_key else None
+        unique_count = CsvService.calculate_unique_count(accumulated_records, key=dedup_key)
+        duplicate_count = CsvService.calculate_duplicate_count(accumulated_records, key=dedup_key)
+        duplicate_records = CsvService.find_duplicates(accumulated_records, key=dedup_key) if duplicate_count > 0 else []
+
         summary = {
             "success": True,
             "execution_id": exec_id,
             "filename": filename_hint,
             "source_type": source_meta.get("source_type", params.source_mode),
             "total_parsed": total_parsed,
+            "total_records": total_parsed,
             "unique_count": unique_count,
             "duplicate_count": duplicate_count,
-            "invalid_count": invalid_count,
+            "invalid_count": 0,
             "persisted_count": persisted_count,
             "persistence_duration_ms": round(persisted_duration_ms, 2),
             "target_object": params.target_object,
@@ -379,8 +362,8 @@ class DataLoadNode(BaseNode[DataLoadParams]):
             "summary": summary,
             "records": accumulated_records,
             "rows": accumulated_records,
-            "invalid_records": sample_invalid,
-            "duplicate_records": sample_duplicates,
+            "invalid_records": [],
+            "duplicate_records": duplicate_records[:50],
         }
 
         return NodeResult(output_items=[output_item])

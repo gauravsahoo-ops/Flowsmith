@@ -49,8 +49,8 @@ class CsvConnectorParams(BaseModel):
 
 class CsvConnector(ConnectorSDK):
     connector_id = "csv"
-    display_name = "Flowsmith DataLoad Engine"
-    description = "Streaming CSV, TSV, and ZIP archive parsing, validation, deduplication, and database staging connector."
+    display_name = "CSV Parser"
+    description = "Download, import, and parse CSV, TSV, and delimited files into clean records."
     category = ConnectorCategory.TRANSFORM
     version = "1.0.0"
 

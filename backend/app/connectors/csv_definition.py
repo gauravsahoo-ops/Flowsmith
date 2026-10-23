@@ -142,8 +142,8 @@ def build_csv_definition() -> ConnectorDefinitionV1:
 
     return ConnectorDefinitionV1(
         connector_key=CSV_CONNECTOR_KEY,
-        display_name="Flowsmith DataLoad Engine",
-        description="Enterprise streaming parser, validator, and staging connector for CSV, TSV, and ZIP archives with URL download and upload support.",
+        display_name="CSV Parser",
+        description="Enterprise streaming parser and ingestion connector for CSV, TSV, and ZIP archives with URL download and upload support.",
         category="transform",
         connector_version=CSV_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,

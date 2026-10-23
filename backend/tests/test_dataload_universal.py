@@ -476,3 +476,93 @@ def test_19_existing_workflow_csv_parser_resolution():
     catalog = list_nodes()
     dataload_types = [n["type"] for n in catalog if n["type"] in ("flowsmith.data_load", "csv_parser", "csv")]
     assert dataload_types == ["flowsmith.data_load"], "Catalog must contain only flowsmith.data_load without duplicates"
+
+
+# 20. Download URL type parses valid CSV records without incorrectly marking them as invalid
+@pytest.mark.asyncio
+async def test_20_download_url_valid_records_not_marked_invalid():
+    """Verify that CSV with arbitrary/generic columns downloaded via URL returns valid records with 0 invalid records."""
+    from app.services.csv_service import CsvService
+
+    node = DataLoadNode()
+    ctx = make_test_ctx("download_url_test", "data_load")
+    test_url = "https://example.com/api/v1/orders_export.csv"
+    csv_bytes = (
+        b"order_id,product_name,unit_price,quantity,order_status\n"
+        b"ORD-1001,MacBook Pro 16,2499.00,1,SHIPPED\n"
+        b"ORD-1002,Dell XPS 15,1899.50,2,PROCESSING\n"
+        b"ORD-1003,Logitech MX Master 3S,99.99,5,DELIVERED\n"
+    )
+
+    with respx.mock:
+        respx.get(test_url).respond(
+            status_code=200,
+            content=csv_bytes,
+            headers={"Content-Type": "text/csv", "Content-Disposition": 'attachment; filename="orders_export.csv"'},
+        )
+        params = DataLoadParams(
+            source_mode="url",
+            download_url=test_url,
+            persist_to_db=False,
+        )
+        res = await node.run(ctx, params, [])
+        assert len(res.output_items) == 1
+        item = res.output_items[0]
+        summary = item["summary"]
+
+        assert summary["success"] is True
+        assert summary["total_parsed"] == 3
+        assert summary["total_records"] == 3
+        assert summary["invalid_count"] == 0, "Valid records must not be marked as invalid"
+
+        # Valid CSV records must be in records and rows, not invalid_records
+        records = item["records"]
+        assert len(records) == 3
+        assert records[0]["order_id"] == "ORD-1001"
+        assert records[0]["product_name"] == "MacBook Pro 16"
+        assert records[1]["order_id"] == "ORD-1002"
+        assert records[2]["order_id"] == "ORD-1003"
+        assert records[2]["order_status"] == "DELIVERED"
+
+        assert item["invalid_records"] == [], "invalid_records must be empty for valid CSV data"
+
+
+# 21. Single-responsibility principle: CSV parsing method vs separate metric calculation methods
+def test_21_srp_csv_parsing_and_separate_metric_calculation_methods():
+    """Verify that parse_csv only parses data and unique/duplicate counts are computed in separate methods."""
+    from app.services.csv_service import CsvService
+
+    csv_data = (
+        "emp_id,department,city\n"
+        "E01,Engineering,Seattle\n"
+        "E02,Marketing,New York\n"
+        "E03,Engineering,Seattle\n"
+        "E01,Engineering,Seattle\n"  # Duplicate of E01
+    )
+
+    # 1. Parsing method ONLY parses and returns data (SRP)
+    records = CsvService.parse_csv(csv_data)
+    assert len(records) == 4
+    assert records[0]["emp_id"] == "E01"
+    assert records[1]["department"] == "Marketing"
+
+    # 2. Unique count calculation is in a separate method (SRP)
+    unique_emp_cnt = CsvService.calculate_unique_count(records, key="emp_id")
+    assert unique_emp_cnt == 3  # E01, E02, E03
+
+    unique_dept_cnt = CsvService.calculate_unique_count(records, key="department")
+    assert unique_dept_cnt == 2  # Engineering, Marketing
+
+    # 3. Duplicate count calculation is in a separate method (SRP)
+    dup_emp_cnt = CsvService.calculate_duplicate_count(records, key="emp_id")
+    assert dup_emp_cnt == 1  # 4 total - 3 unique = 1 duplicate
+
+    # 4. Duplicate finder is in a separate method (SRP)
+    duplicates = CsvService.find_duplicates(records, key="emp_id")
+    assert len(duplicates) == 1
+    assert duplicates[0]["emp_id"] == "E01"
+
+    # 5. Filter unique records is in a separate method (SRP)
+    deduped = CsvService.filter_unique_records(records, key="emp_id")
+    assert len(deduped) == 3
+    assert [r["emp_id"] for r in deduped] == ["E01", "E02", "E03"]

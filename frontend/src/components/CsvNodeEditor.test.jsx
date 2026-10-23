@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import CsvNodeEditor from './CsvNodeEditor'
 
 describe('CsvNodeEditor Suite', () => {
-  it('renders Flowsmith DataLoad identity banner and supported format tags', () => {
+  it('renders CSV Parser identity banner and supported format tags', () => {
     const node = {
       id: 'node_dataload_1',
       type: 'flowsmith.data_load',
@@ -18,8 +18,7 @@ describe('CsvNodeEditor Suite', () => {
         onParamsChange: () => {},
       })
     )
-    expect(html).toContain('Flowsmith DataLoad')
-    expect(html).toContain('flowsmith.data_load')
+    expect(html).toContain('CSV Parser')
     expect(html).toContain('Production Ready')
     expect(html).toContain('CSV')
     expect(html).toContain('TSV')
@@ -68,13 +67,12 @@ describe('CsvNodeEditor Suite', () => {
     expect(html).toContain('Download URL (Supports Expressions)')
   })
 
-  it('renders standard Salesforce Contact target schema fields and auto-map button', () => {
+  it('removes Field Mapping section and Auto-Map controls as requested (handled in subsequent step)', () => {
     const node = {
       id: 'node_dataload_4',
       type: 'flowsmith.data_load',
       parameters: {
         source_mode: 'upload',
-        target_object: 'Contact',
       },
     }
     const html = renderToStaticMarkup(
@@ -83,13 +81,10 @@ describe('CsvNodeEditor Suite', () => {
         onParamsChange: () => {},
       })
     )
-    expect(html).toContain('Field Mapping')
-    expect(html).toContain('Salesforce Contact')
-    expect(html).toContain('Auto-Map All')
-    expect(html).toContain('Last Name (LastName)')
-    expect(html).toContain('Email Address (Email)')
-    expect(html).toContain('Phone (Phone)')
-    expect(html).toContain('Mailing Street (MailingStreet)')
+    expect(html).not.toContain('Field Mapping')
+    expect(html).not.toContain('Auto-Map All')
+    expect(html).not.toContain('Salesforce Contact')
+    expect(html).not.toContain('Target Field')
   })
 
   it('keeps node editor clean and decoupled without duplicate policy or DB persistence clutter', () => {
@@ -111,21 +106,15 @@ describe('CsvNodeEditor Suite', () => {
     expect(html).not.toContain('Persist staged records to PostgreSQL')
   })
 
-  it('renders Add Target Field button, Custom Schema option, and configured custom target fields', () => {
+  it('renders focused CSV configuration controls and preserves single-responsibility principle', () => {
     const node = {
       id: 'node_dataload_custom_fields',
-      type: 'flowsmith.data_load',
+      type: 'csv_parser',
       parameters: {
-        source_mode: 'upload',
-        target_object: 'Custom',
-        custom_target_fields: [
-          { field: 'AccountId', label: 'Account ID', type: 'String (18)', required: true, isCustom: true },
-          { field: 'Custom_Score__c', label: 'Lead Score', type: 'Number', required: false, isCustom: true },
-        ],
-        field_mapping: {
-          account_id_csv: 'AccountId',
-          score_col: 'Custom_Score__c',
-        },
+        source_mode: 'url',
+        delimiter: ',',
+        has_header: true,
+        batch_size: 500,
       },
     }
     const html = renderToStaticMarkup(
@@ -134,13 +123,11 @@ describe('CsvNodeEditor Suite', () => {
         onParamsChange: () => {},
       })
     )
-    expect(html).toContain('Add Target Field')
-    expect(html).toContain('Custom Schema / Table')
-    expect(html).toContain('Account ID (AccountId)')
-    expect(html).toContain('Lead Score (Custom_Score__c)')
-    expect(html).toContain('Custom')
-    expect(html).toContain('title="Remove custom target field"')
-    expect(html).toContain('value="account_id_csv"')
-    expect(html).toContain('value="score_col"')
+    expect(html).toContain('CSV Parser')
+    expect(html).toContain('Batch Size')
+    expect(html).toContain('Row Limit (0 = All)')
+    expect(html).toContain('First row contains column headers')
+    expect(html).not.toContain('Add Target Field')
+    expect(html).not.toContain('Custom Schema / Table')
   })
 })
