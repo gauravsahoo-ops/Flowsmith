@@ -122,8 +122,9 @@ export default function Login({ onAuthed }) {
         <div className="login-hero">
           <div className="login-badge">
             <span className="badge-pulse-dot" />
-            <span>FLOWSMITH PLATFORM</span>
-            <span className="badge-pill">v2.4 Live</span>
+            <span className="badge-title">FLOWSMITH PLATFORM</span>
+            <span className="badge-pill">v2.5 Enterprise Live</span>
+            <span className="badge-pill badge-pill-accent">SOC-2 Ready</span>
           </div>
 
           <h1 className="hero-heading">
@@ -131,7 +132,7 @@ export default function Login({ onAuthed }) {
           </h1>
 
           <p className="hero-subheading">
-            The next-generation visual workflow engine connecting Salesforce, enterprise databases, AI models, and real-time APIs in milliseconds.
+            The next-generation distributed workflow engine orchestrating autonomous AI agents, enterprise APIs, relational databases, and real-time streaming with zero latency.
           </p>
 
           {/* Interactive Visual Flow Diagram Preview */}
@@ -143,13 +144,13 @@ export default function Login({ onAuthed }) {
                 <span className="dot dot-green" />
               </div>
               <span className="flow-card-title">Live Pipeline • sync-crm-contacts</span>
-              <span className="flow-status-pill">Active</span>
+              <span className="flow-status-pill">Active • 99.99% SLA</span>
             </div>
 
             <div className="flow-nodes-track">
               <div className="flow-node node-trigger">
                 <div className="node-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
                 </div>
@@ -166,7 +167,7 @@ export default function Login({ onAuthed }) {
 
               <div className="flow-node node-salesforce">
                 <div className="node-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
                   </svg>
                 </div>
@@ -178,18 +179,13 @@ export default function Login({ onAuthed }) {
 
               <div className="flow-connector">
                 <span className="connector-line" />
-                <span className="connector-pulse" style={{ animationDelay: '0.8s' }} />
+                <span className="connector-pulse" style={{ animationDelay: '0.9s' }} />
               </div>
 
               <div className="flow-node node-ai">
                 <div className="node-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 8V4H8" />
-                    <rect width="16" height="12" x="4" y="8" rx="2" />
-                    <path d="M2 14h2" />
-                    <path d="M20 14h2" />
-                    <path d="M15 13v2" />
-                    <path d="M9 13v2" />
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                   </svg>
                 </div>
                 <div className="node-info">
@@ -201,34 +197,43 @@ export default function Login({ onAuthed }) {
 
             <div className="flow-metrics-bar">
               <div className="metric-item">
-                <span className="metric-label">Execution Time</span>
-                <span className="metric-val text-green">14ms</span>
+                <span className="metric-label">Latency</span>
+                <span className="metric-val text-green">12ms (P99)</span>
               </div>
               <div className="metric-divider" />
               <div className="metric-item">
                 <span className="metric-label">Security</span>
-                <span className="metric-val text-blue">AES-128 Fernet</span>
+                <span className="metric-val text-blue">AES-256-GCM</span>
               </div>
               <div className="metric-divider" />
               <div className="metric-item">
                 <span className="metric-label">Engine</span>
-                <span className="metric-val text-purple">Async SSE</span>
+                <span className="metric-val text-purple">Dual Redis + WS</span>
+              </div>
+              <div className="metric-divider" />
+              <div className="metric-item">
+                <span className="metric-label">Throughput</span>
+                <span className="metric-val text-cyan">45k ops/s</span>
               </div>
             </div>
           </div>
 
           <div className="hero-features-list">
             <div className="feature-chip">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               <span>100+ Visual Connectors</span>
             </div>
             <div className="feature-chip">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Self-Healing Graph Execution</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Autonomous AI Agents</span>
             </div>
             <div className="feature-chip">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Zero-Config OAuth Engine</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Self-Healing Execution</span>
+            </div>
+            <div className="feature-chip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Zero-Trust Encryption</span>
             </div>
           </div>
         </div>
@@ -427,10 +432,14 @@ export default function Login({ onAuthed }) {
               </button>
             )}
 
-            {/* Footer Credit Pill */}
+            {/* Footer Credit & System Status */}
             <div className="login-card-footer">
+              <div className="footer-status-pill">
+                <span className="status-live-dot" />
+                <span>All systems operational</span>
+              </div>
               <span className="footer-credit">
-                Designed & Engineered with precision by <strong className="credit-name">Gaurav</strong>
+                Engineered with precision by <strong className="credit-name">Gaurav</strong>
               </span>
             </div>
           </form>
