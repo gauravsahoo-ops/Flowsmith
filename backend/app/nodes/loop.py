@@ -5,9 +5,9 @@ processing. Each input item that contains a list is expanded so that
 downstream nodes receive one element at a time.
 
 Parameters:
-  - field: optional dot-path to a field within each input item that
-    contains the list to iterate over. If omitted, each input item
-    itself is treated as the value to iterate.
+  - field: dot-path to a field within each input item (e.g. 'records'),
+    or a direct expression (e.g. '{{ $json.records }}'), or drag-and-dropped
+    array. If empty, input items themselves are treated as the value to iterate.
   - batch_size: optional maximum number of items to emit (0 = unlimited).
 """
 
@@ -22,7 +22,10 @@ from app.nodes.registry import register
 
 
 class LoopParams(BaseModel):
-    field: str = Field(default="", description="Dot-path to list field (empty = use entire item)")
+    field: Any = Field(
+        default="",
+        description="Field name (e.g. 'records') or expression (e.g. '{{ $json.records }}')",
+    )
     batch_size: int = Field(default=0, ge=0, description="Max items to emit (0 = unlimited)")
 
 
@@ -44,12 +47,67 @@ class LoopNode(BaseNode[LoopParams]):
         params: LoopParams,
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
-        if not input_items:
+        if not input_items and not params.field:
             return NodeResult(output_items=[{}])
         output_items: list[dict[str, Any]] = []
 
+        # If params.field evaluated directly to a list (from expression like {{ $json.records }} or {{ $('...').records }})
+        if isinstance(params.field, list):
+            for element in params.field:
+                if isinstance(element, dict):
+                    output_items.append(element)
+                else:
+                    output_items.append({"value": element})
+                if params.batch_size > 0 and len(output_items) >= params.batch_size:
+                    break
+            return NodeResult(
+                output_items=output_items,
+                output_by_handle={
+                    "main": output_items,
+                    "done": output_items,
+                    "loop": output_items,
+                },
+            )
+
+        # If params.field is a single dict object
+        if isinstance(params.field, dict):
+            output_items.append(params.field)
+            return NodeResult(
+                output_items=output_items,
+                output_by_handle={
+                    "main": output_items,
+                    "done": output_items,
+                    "loop": output_items,
+                },
+            )
+
+        # If params.field is a string containing unresolved {{ ... }} expression
+        if isinstance(params.field, str) and "{{" in params.field:
+            try:
+                from app.engine import expressions
+                eval_ctx: dict[str, Any] = {"$json": input_items[0] if input_items else {}}
+                resolved = expressions.resolve(params.field, eval_ctx)
+                if isinstance(resolved, list):
+                    for element in resolved:
+                        if isinstance(element, dict):
+                            output_items.append(element)
+                        else:
+                            output_items.append({"value": element})
+                        if params.batch_size > 0 and len(output_items) >= params.batch_size:
+                            break
+                    return NodeResult(
+                        output_items=output_items,
+                        output_by_handle={
+                            "main": output_items,
+                            "done": output_items,
+                            "loop": output_items,
+                        },
+                    )
+            except Exception:
+                pass
+
         for item in input_items:
-            if params.field:
+            if params.field and isinstance(params.field, str):
                 target = _resolve_field(item, params.field)
             else:
                 target = item
@@ -81,7 +139,12 @@ class LoopNode(BaseNode[LoopParams]):
 
 def _resolve_field(item: dict[str, Any], field: str) -> Any:
     """Resolve a dot-separated field path against a dict."""
-    parts = field.split(".")
+    cleaned = field.strip()
+    for prefix in ("$json.", "json.", "item.json.", "$node.", "item."):
+        if cleaned.startswith(prefix):
+            cleaned = cleaned[len(prefix):]
+            break
+    parts = cleaned.split(".")
     current: Any = item
     for part in parts:
         if isinstance(current, dict):
@@ -97,4 +160,3 @@ class LoopOverItemsNode(LoopNode):
     display_name = "Loop Over Items"
     description = "Split data into batches and iterate over each batch"
     icon = "loop_over_items"
-

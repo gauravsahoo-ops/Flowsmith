@@ -92,3 +92,58 @@ def test_resolve_field():
     assert _resolve_field({"a": 1}, "a") == 1
     assert _resolve_field({"a": 1}, "b") is None
     assert _resolve_field({}, "x") is None
+
+
+@pytest.mark.asyncio
+async def test_loop_direct_list_expression():
+    """When field is passed directly as a list (e.g. from an expression), loop over items."""
+    node = LoopNode()
+    ctx = _make_ctx()
+    records = [{"additional_image_link": "https://example.com/1.png"}, {"additional_image_link": "https://example.com/2.png"}]
+    params = LoopParams(field=records)
+    items = [{"summary": {"total_records": 2}}]
+    result = await node.run(ctx, params, items)
+    assert len(result.output_items) == 2
+    assert result.output_items[0] == {"additional_image_link": "https://example.com/1.png"}
+    assert result.output_items[1] == {"additional_image_link": "https://example.com/2.png"}
+
+
+@pytest.mark.asyncio
+async def test_loop_direct_list_with_batch_size():
+    """Direct list expression respects batch_size limit."""
+    node = LoopNode()
+    ctx = _make_ctx()
+    records = [{"item": 1}, {"item": 2}, {"item": 3}]
+    params = LoopParams(field=records, batch_size=2)
+    result = await node.run(ctx, params, [])
+    assert len(result.output_items) == 2
+    assert result.output_items[0] == {"item": 1}
+    assert result.output_items[1] == {"item": 2}
+
+
+@pytest.mark.asyncio
+async def test_loop_with_json_prefix_string():
+    """When field is typed or dragged as $json.records or item.json.records, strip prefix."""
+    node = LoopNode()
+    ctx = _make_ctx()
+    params = LoopParams(field="$json.records")
+    items = [{"records": [{"a": 10}, {"a": 20}]}]
+    result = await node.run(ctx, params, items)
+    assert len(result.output_items) == 2
+    assert result.output_items[0] == {"a": 10}
+    assert result.output_items[1] == {"a": 20}
+
+
+@pytest.mark.asyncio
+async def test_loop_with_expression_string():
+    """When field is an expression string {{ $json.records }}, evaluate and loop."""
+    node = LoopNode()
+    ctx = _make_ctx()
+    params = LoopParams(field="{{ $json.records }}")
+    items = [{"records": [{"x": "apple"}, {"x": "banana"}]}]
+    result = await node.run(ctx, params, items)
+    assert len(result.output_items) == 2
+    assert result.output_items[0] == {"x": "apple"}
+    assert result.output_items[1] == {"x": "banana"}
+
+
