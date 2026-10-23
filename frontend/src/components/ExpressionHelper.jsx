@@ -3,6 +3,7 @@
 // and real-time live preview evaluation against upstream node context.
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { api } from '../api'
 import './ExpressionHelper.css'
 
@@ -141,9 +142,10 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
         <span>Expression Builder</span>
       </button>
 
-      {isOpen && (
-        <div className="expr-modal-overlay" onClick={() => setIsOpen(false)}>
-          <div className="expr-modal-window" onClick={(e) => e.stopPropagation()}>
+      {isOpen &&
+        createPortal(
+          <div className="expr-modal-overlay" onClick={() => setIsOpen(false)}>
+            <div className="expr-modal-window" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="expr-modal-header">
               <div className="expr-header-title">
@@ -377,7 +379,8 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
