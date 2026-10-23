@@ -65,7 +65,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/automate}
       APP_ENV: production
-    command: ["python", "-m", "app.scripts.migrate"]
+    command: [ "python", "-m", "app.scripts.migrate" ]
     networks:
       - backend
     security_opt:
@@ -144,7 +144,7 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       BILLING_ENFORCEMENT: ${BILLING_ENFORCEMENT:-false}
     ports:
-      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8000}:8000"
+      - "${APP_PORT:-8000}:8000"
     volumes:
       - mat-app-data:/app/backend/data
     security_opt:

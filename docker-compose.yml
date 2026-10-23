@@ -14,7 +14,7 @@ services:
     volumes:
       - mat-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U automate -d automate"]
+      test: [ "CMD-SHELL", "pg_isready -U automate -d automate" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -35,7 +35,7 @@ services:
     container_name: mat-redis
     restart: unless-stopped
     # Require a password when REDIS_PASSWORD is set (production).
-    command: ["sh", "-c", "if [ -n \"$REDIS_PASSWORD\" ]; then exec redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 512mb --maxmemory-policy noeviction --appendonly yes; else exec redis-server --maxmemory 512mb --maxmemory-policy noeviction --appendonly yes; fi"]
+    command: [ "sh", "-c", "if [ -n \"$REDIS_PASSWORD\" ]; then exec redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 512mb --maxmemory-policy noeviction --appendonly yes; else exec redis-server --maxmemory 512mb --maxmemory-policy noeviction --appendonly yes; fi" ]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
@@ -43,7 +43,7 @@ services:
     volumes:
       - mat-redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "if [ -n \"$REDIS_PASSWORD\" ]; then redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG; else redis-cli ping | grep -q PONG; fi"]
+      test: [ "CMD-SHELL", "if [ -n \"$REDIS_PASSWORD\" ]; then redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG; else redis-cli ping | grep -q PONG; fi" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -69,7 +69,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://automate:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/automate}
       APP_ENV: ${APP_ENV:-production}
-    command: ["python", "-m", "app.scripts.migrate"]
+    command: [ "python", "-m", "app.scripts.migrate" ]
     networks:
       - backend
     security_opt:
@@ -148,7 +148,7 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       BILLING_ENFORCEMENT: ${BILLING_ENFORCEMENT:-false}
     ports:
-      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8000}:8000"
+      - "${APP_PORT:-8000}:8000"
     volumes:
       - mat-app-data:/app/backend/data
     security_opt:
@@ -156,7 +156,7 @@ services:
     cap_drop:
       - ALL
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request, json; data=json.loads(urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).read()); assert data['data']['status']=='ok'\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request, json; data=json.loads(urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).read()); assert data['data']['status']=='ok'\"" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -243,7 +243,7 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       BILLING_ENFORCEMENT: ${BILLING_ENFORCEMENT:-false}
-    command: ["python", "-m", "app.queue.worker"]
+    command: [ "python", "-m", "app.queue.worker" ]
     volumes:
       - mat-app-data:/app/backend/data
     security_opt:
@@ -251,7 +251,7 @@ services:
     cap_drop:
       - ALL
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import os; exit(0 if os.path.exists('/app/backend/tmp/worker_alive') else 1)\""]
+      test: [ "CMD-SHELL", "python -c \"import os; exit(0 if os.path.exists('/app/backend/tmp/worker_alive') else 1)\"" ]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -276,7 +276,7 @@ services:
   minio:
     image: bitnamilegacy/minio:2025.7.23-debian-12-r5@sha256:6dabb4a2088c9a79908de3bc05f4586c23ad2182c8908e7e3acbf61c1467fb20
     container_name: mat-minio
-    profiles: ["s3"]
+    profiles: [ "s3" ]
     restart: unless-stopped
     command: server /bitnami/minio/data --console-address ":9001"
     environment:
@@ -290,7 +290,7 @@ services:
     volumes:
       - mat-minio-data:/bitnami/minio/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -302,7 +302,7 @@ services:
   prometheus:
     image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
     container_name: mat-prometheus
-    profiles: ["monitoring"]
+    profiles: [ "monitoring" ]
     restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -320,7 +320,7 @@ services:
   grafana:
     image: grafana/grafana:12.4.12@sha256:83be3e511ede559bee80e2215bb1987cb1246075461cb961beb515b0341e7aea
     container_name: mat-grafana
-    profiles: ["monitoring"]
+    profiles: [ "monitoring" ]
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:?GRAFANA_USER must be set}
