@@ -228,6 +228,54 @@ class MongoProviderClient:
 
         return await asyncio.to_thread(job)
 
+    async def list_collections(self, creds: dict, database: str, timeout: float = 30.0) -> dict:
+        db, _ = _namespace(database, "placeholder")
+
+        def job() -> dict[str, Any]:
+            pymongo, PyMongoError = _require_pymongo()
+            try:
+                client = pymongo.MongoClient(_require_uri(creds), serverSelectionTimeoutMS=int(timeout * 1000))
+                try:
+                    names = sorted(client[db].list_collection_names())
+                    return {"database": db, "collections": names, "count": len(names)}
+                finally:
+                    client.close()
+            except PyMongoError as exc:
+                _translate(exc, "list_collections")
+
+        return await asyncio.to_thread(job)
+
+    async def create_index(self, creds: dict, database: str, collection: str,
+                           keys: dict, unique: bool = False, timeout: float = 30.0) -> dict:
+        db, coll = _namespace(database, collection)
+        if not isinstance(keys, dict) or not keys:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "create_index requires a non-empty keys object.", retryable=False)
+        try:
+            spec = [
+                (str(k), v if isinstance(v, str) else int(v))
+                for k, v in keys.items()
+            ]
+        except (TypeError, ValueError) as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "create_index keys must map fields to 1, -1, or a string index type.",
+                retryable=False,
+            ) from exc
+
+        def job() -> dict[str, Any]:
+            pymongo, PyMongoError = _require_pymongo()
+            try:
+                client = pymongo.MongoClient(_require_uri(creds), serverSelectionTimeoutMS=int(timeout * 1000))
+                try:
+                    name = client[db][coll].create_index(spec, unique=bool(unique))
+                    return {"database": db, "collection": coll, "index": name, "success": True}
+                finally:
+                    client.close()
+            except PyMongoError as exc:
+                _translate(exc, "create_index")
+
+        return await asyncio.to_thread(job)
+
     async def count_documents(self, creds: dict, database: str, collection: str,
                               filter_query: dict | None = None, timeout: float = 30.0) -> dict:
         db, coll = _namespace(database, collection)

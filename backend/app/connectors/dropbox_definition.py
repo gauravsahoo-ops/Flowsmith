@@ -57,6 +57,23 @@ def build_dropbox_definition() -> ConnectorDefinitionV1:
                 {"path": {"type": "string", "title": "File or folder path"}},
                 ["path"],
             ),
+            "search": _operation(
+                "search", "Search Files", "Search Dropbox files and folders.",
+                {
+                    "query": {"type": "string", "title": "Search query"},
+                    "path": {"type": "string", "title": "Scope path (optional)"},
+                    "limit": {"type": "integer", "title": "Max results", "default": 100},
+                },
+                ["query"],
+            ),
+            "move": _operation(
+                "move", "Move File/Folder", "Move or rename a file or folder.",
+                {
+                    "from_path": {"type": "string", "title": "Source path"},
+                    "to_path": {"type": "string", "title": "Destination path"},
+                },
+                ["from_path", "to_path"], retryable=False, idempotency="non_idempotent",
+            ),
             "create_folder": _operation(
                 "create_folder", "Create Folder", "Create a folder.",
                 {"path": {"type": "string", "title": "New folder path"}},
@@ -91,6 +108,12 @@ def build_dropbox_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_folder", "get_metadata", "create_folder", "delete", "upload_text"], "auth": "Bearer token"},
+        metadata={
+            "initial_operations": [
+                "list_folder", "get_metadata", "search", "move",
+                "create_folder", "delete", "upload_text",
+            ],
+            "auth": "Bearer token",
+        },
         icon="dropbox",
     )

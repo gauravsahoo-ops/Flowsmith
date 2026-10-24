@@ -389,7 +389,7 @@ def workflow_workspace(db: Session, workflow_id: str) -> str | None:
 
 
 @router.post("/api/workflows/{workflow_id}/run", tags=["workflows"], status_code=status.HTTP_202_ACCEPTED)
-async def run_workflow(
+def run_workflow(
     workflow_id: str,
     body: RunRequest | None = None,
     user: User = Depends(get_current_user),
@@ -1066,6 +1066,31 @@ def export_executions_csv(
         headers={"Content-Disposition": 'attachment; filename="flowsmith-executions-export.csv"'},
     )
 
+
+
+@router.get("/api/executions/{execution_id}/status")
+def get_execution_status(
+    execution_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Lightweight execution poll endpoint.
+
+    The full execution payload includes the workflow snapshot, trace and
+    results. A canvas polling every run does not need those on every tick;
+    this endpoint keeps terminal-state polling cheap under concurrency.
+    """
+    rec = db.get(Execution, execution_id)
+    if rec is None or not _can_view_execution(db, rec, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
+    return ok({
+        "id": rec.id,
+        "status": rec.status,
+        "finished_at": rec.finished_at.isoformat() if rec.finished_at else None,
+        "duration_ms": rec.duration_ms,
+        "queue_wait_ms": rec.queue_wait_ms,
+        "error_summary": rec.error_summary,
+    })
 
 
 @router.get("/api/executions/{execution_id}")

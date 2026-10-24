@@ -228,6 +228,25 @@ class GoogleCalendarProviderClient:
     # Events operations (Calendar v3)
     # ------------------------------------------------------------------
 
+    async def list_calendars(self, creds: dict[str, Any], timeout: float = 30.0) -> dict[str, Any]:
+        response = await self.request(
+            creds, "GET", "/calendar/v3/users/me/calendarList",
+            params={"maxResults": 250}, timeout=timeout,
+        )
+        self._raise_for_status(response, "list calendars")
+        data = response.json()
+        calendars = [
+            {
+                "id": item.get("id"),
+                "summary": item.get("summary"),
+                "primary": item.get("primary", False),
+                "access_role": item.get("accessRole"),
+                "time_zone": item.get("timeZone"),
+            }
+            for item in (data.get("items") or [])
+        ]
+        return {"calendars": calendars, "count": len(calendars)}
+
     async def list_events(
         self,
         creds: dict[str, Any],

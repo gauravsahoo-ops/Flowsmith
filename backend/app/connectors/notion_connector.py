@@ -22,7 +22,14 @@ from app.providers.notion import NotionProviderClient
 
 
 class NotionConnectorParams(BaseModel):
-    operation: str = Field(default="query_database", description="query_database | create_page | update_page | get_page | append_block_children.")
+    operation: str = Field(
+        default="query_database",
+        description=(
+            "query_database | create_page | update_page | get_page | "
+            "append_block_children | search | get_block_children."
+        ),
+    )
+    query: str = ""
     database_id: str = ""
     page_id: str = ""
     block_id: str = ""
@@ -124,8 +131,19 @@ class NotionConnector(ConnectorSDK):
                     creds, str(raw.get("block_id") or params.block_id),
                     children_raw, timeout=params.timeout_seconds,
                 )
+            if op == "search":
+                return await self._provider.search(
+                    creds, query=str(raw.get("query") or params.query),
+                    page_size=params.page_size, max_pages=params.max_pages,
+                    timeout=params.timeout_seconds,
+                )
+            if op == "get_block_children":
+                return await self._provider.get_block_children(
+                    creds, str(raw.get("block_id") or params.block_id),
+                    page_size=params.page_size, max_pages=params.max_pages,
+                    timeout=params.timeout_seconds,
+                )
         except ConnectorError:
-
             raise
         raise make_connector_error(
             ConnectorErrorCode.BAD_REQUEST, f"Unsupported Notion operation '{operation}'.", retryable=False,

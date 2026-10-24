@@ -10,7 +10,7 @@ import asyncio
 
 import pytest
 
-from app.connectors import ConnectorError, ConnectorErrorCode, get_registry, register_builtin_connectors
+from app.connectors import ConnectorError, get_registry, register_builtin_connectors
 from tests.test_api._connector_fakes import json_response, patch_provider_http
 
 MODULE = ["app.providers.dropbox"]
@@ -139,4 +139,5 @@ def test_connector_dispatch_and_discovery():
         )
     assert asyncio.new_event_loop().run_until_complete(
         conn.op_list())["output"]["operations"] == [
-        "list_folder", "get_metadata", "create_folder", "delete", "upload_text"]
+        "list_folder", "get_metadata", "search", "move",
+        "create_folder", "delete", "upload_text"]

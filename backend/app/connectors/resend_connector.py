@@ -124,6 +124,23 @@ class ResendConnector(ConnectorSDK, ConnectorOperations):
                     res.raise_for_status()
                     return res.json()
 
+                elif operation == "list_emails":
+                    res = await client.get(f"{base_url}/emails", headers=headers)
+                    res.raise_for_status()
+                    return res.json()
+
+                elif operation == "cancel_email":
+                    email_id = params.get("email_id", "").strip()
+                    if not email_id:
+                        raise make_connector_error(
+                            ConnectorErrorCode.BAD_REQUEST,
+                            "cancel_email needs an email_id.",
+                            retryable=False,
+                        )
+                    res = await client.post(f"{base_url}/emails/{email_id}/cancel", headers=headers)
+                    res.raise_for_status()
+                    return res.json()
+
                 elif operation == "list_domains":
                     res = await client.get(f"{base_url}/domains", headers=headers)
                     res.raise_for_status()

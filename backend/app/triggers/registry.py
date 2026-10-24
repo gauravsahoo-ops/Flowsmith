@@ -16,12 +16,13 @@ from __future__ import annotations
 import hashlib
 import logging
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.models import ScheduleTrigger, WebhookTrigger, WorkflowRecord
+from app.models import PollingTrigger, ScheduleTrigger, WebhookTrigger, WorkflowRecord
 from app.schemas.workflow import Workflow
 
 
@@ -33,9 +34,57 @@ def make_schedule_trigger_id(wf_id: str, node_id: str, rule_id: str) -> str:
     h = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
     return f"{raw[:40]}_{h}"[:64]
 
+
+def make_polling_trigger_id(wf_id: str, node_id: str) -> str:
+    raw = f"poll_{wf_id}_{node_id}"
+    if len(raw) <= 64:
+        return raw
+    h = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
+    return f"{raw[:40]}_{h}"[:64]
+
 logger = logging.getLogger("triggers.registry")
 
-TRIGGER_NODE_TYPES = {"webhook", "schedule", "salesforce_trigger", "form_trigger", "chat_trigger"}
+
+def _owned_by_other_active_workflow(
+    db: Session, existing: WebhookTrigger | None, workflow_id: str, path: str
+) -> bool:
+    """True when an existing row is still legitimately claimed by its owner.
+
+    Path validation should prevent this state, but startup reconciliation and
+    legacy rows can still collide.  Never silently reassign a live path based
+    only on loop order; that turns a collision into a callback hijack.
+    """
+    if existing is None or existing.workflow_id == workflow_id:
+        return False
+    owner = db.get(WorkflowRecord, existing.workflow_id)
+    if owner is None or not owner.active or owner.deleted_at is not None:
+        return False
+    try:
+        owner_workflow = Workflow.model_validate(owner.data)
+    except Exception:
+        return True
+    return any(
+        str(trigger["params"].get("path") or "") == path
+        for trigger in workflow_trigger_nodes(owner_workflow)
+    )
+
+
+WEBHOOK_TRIGGER_TYPES = {
+    "webhook",
+    "github_trigger",
+    "stripe_trigger",
+    "shopify_trigger",
+    "slack_trigger",
+    "typeform_trigger",
+    "gitlab_trigger",
+}
+POLL_TRIGGER_TYPES = {"http_poll_trigger"}
+TRIGGER_NODE_TYPES = {
+    "schedule",
+    "salesforce_trigger",
+    "form_trigger",
+    "chat_trigger",
+} | WEBHOOK_TRIGGER_TYPES | POLL_TRIGGER_TYPES
 
 #: Reserved path namespace owned by the Salesforce Outbound Message
 #: endpoint (Phase 10); generic webhook routes refuse it.
@@ -104,10 +153,11 @@ def sync_webhooks(db: Session) -> None:
 
     wanted_webhook_paths: set[str] = set()
     wanted_schedule_ids: set[str] = set()
+    wanted_polling_ids: set[str] = set()
     for rec in recs:
         workflow = Workflow.model_validate(rec.data)
         for trig in workflow_trigger_nodes(workflow):
-            if trig["type"] == "webhook":
+            if trig["type"] in WEBHOOK_TRIGGER_TYPES:
                 path = trig["params"].get("path")
                 # The AI compiler writes `http_method`; canonical is `method`
                 # (webhook node schema). Register whichever is present so a
@@ -124,6 +174,12 @@ def sync_webhooks(db: Session) -> None:
                 existing = db.scalar(
                     select(WebhookTrigger).where(WebhookTrigger.path == path)
                 )
+                if _owned_by_other_active_workflow(db, existing, rec.id, path):
+                    logger.error(
+                        "webhook path collision preserved owner workflow=%s claimant=%s path=%s",
+                        existing.workflow_id if existing else "?", rec.id, path,
+                    )
+                    continue
                 if existing is None:
                     db.add(WebhookTrigger(
                         id=f"whk_{uuid.uuid4().hex[:12]}",
@@ -151,6 +207,12 @@ def sync_webhooks(db: Session) -> None:
                 existing = db.scalar(
                     select(WebhookTrigger).where(WebhookTrigger.path == path)
                 )
+                if _owned_by_other_active_workflow(db, existing, rec.id, path):
+                    logger.error(
+                        "Salesforce path collision preserved owner workflow=%s claimant=%s path=%s",
+                        existing.workflow_id if existing else "?", rec.id, path,
+                    )
+                    continue
                 if existing is None:
                     db.add(WebhookTrigger(
                         id=f"whk_{uuid.uuid4().hex[:12]}",
@@ -179,6 +241,12 @@ def sync_webhooks(db: Session) -> None:
                 existing = db.scalar(
                     select(WebhookTrigger).where(WebhookTrigger.path == path)
                 )
+                if _owned_by_other_active_workflow(db, existing, rec.id, path):
+                    logger.error(
+                        "public trigger path collision preserved owner workflow=%s claimant=%s path=%s",
+                        existing.workflow_id if existing else "?", rec.id, path,
+                    )
+                    continue
                 if existing is None:
                     db.add(WebhookTrigger(
                         id=f"whk_{uuid.uuid4().hex[:12]}",
@@ -258,8 +326,56 @@ def sync_webhooks(db: Session) -> None:
                             row_id, cron, timezone,
                         )
 
+            if trig["type"] == "http_poll_trigger":
+                from app.nodes.http_poll_trigger import HttpPollTriggerParams
+
+                try:
+                    params = HttpPollTriggerParams.model_validate(trig["params"])
+                except Exception:
+                    logger.warning(
+                        "skipping invalid polling trigger workflow=%s node=%s",
+                        rec.id, trig["node_id"],
+                    )
+                    continue
+                row_id = make_polling_trigger_id(rec.id, trig["node_id"])
+                wanted_polling_ids.add(row_id)
+                existing = db.scalar(
+                    select(PollingTrigger).where(PollingTrigger.id == row_id)
+                )
+                if existing is None:
+                    db.add(PollingTrigger(
+                        id=row_id,
+                        workflow_id=rec.id,
+                        user_id=rec.user_id,
+                        workflow_version=rec.version,
+                        workflow_data=rec.data,
+                        node_id=trig["node_id"],
+                        url=params.url,
+                        method=params.method,
+                        headers=params.headers,
+                        json_body=params.json_body,
+                        items_path=params.items_path,
+                        dedupe_field=params.dedupe_field,
+                        interval_seconds=params.interval_seconds,
+                        status="active",
+                        next_poll_at=datetime.now(UTC) + timedelta(seconds=params.interval_seconds),
+                        seen_keys=[],
+                    ))
+                else:
+                    existing.workflow_version = rec.version
+                    existing.workflow_data = rec.data
+                    existing.url = params.url
+                    existing.method = params.method
+                    existing.headers = params.headers
+                    existing.json_body = params.json_body
+                    existing.items_path = params.items_path
+                    existing.dedupe_field = params.dedupe_field
+                    existing.interval_seconds = params.interval_seconds
+                    existing.status = "active"
+
     # Drop trigger rows whose workflow is no longer active / no longer
-    # defines the same trigger (webhooks: by path; schedules: per node).
+    # defines the same trigger (webhooks: by path; schedules: per node;
+    # polling: per workflow/node).
     db.execute(
         delete(WebhookTrigger).where(~WebhookTrigger.path.in_(wanted_webhook_paths))
         if wanted_webhook_paths
@@ -269,6 +385,11 @@ def sync_webhooks(db: Session) -> None:
         delete(ScheduleTrigger).where(~ScheduleTrigger.id.in_(wanted_schedule_ids))
         if wanted_schedule_ids
         else delete(ScheduleTrigger)
+    )
+    db.execute(
+        delete(PollingTrigger).where(~PollingTrigger.id.in_(wanted_polling_ids))
+        if wanted_polling_ids
+        else delete(PollingTrigger)
     )
     db.commit()
 

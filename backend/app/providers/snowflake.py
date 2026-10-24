@@ -217,6 +217,26 @@ class SnowflakeProviderClient(BaseProviderClient):
         sql = f"DESCRIBE TABLE {qualified}"
         return await self.execute_statement(creds, sql, database=database, schema=schema, timeout=timeout)
 
+    async def list_databases(
+        self,
+        creds: dict[str, Any],
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        return await self.execute_statement(creds, "SHOW DATABASES", timeout=timeout)
+
+    async def list_schemas(
+        self,
+        creds: dict[str, Any],
+        *,
+        database: Optional[str] = None,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if database:
+            sql = f'SHOW SCHEMAS IN DATABASE "{database}"'
+        else:
+            sql = "SHOW SCHEMAS"
+        return await self.execute_statement(creds, sql, database=database, timeout=timeout)
+
     async def list_tables(
         self,
         creds: dict[str, Any],

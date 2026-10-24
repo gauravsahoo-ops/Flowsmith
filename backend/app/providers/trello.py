@@ -84,6 +84,31 @@ class TrelloProviderClient:
         data = await self._request("GET", f"/boards/{board}/cards", creds, timeout=timeout, what="list cards")
         return data if isinstance(data, list) else []
 
+    async def list_lists(self, creds: dict, board_id: str, timeout: float = 30.0) -> list:
+        board = str(board_id or "").strip()
+        if not board:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "list_lists needs a board_id.", retryable=False)
+        data = await self._request("GET", f"/boards/{board}/lists", creds, timeout=timeout, what="list lists")
+        return data if isinstance(data, list) else []
+
+    async def update_card(self, creds: dict, card_id: str, fields: dict[str, Any],
+                          timeout: float = 30.0) -> dict:
+        card = str(card_id or "").strip()
+        if not card:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_card needs a card_id.", retryable=False)
+        allowed = {
+            key: value
+            for key, value in (fields or {}).items()
+            if key in ("name", "desc", "due", "idList", "closed") and value is not None and value != ""
+        }
+        if not allowed:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_card needs at least one field to change.", retryable=False)
+        data = await self._request(
+            "PUT", f"/cards/{card}", creds, params=allowed,
+            timeout=timeout, what="update card",
+        )
+        return data if isinstance(data, dict) else {}
+
     async def get_card(self, creds: dict, card_id: str, timeout: float = 30.0) -> dict:
         card = str(card_id or "").strip()
         if not card:

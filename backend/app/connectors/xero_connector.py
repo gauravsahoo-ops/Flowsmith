@@ -20,6 +20,8 @@ class XeroConnectorParams(BaseModel):
     operation: str = Field(default="list_invoices")
     invoice_id: str = ""
     contact_id: str = ""
+    contact_name: str = ""
+    contact_email: str = ""
     where: str = ""
     type_str: str = "ACCREC"
     due_date: str = ""
@@ -94,6 +96,19 @@ class XeroConnector(ConnectorSDK):
 
             if op == "list_contacts":
                 return await self._provider.list_contacts(creds, page=page, timeout=timeout)
+
+            if op == "get_contact":
+                if not contact_id:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "contact_id is required.", retryable=False)
+                return await self._provider.get_contact(creds, contact_id, timeout=timeout)
+
+            if op == "create_contact":
+                return await self._provider.create_contact(
+                    creds,
+                    str(raw.get("contact_name") or params.contact_name),
+                    email=str(raw.get("contact_email") or params.contact_email) or None,
+                    timeout=timeout,
+                )
 
             if op == "get_accounts":
                 return await self._provider.get_accounts(creds, timeout=timeout)

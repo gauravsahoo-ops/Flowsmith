@@ -68,13 +68,18 @@ class CalendlyProviderClient:
             return {}
         return data if isinstance(data, dict) else {}
 
-    async def _post(self, creds: dict, path: str, what: str, timeout: float = 30.0) -> dict:
+    async def _post(self, creds: dict, path: str, what: str,
+                    body: dict[str, Any] | None = None,
+                    timeout: float = 30.0) -> dict:
         try:
             async with get_safe_http_client() as client:
                 response = await client.request(
                     "POST", f"{CALENDLY_API_BASE}{path}",
-                    headers={"Authorization": f"Bearer {_token(creds)}"},
-                    timeout=timeout,
+                    headers={
+                        "Authorization": f"Bearer {_token(creds)}",
+                        "Content-Type": "application/json",
+                    },
+                    json=body, timeout=timeout,
                 )
         except Exception as exc:
             raise make_connector_error(
@@ -101,6 +106,40 @@ class CalendlyProviderClient:
         items = data.get("collection", [])
         return items if isinstance(items, list) else []
 
+    async def list_invitees(self, creds: dict, event_uuid: str, count: int = 20,
+                            timeout: float = 30.0) -> list:
+        uuid = str(event_uuid or "").strip()
+        if not uuid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "list_invitees needs an event uuid.", retryable=False)
+        data = await self._get(
+            creds, f"/scheduled_events/{uuid}/invitees",
+            {"count": max(1, min(int(count or 20), 100))},
+            "list invitees", timeout,
+        )
+        items = data.get("collection", [])
+        return items if isinstance(items, list) else []
+
+    async def create_scheduling_link(self, creds: dict, owner_uri: str,
+                                     max_event_count: int = 1,
+                                     timeout: float = 30.0) -> dict:
+        owner = str(owner_uri or "").strip()
+        if not owner:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "create_scheduling_link needs an owner_uri (event type URI).",
+                retryable=False,
+            )
+        data = await self._post(
+            creds, "/scheduling_links", "create scheduling link",
+            body={
+                "max_event_count": max(1, min(int(max_event_count or 1), 100)),
+                "owner": owner,
+                "owner_type": "EventType",
+            },
+            timeout=timeout,
+        )
+        return {"scheduling_link": data.get("resource", data), "success": True}
+
     async def get_event(self, creds: dict, event_uuid: str, timeout: float = 30.0) -> dict:
         if not str(event_uuid or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_event needs an event uuid.", retryable=False)
@@ -111,5 +150,8 @@ class CalendlyProviderClient:
     async def cancel_event(self, creds: dict, event_uuid: str, timeout: float = 30.0) -> dict:
         if not str(event_uuid or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "cancel_event needs an event uuid.", retryable=False)
-        data = await self._post(creds, f"/scheduled_events/{event_uuid.strip()}/cancellation", "cancel event", timeout)
+        data = await self._post(
+            creds, f"/scheduled_events/{event_uuid.strip()}/cancellation",
+            "cancel event", timeout=timeout,
+        )
         return {"cancelled": True, "event": event_uuid.strip(), **data}

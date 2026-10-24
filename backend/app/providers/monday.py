@@ -6,6 +6,7 @@ Ops: boards, items, updates. 429/5xx retryable; GraphQL errors mapped.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from app.connectors import ConnectorErrorCode, make_connector_error
@@ -122,6 +123,32 @@ class MondayProviderClient:
             "create_item", timeout,
         )
         return {"item": data.get("create_item", {})}
+
+    async def update_item(self, creds: dict, board_id: str, item_id: str,
+                          column_values: dict[str, Any], timeout: float = 30.0) -> dict:
+        if not str(board_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_item needs a board_id.", retryable=False)
+        if not str(item_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_item needs an item_id.", retryable=False)
+        if not isinstance(column_values, dict) or not column_values:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_item needs column_values.", retryable=False)
+        data = await self._gql(
+            creds,
+            "mutation($board: ID!, $item: ID!, $values: JSON!) { change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id name } }",
+            {"board": board_id, "item": item_id, "values": json.dumps(column_values)},
+            "update_item", timeout,
+        )
+        return {"item": data.get("change_multiple_column_values", {})}
+
+    async def delete_item(self, creds: dict, item_id: str, timeout: float = 30.0) -> dict:
+        iid = str(item_id or "").strip()
+        if not iid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_item needs an item_id.", retryable=False)
+        data = await self._gql(
+            creds, "mutation($item: ID!) { delete_item(item_id: $item) { id } }",
+            {"item": iid}, "delete_item", timeout,
+        )
+        return {"item": data.get("delete_item", {}), "deleted": True, "success": True}
 
     async def add_update(self, creds: dict, item_id: str, body: str, timeout: float = 30.0) -> dict:
         if not str(item_id or "").strip():

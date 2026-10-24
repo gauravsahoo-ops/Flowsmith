@@ -25,6 +25,7 @@ class ZendeskConnectorParams(BaseModel):
     body: str = ""
     status: str = ""
     priority: str = ""
+    role: str = ""
     limit: int = Field(default=25, ge=1, le=100)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
@@ -32,7 +33,7 @@ class ZendeskConnectorParams(BaseModel):
 class ZendeskConnector(ConnectorSDK):
     connector_id = "zendesk"
     display_name = "Zendesk"
-    description = "Manage Zendesk support tickets and comments."
+    description = "Manage Zendesk support tickets, users, and comments."
     category = ConnectorCategory.API
     version = "1.0.0"
 
@@ -70,6 +71,15 @@ class ZendeskConnector(ConnectorSDK):
             if op == "list_tickets":
                 return await self._provider.list_tickets(
                     creds, int(raw.get("limit") or params.limit), timeout=timeout)
+            if op == "list_users":
+                return await self._provider.list_users(
+                    creds, int(raw.get("limit") or params.limit),
+                    role=str(raw.get("role") or params.role), timeout=timeout,
+                )
+            if op == "delete_ticket":
+                return await self._provider.delete_ticket(
+                    creds, str(raw.get("ticket_id") or params.ticket_id), timeout=timeout,
+                )
             if op == "get_ticket":
                 return await self._provider.get_ticket(
                     creds, str(raw.get("ticket_id") or params.ticket_id), timeout=timeout)
@@ -104,4 +114,4 @@ class ZendeskConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_tickets", "get_ticket", "create_ticket", "update_ticket", "add_comment"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_tickets", "list_users", "get_ticket", "delete_ticket", "create_ticket", "update_ticket", "add_comment"]}}

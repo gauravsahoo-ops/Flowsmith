@@ -109,6 +109,28 @@ def _google_drive_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"file": {"type": "object"}}},
             retryable=True,
         ),
+        "delete_file": _operation(
+            "delete_file", "Delete File",
+            "Delete one Drive file by id.",
+            {"file_id": {"type": "string", "title": "File id"}, "timeout_seconds": _TIMEOUT_PROP},
+            ["file_id"],
+            {"type": "object", "properties": {"file_id": {"type": "string"}, "deleted": {"type": "boolean"}}},
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "create_folder": _operation(
+            "create_folder", "Create Folder",
+            "Create a Drive folder, optionally under a parent folder.",
+            {
+                "name": {"type": "string", "title": "Folder name"},
+                "parent_id": {"type": "string", "title": "Parent folder id"},
+                "timeout_seconds": _TIMEOUT_PROP,
+            },
+            ["name"],
+            {"type": "object", "properties": {"folder_id": {"type": "string"}, "name": {"type": "string"}}},
+            retryable=False,
+            idempotency="non_idempotent",
+        ),
     }
 
 
@@ -141,7 +163,7 @@ def build_google_drive_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=GOOGLE_DRIVE_CONNECTOR_KEY,
         display_name="Google Drive",
-        description="List, inspect and create Google Drive files via the Drive v3 API.",
+        description="List, inspect, create, organize, and delete Google Drive files via the Drive v3 API.",
         category="storage",
         connector_version=GOOGLE_DRIVE_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
@@ -149,7 +171,9 @@ def build_google_drive_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_google_drive_credential_type(),
         metadata={
-            "initial_operations": ["list_files", "upload_file", "get_file"],
+            "initial_operations": [
+                "list_files", "upload_file", "get_file", "delete_file", "create_folder",
+            ],
             "auth": "OAuth2 (Connect Google Drive)",
         },
         icon="google_drive",

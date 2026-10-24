@@ -22,7 +22,13 @@ from app.providers.shopify import ShopifyProviderClient
 
 
 class ShopifyConnectorParams(BaseModel):
-    operation: str = Field(default="list_products", description="get_product | list_products | create_product | get_order.")
+    operation: str = Field(
+        default="list_products",
+        description=(
+            "get_product | list_products | create_product | update_product | "
+            "get_order | list_orders."
+        ),
+    )
     product_id: str = ""
     order_id: str = ""
     title: str = ""
@@ -32,6 +38,7 @@ class ShopifyConnectorParams(BaseModel):
     limit: int = Field(default=50, ge=1, le=250)
     max_pages: int = Field(default=3, ge=1, le=10)
     status: str = "active"
+    order_status: str = "any"
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
 
@@ -108,6 +115,26 @@ class ShopifyConnector(ConnectorSDK):
                     body_html=str(raw.get("body_html") or params.body_html),
                     vendor=str(raw.get("vendor") or params.vendor),
                     tags=tags or None, timeout=params.timeout_seconds,
+                )
+            if op == "update_product":
+                fields: dict[str, Any] = {}
+                for key in ("title", "body_html", "vendor", "status"):
+                    value = raw.get(key) if raw.get(key) is not None else getattr(params, key)
+                    if value not in (None, ""):
+                        fields[key] = value
+                tags_raw = raw.get("tags")
+                tags = [str(t) for t in tags_raw] if isinstance(tags_raw, list) else params.tags
+                if tags:
+                    fields["tags"] = ", ".join(tags)
+                return await self._provider.update_product(
+                    creds, str(raw.get("product_id") or params.product_id),
+                    fields, timeout=params.timeout_seconds,
+                )
+            if op == "list_orders":
+                return await self._provider.list_orders(
+                    creds, limit=params.limit, max_pages=params.max_pages,
+                    status=str(raw.get("order_status") or params.order_status),
+                    timeout=params.timeout_seconds,
                 )
             if op == "get_order":
                 return await self._provider.get_order(

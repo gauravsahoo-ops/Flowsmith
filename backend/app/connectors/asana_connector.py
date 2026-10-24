@@ -20,6 +20,7 @@ from app.providers.asana import AsanaProviderClient
 class AsanaConnectorParams(BaseModel):
     operation: str = Field(default="list_tasks")
     project_id: str = ""
+    workspace_id: str = ""
     task_id: str = ""
     name: str = ""
     notes: str = ""
@@ -70,6 +71,15 @@ class AsanaConnector(ConnectorSDK):
             if op == "list_tasks":
                 tasks = await self._provider.list_tasks(creds, str(raw.get("project_id") or params.project_id), timeout=timeout)
                 return {"tasks": tasks}
+            if op == "list_projects":
+                projects = await self._provider.list_projects(
+                    creds, str(raw.get("workspace_id") or params.workspace_id), timeout=timeout,
+                )
+                return {"projects": projects}
+            if op == "delete_task":
+                return await self._provider.delete_task(
+                    creds, str(raw.get("task_id") or params.task_id), timeout=timeout,
+                )
             if op == "get_task":
                 return await self._provider.get_task(creds, str(raw.get("task_id") or params.task_id), timeout=timeout)
             if op == "create_task":
@@ -102,4 +112,4 @@ class AsanaConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_tasks", "get_task", "create_task", "update_task", "add_comment"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_tasks", "list_projects", "get_task", "delete_task", "create_task", "update_task", "add_comment"]}}

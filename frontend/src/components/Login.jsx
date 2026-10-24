@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { api, setToken } from '../api'
 import { useBrandingStore } from '../stores/brandingStore'
 import FlowsmithBrandMark from './FlowsmithBrandMark'
+import {
+  passkeysSupported,
+  prepareRequestOptions,
+  serializeCredential,
+} from '../utils/webauthn'
 
 // Login / Register / Forgot-password / Reset-password / SSO (Phase 42 + SSO EE).
 // Premium Enterprise Grade Auth UI with interactive workflow showcase.
@@ -28,6 +33,13 @@ export default function Login({ onAuthed }) {
   const [notice, setNotice] = useState(null)
   const [busy, setBusy] = useState(false)
   const [ssoProviders, setSsoProviders] = useState([])
+  const [mfaChallenge, setMfaChallenge] = useState(null)
+  const [mfaEnrollment, setMfaEnrollment] = useState(null)
+  const [mfaRecovery, setMfaRecovery] = useState(null)
+  const [webauthnChallenge, setWebauthnChallenge] = useState(null)
+  const [passkeyLogin, setPasskeyLogin] = useState(null)
+  const [passkeyLoginBusy, setPasskeyLoginBusy] = useState(false)
+  const [mfaCode, setMfaCode] = useState('')
 
   // Detect reset links: /reset-password?token=...
   // Detect SSO callback: /#sso_token=... (fragment: never in logs/Referer)
@@ -53,12 +65,87 @@ export default function Login({ onAuthed }) {
     }).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  function finishAuth(result) {
+    setToken(result.token)
+    if (result.user) {
+      try {
+        localStorage.setItem('flowsmith_user', JSON.stringify(result.user))
+        window.dispatchEvent(new Event('flowsmith_user_updated'))
+      } catch (err) { console.error('[flowsmith] components/Login.jsx', err) }
+    }
+    onAuthed(result)
+  }
+
+  function cancelMfa() {
+    setMfaChallenge(null)
+    setMfaEnrollment(null)
+    setMfaRecovery(null)
+    setWebauthnChallenge(null)
+    setMfaCode('')
+    setPassword('')
+    setMode('login')
+    setError(null)
+    setNotice(null)
+  }
+
+  async function handlePasskey() {
+    if (!webauthnChallenge) return
+    if (!passkeysSupported()) {
+      setError('This browser does not support passkeys.')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const assertion = await navigator.credentials.get({
+        publicKey: prepareRequestOptions(webauthnChallenge.options),
+      })
+      const result = await api.webauthnAuthenticateComplete(
+        webauthnChallenge.token,
+        serializeCredential(assertion)
+      )
+      finishAuth(result)
+    } catch (err) {
+      if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') {
+        setError('Passkey request was cancelled or timed out. Try again.')
+      } else {
+        setError(err.message || 'Passkey authentication failed.')
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function submit(e) {
     e.preventDefault()
     setBusy(true)
     setError(null)
     setNotice(null)
     try {
+      if (mfaRecovery) {
+        finishAuth(mfaRecovery.result)
+        return
+      }
+      if (mfaEnrollment) {
+        const result = await api.completeMfaEnrollment(mfaEnrollment.token, mfaCode)
+        if (Array.isArray(result.recovery_codes) && result.recovery_codes.length) {
+          setMfaRecovery({ result, codes: result.recovery_codes })
+          setMfaCode('')
+          return
+        }
+        finishAuth(result)
+        return
+      }
+      if (webauthnChallenge && !mfaChallenge) {
+        await handlePasskey()
+        return
+      }
+      if (mfaChallenge) {
+        const result = await api.verifyMfa(mfaChallenge, mfaCode)
+        finishAuth(result)
+        return
+      }
       if (mode === 'forgot') {
         const data = await api.forgotPassword(email)
         if (data.dev_reset_link) {
@@ -81,14 +168,28 @@ export default function Login({ onAuthed }) {
         mode === 'login'
           ? await api.login(email, password)
           : await api.register(email, password)
-      setToken(result.token)
-      if (result.user) {
-        try {
-          localStorage.setItem('flowsmith_user', JSON.stringify(result.user))
-          window.dispatchEvent(new Event('flowsmith_user_updated'))
-        } catch (err) { console.error('[flowsmith] components/Login.jsx', err) }
+      if (result.mfa_required || result.webauthn_required) {
+        setMfaChallenge(result.mfa_required ? result.challenge_token : null)
+        setWebauthnChallenge(result.webauthn_required ? {
+          token: result.webauthn_token,
+          options: result.webauthn_options,
+        } : null)
+        setMfaCode('')
+        setNotice(
+          result.webauthn_required
+            ? 'Use your passkey to continue.'
+            : 'Enter the 6-digit code from your authenticator app, or a recovery code.'
+        )
+        return
       }
-      onAuthed(result)
+      if (result.mfa_enrollment_required) {
+        const setup = await api.startMfaEnrollment(result.enrollment_token)
+        setMfaEnrollment({ token: result.enrollment_token, ...setup })
+        setMfaCode('')
+        setNotice('Your organization requires MFA. Add Flowsmith to your authenticator app to continue.')
+        return
+      }
+      finishAuth(result)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -101,10 +202,79 @@ export default function Login({ onAuthed }) {
   const logoUrl = useBrandingStore((s) => s.logoUrl)
   const logoData = useBrandingStore((s) => s.logoData)
   const logoSrc = logoData || logoUrl
+  const mfaFlow = Boolean(mfaChallenge || mfaEnrollment || mfaRecovery || webauthnChallenge)
 
   useEffect(() => {
     useBrandingStore.getState().init().catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (mode !== 'login' || mfaFlow || !passkeysSupported()) {
+      setPasskeyLogin(null)
+      return undefined
+    }
+    let cancelled = false
+    const controller = new AbortController()
+    ;(async () => {
+      try {
+        const data = await api.webauthnConditionalOptions()
+        if (cancelled) return
+        setPasskeyLogin(data)
+        let conditional = false
+        try {
+          conditional = Boolean(
+            await window.PublicKeyCredential.isConditionalMediationAvailable?.()
+          )
+        } catch {
+          conditional = false
+        }
+        if (cancelled || !conditional) return
+        const assertion = await navigator.credentials.get({
+          publicKey: prepareRequestOptions(data.options),
+          mediation: 'conditional',
+          signal: controller.signal,
+        })
+        if (!assertion || cancelled) return
+        const result = await api.webauthnConditionalComplete(
+          data.webauthn_token,
+          serializeCredential(assertion)
+        )
+        finishAuth(result)
+      } catch (err) {
+        if (!cancelled && !['AbortError', 'NotAllowedError'].includes(err?.name)) {
+          console.debug('[flowsmith] conditional passkey unavailable', err)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [mode, mfaFlow]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handlePasskeyLogin() {
+    if (!passkeyLogin) return
+    setPasskeyLoginBusy(true)
+    setError(null)
+    try {
+      const assertion = await navigator.credentials.get({
+        publicKey: prepareRequestOptions(passkeyLogin.options),
+      })
+      const result = await api.webauthnConditionalComplete(
+        passkeyLogin.webauthn_token,
+        serializeCredential(assertion)
+      )
+      finishAuth(result)
+    } catch (err) {
+      if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') {
+        setError('Passkey sign-in was cancelled or timed out.')
+      } else {
+        setError(err.message || 'Passkey sign-in failed.')
+      }
+    } finally {
+      setPasskeyLoginBusy(false)
+    }
+  }
 
   function handleSsoLogin(providerId) {
     window.location.href = `/api/auth/sso/${providerId}/login`
@@ -285,7 +455,7 @@ export default function Login({ onAuthed }) {
             </div>
 
             {/* Segmented Tab Switch */}
-            {(mode === 'login' || mode === 'register') && (
+            {!mfaFlow && (mode === 'login' || mode === 'register') && (
               <div className="login-tabs-segmented" role="tablist">
                 <button
                   type="button"
@@ -308,7 +478,7 @@ export default function Login({ onAuthed }) {
               </div>
             )}
 
-            {(mode === 'forgot' || mode === 'reset') && (
+            {(mode === 'forgot' || mode === 'reset') && !mfaFlow && (
               <div className="login-subheading-box">
                 <h3 className="login-subheading-title">
                   {mode === 'forgot' ? 'Reset your password' : 'Create new password'}
@@ -321,8 +491,46 @@ export default function Login({ onAuthed }) {
               </div>
             )}
 
+            {mfaChallenge && (
+              <div className="login-subheading-box">
+                <h3 className="login-subheading-title">Two-factor authentication</h3>
+                <p className="login-subheading-desc">
+                  {webauthnChallenge
+                    ? <>Use your passkey or enter the code for <strong>{email}</strong>.</>
+                    : <>Enter the current 6-digit code or a recovery code for <strong>{email}</strong>.</>}
+                </p>
+              </div>
+            )}
+
+            {webauthnChallenge && !mfaChallenge && (
+              <div className="login-subheading-box">
+                <h3 className="login-subheading-title">Passkey required</h3>
+                <p className="login-subheading-desc">
+                  Use the passkey registered for <strong>{email}</strong> to finish signing in.
+                </p>
+              </div>
+            )}
+
+            {mfaEnrollment && (
+              <div className="login-subheading-box">
+                <h3 className="login-subheading-title">Two-factor authentication required</h3>
+                <p className="login-subheading-desc">
+                  Your organization requires MFA. Add the secret below to your authenticator app, then enter a code to finish signing in.
+                </p>
+              </div>
+            )}
+
+            {mfaRecovery && (
+              <div className="login-subheading-box">
+                <h3 className="login-subheading-title">Save your recovery codes</h3>
+                <p className="login-subheading-desc">
+                  MFA is now enabled for <strong>{email}</strong>. Each recovery code works once if you lose your authenticator.
+                </p>
+              </div>
+            )}
+
             {/* SSO Providers */}
-            {ssoProviders.length > 0 && (mode === 'login' || mode === 'register') && (
+            {!mfaFlow && ssoProviders.length > 0 && (mode === 'login' || mode === 'register') && (
               <>
                 <div className="sso-providers">
                   {ssoProviders.map(p => (
@@ -343,23 +551,113 @@ export default function Login({ onAuthed }) {
               </>
             )}
 
+            {passkeyLogin && !mfaFlow && mode === 'login' && (
+              <button
+                type="button"
+                className="sso-btn"
+                onClick={handlePasskeyLogin}
+                disabled={passkeyLoginBusy || busy}
+                style={{ marginBottom: 12 }}
+              >
+                <span className="sso-icon">{SSO_ICONS.shield}</span>
+                <span>{passkeyLoginBusy ? 'Waiting for passkey…' : 'Sign in with a passkey'}</span>
+              </button>
+            )}
+
             {/* Form Fields */}
+            {mfaFlow ? (
+              mfaRecovery ? (
+                <div className="login-fields-group">
+                  <pre style={{ margin: 0, padding: '12px 14px', borderRadius: 10, background: 'rgba(2, 6, 23, 0.72)', border: '1px solid rgba(245, 158, 11, 0.35)', color: '#e2e8f0', fontSize: 12.5, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                    {mfaRecovery.codes.join('\n')}
+                  </pre>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    style={{ alignSelf: 'flex-start' }}
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(mfaRecovery.codes.join('\n'))
+                        setNotice('Recovery codes copied to clipboard.')
+                      } catch (err) {
+                        setError(`Could not copy recovery codes: ${err.message}`)
+                      }
+                    }}
+                  >
+                    Copy Recovery Codes
+                  </button>
+                </div>
+              ) : (
+                <div className="login-fields-group">
+                  {mfaEnrollment && (
+                    <>
+                      <div className="hint" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
+                        Enter this secret in your authenticator app:
+                      </div>
+                      <code style={{ padding: '9px 11px', borderRadius: 8, background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#c7d2fe', letterSpacing: 1.1, wordBreak: 'break-all' }}>
+                        {mfaEnrollment.secret}
+                      </code>
+                      <div className="hint" style={{ fontSize: 11, wordBreak: 'break-all' }}>
+                        {mfaEnrollment.otpauth_uri}
+                      </div>
+                    </>
+                  )}
+                  {webauthnChallenge && (
+                    <button
+                      type="button"
+                      className="secondary small"
+                      onClick={handlePasskey}
+                      disabled={busy || !passkeysSupported()}
+                    >
+                      Use passkey
+                    </button>
+                  )}
+                  {(mfaChallenge || mfaEnrollment) && (
+                    <label className="input-field-label">
+                      <span className="label-text">{mfaEnrollment ? 'Authenticator code' : 'Authenticator or recovery code'}</span>
+                      <div className="input-with-icon">
+                        <svg className="input-prefix-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <input
+                          type="text"
+                          className="styled-input"
+                          value={mfaCode}
+                          onChange={(e) => setMfaCode(
+                            mfaEnrollment
+                              ? e.target.value.replace(/[^0-9]/g, '').slice(0, 6)
+                              : e.target.value.slice(0, 32)
+                          )}
+                          required
+                          placeholder={mfaEnrollment ? '000000' : '000000 or XXXX-XXXX-XXXX-XXXX'}
+                          autoComplete="one-time-code"
+                          maxLength={mfaEnrollment ? 6 : 32}
+                          autoFocus
+                          aria-label={mfaEnrollment ? 'Six-digit authenticator code' : 'Authenticator or recovery code'}
+                        />
+                      </div>
+                    </label>
+                  )}
+                </div>
+              )
+            ) : (
             <div className="login-fields-group">
               <label className="input-field-label">
-                <span className="label-text">Email address</span>
+                <span className="label-text">{mode === 'login' ? 'Email or username' : 'Email address'}</span>
                 <div className="input-with-icon">
                   <svg className="input-prefix-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect width="20" height="16" x="2" y="4" rx="2" />
                     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                   </svg>
                   <input
-                    type="email"
+                    type={mode === 'login' ? 'text' : 'email'}
                     className="styled-input"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required={mode !== 'reset'}
-                    placeholder="name@company.com"
-                    autoComplete="email"
+                    placeholder={mode === 'login' ? 'name@company.com or username' : 'name@company.com'}
+                    autoComplete={mode === 'login' ? 'username' : 'email'}
                     autoFocus
                   />
                 </div>
@@ -411,6 +709,7 @@ export default function Login({ onAuthed }) {
                 </label>
               )}
             </div>
+            )}
 
             {error && (
               <div className="login-alert-banner alert-error" role="alert">
@@ -436,7 +735,15 @@ export default function Login({ onAuthed }) {
               ) : (
                 <span className="btn-label-content">
                   <span>
-                    {mode === 'login'
+                    {mfaRecovery
+                      ? 'Continue to Workspace'
+                      : mfaEnrollment
+                      ? 'Enable MFA & Sign In'
+                      : webauthnChallenge && !mfaChallenge
+                      ? 'Use Passkey'
+                      : mfaChallenge
+                      ? 'Verify & Sign In'
+                      : mode === 'login'
                       ? 'Sign In to Workspace'
                       : mode === 'register'
                         ? 'Create Account'
@@ -449,11 +756,19 @@ export default function Login({ onAuthed }) {
               )}
             </button>
 
-            {mode !== 'login' && (
+            {(mode !== 'login' || mfaFlow) && (
               <button
                 type="button"
                 className="login-back-btn"
-                onClick={() => { setMode('login'); setError(null); setNotice(null); }}
+                onClick={() => {
+                  if (mfaFlow) {
+                    cancelMfa()
+                    return
+                  }
+                  setMode('login')
+                  setError(null)
+                  setNotice(null)
+                }}
               >
                 ← Back to sign in
               </button>

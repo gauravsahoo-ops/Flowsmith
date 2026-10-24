@@ -39,7 +39,7 @@ def build_zendesk_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=ZENDESK_CONNECTOR_KEY,
         display_name="Zendesk",
-        description="Manage Zendesk support tickets and comments.",
+        description="Manage Zendesk support tickets, users, and comments.",
         category="support",
         connector_version=ZENDESK_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.BETA.value,
@@ -48,9 +48,22 @@ def build_zendesk_definition() -> ConnectorDefinitionV1:
                 "list_tickets", "List Tickets", "List support tickets.",
                 {"limit": {"type": "integer", "title": "Limit"}}, [],
             ),
+            "list_users": _operation(
+                "list_users", "List Users", "List Zendesk users, optionally filtered by role.",
+                {
+                    "limit": {"type": "integer", "title": "Limit", "default": 25},
+                    "role": {"type": "string", "title": "Role (optional)"},
+                },
+                [],
+            ),
             "get_ticket": _operation(
                 "get_ticket", "Get Ticket", "Fetch one ticket by id.",
                 {"ticket_id": {"type": "string", "title": "Ticket id"}}, ["ticket_id"],
+            ),
+            "delete_ticket": _operation(
+                "delete_ticket", "Delete Ticket", "Delete a ticket by id.",
+                {"ticket_id": {"type": "string", "title": "Ticket id"}}, ["ticket_id"],
+                retryable=False, idempotency="non_idempotent",
             ),
             "create_ticket": _operation(
                 "create_ticket", "Create Ticket", "Open a new ticket.",
@@ -98,6 +111,12 @@ def build_zendesk_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_tickets", "get_ticket", "create_ticket", "update_ticket", "add_comment"], "auth": "Email + API token (Basic)"},
+        metadata={
+            "initial_operations": [
+                "list_tickets", "list_users", "get_ticket", "delete_ticket",
+                "create_ticket", "update_ticket", "add_comment",
+            ],
+            "auth": "Email + API token (Basic)",
+        },
         icon="zendesk",
     )

@@ -86,6 +86,19 @@ class ClickUpProviderClient:
         return await self._get(creds, f"/list/{list_id}/task", "list_tasks",
                                params={"archived": "false", "limit": max(1, min(int(limit or 25), 100))}, timeout=timeout)
 
+    async def list_lists(self, creds: dict, space_id: str, timeout: float = 30.0) -> dict:
+        sid = str(space_id or "").strip()
+        if not sid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "list_lists needs a space_id.", retryable=False)
+        return await self._get(creds, f"/space/{sid}/list", "list_lists", timeout=timeout)
+
+    async def delete_task(self, creds: dict, task_id: str, timeout: float = 30.0) -> dict:
+        tid = str(task_id or "").strip()
+        if not tid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_task needs a task_id.", retryable=False)
+        await self._request(creds, "DELETE", f"/task/{tid}", "delete_task", timeout=timeout)
+        return {"task_id": tid, "deleted": True, "success": True}
+
     async def get_task(self, creds: dict, task_id: str, timeout: float = 30.0) -> dict:
         if not str(task_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_task needs a task_id.", retryable=False)

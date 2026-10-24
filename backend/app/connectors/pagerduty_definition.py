@@ -48,8 +48,16 @@ def build_pagerduty_definition() -> ConnectorDefinitionV1:
                 "list_incidents", "List Incidents", "List incidents.",
                 {"limit": {"type": "integer", "title": "Limit"}}, [],
             ),
+            "list_services": _operation(
+                "list_services", "List Services", "List PagerDuty services.",
+                {"limit": {"type": "integer", "title": "Limit"}}, [],
+            ),
             "get_incident": _operation(
                 "get_incident", "Get Incident", "Fetch one incident by id.",
+                {"incident_id": {"type": "string", "title": "Incident id"}}, ["incident_id"],
+            ),
+            "acknowledge_incident": _operation(
+                "acknowledge_incident", "Acknowledge Incident", "Mark an incident acknowledged.",
                 {"incident_id": {"type": "string", "title": "Incident id"}}, ["incident_id"],
             ),
             "create_incident": _operation(
@@ -99,6 +107,13 @@ def build_pagerduty_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_incidents", "get_incident", "create_incident", "update_incident", "resolve_incident", "add_note"], "auth": "API token"},
+        metadata={
+            "initial_operations": [
+                "list_incidents", "list_services", "get_incident",
+                "acknowledge_incident", "create_incident", "update_incident",
+                "resolve_incident", "add_note",
+            ],
+            "auth": "API token",
+        },
         icon="pagerduty",
     )

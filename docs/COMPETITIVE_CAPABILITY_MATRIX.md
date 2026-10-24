@@ -110,8 +110,9 @@ Rather than chasing competitor vanity metrics—such as **Zapier's 9,000+ apps**
 
 | Capability | Flowsmith | Zapier | n8n | Cyclr | Notes |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Out-of-the-Box Connectors** | 86 Registered | 6,000+ | 400+ | 500+ | Zapier leads in sheer long-tail consumer apps; Flowsmith focuses on verified enterprise business apps. |
+| **Out-of-the-Box Connectors** | 76 native + 17 generated + 435 catalog-only | 6,000+ | 1,500+ | 500+ | Flowsmith’s native/generated total is 93; catalog-only entries are generic HTTP adapters, not vendor-specific integrations. See [`CONNECTOR_STATUS.md`](CONNECTOR_STATUS.md). |
 | **OpenAPI / Swagger 3.0 Import** | Yes | No | Community | Yes | One-click import that generates fully typed connector definitions and node editors. |
+| **Connector Packs** | Yes (admin, signed) | No | Community nodes | Custom builder | Manifest-based OpenAPI connector + starter-template packs with Ed25519 manifest/registry-index verification, revoked-key checks, pack dependencies, signed spec digests, upgrade/uninstall, rollback, and cross-process reconciliation. No Flowsmith-hosted registry, moderation service, or 50-pack external catalog yet. See [`CONNECTOR_PACKS.md`](CONNECTOR_PACKS.md). |
 | **Standardized Connector SDK** | Yes | CLI | TypeScript | Builder UI | Clean Python `ConnectorSDK` with discover, validate, authenticate, execute, and normalize stages. |
 | **Universal HTTP Request Node** | Yes | Yes | Yes | Yes | Supports OAuth2, Bearer, Basic, API Key, MTLS, pagination, and multi-part uploads. |
 | **Token Manager (OAuth / JWT)** | Yes | No | No | Internal | Dedicated node for automated OAuth token fetch, refresh, caching, and storage. |
@@ -138,6 +139,7 @@ Rather than chasing competitor vanity metrics—such as **Zapier's 9,000+ apps**
 | **Multi-Level Global Error Workflows** | Yes | No | Workflow level | Alerts | 3-tier resolution: Node retry -> Workflow error handler -> Workspace global error handler. |
 | **Automatic Retries with Jitter** | Yes | Basic | Yes | Yes | Exponential backoff with randomized jitter to prevent thundering herds on rate limits. |
 | **Webhook HMAC Verification** | Yes | Node logic | Node logic | Yes | Native GitHub SHA-256, Stripe replay-drift (300s window), and generic HMAC verification. |
+| **Automatic Provider Webhooks** | GitHub, GitLab, Stripe, Shopify, Typeform | Limited | Broad | Some | Creates/removes provider subscriptions through APIs with encrypted signing secrets; GitLab supports self-hosted HTTPS hosts. Slack remains dashboard-only; live tenant verification is not claimed. |
 | **Webhook Idempotency Keys** | Yes | No | Custom Redis | Yes | Deduplicates incoming webhooks using header keys within a configurable deduplication window. |
 | **Execution Replay from Failed Node** | Yes | Rerun from top | Yes | Partial | Resume failed workflows from the point of failure without re-executing successful upstream nodes. |
 

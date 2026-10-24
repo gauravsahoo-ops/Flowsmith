@@ -80,6 +80,37 @@ class ZoomProviderClient:
         items = data.get("meetings", []) if isinstance(data, dict) else []
         return items if isinstance(items, list) else []
 
+    async def list_users(self, creds: dict, limit: int = 30, status: str = "active",
+                         timeout: float = 30.0) -> list:
+        params: dict[str, Any] = {
+            "page_size": max(1, min(int(limit or 30), 300)),
+            "status": status or "active",
+        }
+        data = await self._request(
+            "GET", "/users", creds, params=params,
+            what="list users", timeout=timeout,
+        )
+        users = data.get("users", []) if isinstance(data, dict) else []
+        return users if isinstance(users, list) else []
+
+    async def update_meeting(self, creds: dict, meeting_id: str, fields: dict[str, Any],
+                             timeout: float = 30.0) -> dict:
+        mid = str(meeting_id or "").strip()
+        if not mid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_meeting needs a meeting_id.", retryable=False)
+        allowed = {
+            key: value
+            for key, value in (fields or {}).items()
+            if key in ("topic", "start_time", "duration", "timezone") and value is not None and value != ""
+        }
+        if not allowed:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_meeting needs at least one field to change.", retryable=False)
+        data = await self._request(
+            "PATCH", f"/meetings/{mid}", creds, json_body=allowed,
+            what="update meeting", timeout=timeout,
+        )
+        return data if isinstance(data, dict) else {}
+
     async def get_meeting(self, creds: dict, meeting_id: str, timeout: float = 30.0) -> dict:
         if not str(meeting_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_meeting needs a meeting_id.", retryable=False)

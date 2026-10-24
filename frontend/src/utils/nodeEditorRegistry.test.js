@@ -46,6 +46,17 @@ describe('nodeEditorRegistry', () => {
     expect(resolveNodeEditor('csv_parser').load).toBe(resolveNodeEditor('csv').load)
     expect(resolveNodeEditor('flowsmith.data_load').load).toBe(resolveNodeEditor('csv').load)
     expect(resolveNodeEditor('data_load').load).toBe(resolveNodeEditor('csv').load)
+
+    for (const type of [
+      'github_trigger',
+      'gitlab_trigger',
+      'stripe_trigger',
+      'shopify_trigger',
+      'slack_trigger',
+      'typeform_trigger',
+    ]) {
+      expect(resolveNodeEditor(type).load, type).toBe(resolveNodeEditor('webhook').load)
+    }
   })
 
   it('falls back to the schema-driven panel for unknown node types', () => {

@@ -79,6 +79,18 @@ def build_docusign_definition() -> ConnectorDefinitionV1:
                 },
                 [],
             ),
+            "list_recipients": _operation(
+                "list_recipients", "List Recipients", "List recipients and signing status for an envelope.",
+                {"envelope_id": {"type": "string", "title": "Envelope ID"}}, ["envelope_id"],
+            ),
+            "void_envelope": _operation(
+                "void_envelope", "Void Envelope", "Void an in-flight envelope with a reason.",
+                {
+                    "envelope_id": {"type": "string", "title": "Envelope ID"},
+                    "void_reason": {"type": "string", "title": "Void reason"},
+                },
+                ["envelope_id", "void_reason"], retryable=False, idempotency="non_idempotent",
+            ),
         },
         triggers={
             "envelope_status_webhook": ConnectorTriggerV1(
@@ -115,4 +127,12 @@ def build_docusign_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "create_envelope", "get_envelope", "list_envelopes",
+                "list_templates", "list_recipients", "void_envelope",
+            ],
+            "auth": "OAuth2 Bearer",
+        },
+        icon="docusign",
     )

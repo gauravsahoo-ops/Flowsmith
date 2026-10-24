@@ -126,6 +126,111 @@ class SlackProviderClient(BaseProviderClient):
         )
         return {"ok": True, "channel": channel_id, "timestamp": ts, "reaction": emoji}
 
+    async def list_users(self, creds: dict, limit: int = 100, max_pages: int = 3,
+                         timeout: float = 30.0) -> dict:
+        limit = min(max(int(limit or 100), 1), 200)
+        max_pages = min(max(int(max_pages or 1), 1), 10)
+        users: list[dict] = []
+        cursor = ""
+        for _ in range(max_pages):
+            params: dict[str, Any] = {"limit": limit}
+            if cursor:
+                params["cursor"] = cursor
+            response = await self.request_slack(
+                creds, "GET", "/users.list", params=params,
+                timeout=timeout, what="list users",
+            )
+            data = response.json()
+            users.extend([
+                {
+                    "id": user.get("id"),
+                    "name": user.get("name"),
+                    "real_name": user.get("real_name"),
+                    "email": ((user.get("profile") or {}).get("email")),
+                    "is_bot": user.get("is_bot", False),
+                    "deleted": user.get("deleted", False),
+                }
+                for user in data.get("members", [])
+            ])
+            cursor = ((data.get("response_metadata") or {}).get("next_cursor")) or ""
+            if not cursor:
+                break
+        return {"users": users, "count": len(users)}
+
+    async def get_channel_history(self, creds: dict, channel: str, limit: int = 50,
+                                  oldest: str = "", latest: str = "",
+                                  timeout: float = 30.0) -> dict:
+        channel_id = str(channel or "").strip()
+        if not channel_id:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=get_channel_history requires a channel.",
+                retryable=False,
+            )
+        limit = min(max(int(limit or 50), 1), 200)
+        params: dict[str, Any] = {"channel": channel_id, "limit": limit}
+        if oldest:
+            params["oldest"] = oldest
+        if latest:
+            params["latest"] = latest
+        response = await self.request_slack(
+            creds, "GET", "/conversations.history", params=params,
+            timeout=timeout, what="get channel history",
+        )
+        data = response.json()
+        messages = [
+            {
+                "ts": message.get("ts"),
+                "user": message.get("user"),
+                "text": message.get("text"),
+                "thread_ts": message.get("thread_ts"),
+                "reply_count": message.get("reply_count", 0),
+                "type": message.get("type"),
+            }
+            for message in data.get("messages", [])
+        ]
+        return {
+            "messages": messages,
+            "count": len(messages),
+            "has_more": bool(data.get("has_more", False)),
+        }
+
+    async def update_message(self, creds: dict, channel: str, timestamp: str,
+                             text: str, timeout: float = 30.0) -> dict:
+        channel_id = str(channel or "").strip()
+        ts = str(timestamp or "").strip()
+        message = str(text or "")
+        if not channel_id or not ts or not message:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=update_message requires channel, timestamp, and text.",
+                retryable=False,
+            )
+        response = await self.request_slack(
+            creds, "POST", "/chat.update",
+            json_body={"channel": channel_id, "ts": ts, "text": message},
+            timeout=timeout, what="update message",
+        )
+        data = response.json()
+        return {"ts": data.get("ts", ts), "channel": data.get("channel", channel_id), "updated": True}
+
+    async def delete_message(self, creds: dict, channel: str, timestamp: str,
+                             timeout: float = 30.0) -> dict:
+        channel_id = str(channel or "").strip()
+        ts = str(timestamp or "").strip()
+        if not channel_id or not ts:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=delete_message requires channel and timestamp.",
+                retryable=False,
+            )
+        await self.request_slack(
+            creds, "POST", "/chat.delete",
+            json_body={"channel": channel_id, "ts": ts},
+            timeout=timeout, what="delete message",
+        )
+        return {"channel": channel_id, "timestamp": ts, "deleted": True}
+
     async def get_user_by_email(self, creds: dict, email: str, timeout: float = 30.0) -> dict:
         user_email = str(email or "").strip()
         if not user_email:

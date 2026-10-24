@@ -116,4 +116,5 @@ def test_connector_dispatch_and_discovery():
                              {"credentials": {"zendesk": {}}}))
     out = _run(conn.op_list())
     assert out["output"]["operations"] == [
-        "list_tickets", "get_ticket", "create_ticket", "update_ticket", "add_comment"]
+        "list_tickets", "list_users", "get_ticket", "delete_ticket",
+        "create_ticket", "update_ticket", "add_comment"]

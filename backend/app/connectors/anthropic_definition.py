@@ -44,6 +44,14 @@ def build_anthropic_definition() -> ConnectorDefinitionV1:
         connector_version=ANTHROPIC_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
         operations={
+            "list_models": _operation(
+                "list_models", "List Models", "List Claude models available to the API key.",
+                {}, [],
+            ),
+            "get_model": _operation(
+                "get_model", "Get Model", "Fetch metadata for a Claude model.",
+                {"model_id": {"type": "string", "title": "Model ID"}}, ["model_id"],
+            ),
             "generate_message": _operation(
                 "generate_message", "Generate Message", "Send conversational messages and get Claude text completions.",
                 {
@@ -82,4 +90,11 @@ def build_anthropic_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_models", "get_model", "generate_message", "count_tokens",
+            ],
+            "auth": "API key",
+        },
+        icon="anthropic",
     )

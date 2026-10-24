@@ -394,6 +394,24 @@ class DynamicsCrmProviderClient:
         resp = await self.request(creds, "GET", "/api/data/v9.2/WhoAmI")
         return resp.json()
 
+    async def list_tables(self, creds: dict[str, Any], timeout: float = 30.0) -> dict[str, Any]:
+        """List Dataverse entity definitions (logical name, display name, entity set)."""
+        resp = await self.request(
+            creds, "GET",
+            "/api/data/v9.2/EntityDefinitions?$select=LogicalName,DisplayName,EntitySetName",
+            timeout=timeout,
+        )
+        data = resp.json()
+        tables = [
+            {
+                "logical_name": item.get("LogicalName"),
+                "display_name": ((item.get("DisplayName") or {}).get("UserLocalizedLabel") or {}).get("Label"),
+                "entity_set": item.get("EntitySetName"),
+            }
+            for item in (data.get("value") or [])
+        ]
+        return {"tables": tables, "count": len(tables)}
+
     async def query(
         self,
         creds: dict[str, Any],

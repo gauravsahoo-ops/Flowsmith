@@ -22,18 +22,23 @@ from app.providers.discord import DiscordProviderClient
 
 
 class DiscordConnectorParams(BaseModel):
-    operation: str = Field(default="send_message", description="send_message | send_webhook.")
+    operation: str = Field(
+        default="send_message",
+        description="send_message | send_webhook | list_channels | list_messages.",
+    )
     channel_id: str = ""
+    guild_id: str = ""
     content: str = ""
     webhook_url: str = ""
     username: str = ""
+    limit: int = Field(default=50, ge=1, le=100)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
 
 class DiscordConnector(ConnectorSDK):
     connector_id = "discord"
     display_name = "Discord"
-    description = "Send Discord messages via bot API or incoming webhooks."
+    description = "Send and inspect Discord messages via bot API or incoming webhooks."
     category = ConnectorCategory.API
     version = "1.0.0"
 
@@ -79,6 +84,17 @@ class DiscordConnector(ConnectorSDK):
                 return await self._provider.send_message(
                     creds, str(raw.get("channel_id") or params.channel_id),
                     str(raw.get("content") or params.content),
+                    timeout=params.timeout_seconds,
+                )
+            if op == "list_channels":
+                return await self._provider.list_channels(
+                    creds, str(raw.get("guild_id") or params.guild_id),
+                    timeout=params.timeout_seconds,
+                )
+            if op == "list_messages":
+                return await self._provider.list_messages(
+                    creds, str(raw.get("channel_id") or params.channel_id),
+                    limit=int(raw.get("limit") or params.limit),
                     timeout=params.timeout_seconds,
                 )
             if op == "send_webhook":

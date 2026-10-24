@@ -87,6 +87,19 @@ class PipedriveProviderClient:
         return await self._get(creds, "/deals", "list_deals",
                                params={"limit": max(1, min(int(limit or 25), 500))}, timeout=timeout)
 
+    async def list_persons(self, creds: dict, limit: int = 25, timeout: float = 30.0) -> dict:
+        return await self._get(
+            creds, "/persons", "list_persons",
+            params={"limit": max(1, min(int(limit or 25), 500))}, timeout=timeout,
+        )
+
+    async def delete_deal(self, creds: dict, deal_id: str, timeout: float = 30.0) -> dict:
+        did = str(deal_id or "").strip()
+        if not did:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_deal needs a deal_id.", retryable=False)
+        await self._request(creds, "DELETE", f"/deals/{did}", "delete_deal", timeout=timeout)
+        return {"deal_id": did, "deleted": True, "success": True}
+
     async def get_deal(self, creds: dict, deal_id: str, timeout: float = 30.0) -> dict:
         if not str(deal_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_deal needs a deal_id.", retryable=False)

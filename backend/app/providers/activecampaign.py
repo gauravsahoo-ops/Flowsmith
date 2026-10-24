@@ -88,7 +88,9 @@ class ActiveCampaignProviderClient(BaseProviderClient):
         except Exception as exc:
             raise make_connector_error(ConnectorErrorCode.UNAVAILABLE, f"ActiveCampaign request failed: {exc}", retryable=True) from exc
 
-        if resp.status_code in (200, 201):
+        if resp.status_code in (200, 201, 204):
+            if resp.status_code == 204:
+                return {}
             try:
                 return resp.json()
             except Exception:
@@ -151,6 +153,39 @@ class ActiveCampaignProviderClient(BaseProviderClient):
             contact["phone"] = phone
         body = {"contact": contact}
         return await self.request_activecampaign(creds, "POST", "contacts", json_body=body, timeout=timeout)
+
+    async def update_contact(
+        self,
+        creds: dict[str, Any],
+        contact_id: str,
+        fields: dict[str, Any],
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(contact_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_contact needs a contact_id.", retryable=False)
+        allowed = {
+            key: value
+            for key, value in (fields or {}).items()
+            if key in ("email", "firstName", "lastName", "phone") and value is not None and value != ""
+        }
+        if not allowed:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_contact needs fields to update.", retryable=False)
+        return await self.request_activecampaign(
+            creds, "PUT", f"contacts/{contact_id}",
+            json_body={"contact": allowed}, timeout=timeout,
+        )
+
+    async def delete_contact(
+        self,
+        creds: dict[str, Any],
+        contact_id: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        cid = str(contact_id or "").strip()
+        if not cid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_contact needs a contact_id.", retryable=False)
+        await self.request_activecampaign(creds, "DELETE", f"contacts/{cid}", timeout=timeout)
+        return {"contact_id": cid, "deleted": True, "success": True}
 
     async def list_lists(
         self,

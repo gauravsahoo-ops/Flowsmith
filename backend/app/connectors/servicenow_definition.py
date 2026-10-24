@@ -58,9 +58,23 @@ def build_servicenow_definition() -> ConnectorDefinitionV1:
                 },
                 ["table"],
             ),
+            "list_users": _operation(
+                "list_users", "List Users", "List ServiceNow users from sys_user.",
+                {"limit": {"type": "integer", "title": "Limit", "default": 25}}, [],
+            ),
             "get_record": _operation(
                 "get_record", "Get Record", "Fetch one record by sys_id.",
                 {"table": table_prop, "sys_id": {"type": "string", "title": "sys_id"}}, ["table", "sys_id"],
+            ),
+            "add_comment": _operation(
+                "add_comment", "Add Comment", "Add a customer-visible comment or internal work note.",
+                {
+                    "table": table_prop,
+                    "sys_id": {"type": "string", "title": "sys_id"},
+                    "comment": {"type": "string", "title": "Comment"},
+                    "work_note": {"type": "boolean", "title": "Internal work note", "default": False},
+                },
+                ["table", "sys_id", "comment"], retryable=False, idempotency="non_idempotent",
             ),
             "create_record": _operation(
                 "create_record", "Create Record", "Insert a row into a table.",
@@ -120,6 +134,12 @@ def build_servicenow_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_records", "get_record", "create_record", "update_record", "delete_record"], "auth": "Basic or OAuth2 Bearer (Table API)"},
+        metadata={
+            "initial_operations": [
+                "list_records", "list_users", "get_record", "create_record",
+                "update_record", "add_comment", "delete_record",
+            ],
+            "auth": "Basic or OAuth2 Bearer (Table API)",
+        },
         icon="servicenow",
     )

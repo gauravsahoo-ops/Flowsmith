@@ -147,4 +147,5 @@ def test_connector_dispatch_and_discovery():
         )
     assert asyncio.new_event_loop().run_until_complete(
         conn.op_list())["output"]["operations"] == [
-        "get_document", "create_document", "append_text", "batch_update"]
+        "get_document", "get_document_text", "create_document",
+        "append_text", "replace_text", "batch_update"]

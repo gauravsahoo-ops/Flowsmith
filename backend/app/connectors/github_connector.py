@@ -22,7 +22,13 @@ from app.providers.github import GitHubProviderClient
 
 
 class GitHubConnectorParams(BaseModel):
-    operation: str = Field(default="get_repo", description="get_repo | create_issue | add_comment | list_issues | get_issue | close_issue.")
+    operation: str = Field(
+        default="get_repo",
+        description=(
+            "get_repo | create_issue | add_comment | list_issues | get_issue | "
+            "close_issue | list_branches | get_file_contents | create_pull_request."
+        ),
+    )
     owner: str = ""
     repo: str = ""
     title: str = ""
@@ -30,6 +36,10 @@ class GitHubConnectorParams(BaseModel):
     labels: list[str] = Field(default_factory=list)
     issue_number: int = 0
     state: str = "open"
+    path: str = ""
+    ref: str = ""
+    head: str = ""
+    base: str = ""
     per_page: int = Field(default=50, ge=1, le=100)
     max_pages: int = Field(default=3, ge=1, le=10)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
@@ -133,6 +143,27 @@ class GitHubConnector(ConnectorSDK):
                         ConnectorErrorCode.BAD_REQUEST, "issue_number must be an integer.", retryable=False,
                     ) from exc
                 return await self._provider.close_issue(creds, owner, repo, number, timeout=timeout)
+            if op == "list_branches":
+                return await self._provider.list_branches(
+                    creds, owner, repo, per_page=params.per_page,
+                    max_pages=params.max_pages, timeout=timeout,
+                )
+            if op == "get_file_contents":
+                return await self._provider.get_file_contents(
+                    creds, owner, repo,
+                    str(raw.get("path") or params.path),
+                    ref=str(raw.get("ref") or params.ref),
+                    timeout=timeout,
+                )
+            if op == "create_pull_request":
+                return await self._provider.create_pull_request(
+                    creds, owner, repo,
+                    str(raw.get("title") or params.title),
+                    head=str(raw.get("head") or params.head),
+                    base=str(raw.get("base") or params.base),
+                    body=str(raw.get("body") or params.body),
+                    timeout=timeout,
+                )
         except ConnectorError:
             raise
         raise make_connector_error(

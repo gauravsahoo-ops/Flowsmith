@@ -255,6 +255,15 @@ SMTP_PASSWORD=your_smtp_app_password
 MAIL_FROM="Flowsmith Platform <noreply@yourcompany.com>"
 SMTP_USE_TLS=false
 SMTP_STARTTLS=true
+
+# ── Enterprise Identity (Optional, Disabled by Default) ─────────
+# Native SAML 2.0 Web SSO, LDAP authentication, and SCIM 2.0 user
+# provisioning are opt-in. See docs/SAML.md, docs/LDAP.md, and docs/SCIM.md
+# for complete configuration and validation behavior. Do not reuse
+# JWT_SECRET for SCIM_BEARER_TOKEN.
+SAML_ENABLED=false
+LDAP_ENABLED=false
+SCIM_ENABLED=false
 ```
 
 ---
@@ -272,6 +281,27 @@ Or deploy manually via Docker Compose:
 ```bash
 docker compose --env-file .env.production -f docker-compose.yml up -d --build
 ```
+
+### Kubernetes (Helm)
+
+The chart in `deploy/helm/flowsmith` packages the API/UI, external workers, a
+pre-install/pre-upgrade migration Job, optional pgvector PostgreSQL and Redis,
+Ingress, HPA, and a PodDisruptionBudget.
+
+```bash
+helm upgrade --install flowsmith deploy/helm/flowsmith \
+  --namespace flowsmith --create-namespace \
+  -f prod-values.yaml
+```
+
+Provide the required secrets (`secrets.jwtSecret`,
+`secrets.credentialsEncryptionKey`, `postgresql.password`, `redis.password`) in
+`prod-values.yaml`, or use an existing Kubernetes Secret
+(`secrets.create=false`, `secrets.existingSecret`).
+Use external managed PostgreSQL/Redis for HA, and use KEDA against the Redis
+queue for worker autoscaling. See `deploy/helm/flowsmith/README.md` for the
+full values reference and scaling guidance. The bundled PostgreSQL/Redis
+StatefulSets are single-replica and intended for evaluation or small installs.
 
 ### Step 2: Run Alembic Database Migrations
 Schema changes run in a dedicated one-shot service before the app or worker

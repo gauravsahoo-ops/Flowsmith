@@ -1,0 +1,314 @@
+# Flowsmith Helm values.
+#
+# Production installs must provide:
+#   secrets.jwtSecret
+#   secrets.credentialsEncryptionKey
+#   postgresql.password            (when postgresql.enabled=true)
+#   redis.password                 (when redis.enabled=true)
+#
+# Use a Secret managed outside Helm instead by setting:
+#   secrets.create=false
+#   secrets.existingSecret=<name>
+# The Secret must contain DATABASE_URL, JWT_SECRET,
+# CREDENTIALS_ENCRYPTION_KEY, and REDIS_URL when Redis is used.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ghcr.io/flowsmith/flowsmith
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+config:
+  appEnv: production
+  publicUrl: ""
+  registrationMode: closed
+  corsOrigins: ""
+  trustedProxies: "127.0.0.1,::1"
+  serveFrontend: true
+  apiDocsEnabled: false
+  queueBackend: redis
+  objectStoreBackend: local
+  objectStoreLocalPath: /app/backend/data/objects
+  objectStoreBucket: ""
+  objectStoreEndpoint: ""
+  objectStoreRegion: us-east-1
+  # Additional non-secret environment variables for app and worker.
+  extraEnv: []
+  # Additional envFrom sources (Secrets/ConfigMaps) for app and worker.
+  extraEnvFrom: []
+
+connectorPacks:
+  # Remote pack manifests always require a valid Ed25519 signature. Set this
+  # true to require signatures for inline admin manifests too.
+  requireSignature: false
+  # JSON map: {"release-2026":"<PEM or base64 raw Ed25519 public key>"}
+  trustedKeys: ""
+  # Comma-separated signing key IDs rejected after compromise/rotation.
+  revokedKeys: ""
+
+scim:
+  # SCIM 2.0 user and group provisioning at /scim/v2. Disabled by default.
+  enabled: false
+  bearerToken: ""
+  defaultOrganizationId: ""
+  defaultWorkspaceId: ""
+  groupOrganizationId: ""
+  groupOwnerEmail: ""
+
+saml:
+  # Native SAML 2.0 Web SSO at /api/auth/sso/saml. Disabled by default.
+  enabled: false
+  displayName: "SAML 2.0"
+  idpMetadataUrl: ""
+  idpMetadataXml: ""
+  idpEntityId: ""
+  idpX509Cert: ""
+  spEntityId: ""
+  spAcsUrl: ""
+  # spPrivateKey alone decrypts encrypted assertions; set spX509Cert too to
+  # sign AuthnRequests. A cert without its private key is rejected.
+  spX509Cert: ""
+  spPrivateKey: ""
+  jitProvisioning: true
+  defaultRole: "member"
+  roleAttribute: "role"
+  # Optional IdP group claim mapping to the global admin/member role.
+  groupAttribute: "groups"
+  groupRoleMap: ""
+  defaultOrganizationId: ""
+  defaultWorkspaceId: ""
+  allowIdpInitiated: false
+  clockSkewSeconds: 120
+  metadataCacheSeconds: 300
+
+ldap:
+  # LDAP authentication is a fallback after the local password check. Use
+  # ldaps:// or startTls in production. Disabled by default.
+  enabled: false
+  serverUrl: ""
+  startTls: false
+  tlsVerify: true
+  caCertFile: ""
+  bindDn: ""
+  bindPassword: ""
+  userSearchBase: ""
+  userSearchFilter: "(uid={username})"
+  userEmailAttribute: "mail"
+  userDisplayAttribute: "displayName"
+  groupSearchBase: ""
+  groupSearchFilter: "(member={user_dn})"
+  groupAttribute: "cn"
+  # JSON object mapping LDAP group names to Flowsmith roles (admin/member).
+  groupRoleMap: ""
+  # Optional group -> workspace memberships. Values may be a workspace ID or
+  # an object with workspace_id/role/permission.
+  groupWorkspaceMap: ""
+  # Optional group -> organization memberships (organization ID or object).
+  groupOrgMap: ""
+  syncEnabled: false
+  syncIntervalSeconds: 900
+  defaultRole: "member"
+  jitProvisioning: true
+  defaultOrganizationId: ""
+  defaultWorkspaceId: ""
+
+webauthn:
+  # WebAuthn/passkeys. RP_ID is the registrable domain and origin must match
+  # the browser origin exactly (HTTPS in production).
+  enabled: false
+  rpId: ""
+  rpName: "Flowsmith"
+  origin: ""
+  requireUv: true
+  timeoutMs: 60000
+  # none | direct | enterprise. Non-none policies require a mounted roots file.
+  attestation: "none"
+  attestationRootsFile: ""
+  allowedAaguids: ""
+  allowedFormats: ""
+
+secrets:
+  create: true
+  existingSecret: ""
+  jwtSecret: ""
+  credentialsEncryptionKey: ""
+  registrationBootstrapToken: ""
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  storageClass: ""
+
+app:
+  replicaCount: 1
+  revisionHistoryLimit: 5
+  podAnnotations: {}
+  podLabels: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  terminationGracePeriodSeconds: 45
+
+worker:
+  replicaCount: 1
+  revisionHistoryLimit: 5
+  podAnnotations: {}
+  podLabels: {}
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  terminationGracePeriodSeconds: 60
+
+migrate:
+  enabled: true
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 600
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+postgresql:
+  enabled: true
+  image:
+    repository: pgvector/pgvector
+    tag: pg16
+    pullPolicy: IfNotPresent
+  auth:
+    username: automate
+    database: automate
+    password: ""
+  persistence:
+    size: 20Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  password: ""
+  persistence:
+    size: 5Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+
+externalDatabase:
+  # Used only when postgresql.enabled=false.
+  url: ""
+
+externalRedis:
+  # Used only when redis.enabled=false.
+  url: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: flowsmith.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+commonLabels: {}
+commonAnnotations: {}

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class GoogleCalendarConnectorParams(BaseModel):
     """Parameters for a Google Calendar connector operation."""
 
-    operation: str = Field(default="list_events")
+    operation: str = Field(default="list_events", description="list_events | get_event | create_event | update_event | delete_event | list_calendars.")
     calendar_id: str = Field(default="primary", description="'primary' or a specific calendar id.")
     event_id: str = Field(default="", description="Event id (get/update/delete).")
     event: dict[str, Any] = Field(default_factory=dict, description="Event resource (create/update).")
@@ -125,6 +125,8 @@ class GoogleCalendarConnector(ConnectorSDK, ConnectorOperations):
             if op == "delete_event":
                 rid = self._require(payload.get("event_id"), "operation=delete_event requires event_id.")
                 return await self._provider.delete_event(creds, params.calendar_id, rid, timeout=params.timeout_seconds)
+            if op == "list_calendars":
+                return await self._provider.list_calendars(creds, timeout=params.timeout_seconds)
         except ConnectorError:
             raise
 

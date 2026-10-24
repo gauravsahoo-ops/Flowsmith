@@ -70,6 +70,23 @@ def build_freshsales_definition() -> ConnectorDefinitionV1:
                 ["first_name", "last_name", "email"],
                 retryable=False, idempotency="non_idempotent",
             ),
+            "update_contact": _operation(
+                "update_contact", "Update Contact", "Patch contact fields by ID.",
+                {
+                    "contact_id": {"type": "string", "title": "Contact ID"},
+                    "first_name": {"type": "string", "title": "First Name"},
+                    "last_name": {"type": "string", "title": "Last Name"},
+                    "email": {"type": "string", "title": "Email Address"},
+                    "mobile_number": {"type": "string", "title": "Mobile Number"},
+                    "job_title": {"type": "string", "title": "Job Title"},
+                },
+                ["contact_id"], retryable=True,
+            ),
+            "delete_contact": _operation(
+                "delete_contact", "Delete Contact", "Delete a contact by ID.",
+                {"contact_id": {"type": "string", "title": "Contact ID"}}, ["contact_id"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "list_deals": _operation(
                 "list_deals", "List Deals", "Enumerate sales pipeline deals.",
                 {
@@ -106,4 +123,12 @@ def build_freshsales_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_contacts", "get_contact", "create_contact",
+                "update_contact", "delete_contact", "list_deals", "create_deal",
+            ],
+            "auth": "API key",
+        },
+        icon="freshsales",
     )

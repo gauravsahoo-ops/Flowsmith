@@ -36,36 +36,76 @@ _consumer_started = False
 _consumer_task: Any = None
 
 
-def _event_sink_to_db(execution_id: str) -> Any:
-    """Persist events durably (external workers, spec 37)."""
-    from app.db import get_session
-    from app.models import ExecutionEvent
+class _DbEventSink:
+    """Durable event sink that reuses one session for an execution.
 
-    def sink(event: dict[str, Any]) -> None:
-        db = get_session()
+    Opening a fresh session/connection for every streamed event dominated
+    the external-worker hot path. The sink initializes the sequence once,
+    reuses the session, and the worker closes it after ``run_job``.
+    """
+
+    def __init__(self, execution_id: str) -> None:
+        from app.db import get_session
+        from app.models import ExecutionEvent
+
+        self.execution_id = execution_id
+        self._execution_event = ExecutionEvent
+        self.db = get_session()
+        self._pending: list[Any] = []
+        self._last_flush = time.monotonic()
+        self._flush_interval_s = 0.1
+        self._batch_size = 50
         try:
             last = (
-                db.query(ExecutionEvent)
+                self.db.query(ExecutionEvent)
                 .where(ExecutionEvent.execution_id == execution_id)
                 .order_by(ExecutionEvent.seq.desc())
                 .first()
             )
-            seq = (last.seq if last is not None else 0) + 1
-            db.add(ExecutionEvent(
-                execution_id=execution_id,
-                seq=seq,
-                event=event.get("event", ""),
-                node_id=event.get("node_id"),
-                status=event.get("status"),
-                error=event.get("error"),
-            ))
-            db.commit()
+            self.seq = last.seq if last is not None else 0
         except Exception:
-            logger.exception("failed to persist event for %s", execution_id)
-        finally:
-            db.close()
+            logger.exception("failed to initialize event sink for %s", execution_id)
+            self.seq = 0
 
-    return sink
+    def _flush(self) -> None:
+        if not self._pending:
+            self._last_flush = time.monotonic()
+            return
+        try:
+            self.db.add_all(self._pending)
+            self.db.commit()
+            self._pending.clear()
+        except Exception:
+            self.db.rollback()
+            self._pending.clear()
+            logger.exception("failed to persist batched events for %s", self.execution_id)
+        finally:
+            self._last_flush = time.monotonic()
+
+    def __call__(self, event: dict[str, Any]) -> None:
+        self.seq += 1
+        self._pending.append(self._execution_event(
+            execution_id=self.execution_id,
+            seq=self.seq,
+            event=event.get("event", ""),
+            node_id=event.get("node_id"),
+            status=event.get("status"),
+            error=event.get("error"),
+        ))
+        if (
+            len(self._pending) >= self._batch_size
+            or time.monotonic() - self._last_flush >= self._flush_interval_s
+        ):
+            self._flush()
+
+    def close(self) -> None:
+        self._flush()
+        self.db.close()
+
+
+def _event_sink_to_db(execution_id: str) -> _DbEventSink:
+    """Persist events durably (external workers, spec 37)."""
+    return _DbEventSink(execution_id)
 
 
 class QueueWorker:
@@ -158,6 +198,9 @@ class QueueWorker:
             return True
         finally:
             heartbeat.cancel()
+            close_sink = getattr(sink, "close", None)
+            if callable(close_sink):
+                close_sink()
 
         # A waiting_approval execution's job is done: the row stays open
         # until resume/cancel (spec 25.3: executions are authoritative).
@@ -341,6 +384,14 @@ def main() -> None:
         _migrate_missing_columns()
         _migrate_missing_indexes()
 
+    # Packs are stored in PostgreSQL; materialize them only after the schema
+    # is confirmed current so a fresh worker does not query missing tables.
+    try:
+        from app.services.connector_pack_runtime import load_installed_packs
+
+        load_installed_packs()
+    except Exception:
+        logger.exception("worker: installed connector packs could not be loaded")
 
     worker = QueueWorker()
 
@@ -359,8 +410,18 @@ def main() -> None:
             pass
 
     logger.info("worker: starting (queue=%s, worker=%s)", get_queue().name, get_worker_id())
+
+    async def _run_worker() -> None:
+        from app.services.connector_pack_reconciler import pack_reconciler
+
+        await pack_reconciler.ensure_started()
+        try:
+            await worker.run_forever()
+        finally:
+            await pack_reconciler.stop()
+
     try:
-        loop.run_until_complete(worker.run_forever())
+        loop.run_until_complete(_run_worker())
     except KeyboardInterrupt:
         pass
     finally:

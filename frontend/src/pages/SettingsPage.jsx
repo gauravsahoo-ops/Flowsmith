@@ -6,6 +6,7 @@ import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import FlowsmithBrandMark from '../components/FlowsmithBrandMark'
 import { useUiStore } from '../stores/uiStore'
 import { playChime } from '../utils/soundEffects'
+import { passkeysSupported, prepareCreationOptions, serializeCredential } from '../utils/webauthn'
 
 function Section({ title, description, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -90,6 +91,21 @@ export default function SettingsPage() {
   })
   const [sessionBusy, setSessionBusy] = useState(false)
   const [sessionNotice, setSessionNotice] = useState(null)
+
+  // TOTP multi-factor authentication state
+  const [mfaStatus, setMfaStatus] = useState({ enabled: false, configured: false })
+  const [mfaSetupData, setMfaSetupData] = useState(null)
+  const [mfaPassword, setMfaPassword] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaBusy, setMfaBusy] = useState(false)
+  const [mfaNotice, setMfaNotice] = useState(null)
+  const [mfaRecoveryCodes, setMfaRecoveryCodes] = useState([])
+  const [webauthnStatus, setWebauthnStatus] = useState({ enabled: false, credentials: [] })
+  const [passkeyPassword, setPasskeyPassword] = useState('')
+  const [passkeyName, setPasskeyName] = useState('Passkey')
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
+  const [passkeyNotice, setPasskeyNotice] = useState(null)
+  const [orgNotice, setOrgNotice] = useState(null)
 
   // Platform Security Audit Trail state
   const [auditEvents, setAuditEvents] = useState([])
@@ -245,7 +261,9 @@ export default function SettingsPage() {
       api.getNotificationPreferences().catch(() => null),
       api.listSessions().catch(() => ({ sessions: [] })),
       api.getSessionSettings().catch(() => null),
-    ]).then(([hl, me, ws, og, ak, np, ss, st]) => {
+      api.getMfaStatus().catch(() => null),
+      api.getWebAuthn().catch(() => null),
+    ]).then(([hl, me, ws, og, ak, np, ss, st, mf, wb]) => {
       if (!alive) return
       if (hl.status === 'fulfilled' && hl.value) setHealth(hl.value)
       if (ws.status === 'fulfilled') setWorkspaces(Array.isArray(ws.value) ? ws.value : [])
@@ -254,6 +272,14 @@ export default function SettingsPage() {
       if (np.status === 'fulfilled' && np.value) setNotifPrefs(np.value)
       if (ss.status === 'fulfilled' && ss.value?.sessions) setSessions(ss.value.sessions)
       if (st.status === 'fulfilled' && st.value) setSessionSettings(st.value)
+      if (mf.status === 'fulfilled' && mf.value) {
+        setMfaStatus(mf.value)
+      } else if (me.status === 'fulfilled' && me.value) {
+        setMfaStatus(s => ({ ...s, enabled: Boolean(me.value.mfa_enabled) }))
+      }
+      if (wb.status === 'fulfilled' && wb.value) {
+        setWebauthnStatus(wb.value)
+      }
 
       if (me.status === 'fulfilled' && me.value) {
         setProfile(me.value)
@@ -375,6 +401,156 @@ export default function SettingsPage() {
       setTimeout(() => setSessionNotice(null), 4000)
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  async function handleMfaSetup(e) {
+    e.preventDefault()
+    setMfaBusy(true)
+    setError(null)
+    setMfaNotice(null)
+    try {
+      const data = await api.setupMfa(mfaPassword)
+      setMfaSetupData(data)
+      setMfaCode('')
+      setMfaNotice('Secret generated. Add it to your authenticator app, then enter a code to finish.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  async function handleMfaEnable(e) {
+    e.preventDefault()
+    setMfaBusy(true)
+    setError(null)
+    setMfaNotice(null)
+    try {
+      const result = await api.enableMfa(mfaPassword, mfaCode)
+      setMfaStatus({ enabled: true, configured: true })
+      setMfaSetupData(null)
+      setMfaPassword('')
+      setMfaCode('')
+      setMfaRecoveryCodes(Array.isArray(result?.recovery_codes) ? result.recovery_codes : [])
+      setMfaNotice('Two-factor authentication enabled. Save your recovery codes now.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  async function handleMfaDisable(e) {
+    e.preventDefault()
+    if (!window.confirm('Disable two-factor authentication for this account?')) return
+    setMfaBusy(true)
+    setError(null)
+    setMfaNotice(null)
+    try {
+      await api.disableMfa(mfaPassword, mfaCode)
+      setMfaStatus({ enabled: false, configured: false })
+      setMfaPassword('')
+      setMfaCode('')
+      setMfaRecoveryCodes([])
+      setMfaNotice('Two-factor authentication disabled.')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  async function copyMfaSecret() {
+    if (!mfaSetupData?.secret) return
+    try {
+      await navigator.clipboard.writeText(mfaSetupData.secret)
+      setMfaNotice('Authenticator secret copied to clipboard.')
+    } catch (err) {
+      setError(`Could not copy secret: ${err.message}`)
+    }
+  }
+
+  async function reloadWebAuthn() {
+    try {
+      const status = await api.getWebAuthn()
+      setWebauthnStatus(status || { enabled: false, credentials: [] })
+    } catch (err) {
+      console.error('[flowsmith] reloadWebAuthn error', err)
+    }
+  }
+
+  async function handleAddPasskey(e) {
+    e.preventDefault()
+    if (!passkeysSupported()) {
+      setError('This browser does not support passkeys.')
+      return
+    }
+    setPasskeyBusy(true)
+    setError(null)
+    setPasskeyNotice(null)
+    try {
+      const challenge = await api.webauthnRegisterOptions(passkeyPassword)
+      const credential = await navigator.credentials.create({
+        publicKey: prepareCreationOptions(challenge.options),
+      })
+      await api.webauthnRegisterComplete(
+        challenge.registration_token,
+        serializeCredential(credential),
+        passkeyName.trim() || 'Passkey'
+      )
+      setPasskeyPassword('')
+      setPasskeyName('Passkey')
+      await reloadWebAuthn()
+      setPasskeyNotice('Passkey added.')
+    } catch (err) {
+      if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') {
+        setError('Passkey creation was cancelled or timed out.')
+      } else {
+        setError(err.message)
+      }
+    } finally {
+      setPasskeyBusy(false)
+    }
+  }
+
+  async function handleDeletePasskey(credentialId) {
+    if (!window.confirm('Remove this passkey? You will need another registered passkey or a recovery method.')) return
+    setError(null)
+    setPasskeyNotice(null)
+    try {
+      await api.webauthnDelete(credentialId)
+      await reloadWebAuthn()
+      setPasskeyNotice('Passkey removed.')
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleToggleOrgMfa(org, checked) {
+    if (checked && !window.confirm('Requiring MFA signs out organization members who have not enrolled, including you if TOTP is not enabled. Continue?')) {
+      return
+    }
+    setError(null)
+    setOrgNotice(null)
+    try {
+      await api.updateOrganization(org.id, { require_mfa: checked })
+      setOrgs(prev => prev.map(item => (
+        item.id === org.id ? { ...item, require_mfa: checked } : item
+      )))
+      setOrgNotice(`MFA policy ${checked ? 'enabled' : 'disabled'} for ${org.name}. It applies to the next password/LDAP sign-in.`)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function copyMfaRecoveryCodes() {
+    if (!mfaRecoveryCodes.length) return
+    try {
+      await navigator.clipboard.writeText(mfaRecoveryCodes.join('\n'))
+      setMfaNotice('Recovery codes copied to clipboard.')
+    } catch (err) {
+      setError(`Could not copy recovery codes: ${err.message}`)
     }
   }
 
@@ -1129,16 +1305,37 @@ export default function SettingsPage() {
         )}
       </Section>
 
-      <Section title="Organizations" description="Organizations own workspaces and team collaboration.">
+      <Section title="Organizations" description="Organizations own workspaces and team collaboration. Founders can require TOTP MFA for password and LDAP sign-ins.">
+        {orgNotice && <div className="banner-inline ok" style={{ marginBottom: 14 }}>{orgNotice}</div>}
         {orgs.length === 0 ? <p className="hint">No organizations yet.</p> : (
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Name</th><th>Organization ID</th></tr></thead>
+              <thead><tr><th>Name</th><th>Organization ID</th><th>Require MFA</th></tr></thead>
               <tbody>
                 {orgs.map(o => (
                   <tr key={o.id}>
                     <td><strong style={{ color: '#f8fafc' }}>{o.name}</strong></td>
                     <td><code className="exec-id-cell">{o.id}</code></td>
+                    <td>
+                      {profile?.id === o.founder_id ? (
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={Boolean(o.require_mfa)}
+                            onChange={e => handleToggleOrgMfa(o, e.target.checked)}
+                            style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                            aria-label={`Require MFA for ${o.name}`}
+                          />
+                          <span className="hint" style={{ fontSize: 12 }}>
+                            {o.require_mfa ? 'Required' : 'Optional'}
+                          </span>
+                        </label>
+                      ) : (
+                        <span className="badge" style={{ background: o.require_mfa ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)', color: o.require_mfa ? '#34d399' : '#94a3b8' }}>
+                          {o.require_mfa ? 'Required' : 'Optional'}
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1182,6 +1379,218 @@ export default function SettingsPage() {
               </tbody>
             </table>
           </div>
+        )}
+      </Section>
+
+      <Section title="Multi-Factor Authentication" description="Protect your account with a time-based one-time password (TOTP) from an authenticator app.">
+        {mfaNotice && <div className="banner-inline ok" style={{ marginBottom: 14 }}>{mfaNotice}</div>}
+        <div className="settings-attr" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', gap: 16, marginBottom: 14 }}>
+          <div>
+            <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5 }}>Authenticator App</div>
+            <div className="hint" style={{ fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>
+              {mfaStatus.enabled
+                ? 'A 6-digit code is required after your password at every sign-in.'
+                : 'Add Flowsmith to Google Authenticator, 1Password, Authy, or another TOTP app.'}
+            </div>
+          </div>
+          <span className="badge" style={{ background: mfaStatus.enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)', color: mfaStatus.enabled ? '#34d399' : '#94a3b8' }}>
+            {mfaStatus.enabled ? 'Enabled' : 'Not enabled'}
+          </span>
+        </div>
+
+        {mfaRecoveryCodes.length > 0 && (
+          <div style={{ marginBottom: 14, padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(245, 158, 11, 0.35)', background: 'rgba(245, 158, 11, 0.08)' }}>
+            <div style={{ fontWeight: 600, color: '#fbbf24', fontSize: 13 }}>Save these recovery codes now</div>
+            <div className="hint" style={{ fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>
+              Each code works once if you lose access to your authenticator app. They are shown only this time.
+            </div>
+            <pre style={{ margin: '10px 0', padding: '10px 12px', borderRadius: 8, background: 'rgba(2, 6, 23, 0.65)', color: '#e2e8f0', fontSize: 12.5, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+              {mfaRecoveryCodes.join('\n')}
+            </pre>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button" className="ghost small" onClick={copyMfaRecoveryCodes}>Copy Codes</button>
+              <button type="button" className="ghost small" onClick={() => setMfaRecoveryCodes([])}>I Saved Them</button>
+            </div>
+          </div>
+        )}
+
+        {!mfaStatus.enabled && !mfaSetupData && (
+          <form onSubmit={handleMfaSetup} style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 440 }}>
+            <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
+              Current password
+              <input
+                type="password"
+                value={mfaPassword}
+                onChange={e => setMfaPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                style={{ display: 'block', width: '100%', marginTop: 6, padding: '9px 11px', borderRadius: 8, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.55)', color: '#f8fafc' }}
+              />
+            </label>
+            <button type="submit" className="primary small" disabled={mfaBusy} style={{ alignSelf: 'flex-start' }}>
+              {mfaBusy ? 'Generating…' : 'Set Up Authenticator'}
+            </button>
+          </form>
+        )}
+
+        {!mfaStatus.enabled && mfaSetupData && (
+          <form onSubmit={handleMfaEnable} style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 620 }}>
+            <div className="hint" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+              In your authenticator app, add a new account and enter this secret:
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <code style={{ padding: '9px 11px', borderRadius: 8, background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#c7d2fe', letterSpacing: 1.2, wordBreak: 'break-all' }}>
+                {mfaSetupData.secret}
+              </code>
+              <button type="button" className="ghost small" onClick={copyMfaSecret}>Copy</button>
+            </div>
+            <div className="hint" style={{ fontSize: 11.5, wordBreak: 'break-all' }}>
+              {mfaSetupData.otpauth_uri}
+            </div>
+            <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
+              Current password
+              <input
+                type="password"
+                value={mfaPassword}
+                onChange={e => setMfaPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                style={{ display: 'block', width: '100%', marginTop: 6, padding: '9px 11px', borderRadius: 8, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.55)', color: '#f8fafc' }}
+              />
+            </label>
+            <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
+              Authenticator code
+              <input
+                type="text"
+                value={mfaCode}
+                onChange={e => setMfaCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                required
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="000000"
+                style={{ display: 'block', width: 180, marginTop: 6, padding: '9px 11px', borderRadius: 8, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.55)', color: '#f8fafc', letterSpacing: 2 }}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="submit" className="primary small" disabled={mfaBusy}>
+                {mfaBusy ? 'Verifying…' : 'Verify & Enable'}
+              </button>
+              <button
+                type="button"
+                className="ghost small"
+                onClick={() => { setMfaSetupData(null); setMfaCode(''); setMfaPassword(''); setMfaNotice(null) }}
+                disabled={mfaBusy}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
+        {mfaStatus.enabled && (
+          <form onSubmit={handleMfaDisable} style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 440 }}>
+            <div className="hint" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+              To disable MFA, confirm your password and a current authenticator or recovery code.
+            </div>
+            <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
+              Current password
+              <input
+                type="password"
+                value={mfaPassword}
+                onChange={e => setMfaPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                style={{ display: 'block', width: '100%', marginTop: 6, padding: '9px 11px', borderRadius: 8, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.55)', color: '#f8fafc' }}
+              />
+            </label>
+            <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
+              Authenticator or recovery code
+              <input
+                type="text"
+                value={mfaCode}
+                onChange={e => setMfaCode(e.target.value.slice(0, 32))}
+                required
+                autoComplete="one-time-code"
+                maxLength={32}
+                placeholder="000000 or XXXX-XXXX-XXXX-XXXX"
+                style={{ display: 'block', width: 280, marginTop: 6, padding: '9px 11px', borderRadius: 8, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.55)', color: '#f8fafc', letterSpacing: 1 }}
+              />
+            </label>
+            <button type="submit" className="ghost small" disabled={mfaBusy} style={{ alignSelf: 'flex-start', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+              {mfaBusy ? 'Disabling…' : 'Disable MFA'}
+            </button>
+          </form>
+        )}
+      </Section>
+
+      <Section title="Passkeys" description="Register a WebAuthn passkey for phishing-resistant sign-in. Passkeys count as MFA for organization policy.">
+        {passkeyNotice && <div className="banner-inline ok" style={{ marginBottom: 14 }}>{passkeyNotice}</div>}
+        {!webauthnStatus.enabled ? (
+          <p className="hint" style={{ margin: 0 }}>
+            Passkey support is not enabled by this deployment. Set <code>WEBAUTHN_ENABLED</code>,
+            <code> WEBAUTHN_RP_ID</code>, and <code>WEBAUTHN_ORIGIN</code> to enable it.
+          </p>
+        ) : (
+          <>
+            {!passkeysSupported() && (
+              <p className="hint" style={{ marginTop: 0 }}>This browser does not support passkeys.</p>
+            )}
+            {webauthnStatus.credentials?.length > 0 ? (
+              <div className="table-wrap" style={{ marginBottom: 14 }}>
+                <table className="data-table">
+                  <thead><tr><th>Name</th><th>Added</th><th>Last used</th><th /></tr></thead>
+                  <tbody>
+                    {webauthnStatus.credentials.map(credential => (
+                      <tr key={credential.id}>
+                        <td><strong style={{ color: '#f8fafc' }}>{credential.name}</strong></td>
+                        <td className="hint">{credential.created_at ? new Date(credential.created_at).toLocaleString() : '—'}</td>
+                        <td className="hint">{credential.last_used_at ? new Date(credential.last_used_at).toLocaleString() : 'Never'}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="ghost small"
+                            onClick={() => handleDeletePasskey(credential.id)}
+                            style={{ color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="hint" style={{ marginTop: 0 }}>No passkeys registered yet.</p>
+            )}
+            <form onSubmit={handleAddPasskey} style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 440 }}>
+              <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
+                Passkey name
+                <input
+                  type="text"
+                  value={passkeyName}
+                  onChange={e => setPasskeyName(e.target.value.slice(0, 80))}
+                  maxLength={80}
+                  style={{ display: 'block', width: '100%', marginTop: 6, padding: '9px 11px', borderRadius: 8, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.55)', color: '#f8fafc' }}
+                />
+              </label>
+              <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
+                Current password
+                <input
+                  type="password"
+                  value={passkeyPassword}
+                  onChange={e => setPasskeyPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  style={{ display: 'block', width: '100%', marginTop: 6, padding: '9px 11px', borderRadius: 8, border: '1px solid rgba(148, 163, 184, 0.25)', background: 'rgba(15, 23, 42, 0.55)', color: '#f8fafc' }}
+                />
+              </label>
+              <button type="submit" className="primary small" disabled={passkeyBusy || !passkeysSupported()} style={{ alignSelf: 'flex-start' }}>
+                {passkeyBusy ? 'Waiting for passkey…' : 'Add Passkey'}
+              </button>
+            </form>
+          </>
         )}
       </Section>
 
@@ -1354,6 +1763,8 @@ export default function SettingsPage() {
         <ul className="hint" style={{ lineHeight: 1.6, paddingLeft: 18, margin: '8px 0 0' }}>
           <li>Login rate-limiting enabled per-email and client IP (with 429 Retry-After protection)</li>
           <li>All third-party credentials encrypted at rest using AES-128-CBC / Fernet envelope encryption</li>
+          <li>TOTP multi-factor authentication with encrypted secrets and replay-resistant one-time codes</li>
+          <li>WebAuthn/passkey second factors with origin and RP-ID verification</li>
           <li>Session authentication backed by cryptographic JWT with sliding expiration</li>
         </ul>
       </Section>

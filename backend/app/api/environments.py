@@ -7,7 +7,7 @@ import json
 import secrets
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -20,6 +20,7 @@ from app.environments import decrypt_env_value
 from app.models import Environment, User, UserAPIKey, Workspace, WorkflowTemplate
 from app.security.crypto import encrypt_text
 from app.importexport import sanitize_workflow_data
+from app.templates.library import CONNECTOR_TEMPLATES
 
 router = APIRouter()
 
@@ -362,6 +363,7 @@ DEFAULT_TEMPLATES = [
 ]
 
 
+DEFAULT_TEMPLATES.extend(CONNECTOR_TEMPLATES)
 _DEFAULT_TEMPLATE_NAMES = frozenset(t["name"] for t in DEFAULT_TEMPLATES)
 
 
@@ -396,10 +398,15 @@ def ensure_default_templates(db: Session, user_id: int) -> None:
 
 
 @router.get("/api/templates")
-def list_templates(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+def list_templates(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    page: int = Query(default=1, ge=1),
+    pageSize: int = Query(default=100, ge=1),
+) -> dict:
     """List public templates and user's own templates."""
     ensure_default_templates(db, user.id)
-    page, size = page_params(1, 50)
+    page, size = page_params(page, pageSize)
     stmt = select(WorkflowTemplate).where(
         (WorkflowTemplate.is_public == True) | (WorkflowTemplate.created_by == user.id)
     ).order_by(WorkflowTemplate.use_count.desc()).offset((page - 1) * size).limit(size)

@@ -121,6 +121,58 @@ def _jira_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"projects": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}, "success": {"type": "boolean"}}},
             retryable=True,
         ),
+        "get_myself": _operation(
+            "get_myself", "Get Current User",
+            "Return the Jira account and timezone for the connected credentials.",
+            {},
+            [],
+            {
+                "type": "object",
+                "properties": {
+                    "account_id": {"type": "string"},
+                    "display_name": {"type": "string"},
+                    "email": {"type": "string"},
+                    "active": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "list_transitions": _operation(
+            "list_transitions", "List Transitions",
+            "List workflow transitions available for an issue.",
+            {"issue_key": {"type": "string", "title": "Issue key"}},
+            ["issue_key"],
+            {
+                "type": "object",
+                "properties": {
+                    "issue_key": {"type": "string"},
+                    "transitions": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "transition_issue": _operation(
+            "transition_issue", "Transition Issue",
+            "Move an issue through a workflow transition.",
+            {
+                "issue_key": {"type": "string", "title": "Issue key"},
+                "transition_id": {"type": "string", "title": "Transition id"},
+            },
+            ["issue_key", "transition_id"],
+            {
+                "type": "object",
+                "properties": {
+                    "issue_key": {"type": "string"},
+                    "transition_id": {"type": "string"},
+                    "success": {"type": "boolean"},
+                },
+            },
+            retryable=False,
+            idempotency="non_idempotent",
+        ),
     }
 
 
@@ -161,7 +213,11 @@ def build_jira_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_jira_credential_type(),
         metadata={
-            "initial_operations": ["search", "get_issue", "get_projects", "create_issue", "update_issue", "add_comment"],
+            "initial_operations": [
+                "search", "get_issue", "get_projects", "create_issue",
+                "update_issue", "add_comment", "get_myself",
+                "list_transitions", "transition_issue",
+            ],
             "auth": "basic auth (email + API token)",
         },
         icon="jira",

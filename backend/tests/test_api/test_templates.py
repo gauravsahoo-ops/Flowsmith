@@ -132,8 +132,15 @@ def test_save_as_template_shape_imports_cleanly(client):
 def test_all_default_templates_can_be_used_and_imported(client):
     """Verify that every default public template can be loaded and imported into a new workflow."""
     headers = _headers(client)
-    templates = client.get("/api/templates", headers=headers).json()["data"]
-    assert len(templates) >= 5
+    templates = []
+    for page in range(1, 5):
+        rows = client.get(
+            f"/api/templates?page={page}&pageSize=100", headers=headers
+        ).json()["data"]
+        templates.extend(rows)
+        if len(rows) < 100:
+            break
+    assert len(templates) >= 330
 
     for tmpl in templates:
         tid = tmpl["id"]

@@ -22,8 +22,6 @@ Covers:
 
 from __future__ import annotations
 
-import threading
-
 import pytest
 
 from app.connectors import get_registry, register_builtin_connectors
@@ -159,6 +157,29 @@ def test_execution_record_contract(client):
     data = body["data"]
     missing = EXECUTION_ENVELOPE_KEYS - set(data)
     assert not missing, f"execution envelope missing keys: {missing}"
+
+
+def test_lightweight_execution_status_contract(client):
+    """The canvas poll endpoint returns terminal state without the large payload."""
+    from tests.test_api.conftest import auth_headers, make_workflow, register
+
+    headers = auth_headers(register(client)["token"])
+    client.post("/api/workflows", json=make_workflow(), headers=headers)
+    eid = client.post("/api/workflows/wf_1/run", json={}, headers=headers).json()["data"]["execution_id"]
+
+    import time
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        body = client.get(f"/api/executions/{eid}/status", headers=headers).json()
+        if body["data"]["status"] not in ("queued", "running", "cancelling"):
+            break
+        time.sleep(0.05)
+
+    data = body["data"]
+    assert data["id"] == eid
+    assert {"id", "status", "finished_at", "duration_ms", "queue_wait_ms"}.issubset(data)
+    assert "workflow_data" not in data
+    assert "trace" not in data
 
 
 @pytest.fixture

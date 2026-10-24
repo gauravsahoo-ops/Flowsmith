@@ -22,6 +22,10 @@ class BitbucketConnectorParams(BaseModel):
     workspace: str = ""
     repo_slug: str = ""
     pr_id: str = ""
+    title: str = ""
+    description: str = ""
+    source_branch: str = ""
+    destination_branch: str = ""
     text: str = ""
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
@@ -71,6 +75,16 @@ class BitbucketConnector(ConnectorSDK):
                 return {"repos": repos}
             if op == "get_repo":
                 return await self._provider.get_repo(creds, ws, repo, timeout=timeout)
+            if op == "list_branches":
+                branches = await self._provider.list_branches(creds, ws, repo, timeout=timeout)
+                return {"branches": branches}
+            if op == "create_pull_request":
+                return await self._provider.create_pull_request(
+                    creds, ws, repo, str(raw.get("title") or params.title),
+                    str(raw.get("source_branch") or params.source_branch),
+                    str(raw.get("destination_branch") or params.destination_branch),
+                    str(raw.get("description") or params.description), timeout=timeout,
+                )
             if op == "list_pull_requests":
                 prs = await self._provider.list_pull_requests(creds, ws, repo, timeout=timeout)
                 return {"pull_requests": prs}
@@ -99,4 +113,4 @@ class BitbucketConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_repos", "get_repo", "list_pull_requests", "get_pull_request", "add_comment"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_repos", "get_repo", "list_branches", "create_pull_request", "list_pull_requests", "get_pull_request", "add_comment"]}}

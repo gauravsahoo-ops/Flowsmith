@@ -633,6 +633,16 @@ async def _run_one(
         node_cls = get_node_cls(node.type)
     connector = None if node_cls is not None else connector_registry.primary_for_node_type(node.type)
     if node_cls is None and connector is None:
+        # A connector pack may have been installed after this worker started.
+        # Materialize it from PostgreSQL and retry the registry lookup.
+        try:
+            from app.services.connector_pack_runtime import ensure_pack_connector
+
+            if ensure_pack_connector(node.type):
+                connector = connector_registry.primary_for_node_type(node.type)
+        except Exception:
+            logger.exception("connector pack lazy load failed for %s", node.type)
+    if node_cls is None and connector is None:
         definition = connector_registry.get_definition(node.type)
         if definition is not None and getattr(definition, "lifecycle_status", "") in ("draft", "coming_soon", "not_implemented"):
             msg = f"Connector '{node.type}' unavailable — implementation pending."

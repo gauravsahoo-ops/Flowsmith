@@ -84,6 +84,49 @@ def build_supabase_definition() -> ConnectorDefinitionV1:
                 idempotency="non_idempotent",
                 node_types=["supabase"],
             ),
+            "upsert_row": ConnectorOperationV1(
+                connector_key=SUPABASE_CONNECTOR_KEY,
+                connector_version=SUPABASE_CONNECTOR_VERSION,
+                operation_key="upsert_row",
+                operation_version="1.0.0",
+                display_name="Upsert Row",
+                description="Insert or merge rows using PostgREST resolution=merge-duplicates.",
+                input_schema={
+                    "type": "object",
+                    "required": ["table", "data"],
+                    "properties": {
+                        "table": {"type": "string", "title": "Table Name"},
+                        "data": {"type": "object", "title": "Row Data / Payload"},
+                        "on_conflict": {"type": "string", "title": "Conflict columns (optional)"},
+                    },
+                },
+                output_schema={"type": "object", "properties": {"data": {"type": "array"}}},
+                credential_require="supabase",
+                retryable=True,
+                idempotency="idempotent",
+                node_types=["supabase"],
+            ),
+            "count_rows": ConnectorOperationV1(
+                connector_key=SUPABASE_CONNECTOR_KEY,
+                connector_version=SUPABASE_CONNECTOR_VERSION,
+                operation_key="count_rows",
+                operation_version="1.0.0",
+                display_name="Count Rows",
+                description="Count rows matching optional PostgREST filters.",
+                input_schema={
+                    "type": "object",
+                    "required": ["table"],
+                    "properties": {
+                        "table": {"type": "string", "title": "Table Name"},
+                        "filter": {"type": "object", "title": "PostgREST Filters"},
+                    },
+                },
+                output_schema={"type": "object", "properties": {"count": {"type": "integer"}}},
+                credential_require="supabase",
+                retryable=True,
+                idempotency="idempotent",
+                node_types=["supabase"],
+            ),
             "update_row": ConnectorOperationV1(
                 connector_key=SUPABASE_CONNECTOR_KEY,
                 connector_version=SUPABASE_CONNECTOR_VERSION,
@@ -152,4 +195,12 @@ def build_supabase_definition() -> ConnectorDefinitionV1:
             ),
         },
         triggers={},
+        metadata={
+            "initial_operations": [
+                "select_rows", "insert_row", "upsert_row", "count_rows",
+                "update_row", "delete_row", "rpc_call",
+            ],
+            "auth": "Supabase API key",
+        },
+        icon="supabase",
     )

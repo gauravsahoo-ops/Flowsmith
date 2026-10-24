@@ -22,6 +22,9 @@ class OpenAIConnectorParams(BaseModel):
     operation: str = Field(default="list_models")
     model: str = ""
     text: str = ""
+    prompt: str = ""
+    image_size: str = "1024x1024"
+    purpose: str = ""
     messages: str = ""
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: int = Field(default=1024, ge=1, le=128000)
@@ -68,6 +71,15 @@ class OpenAIConnector(ConnectorSDK):
         try:
             if op == "list_models":
                 return await self._provider.list_models(creds, timeout=timeout)
+            if op == "create_image":
+                return await self._provider.create_image(
+                    creds, str(raw.get("prompt") or params.prompt),
+                    str(raw.get("image_size") or params.image_size), timeout=timeout,
+                )
+            if op == "list_files":
+                return await self._provider.list_files(
+                    creds, str(raw.get("purpose") or params.purpose), timeout=timeout,
+                )
             if op == "create_embedding":
                 text = raw.get("text", params.text)
                 return await self._provider.create_embedding(
@@ -108,4 +120,4 @@ class OpenAIConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_models", "create_embedding", "chat_completion"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_models", "create_image", "list_files", "create_embedding", "chat_completion"]}}

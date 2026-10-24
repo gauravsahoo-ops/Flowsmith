@@ -30,6 +30,9 @@ class OutlookConnectorParams(BaseModel):
     save_to_sent: bool = True
     folder: str = "Inbox"
     top: int = Field(default=10, ge=1, le=50)
+    message_id: str = ""
+    is_read: bool = True
+    destination_id: str = ""
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
 
@@ -112,6 +115,32 @@ class OutlookConnector(ConnectorSDK):
                     ) from exc
                 return await self._provider.list_messages(
                     creds, folder=folder, top=top, timeout=params.timeout_seconds,
+                )
+            if op == "get_message":
+                mid = str((payload or {}).get("message_id") or params.message_id)
+                return await self._provider.get_message(
+                    creds, mid, timeout=params.timeout_seconds,
+                )
+            if op == "list_folders":
+                return await self._provider.list_folders(
+                    creds, timeout=params.timeout_seconds,
+                )
+            if op == "mark_read":
+                mid = str((payload or {}).get("message_id") or params.message_id)
+                is_read = (payload or {}).get("is_read", params.is_read)
+                return await self._provider.mark_read(
+                    creds, mid, is_read=bool(is_read), timeout=params.timeout_seconds,
+                )
+            if op == "move_message":
+                mid = str((payload or {}).get("message_id") or params.message_id)
+                dest = str((payload or {}).get("destination_id") or params.destination_id)
+                return await self._provider.move_message(
+                    creds, mid, dest, timeout=params.timeout_seconds,
+                )
+            if op == "delete_message":
+                mid = str((payload or {}).get("message_id") or params.message_id)
+                return await self._provider.delete_message(
+                    creds, mid, timeout=params.timeout_seconds,
                 )
         except ConnectorError:
             raise

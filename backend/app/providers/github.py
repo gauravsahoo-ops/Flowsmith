@@ -9,9 +9,11 @@ instead of FORBIDDEN so engine retries kick in.
 
 from __future__ import annotations
 
+import base64
 import re
 import time
 from typing import Any
+from urllib.parse import quote
 
 from app.connectors import ConnectorErrorCode, make_connector_error
 from app.providers.base import BaseProviderClient, json_error_message
@@ -200,4 +202,100 @@ class GitHubProviderClient(BaseProviderClient):
         )
         data = response.json()
         return {"number": data.get("number"), "state": data.get("state"), "closed": True, "url": data.get("html_url")}
+
+    async def list_branches(
+        self, creds: dict, owner: str, repo: str,
+        per_page: int = 50, max_pages: int = 3, timeout: float = 30.0,
+    ) -> dict:
+        o, r = _owner_repo(owner, repo)
+        per_page = min(max(int(per_page or 50), 1), 100)
+        max_pages = min(max(int(max_pages or 1), 1), 10)
+        branches: list[dict] = []
+        for page in range(1, max_pages + 1):
+            response = await self.request_github(
+                creds, "GET", f"/repos/{o}/{r}/branches",
+                params={"per_page": per_page, "page": page},
+                timeout=timeout, what="list branches",
+            )
+            batch = [
+                {
+                    "name": branch.get("name"),
+                    "sha": (branch.get("commit") or {}).get("sha"),
+                    "protected": branch.get("protected", False),
+                }
+                for branch in response.json()
+            ]
+            branches.extend(batch)
+            if len(batch) < per_page:
+                break
+        return {"branches": branches, "count": len(branches)}
+
+    async def get_file_contents(
+        self, creds: dict, owner: str, repo: str, path: str,
+        ref: str = "", timeout: float = 30.0,
+    ) -> dict:
+        o, r = _owner_repo(owner, repo)
+        file_path = str(path or "").strip().strip("/")
+        if not file_path or ".." in file_path.split("/"):
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "get_file_contents requires a repository-relative path.",
+                retryable=False,
+            )
+        params = {"ref": ref} if ref else None
+        response = await self.request_github(
+            creds, "GET", f"/repos/{o}/{r}/contents/{quote(file_path)}",
+            params=params, timeout=timeout, what="get file contents",
+        )
+        data = response.json()
+        if isinstance(data, list):
+            return {
+                "type": "directory",
+                "entries": [
+                    {"name": item.get("name"), "path": item.get("path"), "type": item.get("type"), "sha": item.get("sha")}
+                    for item in data
+                ],
+                "count": len(data),
+            }
+        content = ""
+        if data.get("encoding") == "base64" and data.get("content"):
+            try:
+                content = base64.b64decode(data["content"]).decode("utf-8")
+            except (ValueError, UnicodeDecodeError):
+                content = ""
+        return {
+            "type": "file",
+            "name": data.get("name"),
+            "path": data.get("path"),
+            "sha": data.get("sha"),
+            "size": data.get("size"),
+            "encoding": data.get("encoding"),
+            "content": content,
+            "download_url": data.get("download_url"),
+        }
+
+    async def create_pull_request(
+        self, creds: dict, owner: str, repo: str, title: str,
+        head: str, base: str, body: str = "", timeout: float = 30.0,
+    ) -> dict:
+        o, r = _owner_repo(owner, repo)
+        if not str(title or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "create_pull_request requires a title.", retryable=False)
+        if not str(head or "").strip() or not str(base or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "create_pull_request requires head and base branches.", retryable=False)
+        payload: dict[str, Any] = {"title": title, "head": head, "base": base}
+        if body:
+            payload["body"] = body
+        response = await self.request_github(
+            creds, "POST", f"/repos/{o}/{r}/pulls", json_body=payload,
+            timeout=timeout, what="create pull request",
+        )
+        data = response.json()
+        return {
+            "number": data.get("number"),
+            "url": data.get("html_url"),
+            "state": data.get("state"),
+            "head": ((data.get("head") or {}).get("ref")),
+            "base": ((data.get("base") or {}).get("ref")),
+        }
 

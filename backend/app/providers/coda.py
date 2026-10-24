@@ -172,3 +172,35 @@ class CodaProviderClient(BaseProviderClient):
     ) -> dict[str, Any]:
         body = {"rows": rows}
         return await self.request_coda(creds, "POST", f"docs/{doc_id}/tables/{table_id}/rows", json_body=body, timeout=timeout)
+
+    async def update_row(
+        self,
+        creds: dict[str, Any],
+        doc_id: str,
+        table_id: str,
+        row_id: str,
+        row: dict[str, Any],
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(row_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_row needs a row_id.", retryable=False)
+        if not isinstance(row, dict) or not row:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_row needs a row object.", retryable=False)
+        return await self.request_coda(
+            creds, "PUT", f"docs/{doc_id}/tables/{table_id}/rows/{row_id}",
+            json_body={"row": row}, timeout=timeout,
+        )
+
+    async def delete_row(
+        self,
+        creds: dict[str, Any],
+        doc_id: str,
+        table_id: str,
+        row_id: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        rid = str(row_id or "").strip()
+        if not rid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_row needs a row_id.", retryable=False)
+        await self.request_coda(creds, "DELETE", f"docs/{doc_id}/tables/{table_id}/rows/{rid}", timeout=timeout)
+        return {"row_id": rid, "deleted": True, "success": True}

@@ -21,6 +21,8 @@ class CalendlyConnectorParams(BaseModel):
     operation: str = Field(default="list_events")
     user_uri: str = ""
     event_uuid: str = ""
+    owner_uri: str = ""
+    max_event_count: int = Field(default=1, ge=1, le=100)
     count: int = Field(default=20, ge=1, le=100)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
@@ -72,6 +74,18 @@ class CalendlyConnector(ConnectorSDK):
                     int(raw.get("count") or params.count), timeout=timeout,
                 )
                 return {"events": events}
+            if op == "list_invitees":
+                invitees = await self._provider.list_invitees(
+                    creds, str(raw.get("event_uuid") or params.event_uuid),
+                    int(raw.get("count") or params.count), timeout=timeout,
+                )
+                return {"invitees": invitees}
+            if op == "create_scheduling_link":
+                return await self._provider.create_scheduling_link(
+                    creds, str(raw.get("owner_uri") or params.owner_uri),
+                    int(raw.get("max_event_count") or params.max_event_count),
+                    timeout=timeout,
+                )
             if op == "get_event":
                 return await self._provider.get_event(creds, str(raw.get("event_uuid") or params.event_uuid), timeout=timeout)
             if op == "cancel_event":
@@ -92,4 +106,4 @@ class CalendlyConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_event_types", "list_events", "get_event", "cancel_event"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_event_types", "list_events", "list_invitees", "create_scheduling_link", "get_event", "cancel_event"]}}

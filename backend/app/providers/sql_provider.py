@@ -20,7 +20,7 @@ from typing import Any
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import DBAPIError, SQLAlchemyError
+from sqlalchemy.exc import DBAPIError, NoSuchTableError, SQLAlchemyError
 
 from app.connectors import ConnectorErrorCode, make_connector_error
 
@@ -87,6 +87,56 @@ def _list_tables(engine: Engine) -> dict[str, Any]:
     inspector = inspect(engine)
     names = sorted(inspector.get_table_names())
     return {"tables": names, "count": len(names)}
+
+
+def _describe_table(engine: Engine, table: str, schema: str | None = None) -> dict[str, Any]:
+    inspector = inspect(engine)
+    raw_columns = inspector.get_columns(table, schema=schema)
+    primary_key = inspector.get_pk_constraint(table, schema=schema).get("constrained_columns") or []
+    primary_names = set(primary_key)
+    columns = [
+        {
+            "name": column.get("name"),
+            "type": str(column.get("type")) if column.get("type") is not None else "",
+            "nullable": column.get("nullable"),
+            "default": (
+                str(column.get("default")) if column.get("default") is not None else None
+            ),
+            "primary_key": column.get("name") in primary_names,
+        }
+        for column in raw_columns
+    ]
+    try:
+        foreign_keys = [
+            {
+                "name": fk.get("name"),
+                "constrained_columns": fk.get("constrained_columns") or [],
+                "referred_table": fk.get("referred_table"),
+                "referred_columns": fk.get("referred_columns") or [],
+            }
+            for fk in inspector.get_foreign_keys(table, schema=schema)
+        ]
+    except NotImplementedError:  # pragma: no cover - dialect specific
+        foreign_keys = []
+    try:
+        indexes = [
+            {
+                "name": index.get("name"),
+                "columns": index.get("column_names") or [],
+                "unique": bool(index.get("unique")),
+            }
+            for index in inspector.get_indexes(table, schema=schema)
+        ]
+    except NotImplementedError:  # pragma: no cover - dialect specific
+        indexes = []
+    return {
+        "table": table,
+        "schema": schema,
+        "columns": columns,
+        "primary_key": primary_key,
+        "foreign_keys": foreign_keys,
+        "indexes": indexes,
+    }
 
 
 def _insert_rows(
@@ -191,6 +241,45 @@ class SQLProviderClient:
                 raise make_connector_error(
                     ConnectorErrorCode.UNAVAILABLE if _is_connection_error(exc) else ConnectorErrorCode.BAD_REQUEST,
                     f"{client.product_name} list_tables failed: {exc}",
+                    retryable=_is_connection_error(exc),
+                ) from exc
+            finally:
+                engine.dispose()
+
+        return await asyncio.to_thread(job)
+
+    async def describe_table(self, creds: dict[str, Any], table: str,
+                             schema: str | None = None) -> dict[str, Any]:
+        table_name = str(table or "").strip()
+        if not table_name or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=describe_table requires a valid plain table name (alphanumeric/underscore only).",
+                retryable=False,
+            )
+        schema_name = str(schema or "").strip() or None
+        if schema_name and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", schema_name):
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=describe_table schema must be a plain identifier (alphanumeric/underscore only).",
+                retryable=False,
+            )
+        client = self
+
+        def job() -> dict[str, Any]:
+            engine = client._engine(creds)
+            try:
+                return _describe_table(engine, table_name, schema_name)
+            except NoSuchTableError as exc:
+                raise make_connector_error(
+                    ConnectorErrorCode.NOT_FOUND,
+                    f"{client.product_name} table '{table_name}' was not found.",
+                    retryable=False,
+                ) from exc
+            except SQLAlchemyError as exc:
+                raise make_connector_error(
+                    ConnectorErrorCode.UNAVAILABLE if _is_connection_error(exc) else ConnectorErrorCode.BAD_REQUEST,
+                    f"{client.product_name} describe_table failed: {exc}",
                     retryable=_is_connection_error(exc),
                 ) from exc
             finally:

@@ -88,6 +88,22 @@ def build_intercom_definition() -> ConnectorDefinitionV1:
                 [],
                 retryable=True, idempotency="idempotent",
             ),
+            "update_contact": _operation(
+                "update_contact", "Update Contact", "Patch a contact's name, email, role, or attributes.",
+                {
+                    "contact_id": {"type": "string", "title": "Contact ID"},
+                    "email": {"type": "string", "title": "Email Address"},
+                    "name": {"type": "string", "title": "Full Name"},
+                    "role": {"type": "string", "title": "Role"},
+                    "custom_attributes": {"type": "object", "title": "Custom attributes"},
+                },
+                ["contact_id"], retryable=True,
+            ),
+            "delete_contact": _operation(
+                "delete_contact", "Delete Contact", "Delete a contact by ID.",
+                {"contact_id": {"type": "string", "title": "Contact ID"}}, ["contact_id"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "search_contacts": _operation(
                 "search_contacts", "Search Contacts", "Find contacts using Intercom query filters.",
                 {
@@ -131,4 +147,13 @@ def build_intercom_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_conversations", "get_conversation", "reply_conversation",
+                "list_contacts", "create_contact", "update_contact",
+                "delete_contact", "search_contacts",
+            ],
+            "auth": "Bearer token",
+        },
+        icon="intercom",
     )

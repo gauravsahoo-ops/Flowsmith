@@ -159,3 +159,31 @@ class DocuSignProviderClient(BaseProviderClient):
     ) -> dict[str, Any]:
         params = {"count": count}
         return await self.request_docusign(creds, "GET", "templates", params=params, timeout=timeout)
+
+    async def list_recipients(
+        self,
+        creds: dict[str, Any],
+        envelope_id: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(envelope_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "list_recipients needs an envelope_id.", retryable=False)
+        return await self.request_docusign(
+            creds, "GET", f"envelopes/{envelope_id}/recipients", timeout=timeout,
+        )
+
+    async def void_envelope(
+        self,
+        creds: dict[str, Any],
+        envelope_id: str,
+        reason: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(envelope_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "void_envelope needs an envelope_id.", retryable=False)
+        if not str(reason or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "void_envelope needs a reason.", retryable=False)
+        return await self.request_docusign(
+            creds, "PUT", f"envelopes/{envelope_id}",
+            json_body={"status": "voided", "voidedReason": reason}, timeout=timeout,
+        )

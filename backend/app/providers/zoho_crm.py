@@ -150,6 +150,33 @@ class ZohoCrmProviderClient(BaseProviderClient):
         body = {"data": data}
         return await self.request_zoho(creds, "PUT", module, json_body=body, timeout=timeout)
 
+    async def delete_records(
+        self,
+        creds: dict[str, Any],
+        module: str,
+        ids: List[str],
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        cleaned = [str(item).strip() for item in (ids or []) if str(item).strip()]
+        if not cleaned:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_records needs record ids.", retryable=False)
+        return await self.request_zoho(
+            creds, "DELETE", module,
+            params={"ids": ",".join(cleaned)}, timeout=timeout,
+        )
+
+    async def list_users(
+        self,
+        creds: dict[str, Any],
+        *,
+        user_type: str = "AllUsers",
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        return await self.request_zoho(
+            creds, "GET", "users",
+            params={"type": user_type or "AllUsers"}, timeout=timeout,
+        )
+
     async def search_records(
         self,
         creds: dict[str, Any],

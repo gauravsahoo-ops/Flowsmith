@@ -227,7 +227,9 @@ export function NodeEditorModalDialog({ onClosed }) {
       base.onSettingsChange = setSetting
       base.tab = 'parameters'
     }
-    if (node?.type === 'webhook') base.workflowId = workflow?.id
+    if (node?.type === 'webhook' || node?.type?.endsWith('_trigger')) {
+      base.workflowId = workflow?.id
+    }
     if (node?.type === 'http_request') {
       base.inputData = _upstreamData
       base.credentialTypes = credentialTypes

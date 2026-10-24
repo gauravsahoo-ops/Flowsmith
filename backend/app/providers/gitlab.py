@@ -117,6 +117,37 @@ class GitLabProviderClient:
         )
         return data if isinstance(data, dict) else {}
 
+    async def list_branches(self, creds: dict, project_id: str, timeout: float = 30.0) -> list:
+        data = await self._request(
+            "GET", f"/projects/{self._pid(project_id)}/repository/branches",
+            creds, timeout=timeout, what="list branches",
+        )
+        return data if isinstance(data, list) else []
+
+    async def create_merge_request(
+        self, creds: dict, project_id: str, title: str, source_branch: str,
+        target_branch: str, description: str = "", timeout: float = 30.0,
+    ) -> dict:
+        if not str(title or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "create_merge_request needs a title.", retryable=False)
+        if not str(source_branch or "").strip() or not str(target_branch or "").strip():
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "create_merge_request needs source_branch and target_branch.",
+                retryable=False,
+            )
+        data = await self._request(
+            "POST", f"/projects/{self._pid(project_id)}/merge_requests", creds,
+            json_body={
+                "title": title,
+                "source_branch": source_branch,
+                "target_branch": target_branch,
+                "description": description or "",
+            },
+            timeout=timeout, what="create merge request",
+        )
+        return data if isinstance(data, dict) else {}
+
     async def list_merge_requests(self, creds: dict, project_id: str, timeout: float = 30.0) -> list:
         data = await self._request(
             "GET", f"/projects/{self._pid(project_id)}/merge_requests", creds,

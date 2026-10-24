@@ -75,6 +75,16 @@ def build_sendgrid_definition() -> ConnectorDefinitionV1:
                 ["email"],
                 retryable=True, idempotency="idempotent",
             ),
+            "list_templates": _operation(
+                "list_templates", "List Templates", "List transactional templates.",
+                {"generations": {"type": "string", "title": "Generation (legacy/dynamic)", "default": "legacy"}},
+                [],
+            ),
+            "delete_contacts": _operation(
+                "delete_contacts", "Delete Contacts", "Delete marketing contacts by ID.",
+                {"ids": {"type": "array", "items": {"type": "string"}, "title": "Contact IDs"}},
+                ["ids"], retryable=False, idempotency="non_idempotent",
+            ),
             "get_stats": _operation(
                 "get_stats", "Get Delivery Stats", "Query delivery statistics, opens, clicks, and bounce rates.",
                 {
@@ -117,4 +127,12 @@ def build_sendgrid_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "send_mail", "list_contacts", "add_contact",
+                "list_templates", "delete_contacts", "get_stats",
+            ],
+            "auth": "API key",
+        },
+        icon="sendgrid",
     )

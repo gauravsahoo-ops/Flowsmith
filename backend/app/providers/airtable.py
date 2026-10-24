@@ -110,6 +110,21 @@ class AirtableProviderClient(BaseProviderClient):
                 break
         return {"records": records, "count": len(records)}
 
+    async def list_bases(self, creds: dict, timeout: float = 30.0) -> dict:
+        response = await self.request_airtable(
+            creds, "GET", "/meta/bases", timeout=timeout, what="list bases",
+        )
+        data = response.json()
+        bases = [
+            {
+                "id": base.get("id"),
+                "name": base.get("name"),
+                "permission_level": base.get("permissionLevel"),
+            }
+            for base in (data.get("bases") or [])
+        ]
+        return {"bases": bases, "count": len(bases)}
+
     async def get_record(self, creds: dict, base_id: str, table_name: str,
                          record_id: str, timeout: float = 30.0) -> dict:
         bid = _base_id(base_id)
@@ -150,3 +165,17 @@ class AirtableProviderClient(BaseProviderClient):
         )
         record = response.json()
         return {"record_id": record.get("id", ""), "fields": record.get("fields", {}), "success": True}
+
+    async def delete_record(self, creds: dict, base_id: str, table_name: str,
+                            record_id: str, timeout: float = 30.0) -> dict:
+        bid = _base_id(base_id)
+        tbl = self._table(table_name)
+        rid = str(record_id or "").strip()
+        if not _REC_RE.match(rid):
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "A record id looks like recXXXXXXXXXXXX.", retryable=False)
+        response = await self.request_airtable(
+            creds, "DELETE", f"/{bid}/{tbl}/{rid}", timeout=timeout, what="delete record",
+        )
+        data = response.json()
+        deleted = bool(data.get("deleted", True))
+        return {"record_id": data.get("id", rid), "deleted": deleted, "success": deleted}

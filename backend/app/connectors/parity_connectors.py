@@ -56,7 +56,16 @@ class ParityConnectorParams(BaseModel):
 
 
 class ParityConnector(ConnectorSDK):
-    """Universal clean-room connector implementation for parity integrations."""
+    """Catalog-only generic HTTP connector for reference-inventory integrations.
+
+    These connectors are deliberately *not* counted as native vendor
+    implementations. Execution requires an explicit ``endpoint_url``; without
+    one the connector raises ``CONNECTOR_NOT_CONFIGURED`` instead of returning
+    a fabricated success payload.
+    """
+
+    implementation_kind = "catalog_only"
+    requires_endpoint = True
 
     def __init__(
         self,
@@ -321,24 +330,20 @@ class ParityConnector(ConnectorSDK):
                     retryable=True,
                 ) from exc
 
-        # Standard normalized operation execution for sandbox / test runs
-        return {
-            "status": "success",
-            "connector_id": self.connector_id,
-            "operation": op,
-            "result": {
-                "id": f"{self.connector_id}_{op}_item_1",
-                "operation": op,
-                "parameters_applied": {k: v for k, v in raw_params.items() if not k.startswith("_") and k != "credentials"},
-                "pagination": {
-                    "limit": validated.limit,
-                    "offset": validated.offset,
-                    "page": validated.page,
-                    "cursor": validated.cursor or None,
-                },
-                "timestamp": "2026-10-13T04:30:00Z",
-            },
-        }
+        # Catalog-only connectors have no vendor-specific execution path. They
+        # may be used as a generic HTTP adapter only when the caller supplies an
+        # explicit endpoint. Never fabricate a success payload here: a silent
+        # fake success is worse than a clear configuration error.
+        raise make_connector_error(
+            ConnectorErrorCode.NOT_CONFIGURED,
+            (
+                f"{self.display_name} is a catalog-only connector and has no "
+                "vendor-specific execution implementation. Provide an "
+                "`endpoint_url` to use it as a generic HTTP connector, or use a "
+                "native connector."
+            ),
+            retryable=False,
+        )
 
 
 
@@ -455,13 +460,18 @@ def build_parity_definitions_and_connectors() -> list[tuple[ConnectorSDK, Connec
         definition = ConnectorDefinitionV1(
             connector_key=cid,
             display_name=disp,
-            description=f"Flowsmith native connector for {disp}.",
+            description=f"Flowsmith catalog connector for {disp}. Requires an explicit endpoint_url for execution.",
             category=cat,
             connector_version="1.0.0",
             lifecycle_status=ConnectorLifecycle.STABLE.value,
             operations=ops,
             triggers=trigs,
             credential_types=cred_types,
+            metadata={
+                "implementation": "catalog_only",
+                "requires_endpoint": True,
+                "provenance": "reference_inventory",
+            },
         )
 
         try:

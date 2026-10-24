@@ -52,6 +52,23 @@ def build_mailchimp_definition() -> ConnectorDefinitionV1:
                 "get_list", "Get Audience", "Fetch one audience by id.",
                 {"list_id": {"type": "string", "title": "Audience id"}}, ["list_id"],
             ),
+            "list_members": _operation(
+                "list_members", "List Contacts", "List contacts in an audience.",
+                {
+                    "list_id": {"type": "string", "title": "Audience id"},
+                    "limit": {"type": "integer", "title": "Limit"},
+                    "member_status": {"type": "string", "title": "Status filter (optional)"},
+                },
+                ["list_id"],
+            ),
+            "delete_member": _operation(
+                "delete_member", "Delete Contact", "Archive/delete a contact by email.",
+                {
+                    "list_id": {"type": "string", "title": "Audience id"},
+                    "email": {"type": "string", "title": "Email address"},
+                },
+                ["list_id", "email"], retryable=False, idempotency="non_idempotent",
+            ),
             "add_member": _operation(
                 "add_member", "Add Contact", "Add a contact to an audience.",
                 {
@@ -97,6 +114,12 @@ def build_mailchimp_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_lists", "get_list", "add_member", "get_member", "update_member"], "auth": "API key (Basic)"},
+        metadata={
+            "initial_operations": [
+                "list_lists", "get_list", "list_members", "delete_member",
+                "add_member", "get_member", "update_member",
+            ],
+            "auth": "API key (Basic)",
+        },
         icon="mailchimp",
     )

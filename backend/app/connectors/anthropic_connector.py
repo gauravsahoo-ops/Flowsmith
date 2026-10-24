@@ -21,6 +21,7 @@ class AnthropicConnectorParams(BaseModel):
     prompt: str = ""
     system: str = ""
     model: str = "claude-3-5-sonnet-20241022"
+    model_id: str = ""
     max_tokens: int = Field(default=1024, ge=1, le=8192)
     temperature: float = Field(default=0.7, ge=0.0, le=1.0)
     messages: list[dict[str, Any]] | None = None
@@ -76,6 +77,13 @@ class AnthropicConnector(ConnectorSDK):
             messages = [{"role": "user", "content": prompt}]
 
         try:
+            if op == "list_models":
+                return await self._provider.list_models(creds, timeout=timeout)
+            if op == "get_model":
+                return await self._provider.get_model(
+                    creds, str(raw.get("model_id") or params.model_id or model),
+                    timeout=timeout,
+                )
             if op == "generate_message":
                 if not messages:
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "Prompt or messages list is required.", retryable=False)

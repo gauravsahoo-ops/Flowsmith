@@ -69,6 +69,20 @@ def build_monday_definition() -> ConnectorDefinitionV1:
                 },
                 ["board_id", "item_name"], retryable=False, idempotency="non_idempotent",
             ),
+            "update_item": _operation(
+                "update_item", "Update Item Columns", "Update column values on an item.",
+                {
+                    "board_id": {"type": "string", "title": "Board id"},
+                    "item_id": {"type": "string", "title": "Item id"},
+                    "column_values": {"type": "object", "title": "Column values"},
+                },
+                ["board_id", "item_id", "column_values"], retryable=True,
+            ),
+            "delete_item": _operation(
+                "delete_item", "Delete Item", "Delete an item.",
+                {"item_id": {"type": "string", "title": "Item id"}}, ["item_id"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "add_update": _operation(
                 "add_update", "Add Update", "Comment on an item.",
                 {
@@ -93,6 +107,12 @@ def build_monday_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_boards", "get_board", "list_items", "create_item", "add_update"], "auth": "API token"},
+        metadata={
+            "initial_operations": [
+                "list_boards", "get_board", "list_items", "create_item",
+                "update_item", "delete_item", "add_update",
+            ],
+            "auth": "API token",
+        },
         icon="monday",
     )

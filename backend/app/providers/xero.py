@@ -164,6 +164,33 @@ class XeroProviderClient(BaseProviderClient):
     ) -> dict[str, Any]:
         return await self.request_xero(creds, "GET", "Contacts", params={"page": page}, timeout=timeout)
 
+    async def get_contact(
+        self,
+        creds: dict[str, Any],
+        contact_id: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(contact_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_contact needs a contact_id.", retryable=False)
+        return await self.request_xero(creds, "GET", f"Contacts/{contact_id}", timeout=timeout)
+
+    async def create_contact(
+        self,
+        creds: dict[str, Any],
+        name: str,
+        *,
+        email: Optional[str] = None,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(name or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "create_contact needs a name.", retryable=False)
+        contact: dict[str, Any] = {"Name": name}
+        if email:
+            contact["EmailAddress"] = email
+        return await self.request_xero(
+            creds, "POST", "Contacts", json_body={"Contacts": [contact]}, timeout=timeout,
+        )
+
     async def get_accounts(
         self,
         creds: dict[str, Any],

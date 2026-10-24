@@ -103,6 +103,19 @@ class TwilioProviderClient:
         items = data.get("messages", []) if isinstance(data, dict) else []
         return items if isinstance(items, list) else []
 
+    async def list_calls(self, creds: dict, limit: int = 20, timeout: float = 30.0) -> list:
+        data = await self._request(
+            "GET", "/Calls.json", creds,
+            params={"PageSize": max(1, min(int(limit or 20), 100))},
+            timeout=timeout, what="list calls",
+        )
+        items = data.get("calls", []) if isinstance(data, dict) else []
+        return items if isinstance(items, list) else []
+
+    async def get_account(self, creds: dict, timeout: float = 30.0) -> dict:
+        data = await self._request("GET", ".json", creds, timeout=timeout, what="get account")
+        return data if isinstance(data, dict) else {}
+
     async def get_message(self, creds: dict, message_sid: str, timeout: float = 30.0) -> dict:
         if not str(message_sid or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_message needs a message_sid.", retryable=False)

@@ -21,6 +21,7 @@ class DocuSignConnectorParams(BaseModel):
     envelope_id: str = ""
     email_subject: str = ""
     status: str = "sent"
+    void_reason: str = ""
     from_date: str = ""
     count: int = Field(default=25, ge=1, le=100)
     recipients: dict[str, Any] | None = None
@@ -97,6 +98,19 @@ class DocuSignConnector(ConnectorSDK):
 
             if op == "list_templates":
                 return await self._provider.list_templates(creds, count=count, timeout=timeout)
+
+            if op == "list_recipients":
+                if not envelope_id:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "envelope_id is required.", retryable=False)
+                return await self._provider.list_recipients(creds, envelope_id, timeout=timeout)
+
+            if op == "void_envelope":
+                if not envelope_id:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "envelope_id is required.", retryable=False)
+                return await self._provider.void_envelope(
+                    creds, envelope_id, str(raw.get("void_reason") or params.void_reason),
+                    timeout=timeout,
+                )
 
         except Exception as exc:
             from app.connectors import ConnectorError as _CE

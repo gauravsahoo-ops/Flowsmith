@@ -25,6 +25,7 @@ class BoxConnectorParams(BaseModel):
     query: str = ""
     content: str = ""
     type_filter: str = ""
+    recursive: bool = False
     limit: int = Field(default=100, ge=1, le=1000)
     offset: int = Field(default=0, ge=0)
     timeout_seconds: float = Field(default=60.0, ge=1, le=300)
@@ -98,6 +99,21 @@ class BoxConnector(ConnectorSDK):
                 if not file_id:
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "file_id is required for delete_file.", retryable=False)
                 return await self._provider.delete_file(creds, file_id, timeout=timeout)
+
+            if op == "delete_folder":
+                recursive = raw.get("recursive", params.recursive)
+                if isinstance(recursive, str):
+                    recursive = recursive.strip().lower() in ("1", "true", "yes", "on")
+                return await self._provider.delete_folder(
+                    creds, folder_id, recursive=bool(recursive), timeout=timeout,
+                )
+
+            if op == "copy_file":
+                if not file_id:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "file_id is required for copy_file.", retryable=False)
+                return await self._provider.copy_file(
+                    creds, file_id, parent_id=parent_id, name=name, timeout=timeout,
+                )
 
             if op == "search":
                 if not query:

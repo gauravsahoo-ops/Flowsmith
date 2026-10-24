@@ -21,6 +21,8 @@ class ServiceNowConnectorParams(BaseModel):
     table: str = ""
     sys_id: str = ""
     query: str = ""
+    comment: str = ""
+    work_note: bool = False
     fields: dict[str, Any] | None = None
     fields_csv: str = ""
     orderby: str = ""
@@ -82,6 +84,19 @@ class ServiceNowConnector(ConnectorSDK):
                     fields=fields_csv,
                     orderby=str(raw.get("orderby") or params.orderby or ""),
                     timeout=timeout)
+            if op == "list_users":
+                return await self._provider.list_users(
+                    creds, int(raw.get("limit") or params.limit), timeout=timeout)
+            if op == "add_comment":
+                work_note = raw.get("work_note", params.work_note)
+                if isinstance(work_note, str):
+                    work_note = work_note.strip().lower() in ("1", "true", "yes", "on")
+                return await self._provider.add_comment(
+                    creds, table, sys_id,
+                    str(raw.get("comment") or params.comment),
+                    work_note=bool(work_note),
+                    timeout=timeout,
+                )
             if op == "get_record":
                 return await self._provider.get_record(creds, table, sys_id, timeout=timeout)
             if op == "create_record":
@@ -110,4 +125,4 @@ class ServiceNowConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_records", "get_record", "create_record", "update_record", "delete_record"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_records", "list_users", "get_record", "create_record", "update_record", "add_comment", "delete_record"]}}

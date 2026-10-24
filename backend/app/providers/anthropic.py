@@ -95,6 +95,16 @@ class AnthropicProviderClient(BaseProviderClient):
         except Exception:
             return {"raw": resp.text, "status_code": resp.status_code}
 
+    async def list_models(self, creds: dict[str, Any], timeout: float = 30.0) -> dict[str, Any]:
+        return await self.request_anthropic(creds, "GET", "models", timeout=timeout)
+
+    async def get_model(
+        self, creds: dict[str, Any], model_id: str, timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(model_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_model needs a model_id.", retryable=False)
+        return await self.request_anthropic(creds, "GET", f"models/{model_id}", timeout=timeout)
+
     async def generate_message(
         self,
         creds: dict[str, Any],

@@ -26,6 +26,8 @@ class TrelloConnectorParams(BaseModel):
     list_id: str = ""
     name: str = ""
     desc: str = ""
+    due: str = ""
+    closed: bool | None = None
     text: str = ""
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
@@ -76,6 +78,28 @@ class TrelloConnector(ConnectorSDK):
             if op == "list_cards":
                 cards = await self._provider.list_cards(creds, str(raw.get("board_id") or params.board_id), timeout=timeout)
                 return {"cards": cards}
+            if op == "list_lists":
+                lists = await self._provider.list_lists(
+                    creds, str(raw.get("board_id") or params.board_id), timeout=timeout,
+                )
+                return {"lists": lists}
+            if op == "update_card":
+                fields: dict[str, Any] = {}
+                for key in ("name", "desc", "due"):
+                    value = raw.get(key) if raw.get(key) is not None else getattr(params, key)
+                    if value not in (None, ""):
+                        fields[key] = str(value)
+                list_id = raw.get("list_id") if raw.get("list_id") is not None else params.list_id
+                if list_id not in (None, ""):
+                    fields["idList"] = str(list_id)
+                closed = raw.get("closed") if raw.get("closed") is not None else params.closed
+                if isinstance(closed, str):
+                    closed = closed.strip().lower() in ("1", "true", "yes", "on")
+                if closed is not None:
+                    fields["closed"] = bool(closed)
+                return await self._provider.update_card(
+                    creds, str(raw.get("card_id") or params.card_id), fields, timeout=timeout,
+                )
             if op == "get_card":
                 return await self._provider.get_card(creds, str(raw.get("card_id") or params.card_id), timeout=timeout)
             if op == "create_card":
@@ -109,4 +133,4 @@ class TrelloConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_cards", "get_card", "create_card", "add_comment"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_cards", "list_lists", "get_card", "create_card", "update_card", "add_comment"]}}

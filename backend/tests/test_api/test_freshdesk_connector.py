@@ -131,4 +131,5 @@ def test_connector_dispatch_and_discovery():
                              {"credentials": {"freshdesk": {}}}))
     out = _run(conn.op_list())
     assert out["output"]["operations"] == [
-        "list_tickets", "get_ticket", "create_ticket", "update_ticket", "add_note"]
+        "list_tickets", "list_contacts", "get_ticket", "create_ticket",
+        "update_ticket", "delete_ticket", "add_note"]

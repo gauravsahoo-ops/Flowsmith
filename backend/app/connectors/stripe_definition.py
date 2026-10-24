@@ -149,6 +149,48 @@ def _stripe_operations() -> dict[str, ConnectorOperationV1]:
             retryable=True,
             idempotency="idempotent",
         ),
+        "update_customer": _operation(
+            "update_customer", "Update Customer",
+            "Update a Stripe customer's email, name, or metadata.",
+            {
+                "customer_id": {"type": "string", "title": "Customer ID"},
+                "email": {"type": "string", "title": "Email"},
+                "name": {"type": "string", "title": "Name"},
+                "metadata": {"type": "object", "title": "Metadata"},
+            },
+            ["customer_id"],
+            {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "email": {"type": "string"},
+                    "name": {"type": "string"},
+                    "success": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "list_payment_intents": _operation(
+            "list_payment_intents", "List Payment Intents",
+            "List PaymentIntents, optionally for one customer, with cursor pagination.",
+            {
+                "customer_id": {"type": "string", "title": "Customer ID"},
+                "limit": {"type": "integer", "default": 50, "minimum": 1, "maximum": 100},
+                "max_pages": {"type": "integer", "default": 3, "minimum": 1, "maximum": 10},
+            },
+            [],
+            {
+                "type": "object",
+                "properties": {
+                    "payment_intents": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                    "has_more": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
     }
 
 
@@ -188,7 +230,10 @@ def build_stripe_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_stripe_credential_type(),
         metadata={
-            "initial_operations": ["create_customer", "get_customer", "list_customers", "create_payment_intent"],
+            "initial_operations": [
+                "create_customer", "get_customer", "list_customers", "update_customer",
+                "create_payment_intent", "get_payment_intent", "list_payment_intents", "create_refund",
+            ],
             "auth": "secret key (Bearer)",
             "rate_limits": "429 + Retry-After honored",
             "retries": "writes carry execution-scoped Idempotency-Key",

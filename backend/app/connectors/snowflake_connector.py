@@ -113,6 +113,12 @@ class SnowflakeConnector(ConnectorSDK):
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "table_name is required for describe_table.", retryable=False)
                 return await self._provider.describe_table(creds, table_name, database=database, schema=schema, timeout=timeout)
 
+            if op == "list_databases":
+                return await self._provider.list_databases(creds, timeout=timeout)
+
+            if op == "list_schemas":
+                return await self._provider.list_schemas(creds, database=database, timeout=timeout)
+
             if op == "list_tables":
                 return await self._provider.list_tables(creds, database=database, schema=schema, timeout=timeout)
 

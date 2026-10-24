@@ -3,26 +3,31 @@ import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useCredentialStore } from '../stores/credentialStore'
+import { useWorkflowStore } from '../stores/workflowStore'
 import PageHeader from '../components/shared/PageHeader'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import EmptyState from '../components/shared/EmptyState'
 import { NodeIcon } from '../components/NodeIcons'
 import OpenApiImportModal from '../components/OpenApiImportModal'
+import ConnectorPacksModal from '../components/ConnectorPacksModal'
 import CoverageDashboard from '../components/CoverageDashboard'
 
 import { CATEGORIES, matchesCategory } from '../utils/connectorCategories'
+import { connectorSummaryText, summarizeConnectors } from '../utils/connectorStats'
 
 export default function IntegrationsPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const searchInputRef = useRef(null)
   const [connectors, setConnectors] = useState([])
+  const [nodeCount, setNodeCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [selectedConnector, setSelectedConnector] = useState(null)
   const [openApiModalOpen, setOpenApiModalOpen] = useState(false)
+  const [packsModalOpen, setPacksModalOpen] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [fullDetail, setFullDetail] = useState(null)
   const [mainTab, setMainTab] = useState('marketplace')
@@ -45,10 +50,21 @@ export default function IntegrationsPage() {
   }, [loadCredentials])
 
   useEffect(() => {
+    api
+      .listNodes()
+      .then((res) => {
+        const list = Array.isArray(res) ? res : (res && res.data) || []
+        setNodeCount(list.filter((node) => !node.is_connector).length)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setSelectedConnector(null)
         setOpenApiModalOpen(false)
+        setPacksModalOpen(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -72,6 +88,8 @@ export default function IntegrationsPage() {
     }
     return s
   }, [credentials])
+
+  const connectorSummary = useMemo(() => summarizeConnectors(connectors), [connectors])
 
   const categoryCounts = useMemo(() => {
     const counts = { all: connectors.length }
@@ -123,9 +141,25 @@ export default function IntegrationsPage() {
     <div className="page integrations-page" style={{ padding: '1.5rem', maxWidth: 1400, margin: '0 auto' }}>
       <PageHeader
         title="Integrations & Marketplace"
-        subtitle="Discover, configure, and connect 527+ enterprise integrations, APIs, and custom OpenAPI endpoints."
+        subtitle={
+          loading
+            ? 'Loading connector catalog…'
+            : `${connectorSummaryText(connectorSummary)} Catalog-only entries require an explicit endpoint URL.`
+        }
         actions={
           <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              className="ghost"
+              onClick={() => setPacksModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                <path d="m3.3 7 8.7 5 8.7-5" />
+                <path d="M12 22V12" />
+              </svg>
+              Connector Packs
+            </button>
             <button
               className="ghost"
               onClick={() => setOpenApiModalOpen(true)}
@@ -153,6 +187,37 @@ export default function IntegrationsPage() {
         }
       />
 
+      {!loading && !error && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            marginTop: '0.9rem',
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+          }}
+        >
+          <span className="badge" style={{ padding: '3px 8px', borderRadius: 6 }}>
+            {connectorSummary.total} registered names
+          </span>
+          {nodeCount > 0 && (
+            <span className="badge" style={{ padding: '3px 8px', borderRadius: 6, color: '#34d399' }}>
+              {nodeCount} built-in nodes
+            </span>
+          )}
+          <span className="badge" style={{ padding: '3px 8px', borderRadius: 6, color: '#60a5fa' }}>
+            {connectorSummary.native} native
+          </span>
+          <span className="badge" style={{ padding: '3px 8px', borderRadius: 6, color: '#a78bfa' }}>
+            {connectorSummary.generated} generated
+          </span>
+          <span className="badge" style={{ padding: '3px 8px', borderRadius: 6, color: '#fbbf24' }}>
+            {connectorSummary.catalogOnly} catalog-only
+          </span>
+        </div>
+      )}
+
       {/* Primary View Switcher */}
       <div style={{ display: 'flex', gap: '0.5rem', margin: '1.25rem 0 1rem 0', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
         <button
@@ -166,7 +231,7 @@ export default function IntegrationsPage() {
             <line x1="6" y1="6" x2="6.01" y2="6" />
             <line x1="6" y1="18" x2="6.01" y2="18" />
           </svg>
-          Connectors Directory ({connectors.length})
+          Connector Entries ({connectorSummary.total})
         </button>
         <button
           className={mainTab === 'coverage' ? 'primary' : 'ghost'}
@@ -183,7 +248,7 @@ export default function IntegrationsPage() {
       </div>
 
       {mainTab === 'coverage' ? (
-        <CoverageDashboard />
+        <CoverageDashboard connectorStats={connectorSummary} />
       ) : (
         <>
           {/* Filter Toolbar */}
@@ -605,6 +670,22 @@ export default function IntegrationsPage() {
           onClose={() => setOpenApiModalOpen(false)}
           onImportSuccess={() => {
             api.listConnectors().then((res) => setConnectors(Array.isArray(res) ? res : (res && res.data) || []))
+            api.listNodes().then((nodes) => {
+              if (Array.isArray(nodes)) useWorkflowStore.setState({ catalog: nodes })
+            }).catch(() => {})
+          }}
+        />
+      )}
+
+      {packsModalOpen && (
+        <ConnectorPacksModal
+          isOpen={packsModalOpen}
+          onClose={() => setPacksModalOpen(false)}
+          onInstalled={() => {
+            api.listConnectors().then((res) => setConnectors(Array.isArray(res) ? res : (res && res.data) || []))
+            api.listNodes().then((nodes) => {
+              if (Array.isArray(nodes)) useWorkflowStore.setState({ catalog: nodes })
+            }).catch(() => {})
           }}
         />
       )}

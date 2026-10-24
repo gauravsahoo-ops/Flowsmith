@@ -95,6 +95,18 @@ class QuickBooksProviderClient:
         return await self._request(creds, "POST", "/query", "query", body=query,
                                    content_type="application/text", timeout=timeout)
 
+    async def list_customers(self, creds: dict, limit: int = 25, timeout: float = 30.0) -> dict:
+        max_results = max(1, min(int(limit or 25), 1000))
+        return await self.query(
+            creds, f"select * from Customer maxresults {max_results}", timeout=timeout,
+        )
+
+    async def list_invoices(self, creds: dict, limit: int = 25, timeout: float = 30.0) -> dict:
+        max_results = max(1, min(int(limit or 25), 1000))
+        return await self.query(
+            creds, f"select * from Invoice maxresults {max_results}", timeout=timeout,
+        )
+
     async def get_company(self, creds: dict, timeout: float = 30.0) -> dict:
         _, _, realm_id = _auth(creds)
         return await self._request(creds, "GET", f"/companyinfo/{realm_id}", "get_company", timeout=timeout)

@@ -66,6 +66,62 @@ class DiscordProviderClient(BaseProviderClient):
         data = response.json()
         return {"message_id": data.get("id", ""), "channel_id": cid, "sent": True}
 
+    async def list_channels(self, creds: dict, guild_id: str,
+                            timeout: float = 30.0) -> dict:
+        gid = str(guild_id or "").strip()
+        if not gid or not gid.isdigit():
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=list_channels requires a numeric guild id.",
+                retryable=False,
+            )
+        response = await self.authorized_request(
+            creds=self._creds(creds), method="GET",
+            url=f"{DISCORD_API_BASE}/guilds/{gid}/channels",
+            private_token_field="bot_token", auth_scheme="Bot",
+            timeout=timeout, what="list channels",
+            extract_error_message=_extract_discord_error,
+        )
+        channels = [
+            {
+                "id": channel.get("id"),
+                "name": channel.get("name"),
+                "type": channel.get("type"),
+                "position": channel.get("position"),
+                "parent_id": channel.get("parent_id"),
+            }
+            for channel in response.json()
+        ]
+        return {"channels": channels, "count": len(channels)}
+
+    async def list_messages(self, creds: dict, channel_id: str, limit: int = 50,
+                            timeout: float = 30.0) -> dict:
+        cid = str(channel_id or "").strip()
+        if not cid or not cid.isdigit():
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=list_messages requires a numeric channel id.",
+                retryable=False,
+            )
+        response = await self.authorized_request(
+            creds=self._creds(creds), method="GET",
+            url=f"{DISCORD_API_BASE}/channels/{cid}/messages",
+            params={"limit": max(1, min(int(limit or 50), 100))},
+            private_token_field="bot_token", auth_scheme="Bot",
+            timeout=timeout, what="list messages",
+            extract_error_message=_extract_discord_error,
+        )
+        messages = [
+            {
+                "id": message.get("id"),
+                "content": message.get("content"),
+                "author": (message.get("author") or {}).get("username"),
+                "timestamp": message.get("timestamp"),
+            }
+            for message in response.json()
+        ]
+        return {"messages": messages, "count": len(messages)}
+
     async def send_webhook(self, webhook_url: str, content: str,
                            username: str = "", timeout: float = 30.0) -> dict:
         url = str(webhook_url or "").strip()

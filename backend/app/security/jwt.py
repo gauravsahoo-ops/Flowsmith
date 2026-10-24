@@ -110,10 +110,129 @@ def create_token(user_id: int, email: str | None = None) -> str:
     return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.jwt_algorithm)  # type: ignore[possibly-unbound]
 
 
-def decode_token(token: str) -> dict:
-    """Raise jwt.InvalidTokenError on bad/expired/revoked/signed-with-other-secret tokens."""
+def create_mfa_challenge_token(
+    user_id: int,
+    *,
+    remember_device: bool = False,
+    auto_renew: bool = True,
+) -> str:
+    """Issue a short-lived token that may ONLY be exchanged at /auth/mfa/verify."""
+    settings = get_settings()
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(user_id),
+        "purpose": "mfa",
+        "iat": int(now.timestamp()),
+        "exp": now + timedelta(minutes=5),
+        "jti": secrets.token_urlsafe(16),
+        "remember_device": bool(remember_device),
+        "auto_renew": bool(auto_renew),
+    }
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.jwt_algorithm)  # type: ignore[possibly-unbound]
+
+
+def create_mfa_enrollment_token(
+    user_id: int,
+    *,
+    remember_device: bool = False,
+    auto_renew: bool = True,
+    method: str = "password",
+) -> str:
+    """Issue a 10-minute token that may ONLY enroll TOTP after a policy login."""
+    settings = get_settings()
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(user_id),
+        "purpose": "mfa_enroll",
+        "iat": int(now.timestamp()),
+        "exp": now + timedelta(minutes=10),
+        "jti": secrets.token_urlsafe(16),
+        "remember_device": bool(remember_device),
+        "auto_renew": bool(auto_renew),
+        "method": method,
+    }
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.jwt_algorithm)  # type: ignore[possibly-unbound]
+
+
+def decode_mfa_challenge_token(token: str) -> dict:
+    data = decode_token(token, allow_purpose=True)
+    if data.get("purpose") != "mfa":
+        raise jwt.InvalidTokenError("Not an MFA challenge token.")
+    return data
+
+
+def decode_mfa_enrollment_token(token: str) -> dict:
+    data = decode_token(token, allow_purpose=True)
+    if data.get("purpose") != "mfa_enroll":
+        raise jwt.InvalidTokenError("Not an MFA enrollment token.")
+    return data
+
+
+def create_webauthn_challenge_token(
+    user_id: int,
+    challenge: bytes,
+    kind: str,
+    *,
+    remember_device: bool = False,
+    auto_renew: bool = True,
+    method: str = "password",
+) -> str:
+    if kind not in ("register", "authenticate"):
+        raise ValueError("Invalid WebAuthn challenge kind.")
+    settings = get_settings()
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(user_id),
+        "purpose": f"webauthn_{kind}",
+        "challenge": base64.urlsafe_b64encode(challenge).decode("ascii").rstrip("="),
+        "iat": int(now.timestamp()),
+        "exp": now + timedelta(minutes=5),
+        "jti": secrets.token_urlsafe(16),
+        "remember_device": bool(remember_device),
+        "auto_renew": bool(auto_renew),
+        "method": method,
+    }
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.jwt_algorithm)  # type: ignore[possibly-unbound]
+
+
+def decode_webauthn_challenge_token(token: str, kind: str) -> dict:
+    data = decode_token(token, allow_purpose=True)
+    if data.get("purpose") != f"webauthn_{kind}":
+        raise jwt.InvalidTokenError("Not a WebAuthn challenge token.")
+    return data
+
+
+def create_webauthn_conditional_token(challenge: bytes) -> str:
+    settings = get_settings()
+    now = datetime.now(UTC)
+    payload = {
+        "purpose": "webauthn_conditional",
+        "challenge": base64.urlsafe_b64encode(challenge).decode("ascii").rstrip("="),
+        "iat": int(now.timestamp()),
+        "exp": now + timedelta(minutes=5),
+        "jti": secrets.token_urlsafe(16),
+    }
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=settings.jwt_algorithm)  # type: ignore[possibly-unbound]
+
+
+def decode_webauthn_conditional_token(token: str) -> dict:
+    data = decode_token(token, allow_purpose=True)
+    if data.get("purpose") != "webauthn_conditional":
+        raise jwt.InvalidTokenError("Not a conditional WebAuthn token.")
+    return data
+
+
+def decode_token(token: str, *, allow_purpose: bool = False) -> dict:
+    """Raise jwt.InvalidTokenError on bad/expired/revoked/signed-with-other-secret tokens.
+
+    Purpose-scoped tokens (currently MFA challenges) are rejected by default
+    so every direct consumer - WebSockets, file downloads, session renewal,
+    and bearer auth - treats them as non-credentials.
+    """
     settings = get_settings()
     data = jwt.decode(token, _get_jwt_secret(), algorithms=[settings.jwt_algorithm])  # type: ignore[possibly-unbound]
+    if data.get("purpose") and not allow_purpose:
+        raise jwt.InvalidTokenError("Purpose-scoped token cannot be used as a credential.")
     # Check token revocation
     jti = data.get("jti")
     if jti and _is_token_revoked(jti):

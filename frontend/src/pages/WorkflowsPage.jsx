@@ -491,7 +491,7 @@ export default function WorkflowsPage() {
             icon="workflows"
             badge="Workspace Ready"
             title="Create your first automated workflow"
-            description="Build resilient multi-step pipelines connecting 527+ connectors, REST APIs, and autonomous AI agents."
+            description="Build resilient multi-step pipelines connecting native connectors, catalog-only HTTP adapters, REST APIs, and autonomous AI agents."
             guidance="Start with a blank canvas, create via AI Builder, or clone from pre-built production templates."
             highlights={[
               {
@@ -512,8 +512,8 @@ export default function WorkflowsPage() {
                 icon: (
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><rect x="8" y="8" width="8" height="8" rx="2"/></svg>
                 ),
-                title: '527+ Integrations',
-                desc: 'Native connectors for Slack, Salesforce, HubSpot, Stripe, OpenAI, and more.',
+                title: 'Connector Catalog',
+                desc: 'Native integrations for Slack, Salesforce, HubSpot, Stripe, OpenAI, plus catalog-only HTTP adapters.',
               },
             ]}
             action={<button className="primary" onClick={handleCreateBlank} disabled={busy}>Create blank workflow</button>}

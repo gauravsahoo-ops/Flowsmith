@@ -250,7 +250,7 @@ gantt
     section AI & Modernization
     ReAct Agents & Tri-Tier Memory  :done, 2026-08, 2026-09
     MCP Client & 68 Connectors      :done, 2026-09, 2026-09
-    Kubernetes Helm Charts & HA     :active, 2026-10, 2026-11
+    Kubernetes Helm Charts & HA     :done, 2026-10, 2026-10
 ```
 
 ### 7.2 Pre-Production Deployment Requirements (Immediate Action Items)
@@ -266,7 +266,7 @@ While the core software is complete and thoroughly tested, the following operati
 | **Production Mode Flag** | Set `APP_ENV=production` and `API_DOCS_ENABLED=false` to gate Swagger documentation in production. | DevOps | Config Ready |
 
 ### 7.3 High-Availability (HA) Scaling (Phase 2 Deployment)
-* **Kubernetes Helm Chart**: The platform currently runs via Docker Compose (`docker-compose.yml`); package worker fleet manifests into Kubernetes deployments for automated horizontal pod autoscaling (HPA) during peak loads.
+* **Kubernetes Helm Chart**: `deploy/helm/flowsmith` now packages the API, worker fleet, migration hook, optional pgvector PostgreSQL/Redis, ingress, HPA, and PDB. Use KEDA against the Redis queue for queue-depth worker scaling rather than CPU-only HPA. A published scale benchmark remains outstanding.
 * **Managed Database Multi-AZ Setup**: Point `DATABASE_URL` and `REDIS_URL` to managed cloud services (e.g., AWS Aurora PostgreSQL + ElastiCache) for automated multi-AZ replication and automated daily snapshots.
 
 ### 7.4 Recommended Next Steps

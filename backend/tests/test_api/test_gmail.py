@@ -6,7 +6,6 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -140,6 +139,79 @@ def test_taxonomy_429_retryable():
             loop.close()
     finally:
         patcher.stop()
+
+
+def test_list_messages_uses_query_and_page_token():
+    patcher, fake = _patch([
+        _json(200, {"access_token": "AT", "expires_in": 3600}),
+        _json(200, {"messages": [{"id": "m1"}], "nextPageToken": "p2", "resultSizeEstimate": 1}),
+    ])
+    try:
+        from app.providers.gmail import GmailProviderClient
+
+        out = asyncio.new_event_loop().run_until_complete(
+            GmailProviderClient().list_messages(
+                CREDS, query="is:unread", max_results=25, page_token="p1",
+            )
+        )
+    finally:
+        patcher.stop()
+
+    assert out["messages"] == [{"id": "m1"}]
+    assert out["next_page_token"] == "p2"
+    method, url, kwargs = fake.calls[1]
+    assert method == "GET"
+    assert url.endswith("/gmail/v1/users/me/messages")
+    assert kwargs["params"] == {"maxResults": 25, "q": "is:unread", "pageToken": "p1"}
+
+
+def test_get_message_requests_metadata_headers():
+    patcher, fake = _patch([
+        _json(200, {"access_token": "AT", "expires_in": 3600}),
+        _json(200, {"id": "m1", "threadId": "t1", "snippet": "hi", "labelIds": ["INBOX"]}),
+    ])
+    try:
+        from app.providers.gmail import GmailProviderClient
+
+        out = asyncio.new_event_loop().run_until_complete(
+            GmailProviderClient().get_message(CREDS, message_id="m1", format="metadata")
+        )
+    finally:
+        patcher.stop()
+
+    assert out["id"] == "m1" and out["thread_id"] == "t1"
+    method, url, kwargs = fake.calls[1]
+    assert method == "GET"
+    assert url.endswith("/gmail/v1/users/me/messages/m1")
+    assert kwargs["params"]["format"] == "metadata"
+    assert "Subject" in kwargs["params"]["metadataHeaders"]
+
+
+def test_gmail_definition_exposes_read_operations():
+    definition = get_registry().get_definition("gmail")
+    assert definition is not None
+    assert {"send", "list_messages", "get_message", "get_profile", "list_labels"} <= set(
+        definition.operations
+    )
+
+
+def test_connector_routes_list_messages(monkeypatch):
+    from app.connectors.gmail_connector import GmailConnector
+
+    conn = GmailConnector()
+
+    async def fake_list(creds, *, query="", max_results=10, page_token="", timeout=30.0):
+        return {"messages": [{"id": "m1"}], "count": 1, "next_page_token": ""}
+
+    monkeypatch.setattr(conn._provider, "list_messages", fake_list)
+    out = asyncio.new_event_loop().run_until_complete(
+        conn.op_execute(
+            "list_messages",
+            {"query": "is:unread", "max_results": 5},
+            {"credentials": {"gmail": CREDS}},
+        )
+    )
+    assert out["count"] == 1
 
 
 # ----------------------------------------------------------------------

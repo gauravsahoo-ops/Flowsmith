@@ -27,6 +27,7 @@ class QuickBooksConnectorParams(BaseModel):
     display_name: str = ""
     email: str = ""
     lines: str = ""
+    limit: int = Field(default=25, ge=1, le=1000)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
 
@@ -73,6 +74,12 @@ class QuickBooksConnector(ConnectorSDK):
                     creds, str(raw.get("query") or params.query), timeout=timeout)
             if op == "get_company":
                 return await self._provider.get_company(creds, timeout=timeout)
+            if op == "list_customers":
+                return await self._provider.list_customers(
+                    creds, int(raw.get("limit") or params.limit), timeout=timeout)
+            if op == "list_invoices":
+                return await self._provider.list_invoices(
+                    creds, int(raw.get("limit") or params.limit), timeout=timeout)
             if op == "create_customer":
                 return await self._provider.create_customer(
                     creds, str(raw.get("display_name") or params.display_name),
@@ -109,4 +116,4 @@ class QuickBooksConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["query", "get_company", "create_customer", "get_customer", "create_invoice", "get_invoice"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["query", "get_company", "list_customers", "list_invoices", "create_customer", "get_customer", "create_invoice", "get_invoice"]}}

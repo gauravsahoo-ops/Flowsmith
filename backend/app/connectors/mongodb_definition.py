@@ -124,6 +124,28 @@ def _mongodb_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"count": {"type": "integer"}, "database": {"type": "string"}, "collection": {"type": "string"}, "success": {"type": "boolean"}}},
             retryable=True,
         ),
+        "list_collections": _operation(
+            "list_collections", "List Collections",
+            "List collections in a MongoDB database.",
+            {"database": _DB},
+            ["database"],
+            {"type": "object", "properties": {"database": {"type": "string"}, "collections": {"type": "array", "items": {"type": "string"}}, "count": {"type": "integer"}}},
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "create_index": _operation(
+            "create_index", "Create Index",
+            "Create an index on a collection from a field-direction map.",
+            {
+                "database": _DB, "collection": _COLL,
+                "keys": {"type": "object", "title": "Keys", "description": "e.g. {\"email\": 1}"},
+                "unique": {"type": "boolean", "title": "Unique", "default": False},
+            },
+            ["database", "collection", "keys"],
+            {"type": "object", "properties": {"database": {"type": "string"}, "collection": {"type": "string"}, "index": {"type": "string"}, "success": {"type": "boolean"}}},
+            retryable=False,
+            idempotency="idempotent",
+        ),
     }
 
 
@@ -162,7 +184,10 @@ def build_mongodb_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_mongodb_credential_type(),
         metadata={
-            "initial_operations": ["find", "insert_one", "update_one", "delete_one", "aggregate", "count_documents"],
+            "initial_operations": [
+                "find", "insert_one", "update_one", "delete_one", "aggregate",
+                "count_documents", "list_collections", "create_index",
+            ],
             "auth": "connection URI stored encrypted",
         },
         icon="mongodb",

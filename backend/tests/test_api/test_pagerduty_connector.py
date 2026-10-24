@@ -103,5 +103,5 @@ def test_connector_dispatch_and_discovery():
                              {"credentials": {"pagerduty": {}}}))
     out = _run(conn.op_list())
     assert out["output"]["operations"] == [
-        "list_incidents", "get_incident", "create_incident",
-        "update_incident", "resolve_incident", "add_note"]
+        "list_incidents", "list_services", "get_incident", "create_incident",
+        "update_incident", "acknowledge_incident", "resolve_incident", "add_note"]

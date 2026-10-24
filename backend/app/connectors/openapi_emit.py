@@ -410,6 +410,18 @@ def emit_connector_files(
     }
 
 
+def invalidate_generated_modules(key: str) -> None:
+    """Drop cached generated modules so a replaced triple is re-imported."""
+    import sys
+
+    for suffix in ("provider", "definition", "connector"):
+        for name in (
+            f"app.connectors.generated.gen_{key}_{suffix}",
+            f"gen_{key}_{suffix}",
+        ):
+            sys.modules.pop(name, None)
+
+
 def discover_generated(directory: str) -> list[tuple[Any, Any]]:
     """Load generated connector pairs from a directory.
 

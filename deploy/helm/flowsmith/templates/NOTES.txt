@@ -1,0 +1,32 @@
+Flowsmith has been installed as {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+
+{{- if .Values.ingress.enabled }}
+Public URL:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else }}
+Access the app with:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "flowsmith.fullname" . }} 8080:{{ .Values.service.port }}
+  open http://127.0.0.1:8080
+{{- end }}
+
+Initial admin:
+  The first account can be created through the UI. If
+  secrets.registrationBootstrapToken was set, use it as the bootstrap token.
+
+Database migrations:
+  A pre-install/pre-upgrade Job runs `python -m app.scripts.migrate`.
+  Check it with:
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "flowsmith.fullname" . }}-migrate
+
+Workers:
+  {{ .Values.worker.replicaCount }} worker replica(s) are running. For queue-depth
+  autoscaling, use KEDA against the Redis queue rather than CPU-only HPA.
+
+Security:
+  - Store JWT and credential-encryption keys in an external secret manager.
+  - Use external PostgreSQL/Redis (postgresql.enabled=false/redis.enabled=false)
+    for production HA.
+  - For multiple app replicas, configure shared object storage; the bundled
+    local object store uses a single ReadWriteOnce volume.

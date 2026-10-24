@@ -84,6 +84,53 @@ def _msteams_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"channels": {"type": "array", "items": {"type": "object"}}}},
             retryable=True,
         ),
+        "list_channel_messages": _operation(
+            "list_channel_messages", "List Channel Messages",
+            "List recent messages in a Teams channel.",
+            {
+                "team_id": {"type": "string", "title": "Team id"},
+                "channel_id": {"type": "string", "title": "Channel id"},
+                "top": {"type": "integer", "title": "How many", "default": 20, "minimum": 1, "maximum": 50},
+            },
+            ["team_id", "channel_id"],
+            {"type": "object", "properties": {"messages": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}}},
+            retryable=True,
+        ),
+        "reply_to_message": _operation(
+            "reply_to_message", "Reply to Message",
+            "Reply in a thread under an existing channel message.",
+            {
+                "team_id": {"type": "string", "title": "Team id"},
+                "channel_id": {"type": "string", "title": "Channel id"},
+                "message_id": {"type": "string", "title": "Parent message id"},
+                "content": {"type": "string", "title": "Reply text"},
+            },
+            ["team_id", "channel_id", "message_id", "content"],
+            {"type": "object", "properties": {"message_id": {"type": "string"}, "success": {"type": "boolean"}}},
+            retryable=False,
+            idempotency="non_idempotent",
+        ),
+        "list_members": _operation(
+            "list_members", "List Team Members",
+            "List members of a team.",
+            {"team_id": {"type": "string", "title": "Team id"}},
+            ["team_id"],
+            {"type": "object", "properties": {"members": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}}},
+            retryable=True,
+        ),
+        "create_channel": _operation(
+            "create_channel", "Create Channel",
+            "Create a standard channel in a team.",
+            {
+                "team_id": {"type": "string", "title": "Team id"},
+                "display_name": {"type": "string", "title": "Channel name"},
+                "description": {"type": "string", "title": "Description"},
+            },
+            ["team_id", "display_name"],
+            {"type": "object", "properties": {"channel_id": {"type": "string"}, "display_name": {"type": "string"}}},
+            retryable=False,
+            idempotency="non_idempotent",
+        ),
     }
 
 
@@ -118,7 +165,7 @@ def build_msteams_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=MSTEAMS_CONNECTOR_KEY,
         display_name="Microsoft Teams",
-        description="Send messages and browse teams/channels via the Microsoft Graph API.",
+        description="Send/reply to messages and manage Teams teams, channels, and members via Microsoft Graph.",
         category="communication",
         connector_version=MSTEAMS_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
@@ -126,7 +173,10 @@ def build_msteams_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_microsoft_graph_credential_type(),
         metadata={
-            "initial_operations": ["send_message", "list_teams", "list_channels"],
+            "initial_operations": [
+                "send_message", "list_teams", "list_channels", "list_channel_messages",
+                "reply_to_message", "list_members", "create_channel",
+            ],
             "auth": "client-credentials app (microsoft_graph credential)",
         },
         icon="msteams",

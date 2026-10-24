@@ -48,9 +48,18 @@ def build_asana_definition() -> ConnectorDefinitionV1:
                 "list_tasks", "List Project Tasks", "List tasks in a project.",
                 {"project_id": {"type": "string", "title": "Project id"}}, ["project_id"],
             ),
+            "list_projects": _operation(
+                "list_projects", "List Projects", "List projects visible to the token, optionally scoped to a workspace.",
+                {"workspace_id": {"type": "string", "title": "Workspace id (optional)"}}, [],
+            ),
             "get_task": _operation(
                 "get_task", "Get Task", "Fetch one task by id.",
                 {"task_id": {"type": "string", "title": "Task id"}}, ["task_id"],
+            ),
+            "delete_task": _operation(
+                "delete_task", "Delete Task", "Delete a task by id.",
+                {"task_id": {"type": "string", "title": "Task id"}}, ["task_id"],
+                retryable=False, idempotency="non_idempotent",
             ),
             "create_task": _operation(
                 "create_task", "Create Task", "Create a task in a project.",
@@ -96,6 +105,12 @@ def build_asana_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_tasks", "get_task", "create_task", "update_task", "add_comment"], "auth": "PAT Bearer"},
+        metadata={
+            "initial_operations": [
+                "list_tasks", "list_projects", "get_task", "delete_task",
+                "create_task", "update_task", "add_comment",
+            ],
+            "auth": "PAT Bearer",
+        },
         icon="asana",
     )

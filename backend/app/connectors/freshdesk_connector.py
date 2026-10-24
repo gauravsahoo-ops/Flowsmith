@@ -76,6 +76,9 @@ class FreshdeskConnector(ConnectorSDK):
             if op == "list_tickets":
                 return await self._provider.list_tickets(
                     creds, int(_pick("limit", 25)), timeout=timeout)
+            if op == "list_contacts":
+                return await self._provider.list_contacts(
+                    creds, int(_pick("limit", 25)), timeout=timeout)
             if op == "get_ticket":
                 return await self._provider.get_ticket(
                     creds, str(_pick("ticket_id", "")), timeout=timeout)
@@ -89,6 +92,9 @@ class FreshdeskConnector(ConnectorSDK):
                           if v is not None}
                 return await self._provider.update_ticket(
                     creds, str(_pick("ticket_id", "")), fields, timeout=timeout)
+            if op == "delete_ticket":
+                return await self._provider.delete_ticket(
+                    creds, str(_pick("ticket_id", "")), timeout=timeout)
             if op == "add_note":
                 return await self._provider.add_note(
                     creds, str(_pick("ticket_id", "")),
@@ -109,4 +115,4 @@ class FreshdeskConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_tickets", "get_ticket", "create_ticket", "update_ticket", "add_note"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_tickets", "list_contacts", "get_ticket", "create_ticket", "update_ticket", "delete_ticket", "add_note"]}}

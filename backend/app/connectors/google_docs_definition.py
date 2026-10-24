@@ -61,6 +61,20 @@ def build_google_docs_definition() -> ConnectorDefinitionV1:
                 },
                 ["document_id", "text"], retryable=False, idempotency="non_idempotent",
             ),
+            "get_document_text": _operation(
+                "get_document_text", "Get Document Text", "Extract plain text from a document body.",
+                {"document_id": {"type": "string", "title": "Document id"}}, ["document_id"],
+            ),
+            "replace_text": _operation(
+                "replace_text", "Replace Text", "Replace all occurrences of text in a document.",
+                {
+                    "document_id": {"type": "string", "title": "Document id"},
+                    "text": {"type": "string", "title": "Text to find"},
+                    "replacement": {"type": "string", "title": "Replacement text"},
+                    "match_case": {"type": "boolean", "title": "Match case", "default": False},
+                },
+                ["document_id", "text"], retryable=False, idempotency="non_idempotent",
+            ),
             "batch_update": _operation(
                 "batch_update", "Batch Update", "Apply raw Docs API requests.",
                 {
@@ -89,6 +103,12 @@ def build_google_docs_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["get_document", "create_document", "append_text", "batch_update"], "auth": "OAuth2 (shared Google app)"},
+        metadata={
+            "initial_operations": [
+                "get_document", "get_document_text", "create_document",
+                "append_text", "replace_text", "batch_update",
+            ],
+            "auth": "OAuth2 (shared Google app)",
+        },
         icon="google_docs",
     )

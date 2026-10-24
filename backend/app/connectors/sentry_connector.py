@@ -111,6 +111,33 @@ class SentryConnector(ConnectorSDK, ConnectorOperations):
                     res.raise_for_status()
                     return res.json()
 
+                elif operation == "list_projects":
+                    if not org_slug:
+                        raise make_connector_error(
+                            ConnectorErrorCode.BAD_REQUEST,
+                            "list_projects needs organization_slug.",
+                            retryable=False,
+                        )
+                    res = await client.get(
+                        f"{base_url}/organizations/{org_slug}/projects/", headers=headers,
+                    )
+                    res.raise_for_status()
+                    return {"projects": res.json()}
+
+                elif operation == "list_events":
+                    issue_id = params.get("issue_id", "").strip()
+                    if not issue_id:
+                        raise make_connector_error(
+                            ConnectorErrorCode.BAD_REQUEST,
+                            "list_events needs issue_id.",
+                            retryable=False,
+                        )
+                    res = await client.get(
+                        f"{base_url}/issues/{issue_id}/events/", headers=headers,
+                    )
+                    res.raise_for_status()
+                    return {"events": res.json()}
+
                 elif operation == "health_check":
                     check = await self.op_health_check()
                     return check.model_dump()

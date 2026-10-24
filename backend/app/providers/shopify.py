@@ -174,6 +174,60 @@ class ShopifyProviderClient:
         out["success"] = True
         return out
 
+    async def list_orders(self, creds: dict, limit: int = 50, max_pages: int = 3,
+                          status: str = "any", timeout: float = 30.0) -> dict:
+        limit = min(max(int(limit or 50), 1), 250)
+        max_pages = min(max(int(max_pages or 1), 1), 10)
+        orders: list[dict] = []
+        params: dict[str, Any] = {"limit": limit, "status": status or "any"}
+        url = ""
+        for _ in range(max_pages):
+            response = await self.request_shopify(
+                creds, "GET", "/orders.json",
+                params=params if not url else None,
+                url_override=url,
+                timeout=timeout, what="list orders",
+            )
+            data = response.json()
+            orders.extend(self._order_summary(order) for order in data.get("orders", []))
+            url = next_link(response) or ""
+            if not url:
+                break
+        return {"orders": orders, "count": len(orders)}
+
+    @staticmethod
+    def _order_summary(order: dict) -> dict:
+        return {
+            "id": order.get("id"),
+            "name": order.get("name"),
+            "email": order.get("email"),
+            "total_price": order.get("total_price"),
+            "financial_status": order.get("financial_status"),
+            "fulfillment_status": order.get("fulfillment_status"),
+            "created_at": order.get("created_at"),
+        }
+
+    async def update_product(self, creds: dict, product_id: str, fields: dict,
+                             timeout: float = 30.0) -> dict:
+        pid = str(product_id or "").strip()
+        if not _ID_RE.match(pid):
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "A numeric product id is required.", retryable=False)
+        allowed = {
+            key: value
+            for key, value in (fields or {}).items()
+            if key in ("title", "body_html", "vendor", "status", "tags") and value is not None and value != ""
+        }
+        if not allowed:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_product needs at least one field to change.", retryable=False)
+        response = await self.request_shopify(
+            creds, "PUT", f"/products/{pid}.json", json_body={"product": allowed},
+            timeout=timeout, what="update product",
+        )
+        product = response.json().get("product") or {}
+        out = self._product_summary(product)
+        out["success"] = True
+        return out
+
     async def get_order(self, creds: dict, order_id: str, timeout: float = 30.0) -> dict:
         oid = str(order_id or "").strip()
         if not _ID_RE.match(oid):

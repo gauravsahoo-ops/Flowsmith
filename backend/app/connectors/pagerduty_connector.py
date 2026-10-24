@@ -71,6 +71,9 @@ class PagerDutyConnector(ConnectorSDK):
             if op == "list_incidents":
                 return await self._provider.list_incidents(
                     creds, int(raw.get("limit") or params.limit), timeout=timeout)
+            if op == "list_services":
+                return await self._provider.list_services(
+                    creds, int(raw.get("limit") or params.limit), timeout=timeout)
             if op == "get_incident":
                 return await self._provider.get_incident(
                     creds, str(raw.get("incident_id") or params.incident_id), timeout=timeout)
@@ -86,6 +89,9 @@ class PagerDutyConnector(ConnectorSDK):
                 fields = {k: v for k, v in fields.items() if v}
                 return await self._provider.update_incident(
                     creds, str(raw.get("incident_id") or params.incident_id), fields, timeout=timeout)
+            if op == "acknowledge_incident":
+                return await self._provider.acknowledge_incident(
+                    creds, str(raw.get("incident_id") or params.incident_id), timeout=timeout)
             if op == "resolve_incident":
                 return await self._provider.resolve_incident(
                     creds, str(raw.get("incident_id") or params.incident_id), timeout=timeout)
@@ -109,4 +115,4 @@ class PagerDutyConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_incidents", "get_incident", "create_incident", "update_incident", "resolve_incident", "add_note"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_incidents", "list_services", "get_incident", "create_incident", "update_incident", "acknowledge_incident", "resolve_incident", "add_note"]}}

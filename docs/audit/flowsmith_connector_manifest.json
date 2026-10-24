@@ -5,7 +5,7 @@
   "phase": "PHASE 4 \u2014 COMPLETE NODE AND CONNECTOR CERTIFICATION",
   "summary": {
     "total_registered_connectors": 528,
-    "total_connector_operations": 1505,
+    "total_connector_operations": 1630,
     "total_connector_triggers": 120,
     "distinct_credential_types": 405,
     "total_canonical_nodes": 71,
@@ -294,7 +294,7 @@
       "schema_hash": "sha256:0d1b9d2b494627c9",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_contacts": {
           "operation_key": "list_contacts",
@@ -334,6 +334,34 @@
             "first_name",
             "last_name",
             "phone"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "update_contact": {
+          "operation_key": "update_contact",
+          "display_name": "Update Contact",
+          "description": "Patch contact fields by ID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "activecampaign",
+          "input_schema_fields": [
+            "contact_id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_contact": {
+          "operation_key": "delete_contact",
+          "display_name": "Delete Contact",
+          "description": "Delete a contact by ID.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "activecampaign",
+          "input_schema_fields": [
+            "contact_id"
           ],
           "timeout_seconds": 30.0
         },
@@ -379,8 +407,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round7.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -983,7 +1010,7 @@
       "schema_hash": "sha256:ae0872dee5c58580",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 6,
       "operations": {
         "list_records": {
           "operation_key": "list_records",
@@ -1044,6 +1071,30 @@
             "table_name"
           ],
           "timeout_seconds": 30.0
+        },
+        "delete_record": {
+          "operation_key": "delete_record",
+          "display_name": "Delete Record",
+          "description": "Delete one record by id.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "airtable",
+          "input_schema_fields": [
+            "base_id",
+            "record_id",
+            "table_name"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_bases": {
+          "operation_key": "list_bases",
+          "display_name": "List Bases",
+          "description": "List Airtable bases visible to the personal access token.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "airtable",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -1061,7 +1112,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_airtable_connector.py"
+        "backend/tests/test_api/test_connector_depth_round4.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -1366,8 +1417,30 @@
       "schema_hash": "sha256:eaabb9100d33778f",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 2,
+      "operations_count": 4,
       "operations": {
+        "list_models": {
+          "operation_key": "list_models",
+          "display_name": "List Models",
+          "description": "List Claude models available to the API key.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "anthropic",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "get_model": {
+          "operation_key": "get_model",
+          "display_name": "Get Model",
+          "description": "Fetch metadata for a Claude model.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "anthropic",
+          "input_schema_fields": [
+            "model_id"
+          ],
+          "timeout_seconds": 30.0
+        },
         "generate_message": {
           "operation_key": "generate_message",
           "display_name": "Generate Message",
@@ -1413,8 +1486,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round10.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -1506,7 +1578,7 @@
       "schema_hash": "sha256:ad264b5bb63c36d9",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_tasks": {
           "operation_key": "list_tasks",
@@ -1520,12 +1592,36 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_projects": {
+          "operation_key": "list_projects",
+          "display_name": "List Projects",
+          "description": "List projects visible to the token, optionally scoped to a workspace.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "asana",
+          "input_schema_fields": [
+            "workspace_id"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_task": {
           "operation_key": "get_task",
           "display_name": "Get Task",
           "description": "Fetch one task by id.",
           "retryable": true,
           "idempotency": "idempotent",
+          "credential_require": "asana",
+          "input_schema_fields": [
+            "task_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_task": {
+          "operation_key": "delete_task",
+          "display_name": "Delete Task",
+          "description": "Delete a task by id.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
           "credential_require": "asana",
           "input_schema_fields": [
             "task_id"
@@ -1591,8 +1687,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round4.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -3536,7 +3631,7 @@
       "schema_hash": "sha256:d95e4f3a15a6c24a",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "query": {
           "operation_key": "query",
@@ -3576,6 +3671,32 @@
           "input_schema_fields": [
             "max_results",
             "page_token"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_dataset": {
+          "operation_key": "get_dataset",
+          "display_name": "Get Dataset",
+          "description": "Fetch dataset metadata by ID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "bigquery",
+          "input_schema_fields": [
+            "dataset_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "insert_rows": {
+          "operation_key": "insert_rows",
+          "display_name": "Insert Rows",
+          "description": "Stream rows into a BigQuery table.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "bigquery",
+          "input_schema_fields": [
+            "dataset_id",
+            "rows",
+            "table_id"
           ],
           "timeout_seconds": 30.0
         },
@@ -3622,8 +3743,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round7.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -3645,7 +3765,7 @@
       "schema_hash": "sha256:cf914198c9280ba0",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_repos": {
           "operation_key": "list_repos",
@@ -3668,6 +3788,36 @@
           "credential_require": "bitbucket",
           "input_schema_fields": [
             "repo_slug",
+            "workspace"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_branches": {
+          "operation_key": "list_branches",
+          "display_name": "List Branches",
+          "description": "List repository branches.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "bitbucket",
+          "input_schema_fields": [
+            "repo_slug",
+            "workspace"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_pull_request": {
+          "operation_key": "create_pull_request",
+          "display_name": "Create Pull Request",
+          "description": "Open a pull request from source into destination.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "bitbucket",
+          "input_schema_fields": [
+            "description",
+            "destination_branch",
+            "repo_slug",
+            "source_branch",
+            "title",
             "workspace"
           ],
           "timeout_seconds": 30.0
@@ -3730,8 +3880,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round7.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -4023,7 +4172,7 @@
       "schema_hash": "sha256:8e40bfa4c95bebce",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 6,
+      "operations_count": 8,
       "operations": {
         "list_folder_items": {
           "operation_key": "list_folder_items",
@@ -4073,6 +4222,33 @@
           "credential_require": "box",
           "input_schema_fields": [
             "file_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_folder": {
+          "operation_key": "delete_folder",
+          "display_name": "Delete Folder",
+          "description": "Delete a folder, optionally recursively.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "box",
+          "input_schema_fields": [
+            "folder_id",
+            "recursive"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "copy_file": {
+          "operation_key": "copy_file",
+          "display_name": "Copy File",
+          "description": "Copy a file to another folder.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "box",
+          "input_schema_fields": [
+            "file_id",
+            "name",
+            "parent_id"
           ],
           "timeout_seconds": 30.0
         },
@@ -4129,8 +4305,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round8.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -4339,7 +4514,7 @@
       "schema_hash": "sha256:ec5f74cc2dd06a88",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "send_email": {
           "operation_key": "send_email",
@@ -4393,6 +4568,30 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_lists": {
+          "operation_key": "list_lists",
+          "display_name": "List Lists",
+          "description": "List contact lists.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "brevo",
+          "input_schema_fields": [
+            "limit"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_contact": {
+          "operation_key": "delete_contact",
+          "display_name": "Delete Contact",
+          "description": "Delete a contact by email.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "brevo",
+          "input_schema_fields": [
+            "email"
+          ],
+          "timeout_seconds": 30.0
+        },
         "update_contact": {
           "operation_key": "update_contact",
           "display_name": "Update Contact",
@@ -4422,7 +4621,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_brevo_connector.py"
+        "backend/tests/test_api/test_connector_depth_round7.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -4683,7 +4882,7 @@
       "schema_hash": "sha256:4f45151f79b59fb8",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 6,
       "operations": {
         "list_event_types": {
           "operation_key": "list_event_types",
@@ -4707,6 +4906,32 @@
           "input_schema_fields": [
             "count",
             "user_uri"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_invitees": {
+          "operation_key": "list_invitees",
+          "display_name": "List Invitees",
+          "description": "List invitees for a scheduled event.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "calendly",
+          "input_schema_fields": [
+            "count",
+            "event_uuid"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_scheduling_link": {
+          "operation_key": "create_scheduling_link",
+          "display_name": "Create Scheduling Link",
+          "description": "Create a single-use scheduling link for an event type.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "calendly",
+          "input_schema_fields": [
+            "max_event_count",
+            "owner_uri"
           ],
           "timeout_seconds": 30.0
         },
@@ -4750,8 +4975,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -5669,7 +5893,7 @@
       "schema_hash": "sha256:9cd8039d3de1bf88",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_tasks": {
           "operation_key": "list_tasks",
@@ -5684,12 +5908,36 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_lists": {
+          "operation_key": "list_lists",
+          "display_name": "List Lists",
+          "description": "List lists in a space.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "clickup",
+          "input_schema_fields": [
+            "space_id"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_task": {
           "operation_key": "get_task",
           "display_name": "Get Task",
           "description": "Fetch one task by id.",
           "retryable": true,
           "idempotency": "idempotent",
+          "credential_require": "clickup",
+          "input_schema_fields": [
+            "task_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_task": {
+          "operation_key": "delete_task",
+          "display_name": "Delete Task",
+          "description": "Delete a task by id.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
           "credential_require": "clickup",
           "input_schema_fields": [
             "task_id"
@@ -5755,7 +6003,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_clickup_connector.py"
+        "backend/tests/test_api/test_connector_depth_round7.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -6013,7 +6261,7 @@
       "schema_hash": "sha256:d82c5a45ef96c2fe",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_docs": {
           "operation_key": "list_docs",
@@ -6068,6 +6316,35 @@
           ],
           "timeout_seconds": 30.0
         },
+        "update_row": {
+          "operation_key": "update_row",
+          "display_name": "Update Row",
+          "description": "Update one row in a Coda table.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "coda",
+          "input_schema_fields": [
+            "doc_id",
+            "row",
+            "row_id",
+            "table_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_row": {
+          "operation_key": "delete_row",
+          "display_name": "Delete Row",
+          "description": "Delete one row from a Coda table.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "coda",
+          "input_schema_fields": [
+            "doc_id",
+            "row_id",
+            "table_id"
+          ],
+          "timeout_seconds": 30.0
+        },
         "insert_rows": {
           "operation_key": "insert_rows",
           "display_name": "Insert Rows",
@@ -6098,8 +6375,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round7.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -9131,7 +9407,7 @@
       "schema_hash": "sha256:8e029e4d48b8b6a4",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 2,
+      "operations_count": 4,
       "operations": {
         "send_message": {
           "operation_key": "send_message",
@@ -9143,6 +9419,31 @@
           "input_schema_fields": [
             "channel_id",
             "content"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_channels": {
+          "operation_key": "list_channels",
+          "display_name": "List Guild Channels",
+          "description": "List channels in a Discord guild visible to the bot.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "discord",
+          "input_schema_fields": [
+            "guild_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_messages": {
+          "operation_key": "list_messages",
+          "display_name": "List Channel Messages",
+          "description": "List recent messages in a Discord channel.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "discord",
+          "input_schema_fields": [
+            "channel_id",
+            "limit"
           ],
           "timeout_seconds": 30.0
         },
@@ -9176,7 +9477,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_discord_connector.py"
+        "backend/tests/test_api/test_connector_depth_round4.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -9351,7 +9652,7 @@
       "schema_hash": "sha256:c46cafa46950ba1a",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 6,
       "operations": {
         "create_envelope": {
           "operation_key": "create_envelope",
@@ -9405,6 +9706,31 @@
             "count"
           ],
           "timeout_seconds": 30.0
+        },
+        "list_recipients": {
+          "operation_key": "list_recipients",
+          "display_name": "List Recipients",
+          "description": "List recipients and signing status for an envelope.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "docusign",
+          "input_schema_fields": [
+            "envelope_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "void_envelope": {
+          "operation_key": "void_envelope",
+          "display_name": "Void Envelope",
+          "description": "Void an in-flight envelope with a reason.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "docusign",
+          "input_schema_fields": [
+            "envelope_id",
+            "void_reason"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 1,
@@ -9430,8 +9756,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round8.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -9510,7 +9835,7 @@
       "schema_hash": "sha256:513167e7f8f3b85c",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_folder": {
           "operation_key": "list_folder",
@@ -9534,6 +9859,33 @@
           "credential_require": "dropbox",
           "input_schema_fields": [
             "path"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "search": {
+          "operation_key": "search",
+          "display_name": "Search Files",
+          "description": "Search Dropbox files and folders.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dropbox",
+          "input_schema_fields": [
+            "limit",
+            "path",
+            "query"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "move": {
+          "operation_key": "move",
+          "display_name": "Move File/Folder",
+          "description": "Move or rename a file or folder.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "dropbox",
+          "input_schema_fields": [
+            "from_path",
+            "to_path"
           ],
           "timeout_seconds": 30.0
         },
@@ -9590,7 +9942,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_dropbox_connector.py"
+        "backend/tests/test_api/test_connector_depth_round4.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -9815,7 +10167,7 @@
       "schema_hash": "sha256:074a7b37fedb4812",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 8,
+      "operations_count": 10,
       "operations": {
         "query": {
           "operation_key": "query",
@@ -9947,6 +10299,30 @@
             "timeout"
           ],
           "timeout_seconds": 30.0
+        },
+        "whoami": {
+          "operation_key": "whoami",
+          "display_name": "Who Am I",
+          "description": "Return the Dataverse user, business unit, and organization ids.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30
+        },
+        "list_tables": {
+          "operation_key": "list_tables",
+          "display_name": "List Tables",
+          "description": "List Dataverse entity definitions (logical name, display name, entity set).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "dynamics_crm",
+          "input_schema_fields": [
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30
         }
       },
       "triggers_count": 0,
@@ -9967,8 +10343,7 @@
       },
       "test_suite_coverage": [
         "backend/tests/test_dynamics_pagination.py",
-        "backend/tests/test_api/test_dynamics_connector.py",
-        "backend/tests/test_api/test_dynamics_oauth.py"
+        "backend/tests/test_api/test_connector_depth_round2.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -12739,12 +13114,24 @@
       "schema_hash": "sha256:b6891efa190c9ccd",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_tickets": {
           "operation_key": "list_tickets",
           "display_name": "List Tickets",
           "description": "List support tickets.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "freshdesk",
+          "input_schema_fields": [
+            "limit"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_contacts": {
+          "operation_key": "list_contacts",
+          "display_name": "List Contacts",
+          "description": "List Freshdesk contacts.",
           "retryable": true,
           "idempotency": "idempotent",
           "credential_require": "freshdesk",
@@ -12759,6 +13146,18 @@
           "description": "Fetch one ticket by id.",
           "retryable": true,
           "idempotency": "idempotent",
+          "credential_require": "freshdesk",
+          "input_schema_fields": [
+            "ticket_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_ticket": {
+          "operation_key": "delete_ticket",
+          "display_name": "Delete Ticket",
+          "description": "Delete a ticket by id.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
           "credential_require": "freshdesk",
           "input_schema_fields": [
             "ticket_id"
@@ -12823,7 +13222,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_freshdesk_connector.py"
+        "backend/tests/test_api/test_connector_depth_round6.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -12845,7 +13244,7 @@
       "schema_hash": "sha256:03bd1d27531e20be",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_contacts": {
           "operation_key": "list_contacts",
@@ -12884,6 +13283,35 @@
             "first_name",
             "last_name",
             "mobile_number"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "update_contact": {
+          "operation_key": "update_contact",
+          "display_name": "Update Contact",
+          "description": "Patch contact fields by ID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "freshsales",
+          "input_schema_fields": [
+            "contact_id",
+            "email",
+            "first_name",
+            "job_title",
+            "last_name",
+            "mobile_number"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_contact": {
+          "operation_key": "delete_contact",
+          "display_name": "Delete Contact",
+          "description": "Delete a contact by ID.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "freshsales",
+          "input_schema_fields": [
+            "contact_id"
           ],
           "timeout_seconds": 30.0
         },
@@ -12929,8 +13357,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round6.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -13899,7 +14326,7 @@
       "schema_hash": "sha256:44c22a0c7e53be8a",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 6,
+      "operations_count": 9,
       "operations": {
         "get_repo": {
           "operation_key": "get_repo",
@@ -13988,6 +14415,53 @@
             "repo"
           ],
           "timeout_seconds": 30.0
+        },
+        "list_branches": {
+          "operation_key": "list_branches",
+          "display_name": "List Branches",
+          "description": "List repository branches with pagination.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "github",
+          "input_schema_fields": [
+            "max_pages",
+            "owner",
+            "per_page",
+            "repo"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_file_contents": {
+          "operation_key": "get_file_contents",
+          "display_name": "Get File Contents",
+          "description": "Read a file (or list a directory) from a repository path.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "github",
+          "input_schema_fields": [
+            "owner",
+            "path",
+            "ref",
+            "repo"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_pull_request": {
+          "operation_key": "create_pull_request",
+          "display_name": "Create Pull Request",
+          "description": "Open a pull request from head into base.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "github",
+          "input_schema_fields": [
+            "base",
+            "body",
+            "head",
+            "owner",
+            "repo",
+            "title"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -14005,7 +14479,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_github_connector.py"
+        "backend/tests/test_api/test_connector_depth_round3.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -14131,7 +14605,7 @@
       "schema_hash": "sha256:81b06c1804c47cf4",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_issues": {
           "operation_key": "list_issues",
@@ -14186,6 +14660,34 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_branches": {
+          "operation_key": "list_branches",
+          "display_name": "List Branches",
+          "description": "List repository branches.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "gitlab",
+          "input_schema_fields": [
+            "project_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_merge_request": {
+          "operation_key": "create_merge_request",
+          "display_name": "Create Merge Request",
+          "description": "Open a merge request from source into target.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "gitlab",
+          "input_schema_fields": [
+            "description",
+            "project_id",
+            "source_branch",
+            "target_branch",
+            "title"
+          ],
+          "timeout_seconds": 30.0
+        },
         "list_merge_requests": {
           "operation_key": "list_merge_requests",
           "display_name": "List Merge Requests",
@@ -14214,8 +14716,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -14354,7 +14855,7 @@
       "schema_hash": "sha256:9121979e7711a075",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 5,
       "operations": {
         "send": {
           "operation_key": "send",
@@ -14372,6 +14873,53 @@
             "timeout_seconds",
             "to"
           ],
+          "timeout_seconds": 30
+        },
+        "list_messages": {
+          "operation_key": "list_messages",
+          "display_name": "List Messages",
+          "description": "Search/list Gmail message ids. Requires the gmail.readonly scope.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "gmail",
+          "input_schema_fields": [
+            "max_results",
+            "page_token",
+            "query"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_message": {
+          "operation_key": "get_message",
+          "display_name": "Get Message",
+          "description": "Fetch one Gmail message's metadata or full payload. Requires gmail.readonly.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "gmail",
+          "input_schema_fields": [
+            "format",
+            "message_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_profile": {
+          "operation_key": "get_profile",
+          "display_name": "Get Profile",
+          "description": "Return the connected mailbox profile. Requires gmail.readonly.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "gmail",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "list_labels": {
+          "operation_key": "list_labels",
+          "display_name": "List Labels",
+          "description": "List Gmail labels. Requires gmail.readonly.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "gmail",
+          "input_schema_fields": [],
           "timeout_seconds": 30.0
         }
       },
@@ -14390,8 +14938,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_gmail.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -15046,7 +15593,7 @@
       "schema_hash": "sha256:a0d7a7028ce207b9",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 6,
       "operations": {
         "list_events": {
           "operation_key": "list_events",
@@ -15062,7 +15609,7 @@
             "time_min",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "get_event": {
           "operation_key": "get_event",
@@ -15076,7 +15623,7 @@
             "event_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "create_event": {
           "operation_key": "create_event",
@@ -15090,7 +15637,7 @@
             "event",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "update_event": {
           "operation_key": "update_event",
@@ -15105,7 +15652,7 @@
             "event_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "delete_event": {
           "operation_key": "delete_event",
@@ -15119,7 +15666,19 @@
             "event_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
+        },
+        "list_calendars": {
+          "operation_key": "list_calendars",
+          "display_name": "List Calendars",
+          "description": "List calendars available to the connected account.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_calendar",
+          "input_schema_fields": [
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30
         }
       },
       "triggers_count": 0,
@@ -15137,8 +15696,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round2.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -15505,7 +16063,7 @@
       "schema_hash": "sha256:8e3651f4e8ea8dd2",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 6,
       "operations": {
         "get_document": {
           "operation_key": "get_document",
@@ -15544,6 +16102,33 @@
           ],
           "timeout_seconds": 30.0
         },
+        "get_document_text": {
+          "operation_key": "get_document_text",
+          "display_name": "Get Document Text",
+          "description": "Extract plain text from a document body.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_docs",
+          "input_schema_fields": [
+            "document_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "replace_text": {
+          "operation_key": "replace_text",
+          "display_name": "Replace Text",
+          "description": "Replace all occurrences of text in a document.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_docs",
+          "input_schema_fields": [
+            "document_id",
+            "match_case",
+            "replacement",
+            "text"
+          ],
+          "timeout_seconds": 30.0
+        },
         "batch_update": {
           "operation_key": "batch_update",
           "display_name": "Batch Update",
@@ -15573,8 +16158,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -15596,7 +16180,7 @@
       "schema_hash": "sha256:d3ff577b3b39145e",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 3,
+      "operations_count": 5,
       "operations": {
         "list_files": {
           "operation_key": "list_files",
@@ -15612,7 +16196,7 @@
             "query_extra",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "upload_file": {
           "operation_key": "upload_file",
@@ -15629,7 +16213,7 @@
             "name",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "get_file": {
           "operation_key": "get_file",
@@ -15642,7 +16226,34 @@
             "file_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
+        },
+        "delete_file": {
+          "operation_key": "delete_file",
+          "display_name": "Delete File",
+          "description": "Delete one Drive file by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "google_drive",
+          "input_schema_fields": [
+            "file_id",
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30
+        },
+        "create_folder": {
+          "operation_key": "create_folder",
+          "display_name": "Create Folder",
+          "description": "Create a Drive folder, optionally under a parent folder.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_drive",
+          "input_schema_fields": [
+            "name",
+            "parent_id",
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30
         }
       },
       "triggers_count": 0,
@@ -15660,8 +16271,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round2.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -16036,7 +16646,7 @@
       "schema_hash": "sha256:7f02cd5300ecfafb",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 6,
       "operations": {
         "read": {
           "operation_key": "read",
@@ -16050,7 +16660,7 @@
             "spreadsheet_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "append": {
           "operation_key": "append",
@@ -16065,7 +16675,7 @@
             "timeout_seconds",
             "values"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "update": {
           "operation_key": "update",
@@ -16080,7 +16690,7 @@
             "timeout_seconds",
             "values"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "clear": {
           "operation_key": "clear",
@@ -16094,7 +16704,7 @@
             "spreadsheet_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "get_info": {
           "operation_key": "get_info",
@@ -16107,7 +16717,20 @@
             "spreadsheet_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
+        },
+        "create_spreadsheet": {
+          "operation_key": "create_spreadsheet",
+          "display_name": "Create Spreadsheet",
+          "description": "Create a new Google Sheets spreadsheet.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "google_sheets",
+          "input_schema_fields": [
+            "timeout_seconds",
+            "title"
+          ],
+          "timeout_seconds": 30
         }
       },
       "triggers_count": 0,
@@ -16125,8 +16748,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round2.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -18368,7 +18990,7 @@
       "schema_hash": "sha256:073232a2d148ca71",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 8,
+      "operations_count": 10,
       "operations": {
         "search": {
           "operation_key": "search",
@@ -18387,7 +19009,7 @@
             "search_value",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "list": {
           "operation_key": "list",
@@ -18406,7 +19028,7 @@
             "return_all",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "get": {
           "operation_key": "get",
@@ -18420,7 +19042,7 @@
             "record_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "create": {
           "operation_key": "create",
@@ -18434,7 +19056,7 @@
             "properties",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "update": {
           "operation_key": "update",
@@ -18449,7 +19071,7 @@
             "record_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "delete": {
           "operation_key": "delete",
@@ -18463,7 +19085,7 @@
             "record_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "get_properties": {
           "operation_key": "get_properties",
@@ -18476,7 +19098,7 @@
             "object_type",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "associate_records": {
           "operation_key": "associate_records",
@@ -18493,7 +19115,33 @@
             "to_object_type",
             "to_record_id"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
+        },
+        "get_owner": {
+          "operation_key": "get_owner",
+          "display_name": "Get Owner",
+          "description": "Fetch a HubSpot owner (user) by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "hubspot",
+          "input_schema_fields": [
+            "owner_id",
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30
+        },
+        "list_pipelines": {
+          "operation_key": "list_pipelines",
+          "display_name": "List Pipelines",
+          "description": "List deal or ticket pipelines and their stages.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "hubspot",
+          "input_schema_fields": [
+            "object_type",
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30
         }
       },
       "triggers_count": 0,
@@ -18512,7 +19160,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_hubspot_connector.py"
+        "backend/tests/test_hubspot_pagination.py",
+        "backend/tests/test_api/test_connector_depth_round2.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -19032,7 +19681,7 @@
       "schema_hash": "sha256:d7bc08d3ff5e2fb8",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 6,
+      "operations_count": 8,
       "operations": {
         "list_conversations": {
           "operation_key": "list_conversations",
@@ -19100,6 +19749,34 @@
           ],
           "timeout_seconds": 30.0
         },
+        "update_contact": {
+          "operation_key": "update_contact",
+          "display_name": "Update Contact",
+          "description": "Patch a contact's name, email, role, or attributes.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "intercom",
+          "input_schema_fields": [
+            "contact_id",
+            "custom_attributes",
+            "email",
+            "name",
+            "role"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_contact": {
+          "operation_key": "delete_contact",
+          "display_name": "Delete Contact",
+          "description": "Delete a contact by ID.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "intercom",
+          "input_schema_fields": [
+            "contact_id"
+          ],
+          "timeout_seconds": 30.0
+        },
         "search_contacts": {
           "operation_key": "search_contacts",
           "display_name": "Search Contacts",
@@ -19138,8 +19815,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round8.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -19732,7 +20408,7 @@
       "schema_hash": "sha256:075edba82cdf8102",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 6,
+      "operations_count": 9,
       "operations": {
         "search": {
           "operation_key": "search",
@@ -19813,6 +20489,41 @@
           "credential_require": "jira",
           "input_schema_fields": [],
           "timeout_seconds": 30.0
+        },
+        "get_myself": {
+          "operation_key": "get_myself",
+          "display_name": "Get Current User",
+          "description": "Return the Jira account and timezone for the connected credentials.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "jira",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "list_transitions": {
+          "operation_key": "list_transitions",
+          "display_name": "List Transitions",
+          "description": "List workflow transitions available for an issue.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "jira",
+          "input_schema_fields": [
+            "issue_key"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "transition_issue": {
+          "operation_key": "transition_issue",
+          "display_name": "Transition Issue",
+          "description": "Move an issue through a workflow transition.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "jira",
+          "input_schema_fields": [
+            "issue_key",
+            "transition_id"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -19830,7 +20541,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_jira_connector.py"
+        "backend/tests/test_api/test_connector_depth_round3.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -20990,8 +21701,18 @@
       "schema_hash": "sha256:069e4708a1ab8a1d",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
+        "list_teams": {
+          "operation_key": "list_teams",
+          "display_name": "List Teams",
+          "description": "List Linear teams.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "linear",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
         "list_issues": {
           "operation_key": "list_issues",
           "display_name": "List Team Issues",
@@ -21045,6 +21766,18 @@
           ],
           "timeout_seconds": 30.0
         },
+        "delete_issue": {
+          "operation_key": "delete_issue",
+          "display_name": "Delete Issue",
+          "description": "Delete an issue.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "linear",
+          "input_schema_fields": [
+            "issue_id"
+          ],
+          "timeout_seconds": 30.0
+        },
         "add_comment": {
           "operation_key": "add_comment",
           "display_name": "Add Comment",
@@ -21074,8 +21807,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -21917,7 +22649,7 @@
       "schema_hash": "sha256:8f307b65c70c2c65",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_lists": {
           "operation_key": "list_lists",
@@ -21939,6 +22671,33 @@
           "idempotency": "idempotent",
           "credential_require": "mailchimp",
           "input_schema_fields": [
+            "list_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_members": {
+          "operation_key": "list_members",
+          "display_name": "List Contacts",
+          "description": "List contacts in an audience.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mailchimp",
+          "input_schema_fields": [
+            "limit",
+            "list_id",
+            "member_status"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_member": {
+          "operation_key": "delete_member",
+          "display_name": "Delete Contact",
+          "description": "Archive/delete a contact by email.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "mailchimp",
+          "input_schema_fields": [
+            "email",
             "list_id"
           ],
           "timeout_seconds": 30.0
@@ -22000,7 +22759,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_mailchimp_connector.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -25042,7 +25801,7 @@
       "schema_hash": "sha256:f202953b681c3c2a",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_boards": {
           "operation_key": "list_boards",
@@ -25095,6 +25854,32 @@
           ],
           "timeout_seconds": 30.0
         },
+        "update_item": {
+          "operation_key": "update_item",
+          "display_name": "Update Item Columns",
+          "description": "Update column values on an item.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "monday",
+          "input_schema_fields": [
+            "board_id",
+            "column_values",
+            "item_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_item": {
+          "operation_key": "delete_item",
+          "display_name": "Delete Item",
+          "description": "Delete an item.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "monday",
+          "input_schema_fields": [
+            "item_id"
+          ],
+          "timeout_seconds": 30.0
+        },
         "add_update": {
           "operation_key": "add_update",
           "display_name": "Add Update",
@@ -25124,7 +25909,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_monday_connector.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -25260,7 +26045,7 @@
       "schema_hash": "sha256:25a8f0e38036dd63",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 6,
+      "operations_count": 8,
       "operations": {
         "find": {
           "operation_key": "find",
@@ -25348,6 +26133,33 @@
             "filter"
           ],
           "timeout_seconds": 30.0
+        },
+        "list_collections": {
+          "operation_key": "list_collections",
+          "display_name": "List Collections",
+          "description": "List collections in a MongoDB database.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mongodb",
+          "input_schema_fields": [
+            "database"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_index": {
+          "operation_key": "create_index",
+          "display_name": "Create Index",
+          "description": "Create an index on a collection from a field-direction map.",
+          "retryable": false,
+          "idempotency": "idempotent",
+          "credential_require": "mongodb",
+          "input_schema_fields": [
+            "collection",
+            "database",
+            "keys",
+            "unique"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -25365,7 +26177,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_mongodb_connector.py"
+        "backend/tests/test_api/test_connector_depth_round3.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -25813,7 +26625,7 @@
       "schema_hash": "sha256:c77fbdd50f6da428",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 3,
+      "operations_count": 7,
       "operations": {
         "send_message": {
           "operation_key": "send_message",
@@ -25851,6 +26663,61 @@
             "team_id"
           ],
           "timeout_seconds": 30.0
+        },
+        "list_channel_messages": {
+          "operation_key": "list_channel_messages",
+          "display_name": "List Channel Messages",
+          "description": "List recent messages in a Teams channel.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "channel_id",
+            "team_id",
+            "top"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "reply_to_message": {
+          "operation_key": "reply_to_message",
+          "display_name": "Reply to Message",
+          "description": "Reply in a thread under an existing channel message.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "channel_id",
+            "content",
+            "message_id",
+            "team_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_members": {
+          "operation_key": "list_members",
+          "display_name": "List Team Members",
+          "description": "List members of a team.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "team_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_channel": {
+          "operation_key": "create_channel",
+          "display_name": "Create Channel",
+          "description": "Create a standard channel in a team.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "description",
+            "display_name",
+            "team_id"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -25868,8 +26735,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_microsoft_graph_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -25948,7 +26814,7 @@
       "schema_hash": "sha256:aab92a9be2f253ae",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 5,
       "operations": {
         "query": {
           "operation_key": "query",
@@ -25999,6 +26865,19 @@
           "credential_require": "mysql",
           "input_schema_fields": [],
           "timeout_seconds": 30.0
+        },
+        "describe_table": {
+          "operation_key": "describe_table",
+          "display_name": "Describe Table",
+          "description": "Inspect columns, primary keys, foreign keys, and indexes for a table.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "mysql",
+          "input_schema_fields": [
+            "schema",
+            "table"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -26016,7 +26895,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_mysql_connector.py"
+        "backend/tests/test_api/test_connector_depth_round3.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -27029,7 +27908,7 @@
       "schema_hash": "sha256:243105e64a8b3ed1",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "query_database": {
           "operation_key": "query_database",
@@ -27097,6 +27976,34 @@
             "children"
           ],
           "timeout_seconds": 30.0
+        },
+        "search": {
+          "operation_key": "search",
+          "display_name": "Search",
+          "description": "Search pages and databases shared with the integration.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "notion",
+          "input_schema_fields": [
+            "max_pages",
+            "page_size",
+            "query"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_block_children": {
+          "operation_key": "get_block_children",
+          "display_name": "Get Block Children",
+          "description": "List child blocks of a page or block with pagination.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "notion",
+          "input_schema_fields": [
+            "block_id",
+            "max_pages",
+            "page_size"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -27114,7 +28021,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_notion_connector.py"
+        "backend/tests/test_api/test_connector_depth_round3.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -28602,7 +29509,7 @@
       "schema_hash": "sha256:6a2f9ca49d53a545",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 3,
+      "operations_count": 5,
       "operations": {
         "list_models": {
           "operation_key": "list_models",
@@ -28612,6 +29519,31 @@
           "idempotency": "idempotent",
           "credential_require": "openai",
           "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "create_image": {
+          "operation_key": "create_image",
+          "display_name": "Create Image",
+          "description": "Generate an image from a prompt.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "openai",
+          "input_schema_fields": [
+            "image_size",
+            "prompt"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_files": {
+          "operation_key": "list_files",
+          "display_name": "List Files",
+          "description": "List uploaded files.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "openai",
+          "input_schema_fields": [
+            "purpose"
+          ],
           "timeout_seconds": 30.0
         },
         "create_embedding": {
@@ -28657,7 +29589,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_openai_connector.py"
+        "backend/tests/test_api/test_connector_depth_round10.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -28912,7 +29844,7 @@
       "schema_hash": "sha256:716d37cf762f6092",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 2,
+      "operations_count": 7,
       "operations": {
         "send": {
           "operation_key": "send",
@@ -28942,6 +29874,66 @@
             "top"
           ],
           "timeout_seconds": 30.0
+        },
+        "get_message": {
+          "operation_key": "get_message",
+          "display_name": "Get Message",
+          "description": "Fetch one Outlook message with recipients, body, read state, and web link.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "message_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_folders": {
+          "operation_key": "list_folders",
+          "display_name": "List Folders",
+          "description": "List mail folders with total and unread counts.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "mark_read": {
+          "operation_key": "mark_read",
+          "display_name": "Mark Read/Unread",
+          "description": "Set the isRead flag on one message.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "is_read",
+            "message_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "move_message": {
+          "operation_key": "move_message",
+          "display_name": "Move Message",
+          "description": "Move a message to another mail folder.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "destination_id",
+            "message_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_message": {
+          "operation_key": "delete_message",
+          "display_name": "Delete Message",
+          "description": "Delete one message.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "microsoft_graph",
+          "input_schema_fields": [
+            "message_id"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -28959,8 +29951,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_microsoft_graph_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -29153,7 +30144,7 @@
       "schema_hash": "sha256:363f6148de82ce02",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 6,
+      "operations_count": 8,
       "operations": {
         "list_incidents": {
           "operation_key": "list_incidents",
@@ -29167,10 +30158,34 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_services": {
+          "operation_key": "list_services",
+          "display_name": "List Services",
+          "description": "List PagerDuty services.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pagerduty",
+          "input_schema_fields": [
+            "limit"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_incident": {
           "operation_key": "get_incident",
           "display_name": "Get Incident",
           "description": "Fetch one incident by id.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pagerduty",
+          "input_schema_fields": [
+            "incident_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "acknowledge_incident": {
+          "operation_key": "acknowledge_incident",
+          "display_name": "Acknowledge Incident",
+          "description": "Mark an incident acknowledged.",
           "retryable": true,
           "idempotency": "idempotent",
           "credential_require": "pagerduty",
@@ -29249,7 +30264,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_pagerduty_connector.py"
+        "backend/tests/test_api/test_connector_depth_round8.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -29691,7 +30706,7 @@
       "schema_hash": "sha256:6615d1f35002a120",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 3,
+      "operations_count": 5,
       "operations": {
         "upsert_vectors": {
           "operation_key": "upsert_vectors",
@@ -29723,6 +30738,31 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_indexes": {
+          "operation_key": "list_indexes",
+          "display_name": "List Indexes",
+          "description": "List Pinecone indexes in the project.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pinecone",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "delete_vectors": {
+          "operation_key": "delete_vectors",
+          "display_name": "Delete Vectors",
+          "description": "Delete vectors by ID or clear a namespace.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "pinecone",
+          "input_schema_fields": [
+            "delete_all",
+            "host",
+            "ids",
+            "namespace"
+          ],
+          "timeout_seconds": 30.0
+        },
         "describe_index_stats": {
           "operation_key": "describe_index_stats",
           "display_name": "Describe Index Stats",
@@ -29751,8 +30791,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round10.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -29774,12 +30813,24 @@
       "schema_hash": "sha256:6d2f84b69adb2216",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_deals": {
           "operation_key": "list_deals",
           "display_name": "List Deals",
           "description": "List deals in the pipeline.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "pipedrive",
+          "input_schema_fields": [
+            "limit"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_persons": {
+          "operation_key": "list_persons",
+          "display_name": "List Persons",
+          "description": "List people in Pipedrive.",
           "retryable": true,
           "idempotency": "idempotent",
           "credential_require": "pipedrive",
@@ -29794,6 +30845,18 @@
           "description": "Fetch one deal by id.",
           "retryable": true,
           "idempotency": "idempotent",
+          "credential_require": "pipedrive",
+          "input_schema_fields": [
+            "deal_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_deal": {
+          "operation_key": "delete_deal",
+          "display_name": "Delete Deal",
+          "description": "Delete a deal by id.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
           "credential_require": "pipedrive",
           "input_schema_fields": [
             "deal_id"
@@ -29858,7 +30921,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_pipedrive_connector.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -30367,7 +31430,7 @@
       "schema_hash": "sha256:d055a022dc83384a",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 5,
       "operations": {
         "query": {
           "operation_key": "query",
@@ -30418,6 +31481,19 @@
           "credential_require": "postgres",
           "input_schema_fields": [],
           "timeout_seconds": 30.0
+        },
+        "describe_table": {
+          "operation_key": "describe_table",
+          "display_name": "Describe Table",
+          "description": "Inspect columns, primary keys, foreign keys, and indexes for a table.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "postgres",
+          "input_schema_fields": [
+            "schema",
+            "table"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -30435,7 +31511,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_postgres_connector.py"
+        "backend/tests/test_api/test_connector_depth_round3.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -31381,7 +32457,7 @@
       "schema_hash": "sha256:9dba92020183c339",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 6,
+      "operations_count": 8,
       "operations": {
         "query": {
           "operation_key": "query",
@@ -31403,6 +32479,30 @@
           "idempotency": "idempotent",
           "credential_require": "quickbooks",
           "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "list_customers": {
+          "operation_key": "list_customers",
+          "display_name": "List Customers",
+          "description": "List customers with a bounded maxresults query.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "quickbooks",
+          "input_schema_fields": [
+            "limit"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_invoices": {
+          "operation_key": "list_invoices",
+          "display_name": "List Invoices",
+          "description": "List invoices with a bounded maxresults query.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "quickbooks",
+          "input_schema_fields": [
+            "limit"
+          ],
           "timeout_seconds": 30.0
         },
         "create_customer": {
@@ -31472,7 +32572,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_quickbooks_connector.py"
+        "backend/tests/test_api/test_connector_depth_round6.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -32581,7 +33681,7 @@
       "schema_hash": "sha256:3332865e6814b44a",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 3,
+      "operations_count": 5,
       "operations": {
         "send_email": {
           "operation_key": "send_email",
@@ -32606,6 +33706,28 @@
           "description": "Retrieve delivery status and metadata for a sent email.",
           "retryable": true,
           "idempotency": "idempotent",
+          "credential_require": "resend",
+          "input_schema_fields": [
+            "email_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_emails": {
+          "operation_key": "list_emails",
+          "display_name": "List Emails",
+          "description": "List recently sent emails.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "resend",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "cancel_email": {
+          "operation_key": "cancel_email",
+          "display_name": "Cancel Email",
+          "description": "Cancel a scheduled email by ID.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
           "credential_require": "resend",
           "input_schema_fields": [
             "email_id"
@@ -32638,8 +33760,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -33238,7 +34359,7 @@
       "schema_hash": "sha256:260ef01c4916d98f",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 5,
       "operations": {
         "upload_file": {
           "operation_key": "upload_file",
@@ -33259,6 +34380,19 @@
           "operation_key": "download_file",
           "display_name": "Download File / Get Object",
           "description": "Retrieve a file or pre-signed URL from an S3 bucket.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "aws_s3",
+          "input_schema_fields": [
+            "bucket",
+            "key"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "head_object": {
+          "operation_key": "head_object",
+          "display_name": "Head Object / Get Metadata",
+          "description": "Check whether an object exists and return its size, ETag, content type, and custom metadata.",
           "retryable": true,
           "idempotency": "idempotent",
           "credential_require": "aws_s3",
@@ -33310,8 +34444,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_new_connectors.py",
+        "backend/tests/test_api/test_connector_depth_round3.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -33333,7 +34467,7 @@
       "schema_hash": "sha256:239286c509d7c7d5",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 12,
+      "operations_count": 13,
       "operations": {
         "search": {
           "operation_key": "search",
@@ -33348,7 +34482,7 @@
             "search_value",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "get": {
           "operation_key": "get",
@@ -33362,7 +34496,7 @@
             "record_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "create": {
           "operation_key": "create",
@@ -33376,7 +34510,7 @@
             "record",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "update": {
           "operation_key": "update",
@@ -33391,7 +34525,7 @@
             "record_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "upsert": {
           "operation_key": "upsert",
@@ -33407,7 +34541,7 @@
             "record",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "delete": {
           "operation_key": "delete",
@@ -33421,7 +34555,7 @@
             "record_id",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "query": {
           "operation_key": "query",
@@ -33435,7 +34569,7 @@
             "soql",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "describe": {
           "operation_key": "describe",
@@ -33448,7 +34582,7 @@
             "object_name",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "list": {
           "operation_key": "list",
@@ -33460,7 +34594,19 @@
           "input_schema_fields": [
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
+        },
+        "org_limits": {
+          "operation_key": "org_limits",
+          "display_name": "Org Limits",
+          "description": "Return Salesforce API usage limits for the connected org.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "salesforce",
+          "input_schema_fields": [
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30
         },
         "bulk": {
           "operation_key": "bulk",
@@ -33478,7 +34624,7 @@
             "records",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "custom_api_call": {
           "operation_key": "custom_api_call",
@@ -33493,7 +34639,7 @@
             "custom_api_url",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         },
         "flow_invoke": {
           "operation_key": "flow_invoke",
@@ -33507,7 +34653,7 @@
             "flow_inputs",
             "timeout_seconds"
           ],
-          "timeout_seconds": 30.0
+          "timeout_seconds": 30
         }
       },
       "triggers_count": 1,
@@ -33535,16 +34681,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_salesforce_connector.py",
-        "backend/tests/test_salesforce_provider.py",
-        "backend/tests/test_salesforce_search.py",
-        "backend/tests/test_salesforce_create.py",
-        "backend/tests/test_salesforce_update.py",
-        "backend/tests/test_salesforce_events.py",
-        "backend/tests/test_salesforce_dag.py",
-        "backend/tests/test_salesforce_credentials.py",
-        "backend/tests/test_salesforce_retry_history.py",
-        "backend/tests/test_salesforce_certification_lifecycle.py"
+        "backend/tests/test_api/test_connector_depth_round2.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -34529,7 +35666,7 @@
       "schema_hash": "sha256:e1d0aa48ebc85ca7",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 6,
       "operations": {
         "send_mail": {
           "operation_key": "send_mail",
@@ -34574,6 +35711,30 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_templates": {
+          "operation_key": "list_templates",
+          "display_name": "List Templates",
+          "description": "List transactional templates.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "sendgrid",
+          "input_schema_fields": [
+            "generations"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_contacts": {
+          "operation_key": "delete_contacts",
+          "display_name": "Delete Contacts",
+          "description": "Delete marketing contacts by ID.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "sendgrid",
+          "input_schema_fields": [
+            "ids"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_stats": {
           "operation_key": "get_stats",
           "display_name": "Get Delivery Stats",
@@ -34611,8 +35772,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round8.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -34691,7 +35851,7 @@
       "schema_hash": "sha256:85b8498c40b48df0",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 3,
+      "operations_count": 5,
       "operations": {
         "list_issues": {
           "operation_key": "list_issues",
@@ -34711,6 +35871,30 @@
           "operation_key": "get_issue",
           "display_name": "Get Issue Details",
           "description": "Retrieve full stack trace, tags, and metadata for a Sentry issue.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "sentry",
+          "input_schema_fields": [
+            "issue_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_projects": {
+          "operation_key": "list_projects",
+          "display_name": "List Projects",
+          "description": "List projects in a Sentry organization.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "sentry",
+          "input_schema_fields": [
+            "organization_slug"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_events": {
+          "operation_key": "list_events",
+          "display_name": "List Issue Events",
+          "description": "List events recorded for an issue.",
           "retryable": true,
           "idempotency": "idempotent",
           "credential_require": "sentry",
@@ -34748,8 +35932,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round10.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -34885,7 +36068,7 @@
       "schema_hash": "sha256:49ac72716c5bb3f2",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_records": {
           "operation_key": "list_records",
@@ -34904,6 +36087,18 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_users": {
+          "operation_key": "list_users",
+          "display_name": "List Users",
+          "description": "List ServiceNow users from sys_user.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "servicenow",
+          "input_schema_fields": [
+            "limit"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_record": {
           "operation_key": "get_record",
           "display_name": "Get Record",
@@ -34914,6 +36109,21 @@
           "input_schema_fields": [
             "sys_id",
             "table"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "add_comment": {
+          "operation_key": "add_comment",
+          "display_name": "Add Comment",
+          "description": "Add a customer-visible comment or internal work note.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "servicenow",
+          "input_schema_fields": [
+            "comment",
+            "sys_id",
+            "table",
+            "work_note"
           ],
           "timeout_seconds": 30.0
         },
@@ -34982,7 +36192,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_servicenow_connector.py"
+        "backend/tests/test_api/test_connector_depth_round6.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -35240,7 +36450,7 @@
       "schema_hash": "sha256:9d2d323a2f51bd35",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 6,
       "operations": {
         "get_product": {
           "operation_key": "get_product",
@@ -35283,6 +36493,23 @@
           ],
           "timeout_seconds": 30.0
         },
+        "update_product": {
+          "operation_key": "update_product",
+          "display_name": "Update Product",
+          "description": "Patch title, description, vendor, status, or tags on a product.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "shopify",
+          "input_schema_fields": [
+            "body_html",
+            "product_id",
+            "status",
+            "tags",
+            "title",
+            "vendor"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_order": {
           "operation_key": "get_order",
           "display_name": "Get Order",
@@ -35292,6 +36519,20 @@
           "credential_require": "shopify",
           "input_schema_fields": [
             "order_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_orders": {
+          "operation_key": "list_orders",
+          "display_name": "List Orders",
+          "description": "List store orders (Link-header pagination).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "shopify",
+          "input_schema_fields": [
+            "limit",
+            "max_pages",
+            "order_status"
           ],
           "timeout_seconds": 30.0
         }
@@ -35311,7 +36552,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_shopify_connector.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -35655,7 +36896,7 @@
       "schema_hash": "sha256:61b25723245c726d",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 8,
       "operations": {
         "send_message": {
           "operation_key": "send_message",
@@ -35708,6 +36949,61 @@
           "credential_require": "slack",
           "input_schema_fields": [
             "email"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_users": {
+          "operation_key": "list_users",
+          "display_name": "List Users",
+          "description": "List workspace members with cursor pagination via users.list.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "slack",
+          "input_schema_fields": [
+            "limit",
+            "max_pages"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_channel_history": {
+          "operation_key": "get_channel_history",
+          "display_name": "Get Channel History",
+          "description": "Read recent messages from a channel via conversations.history.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "slack",
+          "input_schema_fields": [
+            "channel",
+            "latest",
+            "limit",
+            "oldest"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "update_message": {
+          "operation_key": "update_message",
+          "display_name": "Update Message",
+          "description": "Edit an existing message via chat.update.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "slack",
+          "input_schema_fields": [
+            "channel",
+            "text",
+            "timestamp"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_message": {
+          "operation_key": "delete_message",
+          "display_name": "Delete Message",
+          "description": "Delete a message via chat.delete.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "slack",
+          "input_schema_fields": [
+            "channel",
+            "timestamp"
           ],
           "timeout_seconds": 30.0
         }
@@ -35884,7 +37180,7 @@
       "schema_hash": "sha256:f2b74b63521393d8",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "execute_query": {
           "operation_key": "execute_query",
@@ -35942,6 +37238,28 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_databases": {
+          "operation_key": "list_databases",
+          "display_name": "List Databases",
+          "description": "Discover databases in the Snowflake account.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "snowflake",
+          "input_schema_fields": [],
+          "timeout_seconds": 30.0
+        },
+        "list_schemas": {
+          "operation_key": "list_schemas",
+          "display_name": "List Schemas",
+          "description": "Discover schemas, optionally within one database.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "snowflake",
+          "input_schema_fields": [
+            "database"
+          ],
+          "timeout_seconds": 30.0
+        },
         "list_tables": {
           "operation_key": "list_tables",
           "display_name": "List Tables",
@@ -35971,8 +37289,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -37505,7 +38822,7 @@
       "schema_hash": "sha256:3b649aa2bf52d6fe",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 6,
+      "operations_count": 8,
       "operations": {
         "create_customer": {
           "operation_key": "create_customer",
@@ -37587,6 +38904,35 @@
             "payment_intent_id"
           ],
           "timeout_seconds": 30.0
+        },
+        "update_customer": {
+          "operation_key": "update_customer",
+          "display_name": "Update Customer",
+          "description": "Update a Stripe customer's email, name, or metadata.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "stripe",
+          "input_schema_fields": [
+            "customer_id",
+            "email",
+            "metadata",
+            "name"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_payment_intents": {
+          "operation_key": "list_payment_intents",
+          "display_name": "List Payment Intents",
+          "description": "List PaymentIntents, optionally for one customer, with cursor pagination.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "stripe",
+          "input_schema_fields": [
+            "customer_id",
+            "limit",
+            "max_pages"
+          ],
+          "timeout_seconds": 30.0
         }
       },
       "triggers_count": 0,
@@ -37604,7 +38950,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_stripe_connector.py"
+        "backend/tests/test_api/test_connector_depth_round2.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -37844,7 +39190,7 @@
       "schema_hash": "sha256:5156415dd9fcbca3",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "select_rows": {
           "operation_key": "select_rows",
@@ -37870,6 +39216,33 @@
           "credential_require": "supabase",
           "input_schema_fields": [
             "data",
+            "table"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "upsert_row": {
+          "operation_key": "upsert_row",
+          "display_name": "Upsert Row",
+          "description": "Insert or merge rows using PostgREST resolution=merge-duplicates.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "supabase",
+          "input_schema_fields": [
+            "data",
+            "on_conflict",
+            "table"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "count_rows": {
+          "operation_key": "count_rows",
+          "display_name": "Count Rows",
+          "description": "Count rows matching optional PostgREST filters.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "supabase",
+          "input_schema_fields": [
+            "filter",
             "table"
           ],
           "timeout_seconds": 30.0
@@ -37933,8 +39306,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -39980,12 +41352,24 @@
       "schema_hash": "sha256:b685f69098ca3721",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 6,
       "operations": {
         "list_cards": {
           "operation_key": "list_cards",
           "display_name": "List Board Cards",
           "description": "List cards on a Trello board.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "trello",
+          "input_schema_fields": [
+            "board_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_lists": {
+          "operation_key": "list_lists",
+          "display_name": "List Board Lists",
+          "description": "List lists on a Trello board.",
           "retryable": true,
           "idempotency": "idempotent",
           "credential_require": "trello",
@@ -40003,6 +41387,23 @@
           "credential_require": "trello",
           "input_schema_fields": [
             "card_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "update_card": {
+          "operation_key": "update_card",
+          "display_name": "Update Card",
+          "description": "Update a card's name, description, due date, list, or closed state.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "trello",
+          "input_schema_fields": [
+            "card_id",
+            "closed",
+            "desc",
+            "due",
+            "list_id",
+            "name"
           ],
           "timeout_seconds": 30.0
         },
@@ -40050,8 +41451,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round4.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -40247,7 +41647,7 @@
       "schema_hash": "sha256:4218c8cd4d02c966",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 3,
+      "operations_count": 5,
       "operations": {
         "send_sms": {
           "operation_key": "send_sms",
@@ -40273,6 +41673,28 @@
           "input_schema_fields": [
             "limit"
           ],
+          "timeout_seconds": 30.0
+        },
+        "list_calls": {
+          "operation_key": "list_calls",
+          "display_name": "List Calls",
+          "description": "List recent voice calls.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "twilio",
+          "input_schema_fields": [
+            "limit"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_account": {
+          "operation_key": "get_account",
+          "display_name": "Get Account",
+          "description": "Fetch the Twilio account record.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "twilio",
+          "input_schema_fields": [],
           "timeout_seconds": 30.0
         },
         "get_message": {
@@ -40304,8 +41726,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round10.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -40532,7 +41953,7 @@
       "schema_hash": "sha256:e1ba0c84b4a56806",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_forms": {
           "operation_key": "list_forms",
@@ -40545,6 +41966,19 @@
             "page",
             "page_size",
             "search"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_workspaces": {
+          "operation_key": "list_workspaces",
+          "display_name": "List Workspaces",
+          "description": "List Typeform workspaces.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "typeform",
+          "input_schema_fields": [
+            "page",
+            "page_size"
           ],
           "timeout_seconds": 30.0
         },
@@ -40573,6 +42007,19 @@
             "page_size",
             "since",
             "until"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_response": {
+          "operation_key": "get_response",
+          "display_name": "Get Response",
+          "description": "Retrieve one form submission by response ID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "typeform",
+          "input_schema_fields": [
+            "form_id",
+            "response_id"
           ],
           "timeout_seconds": 30.0
         },
@@ -40628,8 +42075,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -41903,7 +43349,7 @@
       "schema_hash": "sha256:861d2529af051405",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 3,
+      "operations_count": 5,
       "operations": {
         "send_text": {
           "operation_key": "send_text",
@@ -41930,6 +43376,33 @@
             "language",
             "template",
             "to"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "send_media": {
+          "operation_key": "send_media",
+          "display_name": "Send Media",
+          "description": "Send an image, document, video, or audio link.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "whatsapp",
+          "input_schema_fields": [
+            "caption",
+            "media_link",
+            "media_type",
+            "to"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "mark_read": {
+          "operation_key": "mark_read",
+          "display_name": "Mark Message Read",
+          "description": "Mark an inbound message as read.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "whatsapp",
+          "input_schema_fields": [
+            "message_id"
           ],
           "timeout_seconds": 30.0
         },
@@ -41961,7 +43434,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_whatsapp_connector.py"
+        "backend/tests/test_api/test_connector_depth_round10.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -42716,7 +44189,7 @@
       "schema_hash": "sha256:002b9b011ace1460",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_invoices": {
           "operation_key": "list_invoices",
@@ -42770,6 +44243,31 @@
           ],
           "timeout_seconds": 30.0
         },
+        "get_contact": {
+          "operation_key": "get_contact",
+          "display_name": "Get Contact",
+          "description": "Retrieve one contact by ID.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "xero",
+          "input_schema_fields": [
+            "contact_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_contact": {
+          "operation_key": "create_contact",
+          "display_name": "Create Contact",
+          "description": "Create a customer or vendor contact.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "xero",
+          "input_schema_fields": [
+            "contact_email",
+            "contact_name"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_accounts": {
           "operation_key": "get_accounts",
           "display_name": "Get Accounts",
@@ -42796,8 +44294,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round6.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -43117,7 +44614,7 @@
       "schema_hash": "sha256:02caa990bb6ee14f",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_tickets": {
           "operation_key": "list_tickets",
@@ -43131,12 +44628,37 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_users": {
+          "operation_key": "list_users",
+          "display_name": "List Users",
+          "description": "List Zendesk users, optionally filtered by role.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zendesk",
+          "input_schema_fields": [
+            "limit",
+            "role"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_ticket": {
           "operation_key": "get_ticket",
           "display_name": "Get Ticket",
           "description": "Fetch one ticket by id.",
           "retryable": true,
           "idempotency": "idempotent",
+          "credential_require": "zendesk",
+          "input_schema_fields": [
+            "ticket_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "delete_ticket": {
+          "operation_key": "delete_ticket",
+          "display_name": "Delete Ticket",
+          "description": "Delete a ticket by id.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
           "credential_require": "zendesk",
           "input_schema_fields": [
             "ticket_id"
@@ -43200,7 +44722,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_zendesk_connector.py"
+        "backend/tests/test_api/test_connector_depth_round4.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -43339,7 +44861,7 @@
       "schema_hash": "sha256:3c949fa34533ee54",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 7,
       "operations": {
         "list_records": {
           "operation_key": "list_records",
@@ -43394,6 +44916,31 @@
           ],
           "timeout_seconds": 30.0
         },
+        "delete_records": {
+          "operation_key": "delete_records",
+          "display_name": "Delete Records",
+          "description": "Delete module records by ID.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "zoho_crm",
+          "input_schema_fields": [
+            "ids",
+            "module"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_users": {
+          "operation_key": "list_users",
+          "display_name": "List Users",
+          "description": "List Zoho CRM users.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zoho_crm",
+          "input_schema_fields": [
+            "user_type"
+          ],
+          "timeout_seconds": 30.0
+        },
         "search_records": {
           "operation_key": "search_records",
           "display_name": "Search Records",
@@ -43425,8 +44972,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round8.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -43448,7 +44994,7 @@
       "schema_hash": "sha256:3de09c9b9751ae7a",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 4,
+      "operations_count": 6,
       "operations": {
         "list_meetings": {
           "operation_key": "list_meetings",
@@ -43462,6 +45008,19 @@
           ],
           "timeout_seconds": 30.0
         },
+        "list_users": {
+          "operation_key": "list_users",
+          "display_name": "List Users",
+          "description": "List Zoom users.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zoom",
+          "input_schema_fields": [
+            "limit",
+            "user_status"
+          ],
+          "timeout_seconds": 30.0
+        },
         "get_meeting": {
           "operation_key": "get_meeting",
           "display_name": "Get Meeting",
@@ -43471,6 +45030,22 @@
           "credential_require": "zoom",
           "input_schema_fields": [
             "meeting_id"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "update_meeting": {
+          "operation_key": "update_meeting",
+          "display_name": "Update Meeting",
+          "description": "Patch topic, start time, duration, or timezone.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "zoom",
+          "input_schema_fields": [
+            "duration_min",
+            "meeting_id",
+            "start_time",
+            "timezone",
+            "topic"
           ],
           "timeout_seconds": 30.0
         },
@@ -43517,8 +45092,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,

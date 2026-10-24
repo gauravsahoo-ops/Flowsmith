@@ -231,6 +231,52 @@ class JiraProviderClient:
             "success": True,
         }
 
+    async def get_myself(self, creds: dict, timeout: float = 30.0) -> dict:
+        response = await self.request_jira(
+            creds, "GET", "/myself", timeout=timeout, what="get current user",
+        )
+        data = response.json()
+        return {
+            "account_id": data.get("accountId"),
+            "display_name": data.get("displayName"),
+            "email": data.get("emailAddress"),
+            "active": data.get("active"),
+            "time_zone": data.get("timeZone"),
+        }
+
+    async def list_transitions(self, creds: dict, issue_key: str, timeout: float = 30.0) -> dict:
+        key = self._issue_key(issue_key)
+        response = await self.request_jira(
+            creds, "GET", f"/issue/{key}/transitions",
+            timeout=timeout, what="list transitions",
+        )
+        transitions = [
+            {
+                "id": item.get("id"),
+                "name": item.get("name"),
+                "to_status": ((item.get("to") or {}).get("name")),
+            }
+            for item in (response.json().get("transitions") or [])
+        ]
+        return {"issue_key": key, "transitions": transitions, "count": len(transitions)}
+
+    async def transition_issue(self, creds: dict, issue_key: str, transition_id: str,
+                               timeout: float = 30.0) -> dict:
+        key = self._issue_key(issue_key)
+        tid = str(transition_id or "").strip()
+        if not tid:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=transition_issue requires transition_id.",
+                retryable=False,
+            )
+        response = await self.request_jira(
+            creds, "POST", f"/issue/{key}/transitions",
+            json_body={"transition": {"id": tid}},
+            timeout=timeout, what="transition issue",
+        )
+        return {"issue_key": key, "transition_id": tid, "success": response.status_code in (200, 204)}
+
     @staticmethod
     def _issue_key(value: str) -> str:
         key = str(value or "").strip().upper()

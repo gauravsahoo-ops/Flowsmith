@@ -71,6 +71,19 @@ def build_bigquery_definition() -> ConnectorDefinitionV1:
                 },
                 [],
             ),
+            "get_dataset": _operation(
+                "get_dataset", "Get Dataset", "Fetch dataset metadata by ID.",
+                {"dataset_id": {"type": "string", "title": "Dataset ID"}}, ["dataset_id"],
+            ),
+            "insert_rows": _operation(
+                "insert_rows", "Insert Rows", "Stream rows into a BigQuery table.",
+                {
+                    "dataset_id": {"type": "string", "title": "Dataset ID"},
+                    "table_id": {"type": "string", "title": "Table ID"},
+                    "rows": {"type": "array", "items": {"type": "object"}, "title": "Rows"},
+                },
+                ["dataset_id", "table_id", "rows"], retryable=False, idempotency="non_idempotent",
+            ),
             "list_tables": _operation(
                 "list_tables", "List Tables", "List all tables within a BigQuery dataset.",
                 {
@@ -107,4 +120,12 @@ def build_bigquery_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "query", "get_query_results", "list_datasets", "get_dataset",
+                "insert_rows", "list_tables", "get_table",
+            ],
+            "auth": "OAuth2 Bearer",
+        },
+        icon="bigquery",
     )

@@ -19,6 +19,7 @@ from app.providers.typeform import TypeformProviderClient
 class TypeformConnectorParams(BaseModel):
     operation: str = Field(default="list_forms")
     form_id: str = ""
+    response_id: str = ""
     tag: str = ""
     url: str = ""
     secret: str = ""
@@ -87,6 +88,10 @@ class TypeformConnector(ConnectorSDK):
             if op == "list_forms":
                 return await self._provider.list_forms(creds, page=page, page_size=page_size, search=search, timeout=timeout)
 
+            if op == "list_workspaces":
+                return await self._provider.list_workspaces(
+                    creds, page=page, page_size=page_size, timeout=timeout)
+
             if op == "get_form":
                 if not form_id:
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "form_id is required for get_form.", retryable=False)
@@ -97,6 +102,12 @@ class TypeformConnector(ConnectorSDK):
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "form_id is required for get_responses.", retryable=False)
                 return await self._provider.get_responses(
                     creds, form_id, page_size=page_size, since=since, until=until, completed=bool(completed), timeout=timeout
+                )
+
+            if op == "get_response":
+                return await self._provider.get_response(
+                    creds, form_id,
+                    str(raw.get("response_id") or params.response_id), timeout=timeout,
                 )
 
             if op == "create_webhook":

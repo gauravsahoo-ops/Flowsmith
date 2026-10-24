@@ -138,6 +138,37 @@ class TypeformProviderClient(BaseProviderClient):
     ) -> dict[str, Any]:
         return await self.request_typeform(creds, "GET", f"forms/{form_id}", timeout=timeout)
 
+    async def list_workspaces(
+        self,
+        creds: dict[str, Any],
+        *,
+        page: int = 1,
+        page_size: int = 50,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        return await self.request_typeform(
+            creds, "GET", "workspaces",
+            params={"page": page, "page_size": page_size}, timeout=timeout,
+        )
+
+    async def get_response(
+        self,
+        creds: dict[str, Any],
+        form_id: str,
+        response_id: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(form_id or "").strip() or not str(response_id or "").strip():
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "get_response needs form_id and response_id.",
+                retryable=False,
+            )
+        return await self.request_typeform(
+            creds, "GET", f"forms/{form_id}/responses/{response_id}",
+            timeout=timeout,
+        )
+
     async def get_responses(
         self,
         creds: dict[str, Any],

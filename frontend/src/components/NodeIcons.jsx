@@ -2,7 +2,7 @@ import React from 'react'
 
 /**
  * High-fidelity, official vector logos and icons for all Flowsmith nodes & connectors.
- * Supports exact brand logos (multi-color / brand palette) for all 45+ enterprise integrations
+ * Supports exact brand logos (multi-color / brand palette) for native connectors and catalog entries
  * and clean, modern SVG icons for all 57+ flow and logic nodes.
  */
 export function NodeIcon({ type, name, icon, size = 34, color }) {

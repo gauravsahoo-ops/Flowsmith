@@ -48,9 +48,18 @@ def build_pipedrive_definition() -> ConnectorDefinitionV1:
                 "list_deals", "List Deals", "List deals in the pipeline.",
                 {"limit": {"type": "integer", "title": "Limit"}}, [],
             ),
+            "list_persons": _operation(
+                "list_persons", "List Persons", "List people in Pipedrive.",
+                {"limit": {"type": "integer", "title": "Limit"}}, [],
+            ),
             "get_deal": _operation(
                 "get_deal", "Get Deal", "Fetch one deal by id.",
                 {"deal_id": {"type": "string", "title": "Deal id"}}, ["deal_id"],
+            ),
+            "delete_deal": _operation(
+                "delete_deal", "Delete Deal", "Delete a deal by id.",
+                {"deal_id": {"type": "string", "title": "Deal id"}}, ["deal_id"],
+                retryable=False, idempotency="non_idempotent",
             ),
             "create_deal": _operation(
                 "create_deal", "Create Deal", "Create a new deal.",
@@ -98,6 +107,12 @@ def build_pipedrive_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_deals", "get_deal", "create_deal", "update_deal", "add_note"], "auth": "API token (query)"},
+        metadata={
+            "initial_operations": [
+                "list_deals", "list_persons", "get_deal", "create_deal",
+                "update_deal", "delete_deal", "add_note",
+            ],
+            "auth": "API token (query)",
+        },
         icon="pipedrive",
     )

@@ -12,7 +12,6 @@ users have view or edit, everything else is a 404.
 from __future__ import annotations
 
 import logging
-import re
 import uuid
 from datetime import UTC, datetime, timezone
 from typing import Any
@@ -52,6 +51,12 @@ from app.models import AuditEvent, Credential, User, WebhookTrigger, WorkflowRec
 from app.nodes.registry import NODE_REGISTRY
 from app.schemas.workflow import Workflow
 from app.engine.expressions import resolve as resolve_expression, build_node_name_map
+from app.triggers.paths import (
+    PATH_TRIGGER_TYPES,
+    PROVIDER_TRIGGER_TYPES,
+    regenerate_trigger_path,
+    validate_trigger_path,
+)
 from app.triggers.registry import sync_webhooks
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
@@ -65,51 +70,67 @@ def _sync_triggers(db: Session) -> None:
 
 
 def _validate_webhook_paths(workflow: Workflow, db: Session, exclude_id: str | None = None) -> None:
-    """Reject webhook paths already claimed by another active workflow."""
-    # Phase 23/38: these paths are the ONLY authentication for the
-    # unauthenticated trigger endpoints, so they must have real entropy.
-    # 24+ chars of [A-Za-z0-9/_.-] gives ~2^120+ search space for random
-    # ids and blocks guessable names like "my-hook".
-    _PATH_RE = re.compile(r"^[A-Za-z0-9/_.\-]{24,}$")
-
-    def _check_trigger_path(node_type: str, raw_path) -> None:
-        if not raw_path:
-            return
-        path = str(raw_path)
-        if not _PATH_RE.match(path):
+    """Reject weak or duplicate paths for every public trigger type."""
+    seen_paths: set[str] = set()
+    for node in workflow.nodes:
+        if node.type not in PATH_TRIGGER_TYPES:
+            continue
+        try:
+            path = validate_trigger_path(node.type, node.parameters.get("path"))
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+        if not path:
+            continue
+        if path in seen_paths:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
-                f"{node_type} path '{path}' is too weak. It is the only "
-                "authentication for an unauthenticated endpoint: use at least "
-                "24 characters of [A-Za-z0-9/_.-] (a generated id works well).",
+                f"Webhook path '{path}' is already used by another trigger in this workflow.",
             )
-
-    for node in workflow.nodes:
-        if node.type == "webhook":
-            _check_trigger_path(node.type, node.parameters.get("path"))
-        elif node.type == "salesforce_trigger":
-            _check_trigger_path(node.type, node.parameters.get("path"))
-        elif node.type == "form_trigger":
-            _check_trigger_path(node.type, node.parameters.get("path"))
-        elif node.type == "chat_trigger":
-            _check_trigger_path(node.type, node.parameters.get("path"))
-        else:
-            continue
-        node_id_path = node.parameters.get("path")
-        if not node_id_path:
-            continue
-        path = str(node_id_path)
-        other = db.scalar(
-            select(WebhookTrigger).where(
-                WebhookTrigger.path == path,
-                WebhookTrigger.workflow_id != exclude_id,
-            )
-        )
+        seen_paths.add(path)
+        conditions = [WebhookTrigger.path == path]
+        if exclude_id:
+            conditions.append(WebhookTrigger.workflow_id != exclude_id)
+        other = db.scalar(select(WebhookTrigger).where(*conditions))
         if other is not None:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 f"Webhook path '{path}' is already used by another active workflow.",
             )
+
+
+def _regenerate_trigger_paths(
+    workflow: Workflow,
+    db: Session,
+    *,
+    only_when_needed: bool,
+) -> None:
+    """Give copied/imported workflows fresh callback paths.
+
+    Provider registrations are intentionally never copied, so provider paths
+    must always be regenerated.  Generic paths are preserved when they are
+    already strong and unused; duplicate always regenerates every path.
+    """
+    for node in workflow.nodes:
+        if node.type not in PATH_TRIGGER_TYPES:
+            continue
+        raw_path = node.parameters.get("path")
+        try:
+            current = validate_trigger_path(node.type, raw_path)
+        except ValueError:
+            current = ""
+        needs_new = not current or not only_when_needed
+        if not needs_new and node.type in PROVIDER_TRIGGER_TYPES:
+            needs_new = True
+        if not needs_new and current:
+            other = db.scalar(
+                select(WebhookTrigger).where(
+                    WebhookTrigger.path == current,
+                    WebhookTrigger.workflow_id != workflow.id,
+                )
+            )
+            needs_new = other is not None
+        if needs_new:
+            node.parameters["path"] = regenerate_trigger_path(node.type, raw_path)
 
 
 def _validate_credential_refs(
@@ -294,16 +315,10 @@ def import_workflow(
     workflow = validate_workflow_payload(native)
     _validate_credential_refs(workflow, user, db, allow_unbound=True)
 
-    # Ensure imported webhook/trigger paths meet 24+ char entropy and uniqueness requirements
-    for node in workflow.nodes:
-        if node.type in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
-            curr_path = str(node.parameters.get("path") or "")
-            clean_prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr_path)[:12] or "hook"
-            if len(curr_path) < 24:
-                node.parameters["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:24]}"
-            other = db.scalar(select(WebhookTrigger).where(WebhookTrigger.path == node.parameters["path"]))
-            if other is not None:
-                node.parameters["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:24]}"
+    # Ensure imported trigger paths meet entropy/uniqueness requirements.
+    # Provider paths are always fresh because provider registrations are not
+    # copied and the source workflow may still be active.
+    _regenerate_trigger_paths(workflow, db, only_when_needed=True)
 
     _validate_webhook_paths(workflow, db, exclude_id=workflow.id)
 
@@ -384,12 +399,8 @@ def duplicate_workflow(
 
     workflow = validate_workflow_payload(data)
 
-    # Regenerate webhook/trigger paths with 24+ chars of entropy
-    for node in workflow.nodes:
-        if node.type in ("webhook", "salesforce_trigger", "form_trigger", "chat_trigger"):
-            curr_path = str(node.parameters.get("path") or "")
-            clean_prefix = re.sub(r"[^A-Za-z0-9_.-]", "", curr_path)[:12] or "hook"
-            node.parameters["path"] = f"{clean_prefix}-{uuid.uuid4().hex[:24]}"
+    # Regenerate every public trigger path, including provider callbacks.
+    _regenerate_trigger_paths(workflow, db, only_when_needed=False)
 
     _validate_webhook_paths(workflow, db, exclude_id=new_id)
 

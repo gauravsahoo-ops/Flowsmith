@@ -91,6 +91,21 @@ class FreshdeskProviderClient:
         items = data if isinstance(data, list) else []
         return {"tickets": items}
 
+    async def list_contacts(self, creds: dict, limit: int = 25, timeout: float = 30.0) -> dict:
+        data = await self._request(
+            creds, "GET", "/contacts", "list_contacts",
+            params={"per_page": max(1, min(int(limit or 25), 100))}, timeout=timeout,
+        )
+        items = data if isinstance(data, list) else []
+        return {"contacts": items}
+
+    async def delete_ticket(self, creds: dict, ticket_id: str, timeout: float = 30.0) -> dict:
+        tid = str(ticket_id or "").strip()
+        if not tid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_ticket needs a ticket_id.", retryable=False)
+        await self._request(creds, "DELETE", f"/tickets/{tid}", "delete_ticket", timeout=timeout)
+        return {"ticket_id": tid, "deleted": True, "success": True}
+
     async def get_ticket(self, creds: dict, ticket_id: str, timeout: float = 30.0) -> dict:
         if not str(ticket_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_ticket needs a ticket_id.", retryable=False)

@@ -66,6 +66,9 @@ class LinearConnector(ConnectorSDK):
             op = params.operation.lower()
         timeout = params.timeout_seconds
         try:
+            if op == "list_teams":
+                teams = await self._provider.list_teams(creds, timeout=timeout)
+                return {"teams": teams}
             if op == "list_issues":
                 issues = await self._provider.list_issues(
                     creds, str(raw.get("team_id") or params.team_id),
@@ -84,6 +87,9 @@ class LinearConnector(ConnectorSDK):
                 fields = {k: str(raw.get(k) or getattr(params, k)) for k in ("title", "description")}
                 fields = {k: v for k, v in fields.items() if v}
                 return await self._provider.update_issue(creds, str(raw.get("issue_id") or params.issue_id), fields, timeout=timeout)
+            if op == "delete_issue":
+                return await self._provider.delete_issue(
+                    creds, str(raw.get("issue_id") or params.issue_id), timeout=timeout)
             if op == "add_comment":
                 return await self._provider.add_comment(
                     creds, str(raw.get("issue_id") or params.issue_id),
@@ -105,4 +111,4 @@ class LinearConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_issues", "get_issue", "create_issue", "update_issue", "add_comment"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_teams", "list_issues", "get_issue", "create_issue", "update_issue", "delete_issue", "add_comment"]}}

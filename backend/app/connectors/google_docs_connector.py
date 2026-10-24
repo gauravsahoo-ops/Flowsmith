@@ -23,6 +23,8 @@ class GoogleDocsConnectorParams(BaseModel):
     document_id: str = ""
     title: str = ""
     text: str = ""
+    replacement: str = ""
+    match_case: bool = False
     requests: str = ""
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
@@ -75,6 +77,17 @@ class GoogleDocsConnector(ConnectorSDK):
                 return await self._provider.append_text(
                     creds, str(raw.get("document_id") or params.document_id),
                     str(raw.get("text") if raw.get("text") is not None else params.text), timeout=timeout)
+            if op == "get_document_text":
+                return await self._provider.get_document_text(
+                    creds, str(raw.get("document_id") or params.document_id), timeout=timeout)
+            if op == "replace_text":
+                return await self._provider.replace_text(
+                    creds, str(raw.get("document_id") or params.document_id),
+                    str(raw.get("text") if raw.get("text") is not None else params.text),
+                    replacement=str(raw.get("replacement") if raw.get("replacement") is not None else params.replacement),
+                    match_case=bool(raw.get("match_case", params.match_case)),
+                    timeout=timeout,
+                )
             if op == "batch_update":
                 raw_requests = raw.get("requests", params.requests)
                 requests = json.loads(raw_requests) if isinstance(raw_requests, str) else raw_requests
@@ -100,4 +113,4 @@ class GoogleDocsConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["get_document", "create_document", "append_text", "batch_update"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["get_document", "get_document_text", "create_document", "append_text", "replace_text", "batch_update"]}}

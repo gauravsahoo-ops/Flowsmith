@@ -26,7 +26,10 @@ from app.providers.stripe import StripeProviderClient, idempotency_key
 class StripeConnectorParams(BaseModel):
     operation: str = Field(
         default="list_customers",
-        description="create_customer | get_customer | list_customers | create_payment_intent | create_refund | get_payment_intent.",
+        description=(
+            "create_customer | get_customer | list_customers | update_customer | "
+            "create_payment_intent | get_payment_intent | list_payment_intents | create_refund."
+        ),
     )
     email: str = ""
     name: str = ""
@@ -111,6 +114,20 @@ class StripeConnector(ConnectorSDK):
                     email_filter=str(raw.get("email_filter") or params.email_filter),
                     timeout=timeout,
                 )
+            if op == "update_customer":
+                metadata_raw = raw.get("metadata")
+                metadata = {
+                    str(k): str(v) for k, v in metadata_raw.items()
+                } if isinstance(metadata_raw, dict) else params.metadata
+                return await self._provider.update_customer(
+                    creds,
+                    str(raw.get("customer_id") or params.customer_id),
+                    email=str(raw.get("email") or params.email),
+                    name=str(raw.get("name") or params.name),
+                    metadata=metadata or None,
+                    idem_key=idempotency_key(context, "update_customer", payload),
+                    timeout=timeout,
+                )
             if op == "create_payment_intent":
                 return await self._provider.create_payment_intent(
                     creds, amount_cents=int(raw.get("amount", params.amount)),
@@ -132,6 +149,12 @@ class StripeConnector(ConnectorSDK):
             if op == "get_payment_intent":
                 pi = str(raw.get("payment_intent_id") or raw.get("payment_intent") or params.payment_intent_id)
                 return await self._provider.get_payment_intent(creds, pi, timeout=timeout)
+            if op == "list_payment_intents":
+                return await self._provider.list_payment_intents(
+                    creds, limit=params.limit, max_pages=params.max_pages,
+                    customer_id=str(raw.get("customer_id") or params.customer_id),
+                    timeout=timeout,
+                )
         except ConnectorError:
             raise
         raise make_connector_error(

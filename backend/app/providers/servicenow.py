@@ -128,6 +128,22 @@ class ServiceNowProviderClient:
             params["sysparm_orderby"] = orderby
         return await self._get(creds, table, "", "list_records", params=params, timeout=timeout)
 
+    async def list_users(self, creds: dict, limit: int = 25, timeout: float = 30.0) -> dict:
+        return await self._get(
+            creds, "sys_user", "", "list_users",
+            params={"sysparm_limit": str(max(1, min(int(limit or 25), 100)))},
+            timeout=timeout,
+        )
+
+    async def add_comment(self, creds: dict, table: str, sys_id: str, comment: str,
+                          work_note: bool = False, timeout: float = 30.0) -> dict:
+        if not str(comment or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "add_comment needs a comment.", retryable=False)
+        field = "work_notes" if work_note else "comments"
+        return await self.update_record(
+            creds, table, sys_id, {field: comment}, timeout=timeout,
+        )
+
     async def get_record(self, creds: dict, table: str, sys_id: str, timeout: float = 30.0) -> dict:
         if not str(sys_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_record needs a sys_id.", retryable=False)

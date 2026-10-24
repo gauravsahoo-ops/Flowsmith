@@ -115,6 +115,31 @@ class MailchimpProviderClient:
         return await self._request(creds, "POST", f"/lists/{list_id}/members", "add_member",
                                    body={"email_address": email, "status": status}, timeout=timeout)
 
+    async def list_members(self, creds: dict, list_id: str, limit: int = 25,
+                           status: str = "", timeout: float = 30.0) -> dict:
+        if not str(list_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "list_members needs a list_id.", retryable=False)
+        params: dict[str, Any] = {"count": max(1, min(int(limit or 25), 1000))}
+        if str(status or "").strip():
+            params["status"] = status
+        return await self._get(
+            creds, f"/lists/{list_id}/members", "list_members",
+            params=params, timeout=timeout,
+        )
+
+    async def delete_member(self, creds: dict, list_id: str, email: str,
+                            timeout: float = 30.0) -> dict:
+        if not str(list_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_member needs a list_id.", retryable=False)
+        if not str(email or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_member needs an email.", retryable=False)
+        await self._request(
+            creds, "DELETE",
+            f"/lists/{list_id}/members/{self._subscriber_hash(email)}",
+            "delete_member", timeout=timeout,
+        )
+        return {"list_id": list_id, "email": email, "deleted": True, "success": True}
+
     async def get_member(self, creds: dict, list_id: str, email: str, timeout: float = 30.0) -> dict:
         if not str(list_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_member needs a list_id.", retryable=False)

@@ -20,7 +20,7 @@ const QUICK_ACTIONS = [
   },
   {
     id: 'act-integrations',
-    title: 'Browse 527+ Integrations',
+    title: 'Browse Connector Catalog',
     subtitle: 'Connect Salesforce, Slack, HubSpot, AI models',
     path: '/integrations',
     category: 'Navigation',

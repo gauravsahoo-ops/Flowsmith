@@ -26,7 +26,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
 
-from app.api import admin, ai, audit, auth, billing, branding, code, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, monitoring, nodes, notifications, oauth, organizations, rag, salesforce_events, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
+from app.api import admin, ai, audit, auth, billing, branding, code, connector_packs, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, monitoring, nodes, notifications, oauth, organizations, provider_webhooks, rag, salesforce_events, saml, scim, scim_groups, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
 from app.api.auth import get_metrics_user
 from app.api.common import ok
 from app.config import get_settings
@@ -46,6 +46,10 @@ async def lifespan(_app: FastAPI):
     from app.runner import runner
     from app.scheduler import scheduler
     from app.services.connection_health_monitor import connection_health_monitor
+    from app.services.connector_pack_reconciler import pack_reconciler
+    from app.services.ldap_sync import ldap_sync
+    from app.services.polling_triggers import polling_daemon
+    from app.services.provider_webhook_reaper import provider_webhook_reaper
     from app.triggers.registry import sync_webhooks
 
     lifecycle = get_lifecycle()
@@ -93,6 +97,12 @@ async def lifespan(_app: FastAPI):
         from app.connectors import get_registry, register_builtin_connectors
 
         register_builtin_connectors()
+        try:
+            from app.services.connector_pack_runtime import load_installed_packs
+
+            load_installed_packs()
+        except Exception:
+            logger.exception("installed connector packs could not be loaded during startup")
         registry = get_registry()
         lifecycle.set_metadata("connectors_count", len(registry.list_definitions()))
         lifecycle.set_metadata("connector_diagnostics", registry.get_diagnostics())
@@ -121,6 +131,10 @@ async def lifespan(_app: FastAPI):
             db.close()
         runner.submit(scheduler.ensure_started)
         runner.submit(connection_health_monitor.ensure_started)
+        runner.submit(ldap_sync.ensure_started)
+        runner.submit(polling_daemon.ensure_started)
+        runner.submit(pack_reconciler.ensure_started)
+        runner.submit(provider_webhook_reaper.ensure_started)
         ensure_embedded_consumer()
 
         # Stage 7: STARTUP_COMPLETE
@@ -147,6 +161,22 @@ async def lifespan(_app: FastAPI):
         await maintenance.stop()
     except Exception:
         logger.exception("maintenance stop failed")
+    try:
+        await ldap_sync.stop()
+    except Exception:
+        logger.exception("LDAP sync stop failed")
+    try:
+        await polling_daemon.stop()
+    except Exception:
+        logger.exception("polling trigger stop failed")
+    try:
+        await pack_reconciler.stop()
+    except Exception:
+        logger.exception("connector pack reconciler stop failed")
+    try:
+        await provider_webhook_reaper.stop()
+    except Exception:
+        logger.exception("provider webhook reaper stop failed")
     runner.shutdown()
     # Close the shared HTTP client pool (P1: connection pool fix)
     from app.security.safe_http_client import get_safe_http_client as _get_http
@@ -196,7 +226,12 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
         if request.method not in ("GET", "HEAD"):
             return await call_next(request)
         path = request.url.path
-        if path.startswith("/api/") or path.startswith("/ws/") or path in ("/readyz", "/api/readyz", "/health"):
+        if (
+            path.startswith("/api/")
+            or path.startswith("/ws/")
+            or path.startswith("/scim/")
+            or path in ("/readyz", "/api/readyz", "/health")
+        ):
             return await call_next(request)
         if FRONTEND_DIST is not None:
             root = FRONTEND_DIST.resolve()
@@ -275,7 +310,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     """
 
     _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
-    _SAFE_PREFIXES = ("/api/health", "/readyz", "/api/readyz", "/docs", "/redoc", "/openapi.json", "/api/auth", "/api/webhooks")
+    _SAFE_PREFIXES = ("/api/health", "/readyz", "/api/readyz", "/docs", "/redoc", "/openapi.json", "/api/auth", "/api/webhooks", "/scim/v2")
 
     def __init__(self, app: Any, allowed_origins: list[str]) -> None:
         super().__init__(app)
@@ -449,7 +484,10 @@ from app.middleware.rate_limit import setup_rate_limiting
 setup_rate_limiting(app)
 
 app.include_router(auth.router)
+app.include_router(saml.router)
 app.include_router(sso.router)
+app.include_router(scim.router)
+app.include_router(scim_groups.router)
 app.include_router(oauth.router)
 app.include_router(users.router)
 app.include_router(admin.router)
@@ -475,6 +513,8 @@ app.include_router(workflow_api.router)
 app.include_router(audit.router)
 app.include_router(ws.router)
 app.include_router(connectors.router)
+app.include_router(connector_packs.router)
+app.include_router(provider_webhooks.router)
 app.include_router(integrations.router)
 app.include_router(code.router)
 # Phase 9: live Salesforce object/field discovery (dynamic configuration).

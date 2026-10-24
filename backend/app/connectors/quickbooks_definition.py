@@ -52,6 +52,14 @@ def build_quickbooks_definition() -> ConnectorDefinitionV1:
                 "get_company", "Get Company", "Fetch company info.",
                 {}, [],
             ),
+            "list_customers": _operation(
+                "list_customers", "List Customers", "List customers with a bounded maxresults query.",
+                {"limit": {"type": "integer", "title": "Limit", "default": 25}}, [],
+            ),
+            "list_invoices": _operation(
+                "list_invoices", "List Invoices", "List invoices with a bounded maxresults query.",
+                {"limit": {"type": "integer", "title": "Limit", "default": 25}}, [],
+            ),
             "create_customer": _operation(
                 "create_customer", "Create Customer", "Create a customer.",
                 {
@@ -97,6 +105,12 @@ def build_quickbooks_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["query", "get_company", "create_customer", "get_customer", "create_invoice", "get_invoice"], "auth": "OAuth2 Bearer"},
+        metadata={
+            "initial_operations": [
+                "query", "get_company", "list_customers", "list_invoices",
+                "create_customer", "get_customer", "create_invoice", "get_invoice",
+            ],
+            "auth": "OAuth2 Bearer",
+        },
         icon="quickbooks",
     )

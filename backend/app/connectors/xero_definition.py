@@ -77,6 +77,18 @@ def build_xero_definition() -> ConnectorDefinitionV1:
                 },
                 [],
             ),
+            "get_contact": _operation(
+                "get_contact", "Get Contact", "Retrieve one contact by ID.",
+                {"contact_id": {"type": "string", "title": "Contact ID"}}, ["contact_id"],
+            ),
+            "create_contact": _operation(
+                "create_contact", "Create Contact", "Create a customer or vendor contact.",
+                {
+                    "contact_name": {"type": "string", "title": "Contact name"},
+                    "contact_email": {"type": "string", "title": "Email address"},
+                },
+                ["contact_name"], retryable=False, idempotency="non_idempotent",
+            ),
             "get_accounts": _operation(
                 "get_accounts", "Get Accounts", "Retrieve the chart of accounts for the tenant.",
                 {},
@@ -101,4 +113,12 @@ def build_xero_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_invoices", "get_invoice", "create_invoice",
+                "list_contacts", "get_contact", "create_contact", "get_accounts",
+            ],
+            "auth": "OAuth2 Bearer + tenant id",
+        },
+        icon="xero",
     )

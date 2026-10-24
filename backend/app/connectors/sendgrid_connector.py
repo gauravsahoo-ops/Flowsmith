@@ -28,6 +28,8 @@ class SendGridConnectorParams(BaseModel):
     last_name: str = ""
     start_date: str = ""
     end_date: str = ""
+    generations: str = "legacy"
+    ids: list[str] = Field(default_factory=list)
     page_size: int = Field(default=50, ge=1, le=1000)
     page_token: str = ""
     timeout_seconds: float = Field(default=60.0, ge=1, le=300)
@@ -100,6 +102,16 @@ class SendGridConnector(ConnectorSDK):
                 if not email:
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "email is required for add_contact.", retryable=False)
                 return await self._provider.add_contact(creds, email, first_name=first_name, last_name=last_name, timeout=timeout)
+
+            if op == "list_templates":
+                return await self._provider.list_templates(
+                    creds, generations=str(raw.get("generations") or params.generations),
+                    timeout=timeout,
+                )
+
+            if op == "delete_contacts":
+                ids = raw.get("ids") or params.ids
+                return await self._provider.delete_contacts(creds, ids, timeout=timeout)
 
             if op == "get_stats":
                 if not start_date:

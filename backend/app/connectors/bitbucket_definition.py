@@ -56,6 +56,22 @@ def build_bitbucket_definition() -> ConnectorDefinitionV1:
                 "get_repo", "Get Repo", "Fetch one repo.",
                 repo_keys, ["workspace", "repo_slug"],
             ),
+            "list_branches": _operation(
+                "list_branches", "List Branches", "List repository branches.",
+                repo_keys, ["workspace", "repo_slug"],
+            ),
+            "create_pull_request": _operation(
+                "create_pull_request", "Create Pull Request", "Open a pull request from source into destination.",
+                {
+                    **repo_keys,
+                    "title": {"type": "string", "title": "Title"},
+                    "source_branch": {"type": "string", "title": "Source branch"},
+                    "destination_branch": {"type": "string", "title": "Destination branch"},
+                    "description": {"type": "string", "title": "Description"},
+                },
+                ["workspace", "repo_slug", "title", "source_branch", "destination_branch"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "list_pull_requests": _operation(
                 "list_pull_requests", "List Pull Requests", "List open pull requests.",
                 repo_keys, ["workspace", "repo_slug"],
@@ -89,6 +105,12 @@ def build_bitbucket_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_repos", "get_repo", "list_pull_requests", "get_pull_request", "add_comment"], "auth": "Bearer"},
+        metadata={
+            "initial_operations": [
+                "list_repos", "get_repo", "list_branches", "create_pull_request",
+                "list_pull_requests", "get_pull_request", "add_comment",
+            ],
+            "auth": "Bearer",
+        },
         icon="bitbucket",
     )

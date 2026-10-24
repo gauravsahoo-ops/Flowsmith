@@ -22,13 +22,21 @@ from app.providers.mongodb import MongoProviderClient
 
 
 class MongoDBConnectorParams(BaseModel):
-    operation: str = Field(default="find", description="find | insert_one | update_one | delete_one | aggregate | count_documents.")
+    operation: str = Field(
+        default="find",
+        description=(
+            "find | insert_one | update_one | delete_one | aggregate | "
+            "count_documents | list_collections | create_index."
+        ),
+    )
     database: str = ""
     collection: str = ""
     filter: dict[str, Any] = Field(default_factory=dict)
     document: dict[str, Any] = Field(default_factory=dict)
     update: dict[str, Any] = Field(default_factory=dict)
     pipeline: list[dict[str, Any]] = Field(default_factory=list)
+    keys: dict[str, Any] = Field(default_factory=dict)
+    unique: bool = False
     limit: int = Field(default=50, ge=1, le=500)
     skip: int = Field(default=0, ge=0)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
@@ -132,8 +140,15 @@ class MongoDBConnector(ConnectorSDK):
                 return await self._provider.count_documents(
                     creds, database, collection, filter_query=_obj("filter") if _obj("filter") else None, timeout=timeout,
                 )
+            if op == "list_collections":
+                return await self._provider.list_collections(creds, database, timeout=timeout)
+            if op == "create_index":
+                keys_raw = raw.get("keys") or params.keys
+                return await self._provider.create_index(
+                    creds, database, collection, keys_raw,
+                    unique=bool(raw.get("unique", params.unique)), timeout=timeout,
+                )
         except ConnectorError:
-
             raise
         raise make_connector_error(
             ConnectorErrorCode.BAD_REQUEST, f"Unsupported MongoDB operation '{operation}'.", retryable=False,

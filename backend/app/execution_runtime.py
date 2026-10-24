@@ -384,10 +384,8 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 rec.status = "running"
                 rec.error = None
                 await _commit(db)
-            else:
-                db.expire(rec)
-                rec.status = "running"
-                await _commit(db)
+            # The normal path was already CAS-flipped to "running" above;
+            # avoid a redundant second commit here.
             # Pre-execution credential validation: catch unimplemented
             # providers BEFORE the workflow runs so users get clear errors
             # at queue time rather than opaque runtime failures.

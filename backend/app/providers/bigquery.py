@@ -156,6 +156,34 @@ class BigQueryProviderClient(BaseProviderClient):
             params["pageToken"] = page_token
         return await self.request_bigquery(creds, "GET", "datasets", params=params, timeout=timeout)
 
+    async def get_dataset(
+        self,
+        creds: dict[str, Any],
+        dataset_id: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(dataset_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_dataset needs a dataset_id.", retryable=False)
+        return await self.request_bigquery(creds, "GET", f"datasets/{dataset_id}", timeout=timeout)
+
+    async def insert_rows(
+        self,
+        creds: dict[str, Any],
+        dataset_id: str,
+        table_id: str,
+        rows: list[dict[str, Any]],
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(dataset_id or "").strip() or not str(table_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "insert_rows needs dataset_id and table_id.", retryable=False)
+        if not isinstance(rows, list) or not rows or not all(isinstance(row, dict) for row in rows):
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "insert_rows needs a non-empty rows array.", retryable=False)
+        body = {"rows": [{"json": row} for row in rows]}
+        return await self.request_bigquery(
+            creds, "POST", f"datasets/{dataset_id}/tables/{table_id}/insertAll",
+            json_body=body, timeout=timeout,
+        )
+
     async def list_tables(
         self,
         creds: dict[str, Any],

@@ -75,6 +75,27 @@ class LinearProviderClient:
         _raise(response.status_code, response.text, what, payload.get("errors") if isinstance(payload, dict) else None)
         return payload.get("data", {}) if isinstance(payload, dict) else {}
 
+    async def list_teams(self, creds: dict, timeout: float = 30.0) -> list:
+        data = await self._gql(
+            creds, "query { teams { nodes { id name key } } }", {},
+            "list teams", timeout,
+        )
+        try:
+            return data["teams"]["nodes"]
+        except Exception:
+            return []
+
+    async def delete_issue(self, creds: dict, issue_id: str, timeout: float = 30.0) -> dict:
+        iid = str(issue_id or "").strip()
+        if not iid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_issue needs an issue_id.", retryable=False)
+        data = await self._gql(
+            creds, "mutation($id: String!) { issueDelete(id: $id) { success } }",
+            {"id": iid}, "delete issue", timeout,
+        )
+        deleted = bool((data.get("issueDelete") or {}).get("success"))
+        return {"issue_id": iid, "deleted": deleted, "success": deleted}
+
     async def list_issues(self, creds: dict, team_id: str, limit: int = 25, timeout: float = 30.0) -> list:
         if not str(team_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "list_issues needs a team_id.", retryable=False)

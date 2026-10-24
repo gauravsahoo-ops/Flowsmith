@@ -20,6 +20,8 @@ class CodaConnectorParams(BaseModel):
     operation: str = Field(default="list_docs")
     doc_id: str = ""
     table_id: str = ""
+    row_id: str = ""
+    row: dict[str, Any] = Field(default_factory=dict)
     query: str = ""
     limit: int = Field(default=50, ge=1, le=500)
     page_token: str = ""
@@ -100,6 +102,24 @@ class CodaConnector(ConnectorSDK):
                 if not rows:
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "rows array is required.", retryable=False)
                 return await self._provider.insert_rows(creds, doc_id, table_id, rows, timeout=timeout)
+
+            if op == "update_row":
+                if not doc_id or not table_id:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "doc_id and table_id are required.", retryable=False)
+                row_raw = raw.get("row")
+                row: dict[str, Any] = row_raw if isinstance(row_raw, dict) else params.row
+                return await self._provider.update_row(
+                    creds, doc_id, table_id,
+                    str(raw.get("row_id") or params.row_id), row, timeout=timeout,
+                )
+
+            if op == "delete_row":
+                if not doc_id or not table_id:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "doc_id and table_id are required.", retryable=False)
+                return await self._provider.delete_row(
+                    creds, doc_id, table_id,
+                    str(raw.get("row_id") or params.row_id), timeout=timeout,
+                )
 
         except Exception as exc:
             from app.connectors import ConnectorError as _CE

@@ -56,6 +56,23 @@ def build_calendly_definition() -> ConnectorDefinitionV1:
                 },
                 [],
             ),
+            "list_invitees": _operation(
+                "list_invitees", "List Invitees", "List invitees for a scheduled event.",
+                {
+                    "event_uuid": {"type": "string", "title": "Event UUID"},
+                    "count": {"type": "integer", "title": "Count"},
+                },
+                ["event_uuid"],
+            ),
+            "create_scheduling_link": _operation(
+                "create_scheduling_link", "Create Scheduling Link",
+                "Create a single-use scheduling link for an event type.",
+                {
+                    "owner_uri": {"type": "string", "title": "Event type URI"},
+                    "max_event_count": {"type": "integer", "title": "Max event count", "default": 1},
+                },
+                ["owner_uri"], retryable=False, idempotency="non_idempotent",
+            ),
             "get_event": _operation(
                 "get_event", "Get Event", "Fetch one scheduled event.",
                 {"event_uuid": {"type": "string", "title": "Event UUID"}}, ["event_uuid"],
@@ -81,6 +98,12 @@ def build_calendly_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_event_types", "list_events", "get_event", "cancel_event"], "auth": "PAT Bearer"},
+        metadata={
+            "initial_operations": [
+                "list_event_types", "list_events", "list_invitees",
+                "create_scheduling_link", "get_event", "cancel_event",
+            ],
+            "auth": "PAT Bearer",
+        },
         icon="calendly",
     )

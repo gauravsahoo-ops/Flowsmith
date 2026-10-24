@@ -71,6 +71,22 @@ def build_activecampaign_definition() -> ConnectorDefinitionV1:
                 ["email"],
                 retryable=True, idempotency="idempotent",
             ),
+            "update_contact": _operation(
+                "update_contact", "Update Contact", "Patch contact fields by ID.",
+                {
+                    "contact_id": {"type": "string", "title": "Contact ID"},
+                    "email": {"type": "string", "title": "Email Address"},
+                    "first_name": {"type": "string", "title": "First Name"},
+                    "last_name": {"type": "string", "title": "Last Name"},
+                    "phone": {"type": "string", "title": "Phone Number"},
+                },
+                ["contact_id"], retryable=True,
+            ),
+            "delete_contact": _operation(
+                "delete_contact", "Delete Contact", "Delete a contact by ID.",
+                {"contact_id": {"type": "string", "title": "Contact ID"}}, ["contact_id"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "list_lists": _operation(
                 "list_lists", "List Mailing Lists", "Enumerate marketing lists.",
                 {
@@ -106,4 +122,12 @@ def build_activecampaign_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_contacts", "get_contact", "create_contact",
+                "update_contact", "delete_contact", "list_lists", "list_campaigns",
+            ],
+            "auth": "API token",
+        },
+        icon="activecampaign",
     )

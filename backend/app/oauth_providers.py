@@ -717,7 +717,7 @@ GOOGLE_SHEETS = OAuthProviderSpec(
 
 
 # ----------------------------------------------------------------------
-# Gmail (Phase 41): same Google OAuth app; send-only scope.
+# Gmail (Phase 41): same Google OAuth app; send + read scopes.
 # ----------------------------------------------------------------------
 
 GMAIL = OAuthProviderSpec(

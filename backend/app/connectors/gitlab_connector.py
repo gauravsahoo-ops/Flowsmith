@@ -23,6 +23,8 @@ class GitLabConnectorParams(BaseModel):
     issue_iid: str = ""
     title: str = ""
     description: str = ""
+    source_branch: str = ""
+    target_branch: str = ""
     body: str = ""
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
@@ -81,6 +83,16 @@ class GitLabConnector(ConnectorSDK):
                     creds, pid, str(raw.get("issue_iid") or params.issue_iid),
                     str(raw.get("body") or params.body), timeout=timeout,
                 )
+            if op == "list_branches":
+                branches = await self._provider.list_branches(creds, pid, timeout=timeout)
+                return {"branches": branches}
+            if op == "create_merge_request":
+                return await self._provider.create_merge_request(
+                    creds, pid, str(raw.get("title") or params.title),
+                    str(raw.get("source_branch") or params.source_branch),
+                    str(raw.get("target_branch") or params.target_branch),
+                    str(raw.get("description") or params.description), timeout=timeout,
+                )
             if op == "list_merge_requests":
                 mrs = await self._provider.list_merge_requests(creds, pid, timeout=timeout)
                 return {"merge_requests": mrs}
@@ -100,4 +112,4 @@ class GitLabConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_issues", "get_issue", "create_issue", "add_note", "list_merge_requests"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_issues", "get_issue", "create_issue", "add_note", "list_branches", "create_merge_request", "list_merge_requests"]}}

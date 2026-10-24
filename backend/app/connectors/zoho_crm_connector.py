@@ -26,6 +26,8 @@ class ZohoCrmConnectorParams(BaseModel):
     word: str = ""
     email: str = ""
     data: list[dict[str, Any]] | None = None
+    ids: list[str] = Field(default_factory=list)
+    user_type: str = "AllUsers"
     timeout_seconds: float = Field(default=60.0, ge=1, le=300)
 
 
@@ -100,6 +102,16 @@ class ZohoCrmConnector(ConnectorSDK):
 
             if op == "search_records":
                 return await self._provider.search_records(creds, module, criteria=criteria, word=word, email=email, timeout=timeout)
+
+            if op == "delete_records":
+                ids = raw.get("ids") or params.ids
+                return await self._provider.delete_records(creds, module, ids, timeout=timeout)
+
+            if op == "list_users":
+                return await self._provider.list_users(
+                    creds, user_type=str(raw.get("user_type") or params.user_type),
+                    timeout=timeout,
+                )
 
         except Exception as exc:
             from app.connectors import ConnectorError as _CE

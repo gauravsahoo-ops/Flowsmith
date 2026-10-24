@@ -15,12 +15,18 @@ from app.models.organization import (
     WorkflowVersionRecord,
 )
 from app.models.oauth_state import OAuthState
+from app.models.connector_pack import ConnectorPack, ConnectorPackTombstone
+from app.models.identity_access import IdentityGroupAccess
+from app.models.identity_org_access import IdentityOrganizationAccess
+from app.models.webauthn import WebAuthnCredential
+from app.models.scim import ScimGroup, ScimGroupAccess, ScimGroupMember
 from app.models.password_reset import PasswordResetToken
+from app.models.provider_webhook import ProviderWebhookRegistration
 from app.models.rag_collection import RagCollection
 from app.models.share import WorkflowShare
 from app.models.subscription import Subscription
 from app.models.user import User
-from app.models.webhook import ScheduleTrigger, WebhookDelivery, WebhookTrigger
+from app.models.webhook import PollingTrigger, ScheduleTrigger, WebhookDelivery, WebhookTrigger
 from app.models.data_table import DataTable, DataTableColumn, DataTableRow
 from app.models.workflow import WorkflowRecord
 from app.models.workflow_auth import WorkflowAuthState
@@ -47,9 +53,18 @@ __all__ = [
     "WorkflowAuthState",
     "WorkflowTest",
     "WorkflowVersionRecord",
+    "ConnectorPack",
+    "ConnectorPackTombstone",
+    "IdentityGroupAccess",
+    "IdentityOrganizationAccess",
+    "WebAuthnCredential",
+    "ScimGroup",
+    "ScimGroupAccess",
+    "ScimGroupMember",
     "Execution",
     "Credential",
     "WebhookTrigger",
+    "PollingTrigger",
     "ScheduleTrigger",
     "WebhookDelivery",
     "WorkflowShare",
@@ -63,6 +78,7 @@ __all__ = [
     "WorkspaceMember",
     "OAuthState",
     "PasswordResetToken",
+    "ProviderWebhookRegistration",
     "RagCollection",
     "Environment",
     "UserAPIKey",

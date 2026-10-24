@@ -920,6 +920,13 @@ class SalesforceProviderClient:
         self._metadata_cache[cache_key] = (now, body)
         return body
 
+    async def org_limits(self, creds: dict[str, Any], timeout: float = 30.0) -> dict[str, Any]:
+        """Return Salesforce org API usage limits."""
+        response = await self.request(creds, "GET", "/limits", timeout=timeout)
+        self._raise_for_status(response)
+        body = self._parse_body(response, "org limits")
+        return {"limits": body, "success": True}
+
     async def custom_api_call(
         self,
         creds: dict[str, Any],

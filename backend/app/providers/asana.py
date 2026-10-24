@@ -79,6 +79,22 @@ class AsanaProviderClient:
         data = await self._request("GET", "/tasks", creds, params={"project": project_id.strip()}, timeout=timeout, what="list tasks")
         return data if isinstance(data, list) else []
 
+    async def list_projects(self, creds: dict, workspace_id: str = "", timeout: float = 30.0) -> list:
+        workspace = str(workspace_id or "").strip()
+        params = {"workspace": workspace} if workspace else None
+        data = await self._request(
+            "GET", "/projects", creds, params=params,
+            timeout=timeout, what="list projects",
+        )
+        return data if isinstance(data, list) else []
+
+    async def delete_task(self, creds: dict, task_id: str, timeout: float = 30.0) -> dict:
+        tid = str(task_id or "").strip()
+        if not tid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_task needs a task_id.", retryable=False)
+        await self._request("DELETE", f"/tasks/{tid}", creds, timeout=timeout, what="delete task")
+        return {"task_id": tid, "deleted": True, "success": True}
+
     async def get_task(self, creds: dict, task_id: str, timeout: float = 30.0) -> dict:
         if not str(task_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_task needs a task_id.", retryable=False)

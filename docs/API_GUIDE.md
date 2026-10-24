@@ -70,10 +70,39 @@ X-API-Key: Kx3f9Qz7Tm2pLw8vRb1nHs6Jd4Gy0Uc5
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/auth/register` | Register a new user account | No |
-| `POST` | `/api/auth/login` | Authenticate and obtain JWT access token | No |
+| `POST` | `/api/auth/login` | Authenticate; may return an MFA challenge instead of a JWT | No |
+| `GET` | `/api/auth/mfa` | Get TOTP enrollment status | **Yes** |
+| `POST` | `/api/auth/mfa/setup` | Generate a TOTP secret and `otpauth://` URI | **Yes** |
+| `POST` | `/api/auth/mfa/enable` | Verify a code and enable MFA; returns recovery codes | **Yes** |
+| `POST` | `/api/auth/mfa/verify` | Exchange an MFA challenge + code for a JWT | No |
+| `POST` | `/api/auth/mfa/enroll/start` | Start forced MFA enrollment with a policy token | No |
+| `POST` | `/api/auth/mfa/enroll/complete` | Verify enrollment and issue the login JWT | No |
+| `POST` | `/api/auth/mfa/disable` | Disable MFA after password + code verification | **Yes** |
+| `GET` | `/api/auth/webauthn` | List configured passkeys | **Yes** |
+| `POST` | `/api/auth/webauthn/register/options` | Start passkey registration | **Yes** |
+| `POST` | `/api/auth/webauthn/register/complete` | Verify and store a passkey | No |
+| `POST` | `/api/auth/webauthn/authenticate/complete` | Exchange a passkey assertion for a JWT | No |
+| `POST` | `/api/auth/webauthn/conditional/options` | Discoverable-credential options for passkey autofill | No |
+| `POST` | `/api/auth/webauthn/conditional/complete` | Passwordless passkey sign-in | No |
+| `DELETE` | `/api/auth/webauthn/{id}` | Remove a passkey | **Yes** |
 | `GET` | `/api/auth/me` | Fetch authenticated user profile & organization | **Yes** |
 | `POST` | `/api/auth/logout` | Revoke current token and terminate session | **Yes** |
 | `POST` | `/api/auth/password-reset`| Request or complete password reset | No |
+| `GET` | `/api/auth/sso/saml/metadata` | Native SAML 2.0 SP metadata | No |
+| `GET` | `/api/auth/sso/saml/login` | Start SAML SP-initiated login | No |
+| `POST` | `/api/auth/sso/saml/acs` | SAML assertion consumer service | No |
+| `POST` | `/api/auth/sso/saml/logout` | Bearer-authenticated SAML SP logout | **Yes** |
+| `GET/POST` | `/api/auth/sso/saml/slo` | SAML IdP-initiated Single Logout | No |
+| `GET/POST` | `/scim/v2/Users` | SCIM 2.0 user list/create | SCIM bearer token |
+| `GET/POST` | `/scim/v2/Groups` | SCIM 2.0 workspace-backed group list/create | SCIM bearer token |
+
+`/api/auth/login` accepts an email address or an LDAP username. Local passwords
+are checked first; when `LDAP_ENABLED=true`, a failed local check falls back to
+a directory bind. Organization founders can set `require_mfa` on
+`PATCH /api/organizations/{id}`; affected password/LDAP users receive an
+`mfa_enrollment_required` response before a normal JWT is issued. See [LDAP](LDAP.md), [MFA](MFA.md), [WebAuthn](WEBAUTHN.md), [SAML](SAML.md),
+and [SCIM](SCIM.md) for enterprise identity configuration and current
+limitations.
 
 ---
 
@@ -333,3 +362,69 @@ Readiness probe. Checks PostgreSQL database connection and (when configured) Red
   }
 }
 ```
+
+---
+
+### 3.11 Provider Webhooks (`/api/provider-webhooks`)
+
+#### `POST /api/provider-webhooks/register`
+Creates a provider-side webhook for an active GitHub, GitLab, Stripe, Shopify, or
+Typeform trigger node. Requires workflow edit access and a provider credential:
+
+```json
+{
+  "workflow_id": "wf_123",
+  "node_id": "trigger",
+  "credential_id": "cred_123",
+  "config": {"repository": "acme/repo", "events": ["push"]}
+}
+```
+
+`signing_secret` is optional for providers that allow a generated secret
+(GitHub, GitLab, and Typeform) and required for Shopify. GitLab uses the
+credential's configured `host` and authenticates with `X-Gitlab-Token`. Stripe
+returns the endpoint secret from its API. Slack Events API registration is not
+automated.
+
+#### `GET /api/provider-webhooks?workflow_id=...`
+Lists registrations for a workflow. Secrets are never returned.
+
+#### `DELETE /api/provider-webhooks/{id}`
+Removes the provider-side webhook and the local record. `?force=true` removes
+the local record even if the provider API is unavailable.
+
+---
+
+### 3.12 Connector Packs (`/api/connector-packs`)
+
+#### `GET /api/connector-packs`
+Lists installed connector packs. Authenticated users may read the list;
+`source_url` is returned only to administrators.
+
+#### `POST /api/connector-packs/install`
+Admin-only. Installs a manifest containing an OpenAPI/Swagger spec and optional
+workflow templates. Provide either `manifest` (JSON object) or `manifest_url`
+(SSRF-safe HTTP fetch):
+
+```json
+{
+  "manifest": {
+    "name": "petstore",
+    "display_name": "Petstore",
+    "version": "1.0.0",
+    "spec": "https://api.example.com/openapi.json",
+    "templates": []
+  }
+}
+```
+
+The installed connector becomes available to API and worker processes; generated
+sources are stored in PostgreSQL. Remote `manifest_url` installs require HTTPS,
+an Ed25519 signature, and signed URL specs require `spec_sha256`. Upgrade and
+uninstall are available at `POST /api/connector-packs/{key}/upgrade` and
+`DELETE /api/connector-packs/{key}`. `POST /api/connector-packs/registry/preview`
+verifies a signed registry index without installing it. Pack `requires`
+dependencies are enforced, and API/worker reconcilers propagate changes across
+replicas. See [`CONNECTOR_PACKS.md`](CONNECTOR_PACKS.md) for the manifest schema,
+registry format, signing commands, trusted/revoked-key configuration, limits,
+and security boundaries.

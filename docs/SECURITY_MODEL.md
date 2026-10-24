@@ -34,6 +34,41 @@ Flowsmith is engineered to operate safely within enterprise VPCs and private dat
   - Seamless key rotation supported via dual-key decryption fallback.
   - Re-encryption routines update existing database records without application downtime.
 
+### Multi-Factor Authentication
+
+- Optional TOTP MFA for local password accounts, with encrypted secrets at rest.
+- Enrollment and disabling require the current password; login issues a 5-minute
+  `purpose=mfa` challenge instead of a bearer JWT.
+- Purpose-scoped challenge tokens are rejected by `decode_token` for all normal
+  token consumers (API, WebSocket, files, sessions, SAML logout).
+- Accepted TOTP counters are stored to reject replay; ten single-use recovery
+  codes are stored only as SHA-256 hashes.
+- Organizations can require MFA. A non-enrolled user receives a 10-minute,
+  purpose-scoped enrollment token after password/LDAP verification; the token
+  can only call the enrollment endpoints, and enrollment completion issues the
+  normal login session.
+
+### WebAuthn/passkeys
+
+- Passkeys are verified with the browser's WebAuthn ceremony; private keys never
+  leave the authenticator.
+- Registration and login challenges are single-use, purpose-scoped JWTs and are
+  rejected by every normal token consumer.
+- RP ID, origin, challenge, user presence, and configured user verification are
+  checked server-side.
+- Challenge reuse is blocked by JWT revocation after success, and failure
+  attempts are throttled per account/IP.
+
+### LDAP
+
+- LDAP passwords are used only for a directory bind and are never persisted.
+- Service-account credentials are used only for search; user search values and
+  DNs are escaped before filter construction.
+- A deactivated Flowsmith user cannot be reactivated by LDAP, and directory
+  outages fail closed.
+- Production requires LDAPS or StartTLS with certificate verification; group
+  mapping is limited to the global admin/member role.
+
 ---
 
 ## 3. Webhook Ingestion & Anti-Replay Defense
@@ -132,3 +167,39 @@ Every workspace resource (Workflows, Credentials, Data Tables, Vector Collection
 - **Retention & Immutability**:
   - Logs cannot be modified or deleted via user-facing APIs.
   - Retention policies allow export to enterprise SIEM systems (Splunk, Datadog, Elastic).
+
+---
+
+## 9. Connector Pack Supply Chain
+
+Connector packs are installed only by admins. The installer:
+
+- fetches manifests and OpenAPI specs through the SSRF-safe HTTP client with
+  timeouts and response-size caps;
+- requires Ed25519 signatures for remote manifests and verifies trusted key IDs;
+- rejects signing keys listed in `CONNECTOR_PACK_REVOKED_KEYS`;
+- requires signed `spec_sha256` for URL specs and passes only the verified bytes
+  to the importer;
+- requires HTTPS for remote manifests, registry indexes, and signed/remote spec
+  URLs;
+- verifies signed registry indexes, enforces timezone-aware `issued_at` /
+  `expires_at` freshness (30-day maximum lifetime), and surfaces registry-level
+  revocation flags;
+- enforces pack-level `requires` dependencies;
+- requires generated modules to pass an AST shape check before they are written;
+- graph-validates templates and strips credential/secret material;
+- uses a PostgreSQL advisory transaction lock to prevent concurrent key
+  collisions;
+- stores generated sources in PostgreSQL for API/worker materialization;
+- rolls back/restores files, registry entries, and pack-owned templates on
+  failed upgrades; and
+- blocks uninstall while an active workflow uses the connector, returning only
+  the active-workflow count rather than cross-tenant names; and
+- exposes install source URLs only to administrators.
+
+**Current boundary:** signed manifests establish publisher-key integrity, and
+signed-key/registry-entry revocation is enforced. There is still no
+Flowsmith-hosted registry, moderation service, automatic revocation feed,
+cryptographic provenance attestation beyond the signature/digest metadata,
+Python dependency resolver, or public 50-pack catalog. Signing private keys must
+be protected offline. See [`CONNECTOR_PACKS.md`](CONNECTOR_PACKS.md).

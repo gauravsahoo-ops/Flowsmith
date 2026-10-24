@@ -8,14 +8,14 @@
 
 ## 1. Roadmap Horizon Overview
 
-Following the completion of Phases 0–45 (including the Complete Multi-Tier Cognitive Memory System, Autonomous Zero-LLM Local Engine, Enterprise AI Builder, and 86 certified connectors), this roadmap outlines key engineering initiatives scheduled for upcoming releases:
+Following the completion of Phases 0-45 (including the Complete Multi-Tier Cognitive Memory System, Autonomous Zero-LLM Local Engine, Enterprise AI Builder, and 76 native + 17 generated connectors), this roadmap outlines key engineering initiatives scheduled for upcoming releases. Catalog-only reference entries are tracked separately in [`CONNECTOR_STATUS.md`](CONNECTOR_STATUS.md).
 
 ```
 ┌────────────────────────────────────────────────────────┐
 │             Flowsmith Enterprise Roadmap               │
 ├────────────────────────────────────────────────────────┤
 │ Q4 2026: Multi-Region High-Availability & OpenTelemetry│
-│ Q1 2027: Enterprise SCIM & Native SAML 2.0 Ingestion   │
+│ Q1 2027: Enterprise Auth Hardening                     │
 │ Q2 2027: Multiplayer Canvas & Visual Co-Authoring      │
 │ Q3 2027: Community & Private Connector Plugin Store   │
 │ Q4 2027: Air-Gapped Appliance & Hardware ISO Edition   │
@@ -33,12 +33,18 @@ Following the completion of Phases 0–45 (including the Complete Multi-Tier Cog
   - Geo-distributed Redis broker mesh for low-latency webhook ingestion across US, EU, and APAC.
   - Geo-DNS routing directing external webhooks to the nearest edge gateway.
 
-### Initiative B: Enterprise SCIM 2.0 & Native SAML 2.0 Ingestion (Q1 2027)
-- **Objective**: Enable zero-touch user onboarding and offboarding for Fortune 500 IT departments.
-- **Key Deliverables**:
-  - Native SAML 2.0 XML metadata upload supporting Okta, Microsoft Entra ID (Azure AD), Ping Identity, and CyberArk.
-  - SCIM 2.0 REST endpoints (`/scim/v2/Users`, `/scim/v2/Groups`) for real-time user provisioning, role synchronization, and instant de-provisioning.
-  - Just-In-Time (JIT) workspace assignment based on IdP SAML attributes.
+### Initiative B: Enterprise Auth Hardening (Q1 2027)
+- **Objective**: Complete zero-touch user and group lifecycle management for Fortune 500 IT departments.
+- **Delivered 2026-10-23:**
+  - SCIM 2.0 user provisioning at `/scim/v2/Users` with filtering, create/read/replace/patch/deactivate, optional default organization/workspace assignment, and a dedicated bearer token. See [`SCIM.md`](SCIM.md).
+  - SCIM 2.0 Groups at `/scim/v2/Groups`, mapped to private workspaces with synchronized membership, nested child groups, optional organization-role mapping, and safe soft deletion.
+  - Native SAML 2.0 Web SSO with IdP metadata ingestion, XMLDSig assertion/response validation, encrypted assertions, SP request signing, audience/recipient/time checks, replay protection, JIT user provisioning, Single Logout, and group-claim-to-role mapping. See [`SAML.md`](SAML.md).
+  - TOTP multi-factor authentication with encrypted secrets, replay-resistant codes, single-use recovery codes, and a login challenge flow. See [`MFA.md`](MFA.md).
+  - Organization-wide MFA policy with forced in-login enrollment for password and LDAP users.
+  - LDAP/Active Directory authentication with username login, service-account search, user bind, JIT provisioning, group-to-role mapping, group-to-workspace memberships, group-to-organization memberships, and optional background refresh. See [`LDAP.md`](LDAP.md).
+  - WebAuthn/passkey registration and login with RP-ID/origin validation, single-use challenges, and TOTP fallback. See [`WEBAUTHN.md`](WEBAUTHN.md).
+- **Remaining**:
+  - Just-In-Time workspace assignment based on IdP SAML attributes and group membership.
 
 ### Initiative C: OpenTelemetry (OTel) Distributed Tracing (Q4 2026)
 - **Objective**: Full end-to-end observability across the entire execution lifecycle.
@@ -56,10 +62,12 @@ Following the completion of Phases 0–45 (including the Complete Multi-Tier Cog
 
 ### Initiative E: Signed Connector Plugin Marketplace (Q3 2027)
 - **Objective**: Allow internal enterprise developer teams and community authors to build, package, and distribute custom connectors.
-- **Key Deliverables**:
-  - `flowsmith-cli` tooling for scaffolding, building, and publishing connector packages.
-  - Cryptographic package signing and hash verification before installation.
-  - Private enterprise registry hosting for proprietary in-house microservice connectors.
+- **Delivered 2026-10-24:** Admin-only connector-pack installer with OpenAPI spec + template manifests, SSRF-safe URL fetching, AST-validated generated code, graph-validated/sanitized templates, PostgreSQL-backed generated sources for API/worker materialization, a local install UI, Ed25519 remote-manifest signing with trusted/revoked keys, signed URL-spec digests, signed registry-index discovery, pack-level dependencies, upgrade/uninstall, rollback handling, and a 10-second cross-process reconciler for install/upgrade/uninstall propagation. See [`CONNECTOR_PACKS.md`](CONNECTOR_PACKS.md).
+- **Key Deliverables remaining**:
+  - `flowsmith-cli` scaffolding/publishing workflow.
+  - A Flowsmith-hosted registry service, moderation console, automatic revocation feed, and at least 50 externally authored packs.
+  - Cryptographic provenance attestations beyond signature/digest metadata.
+  - Python package dependency resolution.
 
 ### Initiative F: Turnkey Air-Gapped Appliance Edition (Q4 2027)
 - **Objective**: Deliver a zero-dependency, single-boot image for defense, intelligence, and highly regulated healthcare environments.

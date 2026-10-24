@@ -23,6 +23,7 @@ class FreshsalesConnectorParams(BaseModel):
     last_name: str = ""
     email: str = ""
     mobile_number: str = ""
+    job_title: str = ""
     name: str = ""
     amount: float = 0.0
     page: int = Field(default=1, ge=1)
@@ -95,6 +96,17 @@ class FreshsalesConnector(ConnectorSDK):
                 if not first_name or not last_name or not email:
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "first_name, last_name, and email are required.", retryable=False)
                 return await self._provider.create_contact(creds, first_name, last_name, email, mobile_number=mobile_number, timeout=timeout)
+
+            if op == "update_contact":
+                fields: dict[str, Any] = {}
+                for key in ("first_name", "last_name", "email", "mobile_number", "job_title"):
+                    value = raw.get(key) if raw.get(key) is not None else getattr(params, key)
+                    if value not in (None, ""):
+                        fields[key] = str(value)
+                return await self._provider.update_contact(creds, contact_id, fields, timeout=timeout)
+
+            if op == "delete_contact":
+                return await self._provider.delete_contact(creds, contact_id, timeout=timeout)
 
             if op == "list_deals":
                 return await self._provider.list_deals(creds, page=page, per_page=per_page, timeout=timeout)

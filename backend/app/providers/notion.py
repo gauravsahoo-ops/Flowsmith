@@ -205,3 +205,71 @@ class NotionProviderClient(BaseProviderClient):
             "success": True,
         }
 
+    async def search(
+        self, creds: dict, query: str = "", page_size: int = 50,
+        max_pages: int = 3, timeout: float = 30.0,
+    ) -> dict:
+        page_size = min(max(int(page_size or 50), 1), 100)
+        max_pages = min(max(int(max_pages or 1), 1), 10)
+        results: list[dict] = []
+        cursor: str | None = None
+        has_more = False
+        for _ in range(max_pages):
+            body: dict[str, Any] = {"page_size": page_size}
+            if query:
+                body["query"] = query
+            if cursor:
+                body["start_cursor"] = cursor
+            response = await self.request_notion(
+                creds, "POST", "/search", json_body=body,
+                timeout=timeout, what="search",
+            )
+            data = response.json()
+            for item in data.get("results") or []:
+                title = ""
+                if item.get("object") == "page":
+                    for prop in (item.get("properties") or {}).values():
+                        if prop.get("type") == "title":
+                            title = "".join(t.get("plain_text", "") for t in (prop.get("title") or []))
+                            break
+                else:
+                    title = "".join(t.get("plain_text", "") for t in (item.get("title") or []))
+                results.append({
+                    "id": item.get("id"),
+                    "object": item.get("object"),
+                    "title": title,
+                    "url": item.get("url"),
+                    "last_edited_time": item.get("last_edited_time"),
+                })
+            has_more = bool(data.get("has_more"))
+            cursor = data.get("next_cursor")
+            if not has_more or not cursor:
+                break
+        return {"results": results, "count": len(results), "has_more": has_more}
+
+    async def get_block_children(
+        self, creds: dict, block_id: str, page_size: int = 100,
+        max_pages: int = 3, timeout: float = 30.0,
+    ) -> dict:
+        bid = self._object_id(block_id, "block")
+        page_size = min(max(int(page_size or 100), 1), 100)
+        max_pages = min(max(int(max_pages or 1), 1), 10)
+        blocks: list[dict] = []
+        cursor: str | None = None
+        has_more = False
+        for _ in range(max_pages):
+            params: dict[str, Any] = {"page_size": page_size}
+            if cursor:
+                params["start_cursor"] = cursor
+            response = await self.request_notion(
+                creds, "GET", f"/blocks/{bid}/children", params=params,
+                timeout=timeout, what="get block children",
+            )
+            data = response.json()
+            blocks.extend(data.get("results") or [])
+            has_more = bool(data.get("has_more"))
+            cursor = data.get("next_cursor")
+            if not has_more or not cursor:
+                break
+        return {"block_id": bid, "blocks": blocks, "count": len(blocks), "has_more": has_more}
+

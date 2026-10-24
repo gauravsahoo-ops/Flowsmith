@@ -48,9 +48,18 @@ def build_freshdesk_definition() -> ConnectorDefinitionV1:
                 "list_tickets", "List Tickets", "List support tickets.",
                 {"limit": {"type": "integer", "title": "Limit"}}, [],
             ),
+            "list_contacts": _operation(
+                "list_contacts", "List Contacts", "List Freshdesk contacts.",
+                {"limit": {"type": "integer", "title": "Limit"}}, [],
+            ),
             "get_ticket": _operation(
                 "get_ticket", "Get Ticket", "Fetch one ticket by id.",
                 {"ticket_id": {"type": "string", "title": "Ticket id"}}, ["ticket_id"],
+            ),
+            "delete_ticket": _operation(
+                "delete_ticket", "Delete Ticket", "Delete a ticket by id.",
+                {"ticket_id": {"type": "string", "title": "Ticket id"}}, ["ticket_id"],
+                retryable=False, idempotency="non_idempotent",
             ),
             "create_ticket": _operation(
                 "create_ticket", "Create Ticket", "Open a new ticket.",
@@ -99,6 +108,12 @@ def build_freshdesk_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_tickets", "get_ticket", "create_ticket", "update_ticket", "add_note"], "auth": "Email + API key (Basic)"},
+        metadata={
+            "initial_operations": [
+                "list_tickets", "list_contacts", "get_ticket", "create_ticket",
+                "update_ticket", "delete_ticket", "add_note",
+            ],
+            "auth": "Email + API key (Basic)",
+        },
         icon="freshdesk",
     )

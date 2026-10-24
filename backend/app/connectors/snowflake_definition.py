@@ -81,6 +81,14 @@ def build_snowflake_definition() -> ConnectorDefinitionV1:
                 },
                 ["table_name"],
             ),
+            "list_databases": _operation(
+                "list_databases", "List Databases", "Discover databases in the Snowflake account.",
+                {}, [],
+            ),
+            "list_schemas": _operation(
+                "list_schemas", "List Schemas", "Discover schemas, optionally within one database.",
+                {"database": {"type": "string", "title": "Database"}}, [],
+            ),
             "list_tables": _operation(
                 "list_tables", "List Tables", "Discover tables in a Snowflake database or schema.",
                 {
@@ -112,4 +120,12 @@ def build_snowflake_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "execute_query", "get_query_results", "cancel_query",
+                "describe_table", "list_databases", "list_schemas", "list_tables",
+            ],
+            "auth": "Bearer token / Keypair JWT",
+        },
+        icon="snowflake",
     )

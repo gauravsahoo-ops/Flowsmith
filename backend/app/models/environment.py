@@ -64,6 +64,9 @@ class WorkflowTemplate(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     category: Mapped[str] = mapped_column(String(100), default="general")
     workflow_data: Mapped[str] = mapped_column(Text, nullable=False)
+    # Set for templates installed by a connector pack so upgrades/uninstalls
+    # can replace exactly the templates owned by that pack.
+    pack_key: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     use_count: Mapped[int] = mapped_column(Integer, default=0)

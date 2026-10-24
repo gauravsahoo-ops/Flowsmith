@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class GoogleSheetsConnectorParams(BaseModel):
-    operation: str = Field(default="read", description="read | append | update | clear | get_info.")
+    operation: str = Field(default="read", description="read | append | update | clear | get_info | create_spreadsheet.")
     spreadsheet_id: str = Field(default="", description="Spreadsheet id (from its URL).")
+    title: str = Field(default="", description="Title for create_spreadsheet.")
     range: str = Field(default="Sheet1!A1:Z100", description="A1-notation range.")
     values: list[Any] = Field(default_factory=list, description="Row values (append/update).")
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
@@ -101,6 +102,9 @@ class GoogleSheetsConnector(ConnectorSDK, ConnectorOperations):
                 if not sid:
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "A spreadsheet_id is required.", retryable=False)
                 return await self._provider.get_spreadsheet_info(creds, sid, timeout=params.timeout_seconds)
+            if op == "create_spreadsheet":
+                title = str(payload.get("title") or params.title or "").strip()
+                return await self._provider.create_spreadsheet(creds, title, timeout=params.timeout_seconds)
         except ConnectorError:
             raise
 

@@ -116,14 +116,24 @@
 
 .dncp-op-select {
   width: 100%;
-  background: rgba(11, 14, 21, 0.85);
+  display: block;
+  /* Use the platform arrow. A custom SVG background was tiled by some
+     Chromium/Windows native-select render paths. */
+  background-color: rgba(11, 14, 21, 0.85);
+  background-image: none !important;
   border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
   border-radius: 6px;
   color: var(--text, #f8fafc);
+  color-scheme: dark;
   padding: 9px 12px;
   font-size: 13px;
   font-weight: 500;
   outline: none;
+}
+
+.dncp-op-select option {
+  background-color: #0f1422;
+  color: #f1f5f9;
 }
 
 .dncp-op-meta-row {

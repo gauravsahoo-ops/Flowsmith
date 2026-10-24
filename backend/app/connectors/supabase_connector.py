@@ -138,6 +138,37 @@ class SupabaseConnector(ConnectorSDK, ConnectorOperations):
                     res.raise_for_status()
                     return {"data": res.json()}
 
+                elif operation == "upsert_row":
+                    body = params.get("data") or {}
+                    query_params = {}
+                    if params.get("on_conflict"):
+                        query_params["on_conflict"] = params["on_conflict"]
+                    upsert_headers = {
+                        **headers,
+                        "Prefer": "resolution=merge-duplicates,return=representation",
+                    }
+                    res = await client.post(
+                        f"{url}/rest/v1/{table}", headers=upsert_headers,
+                        params=query_params, json=body,
+                    )
+                    res.raise_for_status()
+                    return {"data": res.json()}
+
+                elif operation == "count_rows":
+                    query_params = {}
+                    if params.get("filter"):
+                        for k, v in params["filter"].items():
+                            query_params[k] = v
+                    count_headers = {**headers, "Prefer": "count=exact"}
+                    res = await client.head(
+                        f"{url}/rest/v1/{table}", headers=count_headers,
+                        params=query_params,
+                    )
+                    res.raise_for_status()
+                    content_range = res.headers.get("content-range", "")
+                    raw_count = content_range.rsplit("/", 1)[-1] if content_range else "0"
+                    return {"count": int(raw_count) if raw_count.isdigit() else 0}
+
                 elif operation == "update_row":
                     body = params.get("data") or {}
                     filter_col = params.get("match_column", "id")

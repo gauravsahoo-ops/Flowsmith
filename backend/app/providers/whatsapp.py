@@ -125,6 +125,36 @@ class WhatsAppProviderClient:
             creds, {"to": to, "type": "template", "template": tpl}, "send_template", timeout,
         )
 
+    async def send_media(
+        self, creds: dict, to: str, media_type: str, link: str,
+        caption: str = "", timeout: float = 30.0,
+    ) -> dict:
+        if not str(to or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "send_media needs a 'to' phone number.", retryable=False)
+        if media_type not in ("image", "document", "video", "audio"):
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "send_media media_type must be image/document/video/audio.",
+                retryable=False,
+            )
+        if not str(link or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "send_media needs a media link.", retryable=False)
+        media: dict[str, Any] = {"link": link}
+        if caption and media_type != "audio":
+            media["caption"] = caption
+        return await self._post_message(
+            creds, {"to": to, "type": media_type, media_type: media},
+            "send_media", timeout,
+        )
+
+    async def mark_read(self, creds: dict, message_id: str, timeout: float = 30.0) -> dict:
+        if not str(message_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "mark_read needs a message_id.", retryable=False)
+        return await self._post_message(
+            creds, {"status": "read", "message_id": message_id},
+            "mark_read", timeout,
+        )
+
     async def get_message(self, creds: dict, message_id: str, timeout: float = 30.0) -> dict:
         token, _ = _auth(creds)
         if not str(message_id or "").strip():

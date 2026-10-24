@@ -1,6 +1,6 @@
 """Trello connector definition (Batch B, original).
 
-Ops: list_cards, get_card, create_card, add_comment.
+Ops: list_cards, list_lists, get_card, create_card, update_card, add_comment.
 """
 
 from __future__ import annotations
@@ -49,9 +49,25 @@ def _trello_operations() -> dict[str, ConnectorOperationV1]:
             "list_cards", "List Board Cards", "List cards on a Trello board.",
             {"board_id": {"type": "string", "title": "Board id"}}, ["board_id"],
         ),
+        "list_lists": _operation(
+            "list_lists", "List Board Lists", "List lists on a Trello board.",
+            {"board_id": {"type": "string", "title": "Board id"}}, ["board_id"],
+        ),
         "get_card": _operation(
             "get_card", "Get Card", "Fetch one Trello card by id.",
             {"card_id": {"type": "string", "title": "Card id"}}, ["card_id"],
+        ),
+        "update_card": _operation(
+            "update_card", "Update Card", "Update a card's name, description, due date, list, or closed state.",
+            {
+                "card_id": {"type": "string", "title": "Card id"},
+                "name": {"type": "string", "title": "Name"},
+                "desc": {"type": "string", "title": "Description"},
+                "due": {"type": "string", "title": "Due date (ISO-8601)"},
+                "list_id": {"type": "string", "title": "Move to list id"},
+                "closed": {"type": "boolean", "title": "Closed/archived"},
+            },
+            ["card_id"], retryable=False, idempotency="non_idempotent",
         ),
         "create_card": _operation(
             "create_card", "Create Card", "Create a card on a list.",
@@ -100,6 +116,12 @@ def build_trello_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_cards", "get_card", "create_card", "add_comment"], "auth": "api key + token"},
+        metadata={
+            "initial_operations": [
+                "list_cards", "list_lists", "get_card", "create_card",
+                "update_card", "add_comment",
+            ],
+            "auth": "api key + token",
+        },
         icon="trello",
     )

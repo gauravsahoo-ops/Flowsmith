@@ -1,7 +1,9 @@
 """Discord connector definition (Phase 11 business connectors).
 
-1. send_message - bot-token channel message (2000-char cap enforced)
-2. send_webhook - incoming-webhook delivery (URL passed per call)
+1. send_message  - bot-token channel message (2000-char cap enforced)
+2. send_webhook  - incoming-webhook delivery (URL passed per call)
+3. list_channels - list guild channels visible to the bot
+4. list_messages - list recent channel messages
 """
 
 from __future__ import annotations
@@ -63,6 +65,39 @@ def _discord_operations() -> dict[str, ConnectorOperationV1]:
             retryable=False,
             idempotency="non_idempotent",
         ),
+        "list_channels": _operation(
+            "list_channels", "List Guild Channels",
+            "List channels in a Discord guild visible to the bot.",
+            {"guild_id": {"type": "string", "title": "Guild id"}},
+            ["guild_id"],
+            {
+                "type": "object",
+                "properties": {
+                    "channels": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "list_messages": _operation(
+            "list_messages", "List Channel Messages",
+            "List recent messages in a Discord channel.",
+            {
+                "channel_id": {"type": "string", "title": "Channel id"},
+                "limit": {"type": "integer", "title": "Limit", "default": 50, "minimum": 1, "maximum": 100},
+            },
+            ["channel_id"],
+            {
+                "type": "object",
+                "properties": {
+                    "messages": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
         "send_webhook": _operation(
             "send_webhook", "Send Webhook",
             "Deliver a message through an incoming webhook URL (no bot needed).",
@@ -109,7 +144,7 @@ def build_discord_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=DISCORD_CONNECTOR_KEY,
         display_name="Discord",
-        description="Send Discord messages via bot API or incoming webhooks.",
+        description="Send and inspect Discord messages via bot API or incoming webhooks.",
         category="communication",
         connector_version=DISCORD_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
@@ -117,7 +152,9 @@ def build_discord_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_discord_credential_type(),
         metadata={
-            "initial_operations": ["send_message", "send_webhook"],
+            "initial_operations": [
+                "send_message", "send_webhook", "list_channels", "list_messages",
+            ],
             "auth": "bot token, or per-call webhook URL",
         },
         icon="discord",

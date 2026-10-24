@@ -74,6 +74,12 @@ class TwilioConnector(ConnectorSDK):
             if op == "list_messages":
                 messages = await self._provider.list_messages(creds, int(raw.get("limit") or params.limit), timeout=timeout)
                 return {"messages": messages}
+            if op == "list_calls":
+                calls = await self._provider.list_calls(
+                    creds, int(raw.get("limit") or params.limit), timeout=timeout)
+                return {"calls": calls}
+            if op == "get_account":
+                return await self._provider.get_account(creds, timeout=timeout)
             if op == "get_message":
                 return await self._provider.get_message(creds, str(raw.get("message_sid") or params.message_sid), timeout=timeout)
         except ConnectorError:
@@ -92,4 +98,4 @@ class TwilioConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["send_sms", "list_messages", "get_message"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["send_sms", "list_messages", "list_calls", "get_account", "get_message"]}}

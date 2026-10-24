@@ -42,9 +42,13 @@ class HubSpotConnectorParams(BaseModel):
 
     operation: str = Field(
         default="search",
-        description="Operation to run: search, list, get, create, update, delete, get_properties, associate_records.",
+        description=(
+            "Operation to run: search, list, get, create, update, delete, "
+            "get_properties, associate_records, get_owner, list_pipelines."
+        ),
     )
     object_type: str = Field(default="contacts", description="Standard object: contacts, companies, deals, tickets...")
+    owner_id: str = Field(default="", description="HubSpot owner id (operation=get_owner).")
     record_id: str = Field(default="", description="Record id (operation=get/update/delete).")
     properties: dict[str, Any] = Field(
         default_factory=dict,
@@ -163,6 +167,12 @@ class HubSpotConnector(ConnectorSDK, ConnectorOperations):
                 return await self._op_get_properties(creds, params, payload)
             if op == "associate_records":
                 return await self._op_associate_records(creds, params, payload)
+            if op == "get_owner":
+                owner_id = self._require(self._raw(payload, "owner_id") or params.owner_id, "operation=get_owner requires owner_id.")
+                return await self._provider.get_owner(creds, owner_id, timeout=params.timeout_seconds)
+            if op == "list_pipelines":
+                object_type = str(self._raw(payload, "object_type") or params.object_type)
+                return await self._provider.list_pipelines(creds, object_type, timeout=params.timeout_seconds)
         except ConnectorError:
 
             raise

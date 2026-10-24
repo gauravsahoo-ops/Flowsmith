@@ -2,10 +2,12 @@
 
 Admin REST API operations over a myshopify.com domain + access token:
 
-1. get_product   - one product by numeric id
-2. list_products - Link-header page_info pagination
-3. create_product- publish a new product
-4. get_order     - order summary
+1. get_product    - one product by numeric id
+2. list_products  - Link-header page_info pagination
+3. create_product - publish a new product
+4. update_product - patch product fields
+5. get_order      - order summary
+6. list_orders    - Link-header page_info pagination
 """
 
 from __future__ import annotations
@@ -92,6 +94,21 @@ def _shopify_operations() -> dict[str, ConnectorOperationV1]:
             retryable=False,
             idempotency="non_idempotent",
         ),
+        "update_product": _operation(
+            "update_product", "Update Product",
+            "Patch title, description, vendor, status, or tags on a product.",
+            {
+                "product_id": {"type": "string", "title": "Product id"},
+                "title": {"type": "string", "title": "Title"},
+                "body_html": {"type": "string", "title": "Description HTML"},
+                "vendor": {"type": "string", "title": "Vendor"},
+                "status": {"type": "string", "enum": ["active", "archived", "draft"], "title": "Status"},
+                "tags": {"type": "array", "title": "Tags", "items": {"type": "string"}},
+            },
+            ["product_id"],
+            {"type": "object", "properties": {"id": {"type": "integer"}, "success": {"type": "boolean"}}},
+            retryable=True,
+        ),
         "get_order": _operation(
             "get_order", "Get Order",
             "Fetch summary data for one order.",
@@ -105,6 +122,18 @@ def _shopify_operations() -> dict[str, ConnectorOperationV1]:
                     "financial_status": {"type": "string"},
                 },
             },
+            retryable=True,
+        ),
+        "list_orders": _operation(
+            "list_orders", "List Orders",
+            "List store orders (Link-header pagination).",
+            {
+                "limit": {"type": "integer", "title": "Page size", "default": 50, "minimum": 1, "maximum": 250},
+                "max_pages": {"type": "integer", "title": "Max pages", "default": 3, "minimum": 1, "maximum": 10},
+                "order_status": {"type": "string", "enum": ["any", "open", "closed", "cancelled"], "default": "any"},
+            },
+            [],
+            {"type": "object", "properties": {"orders": {"type": "array", "items": {"type": "object"}}}},
             retryable=True,
         ),
     }
@@ -146,7 +175,10 @@ def build_shopify_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_shopify_credential_type(),
         metadata={
-            "initial_operations": ["get_product", "list_products", "create_product", "get_order"],
+            "initial_operations": [
+                "get_product", "list_products", "create_product", "update_product",
+                "get_order", "list_orders",
+            ],
             "auth": "Admin API access token",
             "rate_limits": "leaky-bucket 429 + Retry-After honored",
         },

@@ -6,6 +6,7 @@ Versioned ConnectorDefinitionV1 for the Postgres connector:
 2. execute     - run INSERT/UPDATE/DDL, return affected rows
 3. insert_rows - bulk-insert parameterised rows into a table
 4. list_tables - enumerate tables in the target schema
+5. describe_table - inspect columns, keys, and indexes for a table
 """
 
 from __future__ import annotations
@@ -111,6 +112,27 @@ def _postgres_operations() -> dict[str, ConnectorOperationV1]:
             },
             retryable=True,
         ),
+        "describe_table": _operation(
+            "describe_table", "Describe Table",
+            "Inspect columns, primary keys, foreign keys, and indexes for a table.",
+            {
+                "table": {"type": "string", "title": "Table name"},
+                "schema": {"type": "string", "title": "Schema (optional)"},
+            },
+            ["table"],
+            {
+                "type": "object",
+                "properties": {
+                    "table": {"type": "string"},
+                    "schema": {"type": "string"},
+                    "columns": {"type": "array", "items": {"type": "object"}},
+                    "primary_key": {"type": "array", "items": {"type": "string"}},
+                    "foreign_keys": {"type": "array", "items": {"type": "object"}},
+                    "indexes": {"type": "array", "items": {"type": "object"}},
+                },
+            },
+            retryable=True,
+        ),
     }
 
 
@@ -149,7 +171,9 @@ def build_postgres_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_postgres_credential_type(),
         metadata={
-            "initial_operations": ["query", "execute", "insert_rows", "list_tables"],
+            "initial_operations": [
+                "query", "execute", "insert_rows", "list_tables", "describe_table",
+            ],
             "auth": "connection string (dsn) stored encrypted",
         },
         icon="postgres",

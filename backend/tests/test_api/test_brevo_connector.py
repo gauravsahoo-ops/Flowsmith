@@ -129,4 +129,5 @@ def test_connector_dispatch_and_discovery():
                              {"credentials": {"brevo": {}}}))
     out = _run(conn.op_list())
     assert out["output"]["operations"] == [
-        "send_email", "list_contacts", "get_contact", "create_contact", "update_contact"]
+        "send_email", "list_contacts", "get_contact", "create_contact",
+        "update_contact", "list_lists", "delete_contact"]

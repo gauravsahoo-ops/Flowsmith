@@ -22,7 +22,13 @@ from app.providers.airtable import AirtableProviderClient
 
 
 class AirtableConnectorParams(BaseModel):
-    operation: str = Field(default="list_records", description="list_records | get_record | create_record | update_record.")
+    operation: str = Field(
+        default="list_records",
+        description=(
+            "list_records | get_record | create_record | update_record | "
+            "delete_record | list_bases."
+        ),
+    )
     base_id: str = ""
     table_name: str = ""
     record_id: str = ""
@@ -108,6 +114,16 @@ class AirtableConnector(ConnectorSDK):
                     creds, base_id, table_name,
                     str(raw.get("record_id") or params.record_id),
                     fields, timeout=params.timeout_seconds,
+                )
+            if op == "delete_record":
+                return await self._provider.delete_record(
+                    creds, base_id, table_name,
+                    str(raw.get("record_id") or params.record_id),
+                    timeout=params.timeout_seconds,
+                )
+            if op == "list_bases":
+                return await self._provider.list_bases(
+                    creds, timeout=params.timeout_seconds,
                 )
         except ConnectorError:
             raise

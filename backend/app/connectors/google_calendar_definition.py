@@ -115,6 +115,15 @@ def _google_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"id": {"type": "string"}, "deleted": {"type": "boolean"}}},
             retryable=True,
         ),
+        "list_calendars": _operation(
+            "list_calendars", "List Calendars",
+            "List calendars available to the connected account.",
+            {"timeout_seconds": _TIMEOUT_PROP},
+            [],
+            {"type": "object", "properties": {"calendars": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}}},
+            retryable=True,
+            idempotency="idempotent",
+        ),
     }
 
 
@@ -154,7 +163,10 @@ def build_google_calendar_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_google_credential_type(),
         metadata={
-            "initial_operations": ["list_events", "get_event", "create_event", "update_event", "delete_event"],
+            "initial_operations": [
+                "list_events", "get_event", "create_event", "update_event",
+                "delete_event", "list_calendars",
+            ],
             "auth": "OAuth2 authorization-code (Connect Google Calendar), offline access",
         },
         icon="google_calendar",

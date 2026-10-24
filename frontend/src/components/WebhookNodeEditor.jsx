@@ -2,9 +2,64 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import Button from './shared/Button'
 import { WebhookDeliveryLog } from './WebhookDeliveryLog'
 import { api } from '../api'
+import { useCredentialStore } from '../stores/credentialStore'
 import './WebhookNodeEditor.css'
 
 const HTTP_METHODS = ['POST', 'GET', 'PUT', 'PATCH', 'DELETE']
+
+const PROVIDER_INFO = {
+  github_trigger: {
+    provider: 'github',
+    label: 'GitHub',
+    credentialType: 'github',
+    configFields: [
+      { key: 'repository', label: 'Repository (owner/repo)', placeholder: 'acme/automation' },
+      { key: 'events', label: 'Events (comma-separated)', placeholder: 'push,pull_request' },
+    ],
+  },
+  gitlab_trigger: {
+    provider: 'gitlab',
+    label: 'GitLab',
+    credentialType: 'gitlab',
+    configFields: [
+      { key: 'project', label: 'Project (group/project)', placeholder: 'acme/automation' },
+      { key: 'events', label: 'Events (comma-separated)', placeholder: 'push,merge_request,tag_push' },
+    ],
+    secretLabel: 'Webhook token (optional; generated if left blank)',
+  },
+  stripe_trigger: {
+    provider: 'stripe',
+    label: 'Stripe',
+    credentialType: 'stripe',
+    configFields: [
+      { key: 'events', label: 'Stripe events (comma-separated)', placeholder: 'invoice.paid' },
+    ],
+  },
+  shopify_trigger: {
+    provider: 'shopify',
+    label: 'Shopify',
+    credentialType: 'shopify',
+    configFields: [
+      { key: 'topic', label: 'Webhook topic', placeholder: 'orders/create' },
+    ],
+    secretLabel: 'Shopify app client secret (required for HMAC verification)',
+  },
+  typeform_trigger: {
+    provider: 'typeform',
+    label: 'Typeform',
+    credentialType: 'typeform',
+    configFields: [
+      { key: 'form_id', label: 'Typeform form ID', placeholder: 'abc123' },
+    ],
+  },
+  slack_trigger: {
+    provider: 'slack',
+    label: 'Slack',
+    credentialType: 'slack-oauth2',
+    supported: false,
+    note: 'Slack Events API requests are configured in the Slack app dashboard. Automatic registration is not supported.',
+  },
+}
 
 export default function WebhookNodeEditor({ node, onParamsChange, workflowId }) {
   const params = node?.parameters || {}
@@ -30,6 +85,137 @@ export default function WebhookNodeEditor({ node, onParamsChange, workflowId }) 
   const [listening, setListening] = useState(false)
   const [capturedEvent, setCapturedEvent] = useState(null)
   const listenStartTimeRef = useRef(null)
+
+  const providerInfo = node?.type ? PROVIDER_INFO[node.type] : null
+  const provider = providerInfo?.provider
+  const credentials = useCredentialStore((s) => s.credentials)
+  const loadCredentials = useCredentialStore((s) => s.load)
+  const [providerCredentialId, setProviderCredentialId] = useState('')
+  const [providerConfig, setProviderConfig] = useState({})
+  const [providerSecret, setProviderSecret] = useState('')
+  const [providerRegistration, setProviderRegistration] = useState(null)
+  const [providerBusy, setProviderBusy] = useState(false)
+  const [providerError, setProviderError] = useState(null)
+
+  useEffect(() => {
+    if (!provider) return
+    loadCredentials().catch(() => {})
+  }, [provider, loadCredentials])
+
+  useEffect(() => {
+    if (!provider) return
+    if (provider === 'github') {
+      setProviderConfig({ repository: '', events: 'push' })
+    } else if (provider === 'gitlab') {
+      setProviderConfig({ project: '', events: 'push,merge_request' })
+    } else if (provider === 'stripe') {
+      setProviderConfig({ events: 'invoice.paid' })
+    } else if (provider === 'shopify') {
+      setProviderConfig({ topic: 'orders/create' })
+    } else if (provider === 'typeform') {
+      setProviderConfig({ form_id: '' })
+    } else {
+      setProviderConfig({})
+    }
+    setProviderSecret('')
+    setProviderError(null)
+  }, [provider])
+
+  useEffect(() => {
+    if (!provider || !workflowId) return
+    let cancelled = false
+    api
+      .listProviderWebhooks(workflowId)
+      .then((rows) => {
+        if (cancelled) return
+        const list = Array.isArray(rows) ? rows : []
+        setProviderRegistration(list.find((row) => row.node_id === node?.id) || null)
+      })
+      .catch(() => {
+        if (!cancelled) setProviderRegistration(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [workflowId, node?.id, provider])
+
+  const providerCredentials = useMemo(
+    () => (credentials || []).filter((credential) => credential.type === providerInfo?.credentialType),
+    [credentials, providerInfo?.credentialType]
+  )
+
+  const buildProviderConfig = () => {
+    const config = {}
+    for (const field of providerInfo?.configFields || []) {
+      const value = String(providerConfig[field.key] || '').trim()
+      if (field.key === 'events') {
+        config.events = value.split(',').map((event) => event.trim()).filter(Boolean)
+      } else if (value) {
+        config[field.key] = value
+      }
+    }
+    return config
+  }
+
+  const handleProviderRegister = async () => {
+    if (!workflowId || !node?.id || !providerCredentialId) {
+      setProviderError('Select a provider credential first.')
+      return
+    }
+    setProviderBusy(true)
+    setProviderError(null)
+    try {
+      const registration = await api.registerProviderWebhook({
+        workflow_id: workflowId,
+        node_id: node.id,
+        credential_id: providerCredentialId,
+        config: buildProviderConfig(),
+        signing_secret: providerSecret || undefined,
+      })
+      setProviderRegistration(registration)
+    } catch (err) {
+      setProviderError(err.message || 'Provider registration failed.')
+    } finally {
+      setProviderBusy(false)
+    }
+  }
+
+  const handleProviderUnregister = async (force = false) => {
+    if (!providerRegistration) return
+    setProviderBusy(true)
+    setProviderError(null)
+    try {
+      const result = await api.unregisterProviderWebhook(providerRegistration.id, force)
+      if (result?.cleanup_pending) {
+        setProviderRegistration((current) => (
+          current
+            ? {
+                ...current,
+                status: 'orphaned',
+                last_error: 'Provider cleanup is pending; Flowsmith will retry automatically.',
+              }
+            : current
+        ))
+      } else {
+        setProviderRegistration(null)
+      }
+    } catch (err) {
+      setProviderError(err.message || 'Provider unregister failed.')
+      setProviderRegistration((current) => (
+        current ? { ...current, status: 'error', last_error: err.message } : current
+      ))
+    } finally {
+      setProviderBusy(false)
+    }
+  }
+
+  const generateSecurePath = () => {
+    const prefix = providerInfo?.provider || 'webhook'
+    const random = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().replaceAll('-', '')
+      : `${Date.now()}${Math.random().toString(16).slice(2)}`
+    onParamsChange({ ...params, path: `${prefix}-${random}` })
+  }
 
   useEffect(() => {
     if (!listening) return
@@ -172,11 +358,11 @@ print(response.status_code, response.json())`
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 12, marginBottom: 12 }}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-                <span>Webhook Path Suffix (a-z, 0-9, -, _)</span>
+                <span>Webhook Path Suffix (24+ chars; a-z, 0-9, -, _)</span>
                 <input
                   type="text"
                   value={path}
-                  placeholder="e.g. stripe-event or customer-leads"
+                  placeholder="e.g. stripe-3f2a9c0b7d1e4a8f"
                   onChange={(e) => onParamsChange({ ...params, path: e.target.value })}
                   style={{
                     background: 'var(--panel-2, #090b10)',
@@ -187,6 +373,14 @@ print(response.status_code, response.json())`
                     fontFamily: 'monospace',
                   }}
                 />
+                <button
+                  type="button"
+                  className="ghost"
+                  style={{ alignSelf: 'flex-start', fontSize: 11, padding: '3px 8px' }}
+                  onClick={generateSecurePath}
+                >
+                  Generate secure path
+                </button>
               </label>
 
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
@@ -230,6 +424,149 @@ print(response.status_code, response.json())`
               </button>
             </div>
           </div>
+
+          {/* Provider-side registration */}
+          {providerInfo && (
+            <div className="we-section">
+              <div className="we-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4"/><path d="M12 18v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="m6.34 17.66-2.41 2.41"/><path d="m19.07 4.93-2.41 2.41"/></svg>
+                <span>{providerInfo.label} Provider Webhook</span>
+              </div>
+
+              {providerInfo.supported === false ? (
+                <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+                  {providerInfo.note}
+                </p>
+              ) : providerRegistration ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12 }}>
+                  <div style={{ color: '#34d399' }}>
+                    Registered · {providerRegistration.provider} · external ID{' '}
+                    <code>{providerRegistration.external_id}</code>
+                  </div>
+                  <div style={{ color: '#94a3b8', wordBreak: 'break-all' }}>
+                    {providerRegistration.callback_url}
+                  </div>
+                  {providerRegistration.last_error && (
+                    <div style={{ color: providerRegistration.status === 'orphaned' ? '#fbbf24' : '#f87171' }}>
+                      {providerRegistration.last_error}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      className="ghost"
+                      onClick={() => handleProviderUnregister(false)}
+                      disabled={providerBusy || providerRegistration.status === 'orphaned'}
+                    >
+                      {providerBusy ? 'Removing...' : 'Remove Provider Webhook'}
+                    </button>
+                    {(providerRegistration.status === 'error' || providerRegistration.status === 'orphaned') && (
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => handleProviderUnregister(true)}
+                        disabled={providerBusy}
+                      >
+                        {providerRegistration.status === 'orphaned'
+                          ? 'Retry Provider Cleanup'
+                          : 'Queue Provider Cleanup'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
+                  <p style={{ color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+                    Create or update the webhook in {providerInfo.label} so events are delivered
+                    to this workflow. The workflow must be active.
+                  </p>
+
+                  {(providerInfo.configFields || []).map((field) => (
+                    <label key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span>{field.label}</span>
+                      <input
+                        type="text"
+                        value={providerConfig[field.key] || ''}
+                        placeholder={field.placeholder}
+                        onChange={(e) => setProviderConfig((current) => ({
+                          ...current,
+                          [field.key]: e.target.value,
+                        }))}
+                        style={{
+                          background: 'var(--panel-2, #090b10)',
+                          border: '1px solid var(--border, rgba(255,255,255,0.12))',
+                          borderRadius: 6,
+                          padding: '8px 10px',
+                          color: 'var(--text, #fff)',
+                        }}
+                      />
+                    </label>
+                  ))}
+
+                  {providerInfo.secretLabel && (
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span>{providerInfo.secretLabel}</span>
+                      <input
+                        type="password"
+                        value={providerSecret}
+                        onChange={(e) => setProviderSecret(e.target.value)}
+                        autoComplete="off"
+                        style={{
+                          background: 'var(--panel-2, #090b10)',
+                          border: '1px solid var(--border, rgba(255,255,255,0.12))',
+                          borderRadius: 6,
+                          padding: '8px 10px',
+                          color: 'var(--text, #fff)',
+                        }}
+                      />
+                    </label>
+                  )}
+
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span>{providerInfo.label} credential</span>
+                    <select
+                      value={providerCredentialId}
+                      onChange={(e) => setProviderCredentialId(e.target.value)}
+                      style={{
+                        background: 'var(--panel-2, #090b10)',
+                        border: '1px solid var(--border, rgba(255,255,255,0.12))',
+                        borderRadius: 6,
+                        padding: '8px 10px',
+                        color: 'var(--text, #fff)',
+                      }}
+                    >
+                      <option value="">Select a credential...</option>
+                      {providerCredentials.map((credential) => (
+                        <option key={credential.id} value={credential.id}>
+                          {credential.name}
+                        </option>
+                      ))}
+                    </select>
+                    {providerCredentials.length === 0 && (
+                      <span style={{ color: '#fbbf24' }}>
+                        No {providerInfo.label} credential found. Create one in Credentials first.
+                      </span>
+                    )}
+                  </label>
+
+                  {providerError && <div style={{ color: '#f87171' }}>{providerError}</div>}
+                  <div>
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={handleProviderRegister}
+                      disabled={providerBusy || !providerCredentialId || !path}
+                    >
+                      {providerBusy ? 'Registering...' : `Register with ${providerInfo.label}`}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {providerError && providerRegistration && (
+                <div style={{ color: '#f87171', fontSize: 12, marginTop: 8 }}>{providerError}</div>
+              )}
+            </div>
+          )}
 
           {/* Code Snippet Generator */}
           <div className="we-section">

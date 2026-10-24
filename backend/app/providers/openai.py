@@ -97,6 +97,39 @@ class OpenAIProviderClient:
         _raise(response.status_code, response.text, "list_models", payload)
         return payload if isinstance(payload, dict) else {}
 
+    async def create_image(
+        self, creds: dict, prompt: str, size: str = "1024x1024",
+        timeout: float = 60.0,
+    ) -> dict:
+        if not str(prompt or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "create_image needs a prompt.", retryable=False)
+        return await self._post(
+            creds, "/images/generations",
+            {"prompt": prompt, "size": size or "1024x1024", "n": 1},
+            "create_image", timeout,
+        )
+
+    async def list_files(self, creds: dict, purpose: str = "", timeout: float = 30.0) -> dict:
+        token, base = _auth(creds)
+        params = {"purpose": purpose} if purpose else None
+        try:
+            async with get_safe_http_client() as client:
+                response = await client.request(
+                    "GET", f"{base}/files",
+                    headers={"Authorization": f"Bearer {token}"},
+                    params=params, timeout=timeout,
+                )
+        except Exception as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.UNAVAILABLE, f"OpenAI unreachable during list_files: {exc}", retryable=True,
+            ) from exc
+        try:
+            payload = response.json()
+        except Exception:
+            payload = {}
+        _raise(response.status_code, response.text, "list_files", payload)
+        return payload if isinstance(payload, dict) else {}
+
     async def create_embedding(
         self, creds: dict, model: str, text: str | list[str], timeout: float = 60.0,
     ) -> dict:

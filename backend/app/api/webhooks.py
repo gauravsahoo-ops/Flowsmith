@@ -34,6 +34,7 @@ from app.db import get_db, get_session
 from app.metrics import ratelimit_rejected, webhook_deliveries
 from app.models import User, WebhookDelivery
 from app.security.ratelimit import get_webhook_limiter
+from app.triggers.paths import PROVIDER_TRIGGER_TYPES
 from app.triggers.registry import CHAT_TRIGGER_PREFIX, FORM_TRIGGER_PREFIX, get_webhook
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
@@ -148,18 +149,82 @@ def _require_configured_secret(request: Request, params: dict) -> None:
         )
 
 
+def _matching_trigger_node(wh: Any) -> dict[str, Any] | None:
+    for node in (wh.workflow_data or {}).get("nodes", []) or []:
+        if not isinstance(node, dict):
+            continue
+        params = node.get("parameters") or {}
+        if str(params.get("path") or "") == wh.path:
+            return node
+    return None
+
+
+def _provider_delivery_key(
+    node_type: str, request: Request, path: str, raw: bytes, params: dict
+) -> str | None:
+    """Return a stable idempotency key for a provider delivery.
+
+    Prefer the provider's own delivery UUID.  If a provider does not send one,
+    bind the exact replayed request to its signature/token and body.  Provider
+    retries then resolve to the same local delivery instead of executing twice.
+    """
+    if node_type not in PROVIDER_TRIGGER_TYPES:
+        return None
+    import hashlib
+
+    provider_value = ""
+    for header in (
+        "x-github-delivery",
+        "x-shopify-webhook-id",
+        "x-gitlab-event-uuid",
+        "typeform-event-id",
+        "typeform-event-uuid",
+    ):
+        value = request.headers.get(header, "").strip()
+        if value:
+            provider_value = f"{header}:{value}"
+            break
+
+    if not provider_value and node_type == "stripe_trigger":
+        try:
+            payload = json.loads(raw)
+            if isinstance(payload, dict) and payload.get("id"):
+                provider_value = f"stripe-event:{payload['id']}"
+        except (TypeError, ValueError):
+            pass
+
+    if not provider_value:
+        signature_header = str(params.get("signature_header") or "").strip().lower()
+        material = request.headers.get(signature_header, "") if signature_header else ""
+        if not material:
+            for header in (
+                "x-hub-signature-256",
+                "x-hub-signature",
+                "x-shopify-hmac-sha256",
+                "typeform-signature",
+                "x-gitlab-token",
+            ):
+                material = request.headers.get(header, "")
+                if material:
+                    break
+        if not material:
+            return None
+        provider_value = "body-signature:" + hashlib.sha256(
+            path.encode("utf-8") + b"\0" + raw + b"\0" + material.encode("utf-8")
+        ).hexdigest()
+
+    key = f"provider:{node_type}:{provider_value}"
+    if len(key) > 128:
+        key = f"provider:{node_type}:" + hashlib.sha256(key.encode("utf-8")).hexdigest()
+    return key
+
+
 def _verify_webhook_signature(wh: Any, request: Request, raw: bytes) -> None:
     """Enterprise webhook verification (Phase 13): HMAC, token checks, and replay protection."""
     import hashlib
     import hmac
 
-    nodes = (wh.workflow_data or {}).get("nodes", [])
-    matching_node = None
-    for n in nodes:
-        params = n.get("parameters") or {}
-        if str(params.get("path") or "") == wh.path:
-            matching_node = n
-            break
+    matching_node = _matching_trigger_node(wh)
 
     if not matching_node:
         if _webhook_auth_required_in_prod():
@@ -169,8 +234,43 @@ def _verify_webhook_signature(wh: Any, request: Request, raw: bytes) -> None:
             )
         return
 
-    params = matching_node.get("parameters") or {}
+    params = dict(matching_node.get("parameters") or {})
+    from app.nodes.provider_triggers import provider_signature_defaults
+
+    defaults = provider_signature_defaults(str(matching_node.get("type") or ""))
+    for key, value in defaults.items():
+        params.setdefault(key, value)
+    # GitLab always authenticates with X-Gitlab-Token; an empty or null stored
+    # value must not disable that requirement.
+    if defaults.get("token_header") and not params.get("token_header"):
+        params["token_header"] = defaults["token_header"]
     secret = str(params.get("secret") or params.get("secret_token") or params.get("auth_token") or "").strip()
+
+    # Stripe returns the endpoint signing secret on creation, and generated
+    # provider secrets are stored with the registration rather than in the
+    # workflow document. Prefer that exact registered secret.
+    if str(matching_node.get("type") or "") in {
+        "github_trigger", "gitlab_trigger", "stripe_trigger", "shopify_trigger",
+        "typeform_trigger",
+    }:
+        try:
+            from app.models import ProviderWebhookRegistration
+            from app.security.crypto import decrypt_text
+
+            registration_db = get_session()
+            try:
+                registration = registration_db.scalar(
+                    select(ProviderWebhookRegistration).where(
+                        ProviderWebhookRegistration.workflow_id == wh.workflow_id,
+                        ProviderWebhookRegistration.node_id == str(matching_node.get("id") or ""),
+                    )
+                )
+                if registration is not None and registration.signing_secret:
+                    secret = decrypt_text(registration.signing_secret)
+            finally:
+                registration_db.close()
+        except Exception:
+            pass
     if not secret:
         if _webhook_auth_required_in_prod():
             raise HTTPException(
@@ -179,7 +279,15 @@ def _verify_webhook_signature(wh: Any, request: Request, raw: bytes) -> None:
             )
         return
 
-    # 1. Bearer / Token auth check
+    # 1. Bearer / Token auth check. GitLab authenticates with a plain shared
+    # token in X-Gitlab-Token rather than an HMAC signature.
+    token_header_name = str(params.get("token_header") or "").strip().lower()
+    if token_header_name:
+        token_value = request.headers.get(token_header_name, "")
+        if not token_value or not hmac.compare_digest(token_value, secret):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid webhook token.")
+        return
+
     auth_header = request.headers.get("authorization", "")
     token_header = request.headers.get("x-webhook-token", "")
     query_token = request.query_params.get("token", "")
@@ -220,6 +328,29 @@ def _verify_webhook_signature(wh: Any, request: Request, raw: bytes) -> None:
     algo = str(params.get("signature_algorithm") or "sha256").lower()
     hash_fn = hashlib.sha1 if "sha1" in algo else hashlib.sha256
 
+    if header_used == "x-slack-signature":
+        timestamp = request.headers.get("x-slack-request-timestamp", "")
+        try:
+            ts_int = int(timestamp)
+            if abs(time.time() - ts_int) > 300:
+                raise HTTPException(
+                    status.HTTP_401_UNAUTHORIZED,
+                    "Slack webhook timestamp expired (replay protection).",
+                )
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "Invalid Slack webhook timestamp.",
+            )
+        expected = "v0=" + hmac.new(
+            secret.encode("utf-8"),
+            f"v0:{timestamp}:".encode("utf-8") + raw,
+            hashlib.sha256,
+        ).hexdigest()
+        if not hmac.compare_digest(expected, provided_sig):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid Slack webhook signature.")
+        return
+
     if header_used == "stripe-signature" and "v1=" in provided_sig:
         parts = dict(item.split("=", 1) for item in provided_sig.split(",") if "=" in item)
         timestamp = parts.get("t", "")
@@ -237,12 +368,22 @@ def _verify_webhook_signature(wh: Any, request: Request, raw: bytes) -> None:
         return
 
     raw_provided = provided_sig
-    if "=" in raw_provided:
+    configured_prefix = str(params.get("signature_prefix") or "")
+    if configured_prefix and raw_provided.startswith(configured_prefix):
+        raw_provided = raw_provided[len(configured_prefix):]
+    elif raw_provided.lower().startswith(("sha1=", "sha256=")):
         prefix, raw_provided = raw_provided.split("=", 1)
         if prefix.lower() in ("sha1", "sha256"):
             hash_fn = hashlib.sha1 if prefix.lower() == "sha1" else hashlib.sha256
 
-    expected_sig = hmac.new(secret.encode("utf-8"), raw, hash_fn).hexdigest()
+    if str(params.get("signature_encoding") or "hex").lower() == "base64":
+        import base64
+
+        expected_sig = base64.b64encode(
+            hmac.new(secret.encode("utf-8"), raw, hash_fn).digest()
+        ).decode("ascii")
+    else:
+        expected_sig = hmac.new(secret.encode("utf-8"), raw, hash_fn).hexdigest()
     if not hmac.compare_digest(expected_sig, raw_provided):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid webhook HMAC signature.")
 
@@ -296,6 +437,17 @@ async def webhook_receive(
         # Verify BEFORE consulting the idempotency key so an unauthenticated
         # caller cannot probe delivery/execution existence by guessing keys.
         await asyncio.to_thread(_verify_webhook_signature, wh, request, raw)
+
+        if not idempotency_key:
+            provider_node = _matching_trigger_node(wh)
+            if provider_node is not None:
+                idempotency_key = _provider_delivery_key(
+                    str(provider_node.get("type") or ""),
+                    request,
+                    path,
+                    raw,
+                    dict(provider_node.get("parameters") or {}),
+                )
 
         if idempotency_key:
             replay = await asyncio.to_thread(

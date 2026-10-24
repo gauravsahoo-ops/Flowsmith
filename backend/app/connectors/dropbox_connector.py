@@ -20,6 +20,9 @@ from app.providers.dropbox import DropboxProviderClient
 class DropboxConnectorParams(BaseModel):
     operation: str = Field(default="list_folder")
     path: str = ""
+    query: str = ""
+    from_path: str = ""
+    to_path: str = ""
     content: str = ""
     limit: int = Field(default=25, ge=1, le=2000)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
@@ -69,6 +72,17 @@ class DropboxConnector(ConnectorSDK):
                     int(raw.get("limit") or params.limit), timeout=timeout)
             if op == "get_metadata":
                 return await self._provider.get_metadata(creds, str(raw.get("path") or params.path), timeout=timeout)
+            if op == "search":
+                return await self._provider.search(
+                    creds, str(raw.get("query") or params.query),
+                    path=str(raw.get("path") or params.path),
+                    limit=int(raw.get("limit") or params.limit), timeout=timeout,
+                )
+            if op == "move":
+                return await self._provider.move(
+                    creds, str(raw.get("from_path") or params.from_path),
+                    str(raw.get("to_path") or params.to_path), timeout=timeout,
+                )
             if op == "create_folder":
                 return await self._provider.create_folder(creds, str(raw.get("path") or params.path), timeout=timeout)
             if op == "delete":
@@ -93,4 +107,4 @@ class DropboxConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_folder", "get_metadata", "create_folder", "delete", "upload_text"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_folder", "get_metadata", "search", "move", "create_folder", "delete", "upload_text"]}}

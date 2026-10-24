@@ -37,8 +37,13 @@ export default function TemplatesPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await api.listTemplates()
-      setTemplates(data || [])
+      const pages = []
+      for (let page = 1; page <= 5; page += 1) {
+        const rows = await api.listTemplates(page, 100)
+        pages.push(...(rows || []))
+        if (!Array.isArray(rows) || rows.length < 100) break
+      }
+      setTemplates(pages)
     } catch (e) {
       setError(e.message)
     } finally {

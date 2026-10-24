@@ -2059,25 +2059,23 @@ select,
 .env-form select,
 .credentials-panel select,
 .toolbar-select select {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
+  /* Native appearance avoids Chromium/Windows tiling the custom SVG
+     chevron across the native select control/popup. The arrow is drawn by
+     the platform using the dark color scheme below. */
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  -moz-appearance: auto !important;
   position: relative;
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
   height: 36px;
-  padding: 0 32px 0 13px !important;
+  padding: 0 12px !important;
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 500;
   line-height: normal;
   color: #e2e8f0;
   background-color: rgba(18, 23, 35, 0.75);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"),
-                    linear-gradient(145deg, rgba(23, 29, 44, 0.8) 0%, rgba(13, 17, 26, 0.9) 100%);
-  background-repeat: no-repeat, no-repeat;
-  background-position: calc(100% - 11px) center, center;
-  background-size: 12px 12px, 100% 100%;
+  background-image: none !important;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -2106,8 +2104,7 @@ select:hover:not(:disabled),
 .credentials-panel select:hover:not(:disabled),
 .toolbar-select select:hover:not(:disabled) {
   background-color: rgba(26, 33, 50, 0.85);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c7d2fe' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"),
-                    linear-gradient(145deg, rgba(28, 36, 56, 0.88) 0%, rgba(16, 21, 33, 0.94) 100%);
+  background-image: none !important;
   border-color: rgba(99, 102, 241, 0.45);
   color: #ffffff;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 14px rgba(99, 102, 241, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -2130,8 +2127,7 @@ select:focus,
 .toolbar-select select:focus {
   outline: none;
   background-color: rgba(26, 33, 50, 0.92);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"),
-                    linear-gradient(145deg, rgba(30, 39, 62, 0.95) 0%, rgba(18, 24, 38, 0.98) 100%);
+  background-image: none !important;
   border-color: #818cf8;
   color: #ffffff;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);

@@ -82,6 +82,112 @@ def test_outlook_send_mail_payload():
     assert kwargs["json"]["saveToSentItems"] is True
 
 
+def test_outlook_message_folders_and_read_state():
+    patcher, fake = patch_provider_http(MODULE, [
+        json_response(200, {"access_token": "MSAT_3", "expires_in": 3600}),
+        json_response(200, {
+            "id": "m1", "subject": "Hello", "isRead": False,
+            "from": {"emailAddress": {"address": "a@b.com"}},
+            "toRecipients": [{"emailAddress": {"address": "c@d.com"}}],
+            "body": {"content": "body"},
+        }),
+        json_response(200, {"value": [{"id": "f1", "displayName": "Inbox", "totalItemCount": 4}]}),
+        json_response(200, {"id": "m1", "isRead": True}),
+    ])
+    try:
+        from app.providers.microsoft_graph import MicrosoftGraphProviderClient
+
+        client = MicrosoftGraphProviderClient()
+        message = asyncio.new_event_loop().run_until_complete(
+            client.get_message(CREDS, "m1")
+        )
+        folders = asyncio.new_event_loop().run_until_complete(
+            client.list_folders(CREDS)
+        )
+        marked = asyncio.new_event_loop().run_until_complete(
+            client.mark_read(CREDS, "m1", True)
+        )
+    finally:
+        patcher.stop()
+
+    assert message["subject"] == "Hello"
+    assert message["to"] == ["c@d.com"]
+    assert folders["folders"][0]["display_name"] == "Inbox"
+    assert marked["is_read"] is True
+    assert fake.calls[1][1].endswith("/me/messages/m1")
+    assert fake.calls[2][1].endswith("/me/mailFolders")
+
+
+def test_outlook_move_and_delete_message():
+    patcher, fake = patch_provider_http(MODULE, [
+        json_response(200, {"access_token": "MSAT_4", "expires_in": 3600}),
+        json_response(200, {"id": "m2", "parentFolderId": "archive"}),
+        json_response(204, {}),
+    ])
+    try:
+        from app.providers.microsoft_graph import MicrosoftGraphProviderClient
+
+        client = MicrosoftGraphProviderClient()
+        moved = asyncio.new_event_loop().run_until_complete(
+            client.move_message(CREDS, "m2", "archive")
+        )
+        deleted = asyncio.new_event_loop().run_until_complete(
+            client.delete_message(CREDS, "m2")
+        )
+    finally:
+        patcher.stop()
+
+    assert moved["moved"] is True and moved["parent_folder_id"] == "archive"
+    assert deleted["deleted"] is True
+    assert fake.calls[1][1].endswith("/me/messages/m2/move")
+    assert fake.calls[2][0] == "DELETE"
+
+
+def test_teams_messages_members_and_create_channel():
+    patcher, fake = patch_provider_http(MODULE, [
+        json_response(200, {"access_token": "MSAT_5", "expires_in": 3600}),
+        json_response(200, {"value": [{"id": "m1", "subject": "Deploy", "body": {"content": "done"}}]}),
+        json_response(200, {"value": [{"id": "u1", "displayName": "Ada", "email": "ada@example.com"}]}),
+        json_response(201, {"id": "chan-new", "displayName": "ops"}),
+    ])
+    try:
+        from app.providers.microsoft_graph import MicrosoftGraphProviderClient
+
+        client = MicrosoftGraphProviderClient()
+        messages = asyncio.new_event_loop().run_until_complete(
+            client.list_channel_messages(CREDS, "t1", "c1")
+        )
+        members = asyncio.new_event_loop().run_until_complete(
+            client.list_team_members(CREDS, "t1")
+        )
+        channel = asyncio.new_event_loop().run_until_complete(
+            client.create_channel(CREDS, "t1", "ops")
+        )
+    finally:
+        patcher.stop()
+
+    assert messages["messages"][0]["subject"] == "Deploy"
+    assert members["members"][0]["display_name"] == "Ada"
+    assert channel["channel_id"] == "chan-new"
+    assert fake.calls[1][1].endswith("/teams/t1/channels/c1/messages")
+    assert fake.calls[2][1].endswith("/teams/t1/members")
+    assert fake.calls[3][1].endswith("/teams/t1/channels")
+
+
+def test_graph_connector_definitions_expose_deep_operations():
+    outlook = get_registry().get_definition("outlook")
+    teams = get_registry().get_definition("msteams")
+    assert outlook is not None and teams is not None
+    assert {
+        "send", "list_messages", "get_message", "list_folders",
+        "mark_read", "move_message", "delete_message",
+    } <= set(outlook.operations)
+    assert {
+        "send_message", "list_teams", "list_channels", "list_channel_messages",
+        "reply_to_message", "list_members", "create_channel",
+    } <= set(teams.operations)
+
+
 def test_missing_app_creds_is_not_configured():
     from app.providers.microsoft_graph import MicrosoftGraphProviderClient
 

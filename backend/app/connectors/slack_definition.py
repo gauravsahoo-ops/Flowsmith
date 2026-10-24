@@ -130,6 +130,82 @@ def _slack_operations() -> dict[str, ConnectorOperationV1]:
             retryable=True,
             idempotency="idempotent",
         ),
+        "list_users": _operation(
+            "list_users", "List Users",
+            "List workspace members with cursor pagination via users.list.",
+            {
+                "limit": {"type": "integer", "title": "Page size", "default": 100, "minimum": 1, "maximum": 200},
+                "max_pages": {"type": "integer", "title": "Max pages", "default": 3, "minimum": 1, "maximum": 10},
+            },
+            [],
+            {
+                "type": "object",
+                "properties": {
+                    "users": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                },
+            },
+            retryable=True,
+        ),
+        "get_channel_history": _operation(
+            "get_channel_history", "Get Channel History",
+            "Read recent messages from a channel via conversations.history.",
+            {
+                "channel": {"type": "string", "title": "Channel id"},
+                "limit": {"type": "integer", "title": "How many", "default": 50, "minimum": 1, "maximum": 200},
+                "oldest": {"type": "string", "title": "Oldest timestamp"},
+                "latest": {"type": "string", "title": "Latest timestamp"},
+            },
+            ["channel"],
+            {
+                "type": "object",
+                "properties": {
+                    "messages": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                    "has_more": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+        ),
+        "update_message": _operation(
+            "update_message", "Update Message",
+            "Edit an existing message via chat.update.",
+            {
+                "channel": {"type": "string", "title": "Channel id"},
+                "timestamp": {"type": "string", "title": "Message timestamp"},
+                "text": {"type": "string", "title": "New message text"},
+            },
+            ["channel", "timestamp", "text"],
+            {
+                "type": "object",
+                "properties": {
+                    "ts": {"type": "string"},
+                    "channel": {"type": "string"},
+                    "updated": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "delete_message": _operation(
+            "delete_message", "Delete Message",
+            "Delete a message via chat.delete.",
+            {
+                "channel": {"type": "string", "title": "Channel id"},
+                "timestamp": {"type": "string", "title": "Message timestamp"},
+            },
+            ["channel", "timestamp"],
+            {
+                "type": "object",
+                "properties": {
+                    "channel": {"type": "string"},
+                    "timestamp": {"type": "string"},
+                    "deleted": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
     }
 
 
@@ -139,8 +215,9 @@ def _slack_credential_type() -> dict[str, CredentialTypeV1]:
             type_key="slack",
             display_name="Slack",
             description=(
-                "Slack bot connection. Create a Slack app with the "
-                "chat:write and channels:read scopes and paste the bot token (xoxb…)."
+                "Slack bot connection. Create a Slack app with chat:write, "
+                "channels:read, channels:history, users:read, users:read.email, "
+                "and reactions:write scopes, then paste the bot token (xoxb...)."
             ),
             secret_fields=["bot_token"],
             validation_schema={
@@ -161,7 +238,7 @@ def build_slack_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=SLACK_CONNECTOR_KEY,
         display_name="Slack",
-        description="Send messages to Slack channels and list workspace channels via the Web API.",
+        description="Send, read, update, and delete Slack messages; list channels and users via the Web API.",
         category="communication",
         connector_version=SLACK_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
@@ -169,7 +246,11 @@ def build_slack_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_slack_credential_type(),
         metadata={
-            "initial_operations": ["send_message", "list_channels"],
+            "initial_operations": [
+                "send_message", "list_channels", "add_reaction",
+                "get_user_by_email", "list_users", "get_channel_history",
+                "update_message", "delete_message",
+            ],
             "auth": "bot token (xoxb…)",
             "node_type_note": "Legacy webhook-based 'slack' node remains available; this connector is 'slack_api'.",
         },

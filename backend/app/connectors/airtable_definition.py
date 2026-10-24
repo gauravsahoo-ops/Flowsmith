@@ -4,6 +4,8 @@
 2. get_record    - fetch one record
 3. create_record - add a record
 4. update_record - patch record fields
+5. delete_record - delete one record
+6. list_bases    - list bases visible to the token
 """
 
 from __future__ import annotations
@@ -102,6 +104,26 @@ def _airtable_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"record_id": {"type": "string"}, "success": {"type": "boolean"}}},
             retryable=True,
         ),
+        "delete_record": _operation(
+            "delete_record", "Delete Record",
+            "Delete one record by id.",
+            {
+                "base_id": _BASE, "table_name": _TABLE,
+                "record_id": {"type": "string", "title": "Record id"},
+            },
+            ["base_id", "table_name", "record_id"],
+            {"type": "object", "properties": {"record_id": {"type": "string"}, "deleted": {"type": "boolean"}, "success": {"type": "boolean"}}},
+            retryable=False,
+            idempotency="non_idempotent",
+        ),
+        "list_bases": _operation(
+            "list_bases", "List Bases",
+            "List Airtable bases visible to the personal access token.",
+            {},
+            [],
+            {"type": "object", "properties": {"bases": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}}},
+            retryable=True,
+        ),
     }
 
 
@@ -111,8 +133,8 @@ def _airtable_credential_type() -> dict[str, CredentialTypeV1]:
             type_key="airtable",
             display_name="Airtable",
             description=(
-                "Airtable personal access token with the data.records scopes for "
-                "the bases your workflows touch."
+                "Airtable personal access token with data.records scopes for the "
+                "bases your workflows touch; add schema.bases:read to list bases."
             ),
             secret_fields=["personal_access_token"],
             validation_schema={
@@ -141,7 +163,10 @@ def build_airtable_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_airtable_credential_type(),
         metadata={
-            "initial_operations": ["list_records", "get_record", "create_record", "update_record"],
+            "initial_operations": [
+                "list_records", "get_record", "create_record", "update_record",
+                "delete_record", "list_bases",
+            ],
             "auth": "personal access token",
         },
         icon="airtable",

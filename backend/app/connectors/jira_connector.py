@@ -22,8 +22,15 @@ from app.providers.jira import JiraProviderClient
 
 
 class JiraConnectorParams(BaseModel):
-    operation: str = Field(default="search", description="search | get_issue | get_projects | create_issue | update_issue | add_comment.")
+    operation: str = Field(
+        default="search",
+        description=(
+            "search | get_issue | get_projects | create_issue | update_issue | "
+            "add_comment | get_myself | list_transitions | transition_issue."
+        ),
+    )
     jql: str = ""
+    transition_id: str = ""
     project_key: str = ""
     issue_type: str = "Task"
     summary: str = ""
@@ -144,6 +151,19 @@ class JiraConnector(ConnectorSDK):
                 return await self._provider.add_comment(
                     creds, str(raw.get("issue_key") or params.issue_key),
                     str(raw.get("body") or params.body), timeout=timeout,
+                )
+            if op == "get_myself":
+                return await self._provider.get_myself(creds, timeout=timeout)
+            if op == "list_transitions":
+                return await self._provider.list_transitions(
+                    creds, str(raw.get("issue_key") or params.issue_key),
+                    timeout=timeout,
+                )
+            if op == "transition_issue":
+                return await self._provider.transition_issue(
+                    creds, str(raw.get("issue_key") or params.issue_key),
+                    str(raw.get("transition_id") or params.transition_id),
+                    timeout=timeout,
                 )
         except ConnectorError:
             raise

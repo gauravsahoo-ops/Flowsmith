@@ -70,6 +70,21 @@ def build_gitlab_definition() -> ConnectorDefinitionV1:
                 },
                 ["project_id", "issue_iid", "body"], retryable=False, idempotency="non_idempotent",
             ),
+            "list_branches": _operation(
+                "list_branches", "List Branches", "List repository branches.", pid, ["project_id"],
+            ),
+            "create_merge_request": _operation(
+                "create_merge_request", "Create Merge Request", "Open a merge request from source into target.",
+                {
+                    **pid,
+                    "title": {"type": "string", "title": "Title"},
+                    "source_branch": {"type": "string", "title": "Source branch"},
+                    "target_branch": {"type": "string", "title": "Target branch"},
+                    "description": {"type": "string", "title": "Description"},
+                },
+                ["project_id", "title", "source_branch", "target_branch"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "list_merge_requests": _operation(
                 "list_merge_requests", "List Merge Requests", "List open merge requests.", pid, ["project_id"],
             ),
@@ -92,6 +107,12 @@ def build_gitlab_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_issues", "get_issue", "create_issue", "add_note", "list_merge_requests"], "auth": "PAT"},
+        metadata={
+            "initial_operations": [
+                "list_issues", "get_issue", "create_issue", "add_note",
+                "list_branches", "create_merge_request", "list_merge_requests",
+            ],
+            "auth": "PAT",
+        },
         icon="gitlab",
     )

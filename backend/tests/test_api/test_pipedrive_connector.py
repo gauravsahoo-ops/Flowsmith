@@ -142,4 +142,5 @@ def test_connector_dispatch_and_discovery():
         )
     assert asyncio.new_event_loop().run_until_complete(
         conn.op_list())["output"]["operations"] == [
-        "list_deals", "get_deal", "create_deal", "update_deal", "add_note"]
+        "list_deals", "list_persons", "get_deal", "create_deal",
+        "update_deal", "delete_deal", "add_note"]

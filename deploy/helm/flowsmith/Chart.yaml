@@ -1,0 +1,14 @@
+apiVersion: v2
+name: flowsmith
+description: Secure, AI-native, self-hosted automation platform
+type: application
+version: 0.1.0
+appVersion: "1.6.0"
+kubeVersion: ">=1.27.0-0"
+home: https://flowsmith.dev
+keywords:
+  - automation
+  - workflow
+  - ai
+  - self-hosted
+  - ipaas

@@ -295,6 +295,43 @@ def _hubspot_operations() -> dict[str, ConnectorOperationV1]:
             },
             retryable=True,
         ),
+        "get_owner": _operation(
+            "get_owner",
+            "Get Owner",
+            "Fetch a HubSpot owner (user) by id.",
+            {"owner_id": {"type": "string", "title": "Owner ID"}, "timeout_seconds": _TIMEOUT_PROP},
+            ["owner_id"],
+            {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "email": {"type": "string"},
+                    "first_name": {"type": "string"},
+                    "last_name": {"type": "string"},
+                    "teams": {"type": "array", "items": {"type": "string"}},
+                },
+            },
+            retryable=True,
+        ),
+        "list_pipelines": _operation(
+            "list_pipelines",
+            "List Pipelines",
+            "List deal or ticket pipelines and their stages.",
+            {
+                "object_type": {"type": "string", "title": "Object type", "enum": ["deals", "tickets"], "default": "deals"},
+                "timeout_seconds": _TIMEOUT_PROP,
+            },
+            ["object_type"],
+            {
+                "type": "object",
+                "properties": {
+                    "object_type": {"type": "string"},
+                    "pipelines": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                },
+            },
+            retryable=True,
+        ),
     }
 
 
@@ -338,7 +375,10 @@ def build_hubspot_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_hubspot_credential_type(),
         metadata={
-            "initial_operations": ["search", "list", "get", "create", "update", "delete", "get_properties", "associate_records"],
+            "initial_operations": [
+                "search", "list", "get", "create", "update", "delete",
+                "get_properties", "associate_records", "get_owner", "list_pipelines",
+            ],
             "pagination": {"strategy": "cursor", "params": ["limit", "after", "return_all", "max_pages"]},
             "auth": "OAuth2 authorization-code (Connect HubSpot) or private-app token",
         },

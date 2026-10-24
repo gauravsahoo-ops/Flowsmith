@@ -138,6 +138,10 @@ class SessionManager:
         user = db.get(User, user_id)
         if not user or not user.active:
             raise ValueError("User account is inactive or deleted.")
+        from app.api.auth import token_is_stale
+
+        if token_is_stale(payload, user):
+            raise ValueError("Session is older than the account's security policy. Sign in again.")
 
         if session is None:
             # Bootstrap session row for existing bearer token

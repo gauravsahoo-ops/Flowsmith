@@ -155,6 +155,70 @@ def _github_operations() -> dict[str, ConnectorOperationV1]:
             retryable=False,
             idempotency="idempotent",
         ),
+        "list_branches": _operation(
+            "list_branches", "List Branches",
+            "List repository branches with pagination.",
+            {
+                "owner": _OWNER, "repo": _REPO,
+                "per_page": {"type": "integer", "default": 50, "minimum": 1, "maximum": 100},
+                "max_pages": {"type": "integer", "default": 3, "minimum": 1, "maximum": 10},
+            },
+            ["owner", "repo"],
+            {
+                "type": "object",
+                "properties": {
+                    "branches": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "get_file_contents": _operation(
+            "get_file_contents", "Get File Contents",
+            "Read a file (or list a directory) from a repository path.",
+            {
+                "owner": _OWNER, "repo": _REPO,
+                "path": {"type": "string", "title": "Repository path"},
+                "ref": {"type": "string", "title": "Branch, tag, or commit"},
+            },
+            ["owner", "repo", "path"],
+            {
+                "type": "object",
+                "properties": {
+                    "type": {"type": "string"},
+                    "name": {"type": "string"},
+                    "path": {"type": "string"},
+                    "sha": {"type": "string"},
+                    "content": {"type": "string"},
+                    "entries": {"type": "array", "items": {"type": "object"}},
+                },
+            },
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "create_pull_request": _operation(
+            "create_pull_request", "Create Pull Request",
+            "Open a pull request from head into base.",
+            {
+                "owner": _OWNER, "repo": _REPO,
+                "title": {"type": "string", "title": "Title"},
+                "head": {"type": "string", "title": "Head branch"},
+                "base": {"type": "string", "title": "Base branch"},
+                "body": {"type": "string", "title": "Body"},
+            },
+            ["owner", "repo", "title", "head", "base"],
+            {
+                "type": "object",
+                "properties": {
+                    "number": {"type": "integer"},
+                    "url": {"type": "string"},
+                    "state": {"type": "string"},
+                },
+            },
+            retryable=False,
+            idempotency="non_idempotent",
+        ),
     }
 
 
@@ -194,7 +258,11 @@ def build_github_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_github_credential_type(),
         metadata={
-            "initial_operations": ["get_repo", "create_issue", "add_comment", "list_issues"],
+            "initial_operations": [
+                "get_repo", "create_issue", "add_comment", "list_issues",
+                "get_issue", "close_issue", "list_branches", "get_file_contents",
+                "create_pull_request",
+            ],
             "auth": "personal access token",
             "rate_limits": "primary+secondary budgets honored (X-RateLimit headers)",
         },

@@ -79,6 +79,18 @@ def build_zoho_crm_definition() -> ConnectorDefinitionV1:
                 ["module", "data"],
                 retryable=True, idempotency="idempotent",
             ),
+            "delete_records": _operation(
+                "delete_records", "Delete Records", "Delete module records by ID.",
+                {
+                    "module": {"type": "string", "title": "Module Name", "default": "Leads"},
+                    "ids": {"type": "array", "items": {"type": "string"}, "title": "Record IDs"},
+                },
+                ["module", "ids"], retryable=False, idempotency="non_idempotent",
+            ),
+            "list_users": _operation(
+                "list_users", "List Users", "List Zoho CRM users.",
+                {"user_type": {"type": "string", "title": "User type", "default": "AllUsers"}}, [],
+            ),
             "search_records": _operation(
                 "search_records", "Search Records", "Search module records by email, phone, word, or criteria.",
                 {
@@ -107,4 +119,12 @@ def build_zoho_crm_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_records", "get_record", "create_records", "update_records",
+                "delete_records", "list_users", "search_records",
+            ],
+            "auth": "Zoho OAuth2",
+        },
+        icon="zoho",
     )

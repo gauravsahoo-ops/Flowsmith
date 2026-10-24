@@ -150,4 +150,5 @@ def test_connector_dispatch_and_discovery():
                              {"credentials": {"servicenow": {}}}))
     out = _run(conn.op_list())
     assert out["output"]["operations"] == [
-        "list_records", "get_record", "create_record", "update_record", "delete_record"]
+        "list_records", "list_users", "get_record", "create_record",
+        "update_record", "add_comment", "delete_record"]

@@ -150,6 +150,39 @@ async function requestEnvelope(method, path, body, opts = {}) {
 export const api = {
   register: (email, password) => request('POST', '/auth/register', { email, password }),
   login: (email, password) => request('POST', '/auth/login', { email, password }),
+  getMfaStatus: () => request('GET', '/auth/mfa'),
+  setupMfa: (password) => request('POST', '/auth/mfa/setup', { password }),
+  startMfaEnrollment: (enrollmentToken) =>
+    request('POST', '/auth/mfa/enroll/start', { enrollment_token: enrollmentToken }),
+  completeMfaEnrollment: (enrollmentToken, code) =>
+    request('POST', '/auth/mfa/enroll/complete', { enrollment_token: enrollmentToken, code }),
+  enableMfa: (password, code) => request('POST', '/auth/mfa/enable', { password, code }),
+  disableMfa: (password, code) => request('POST', '/auth/mfa/disable', { password, code }),
+  verifyMfa: (challengeToken, code) =>
+    request('POST', '/auth/mfa/verify', { challenge_token: challengeToken, code }),
+  getWebAuthn: () => request('GET', '/auth/webauthn'),
+  webauthnRegisterOptions: (password) =>
+    request('POST', '/auth/webauthn/register/options', { password }),
+  webauthnRegisterComplete: (registrationToken, credential, name) =>
+    request('POST', '/auth/webauthn/register/complete', {
+      registration_token: registrationToken,
+      credential,
+      name,
+    }),
+  webauthnDelete: (credentialId) =>
+    request('DELETE', `/auth/webauthn/${encodeURIComponent(credentialId)}`),
+  webauthnAuthenticateComplete: (webauthnToken, credential) =>
+    request('POST', '/auth/webauthn/authenticate/complete', {
+      webauthn_token: webauthnToken,
+      credential,
+    }),
+  webauthnConditionalOptions: () =>
+    request('POST', '/auth/webauthn/conditional/options'),
+  webauthnConditionalComplete: (webauthnToken, credential) =>
+    request('POST', '/auth/webauthn/conditional/complete', {
+      webauthn_token: webauthnToken,
+      credential,
+    }),
   getSsoProviders: () => request('GET', '/auth/sso/providers'),
   forgotPassword: (email) => request('POST', '/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) =>
@@ -323,7 +356,8 @@ export const api = {
   createApiKey: (name) => request('POST', '/apikeys', { name }),
   revokeApiKey: (id) => request('DELETE', `/apikeys/${id}`),
   // Templates gallery (Phase 32/36)
-  listTemplates: () => request('GET', '/templates'),
+  listTemplates: (page = 1, pageSize = 100) =>
+    request('GET', `/templates?page=${page}&pageSize=${pageSize}`),
   getTemplate: (id) => request('GET', `/templates/${id}`),
   createTemplate: (payload) => request('POST', '/templates', payload),
   useTemplate: (id) => request('POST', `/templates/${id}/use`, {}),
@@ -334,6 +368,7 @@ export const api = {
   upsertEnvVar: (payload) => request('POST', '/environments', payload),
   deleteEnvVar: (id) => request('DELETE', `/environments/${id}`),
   listOrganizations: () => request('GET', '/organizations?pageSize=100'),
+  updateOrganization: (id, data) => request('PATCH', `/organizations/${encodeURIComponent(id)}`, data),
   salesforceConnect: (loginUrl, prompt) =>
     request('POST', '/auth/salesforce/connect', {
       ...(loginUrl ? { login_url: loginUrl } : {}),
@@ -464,6 +499,20 @@ export const api = {
   getConnector: (key) => request('GET', `/connectors/${encodeURIComponent(key)}`),
   previewOpenApi: (payload) => request('POST', '/connectors/preview-openapi', payload),
   importOpenApi: (payload) => request('POST', '/connectors/import-openapi', payload),
+  listProviderWebhooks: (workflowId) =>
+    request('GET', `/provider-webhooks?workflow_id=${encodeURIComponent(workflowId)}`),
+  registerProviderWebhook: (payload) =>
+    request('POST', '/provider-webhooks/register', payload),
+  unregisterProviderWebhook: (id, force = false) =>
+    request('DELETE', `/provider-webhooks/${encodeURIComponent(id)}${force ? '?force=true' : ''}`),
+  listConnectorPacks: () => request('GET', '/connector-packs'),
+  installConnectorPack: (payload) => request('POST', '/connector-packs/install', payload),
+  previewConnectorRegistry: (payload) =>
+    request('POST', '/connector-packs/registry/preview', payload),
+  upgradeConnectorPack: (key, payload) =>
+    request('POST', `/connector-packs/${encodeURIComponent(key)}/upgrade`, payload),
+  uninstallConnectorPack: (key) =>
+    request('DELETE', `/connector-packs/${encodeURIComponent(key)}`),
   // Model Context Protocol (MCP)
   listMcpTools: () => request('GET', '/mcp/tools'),
   callMcpTool: (payload) => request('POST', '/mcp/call', payload),

@@ -80,6 +80,46 @@ def build_sentry_definition() -> ConnectorDefinitionV1:
                 idempotency="idempotent",
                 node_types=["sentry"],
             ),
+            "list_projects": ConnectorOperationV1(
+                connector_key=SENTRY_CONNECTOR_KEY,
+                connector_version=SENTRY_CONNECTOR_VERSION,
+                operation_key="list_projects",
+                operation_version="1.0.0",
+                display_name="List Projects",
+                description="List projects in a Sentry organization.",
+                input_schema={
+                    "type": "object",
+                    "required": ["organization_slug"],
+                    "properties": {
+                        "organization_slug": {"type": "string", "title": "Organization Slug"},
+                    },
+                },
+                output_schema={"type": "object", "properties": {"projects": {"type": "array"}}},
+                credential_require="sentry",
+                retryable=True,
+                idempotency="idempotent",
+                node_types=["sentry"],
+            ),
+            "list_events": ConnectorOperationV1(
+                connector_key=SENTRY_CONNECTOR_KEY,
+                connector_version=SENTRY_CONNECTOR_VERSION,
+                operation_key="list_events",
+                operation_version="1.0.0",
+                display_name="List Issue Events",
+                description="List events recorded for an issue.",
+                input_schema={
+                    "type": "object",
+                    "required": ["issue_id"],
+                    "properties": {
+                        "issue_id": {"type": "string", "title": "Issue ID"},
+                    },
+                },
+                output_schema={"type": "object", "properties": {"events": {"type": "array"}}},
+                credential_require="sentry",
+                retryable=True,
+                idempotency="idempotent",
+                node_types=["sentry"],
+            ),
             "resolve_issue": ConnectorOperationV1(
                 connector_key=SENTRY_CONNECTOR_KEY,
                 connector_version=SENTRY_CONNECTOR_VERSION,
@@ -103,4 +143,11 @@ def build_sentry_definition() -> ConnectorDefinitionV1:
             ),
         },
         triggers={},
+        metadata={
+            "initial_operations": [
+                "list_issues", "get_issue", "resolve_issue", "list_projects", "list_events",
+            ],
+            "auth": "Bearer auth token",
+        },
+        icon="sentry",
     )

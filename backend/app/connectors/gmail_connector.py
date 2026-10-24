@@ -1,4 +1,4 @@
-"""Gmail connector (Phase 41): send email via Gmail API (send-only scope)."""
+"""Gmail connector: send, search, and read mail via the Gmail API."""
 
 from __future__ import annotations
 
@@ -29,20 +29,25 @@ class GmailConnectorParams(BaseModel):
     subject: str = Field(default="", description="Email subject.")
     body_text: str = Field(default="", description="Body (plain text or HTML).")
     html: bool = Field(default=False, description="Treat body as HTML.")
+    query: str = Field(default="", description="Gmail search query for list_messages.")
+    max_results: int = Field(default=10, ge=1, le=100)
+    page_token: str = ""
+    message_id: str = ""
+    format: str = Field(default="metadata", description="metadata | full | raw | minimal")
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
     @field_validator("to")
     @classmethod
     def _to_required(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("'to' is required")
-        return v
+        # Read-only operations do not require a recipient. The connector
+        # validates this only when the send operation is selected.
+        return v.strip()
 
 
 class GmailConnector(ConnectorSDK, ConnectorOperations):
     connector_id = "gmail"
     display_name = "Gmail"
-    description = "Send email through Gmail (send-only scope)."
+    description = "Send, search, and read Gmail messages."
     category = ConnectorCategory.API
     version = "1.0.0"
 
@@ -83,8 +88,14 @@ class GmailConnector(ConnectorSDK, ConnectorOperations):
             creds = context["credentials"].get("gmail") or {}
 
         op = (operation or "").lower()
-        if op in ("", "execute", "send"):
-            try:
+        try:
+            if op in ("", "execute", "send"):
+                if not params.to:
+                    raise make_connector_error(
+                        ConnectorErrorCode.BAD_REQUEST,
+                        "operation=send requires a 'to' address.",
+                        retryable=False,
+                    )
                 return await self._provider.send(
                     creds,
                     to=params.to,
@@ -95,8 +106,27 @@ class GmailConnector(ConnectorSDK, ConnectorOperations):
                     html=params.html,
                     timeout=params.timeout_seconds,
                 )
-            except ConnectorError:
-                raise
+            if op == "list_messages":
+                return await self._provider.list_messages(
+                    creds,
+                    query=params.query,
+                    max_results=params.max_results,
+                    page_token=params.page_token,
+                    timeout=params.timeout_seconds,
+                )
+            if op == "get_message":
+                return await self._provider.get_message(
+                    creds,
+                    message_id=params.message_id,
+                    format=params.format,
+                    timeout=params.timeout_seconds,
+                )
+            if op == "get_profile":
+                return await self._provider.get_profile(creds, timeout=params.timeout_seconds)
+            if op == "list_labels":
+                return await self._provider.list_labels(creds, timeout=params.timeout_seconds)
+        except ConnectorError:
+            raise
 
         raise make_connector_error(
             ConnectorErrorCode.BAD_REQUEST,

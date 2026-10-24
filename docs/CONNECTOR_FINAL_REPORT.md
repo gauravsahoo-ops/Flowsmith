@@ -1,3 +1,8 @@
+> **STATUS NOTE — 2026-10-23:** Historical connector counts and “verified”
+> claims are superseded by [`CONNECTOR_STATUS.md`](CONNECTOR_STATUS.md). The
+> registry has 76 native, 17 generated, and 435 catalog-only connectors;
+> catalog-only connectors require an explicit `endpoint_url`.
+
 # Connector Ecosystem — Final Report
 
 Status: **complete**, pending final regression run.

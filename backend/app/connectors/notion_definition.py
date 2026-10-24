@@ -119,6 +119,32 @@ def _notion_operations() -> dict[str, ConnectorOperationV1]:
             retryable=False,
             idempotency="non_idempotent",
         ),
+        "search": _operation(
+            "search", "Search",
+            "Search pages and databases shared with the integration.",
+            {
+                "query": {"type": "string", "title": "Query"},
+                "page_size": {"type": "integer", "default": 50, "minimum": 1, "maximum": 100},
+                "max_pages": {"type": "integer", "default": 3, "minimum": 1, "maximum": 10},
+            },
+            [],
+            {"type": "object", "properties": {"results": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}, "has_more": {"type": "boolean"}}},
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "get_block_children": _operation(
+            "get_block_children", "Get Block Children",
+            "List child blocks of a page or block with pagination.",
+            {
+                "block_id": {"type": "string", "title": "Block or Page ID"},
+                "page_size": {"type": "integer", "default": 100, "minimum": 1, "maximum": 100},
+                "max_pages": {"type": "integer", "default": 3, "minimum": 1, "maximum": 10},
+            },
+            ["block_id"],
+            {"type": "object", "properties": {"block_id": {"type": "string"}, "blocks": {"type": "array", "items": {"type": "object"}}, "count": {"type": "integer"}, "has_more": {"type": "boolean"}}},
+            retryable=True,
+            idempotency="idempotent",
+        ),
     }
 
 
@@ -158,7 +184,10 @@ def build_notion_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_notion_credential_type(),
         metadata={
-            "initial_operations": ["query_database", "get_page", "create_page", "update_page", "append_block_children"],
+            "initial_operations": [
+                "query_database", "get_page", "create_page", "update_page",
+                "append_block_children", "search", "get_block_children",
+            ],
             "auth": "internal integration token",
         },
         icon="notion",

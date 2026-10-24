@@ -24,6 +24,9 @@ class WhatsAppConnectorParams(BaseModel):
     preview_url: bool = False
     template: str = ""
     language: str = "en_US"
+    media_type: str = "image"
+    media_link: str = ""
+    caption: str = ""
     message_id: str = ""
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
@@ -78,6 +81,17 @@ class WhatsAppConnector(ConnectorSDK):
                     str(raw.get("template") or params.template),
                     str(raw.get("language") or params.language), timeout=timeout,
                 )
+            if op == "send_media":
+                return await self._provider.send_media(
+                    creds, str(raw.get("to") or params.to),
+                    str(raw.get("media_type") or params.media_type),
+                    str(raw.get("media_link") or params.media_link),
+                    caption=str(raw.get("caption") or params.caption), timeout=timeout,
+                )
+            if op == "mark_read":
+                return await self._provider.mark_read(
+                    creds, str(raw.get("message_id") or params.message_id), timeout=timeout,
+                )
             if op == "get_message":
                 return await self._provider.get_message(
                     creds, str(raw.get("message_id") or params.message_id), timeout=timeout,
@@ -98,4 +112,4 @@ class WhatsAppConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["send_text", "send_template", "get_message"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["send_text", "send_template", "send_media", "mark_read", "get_message"]}}

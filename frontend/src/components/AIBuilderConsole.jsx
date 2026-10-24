@@ -638,7 +638,7 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
                 ))
               ) : (
                 <span style={{ fontSize: '12px', color: 'var(--text-muted, #94a3b8)' }}>
-                  Grounded across 65+ connectors
+                  Grounded across the live connector catalog
                 </span>
               )}
             </div>

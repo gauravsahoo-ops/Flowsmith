@@ -98,6 +98,51 @@ class GoogleDriveProviderClient(BaseProviderClient):
         )
         return {"file": response.json()}
 
+    async def delete_file(self, creds: dict, file_id: str, timeout: float = 30.0) -> dict:
+        fid = str(file_id or "").strip()
+        if not fid:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=delete_file requires file_id.",
+                retryable=False,
+            )
+        response = await self.authorized_request(
+            creds=self._creds(creds), method="DELETE",
+            url=f"{DRIVE_API_BASE}/files/{fid}",
+            params={"supportsAllDrives": "true"},
+            timeout=timeout, what="delete file",
+            extract_error_message=_extract_drive_error,
+        )
+        return {"file_id": fid, "deleted": True, "status": response.status_code}
+
+    async def create_folder(
+        self, creds: dict, name: str, parent_id: str = "", timeout: float = 30.0,
+    ) -> dict:
+        folder_name = str(name or "").strip()
+        if not folder_name:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=create_folder requires a name.",
+                retryable=False,
+            )
+        body: dict = {"name": folder_name, "mimeType": "application/vnd.google-apps.folder"}
+        if parent_id:
+            body["parents"] = [parent_id]
+        response = await self.authorized_request(
+            creds=self._creds(creds), method="POST",
+            url=f"{DRIVE_API_BASE}/files",
+            json_body=body,
+            params={"supportsAllDrives": "true", "fields": "id,name,webViewLink"},
+            timeout=timeout, what="create folder",
+            extract_error_message=_extract_drive_error,
+        )
+        data = response.json()
+        return {
+            "folder_id": data.get("id", ""),
+            "name": data.get("name", folder_name),
+            "web_view_link": data.get("webViewLink"),
+        }
+
     async def upload_file(
         self,
         creds: dict,

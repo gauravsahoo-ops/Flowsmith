@@ -86,6 +86,30 @@ class DropboxProviderClient:
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_metadata needs a path.", retryable=False)
         return await self._rpc(creds, "/files/get_metadata", {"path": path}, "get_metadata", timeout)
 
+    async def search(self, creds: dict, query: str, path: str = "", limit: int = 100,
+                     timeout: float = 30.0) -> dict:
+        text = str(query or "").strip()
+        if not text:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "search needs a query.", retryable=False)
+        options: dict[str, Any] = {"max_results": max(1, min(int(limit or 100), 1000))}
+        if str(path or "").strip():
+            options["path"] = path
+        return await self._rpc(
+            creds, "/files/search_v2", {"query": text, "options": options},
+            "search", timeout,
+        )
+
+    async def move(self, creds: dict, from_path: str, to_path: str, timeout: float = 30.0) -> dict:
+        if not str(from_path or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "move needs from_path.", retryable=False)
+        if not str(to_path or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "move needs to_path.", retryable=False)
+        return await self._rpc(
+            creds, "/files/move_v2",
+            {"from_path": from_path, "to_path": to_path, "autorename": False},
+            "move", timeout,
+        )
+
     async def create_folder(self, creds: dict, path: str, timeout: float = 30.0) -> dict:
         if not str(path or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "create_folder needs a path.", retryable=False)

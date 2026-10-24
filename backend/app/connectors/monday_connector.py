@@ -23,6 +23,7 @@ class MondayConnectorParams(BaseModel):
     item_id: str = ""
     group_id: str = ""
     item_name: str = ""
+    columns: dict[str, Any] = Field(default_factory=dict)
     body: str = ""
     limit: int = Field(default=25, ge=1, le=100)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
@@ -81,6 +82,14 @@ class MondayConnector(ConnectorSDK):
                     creds, str(raw.get("board_id") or params.board_id),
                     str(raw.get("item_name") or params.item_name),
                     str(raw.get("group_id") or params.group_id), timeout=timeout)
+            if op == "update_item":
+                columns = raw.get("column_values") or params.columns
+                return await self._provider.update_item(
+                    creds, str(raw.get("board_id") or params.board_id),
+                    str(raw.get("item_id") or params.item_id), columns, timeout=timeout)
+            if op == "delete_item":
+                return await self._provider.delete_item(
+                    creds, str(raw.get("item_id") or params.item_id), timeout=timeout)
             if op == "add_update":
                 return await self._provider.add_update(
                     creds, str(raw.get("item_id") or params.item_id),
@@ -101,4 +110,4 @@ class MondayConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_boards", "get_board", "list_items", "create_item", "add_update"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_boards", "get_board", "list_items", "create_item", "update_item", "delete_item", "add_update"]}}

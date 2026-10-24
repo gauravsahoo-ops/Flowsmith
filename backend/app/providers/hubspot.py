@@ -531,3 +531,53 @@ class HubSpotProviderClient:
             "success": True,
         }
 
+    async def get_owner(self, creds: dict[str, Any], owner_id: str, timeout: float = 30.0) -> dict[str, Any]:
+        oid = str(owner_id or "").strip()
+        if not oid:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=get_owner requires owner_id.",
+                retryable=False,
+            )
+        response = await self.request(creds, "GET", f"/crm/v3/owners/{oid}", timeout=timeout)
+        self._raise_for_status(response, "get owner")
+        data = response.json()
+        return {
+            "id": str(data.get("id", "")),
+            "email": data.get("email"),
+            "first_name": data.get("firstName"),
+            "last_name": data.get("lastName"),
+            "user_id": data.get("userId"),
+            "teams": [team.get("name") for team in (data.get("teams") or [])],
+        }
+
+    async def list_pipelines(self, creds: dict[str, Any], object_type: str, timeout: float = 30.0) -> dict[str, Any]:
+        ot = self._object_type(object_type)
+        if ot not in ("deals", "tickets"):
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "list_pipelines supports deals or tickets.",
+                retryable=False,
+            )
+        response = await self.request(creds, "GET", f"/crm/v3/pipelines/{ot}", timeout=timeout)
+        self._raise_for_status(response, "list pipelines")
+        data = response.json()
+        pipelines = [
+            {
+                "id": pipeline.get("id"),
+                "label": pipeline.get("label"),
+                "display_order": pipeline.get("displayOrder"),
+                "stages": [
+                    {
+                        "id": stage.get("id"),
+                        "label": stage.get("label"),
+                        "display_order": stage.get("displayOrder"),
+                        "probability": stage.get("metadata", {}).get("probability"),
+                    }
+                    for stage in (pipeline.get("stages") or [])
+                ],
+            }
+            for pipeline in (data.get("results") or [])
+        ]
+        return {"object_type": ot, "pipelines": pipelines, "count": len(pipelines)}
+

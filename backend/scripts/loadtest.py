@@ -20,8 +20,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import statistics
-import sys
 import time
 from typing import Any
 
@@ -51,7 +49,12 @@ def percentile(values: list[float], p: float) -> float:
     return ordered[k]
 
 
-async def one_run(client: httpx.AsyncClient, headers: dict, results: list[dict[str, Any]]) -> None:
+async def one_run(
+    client: httpx.AsyncClient,
+    headers: dict,
+    results: list[dict[str, Any]],
+    poll_interval_s: float = 0.5,
+) -> None:
     t0 = time.perf_counter()
     resp = await client.post(f"/api/workflows/{_WF_ID}/run", json={"data": {"n": 1}}, headers=headers)
     if resp.status_code != 202:
@@ -62,7 +65,7 @@ async def one_run(client: httpx.AsyncClient, headers: dict, results: list[dict[s
         return
     eid = resp.json()["data"]["execution_id"]
     while True:
-        r = await client.get(f"/api/executions/{eid}", headers=headers)
+        r = await client.get(f"/api/executions/{eid}/status", headers=headers)
         ms = (time.perf_counter() - t0) * 1000
         body = r.json()
         if r.status_code == 200 and "data" in body:
@@ -73,7 +76,7 @@ async def one_run(client: httpx.AsyncClient, headers: dict, results: list[dict[s
         if ms > 30000:
             results.append({"ok": False, "phase": "timeout", "ms": ms})
             return
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(poll_interval_s)
 
 
 async def main() -> int:
@@ -83,6 +86,10 @@ async def main() -> int:
     parser.add_argument("--password", default="Loadtest123!")
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument("--concurrency", type=int, default=10)
+    parser.add_argument(
+        "--poll-interval", type=float, default=0.5,
+        help="Seconds between terminal-status polls (default: 0.5)",
+    )
     # Defaults calibrated for the dev topology: one embedded consumer
     # processes jobs serially (~2 runs/s), so end-to-end latency at
     # concurrency 10 is dominated by queue depth. Scale workers
@@ -112,7 +119,7 @@ async def main() -> int:
 
         async def worker() -> None:
             async with sem:
-                await one_run(client, headers, results)
+                await one_run(client, headers, results, args.poll_interval)
 
         t0 = time.perf_counter()
         await asyncio.gather(*(worker() for _ in range(args.iterations)))

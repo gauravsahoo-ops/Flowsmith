@@ -170,7 +170,7 @@ const ARCH_PIPELINE = [
     id: 'capability_triad',
     layer: 'Layer 3',
     title: '3. Connectors · Agents · RAG',
-    desc: '45+ native connectors, autonomous ReAct agents, and pgvector knowledge bases.',
+    desc: '76 native connectors, autonomous ReAct agents, and pgvector knowledge bases.',
     badge: 'Capability Triad',
     details: 'Unified execution surface: deterministic API integrations (Salesforce, Stripe, Slack, Postgres), autonomous tool-calling agents with step limits, and pgvector semantic retrieval.',
   },
@@ -467,7 +467,7 @@ export default function AIArchitectureSection() {
       await api.ragIngest(rec.id, {
         documents: [
           {
-            text: 'Flowsmith is a self-hosted enterprise automation platform featuring DAG topological execution, cycle prevention, and 45+ out-of-the-box connectors for CRM, databases, and LLMs.',
+            text: 'Flowsmith is a self-hosted enterprise automation platform featuring DAG topological execution, cycle prevention, 76 native connectors, and a larger catalog of generated and catalog-only adapters for CRM, databases, and LLMs.',
           },
           {
             text: 'The Model Context Protocol (MCP) server allows Claude Desktop, Cursor, and external AI agents to discover workflows, query data tables, and trigger pipelines securely.',

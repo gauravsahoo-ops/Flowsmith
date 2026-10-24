@@ -62,6 +62,21 @@ def build_whatsapp_definition() -> ConnectorDefinitionV1:
                 },
                 ["to", "template"], retryable=False, idempotency="non_idempotent",
             ),
+            "send_media": _operation(
+                "send_media", "Send Media", "Send an image, document, video, or audio link.",
+                {
+                    "to": {"type": "string", "title": "Recipient phone (E.164)"},
+                    "media_type": {"type": "string", "title": "Media type (image/document/video/audio)"},
+                    "media_link": {"type": "string", "title": "Media URL"},
+                    "caption": {"type": "string", "title": "Caption"},
+                },
+                ["to", "media_link"], retryable=False, idempotency="non_idempotent",
+            ),
+            "mark_read": _operation(
+                "mark_read", "Mark Message Read", "Mark an inbound message as read.",
+                {"message_id": {"type": "string", "title": "Message id"}},
+                ["message_id"],
+            ),
             "get_message": _operation(
                 "get_message", "Get Message", "Fetch a sent message by id.",
                 {"message_id": {"type": "string", "title": "Message id"}},
@@ -86,6 +101,11 @@ def build_whatsapp_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["send_text", "send_template", "get_message"], "auth": "Bearer token"},
+        metadata={
+            "initial_operations": [
+                "send_text", "send_template", "send_media", "mark_read", "get_message",
+            ],
+            "auth": "Bearer token",
+        },
         icon="whatsapp",
     )

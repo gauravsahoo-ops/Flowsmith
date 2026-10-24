@@ -1,3 +1,8 @@
+> **STATUS NOTE — 2026-10-23:** This historical report counted catalog entries
+> as completed connectors. Current truthful counts and the native/generated/
+> catalog-only split are in [`CONNECTOR_STATUS.md`](CONNECTOR_STATUS.md). The
+> “528 verified / 99.6%” figures must not be used in external claims.
+
 # FLOWSMITH COMPLETE PRODUCTION-READINESS AUDIT & LIVE LAUNCH REPORT
 
 **Document Version:** 2.0.0 — Production Release Candidate 1 (RC1)  

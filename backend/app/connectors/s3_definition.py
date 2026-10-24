@@ -17,7 +17,7 @@ def build_s3_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=S3_CONNECTOR_KEY,
         display_name="AWS S3 / Object Storage",
-        description="Upload, download, list, and delete files in AWS S3, Cloudflare R2, MinIO, or Wasabi.",
+        description="Upload, download, inspect, list, and delete files in AWS S3, Cloudflare R2, MinIO, or Wasabi.",
         category="storage",
         connector_version=S3_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
@@ -86,6 +86,34 @@ def build_s3_definition() -> ConnectorDefinitionV1:
                 idempotency="idempotent",
                 node_types=["s3", "aws_s3"],
             ),
+            "head_object": ConnectorOperationV1(
+                connector_key=S3_CONNECTOR_KEY,
+                connector_version=S3_CONNECTOR_VERSION,
+                operation_key="head_object",
+                operation_version="1.0.0",
+                display_name="Head Object / Get Metadata",
+                description="Check whether an object exists and return its size, ETag, content type, and custom metadata.",
+                input_schema={
+                    "type": "object",
+                    "required": ["key"],
+                    "properties": {
+                        "bucket": {"type": "string", "title": "Bucket Name (Optional override)"},
+                        "key": {"type": "string", "title": "Object Key / Path"},
+                    },
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "status": {"type": "string"},
+                        "exists": {"type": "boolean"},
+                        "size_bytes": {"type": "integer"},
+                    },
+                },
+                credential_require="aws_s3",
+                retryable=True,
+                idempotency="idempotent",
+                node_types=["s3", "aws_s3"],
+            ),
             "list_objects": ConnectorOperationV1(
                 connector_key=S3_CONNECTOR_KEY,
                 connector_version=S3_CONNECTOR_VERSION,
@@ -129,4 +157,9 @@ def build_s3_definition() -> ConnectorDefinitionV1:
             ),
         },
         triggers={},
+        metadata={
+            "initial_operations": [
+                "upload_file", "download_file", "head_object", "list_objects", "delete_object",
+            ],
+        },
     )

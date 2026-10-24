@@ -1,0 +1,19 @@
+# Values used only for helm lint/template validation.
+secrets:
+  jwtSecret: test-jwt-secret-not-for-production
+  credentialsEncryptionKey: test-fernet-key-not-for-production
+  registrationBootstrapToken: test-bootstrap-token
+postgresql:
+  password: test-postgres-password
+redis:
+  password: test-redis-password
+config:
+  publicUrl: https://flowsmith.example.test
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: flowsmith.example.test
+      paths:
+        - path: /
+          pathType: Prefix

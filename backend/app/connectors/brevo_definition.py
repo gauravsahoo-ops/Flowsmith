@@ -68,6 +68,15 @@ def build_brevo_definition() -> ConnectorDefinitionV1:
                 {"email": {"type": "string", "title": "Email address"}},
                 ["email"], retryable=False, idempotency="non_idempotent",
             ),
+            "list_lists": _operation(
+                "list_lists", "List Lists", "List contact lists.",
+                {"limit": {"type": "integer", "title": "Limit"}}, [],
+            ),
+            "delete_contact": _operation(
+                "delete_contact", "Delete Contact", "Delete a contact by email.",
+                {"email": {"type": "string", "title": "Email address"}}, ["email"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "update_contact": _operation(
                 "update_contact", "Update Contact", "Update contact attributes.",
                 {
@@ -95,6 +104,12 @@ def build_brevo_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["send_email", "list_contacts", "get_contact", "create_contact", "update_contact"], "auth": "API key header"},
+        metadata={
+            "initial_operations": [
+                "send_email", "list_contacts", "get_contact", "create_contact",
+                "update_contact", "list_lists", "delete_contact",
+            ],
+            "auth": "API key header",
+        },
         icon="brevo",
     )

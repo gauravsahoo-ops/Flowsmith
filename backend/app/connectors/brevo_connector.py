@@ -84,6 +84,12 @@ class BrevoConnector(ConnectorSDK):
             if op == "create_contact":
                 return await self._provider.create_contact(
                     creds, str(raw.get("email") or params.email), timeout=timeout)
+            if op == "list_lists":
+                return await self._provider.list_lists(
+                    creds, int(raw.get("limit") or params.limit), timeout=timeout)
+            if op == "delete_contact":
+                return await self._provider.delete_contact(
+                    creds, str(raw.get("email") or params.email), timeout=timeout)
             if op == "update_contact":
                 subscribed = raw.get("subscribed", params.subscribed)
                 return await self._provider.update_contact(
@@ -105,4 +111,4 @@ class BrevoConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["send_email", "list_contacts", "get_contact", "create_contact", "update_contact"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["send_email", "list_contacts", "get_contact", "create_contact", "update_contact", "list_lists", "delete_contact"]}}

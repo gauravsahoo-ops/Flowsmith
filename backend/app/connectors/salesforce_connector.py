@@ -120,7 +120,7 @@ class SalesforceConnectorParams(BaseModel):
 
     operation: str = Field(
         default="",
-        description="Operation to run: search, query, get, create, update, upsert, delete, describe, list, bulk, custom_api_call, flow_invoke.",
+        description="Operation to run: search, query, get, create, update, upsert, delete, describe, list, org_limits, bulk, custom_api_call, flow_invoke.",
     )
     resource: str = Field(default="", description="Salesforce resource, e.g. Account, Contact, CustomObject, Flow, CustomApiCall.")
     soql: str = Field(
@@ -450,6 +450,8 @@ class SalesforceConnector(ConnectorSDK, ConnectorOperations):
                 return await self._op_describe(creds, params)
             if op == "list":
                 return await self._op_list(creds, params)
+            if op == "org_limits":
+                return await self._provider.org_limits(creds, timeout=params.timeout_seconds)
             if op == "bulk":
                 return await self._op_bulk(creds, params)
             if op == "custom_api_call":

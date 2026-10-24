@@ -183,6 +183,43 @@ async def test_trigger_connectors_label_themselves_as_configuration():
 
 
 @pytest.mark.asyncio
+async def test_every_catalog_only_connector_fails_without_endpoint():
+    """Every parity/catalog connector must reject execution without a real endpoint.
+
+    The previous generic wrapper returned a hardcoded success payload. This
+    test covers the full catalog rather than a hand-picked sample.
+    """
+    from app.connectors import (
+        ConnectorError,
+        ConnectorErrorCode,
+        get_registry,
+        register_builtin_connectors,
+    )
+    from app.connectors.parity_connectors import ParityConnector
+
+    register_builtin_connectors()
+    registry = get_registry()
+    catalog_only = [
+        connector
+        for info in registry.list_all()
+        if isinstance((connector := registry.get(info.connector_id)), ParityConnector)
+    ]
+
+    assert len(catalog_only) >= 400, (
+        f"expected the full catalog-only set, found {len(catalog_only)}"
+    )
+
+    for connector in catalog_only:
+        with pytest.raises(ConnectorError) as exc_info:
+            await connector.op_execute("execute", {})
+
+        assert exc_info.value.code == ConnectorErrorCode.NOT_CONFIGURED.value, (
+            f"{connector.connector_id} returned a non-configuration error: {exc_info.value}"
+        )
+        assert "endpoint_url" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
 async def test_no_connector_returns_success_without_connecting():
     """Spot-check a sample of REST connectors: unconfigured -> typed error.
 

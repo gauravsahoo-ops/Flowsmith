@@ -365,6 +365,37 @@ def _dynamics_operations() -> dict[str, ConnectorOperationV1]:
             retryable=False,
             idempotency="conditionally_idempotent",
         ),
+        "whoami": _operation(
+            "whoami",
+            "Who Am I",
+            "Return the Dataverse user, business unit, and organization ids.",
+            {"timeout_seconds": _TIMEOUT_PROP},
+            [],
+            {
+                "type": "object",
+                "properties": {
+                    "user_id": {"type": "string"},
+                    "business_unit_id": {"type": "string"},
+                    "organization_id": {"type": "string"},
+                },
+            },
+            retryable=True,
+        ),
+        "list_tables": _operation(
+            "list_tables",
+            "List Tables",
+            "List Dataverse entity definitions (logical name, display name, entity set).",
+            {"timeout_seconds": _TIMEOUT_PROP},
+            [],
+            {
+                "type": "object",
+                "properties": {
+                    "tables": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                },
+            },
+            retryable=True,
+        ),
     }
 
 
@@ -409,7 +440,10 @@ def build_dynamics_crm_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_dynamics_credential_type(),
         metadata={
-            "initial_operations": ["query", "search", "get", "create", "update", "upsert", "delete", "execute_action"],
+            "initial_operations": [
+                "query", "search", "get", "create", "update", "upsert",
+                "delete", "execute_action", "whoami", "list_tables",
+            ],
             "auth": "OAuth2 (Connect Microsoft Dynamics 365) or Azure App Registration Service Principal",
             "api_version": "v9.2",
             "pagination": {

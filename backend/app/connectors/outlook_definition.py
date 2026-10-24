@@ -75,6 +75,55 @@ def _outlook_operations() -> dict[str, ConnectorOperationV1]:
             {"type": "object", "properties": {"messages": {"type": "array", "items": {"type": "object"}}}},
             retryable=True,
         ),
+        "get_message": _operation(
+            "get_message", "Get Message",
+            "Fetch one Outlook message with recipients, body, read state, and web link.",
+            {"message_id": {"type": "string", "title": "Message id"}},
+            ["message_id"],
+            {"type": "object", "properties": {"id": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}}},
+            retryable=True,
+        ),
+        "list_folders": _operation(
+            "list_folders", "List Folders",
+            "List mail folders with total and unread counts.",
+            {},
+            [],
+            {"type": "object", "properties": {"folders": {"type": "array", "items": {"type": "object"}}}},
+            retryable=True,
+        ),
+        "mark_read": _operation(
+            "mark_read", "Mark Read/Unread",
+            "Set the isRead flag on one message.",
+            {
+                "message_id": {"type": "string", "title": "Message id"},
+                "is_read": {"type": "boolean", "title": "Read", "default": True},
+            },
+            ["message_id"],
+            {"type": "object", "properties": {"id": {"type": "string"}, "is_read": {"type": "boolean"}, "updated": {"type": "boolean"}}},
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "move_message": _operation(
+            "move_message", "Move Message",
+            "Move a message to another mail folder.",
+            {
+                "message_id": {"type": "string", "title": "Message id"},
+                "destination_id": {"type": "string", "title": "Destination folder id"},
+            },
+            ["message_id", "destination_id"],
+            {"type": "object", "properties": {"id": {"type": "string"}, "parent_folder_id": {"type": "string"}, "moved": {"type": "boolean"}}},
+            retryable=True,
+            idempotency="idempotent",
+        ),
+        "delete_message": _operation(
+            "delete_message", "Delete Message",
+            "Delete one message.",
+            {"message_id": {"type": "string", "title": "Message id"}},
+            ["message_id"],
+            {"type": "object", "properties": {"id": {"type": "string"}, "deleted": {"type": "boolean"}}},
+            retryable=True,
+            idempotency="idempotent",
+        ),
     }
 
 
@@ -111,7 +160,7 @@ def build_outlook_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=OUTLOOK_CONNECTOR_KEY,
         display_name="Microsoft Outlook",
-        description="Send and read Outlook mail via the Microsoft Graph API.",
+        description="Send, read, organize, and delete Outlook mail via the Microsoft Graph API.",
         category="communication",
         connector_version=OUTLOOK_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
@@ -119,7 +168,10 @@ def build_outlook_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_outlook_credential_type(),
         metadata={
-            "initial_operations": ["send", "list_messages"],
+            "initial_operations": [
+                "send", "list_messages", "get_message", "list_folders",
+                "mark_read", "move_message", "delete_message",
+            ],
             "auth": "client-credentials app (microsoft_graph credential)",
         },
         icon="outlook",

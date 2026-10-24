@@ -23,10 +23,14 @@ from app.providers.postgres import PostgresProviderClient
 
 
 class PostgresConnectorParams(BaseModel):
-    operation: str = Field(default="query", description="query | execute | insert_rows | list_tables.")
+    operation: str = Field(
+        default="query",
+        description="query | execute | insert_rows | list_tables | describe_table.",
+    )
     sql: str = Field(default="", description="SQL statement (query/execute).")
     params: dict[str, Any] = Field(default_factory=dict, description="Bound parameters.")
-    table: str = Field(default="", description="Target table (insert_rows).")
+    table: str = Field(default="", description="Target table (insert_rows/describe_table).")
+    schema_name: str = Field(default="", description="Optional schema (describe_table).")
     rows: list[dict[str, Any]] = Field(default_factory=list, description="Rows to insert (insert_rows).")
     max_rows: int = Field(default=1000, ge=1, le=10000, description="Row cap for query.")
 
@@ -101,6 +105,12 @@ class PostgresConnector(ConnectorSDK):
                 )
             if op == "list_tables":
                 return await self._provider.list_tables(creds)
+            if op == "describe_table":
+                return await self._provider.describe_table(
+                    creds,
+                    str(payload.get("table") or params.table),
+                    str(payload.get("schema") or params.schema_name) or None,
+                )
         except ConnectorError:
             raise
         raise make_connector_error(

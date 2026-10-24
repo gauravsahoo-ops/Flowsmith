@@ -69,6 +69,9 @@ class PipedriveConnector(ConnectorSDK):
             if op == "list_deals":
                 return await self._provider.list_deals(
                     creds, int(raw.get("limit") or params.limit), timeout=timeout)
+            if op == "list_persons":
+                return await self._provider.list_persons(
+                    creds, int(raw.get("limit") or params.limit), timeout=timeout)
             if op == "get_deal":
                 return await self._provider.get_deal(creds, str(raw.get("deal_id") or params.deal_id), timeout=timeout)
             if op == "create_deal":
@@ -80,6 +83,9 @@ class PipedriveConnector(ConnectorSDK):
                 fields = {k: str(raw.get(k) if raw.get(k) is not None else getattr(params, k)) for k in ("title", "value", "currency")}
                 fields = {k: v for k, v in fields.items() if v}
                 return await self._provider.update_deal(creds, str(raw.get("deal_id") or params.deal_id), fields, timeout=timeout)
+            if op == "delete_deal":
+                return await self._provider.delete_deal(
+                    creds, str(raw.get("deal_id") or params.deal_id), timeout=timeout)
             if op == "add_note":
                 return await self._provider.add_note(
                     creds, str(raw.get("deal_id") or params.deal_id),
@@ -100,4 +106,4 @@ class PipedriveConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_deals", "get_deal", "create_deal", "update_deal", "add_note"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_deals", "list_persons", "get_deal", "create_deal", "update_deal", "delete_deal", "add_note"]}}

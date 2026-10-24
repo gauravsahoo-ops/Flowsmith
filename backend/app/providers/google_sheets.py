@@ -111,6 +111,28 @@ class GoogleSheetsProviderClient(BaseProviderClient):
         data = response.json()
         return {"cleared": True, "range": data.get("clearedRange", range_)}
 
+    async def create_spreadsheet(self, creds, title: str, timeout: float = 30.0) -> dict:
+        name = str(title or "").strip()
+        if not name:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=create_spreadsheet requires a title.",
+                retryable=False,
+            )
+        response = await self.authorized_request(
+            creds=self._creds(creds), method="POST",
+            url=f"{SHEETS_API_BASE}/spreadsheets",
+            json_body={"properties": {"title": name}},
+            timeout=timeout, what="create spreadsheet",
+            extract_error_message=_sheets_error_message,
+        )
+        data = response.json()
+        return {
+            "spreadsheet_id": data.get("spreadsheetId", ""),
+            "title": data.get("properties", {}).get("title", name),
+            "spreadsheet_url": data.get("spreadsheetUrl"),
+        }
+
     async def get_spreadsheet_info(self, creds, spreadsheet_id: str, timeout: float = 30.0) -> dict:
         sid = self._spreadsheet_id(spreadsheet_id)
         response = await self.authorized_request(

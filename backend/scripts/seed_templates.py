@@ -18,6 +18,7 @@ sys.path.insert(0, str(BACKEND))
 
 from app.db import init_db  # noqa: E402
 from app.models import User, WorkflowTemplate  # noqa: E402
+from app.templates.library import CONNECTOR_TEMPLATES  # noqa: E402
 
 
 def _wf(nodes: list[dict], connections: list[dict]) -> dict:
@@ -157,6 +158,9 @@ LIBRARY: list[dict] = [
 ]
 
 
+LIBRARY.extend(CONNECTOR_TEMPLATES)
+
+
 def _system_user_id(db) -> int:
     """Owner for seeded templates: first admin, else a dedicated system user."""
     admin = db.query(User).filter_by(role="admin").order_by(User.id).first()
@@ -204,7 +208,7 @@ def main() -> int:
                 updated += 1
             row.description = spec["description"]
             row.category = spec["category"]
-            row.is_public = spec["is_public"]
+            row.is_public = spec.get("is_public", True)
             row.workflow_data = json.dumps(spec["workflow_data"])
             db.add(row)
         db.commit()

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, ForeignKey, func
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, ForeignKey, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -39,6 +39,21 @@ class User(Base):
     # Tokens issued before this instant are rejected (set on password reset so
     # a stolen bearer token dies with the old password).
     tokens_valid_from: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    # TOTP MFA. The secret is Fernet-encrypted at rest; mfa_last_step is the
+    # last accepted 30-second counter, used to reject replay of a used code.
+    mfa_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false"), nullable=False
+    )
+    mfa_secret: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    mfa_last_step: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+    # SHA-256 hashes of one-time recovery codes (never the plaintext codes).
+    mfa_recovery_hashes: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    # Last LDAP identity observed at login, used by background group sync.
+    ldap_dn: Mapped[str | None] = mapped_column(String(1024), nullable=True, index=True)
+    ldap_groups: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ldap_synced_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, default=None
     )
 

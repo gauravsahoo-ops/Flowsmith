@@ -142,4 +142,5 @@ def test_connector_dispatch_and_discovery():
                             {"credentials": {"whatsapp": {}}})
         )
     assert asyncio.new_event_loop().run_until_complete(
-        conn.op_list())["output"]["operations"] == ["send_text", "send_template", "get_message"]
+        conn.op_list())["output"]["operations"] == [
+        "send_text", "send_template", "send_media", "mark_read", "get_message"]

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import time
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 from app.connectors import ConnectorErrorCode, make_connector_error
 from app.providers.base import BaseProviderClient, json_error_message
@@ -200,6 +200,90 @@ class MicrosoftGraphProviderClient(BaseProviderClient):
         data = response.json()
         return {"message_id": data.get("id", ""), "success": True}
 
+    async def list_channel_messages(
+        self, creds: dict, team_id: str, channel_id: str,
+        top: int = 20, timeout: float = 30.0,
+    ) -> dict:
+        top = min(max(int(top or 20), 1), 50)
+        response = await self.request_graph(
+            creds, "GET",
+            f"/teams/{quote(team_id)}/channels/{quote(channel_id)}/messages",
+            params={"$top": top}, timeout=timeout, what="list channel messages",
+        )
+        messages = [
+            {
+                "id": m.get("id"),
+                "reply_to_id": m.get("replyToId"),
+                "message_type": m.get("messageType"),
+                "subject": m.get("subject"),
+                "from": ((m.get("from") or {}).get("user") or {}).get("displayName"),
+                "created": m.get("createdDateTime"),
+                "body": ((m.get("body") or {}).get("content")),
+            }
+            for m in response.json().get("value", [])
+        ]
+        return {"messages": messages, "count": len(messages)}
+
+    async def reply_to_channel_message(
+        self, creds: dict, team_id: str, channel_id: str, message_id: str,
+        content: str, timeout: float = 30.0,
+    ) -> dict:
+        if not str(content or "").strip():
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "A reply body is required.",
+                retryable=False,
+            )
+        html = ("<p>" + content.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\n", "<br>") + "</p>")
+        response = await self.request_graph(
+            creds, "POST",
+            f"/teams/{quote(team_id)}/channels/{quote(channel_id)}/messages/{quote(message_id)}/replies",
+            json_body={"body": {"contentType": "html", "content": html}},
+            timeout=timeout, what="reply to channel message",
+        )
+        data = response.json()
+        return {"message_id": data.get("id", ""), "success": True}
+
+    async def list_team_members(
+        self, creds: dict, team_id: str, timeout: float = 30.0,
+    ) -> dict:
+        response = await self.request_graph(
+            creds, "GET", f"/teams/{quote(team_id)}/members",
+            timeout=timeout, what="list team members",
+        )
+        members = [
+            {
+                "id": m.get("id"),
+                "display_name": m.get("displayName"),
+                "email": m.get("email"),
+                "roles": m.get("roles") or [],
+            }
+            for m in response.json().get("value", [])
+        ]
+        return {"members": members, "count": len(members)}
+
+    async def create_channel(
+        self, creds: dict, team_id: str, display_name: str,
+        description: str = "", timeout: float = 30.0,
+    ) -> dict:
+        name = str(display_name or "").strip()
+        if not name:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "create_channel requires display_name.",
+                retryable=False,
+            )
+        body: dict = {"displayName": name}
+        if description:
+            body["description"] = description
+        response = await self.request_graph(
+            creds, "POST", f"/teams/{quote(team_id)}/channels",
+            json_body=body, timeout=timeout, what="create channel",
+        )
+        data = response.json()
+        return {"channel_id": data.get("id", ""), "display_name": data.get("displayName", name)}
+
     # -- Mail ------------------------------------------------------------
 
     async def send_mail(
@@ -246,3 +330,95 @@ class MicrosoftGraphProviderClient(BaseProviderClient):
             for m in response.json().get("value", [])
         ]
         return {"messages": messages, "count": len(messages)}
+
+    async def get_message(self, creds: dict, message_id: str, timeout: float = 30.0) -> dict:
+        mid = str(message_id or "").strip()
+        if not mid:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST, "operation=get_message requires message_id.",
+                retryable=False,
+            )
+        response = await self.request_graph(
+            creds, "GET", f"/me/messages/{quote(mid)}",
+            params={"$select": "id,subject,from,toRecipients,ccRecipients,receivedDateTime,isRead,body,bodyPreview,webLink"},
+            timeout=timeout, what="get message",
+        )
+        data = response.json()
+        return {
+            "id": data.get("id"),
+            "subject": data.get("subject"),
+            "from": ((data.get("from") or {}).get("emailAddress") or {}).get("address"),
+            "to": [((r.get("emailAddress") or {}).get("address")) for r in (data.get("toRecipients") or [])],
+            "cc": [((r.get("emailAddress") or {}).get("address")) for r in (data.get("ccRecipients") or [])],
+            "received": data.get("receivedDateTime"),
+            "is_read": data.get("isRead"),
+            "body": ((data.get("body") or {}).get("content")),
+            "preview": data.get("bodyPreview"),
+            "web_link": data.get("webLink"),
+        }
+
+    async def list_folders(self, creds: dict, timeout: float = 30.0) -> dict:
+        response = await self.request_graph(
+            creds, "GET", "/me/mailFolders", params={"$top": 100},
+            timeout=timeout, what="list mail folders",
+        )
+        folders = [
+            {
+                "id": f.get("id"),
+                "display_name": f.get("displayName"),
+                "total_item_count": f.get("totalItemCount"),
+                "unread_item_count": f.get("unreadItemCount"),
+            }
+            for f in response.json().get("value", [])
+        ]
+        return {"folders": folders, "count": len(folders)}
+
+    async def mark_read(self, creds: dict, message_id: str, is_read: bool = True,
+                        timeout: float = 30.0) -> dict:
+        mid = str(message_id or "").strip()
+        if not mid:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST, "operation=mark_read requires message_id.",
+                retryable=False,
+            )
+        response = await self.request_graph(
+            creds, "PATCH", f"/me/messages/{quote(mid)}",
+            json_body={"isRead": bool(is_read)}, timeout=timeout, what="mark message read",
+        )
+        data = response.json()
+        return {"id": data.get("id", mid), "is_read": data.get("isRead"), "updated": True}
+
+    async def move_message(self, creds: dict, message_id: str, destination_id: str,
+                           timeout: float = 30.0) -> dict:
+        mid = str(message_id or "").strip()
+        dest = str(destination_id or "").strip()
+        if not mid or not dest:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "operation=move_message requires message_id and destination_id.",
+                retryable=False,
+            )
+        response = await self.request_graph(
+            creds, "POST", f"/me/messages/{quote(mid)}/move",
+            json_body={"destinationId": dest}, timeout=timeout, what="move message",
+        )
+        data = response.json()
+        return {
+            "id": data.get("id", mid),
+            "parent_folder_id": data.get("parentFolderId"),
+            "moved": True,
+        }
+
+    async def delete_message(self, creds: dict, message_id: str,
+                             timeout: float = 30.0) -> dict:
+        mid = str(message_id or "").strip()
+        if not mid:
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST, "operation=delete_message requires message_id.",
+                retryable=False,
+            )
+        response = await self.request_graph(
+            creds, "DELETE", f"/me/messages/{quote(mid)}",
+            timeout=timeout, what="delete message",
+        )
+        return {"id": mid, "deleted": True, "status": response.status_code}

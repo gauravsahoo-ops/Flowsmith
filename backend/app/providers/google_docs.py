@@ -19,6 +19,18 @@ from app.security.safe_http_client import get_safe_http_client
 GOOGLE_DOCS_API_BASE = "https://docs.googleapis.com/v1/documents"
 
 
+def _extract_text(node: Any) -> str:
+    """Collect textRun content from a Docs API body tree."""
+    if isinstance(node, dict):
+        text_run = node.get("textRun")
+        if isinstance(text_run, dict) and isinstance(text_run.get("content"), str):
+            return text_run["content"]
+        return "".join(_extract_text(value) for value in node.values())
+    if isinstance(node, list):
+        return "".join(_extract_text(item) for item in node)
+    return ""
+
+
 class GoogleDocsProviderClient:
     def __init__(self) -> None:
         self._access_tokens: dict[str, tuple[str, float]] = {}
@@ -183,6 +195,35 @@ class GoogleDocsProviderClient:
         return await self._request(
             creds, "POST", f"/{document_id}:batchUpdate", "append_text",
             body={"requests": [{"insertText": {"location": {"index": max(end_index - 1, 1)}, "text": str(text)}}]},
+            timeout=timeout,
+        )
+
+    async def get_document_text(self, creds: dict, document_id: str, timeout: float = 30.0) -> dict:
+        doc = await self.get_document(creds, document_id, timeout=timeout)
+        text = _extract_text((doc.get("body") or {}).get("content") or [])
+        return {
+            "document_id": doc.get("documentId", document_id),
+            "title": doc.get("title", ""),
+            "text": text,
+            "length": len(text),
+        }
+
+    async def replace_text(self, creds: dict, document_id: str, text: str,
+                           replacement: str = "", match_case: bool = False,
+                           timeout: float = 30.0) -> dict:
+        if not str(document_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "replace_text needs a document_id.", retryable=False)
+        needle = str(text or "")
+        if not needle:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "replace_text needs text to find.", retryable=False)
+        return await self._request(
+            creds, "POST", f"/{document_id}:batchUpdate", "replace_text",
+            body={"requests": [{
+                "replaceAllText": {
+                    "containsText": {"text": needle, "matchCase": bool(match_case)},
+                    "replaceText": str(replacement or ""),
+                }
+            }]},
             timeout=timeout,
         )
 

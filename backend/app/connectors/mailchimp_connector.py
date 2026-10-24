@@ -22,6 +22,7 @@ class MailchimpConnectorParams(BaseModel):
     list_id: str = ""
     email: str = ""
     status: str = "subscribed"
+    member_status: str = ""
     limit: int = Field(default=25, ge=1, le=1000)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
@@ -69,6 +70,18 @@ class MailchimpConnector(ConnectorSDK):
                     creds, int(raw.get("limit") or params.limit), timeout=timeout)
             if op == "get_list":
                 return await self._provider.get_list(creds, str(raw.get("list_id") or params.list_id), timeout=timeout)
+            if op == "list_members":
+                return await self._provider.list_members(
+                    creds, str(raw.get("list_id") or params.list_id),
+                    int(raw.get("limit") or params.limit),
+                    status=str(raw.get("member_status") or params.member_status),
+                    timeout=timeout,
+                )
+            if op == "delete_member":
+                return await self._provider.delete_member(
+                    creds, str(raw.get("list_id") or params.list_id),
+                    str(raw.get("email") or params.email), timeout=timeout,
+                )
             if op == "add_member":
                 return await self._provider.add_member(
                     creds, str(raw.get("list_id") or params.list_id),
@@ -99,4 +112,4 @@ class MailchimpConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_lists", "get_list", "add_member", "get_member", "update_member"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_lists", "get_list", "list_members", "delete_member", "add_member", "get_member", "update_member"]}}

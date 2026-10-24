@@ -41,7 +41,7 @@ describe('Login Component Suite', () => {
     // Auth Form & Controls
     expect(html).toContain('Log in')
     expect(html).toContain('Sign up')
-    expect(html).toContain('Email address')
+    expect(html).toContain('Email or username')
     expect(html).toContain('Password')
     expect(html).toContain('Sign In to Workspace')
 

@@ -116,6 +116,19 @@ class BrevoProviderClient:
             body["attributes"] = attributes
         return await self._request(creds, "POST", "/contacts", "create_contact", body=body, timeout=timeout)
 
+    async def list_lists(self, creds: dict, limit: int = 25, timeout: float = 30.0) -> dict:
+        return await self._get(
+            creds, "/contacts/lists", "list_lists",
+            params={"limit": max(1, min(int(limit or 25), 1000))}, timeout=timeout,
+        )
+
+    async def delete_contact(self, creds: dict, email: str, timeout: float = 30.0) -> dict:
+        address = str(email or "").strip()
+        if not address:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_contact needs an email.", retryable=False)
+        await self._request(creds, "DELETE", f"/contacts/{address}", "delete_contact", timeout=timeout)
+        return {"email": address, "deleted": True, "success": True}
+
     async def update_contact(self, creds: dict, email: str, attributes: dict[str, Any], timeout: float = 30.0) -> dict:
         if not str(email or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_contact needs an email.", retryable=False)

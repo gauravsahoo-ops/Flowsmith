@@ -89,6 +89,20 @@ class ZendeskProviderClient:
         return await self._get(creds, "/tickets.json", "list_tickets",
                                params={"per_page": max(1, min(int(limit or 25), 100))}, timeout=timeout)
 
+    async def list_users(self, creds: dict, limit: int = 25, role: str = "",
+                         timeout: float = 30.0) -> dict:
+        params: dict[str, Any] = {"per_page": max(1, min(int(limit or 25), 100))}
+        if str(role or "").strip():
+            params["role"] = role
+        return await self._get(creds, "/users.json", "list_users", params=params, timeout=timeout)
+
+    async def delete_ticket(self, creds: dict, ticket_id: str, timeout: float = 30.0) -> dict:
+        tid = str(ticket_id or "").strip()
+        if not tid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_ticket needs a ticket_id.", retryable=False)
+        await self._request(creds, "DELETE", f"/tickets/{tid}.json", "delete_ticket", timeout=timeout)
+        return {"ticket_id": tid, "deleted": True, "success": True}
+
     async def get_ticket(self, creds: dict, ticket_id: str, timeout: float = 30.0) -> dict:
         if not str(ticket_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "get_ticket needs a ticket_id.", retryable=False)

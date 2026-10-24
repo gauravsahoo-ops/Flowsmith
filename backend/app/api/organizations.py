@@ -7,10 +7,11 @@ Members can be added/removed from organizations.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
@@ -25,6 +26,7 @@ from app.models import (
     RagCollection,
     Subscription,
     User,
+    WebAuthnCredential,
     WorkflowRecord,
     Workspace,
     WorkspaceMember,
@@ -48,6 +50,7 @@ class OrganizationUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     is_public: bool | None = None
+    require_mfa: bool | None = None
 
 
 class MemberAdd(BaseModel):
@@ -87,6 +90,7 @@ def list_organizations(user: User = Depends(get_current_user), db: Session = Dep
         "description": o.description,
         "founder_id": o.founder_id,
         "is_public": o.is_public,
+        "require_mfa": bool(o.require_mfa),
         "created_at": str(o.created_at),
     } for o in orgs])
 
@@ -142,6 +146,7 @@ def get_organization(org_id: str, user: User = Depends(get_current_user), db: Se
         "description": org.description,
         "founder_id": org.founder_id,
         "is_public": org.is_public,
+        "require_mfa": bool(org.require_mfa),
         "created_at": str(org.created_at),
     })
 
@@ -156,9 +161,39 @@ def update_organization(org_id: str, payload: OrganizationUpdate, user: User = D
         org.description = payload.description
     if payload.is_public is not None:
         org.is_public = payload.is_public
+    if payload.require_mfa is not None:
+        was_required = bool(org.require_mfa)
+        org.require_mfa = payload.require_mfa
+        if payload.require_mfa and not was_required:
+            # Enabling the policy invalidates existing bearer tokens for the
+            # organization's users so the next request forces a login and the
+            # enrollment flow. Disabling the policy does not revoke sessions.
+            member_ids = select(OrganizationMember.user_id).where(
+                OrganizationMember.organization_id == org_id
+            )
+            db.execute(
+                update(User)
+                .where(
+                    or_(User.organization_id == org_id, User.id.in_(member_ids)),
+                    User.mfa_enabled.is_not(True),
+                    ~User.id.in_(select(WebAuthnCredential.user_id)),
+                )
+                .values(tokens_valid_from=datetime.now(UTC))
+            )
     db.commit()
-    log_event(db, ORG_UPDATED, target_type="organization", target_id=org_id, user_id=user.id)
-    return ok({"id": org.id, "name": org.name})
+    log_event(
+        db,
+        ORG_UPDATED,
+        target_type="organization",
+        target_id=org_id,
+        user_id=user.id,
+        detail={"require_mfa": bool(org.require_mfa)},
+    )
+    return ok({
+        "id": org.id,
+        "name": org.name,
+        "require_mfa": bool(org.require_mfa),
+    })
 
 
 @router.delete("/api/organizations/{org_id}")

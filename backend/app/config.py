@@ -36,6 +36,28 @@ class Settings(BaseSettings):
         "safe_http_allowed_hosts",
         "safe_http_allowed_ports",
         "app_env",
+        "ldap_server_url",
+        "ldap_bind_dn",
+        "ldap_bind_password",
+        "ldap_user_search_base",
+        "ldap_user_search_filter",
+        "ldap_user_email_attribute",
+        "ldap_user_display_attribute",
+        "ldap_group_search_base",
+        "ldap_group_search_filter",
+        "ldap_group_attribute",
+        "ldap_group_role_map",
+        "ldap_group_workspace_map",
+        "ldap_group_org_map",
+        "saml_group_attribute",
+        "saml_group_role_map",
+        "webauthn_rp_id",
+        "webauthn_rp_name",
+        "webauthn_origin",
+        "webauthn_attestation",
+        "webauthn_attestation_roots_file",
+        "webauthn_allowed_aaguids",
+        "webauthn_allowed_formats",
         mode="before",
     )
     @classmethod
@@ -230,7 +252,10 @@ class Settings(BaseSettings):
     google_sheets_scopes: str = (
         "openid email https://www.googleapis.com/auth/spreadsheets"
     )
-    gmail_scopes: str = "openid email https://www.googleapis.com/auth/gmail.send"
+    gmail_scopes: str = (
+        "openid email https://www.googleapis.com/auth/gmail.send "
+        "https://www.googleapis.com/auth/gmail.readonly"
+    )
     # Google Drive connector (Phase 11): same shared Google app, Drive scope.
     google_drive_scopes: str = (
         "openid email https://www.googleapis.com/auth/drive"
@@ -297,6 +322,103 @@ class Settings(BaseSettings):
     sso_oidc_client_secret: str = ""
     sso_oidc_display_name: str = "Enterprise SSO"
 
+    # SCIM 2.0 user provisioning. Disabled by default; enable with a
+    # dedicated bearer token and an optional default organization/workspace
+    # for newly provisioned users.
+    scim_enabled: bool = False
+    scim_bearer_token: str = ""
+    scim_default_organization_id: str = ""
+    scim_default_workspace_id: str = ""
+    # SCIM groups are materialized as private workspaces. A group owner is
+    # selected by email, or the first active administrator when omitted.
+    scim_group_organization_id: str = ""
+    scim_group_owner_email: str = ""
+
+    # LDAP authentication (local password login falls back to LDAP when the
+    # local password does not match). LDAPS or StartTLS is required in
+    # production; group names can be mapped to Flowsmith roles with a JSON
+    # object such as {"workflow-admins": "admin"}.
+    ldap_enabled: bool = False
+    ldap_server_url: str = ""
+    ldap_start_tls: bool = False
+    ldap_tls_verify: bool = True
+    ldap_ca_cert_file: str = ""
+    ldap_bind_dn: str = ""
+    ldap_bind_password: str = ""
+    ldap_user_search_base: str = ""
+    ldap_user_search_filter: str = "(uid={username})"
+    ldap_user_email_attribute: str = "mail"
+    ldap_user_display_attribute: str = "displayName"
+    ldap_group_search_base: str = ""
+    ldap_group_search_filter: str = "(member={user_dn})"
+    ldap_group_attribute: str = "cn"
+    ldap_group_role_map: str = ""
+    # Optional group -> workspace memberships. JSON object values may be a
+    # workspace ID string or an object {"workspace_id","role","permission"}.
+    ldap_group_workspace_map: str = ""
+    # Optional group -> organization memberships. Values may be an
+    # organization ID string or {"organization_id","role","permission"}.
+    ldap_group_org_map: str = ""
+    ldap_default_role: str = "member"
+    ldap_jit_provisioning: bool = True
+    ldap_default_organization_id: str = ""
+    ldap_default_workspace_id: str = ""
+    ldap_connect_timeout_seconds: int = 5
+    ldap_receive_timeout_seconds: int = 10
+    # Background group/profile refresh. Disabled by default; enable it only
+    # after the login path and service account have been validated.
+    ldap_sync_enabled: bool = False
+    ldap_sync_interval_seconds: int = 900
+
+    # WebAuthn/passkeys. Disabled by default because a correct RP ID and
+    # origin are deployment-specific; enable after setting both explicitly.
+    webauthn_enabled: bool = False
+    webauthn_rp_id: str = ""
+    webauthn_rp_name: str = "Flowsmith"
+    webauthn_origin: str = ""
+    webauthn_require_uv: bool = True
+    webauthn_timeout_ms: int = 60000
+    # "none" accepts any authenticator; "direct"/"enterprise" request
+    # attestation and require a trusted attestation root + policy match.
+    webauthn_attestation: str = "none"
+    webauthn_attestation_roots_file: str = ""
+    webauthn_allowed_aaguids: str = ""
+    webauthn_allowed_formats: str = ""
+
+    # Native SAML 2.0 Web SSO. IdP metadata can be loaded from a URL or
+    # supplied inline for air-gapped installations. SP request signing is
+    # optional; assertion/response signatures are always required.
+    saml_enabled: bool = False
+    saml_display_name: str = "SAML 2.0"
+    saml_idp_metadata_url: str = ""
+    saml_idp_metadata_xml: str = ""
+    saml_idp_entity_id: str = ""
+    saml_idp_x509_cert: str = ""
+    saml_sp_entity_id: str = ""
+    saml_sp_acs_url: str = ""
+    saml_sp_x509_cert: str = ""
+    saml_sp_private_key: str = ""
+    saml_jit_provisioning: bool = True
+    saml_default_role: str = "member"
+    saml_role_attribute: str = "role"
+    # Optional IdP group claim: JSON map such as {"platform-admins":"admin"}.
+    saml_group_attribute: str = "groups"
+    saml_group_role_map: str = ""
+    saml_default_organization_id: str = ""
+    saml_default_workspace_id: str = ""
+    saml_allow_idp_initiated: bool = False
+    saml_clock_skew_seconds: int = 120
+    saml_metadata_cache_seconds: int = 300
+
+    # Connector packs. Remote manifest URLs always require a valid Ed25519
+    # signature. Set CONNECTOR_PACK_REQUIRE_SIGNATURE=true to require signatures
+    # for inline manifests too. Trusted keys are a JSON map:
+    # {"release-2026": "<PEM or base64 raw Ed25519 public key>"}.
+    connector_pack_require_signature: bool = False
+    connector_pack_trusted_keys: str = ""
+    # Comma-separated signing key IDs that must no longer be accepted.
+    connector_pack_revoked_keys: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -343,6 +465,8 @@ def validate_production_settings(settings: Settings | None = None) -> None:
         missing.append("REGISTRATION_MODE (must be open, invite, or closed)")
     elif reg_mode == "invite" and len(settings.registration_invite_code or "") < 16:
         missing.append("REGISTRATION_INVITE_CODE (at least 16 characters when REGISTRATION_MODE=invite)")
+    if settings.connector_pack_require_signature and not (settings.connector_pack_trusted_keys or "").strip():
+        missing.append("CONNECTOR_PACK_TRUSTED_KEYS (required when CONNECTOR_PACK_REQUIRE_SIGNATURE=true)")
 
     # Redis authentication & queue integrity
     redis_url = settings.redis_url or ""
@@ -368,6 +492,163 @@ def validate_production_settings(settings: Settings | None = None) -> None:
         if msg not in missing:
             missing.append(msg)
 
+    if settings.scim_enabled and len(settings.scim_bearer_token or "") < 32:
+        missing.append("SCIM_BEARER_TOKEN (at least 32 characters when SCIM_ENABLED=true)")
+    if settings.saml_enabled:
+        if not (settings.public_url or "").strip():
+            missing.append("PUBLIC_URL (required when SAML_ENABLED=true)")
+        elif not settings.public_url.lower().startswith("https://"):
+            missing.append("PUBLIC_URL (must use HTTPS when SAML_ENABLED=true)")
+        if not (settings.saml_idp_metadata_url or settings.saml_idp_metadata_xml):
+            missing.append("SAML_IDP_METADATA_URL or SAML_IDP_METADATA_XML (required when SAML_ENABLED=true)")
+        if (
+            settings.saml_idp_metadata_url
+            and not settings.saml_idp_metadata_url.lower().startswith("https://")
+        ):
+            missing.append("SAML_IDP_METADATA_URL (must use HTTPS in production)")
+        if settings.saml_sp_x509_cert and not settings.saml_sp_private_key:
+            missing.append("SAML_SP_PRIVATE_KEY (required when SAML_SP_X509_CERT is set)")
+        if (settings.saml_default_role or "").strip().lower() not in ("admin", "member"):
+            missing.append("SAML_DEFAULT_ROLE (must be admin or member)")
+        if settings.saml_group_role_map.strip():
+            import json
+
+            try:
+                group_roles = json.loads(settings.saml_group_role_map)
+            except ValueError:
+                group_roles = None
+            if not isinstance(group_roles, dict) or any(
+                str(role).strip().lower() not in ("admin", "member")
+                for role in (group_roles or {}).values()
+            ):
+                missing.append("SAML_GROUP_ROLE_MAP (must be a JSON object with admin/member values)")
+    if settings.webauthn_enabled:
+        if not settings.webauthn_rp_id:
+            missing.append("WEBAUTHN_RP_ID (required when WEBAUTHN_ENABLED=true)")
+        if not settings.webauthn_origin:
+            missing.append("WEBAUTHN_ORIGIN (required when WEBAUTHN_ENABLED=true)")
+        elif not settings.webauthn_origin.lower().startswith("https://"):
+            missing.append("WEBAUTHN_ORIGIN (must use HTTPS in production)")
+        elif settings.webauthn_rp_id:
+            from urllib.parse import urlparse
+
+            origin_host = (urlparse(settings.webauthn_origin).hostname or "").lower()
+            rp_id = settings.webauthn_rp_id.lower()
+            if origin_host != rp_id and not origin_host.endswith("." + rp_id):
+                missing.append("WEBAUTHN_RP_ID (must match WEBAUTHN_ORIGIN host)")
+        attestation = (settings.webauthn_attestation or "none").strip().lower()
+        if attestation not in ("none", "direct", "enterprise"):
+            missing.append("WEBAUTHN_ATTESTATION (must be none, direct, or enterprise)")
+        elif attestation != "none":
+            if not settings.webauthn_attestation_roots_file:
+                missing.append("WEBAUTHN_ATTESTATION_ROOTS_FILE (required for attestation)")
+            else:
+                from pathlib import Path
+
+                if not Path(settings.webauthn_attestation_roots_file).is_file():
+                    missing.append("WEBAUTHN_ATTESTATION_ROOTS_FILE (file does not exist)")
+    if settings.ldap_enabled:
+        if not settings.ldap_server_url:
+            missing.append("LDAP_SERVER_URL (required when LDAP_ENABLED=true)")
+        elif not settings.ldap_server_url.lower().startswith(("ldaps://", "ldap://")):
+            missing.append("LDAP_SERVER_URL (must be ldap:// or ldaps://)")
+        elif (
+            not settings.ldap_server_url.lower().startswith("ldaps://")
+            and not settings.ldap_start_tls
+        ):
+            missing.append("LDAP_SERVER_URL (use ldaps:// or LDAP_START_TLS=true in production)")
+        if not settings.ldap_tls_verify:
+            missing.append("LDAP_TLS_VERIFY (must be true in production)")
+        if not settings.ldap_user_search_base:
+            missing.append("LDAP_USER_SEARCH_BASE (required when LDAP_ENABLED=true)")
+        if settings.ldap_user_search_filter.count("{username}") != 1:
+            missing.append("LDAP_USER_SEARCH_FILTER (must contain {username} exactly once)")
+        if settings.ldap_group_search_base and settings.ldap_group_search_filter.count("{user_dn}") != 1:
+            missing.append("LDAP_GROUP_SEARCH_FILTER (must contain {user_dn} exactly once)")
+        if (settings.ldap_default_role or "").strip().lower() not in ("admin", "member"):
+            missing.append("LDAP_DEFAULT_ROLE (must be admin or member)")
+        if settings.ldap_group_role_map.strip():
+            import json
+
+            try:
+                role_map = json.loads(settings.ldap_group_role_map)
+            except ValueError:
+                role_map = None
+            if not isinstance(role_map, dict) or any(
+                str(role).strip().lower() not in ("admin", "member")
+                for role in (role_map or {}).values()
+            ):
+                missing.append("LDAP_GROUP_ROLE_MAP (must be a JSON object with admin/member values)")
+        if settings.ldap_group_workspace_map.strip():
+            import json
+
+            try:
+                workspace_map = json.loads(settings.ldap_group_workspace_map)
+            except ValueError:
+                workspace_map = None
+            if not isinstance(workspace_map, dict):
+                missing.append("LDAP_GROUP_WORKSPACE_MAP (must be a JSON object)")
+            else:
+                for grants in workspace_map.values():
+                    entries = grants if isinstance(grants, list) else [grants]
+                    for entry in entries:
+                        if isinstance(entry, str):
+                            continue
+                        if not isinstance(entry, dict) or not str(
+                            entry.get("workspace_id") or ""
+                        ).strip():
+                            missing.append(
+                                "LDAP_GROUP_WORKSPACE_MAP (entries need workspace_id)"
+                            )
+                            break
+                        if str(entry.get("role") or "member").strip().lower() not in (
+                            "admin", "member"
+                        ):
+                            missing.append(
+                                "LDAP_GROUP_WORKSPACE_MAP (role must be admin or member)"
+                            )
+                        if str(entry.get("permission") or "edit").strip().lower() not in (
+                            "view", "edit", "admin"
+                        ):
+                            missing.append(
+                                "LDAP_GROUP_WORKSPACE_MAP (permission must be view/edit/admin)"
+                            )
+        if settings.ldap_group_org_map.strip():
+            import json
+
+            try:
+                org_map = json.loads(settings.ldap_group_org_map)
+            except ValueError:
+                org_map = None
+            if not isinstance(org_map, dict):
+                missing.append("LDAP_GROUP_ORG_MAP (must be a JSON object)")
+            else:
+                for grants in org_map.values():
+                    entries = grants if isinstance(grants, list) else [grants]
+                    for entry in entries:
+                        if isinstance(entry, str):
+                            continue
+                        if not isinstance(entry, dict) or not str(
+                            entry.get("organization_id") or ""
+                        ).strip():
+                            missing.append(
+                                "LDAP_GROUP_ORG_MAP (entries need organization_id)"
+                            )
+                            break
+                        if str(entry.get("role") or "member").strip().lower() not in (
+                            "admin", "member"
+                        ):
+                            missing.append(
+                                "LDAP_GROUP_ORG_MAP (role must be admin or member)"
+                            )
+                        if str(entry.get("permission") or "view").strip().lower() not in (
+                            "view", "edit", "admin"
+                        ):
+                            missing.append(
+                                "LDAP_GROUP_ORG_MAP (permission must be view/edit/admin)"
+                            )
+        if settings.ldap_sync_interval_seconds < 60:
+            missing.append("LDAP_SYNC_INTERVAL_SECONDS (must be at least 60)")
     if settings.billing_enforcement:
         if not settings.stripe_secret_key:
             missing.append("STRIPE_SECRET_KEY (required when BILLING_ENFORCEMENT=true)")

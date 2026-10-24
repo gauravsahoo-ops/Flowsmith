@@ -158,6 +158,32 @@ class SendGridProviderClient(BaseProviderClient):
         body = {"contacts": [contact]}
         return await self.request_sendgrid(creds, "PUT", "marketing/contacts", json_body=body, timeout=timeout)
 
+    async def list_templates(
+        self,
+        creds: dict[str, Any],
+        *,
+        generations: str = "legacy",
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        return await self.request_sendgrid(
+            creds, "GET", "templates",
+            params={"generations": generations or "legacy"}, timeout=timeout,
+        )
+
+    async def delete_contacts(
+        self,
+        creds: dict[str, Any],
+        ids: list[str],
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        cleaned = [str(item).strip() for item in (ids or []) if str(item).strip()]
+        if not cleaned:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_contacts needs contact ids.", retryable=False)
+        return await self.request_sendgrid(
+            creds, "DELETE", "marketing/contacts",
+            params={"ids": ",".join(cleaned)}, timeout=timeout,
+        )
+
     async def get_stats(
         self,
         creds: dict[str, Any],

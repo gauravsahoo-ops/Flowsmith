@@ -89,6 +89,40 @@ class BitbucketProviderClient:
         data = await self._request("GET", f"/repositories/{self._repo_slug(workspace, repo)}", creds, what="get repo", timeout=timeout)
         return data if isinstance(data, dict) else {}
 
+    async def list_branches(self, creds: dict, workspace: str, repo: str, timeout: float = 30.0) -> list:
+        data = await self._request(
+            "GET", f"/repositories/{self._repo_slug(workspace, repo)}/refs/branches",
+            creds, what="list branches", timeout=timeout,
+        )
+        items = data.get("values", []) if isinstance(data, dict) else []
+        return items if isinstance(items, list) else []
+
+    async def create_pull_request(
+        self, creds: dict, workspace: str, repo: str, title: str,
+        source_branch: str, destination_branch: str, description: str = "",
+        timeout: float = 30.0,
+    ) -> dict:
+        if not str(title or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "create_pull_request needs a title.", retryable=False)
+        if not str(source_branch or "").strip() or not str(destination_branch or "").strip():
+            raise make_connector_error(
+                ConnectorErrorCode.BAD_REQUEST,
+                "create_pull_request needs source_branch and destination_branch.",
+                retryable=False,
+            )
+        body: dict[str, Any] = {
+            "title": title,
+            "source": {"branch": {"name": source_branch}},
+            "destination": {"branch": {"name": destination_branch}},
+        }
+        if description:
+            body["description"] = description
+        data = await self._request(
+            "POST", f"/repositories/{self._repo_slug(workspace, repo)}/pullrequests",
+            creds, json_body=body, what="create pull request", timeout=timeout,
+        )
+        return data if isinstance(data, dict) else {}
+
     async def list_pull_requests(self, creds: dict, workspace: str, repo: str, timeout: float = 30.0) -> list:
         data = await self._request(
             "GET", f"/repositories/{self._repo_slug(workspace, repo)}/pullrequests",

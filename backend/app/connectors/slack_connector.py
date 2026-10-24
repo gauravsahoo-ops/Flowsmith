@@ -24,7 +24,13 @@ from app.providers.slack import SlackProviderClient
 
 
 class SlackConnectorParams(BaseModel):
-    operation: str = Field(default="send_message", description="send_message | list_channels | add_reaction | get_user_by_email.")
+    operation: str = Field(
+        default="send_message",
+        description=(
+            "send_message | list_channels | add_reaction | get_user_by_email | "
+            "list_users | get_channel_history | update_message | delete_message."
+        ),
+    )
     channel: str = ""
     text: str = ""
     thread_ts: str = ""
@@ -34,6 +40,8 @@ class SlackConnectorParams(BaseModel):
     limit: int = Field(default=100, ge=1, le=200)
     max_pages: int = Field(default=3, ge=1, le=10)
     exclude_archived: bool = True
+    oldest: str = ""
+    latest: str = ""
 
 
 class SlackConnector(ConnectorSDK):
@@ -100,6 +108,25 @@ class SlackConnector(ConnectorSDK):
             if op == "get_user_by_email":
                 email = str((payload or {}).get("email") or params.email)
                 return await self._provider.get_user_by_email(creds, email)
+            if op == "list_users":
+                return await self._provider.list_users(
+                    creds, limit=params.limit, max_pages=params.max_pages,
+                )
+            if op == "get_channel_history":
+                channel = str((payload or {}).get("channel") or params.channel)
+                return await self._provider.get_channel_history(
+                    creds, channel, limit=params.limit,
+                    oldest=params.oldest, latest=params.latest,
+                )
+            if op == "update_message":
+                channel = str((payload or {}).get("channel") or params.channel)
+                ts = str((payload or {}).get("timestamp") or params.timestamp)
+                text = str((payload or {}).get("text") or params.text)
+                return await self._provider.update_message(creds, channel, ts, text)
+            if op == "delete_message":
+                channel = str((payload or {}).get("channel") or params.channel)
+                ts = str((payload or {}).get("timestamp") or params.timestamp)
+                return await self._provider.delete_message(creds, channel, ts)
         except ConnectorError:
             raise
         raise make_connector_error(

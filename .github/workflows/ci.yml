@@ -178,6 +178,29 @@ jobs:
         working-directory: frontend
         run: npx playwright test
 
+  helm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Lint chart
+        run: |
+          docker run --rm \
+            -v "$PWD/deploy/helm/flowsmith:/chart" \
+            alpine/helm:3.15.4 lint /chart -f /chart/ci/test-values.yaml
+      - name: Render chart
+        run: |
+          docker run --rm \
+            -v "$PWD/deploy/helm/flowsmith:/chart" \
+            alpine/helm:3.15.4 template flowsmith /chart \
+            -n flowsmith -f /chart/ci/test-values.yaml > /tmp/flowsmith.yaml
+      - name: Validate Kubernetes resources
+        run: |
+          docker run --rm -v "/tmp:/work" \
+            ghcr.io/yannh/kubeconform:v0.6.7 -strict -summary /work/flowsmith.yaml
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 30

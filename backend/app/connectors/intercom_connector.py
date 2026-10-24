@@ -19,11 +19,13 @@ from app.providers.intercom import IntercomProviderClient
 class IntercomConnectorParams(BaseModel):
     operation: str = Field(default="list_conversations")
     conversation_id: str = ""
+    contact_id: str = ""
     body_text: str = ""
     message_type: str = "comment"
     email: str = ""
     name: str = ""
     role: str = "user"
+    custom_attributes: dict[str, Any] = Field(default_factory=dict)
     field: str = "email"
     operator: str = "="
     value: str = ""
@@ -101,6 +103,26 @@ class IntercomConnector(ConnectorSDK):
 
             if op == "create_contact":
                 return await self._provider.create_contact(creds, email=email or None, name=name or None, role=role, timeout=timeout)
+
+            if op == "update_contact":
+                fields: dict[str, Any] = {}
+                for key in ("email", "name", "role"):
+                    value = raw.get(key) if raw.get(key) is not None else getattr(params, key)
+                    if value not in (None, ""):
+                        fields[key] = value
+                custom_attributes = raw.get("custom_attributes") or params.custom_attributes
+                if custom_attributes:
+                    fields["custom_attributes"] = custom_attributes
+                return await self._provider.update_contact(
+                    creds, str(raw.get("contact_id") or params.contact_id),
+                    fields, timeout=timeout,
+                )
+
+            if op == "delete_contact":
+                return await self._provider.delete_contact(
+                    creds, str(raw.get("contact_id") or params.contact_id),
+                    timeout=timeout,
+                )
 
             if op == "search_contacts":
                 field = str(raw.get("field") or params.field or "email")

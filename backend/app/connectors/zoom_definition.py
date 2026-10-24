@@ -48,9 +48,28 @@ def build_zoom_definition() -> ConnectorDefinitionV1:
                 "list_meetings", "List Meetings", "List scheduled meetings for a user.",
                 {"user_id": {"type": "string", "title": "User id or email (default me)"}}, [],
             ),
+            "list_users": _operation(
+                "list_users", "List Users", "List Zoom users.",
+                {
+                    "limit": {"type": "integer", "title": "Page size", "default": 30},
+                    "user_status": {"type": "string", "title": "Status (active/inactive/pending)"},
+                },
+                [],
+            ),
             "get_meeting": _operation(
                 "get_meeting", "Get Meeting", "Fetch one meeting by id.",
                 {"meeting_id": {"type": "string", "title": "Meeting id"}}, ["meeting_id"],
+            ),
+            "update_meeting": _operation(
+                "update_meeting", "Update Meeting", "Patch topic, start time, duration, or timezone.",
+                {
+                    "meeting_id": {"type": "string", "title": "Meeting id"},
+                    "topic": {"type": "string", "title": "Topic"},
+                    "start_time": {"type": "string", "title": "Start ISO time"},
+                    "duration_min": {"type": "integer", "title": "Duration minutes"},
+                    "timezone": {"type": "string", "title": "Timezone"},
+                },
+                ["meeting_id"], retryable=True,
             ),
             "create_meeting": _operation(
                 "create_meeting", "Create Meeting", "Schedule a meeting.",
@@ -83,6 +102,12 @@ def build_zoom_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_meetings", "get_meeting", "create_meeting", "delete_meeting"], "auth": "Bearer"},
+        metadata={
+            "initial_operations": [
+                "list_meetings", "list_users", "get_meeting", "create_meeting",
+                "update_meeting", "delete_meeting",
+            ],
+            "auth": "Bearer",
+        },
         icon="zoom",
     )

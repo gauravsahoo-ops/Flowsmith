@@ -70,7 +70,7 @@ def _get_provider_config(provider: str) -> dict[str, Any] | None:
             "userinfo_url": "https://api.github.com/user",
             "scope": "read:user user:email",
         }
-    if provider in ("oidc", "okta", "saml"):
+    if provider in ("oidc", "okta"):
         if not settings.sso_oidc_client_id or not settings.sso_oidc_client_secret:
             return None
         issuer = (settings.sso_oidc_issuer or "").rstrip("/")
@@ -114,25 +114,32 @@ def _cookie_secure(request: Request) -> bool:
     return request.url.scheme == "https"
 
 
-def _new_sso_state(provider: str) -> tuple[str, str]:
+def _new_sso_state(
+    provider: str, extra: dict[str, Any] | None = None
+) -> tuple[str, str]:
     """Return a signed, stateless state token and its browser-binding nonce."""
     nonce = secrets.token_urlsafe(24)
     now = datetime.now(UTC)
+    payload: dict[str, Any] = {
+        "sub": "sso_state",
+        "provider": provider,
+        "nonce": nonce,
+        "iat": now,
+        "exp": now + timedelta(seconds=_SSO_STATE_TTL),
+    }
+    if extra:
+        payload.update(extra)
     token = pyjwt.encode(
-        {
-            "sub": "sso_state",
-            "provider": provider,
-            "nonce": nonce,
-            "iat": now,
-            "exp": now + timedelta(seconds=_SSO_STATE_TTL),
-        },
+        payload,
         _get_jwt_secret(),
         algorithm=_SSO_STATE_ALGORITHM,
     )
     return token, nonce
 
 
-def _verify_sso_state(state: str, provider: str, cookie_nonce: str | None) -> None:
+def _verify_sso_state(
+    state: str, provider: str, cookie_nonce: str | None
+) -> dict[str, Any]:
     if not cookie_nonce:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired SSO state parameter.")
     try:
@@ -154,11 +161,13 @@ def _verify_sso_state(state: str, provider: str, cookie_nonce: str | None) -> No
         or not hmac.compare_digest(nonce, cookie_nonce)
     ):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired SSO state parameter.")
+    return payload
 
 
 @router.get("/providers")
 def list_sso_providers() -> dict:
     """List configured SSO providers available for login."""
+    settings = get_settings()
     providers = []
     for p_id in ("google", "github", "oidc"):
         cfg = _get_provider_config(p_id)
@@ -168,6 +177,12 @@ def list_sso_providers() -> dict:
                 "name": cfg["name"],
                 "icon": cfg["icon"],
             })
+    if settings.saml_enabled and (settings.saml_idp_metadata_url or settings.saml_idp_metadata_xml):
+        providers.append({
+            "id": "saml",
+            "name": settings.saml_display_name or "SAML 2.0",
+            "icon": "shield",
+        })
     return ok(providers)
 
 

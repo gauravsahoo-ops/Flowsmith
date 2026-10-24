@@ -24,6 +24,9 @@ class ZoomConnectorParams(BaseModel):
     topic: str = ""
     start_time: str = ""
     duration_min: int = Field(default=30, ge=1, le=1440)
+    timezone: str = ""
+    user_status: str = "active"
+    limit: int = Field(default=30, ge=1, le=300)
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
 
@@ -68,6 +71,13 @@ class ZoomConnector(ConnectorSDK):
             if op == "list_meetings":
                 meetings = await self._provider.list_meetings(creds, str(raw.get("user_id") or params.user_id), timeout=timeout)
                 return {"meetings": meetings}
+            if op == "list_users":
+                users = await self._provider.list_users(
+                    creds, int(raw.get("limit") or 30),
+                    status=str(raw.get("user_status") or params.user_status),
+                    timeout=timeout,
+                )
+                return {"users": users}
             if op == "get_meeting":
                 return await self._provider.get_meeting(creds, str(raw.get("meeting_id") or params.meeting_id), timeout=timeout)
             if op == "create_meeting":
@@ -75,6 +85,21 @@ class ZoomConnector(ConnectorSDK):
                     creds, str(raw.get("user_id") or params.user_id),
                     str(raw.get("topic") or params.topic), str(raw.get("start_time") or params.start_time),
                     int(raw.get("duration_min") or params.duration_min), timeout=timeout,
+                )
+            if op == "update_meeting":
+                fields: dict[str, Any] = {}
+                for key, value in (
+                    ("topic", raw.get("topic") or params.topic),
+                    ("start_time", raw.get("start_time") or params.start_time),
+                    ("timezone", raw.get("timezone") or params.timezone),
+                ):
+                    if value not in (None, ""):
+                        fields[key] = value
+                if raw.get("duration_min") is not None:
+                    fields["duration"] = int(raw["duration_min"])
+                return await self._provider.update_meeting(
+                    creds, str(raw.get("meeting_id") or params.meeting_id),
+                    fields, timeout=timeout,
                 )
             if op == "delete_meeting":
                 return await self._provider.delete_meeting(creds, str(raw.get("meeting_id") or params.meeting_id), timeout=timeout)
@@ -94,4 +119,4 @@ class ZoomConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_meetings", "get_meeting", "create_meeting", "delete_meeting"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_meetings", "list_users", "get_meeting", "create_meeting", "update_meeting", "delete_meeting"]}}

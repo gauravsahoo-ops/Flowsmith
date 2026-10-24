@@ -180,6 +180,38 @@ class IntercomProviderClient(BaseProviderClient):
             body["custom_attributes"] = custom_attributes
         return await self.request_intercom(creds, "POST", "contacts", json_body=body, timeout=timeout)
 
+    async def update_contact(
+        self,
+        creds: dict[str, Any],
+        contact_id: str,
+        fields: dict[str, Any],
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(contact_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_contact needs a contact_id.", retryable=False)
+        allowed = {
+            key: value
+            for key, value in (fields or {}).items()
+            if key in ("name", "email", "role", "custom_attributes") and value is not None and value != ""
+        }
+        if not allowed:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_contact needs fields to update.", retryable=False)
+        return await self.request_intercom(
+            creds, "PUT", f"contacts/{contact_id}", json_body=allowed, timeout=timeout,
+        )
+
+    async def delete_contact(
+        self,
+        creds: dict[str, Any],
+        contact_id: str,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        cid = str(contact_id or "").strip()
+        if not cid:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_contact needs a contact_id.", retryable=False)
+        await self.request_intercom(creds, "DELETE", f"contacts/{cid}", timeout=timeout)
+        return {"contact_id": cid, "deleted": True, "success": True}
+
     async def search_contacts(
         self,
         creds: dict[str, Any],

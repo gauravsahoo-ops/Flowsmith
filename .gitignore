@@ -51,6 +51,8 @@ test_report.html
 *.eml
 Smithflow/
 Flowsmith/
+!deploy/helm/flowsmith/
+!deploy/helm/flowsmith/**
 my-automation-tool
 route_scan.py
 pyright_audit.json
@@ -66,6 +68,7 @@ USER_MANUAL.md
 **/*.md
 # The project README is required in-repo (audit fix) — keep it trackable.
 !README.md
+!deploy/helm/*/README.md
 !docs/*.md
 !docs/audit/*.md
 !docs/performance/*.md

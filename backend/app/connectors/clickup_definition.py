@@ -52,9 +52,18 @@ def build_clickup_definition() -> ConnectorDefinitionV1:
                 },
                 ["list_id"],
             ),
+            "list_lists": _operation(
+                "list_lists", "List Lists", "List lists in a space.",
+                {"space_id": {"type": "string", "title": "Space id"}}, ["space_id"],
+            ),
             "get_task": _operation(
                 "get_task", "Get Task", "Fetch one task by id.",
                 {"task_id": {"type": "string", "title": "Task id"}}, ["task_id"],
+            ),
+            "delete_task": _operation(
+                "delete_task", "Delete Task", "Delete a task by id.",
+                {"task_id": {"type": "string", "title": "Task id"}}, ["task_id"],
+                retryable=False, idempotency="non_idempotent",
             ),
             "create_task": _operation(
                 "create_task", "Create Task", "Create a task in a list.",
@@ -100,6 +109,12 @@ def build_clickup_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_tasks", "get_task", "create_task", "update_task", "add_comment"], "auth": "API token"},
+        metadata={
+            "initial_operations": [
+                "list_tasks", "list_lists", "get_task", "create_task",
+                "update_task", "delete_task", "add_comment",
+            ],
+            "auth": "API token",
+        },
         icon="clickup",
     )

@@ -183,6 +183,39 @@ class BoxProviderClient(BaseProviderClient):
     ) -> dict[str, Any]:
         return await self.request_box(creds, "DELETE", f"files/{file_id}", timeout=timeout)
 
+    async def delete_folder(
+        self,
+        creds: dict[str, Any],
+        folder_id: str,
+        *,
+        recursive: bool = False,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(folder_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "delete_folder needs a folder_id.", retryable=False)
+        return await self.request_box(
+            creds, "DELETE", f"folders/{folder_id}",
+            params={"recursive": "true" if recursive else "false"}, timeout=timeout,
+        )
+
+    async def copy_file(
+        self,
+        creds: dict[str, Any],
+        file_id: str,
+        parent_id: str = "0",
+        *,
+        name: str = "",
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        if not str(file_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "copy_file needs a file_id.", retryable=False)
+        body: dict[str, Any] = {"parent": {"id": parent_id}}
+        if name:
+            body["name"] = name
+        return await self.request_box(
+            creds, "POST", f"files/{file_id}/copy", json_body=body, timeout=timeout,
+        )
+
     async def search(
         self,
         creds: dict[str, Any],

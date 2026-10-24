@@ -365,6 +365,21 @@ def _salesforce_operations() -> dict[str, ConnectorOperationV1]:
             },
             retryable=True,
         ),
+        "org_limits": _operation(
+            "org_limits",
+            "Org Limits",
+            "Return Salesforce API usage limits for the connected org.",
+            {"timeout_seconds": _TIMEOUT_PROP},
+            [],
+            {
+                "type": "object",
+                "properties": {
+                    "limits": {"type": "object"},
+                    "success": {"type": "boolean"},
+                },
+            },
+            retryable=True,
+        ),
         "bulk": _operation(
             "bulk",
             "Bulk Load (Bulk API 2.0)",

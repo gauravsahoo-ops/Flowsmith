@@ -44,6 +44,9 @@ def build_linear_definition() -> ConnectorDefinitionV1:
         connector_version=LINEAR_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.BETA.value,
         operations={
+            "list_teams": _operation(
+                "list_teams", "List Teams", "List Linear teams.", {}, [],
+            ),
             "list_issues": _operation(
                 "list_issues", "List Team Issues", "List issues on a team.",
                 {"team_id": {"type": "string", "title": "Team id"}, "limit": {"type": "integer", "title": "Limit"}},
@@ -71,6 +74,11 @@ def build_linear_definition() -> ConnectorDefinitionV1:
                 },
                 ["issue_id"],
             ),
+            "delete_issue": _operation(
+                "delete_issue", "Delete Issue", "Delete an issue.",
+                {"issue_id": {"type": "string", "title": "Issue id"}}, ["issue_id"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "add_comment": _operation(
                 "add_comment", "Add Comment", "Comment on an issue.",
                 {
@@ -95,6 +103,12 @@ def build_linear_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_issues", "get_issue", "create_issue", "update_issue", "add_comment"], "auth": "API key"},
+        metadata={
+            "initial_operations": [
+                "list_teams", "list_issues", "get_issue", "create_issue",
+                "update_issue", "delete_issue", "add_comment",
+            ],
+            "auth": "API key",
+        },
         icon="linear",
     )

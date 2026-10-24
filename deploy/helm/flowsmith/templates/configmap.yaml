@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "flowsmith.configMapName" . }}
+  labels:
+    {{- include "flowsmith.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  APP_ENV: {{ .Values.config.appEnv | quote }}
+  QUEUE_BACKEND: {{ .Values.config.queueBackend | quote }}
+  QUEUE_EMBEDDED_CONSUMER: "false"
+  RUN_MIGRATIONS_ON_STARTUP: "false"
+  SERVE_FRONTEND: {{ .Values.config.serveFrontend | quote }}
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  {{- $publicUrl := required "config.publicUrl is required" .Values.config.publicUrl }}
+  PUBLIC_URL: {{ $publicUrl | quote }}
+  {{- if .Values.config.registrationMode }}
+  REGISTRATION_MODE: {{ .Values.config.registrationMode | quote }}
+  {{- end }}
+  CORS_ORIGINS: {{ default $publicUrl .Values.config.corsOrigins | quote }}
+  {{- if .Values.config.trustedProxies }}
+  TRUSTED_PROXIES: {{ .Values.config.trustedProxies | quote }}
+  {{- end }}
+  {{- if .Values.config.apiDocsEnabled }}
+  API_DOCS_ENABLED: "true"
+  {{- end }}
+  {{- if .Values.connectorPacks.requireSignature }}
+  CONNECTOR_PACK_REQUIRE_SIGNATURE: "true"
+  {{- end }}
+  {{- if .Values.connectorPacks.trustedKeys }}
+  CONNECTOR_PACK_TRUSTED_KEYS: {{ .Values.connectorPacks.trustedKeys | quote }}
+  {{- end }}
+  {{- if .Values.connectorPacks.revokedKeys }}
+  CONNECTOR_PACK_REVOKED_KEYS: {{ .Values.connectorPacks.revokedKeys | quote }}
+  {{- end }}
+  {{- if .Values.scim.enabled }}
+  SCIM_ENABLED: "true"
+  {{- end }}
+  {{- if .Values.scim.defaultOrganizationId }}
+  SCIM_DEFAULT_ORGANIZATION_ID: {{ .Values.scim.defaultOrganizationId | quote }}
+  {{- end }}
+  {{- if .Values.scim.defaultWorkspaceId }}
+  SCIM_DEFAULT_WORKSPACE_ID: {{ .Values.scim.defaultWorkspaceId | quote }}
+  {{- end }}
+  {{- if .Values.scim.groupOrganizationId }}
+  SCIM_GROUP_ORGANIZATION_ID: {{ .Values.scim.groupOrganizationId | quote }}
+  {{- end }}
+  {{- if .Values.scim.groupOwnerEmail }}
+  SCIM_GROUP_OWNER_EMAIL: {{ .Values.scim.groupOwnerEmail | quote }}
+  {{- end }}
+  {{- if .Values.saml.enabled }}
+  {{- if and (not .Values.saml.idpMetadataUrl) (not .Values.saml.idpMetadataXml) }}
+  {{- fail "saml.idpMetadataUrl or saml.idpMetadataXml is required when saml.enabled=true" }}
+  {{- end }}
+  {{- if and .Values.saml.spX509Cert (not .Values.saml.spPrivateKey) }}
+  {{- fail "saml.spPrivateKey is required when saml.spX509Cert is set" }}
+  {{- end }}
+  SAML_ENABLED: "true"
+  SAML_DISPLAY_NAME: {{ .Values.saml.displayName | quote }}
+  {{- if .Values.saml.idpMetadataUrl }}
+  SAML_IDP_METADATA_URL: {{ .Values.saml.idpMetadataUrl | quote }}
+  {{- end }}
+  {{- if .Values.saml.idpMetadataXml }}
+  SAML_IDP_METADATA_XML: {{ .Values.saml.idpMetadataXml | quote }}
+  {{- end }}
+  {{- if .Values.saml.idpEntityId }}
+  SAML_IDP_ENTITY_ID: {{ .Values.saml.idpEntityId | quote }}
+  {{- end }}
+  {{- if .Values.saml.idpX509Cert }}
+  SAML_IDP_X509_CERT: {{ .Values.saml.idpX509Cert | quote }}
+  {{- end }}
+  {{- if .Values.saml.spEntityId }}
+  SAML_SP_ENTITY_ID: {{ .Values.saml.spEntityId | quote }}
+  {{- end }}
+  {{- if .Values.saml.spAcsUrl }}
+  SAML_SP_ACS_URL: {{ .Values.saml.spAcsUrl | quote }}
+  {{- end }}
+  {{- if .Values.saml.spX509Cert }}
+  SAML_SP_X509_CERT: {{ .Values.saml.spX509Cert | quote }}
+  {{- end }}
+  SAML_JIT_PROVISIONING: {{ .Values.saml.jitProvisioning | quote }}
+  SAML_DEFAULT_ROLE: {{ .Values.saml.defaultRole | quote }}
+  SAML_ROLE_ATTRIBUTE: {{ .Values.saml.roleAttribute | quote }}
+  SAML_GROUP_ATTRIBUTE: {{ .Values.saml.groupAttribute | quote }}
+  {{- if .Values.saml.groupRoleMap }}
+  SAML_GROUP_ROLE_MAP: {{ .Values.saml.groupRoleMap | quote }}
+  {{- end }}
+  {{- if .Values.saml.defaultOrganizationId }}
+  SAML_DEFAULT_ORGANIZATION_ID: {{ .Values.saml.defaultOrganizationId | quote }}
+  {{- end }}
+  {{- if .Values.saml.defaultWorkspaceId }}
+  SAML_DEFAULT_WORKSPACE_ID: {{ .Values.saml.defaultWorkspaceId | quote }}
+  {{- end }}
+  SAML_ALLOW_IDP_INITIATED: {{ .Values.saml.allowIdpInitiated | quote }}
+  SAML_CLOCK_SKEW_SECONDS: {{ .Values.saml.clockSkewSeconds | quote }}
+  SAML_METADATA_CACHE_SECONDS: {{ .Values.saml.metadataCacheSeconds | quote }}
+  {{- end }}
+  {{- if .Values.ldap.enabled }}
+  {{- if not .Values.ldap.serverUrl }}
+  {{- fail "ldap.serverUrl is required when ldap.enabled=true" }}
+  {{- end }}
+  {{- if not .Values.ldap.userSearchBase }}
+  {{- fail "ldap.userSearchBase is required when ldap.enabled=true" }}
+  {{- end }}
+  {{- if and (not (hasPrefix "ldaps://" .Values.ldap.serverUrl)) (not .Values.ldap.startTls) }}
+  {{- fail "ldap.serverUrl must use ldaps:// or ldap.startTls=true" }}
+  {{- end }}
+  LDAP_ENABLED: "true"
+  LDAP_SERVER_URL: {{ .Values.ldap.serverUrl | quote }}
+  LDAP_START_TLS: {{ .Values.ldap.startTls | quote }}
+  LDAP_TLS_VERIFY: {{ .Values.ldap.tlsVerify | quote }}
+  {{- if .Values.ldap.caCertFile }}
+  LDAP_CA_CERT_FILE: {{ .Values.ldap.caCertFile | quote }}
+  {{- end }}
+  {{- if .Values.ldap.bindDn }}
+  LDAP_BIND_DN: {{ .Values.ldap.bindDn | quote }}
+  {{- end }}
+  LDAP_USER_SEARCH_BASE: {{ .Values.ldap.userSearchBase | quote }}
+  LDAP_USER_SEARCH_FILTER: {{ .Values.ldap.userSearchFilter | quote }}
+  LDAP_USER_EMAIL_ATTRIBUTE: {{ .Values.ldap.userEmailAttribute | quote }}
+  LDAP_USER_DISPLAY_ATTRIBUTE: {{ .Values.ldap.userDisplayAttribute | quote }}
+  {{- if .Values.ldap.groupSearchBase }}
+  LDAP_GROUP_SEARCH_BASE: {{ .Values.ldap.groupSearchBase | quote }}
+  LDAP_GROUP_SEARCH_FILTER: {{ .Values.ldap.groupSearchFilter | quote }}
+  LDAP_GROUP_ATTRIBUTE: {{ .Values.ldap.groupAttribute | quote }}
+  {{- end }}
+  {{- if .Values.ldap.groupRoleMap }}
+  LDAP_GROUP_ROLE_MAP: {{ .Values.ldap.groupRoleMap | quote }}
+  {{- end }}
+  {{- if .Values.ldap.groupWorkspaceMap }}
+  LDAP_GROUP_WORKSPACE_MAP: {{ .Values.ldap.groupWorkspaceMap | quote }}
+  {{- end }}
+  {{- if .Values.ldap.groupOrgMap }}
+  LDAP_GROUP_ORG_MAP: {{ .Values.ldap.groupOrgMap | quote }}
+  {{- end }}
+  LDAP_SYNC_ENABLED: {{ .Values.ldap.syncEnabled | quote }}
+  LDAP_SYNC_INTERVAL_SECONDS: {{ .Values.ldap.syncIntervalSeconds | quote }}
+  LDAP_DEFAULT_ROLE: {{ .Values.ldap.defaultRole | quote }}
+  LDAP_JIT_PROVISIONING: {{ .Values.ldap.jitProvisioning | quote }}
+  {{- if .Values.ldap.defaultOrganizationId }}
+  LDAP_DEFAULT_ORGANIZATION_ID: {{ .Values.ldap.defaultOrganizationId | quote }}
+  {{- end }}
+  {{- if .Values.ldap.defaultWorkspaceId }}
+  LDAP_DEFAULT_WORKSPACE_ID: {{ .Values.ldap.defaultWorkspaceId | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.webauthn.enabled }}
+  {{- if not .Values.webauthn.rpId }}
+  {{- fail "webauthn.rpId is required when webauthn.enabled=true" }}
+  {{- end }}
+  {{- if not .Values.webauthn.origin }}
+  {{- fail "webauthn.origin is required when webauthn.enabled=true" }}
+  {{- end }}
+  WEBAUTHN_ENABLED: "true"
+  WEBAUTHN_RP_ID: {{ .Values.webauthn.rpId | quote }}
+  WEBAUTHN_RP_NAME: {{ .Values.webauthn.rpName | quote }}
+  WEBAUTHN_ORIGIN: {{ .Values.webauthn.origin | quote }}
+  WEBAUTHN_REQUIRE_UV: {{ .Values.webauthn.requireUv | quote }}
+  WEBAUTHN_TIMEOUT_MS: {{ .Values.webauthn.timeoutMs | quote }}
+  WEBAUTHN_ATTESTATION: {{ .Values.webauthn.attestation | quote }}
+  {{- if .Values.webauthn.attestationRootsFile }}
+  WEBAUTHN_ATTESTATION_ROOTS_FILE: {{ .Values.webauthn.attestationRootsFile | quote }}
+  {{- end }}
+  {{- if .Values.webauthn.allowedAaguids }}
+  WEBAUTHN_ALLOWED_AAGUIDS: {{ .Values.webauthn.allowedAaguids | quote }}
+  {{- end }}
+  {{- if .Values.webauthn.allowedFormats }}
+  WEBAUTHN_ALLOWED_FORMATS: {{ .Values.webauthn.allowedFormats | quote }}
+  {{- end }}
+  {{- end }}
+  OBJECT_STORE_BACKEND: {{ .Values.config.objectStoreBackend | quote }}
+  OBJECT_STORE_LOCAL_PATH: {{ .Values.config.objectStoreLocalPath | quote }}
+  OBJECT_STORE_REGION: {{ .Values.config.objectStoreRegion | quote }}
+  {{- if .Values.config.objectStoreBucket }}
+  OBJECT_STORE_BUCKET: {{ .Values.config.objectStoreBucket | quote }}
+  {{- end }}
+  {{- if .Values.config.objectStoreEndpoint }}
+  OBJECT_STORE_ENDPOINT: {{ .Values.config.objectStoreEndpoint | quote }}
+  {{- end }}

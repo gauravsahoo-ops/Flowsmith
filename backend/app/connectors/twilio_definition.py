@@ -57,6 +57,13 @@ def build_twilio_definition() -> ConnectorDefinitionV1:
                 "list_messages", "List Messages", "List recent messages.",
                 {"limit": {"type": "integer", "title": "Limit"}}, [],
             ),
+            "list_calls": _operation(
+                "list_calls", "List Calls", "List recent voice calls.",
+                {"limit": {"type": "integer", "title": "Limit"}}, [],
+            ),
+            "get_account": _operation(
+                "get_account", "Get Account", "Fetch the Twilio account record.", {}, [],
+            ),
             "get_message": _operation(
                 "get_message", "Get Message", "Fetch one message by SID.",
                 {"message_sid": {"type": "string", "title": "Message SID"}}, ["message_sid"],
@@ -80,6 +87,11 @@ def build_twilio_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["send_sms", "list_messages", "get_message"], "auth": "Basic"},
+        metadata={
+            "initial_operations": [
+                "send_sms", "list_messages", "list_calls", "get_account", "get_message",
+            ],
+            "auth": "Basic",
+        },
         icon="twilio",
     )

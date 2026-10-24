@@ -94,6 +94,19 @@ class ActiveCampaignConnector(ConnectorSDK):
                     raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "email is required.", retryable=False)
                 return await self._provider.create_contact(creds, email, first_name=first_name, last_name=last_name, phone=phone, timeout=timeout)
 
+            if op == "update_contact":
+                fields = {
+                    "email": email,
+                    "firstName": first_name,
+                    "lastName": last_name,
+                    "phone": phone,
+                }
+                fields = {key: value for key, value in fields.items() if value}
+                return await self._provider.update_contact(creds, contact_id, fields, timeout=timeout)
+
+            if op == "delete_contact":
+                return await self._provider.delete_contact(creds, contact_id, timeout=timeout)
+
             if op == "list_lists":
                 return await self._provider.list_lists(creds, limit=limit, offset=offset, timeout=timeout)
 

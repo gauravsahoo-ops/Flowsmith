@@ -3,7 +3,7 @@ import { api } from '../api'
 import LoadingSkeleton from './shared/LoadingSkeleton'
 import { NodeIcon } from './NodeIcons'
 
-export default function CoverageDashboard({ initialLoading = true } = {}) {
+export default function CoverageDashboard({ initialLoading = true, connectorStats = null } = {}) {
   const [coverage, setCoverage] = useState(null)
   const [certifications, setCertifications] = useState([])
   const [certSummary, setCertSummary] = useState(null)
@@ -35,15 +35,11 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
     return <LoadingSkeleton lines={10} />
   }
 
-  const summary = coverage?.summary || {
-    total_external_discovered: 527,
-    flowsmith_total_supported: 527,
-    flowsmith_native: 526,
-    flowsmith_generated: 1,
-    flowsmith_universal_http: 1,
-    flowsmith_mcp: 1,
-    missing_unsupported: 0,
-    unverified_legacy: 0,
+  const registryStats = connectorStats || {
+    total: 0,
+    native: 0,
+    generated: 0,
+    catalogOnly: 0,
   }
 
   const benchmarks = coverage?.benchmarks || {
@@ -98,34 +94,35 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
         </button>
       </div>
 
+      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
+        Counts distinguish vendor-specific native connectors from OpenAPI-generated
+        connectors and catalog-only generic HTTP adapters. Catalog-only entries are
+        not equivalent to native integrations.
+      </p>
+
       {activeTab === 'overview' && (
         <div>
           {/* Summary Metric Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #6366f1' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Discovered</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0' }}>{summary.total_external_discovered}</div>
-              <div style={{ fontSize: '12px', color: '#6366f1' }}>Enterprise Ecosystem Scope</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registered Names</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0' }}>{registryStats.total}</div>
+              <div style={{ fontSize: '12px', color: '#6366f1' }}>Native + generated + catalog-only</div>
             </div>
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Supported by FlowSmith</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0', color: '#10b981' }}>{summary.flowsmith_total_supported}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Native + Generated + Universal</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Native Connectors</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0', color: '#10b981' }}>{registryStats.native}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Vendor-specific implementations</div>
             </div>
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #3b82f6' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Native Connectors</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0', color: '#3b82f6' }}>{summary.flowsmith_native}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Enterprise-Hardened</div>
-            </div>
-            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #8b5cf6' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Generated OpenAPI</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0', color: '#8b5cf6' }}>{summary.flowsmith_generated}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Compiled via OpenAPI Factory</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Generated Connectors</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0', color: '#3b82f6' }}>{registryStats.generated}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>OpenAPI-generated</div>
             </div>
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #f59e0b' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Universal & MCP</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0', color: '#f59e0b' }}>{summary.flowsmith_universal_http + summary.flowsmith_mcp}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>cURL Importer + MCP Client</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Catalog-only</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0', color: '#f59e0b' }}>{registryStats.catalogOnly}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Generic HTTP; endpoint required</div>
             </div>
           </div>
 
@@ -189,8 +186,8 @@ export default function CoverageDashboard({ initialLoading = true } = {}) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem', marginBottom: '1.5rem' }}>
             <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
               <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Connectors</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0.2rem 0' }}>{certSummary?.total_connectors ?? (certifications.length || 86)}</div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Authoritative Catalog</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0.2rem 0' }}>{certSummary?.total_connectors ?? (certifications.length || registryStats.total || '—')}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Registered catalog entries</div>
             </div>
 
             <div style={{ padding: '0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: 8, border: '1px solid rgba(16, 185, 129, 0.2)' }}>

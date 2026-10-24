@@ -77,6 +77,27 @@ def build_coda_definition() -> ConnectorDefinitionV1:
                 },
                 ["doc_id", "table_id"],
             ),
+            "update_row": _operation(
+                "update_row", "Update Row", "Update one row in a Coda table.",
+                {
+                    "doc_id": {"type": "string", "title": "Doc ID"},
+                    "table_id": {"type": "string", "title": "Table ID or Name"},
+                    "row_id": {"type": "string", "title": "Row ID or Name"},
+                    "row": {"type": "object", "title": "Row values"},
+                },
+                ["doc_id", "table_id", "row_id", "row"],
+                retryable=True,
+            ),
+            "delete_row": _operation(
+                "delete_row", "Delete Row", "Delete one row from a Coda table.",
+                {
+                    "doc_id": {"type": "string", "title": "Doc ID"},
+                    "table_id": {"type": "string", "title": "Table ID or Name"},
+                    "row_id": {"type": "string", "title": "Row ID or Name"},
+                },
+                ["doc_id", "table_id", "row_id"],
+                retryable=False, idempotency="non_idempotent",
+            ),
             "insert_rows": _operation(
                 "insert_rows", "Insert Rows", "Insert or upsert rows into a Coda table.",
                 {
@@ -105,4 +126,12 @@ def build_coda_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_docs", "get_doc", "list_tables", "list_rows",
+                "insert_rows", "update_row", "delete_row",
+            ],
+            "auth": "API token",
+        },
+        icon="coda",
     )

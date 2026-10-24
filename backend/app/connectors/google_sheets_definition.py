@@ -80,6 +80,14 @@ def build_google_sheets_definition() -> ConnectorDefinitionV1:
                 retryable=True,
                 idempotency="idempotent",
             ),
+            "create_spreadsheet": _operation(
+                "create_spreadsheet", "Create Spreadsheet", "Create a new Google Sheets spreadsheet.",
+                {"title": {"type": "string", "title": "Title"}, "timeout_seconds": {"type": "number", "default": 30}},
+                ["title"],
+                {"type": "object", "properties": {"spreadsheet_id": {"type": "string"}, "title": {"type": "string"}, "spreadsheet_url": {"type": "string"}}},
+                retryable=False,
+                idempotency="non_idempotent",
+            ),
         },
         triggers={},
         credential_types={
@@ -102,6 +110,9 @@ def build_google_sheets_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["read", "append", "update"], "auth": "OAuth2 offline access"},
+        metadata={
+            "initial_operations": ["read", "append", "update", "clear", "get_info", "create_spreadsheet"],
+            "auth": "OAuth2 offline access",
+        },
         icon="google_sheets",
     )

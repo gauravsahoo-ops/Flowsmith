@@ -168,6 +168,67 @@ class StripeProviderClient:
                 break
         return {"customers": customers, "count": len(customers), "has_more": has_more}
 
+    async def update_customer(self, creds: dict, customer_id: str, email: str = "",
+                              name: str = "", metadata: dict[str, str] | None = None,
+                              idem_key: str = "", timeout: float = 30.0) -> dict:
+        cid = str(customer_id or "").strip()
+        if not cid.startswith("cus_"):
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "A customer id looks like cus_...", retryable=False)
+        form: dict[str, Any] = {}
+        if email:
+            if "@" not in email:
+                raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "Invalid customer email.", retryable=False)
+            form["email"] = email
+        if name:
+            form["name"] = name
+        for mk, mv in (metadata or {}).items():
+            form[f"metadata[{mk}]"] = str(mv)
+        if not form:
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "update_customer requires email, name, or metadata.", retryable=False)
+        response = await self.request_stripe(
+            creds, "POST", f"/customers/{cid}", form=form,
+            idempotency_key_value=idem_key, timeout=timeout, what="update customer",
+        )
+        out = self._customer_summary(response.json())
+        out["success"] = True
+        return out
+
+    async def list_payment_intents(self, creds: dict, limit: int = 50, max_pages: int = 3,
+                                   customer_id: str = "", timeout: float = 30.0) -> dict:
+        limit = min(max(int(limit or 50), 1), 100)
+        max_pages = min(max(int(max_pages or 1), 1), 10)
+        intents: list[dict] = []
+        starting_after: str | None = None
+        has_more = False
+        for _ in range(max_pages):
+            query: dict[str, Any] = {"limit": limit}
+            if starting_after:
+                query["starting_after"] = starting_after
+            if customer_id:
+                query["customer"] = customer_id
+            response = await self.request_stripe(
+                creds, "GET", "/payment_intents", query=query,
+                timeout=timeout, what="list payment intents",
+            )
+            data = response.json()
+            batch = data.get("data") or []
+            intents.extend(
+                {
+                    "id": item.get("id"),
+                    "amount": item.get("amount"),
+                    "currency": item.get("currency"),
+                    "status": item.get("status"),
+                    "customer": item.get("customer"),
+                    "created": item.get("created"),
+                }
+                for item in batch
+            )
+            has_more = bool(data.get("has_more"))
+            starting_after = batch[-1]["id"] if batch and has_more else None
+            if not has_more or not starting_after:
+                break
+        return {"payment_intents": intents, "count": len(intents), "has_more": has_more}
+
     async def create_payment_intent(self, creds: dict, amount_cents: int, currency: str = "usd",
                                     customer_id: str = "", description: str = "",
                                     idem_key: str = "", timeout: float = 30.0) -> dict:

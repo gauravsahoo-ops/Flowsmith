@@ -62,6 +62,14 @@ const aliases = {
   'flowsmith.data_load': 'csv',
   data_load: 'csv',
   csv_parser: 'csv',
+  // Provider-specific webhook triggers share the webhook editor and its
+  // provider-side registration UI.
+  github_trigger: 'webhook',
+  gitlab_trigger: 'webhook',
+  stripe_trigger: 'webhook',
+  shopify_trigger: 'webhook',
+  slack_trigger: 'webhook',
+  typeform_trigger: 'webhook',
 }
 
 const resolvedCache = new Map()

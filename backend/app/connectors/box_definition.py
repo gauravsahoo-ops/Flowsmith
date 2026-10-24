@@ -78,6 +78,23 @@ def build_box_definition() -> ConnectorDefinitionV1:
                 ["file_id"],
                 retryable=False, idempotency="idempotent",
             ),
+            "delete_folder": _operation(
+                "delete_folder", "Delete Folder", "Delete a folder, optionally recursively.",
+                {
+                    "folder_id": {"type": "string", "title": "Folder ID"},
+                    "recursive": {"type": "boolean", "title": "Recursive", "default": False},
+                },
+                ["folder_id"], retryable=False, idempotency="non_idempotent",
+            ),
+            "copy_file": _operation(
+                "copy_file", "Copy File", "Copy a file to another folder.",
+                {
+                    "file_id": {"type": "string", "title": "File ID"},
+                    "parent_id": {"type": "string", "title": "Destination Folder ID", "default": "0"},
+                    "name": {"type": "string", "title": "New name (optional)"},
+                },
+                ["file_id"], retryable=False, idempotency="non_idempotent",
+            ),
             "search": _operation(
                 "search", "Search Files & Folders", "Search for files and folders across Box content.",
                 {
@@ -132,4 +149,12 @@ def build_box_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_folder_items", "get_file", "create_folder", "delete_file",
+                "delete_folder", "copy_file", "search", "upload_file",
+            ],
+            "auth": "Bearer token",
+        },
+        icon="box",
     )

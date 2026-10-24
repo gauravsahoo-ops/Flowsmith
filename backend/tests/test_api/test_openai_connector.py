@@ -139,4 +139,4 @@ def test_connector_dispatch_and_discovery():
         )
     assert asyncio.new_event_loop().run_until_complete(
         conn.op_list())["output"]["operations"] == [
-        "list_models", "create_embedding", "chat_completion"]
+        "list_models", "create_image", "list_files", "create_embedding", "chat_completion"]

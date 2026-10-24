@@ -747,7 +747,7 @@ export default function CredentialsPage() {
                 className="ghost"
                 onClick={() => navigate('/integrations')}
               >
-                Explore 527+ integrations
+                Explore connector catalog
               </button>
             }
           />

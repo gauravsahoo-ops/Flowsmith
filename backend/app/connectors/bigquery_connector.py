@@ -22,6 +22,7 @@ class BigQueryConnectorParams(BaseModel):
     job_id: str = ""
     dataset_id: str = ""
     table_id: str = ""
+    rows: list[dict[str, Any]] = Field(default_factory=list)
     page_token: str = ""
     max_results: int = Field(default=100, ge=1, le=1000)
     use_legacy_sql: bool = False
@@ -91,6 +92,17 @@ class BigQueryConnector(ConnectorSDK):
 
             if op == "list_datasets":
                 return await self._provider.list_datasets(creds, max_results=max_results, page_token=page_token, timeout=timeout)
+
+            if op == "get_dataset":
+                if not dataset_id:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "dataset_id is required.", retryable=False)
+                return await self._provider.get_dataset(creds, dataset_id, timeout=timeout)
+
+            if op == "insert_rows":
+                if not dataset_id or not table_id:
+                    raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "dataset_id and table_id are required.", retryable=False)
+                rows = raw.get("rows") or params.rows
+                return await self._provider.insert_rows(creds, dataset_id, table_id, rows, timeout=timeout)
 
             if op == "list_tables":
                 if not dataset_id:

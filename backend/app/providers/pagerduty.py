@@ -126,6 +126,18 @@ class PagerDutyProviderClient:
             creds, "PUT", f"/incidents/{incident_id}", "update_incident",
             body={"incident": {"type": "incident", **fields}}, timeout=timeout)
 
+    async def acknowledge_incident(self, creds: dict, incident_id: str, timeout: float = 30.0) -> dict:
+        if not str(incident_id or "").strip():
+            raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "acknowledge_incident needs an incident_id.", retryable=False)
+        return await self._request(
+            creds, "PUT", f"/incidents/{incident_id}", "acknowledge_incident",
+            body={"incident": {"type": "incident", "status": "acknowledged"}}, timeout=timeout)
+
+    async def list_services(self, creds: dict, limit: int = 25, timeout: float = 30.0) -> dict:
+        return await self._get(
+            creds, "/services", "list_services",
+            params={"limit": max(1, min(int(limit or 25), 100))}, timeout=timeout)
+
     async def resolve_incident(self, creds: dict, incident_id: str, timeout: float = 30.0) -> dict:
         if not str(incident_id or "").strip():
             raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "resolve_incident needs an incident_id.", retryable=False)

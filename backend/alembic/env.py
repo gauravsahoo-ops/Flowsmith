@@ -138,6 +138,13 @@ def run_migrations_online() -> None:
                 acquired = True
                 logger.info("alembic: acquired PostgreSQL advisory lock (%s)", lock_id)
 
+            # Advisory-lock queries autobegin a SQLAlchemy transaction. If we
+            # leave it open, Alembic treats it as an external transaction and
+            # skips its own commit, so DDL is rolled back when the connection
+            # closes. Session-level advisory locks survive this commit.
+            if connection.in_transaction():
+                connection.commit()
+
         try:
             context.configure(
                 connection=connection,

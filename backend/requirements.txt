@@ -37,6 +37,18 @@ pymongo>=4.6
 # Safe XML parsing for Salesforce Outbound Message SOAP triggers (Phase 10)
 defusedxml>=0.7
 
+# LDAP authentication and group-to-role mapping (pure Python).
+ldap3>=2.9,<3
+
+# WebAuthn/passkey registration and assertion verification.
+webauthn>=2.7,<3
+
+# Native SAML 2.0 XMLDSig verification and AuthnRequest signing.
+# signxml uses lxml for namespace-aware XML processing and cryptography for
+# RSA/ECDSA signature validation.
+signxml>=4.2,<5
+lxml>=5.3
+
 # async file I/O (used by File I/O node)
 aiofiles>=23.0
 

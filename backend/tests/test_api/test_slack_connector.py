@@ -120,6 +120,84 @@ def test_list_channels_follows_cursor_pagination():
     assert kwargs2["params"]["cursor"] == "CURSOR_2"
 
 
+def test_list_users_follows_cursor_pagination():
+    page1 = {"ok": True, "members": [{"id": "U1", "name": "ada"}],
+             "response_metadata": {"next_cursor": "CURSOR_2"}}
+    page2 = {"ok": True, "members": [{"id": "U2", "name": "grace"}],
+             "response_metadata": {"next_cursor": ""}}
+    patcher, fake = patch_provider_http(MODULE, [
+        json_response(200, page1),
+        json_response(200, page2),
+    ])
+    try:
+        from app.providers.slack import SlackProviderClient
+
+        out = asyncio.new_event_loop().run_until_complete(
+            SlackProviderClient().list_users(CREDS, max_pages=3)
+        )
+    finally:
+        patcher.stop()
+
+    assert [u["id"] for u in out["users"]] == ["U1", "U2"]
+    _, _, kwargs2 = fake.calls[1]
+    assert kwargs2["params"]["cursor"] == "CURSOR_2"
+
+
+def test_get_channel_history_maps_messages():
+    patcher, fake = patch_provider_http(MODULE, [
+        json_response(200, {
+            "ok": True,
+            "messages": [{"ts": "1.2", "user": "U1", "text": "hello", "reply_count": 2}],
+            "has_more": True,
+        }),
+    ])
+    try:
+        from app.providers.slack import SlackProviderClient
+
+        out = asyncio.new_event_loop().run_until_complete(
+            SlackProviderClient().get_channel_history(CREDS, "C1", limit=10)
+        )
+    finally:
+        patcher.stop()
+
+    assert out["count"] == 1 and out["has_more"] is True
+    assert out["messages"][0]["text"] == "hello"
+    _, _, kwargs = fake.calls[0]
+    assert kwargs["params"] == {"channel": "C1", "limit": 10}
+
+
+def test_update_and_delete_message():
+    patcher, fake = patch_provider_http(MODULE, [
+        json_response(200, {"ok": True, "ts": "1.2", "channel": "C1"}),
+        json_response(200, {"ok": True}),
+    ])
+    try:
+        from app.providers.slack import SlackProviderClient
+
+        client = SlackProviderClient()
+        updated = asyncio.new_event_loop().run_until_complete(
+            client.update_message(CREDS, "C1", "1.2", "edited")
+        )
+        deleted = asyncio.new_event_loop().run_until_complete(
+            client.delete_message(CREDS, "C1", "1.2")
+        )
+    finally:
+        patcher.stop()
+
+    assert updated["updated"] is True and deleted["deleted"] is True
+    assert fake.calls[0][1].endswith("/chat.update")
+    assert fake.calls[1][1].endswith("/chat.delete")
+
+
+def test_slack_definition_exposes_deep_operations():
+    definition = get_registry().get_definition("slack")
+    assert definition is not None
+    assert {
+        "send_message", "list_channels", "add_reaction", "get_user_by_email",
+        "list_users", "get_channel_history", "update_message", "delete_message",
+    } <= set(definition.operations)
+
+
 def test_missing_bot_token_is_not_configured():
     from app.providers.slack import SlackProviderClient
 
@@ -139,7 +217,6 @@ def test_missing_bot_token_is_not_configured():
 def test_connector_routes_send_and_list(monkeypatch):
     """The connector layer maps operations onto provider calls."""
     from app.connectors.slack_connector import SlackConnector
-    from app.providers.slack import SlackProviderClient
 
     conn = SlackConnector()
 

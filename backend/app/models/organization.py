@@ -35,6 +35,10 @@ class Organization(Base):
     founder_id: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
     # Whether the organization is public or private
     is_public: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Organization-wide policy: password/LDAP logins must have TOTP enabled.
+    require_mfa: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

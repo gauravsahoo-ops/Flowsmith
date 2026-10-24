@@ -23,8 +23,12 @@ from app.providers.google_drive import GoogleDriveProviderClient
 
 
 class GoogleDriveConnectorParams(BaseModel):
-    operation: str = Field(default="list_files", description="list_files | upload_file | get_file.")
+    operation: str = Field(
+        default="list_files",
+        description="list_files | upload_file | get_file | delete_file | create_folder.",
+    )
     folder_id: str = ""
+    parent_id: str = ""
     file_id: str = ""
     name: str = ""
     content: str = ""
@@ -101,6 +105,17 @@ class GoogleDriveConnector(ConnectorSDK):
                         ConnectorErrorCode.BAD_REQUEST, "operation=get_file requires file_id.", retryable=False,
                     )
                 return await self._provider.get_file(creds, fid, timeout=params.timeout_seconds)
+            if op == "delete_file":
+                fid = str((payload or {}).get("file_id") if isinstance(payload, dict) else "") or params.file_id
+                return await self._provider.delete_file(
+                    creds, fid, timeout=params.timeout_seconds,
+                )
+            if op == "create_folder":
+                name = str((payload or {}).get("name") if isinstance(payload, dict) else "") or params.name
+                parent = str((payload or {}).get("parent_id") if isinstance(payload, dict) else "") or params.parent_id
+                return await self._provider.create_folder(
+                    creds, name, parent_id=parent, timeout=params.timeout_seconds,
+                )
         except ConnectorError:
             raise
         raise make_connector_error(

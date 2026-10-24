@@ -29,6 +29,30 @@ describe('WebhookNodeEditor Component', () => {
     expect(html).toContain('cURL &amp; Code Snippet Generator')
   })
 
+  it('renders GitLab provider registration fields', () => {
+    const node = {
+      id: 'gitlab_1',
+      type: 'gitlab_trigger',
+      parameters: {
+        path: 'gitlab-events',
+        method: 'POST',
+      },
+    }
+    const html = renderToStaticMarkup(
+      React.createElement(WebhookNodeEditor, {
+        node,
+        onParamsChange: () => {},
+        workflowId: 'wf-789',
+      })
+    )
+
+    expect(html).toContain('GitLab Provider Webhook')
+    expect(html).toContain('Project (group/project)')
+    expect(html).toContain('Events (comma-separated)')
+    expect(html).toContain('Webhook token (optional; generated if left blank)')
+    expect(html).toContain('Register with GitLab')
+  })
+
   it('renders synchronous response checkbox and snippet tabs', () => {
     const node = {
       id: 'webhook_2',

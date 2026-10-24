@@ -83,6 +83,40 @@ def build_resend_definition() -> ConnectorDefinitionV1:
                 idempotency="idempotent",
                 node_types=["resend"],
             ),
+            "list_emails": ConnectorOperationV1(
+                connector_key=RESEND_CONNECTOR_KEY,
+                connector_version=RESEND_CONNECTOR_VERSION,
+                operation_key="list_emails",
+                operation_version="1.0.0",
+                display_name="List Emails",
+                description="List recently sent emails.",
+                input_schema={"type": "object", "properties": {}},
+                output_schema={"type": "object", "properties": {"data": {"type": "array"}}},
+                credential_require="resend",
+                retryable=True,
+                idempotency="idempotent",
+                node_types=["resend"],
+            ),
+            "cancel_email": ConnectorOperationV1(
+                connector_key=RESEND_CONNECTOR_KEY,
+                connector_version=RESEND_CONNECTOR_VERSION,
+                operation_key="cancel_email",
+                operation_version="1.0.0",
+                display_name="Cancel Email",
+                description="Cancel a scheduled email by ID.",
+                input_schema={
+                    "type": "object",
+                    "required": ["email_id"],
+                    "properties": {
+                        "email_id": {"type": "string", "title": "Email ID"},
+                    },
+                },
+                output_schema={"type": "object", "properties": {"id": {"type": "string"}}},
+                credential_require="resend",
+                retryable=False,
+                idempotency="non_idempotent",
+                node_types=["resend"],
+            ),
             "list_domains": ConnectorOperationV1(
                 connector_key=RESEND_CONNECTOR_KEY,
                 connector_version=RESEND_CONNECTOR_VERSION,
@@ -99,4 +133,11 @@ def build_resend_definition() -> ConnectorDefinitionV1:
             ),
         },
         triggers={},
+        metadata={
+            "initial_operations": [
+                "send_email", "get_email", "list_emails", "cancel_email", "list_domains",
+            ],
+            "auth": "API key",
+        },
+        icon="resend",
     )

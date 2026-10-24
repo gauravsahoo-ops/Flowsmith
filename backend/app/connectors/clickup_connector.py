@@ -20,6 +20,7 @@ from app.providers.clickup import ClickUpProviderClient
 class ClickUpConnectorParams(BaseModel):
     operation: str = Field(default="list_tasks")
     list_id: str = ""
+    space_id: str = ""
     task_id: str = ""
     name: str = ""
     description: str = ""
@@ -72,6 +73,9 @@ class ClickUpConnector(ConnectorSDK):
                     creds, str(raw.get("list_id") or params.list_id),
                     int(raw.get("limit") or params.limit), timeout=timeout,
                 )
+            if op == "list_lists":
+                return await self._provider.list_lists(
+                    creds, str(raw.get("space_id") or params.space_id), timeout=timeout)
             if op == "get_task":
                 return await self._provider.get_task(creds, str(raw.get("task_id") or params.task_id), timeout=timeout)
             if op == "create_task":
@@ -85,6 +89,9 @@ class ClickUpConnector(ConnectorSDK):
                 fields = {k: str(raw.get(k) if raw.get(k) is not None else getattr(params, k)) for k in ("name", "description", "status")}
                 fields = {k: v for k, v in fields.items() if v}
                 return await self._provider.update_task(creds, str(raw.get("task_id") or params.task_id), fields, timeout=timeout)
+            if op == "delete_task":
+                return await self._provider.delete_task(
+                    creds, str(raw.get("task_id") or params.task_id), timeout=timeout)
             if op == "add_comment":
                 return await self._provider.add_comment(
                     creds, str(raw.get("task_id") or params.task_id),
@@ -106,4 +113,4 @@ class ClickUpConnector(ConnectorSDK):
             return {"ok": False, "message": "Connection failed."}
 
     async def op_list(self, payload: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
-        return {"output": {"connector_id": self.connector_id, "operations": ["list_tasks", "get_task", "create_task", "update_task", "add_comment"]}}
+        return {"output": {"connector_id": self.connector_id, "operations": ["list_tasks", "list_lists", "get_task", "create_task", "update_task", "delete_task", "add_comment"]}}

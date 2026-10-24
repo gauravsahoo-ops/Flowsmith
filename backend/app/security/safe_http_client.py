@@ -719,8 +719,17 @@ class SafeHTTPClient:
             # construction and would re-apply the codec to the decoded
             # bytes — the "Error -3 while decompressing data" crash) plus
             # the now-stale framing headers.
+            # A HEAD response carries metadata but no body; keep its
+            # Content-Length so callers can report the object size.
+            excluded_headers = {"content-encoding", "content-length", "transfer-encoding"}
+            if method.upper() == "HEAD":
+                excluded_headers.discard("content-length")
             rebuilt_headers = httpx.Headers(
-                [(k, v) for k, v in response.headers.items() if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")]
+                [
+                    (k, v)
+                    for k, v in response.headers.items()
+                    if k.lower() not in excluded_headers
+                ]
             )
             return httpx.Response(
                 status_code=response.status_code,

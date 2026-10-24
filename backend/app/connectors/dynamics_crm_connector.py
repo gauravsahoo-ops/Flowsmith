@@ -33,7 +33,7 @@ class DynamicsCrmConnectorParams(BaseModel):
 
     operation: str = Field(
         default="query",
-        description="Operation: query, search, get, create, update, upsert, delete, execute_action.",
+        description="Operation: query, search, get, create, update, upsert, delete, execute_action, whoami, list_tables.",
     )
     entity: str = Field(
         default="contacts",
@@ -266,6 +266,17 @@ class DynamicsCrmConnector(ConnectorSDK, ConnectorOperations):
             result = await self._provider.delete_record(creds, entity, parsed_params.record_id)
             return result
 
+        if op == "whoami":
+            data = await self._provider.who_am_i(creds)
+            return {
+                "user_id": data.get("UserId"),
+                "business_unit_id": data.get("BusinessUnitId"),
+                "organization_id": data.get("OrganizationId"),
+            }
+
+        if op == "list_tables":
+            return await self._provider.list_tables(creds, timeout=parsed_params.timeout_seconds)
+
         if op == "execute_action":
             payload = parsed_params.data or {}
             result = await self._provider.execute_action(
@@ -275,6 +286,6 @@ class DynamicsCrmConnector(ConnectorSDK, ConnectorOperations):
 
         raise make_connector_error(
             ConnectorErrorCode.INVALID_OPERATION,
-            f"Unsupported Dynamics 365 operation '{op}'. Supported: query, search, get, create, update, upsert, delete, execute_action.",
+            f"Unsupported Dynamics 365 operation '{op}'. Supported: query, search, get, create, update, upsert, delete, execute_action, whoami, list_tables.",
             retryable=False,
         )

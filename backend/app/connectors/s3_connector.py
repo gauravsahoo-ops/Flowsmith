@@ -48,7 +48,7 @@ class S3Connector(ConnectorSDK, ConnectorOperations):
 
     connector_id = "s3"
     display_name = "AWS S3 / Object Storage"
-    description = "Upload, download, list, and delete files in AWS S3, Cloudflare R2, MinIO, or Wasabi."
+    description = "Upload, download, inspect, list, and delete files in AWS S3, Cloudflare R2, MinIO, or Wasabi."
     category = ConnectorCategory.API
     version = "2.0.0"
 
@@ -156,6 +156,8 @@ class S3Connector(ConnectorSDK, ConnectorOperations):
             return await self._upload(creds, bucket, params, timeout)
         if op in ("download_file", "get_object"):
             return await self._download(creds, bucket, params, timeout)
+        if op in ("head_object", "get_object_metadata"):
+            return await self._head(creds, bucket, params, timeout)
         if op in ("list_objects", "list_files"):
             return await self._list(creds, bucket, params, timeout)
         if op in ("delete_object", "delete_file"):
@@ -232,6 +234,48 @@ class S3Connector(ConnectorSDK, ConnectorOperations):
                     "content_type": content_type,
                     "encoding": encoding,
                     "content": text,
+                }
+            ]
+        }
+
+    async def _head(self, creds: dict, bucket: str, params: dict, timeout: httpx.Timeout) -> Dict[str, Any]:
+        """Fetch object metadata with a real signed HEAD request."""
+        key = self._require_key(params, "head_object")
+        url = self._object_url(creds, bucket, key)
+        headers = self._signed_headers("HEAD", url, b"", creds, creds.get("region") or "us-east-1")
+
+        response = await self._send("HEAD", url, headers, None, timeout)
+        if response.status_code == 404:
+            return {
+                "output": [
+                    {
+                        "status": "not_found",
+                        "bucket": bucket,
+                        "key": key,
+                        "exists": False,
+                    }
+                ]
+            }
+        self._raise_for_status(response, "head_object", bucket=bucket, key=key)
+
+        size_header = response.headers.get("Content-Length")
+        metadata = {
+            name.lower().removeprefix("x-amz-meta-"): value
+            for name, value in response.headers.items()
+            if name.lower().startswith("x-amz-meta-")
+        }
+        return {
+            "output": [
+                {
+                    "status": "found",
+                    "bucket": bucket,
+                    "key": key,
+                    "exists": True,
+                    "size_bytes": int(size_header) if size_header and size_header.isdigit() else None,
+                    "etag": response.headers.get("ETag", ""),
+                    "last_modified": response.headers.get("Last-Modified"),
+                    "content_type": response.headers.get("Content-Type"),
+                    "metadata": metadata,
                 }
             ]
         }

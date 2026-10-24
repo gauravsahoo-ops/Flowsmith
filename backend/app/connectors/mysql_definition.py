@@ -1,7 +1,7 @@
 """MySQL connector definition (Phase 11 business connectors).
 
 Same operation set as PostgreSQL: query, execute, insert_rows,
-list_tables — against a mysql:// DSN credential.
+list_tables, and describe_table — against a mysql:// DSN credential.
 """
 
 from __future__ import annotations
@@ -107,6 +107,27 @@ def _mysql_operations() -> dict[str, ConnectorOperationV1]:
             },
             retryable=True,
         ),
+        "describe_table": _operation(
+            "describe_table", "Describe Table",
+            "Inspect columns, primary keys, foreign keys, and indexes for a table.",
+            {
+                "table": {"type": "string", "title": "Table name"},
+                "schema": {"type": "string", "title": "Schema (optional)"},
+            },
+            ["table"],
+            {
+                "type": "object",
+                "properties": {
+                    "table": {"type": "string"},
+                    "schema": {"type": "string"},
+                    "columns": {"type": "array", "items": {"type": "object"}},
+                    "primary_key": {"type": "array", "items": {"type": "string"}},
+                    "foreign_keys": {"type": "array", "items": {"type": "object"}},
+                    "indexes": {"type": "array", "items": {"type": "object"}},
+                },
+            },
+            retryable=True,
+        ),
     }
 
 
@@ -145,7 +166,9 @@ def build_mysql_definition() -> ConnectorDefinitionV1:
         triggers={},
         credential_types=_mysql_credential_type(),
         metadata={
-            "initial_operations": ["query", "execute", "insert_rows", "list_tables"],
+            "initial_operations": [
+                "query", "execute", "insert_rows", "list_tables", "describe_table",
+            ],
             "auth": "connection string (dsn) stored encrypted",
         },
         icon="mysql",

@@ -54,6 +54,14 @@ def build_typeform_definition() -> ConnectorDefinitionV1:
                 },
                 [],
             ),
+            "list_workspaces": _operation(
+                "list_workspaces", "List Workspaces", "List Typeform workspaces.",
+                {
+                    "page": {"type": "integer", "title": "Page", "default": 1},
+                    "page_size": {"type": "integer", "title": "Page Size", "default": 50},
+                },
+                [],
+            ),
             "get_form": _operation(
                 "get_form", "Get Form", "Retrieve form definitions, questions, and fields.",
                 {
@@ -71,6 +79,14 @@ def build_typeform_definition() -> ConnectorDefinitionV1:
                     "completed": {"type": "boolean", "title": "Completed Only", "default": True},
                 },
                 ["form_id"],
+            ),
+            "get_response": _operation(
+                "get_response", "Get Response", "Retrieve one form submission by response ID.",
+                {
+                    "form_id": {"type": "string", "title": "Form ID"},
+                    "response_id": {"type": "string", "title": "Response ID"},
+                },
+                ["form_id", "response_id"],
             ),
             "create_webhook": _operation(
                 "create_webhook", "Create Webhook", "Register an automated webhook for form submissions.",
@@ -127,4 +143,12 @@ def build_typeform_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
+        metadata={
+            "initial_operations": [
+                "list_forms", "list_workspaces", "get_form", "get_responses",
+                "get_response", "create_webhook", "delete_webhook",
+            ],
+            "auth": "Personal access token",
+        },
+        icon="typeform",
     )

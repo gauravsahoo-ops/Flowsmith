@@ -48,6 +48,18 @@ def build_openai_definition() -> ConnectorDefinitionV1:
                 "list_models", "List Models", "List available models.",
                 {}, [],
             ),
+            "create_image": _operation(
+                "create_image", "Create Image", "Generate an image from a prompt.",
+                {
+                    "prompt": {"type": "string", "title": "Prompt"},
+                    "image_size": {"type": "string", "title": "Size", "default": "1024x1024"},
+                },
+                ["prompt"], retryable=False, idempotency="non_idempotent",
+            ),
+            "list_files": _operation(
+                "list_files", "List Files", "List uploaded files.",
+                {"purpose": {"type": "string", "title": "Purpose filter"}}, [],
+            ),
             "create_embedding": _operation(
                 "create_embedding", "Create Embedding", "Embed text into vectors.",
                 {
@@ -85,6 +97,12 @@ def build_openai_definition() -> ConnectorDefinitionV1:
                 encryption_required=True,
             )
         },
-        metadata={"initial_operations": ["list_models", "create_embedding", "chat_completion"], "auth": "Bearer API key"},
+        metadata={
+            "initial_operations": [
+                "list_models", "create_image", "list_files",
+                "create_embedding", "chat_completion",
+            ],
+            "auth": "Bearer API key",
+        },
         icon="openai",
     )

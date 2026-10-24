@@ -417,7 +417,7 @@ function Sidebar({ onOpenCredentials }) {
         id: 'Connectors',
         title: 'Connectors & Apps',
         desc: 'All third-party integrations & apps',
-        count: connectorNodes.length || 473,
+        count: connectorNodes.length,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="2" width="20" height="20" rx="4" />
@@ -697,7 +697,7 @@ function Sidebar({ onOpenCredentials }) {
                 <line x1="6" y1="6" x2="6.01" y2="6" />
                 <line x1="6" y1="18" x2="6.01" y2="18" />
               </svg>
-              <span>Connectors ({connectorNodes.length})</span>
+              <span>Connector entries ({connectorNodes.length})</span>
             </h3>
             <button
               type="button"
@@ -728,7 +728,7 @@ function Sidebar({ onOpenCredentials }) {
               onClick={() => setSelectedCategory('Connectors')}
               style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
             >
-              View all {connectorNodes.length} connectors →
+              View all {connectorNodes.length} connector entries →
             </button>
           )}
         </div>

@@ -23,11 +23,21 @@ from app.providers.microsoft_graph import MicrosoftGraphProviderClient
 
 
 class MSTeamsConnectorParams(BaseModel):
-    operation: str = Field(default="send_message", description="send_message | list_teams | list_channels.")
+    operation: str = Field(
+        default="send_message",
+        description=(
+            "send_message | list_teams | list_channels | list_channel_messages | "
+            "reply_to_message | list_members | create_channel."
+        ),
+    )
     team_id: str = ""
     channel_id: str = ""
     content: str = ""
     subject: str = ""
+    message_id: str = ""
+    top: int = Field(default=20, ge=1, le=50)
+    display_name: str = ""
+    description: str = ""
     timeout_seconds: float = Field(default=30.0, ge=1, le=300)
 
 
@@ -108,6 +118,35 @@ class MSTeamsConnector(ConnectorSDK):
                         ConnectorErrorCode.BAD_REQUEST, "list_channels requires team_id.", retryable=False,
                     )
                 return await self._provider.list_channels(creds, team_id, timeout=params.timeout_seconds)
+            if op == "list_channel_messages":
+                team_id = str((payload or {}).get("team_id") or params.team_id)
+                channel_id = str((payload or {}).get("channel_id") or params.channel_id)
+                return await self._provider.list_channel_messages(
+                    creds, team_id, channel_id, top=params.top,
+                    timeout=params.timeout_seconds,
+                )
+            if op == "reply_to_message":
+                team_id = str((payload or {}).get("team_id") or params.team_id)
+                channel_id = str((payload or {}).get("channel_id") or params.channel_id)
+                message_id = str((payload or {}).get("message_id") or params.message_id)
+                content = str((payload or {}).get("content") or params.content)
+                return await self._provider.reply_to_channel_message(
+                    creds, team_id, channel_id, message_id, content,
+                    timeout=params.timeout_seconds,
+                )
+            if op == "list_members":
+                team_id = str((payload or {}).get("team_id") or params.team_id)
+                return await self._provider.list_team_members(
+                    creds, team_id, timeout=params.timeout_seconds,
+                )
+            if op == "create_channel":
+                team_id = str((payload or {}).get("team_id") or params.team_id)
+                display_name = str((payload or {}).get("display_name") or params.display_name)
+                description = str((payload or {}).get("description") or params.description)
+                return await self._provider.create_channel(
+                    creds, team_id, display_name, description=description,
+                    timeout=params.timeout_seconds,
+                )
         except ConnectorError:
             raise
         raise make_connector_error(
