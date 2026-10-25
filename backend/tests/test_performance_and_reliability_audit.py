@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import asyncio
 import gc
-import json
 import logging
 import statistics
 import time
@@ -34,18 +33,15 @@ from sqlalchemy import select, text
 from app.config import get_settings
 from app.connectors import ConnectorError, ConnectorErrorCode
 from app.db import get_engine, get_session
-from app.engine.errors import NodeCancelledError, NodeExecutionError, NodeTimeoutError
-from app.engine.executor import ExecutionResult, _cap, execute_workflow
-from app.engine.node_base import NodeContext, NodeResult
+from app.engine.executor import _cap, execute_workflow
+from app.engine.node_base import NodeContext
 from app.main import app
-from app.models import Execution, WorkflowRecord
+from app.models import Execution
 from app.nodes.condition_base import Condition
 from app.nodes.loop_while import LoopWhileNode, LoopWhileParams
-from app.nodes.wait import WaitNode
 from app.queue.db_queue import DbJobQueue
-from app.queue.redis_queue import RedisJobQueue
 from app.queue.worker import QueueWorker
-from app.security.safe_http_client import SafeHTTPClient, get_safe_http_client
+from app.security.safe_http_client import SafeHTTPClient
 from tests.conftest import conn, make_node, make_workflow
 
 logger = logging.getLogger("test_performance_and_reliability_audit")
@@ -315,6 +311,10 @@ async def test_04_large_payloads_and_high_volume_execution_history():
             .limit(10)
             .offset(0)
         )
+        # Warm the connection/statement cache before measuring; the first
+        # query on a fresh SQLAlchemy session includes planning/connection
+        # overhead that is unrelated to the indexed page query.
+        db.execute(select(Execution.id).limit(1))
         t0 = time.monotonic()
         page1 = db.scalars(stmt).all()
         t_query = (time.monotonic() - t0) * 1000.0

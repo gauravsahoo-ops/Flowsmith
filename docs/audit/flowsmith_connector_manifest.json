@@ -5,10 +5,10 @@
   "phase": "PHASE 4 \u2014 COMPLETE NODE AND CONNECTOR CERTIFICATION",
   "summary": {
     "total_registered_connectors": 528,
-    "total_connector_operations": 1630,
+    "total_connector_operations": 1637,
     "total_connector_triggers": 120,
     "distinct_credential_types": 405,
-    "total_canonical_nodes": 71,
+    "total_canonical_nodes": 78,
     "certification_tiers": {
       "PRODUCTION_CERTIFIED": 0,
       "LIVE_API_VALIDATED": 1,
@@ -76,18 +76,44 @@
       "schema_hash": "sha256:034bbf8dd570d6d7",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 3,
       "operations": {
-        "execute": {
-          "operation_key": "execute",
-          "display_name": "Execute",
-          "description": "Execute execute operation on Action Network.",
+        "list_people": {
+          "operation_key": "list_people",
+          "display_name": "List People",
+          "description": "List People for Action Network.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "actionNetworkApi",
+          "idempotency": "idempotent",
+          "credential_require": "action_network",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_person": {
+          "operation_key": "get_person",
+          "display_name": "Get Person",
+          "description": "Get Person for Action Network.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "action_network",
+          "input_schema_fields": [
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_person": {
+          "operation_key": "create_person",
+          "display_name": "Create Person",
+          "description": "Create Person for Action Network.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "action_network",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -3312,18 +3338,44 @@
       "schema_hash": "sha256:3381f4ce79cf396e",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 3,
       "operations": {
-        "execute": {
-          "operation_key": "execute",
-          "display_name": "Execute",
-          "description": "Execute execute operation on BambooHr.",
+        "list_employees": {
+          "operation_key": "list_employees",
+          "display_name": "List Employees",
+          "description": "List Employees for BambooHR.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "bamboo_hr_auth",
+          "idempotency": "idempotent",
+          "credential_require": "bamboo_hr",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_employee": {
+          "operation_key": "get_employee",
+          "display_name": "Get Employee",
+          "description": "Get Employee for BambooHR.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "bamboo_hr",
+          "input_schema_fields": [
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_employee": {
+          "operation_key": "create_employee",
+          "display_name": "Create Employee",
+          "description": "Create Employee for BambooHR.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "bamboo_hr",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -4019,18 +4071,44 @@
       "schema_hash": "sha256:517e72c6605f8b80",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 3,
       "operations": {
-        "execute": {
-          "operation_key": "execute",
-          "display_name": "Execute",
-          "description": "Execute execute operation on Bitly.",
+        "get_bitlink": {
+          "operation_key": "get_bitlink",
+          "display_name": "Get Bitlink",
+          "description": "Get Bitlink for Bitly.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "bitlyApi",
+          "idempotency": "idempotent",
+          "credential_require": "bitly",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "shorten": {
+          "operation_key": "shorten",
+          "display_name": "Shorten Link",
+          "description": "Shorten Link for Bitly.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "bitly",
+          "input_schema_fields": [
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_clicks": {
+          "operation_key": "get_clicks",
+          "display_name": "Get Clicks",
+          "description": "Get Clicks for Bitly.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "bitly",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -5101,70 +5179,44 @@
       "schema_hash": "sha256:8e13416457b52eff",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 5,
+      "operations_count": 3,
       "operations": {
-        "create": {
-          "operation_key": "create",
-          "display_name": "Create",
-          "description": "Execute create operation on Chargebee.",
-          "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "chargebeeApi",
-          "input_schema_fields": [
-            "operation",
-            "resource"
-          ],
-          "timeout_seconds": 30.0
-        },
-        "list": {
-          "operation_key": "list",
-          "display_name": "List",
-          "description": "Execute list operation on Chargebee.",
+        "list_customers": {
+          "operation_key": "list_customers",
+          "display_name": "List Customers",
+          "description": "List Customers for Chargebee.",
           "retryable": true,
           "idempotency": "idempotent",
-          "credential_require": "chargebeeApi",
+          "credential_require": "chargebee",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         },
-        "pdfurl": {
-          "operation_key": "pdfurl",
-          "display_name": "Pdfurl",
-          "description": "Execute pdfurl operation on Chargebee.",
+        "get_customer": {
+          "operation_key": "get_customer",
+          "display_name": "Get Customer",
+          "description": "Get Customer for Chargebee.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "chargebeeApi",
+          "idempotency": "idempotent",
+          "credential_require": "chargebee",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         },
-        "cancel": {
-          "operation_key": "cancel",
-          "display_name": "Cancel",
-          "description": "Execute cancel operation on Chargebee.",
-          "retryable": true,
+        "create_customer": {
+          "operation_key": "create_customer",
+          "display_name": "Create Customer",
+          "description": "Create Customer for Chargebee.",
+          "retryable": false,
           "idempotency": "non_idempotent",
-          "credential_require": "chargebeeApi",
+          "credential_require": "chargebee",
           "input_schema_fields": [
-            "operation",
-            "resource"
-          ],
-          "timeout_seconds": 30.0
-        },
-        "delete": {
-          "operation_key": "delete",
-          "display_name": "Delete",
-          "description": "Execute delete operation on Chargebee.",
-          "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "chargebeeApi",
-          "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -5522,18 +5574,44 @@
       "schema_hash": "sha256:5cc9efe9a0516e7d",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 3,
       "operations": {
-        "execute": {
-          "operation_key": "execute",
-          "display_name": "Execute",
-          "description": "Execute execute operation on CircleCI.",
+        "get_user": {
+          "operation_key": "get_user",
+          "display_name": "Get Current User",
+          "description": "Get Current User for CircleCI.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "circleCiApi",
+          "idempotency": "idempotent",
+          "credential_require": "circle_ci",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_pipelines": {
+          "operation_key": "list_pipelines",
+          "display_name": "List Pipelines",
+          "description": "List Pipelines for CircleCI.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "circle_ci",
+          "input_schema_fields": [
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_workflow": {
+          "operation_key": "get_workflow",
+          "display_name": "Get Workflow",
+          "description": "Get Workflow for CircleCI.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "circle_ci",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -7380,18 +7458,31 @@
       "schema_hash": "sha256:cea28f95d6727e96",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 2,
       "operations": {
-        "execute": {
-          "operation_key": "execute",
-          "display_name": "Execute",
-          "description": "Execute execute operation on Confluence.",
+        "list_pages": {
+          "operation_key": "list_pages",
+          "display_name": "List Pages",
+          "description": "List Confluence content; pass query params through payload.params.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "confluence_auth",
+          "idempotency": "idempotent",
+          "credential_require": "confluence",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_page": {
+          "operation_key": "get_page",
+          "display_name": "Get Page",
+          "description": "Get Page for Confluence.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "confluence",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -7437,18 +7528,44 @@
       "schema_hash": "sha256:c93579e9ff4056ea",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 3,
       "operations": {
-        "execute": {
-          "operation_key": "execute",
-          "display_name": "Execute",
-          "description": "Execute execute operation on Contentful.",
+        "list_entries": {
+          "operation_key": "list_entries",
+          "display_name": "List Entries",
+          "description": "List Entries for Contentful.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "contentfulApi",
+          "idempotency": "idempotent",
+          "credential_require": "contentful",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_entry": {
+          "operation_key": "get_entry",
+          "display_name": "Get Entry",
+          "description": "Get Entry for Contentful.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "contentful",
+          "input_schema_fields": [
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_entry": {
+          "operation_key": "create_entry",
+          "display_name": "Create Entry",
+          "description": "Create Entry for Contentful.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "contentful",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -8556,18 +8673,31 @@
       "schema_hash": "sha256:e1d065e648c8357b",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 2,
       "operations": {
-        "execute": {
-          "operation_key": "execute",
-          "display_name": "Execute",
-          "description": "Execute execute operation on Customer.io.",
+        "list_customers": {
+          "operation_key": "list_customers",
+          "display_name": "List Customers",
+          "description": "List Customers for Customer.io.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "customerIoApi",
+          "idempotency": "idempotent",
+          "credential_require": "customer_io",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_customer": {
+          "operation_key": "get_customer",
+          "display_name": "Get Customer",
+          "description": "Get Customer for Customer.io.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "customer_io",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -8792,96 +8922,31 @@
       "schema_hash": "sha256:1a3eae094aa6694b",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 7,
+      "operations_count": 2,
       "operations": {
-        "databrickssql": {
-          "operation_key": "databrickssql",
-          "display_name": "Databrickssql",
-          "description": "Execute databrickssql operation on Databricks.",
-          "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "databricks_auth",
-          "input_schema_fields": [
-            "operation",
-            "resource"
-          ],
-          "timeout_seconds": 30.0
-        },
-        "files": {
-          "operation_key": "files",
-          "display_name": "Files",
-          "description": "Execute files operation on Databricks.",
-          "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "databricks_auth",
-          "input_schema_fields": [
-            "operation",
-            "resource"
-          ],
-          "timeout_seconds": 30.0
-        },
-        "genie": {
-          "operation_key": "genie",
-          "display_name": "Genie",
-          "description": "Execute genie operation on Databricks.",
-          "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "databricks_auth",
-          "input_schema_fields": [
-            "operation",
-            "resource"
-          ],
-          "timeout_seconds": 30.0
-        },
-        "job": {
-          "operation_key": "job",
-          "display_name": "Job",
-          "description": "Execute job operation on Databricks.",
-          "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "databricks_auth",
-          "input_schema_fields": [
-            "operation",
-            "resource"
-          ],
-          "timeout_seconds": 30.0
-        },
-        "modelserving": {
-          "operation_key": "modelserving",
-          "display_name": "Modelserving",
-          "description": "Execute modelserving operation on Databricks.",
-          "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "databricks_auth",
-          "input_schema_fields": [
-            "operation",
-            "resource"
-          ],
-          "timeout_seconds": 30.0
-        },
-        "unitycatalog": {
-          "operation_key": "unitycatalog",
-          "display_name": "Unitycatalog",
-          "description": "Execute unitycatalog operation on Databricks.",
-          "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "databricks_auth",
-          "input_schema_fields": [
-            "operation",
-            "resource"
-          ],
-          "timeout_seconds": 30.0
-        },
-        "vectorsearch": {
-          "operation_key": "vectorsearch",
-          "display_name": "Vectorsearch",
-          "description": "Execute vectorsearch operation on Databricks.",
+        "list_clusters": {
+          "operation_key": "list_clusters",
+          "display_name": "List Clusters",
+          "description": "List Clusters for Databricks.",
           "retryable": true,
           "idempotency": "idempotent",
-          "credential_require": "databricks_auth",
+          "credential_require": "databricks",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_cluster": {
+          "operation_key": "get_cluster",
+          "display_name": "Get Cluster",
+          "description": "Get Cluster for Databricks.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "databricks",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -13379,18 +13444,44 @@
       "schema_hash": "sha256:6e0fa2d86898d640",
       "certification_tier": "MOCK_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 1,
+      "operations_count": 3,
       "operations": {
-        "execute": {
-          "operation_key": "execute",
-          "display_name": "Execute",
-          "description": "Execute execute operation on Freshservice.",
+        "list_tickets": {
+          "operation_key": "list_tickets",
+          "display_name": "List Tickets",
+          "description": "List Tickets for Freshservice.",
           "retryable": true,
-          "idempotency": "non_idempotent",
-          "credential_require": "freshserviceApi",
+          "idempotency": "idempotent",
+          "credential_require": "freshservice",
           "input_schema_fields": [
-            "operation",
-            "resource"
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "get_ticket": {
+          "operation_key": "get_ticket",
+          "display_name": "Get Ticket",
+          "description": "Get Ticket for Freshservice.",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "freshservice",
+          "input_schema_fields": [
+            "body",
+            "params"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "create_ticket": {
+          "operation_key": "create_ticket",
+          "display_name": "Create Ticket",
+          "description": "Create Ticket for Freshservice.",
+          "retryable": false,
+          "idempotency": "non_idempotent",
+          "credential_require": "freshservice",
+          "input_schema_fields": [
+            "body",
+            "params"
           ],
           "timeout_seconds": 30.0
         }
@@ -46820,6 +46911,172 @@
         "pattern",
         "cursor_mode",
         "max_files_per_poll"
+      ],
+      "is_alias": false,
+      "alias_target": null
+    },
+    {
+      "node_type": "http_poll_trigger",
+      "display_name": "HTTP Polling Trigger",
+      "category": "Triggers",
+      "version": 1,
+      "idempotency": "idempotent",
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "parameters_properties": [
+        "url",
+        "method",
+        "headers",
+        "json_body",
+        "items_path",
+        "dedupe_field",
+        "interval_seconds"
+      ],
+      "is_alias": false,
+      "alias_target": null
+    },
+    {
+      "node_type": "github_trigger",
+      "display_name": "GitHub Trigger",
+      "category": "Triggers",
+      "version": 1,
+      "idempotency": "idempotent",
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "parameters_properties": [
+        "path",
+        "method",
+        "secret",
+        "signature_header",
+        "signature_algorithm",
+        "signature_encoding",
+        "signature_prefix",
+        "timestamp_header",
+        "token_header"
+      ],
+      "is_alias": false,
+      "alias_target": null
+    },
+    {
+      "node_type": "stripe_trigger",
+      "display_name": "Stripe Trigger",
+      "category": "Triggers",
+      "version": 1,
+      "idempotency": "idempotent",
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "parameters_properties": [
+        "path",
+        "method",
+        "secret",
+        "signature_header",
+        "signature_algorithm",
+        "signature_encoding",
+        "signature_prefix",
+        "timestamp_header",
+        "token_header"
+      ],
+      "is_alias": false,
+      "alias_target": null
+    },
+    {
+      "node_type": "shopify_trigger",
+      "display_name": "Shopify Trigger",
+      "category": "Triggers",
+      "version": 1,
+      "idempotency": "idempotent",
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "parameters_properties": [
+        "path",
+        "method",
+        "secret",
+        "signature_header",
+        "signature_algorithm",
+        "signature_encoding",
+        "signature_prefix",
+        "timestamp_header",
+        "token_header"
+      ],
+      "is_alias": false,
+      "alias_target": null
+    },
+    {
+      "node_type": "slack_trigger",
+      "display_name": "Slack Trigger",
+      "category": "Triggers",
+      "version": 1,
+      "idempotency": "idempotent",
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "parameters_properties": [
+        "path",
+        "method",
+        "secret",
+        "signature_header",
+        "signature_algorithm",
+        "signature_encoding",
+        "signature_prefix",
+        "timestamp_header",
+        "token_header"
+      ],
+      "is_alias": false,
+      "alias_target": null
+    },
+    {
+      "node_type": "typeform_trigger",
+      "display_name": "Typeform Trigger",
+      "category": "Triggers",
+      "version": 1,
+      "idempotency": "idempotent",
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "parameters_properties": [
+        "path",
+        "method",
+        "secret",
+        "signature_header",
+        "signature_algorithm",
+        "signature_encoding",
+        "signature_prefix",
+        "timestamp_header",
+        "token_header"
+      ],
+      "is_alias": false,
+      "alias_target": null
+    },
+    {
+      "node_type": "gitlab_trigger",
+      "display_name": "GitLab Trigger",
+      "category": "Triggers",
+      "version": 1,
+      "idempotency": "idempotent",
+      "input_handles": [],
+      "output_handles": [
+        "main"
+      ],
+      "parameters_properties": [
+        "path",
+        "method",
+        "secret",
+        "signature_header",
+        "signature_algorithm",
+        "signature_encoding",
+        "signature_prefix",
+        "timestamp_header",
+        "token_header"
       ],
       "is_alias": false,
       "alias_target": null

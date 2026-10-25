@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.connectors import get_registry, register_builtin_connectors
 from app.connectors.parity_connectors import ParityConnector
+from app.nodes.registry import NODE_REGISTRY
 
 
 def classify(connector: object) -> str:
@@ -45,6 +46,7 @@ def main() -> int:
 
     rows: list[dict[str, str | int | bool]] = []
     kinds: Counter[str] = Counter()
+    scopes: Counter[str] = Counter()
     total_operations = 0
 
     for info in registry.list_all():
@@ -52,6 +54,13 @@ def main() -> int:
         definition = registry.get_definition(info.connector_id)
         kind = classify(connector)
         kinds[kind] += 1
+        if definition and isinstance(connector, ParityConnector):
+            if definition.connector_key in NODE_REGISTRY:
+                scopes["node_shadow"] += 1
+            elif definition.triggers or definition.connector_key.endswith("_trigger"):
+                scopes["trigger_alias"] += 1
+            else:
+                scopes["vendor"] += 1
         operations = len(definition.operations) if definition else 0
         total_operations += operations
         rows.append(
@@ -75,9 +84,12 @@ def main() -> int:
     print(f"  generated:    {generated}")
     print(f"  catalog_only: {catalog_only}")
     print(f"Total declared operations: {total_operations}")
+    if scopes:
+        print(f"  catalog scopes: {dict(scopes)}")
     print()
     print("Catalog-only connectors require an explicit endpoint_url.")
     print("They are not vendor-specific integrations.")
+    print("Only catalog_scope='vendor' entries are native-conversion candidates.")
     print()
     print(json.dumps({"summary": dict(kinds), "total": total}, indent=2))
 

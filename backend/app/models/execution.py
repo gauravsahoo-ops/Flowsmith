@@ -24,6 +24,7 @@ class Execution(Base):
     # Mirrors migration a1b2c3d4e5f6: covers ORDER BY started_at DESC /
     # WHERE workflow_id = :id listings and has_running_execution checks.
     __table_args__ = (
+        Index("ix_executions_started", text("started_at DESC")),
         Index("ix_executions_workflow_started", "workflow_id", text("started_at DESC")),
         Index("ix_executions_wf_status", "workflow_id", "status"),
         Index("ix_executions_org_started", "organization_id", text("started_at DESC")),

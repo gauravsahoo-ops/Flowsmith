@@ -27,11 +27,10 @@ import pytest
 import uuid
 import httpx
 import respx
-from unittest.mock import AsyncMock, patch
 
-from app.services.csv_service import CsvService, CsvParseOptions, SF_CONTACT_CONSTRAINTS
+from app.services.csv_service import CsvService, CsvParseOptions
 from app.nodes.csv_parser import CsvParserNode, CsvParserParams
-from app.connectors.csv_connector import CsvConnector, CsvConnectorParams
+from app.connectors.csv_connector import CsvConnector
 from app.connectors.salesforce_connector import SalesforceConnector
 from app.engine.node_base import NodeContext
 from app.models.staged_record import StagedContactRecord
@@ -174,8 +173,28 @@ async def test_salesforce_authentication_failures():
 
 # 9. Token refresh handling
 @pytest.mark.asyncio
-async def test_token_refresh_handling():
+async def test_token_refresh_handling(monkeypatch):
     from app.providers.salesforce import SalesforceProviderClient
+
+    class FakeResponse:
+        status_code = 400
+
+        def json(self):
+            return {"error": "invalid_grant", "error_description": "expired"}
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc_info):
+            return None
+
+        async def request(self, *args, **kwargs):
+            return FakeResponse()
+
+    monkeypatch.setattr(
+        "app.providers.salesforce.get_safe_http_client", lambda: FakeClient()
+    )
     client = SalesforceProviderClient()
     creds = {
         "instance_url": "https://test.salesforce.com",
@@ -183,12 +202,9 @@ async def test_token_refresh_handling():
         "client_id": "test_id",
         "client_secret": "test_secret",
     }
-    with patch("httpx.AsyncClient.post") as mock_post:
-        mock_post.return_value.status_code = 400
-        mock_post.return_value.json = lambda: {"error": "invalid_grant", "error_description": "expired"}
-        with pytest.raises(Exception) as exc:
-            await client.authenticate(creds, force=True)
-        assert "authentication failed" in str(exc.value).lower()
+    with pytest.raises(Exception) as exc:
+        await client.authenticate(creds, force=True)
+    assert "authentication failed" in str(exc.value).lower()
 
 
 # 10. Salesforce API errors and retries
@@ -234,7 +250,6 @@ def test_partial_batch_failures():
 
 
 import logging
-import httpx
 
 
 def make_test_ctx(workflow_id: str = "wf_1", node_id: str = "node_1") -> NodeContext:

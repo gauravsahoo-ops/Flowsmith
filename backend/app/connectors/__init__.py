@@ -764,13 +764,18 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (OracleConnector(), build_oracle_definition),
         (MQTTConnector(), build_mqtt_definition),
     ]
+    from app.connectors.vendor_rest import build_vendor_connectors
+
+    builtins.extend(build_vendor_connectors())
 
     with _builtin_reg_lock:
         registry = get_registry()
         if not registry.is_initialized():
             registry.initialize()
         for instance, definition_builder in builtins:
-            if definition_builder is not None:
+            if isinstance(definition_builder, ConnectorDefinitionV1):
+                defn = definition_builder
+            elif definition_builder is not None:
                 defn = definition_builder()
             else:
                 category = instance.category.value if isinstance(instance.category, ConnectorCategory) else instance.category

@@ -141,8 +141,8 @@ def test_catalog_enum_derives_from_definition():
     assert _connector_operation_enum("salesforce") == list(definition.operations.keys())
     entries = {e["type"]: e for e in _connector_catalog_entries()}
     enum = entries["salesforce"]["parameters_schema"]["properties"]["operation"]["enum"]
-    assert enum == ["search", "get", "create", "update", "upsert", "delete",
-                    "query", "describe", "list", "bulk", "custom_api_call", "flow_invoke"]
+    assert enum == list(definition.operations.keys())
+    assert "org_limits" in enum
 
 
 def test_catalog_exposes_per_operation_metadata():

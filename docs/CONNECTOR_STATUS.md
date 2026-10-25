@@ -7,23 +7,54 @@ Flowsmith distinguishes three connector populations. They are **not** equivalent
 
 | Kind | Count | What it means |
 |---|---:|---|
-| **Native** | **76** | Hand-written, vendor-specific connector classes in `backend/app/connectors/*_connector.py` |
+| **Native** | **86** | Hand-written, vendor-specific connector classes, plus batch-1 native REST connectors in `backend/app/connectors/vendor_rest.py` |
 | **Generated** | **17** | Generated from OpenAPI descriptions under `backend/app/connectors/generated/` |
-| **Catalog-only** | **435** | Generic entries derived from the reference inventory. They have no vendor-specific execution code and require an explicit `endpoint_url`. |
+| **Catalog-only** | **425** | Generic entries derived from the reference inventory. They have no vendor-specific execution code and require an explicit `endpoint_url`. |
 | **Total registered names** | **528** | The number the registry exposes to discovery/UI |
 
 These counts describe the built-in/factory registry. Admin-installed
 [connector packs](CONNECTOR_PACKS.md) add generated connectors at runtime and
 are intentionally **not** included in these static counts.
 
+The runtime **node registry currently exposes 78 node keys**, including the
+provider-trigger and HTTP-polling trigger nodes. The certification manifest
+under `docs/audit/flowsmith_connector_manifest.json` is synchronized with that
+list; the completeness gate passes. “Registered” still does not mean every
+vendor API has been live-certified.
+
+### Catalog-only breakdown
+
+The 425 catalog-only registry entries are not 425 native-conversion targets:
+
+| Scope | Count | Meaning |
+|---|---:|---|
+| `vendor` | **257** | Remaining vendor-ish entries after batch 1 — native-conversion candidates |
+| `trigger_alias` | **95** | Trigger aliases, not action connectors |
+| `node_shadow` | **73** | Names that already exist as workflow node classes |
+
+This breakdown is enforced by `test_parity_connectors_full.py::test_catalog_only_scope_breakdown`.
+
+### Native conversion batch 1
+
+The first native batch has moved these ten entries out of catalog-only:
+
+`action_network`, `bamboo_hr`, `chargebee`, `circle_ci`, `confluence`,
+`contentful`, `customer_io`, `databricks`, `freshservice`, and `bitly`.
+
+They use fixed vendor hosts, vendor-specific auth, and explicit operation maps
+in `backend/app/connectors/vendor_rest.py`. Their tests mock the safe HTTP
+client and cover host selection, required fields, auth failure, and operation
+metadata. **They are contract-tested, not live-certified**; live credentials
+are still required for vendor acceptance.
+
 Declared operations by kind:
 
 | Kind | Declared operations |
 |---|---:|
-| Native | 474 |
+| Native | 501 |
 | Generated | 151 |
-| Catalog-only | 1,005 (generic HTTP operations) |
-| **Total** | **1,630** |
+| Catalog-only | 985 (generic HTTP operations) |
+| **Total** | **1,637** |
 
 ## What catalog-only means
 
@@ -45,9 +76,9 @@ This is enforced by:
 
 Use these numbers unless this document and the script are updated together:
 
-- **76 native connectors**
+- **86 native connectors**
 - **17 OpenAPI-generated connectors**
-- **435 catalog-only reference integrations**
+- **425 catalog-only reference integrations**
 - **528 registered connector names**
 
 Do not describe 528 as “528 native connectors” or “528 integrations equivalent to n8n.” Do not use 528 as proof of vendor coverage.

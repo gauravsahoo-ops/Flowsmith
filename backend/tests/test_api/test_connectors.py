@@ -27,11 +27,14 @@ def test_catalog_includes_connector_only_node_types():
     assert sf["icon"] == "connector"
     assert "operation" in sf["parameters_schema"]["properties"]
     # The catalog enum is derived from the registered definition's
-    # operation set (Phase 9 full surface incl. upsert/discovery/bulk).
-    assert sf["parameters_schema"]["properties"]["operation"]["enum"] == [
-        "search", "get", "create", "update", "upsert", "delete",
-        "query", "describe", "list", "bulk", "custom_api_call", "flow_invoke",
-    ]
+    # operation set. Compare against the definition rather than a frozen
+    # list so adding a real operation cannot leave the catalog stale.
+    definition = registry.get_definition("salesforce")
+    assert definition is not None
+    assert sf["parameters_schema"]["properties"]["operation"]["enum"] == list(
+        definition.operations.keys()
+    )
+    assert "org_limits" in sf["parameters_schema"]["properties"]["operation"]["enum"]
     # Phase 9: per-operation idempotency/retryable metadata is exposed.
     assert sf["operations"]["create"]["idempotency"] == "non_idempotent"
     assert sf["operations"]["upsert"]["retryable"] is True
@@ -55,10 +58,10 @@ def test_salesforce_definition_discoverable_via_api(client):
     assert resp.json()["data"]["connector_version"] == "1.2.0"
 
     ops = client.get("/api/connectors/salesforce/operations", headers=headers).json()["data"]["operations"]
-    assert set(ops.keys()) == {
-        "search", "get", "create", "update", "upsert", "delete",
-        "query", "describe", "list", "bulk", "custom_api_call", "flow_invoke",
-    }
+    definition = get_registry().get_definition("salesforce")
+    assert definition is not None
+    assert set(ops.keys()) == set(definition.operations.keys())
+    assert "org_limits" in ops
     assert ops["search"]["display_name"] == "Search/Get Record"
     assert ops["search"]["credential_require"] == "salesforce"
     assert ops["create"]["idempotency"] == "non_idempotent"
