@@ -93,6 +93,43 @@ describe('OutputPanel Error & Server Response Suite', () => {
     expect(html).toContain('Salesforce authentication failed')
   })
 
+  it('does not count the preview truncation marker as a record', () => {
+    const records = Array.from({ length: 50 }, (_, index) => ({ id: index + 1 }))
+    const data = {
+      main: [{
+        summary: { total_parsed: 282 },
+        records: [
+          ...records,
+          {
+            _truncated: true,
+            _total_count: 282,
+            _omitted: 232,
+            _note: '... and 232 more items (282 total).',
+          },
+        ],
+        rows: records,
+      }],
+    }
+
+    const html = renderToStaticMarkup(
+      React.createElement(OutputPanel, {
+        status: 'success',
+        executing: false,
+        data,
+        nodeId: 'node_preview',
+        nodeLabel: 'CSV Parser',
+        executionId: 'exec_preview',
+        initialView: 'schema',
+        onLoadFullOutput: async () => null,
+      })
+    )
+
+    expect(html).toContain('Preview: showing 50 of 282 records.')
+    expect(html).toContain('Load all 282')
+    expect(html).toContain('array[50]')
+    expect(html).not.toContain('array[51]')
+  })
+
   it('renders structured error table when view is table', () => {
     const error = {
       message: 'Salesforce connection timeout',

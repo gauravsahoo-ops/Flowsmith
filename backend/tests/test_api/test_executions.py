@@ -108,6 +108,58 @@ def test_execution_items_paginated(client):
     assert body["data"][0]["status"] == "success"
 
 
+def test_execution_node_output_returns_untruncated_records(client):
+    """The normal execution view is a 50-item preview; the node output
+    endpoint must return the complete records array for explicit inspection."""
+    headers = _setup(client)
+    client.post("/api/workflows", json=WF_OK, headers=headers)
+
+    from app.db import get_session
+    from app.models import Execution
+
+    records = [
+        {"_row_number": index + 1, "name": f"Record {index + 1}"}
+        for index in range(282)
+    ]
+    with get_session() as db:
+        db.merge(Execution(
+            id="exec_preview_test",
+            workflow_id=WF_OK["id"],
+            user_id=1,
+            workflow_version=1,
+            workflow_data=WF_OK,
+            status="success",
+            trigger="manual",
+            results={
+                "outputs": {
+                    "csv": {
+                        "main": [{
+                            "summary": {"total_parsed": 282},
+                            "records": records,
+                            "rows": records,
+                        }],
+                    },
+                },
+            },
+        ))
+        db.commit()
+
+    preview = client.get("/api/executions/exec_preview_test", headers=headers).json()["data"]
+    preview_records = preview["results"]["outputs"]["csv"]["main"][0]["records"]
+    assert len(preview_records) == 51
+    assert preview_records[-1]["_truncated"] is True
+    assert preview_records[-1]["_total_count"] == 282
+
+    full = client.get(
+        "/api/executions/exec_preview_test/nodes/csv/output",
+        headers=headers,
+    ).json()["data"]
+    full_records = full["output"]["main"][0]["records"]
+    assert len(full_records) == 282
+    assert full_records[0]["name"] == "Record 1"
+    assert full_records[-1]["name"] == "Record 282"
+
+
 def test_get_execution_404_for_other_user(client):
     headers = _setup(client)
     client.post("/api/workflows", json=WF_OK, headers=headers)

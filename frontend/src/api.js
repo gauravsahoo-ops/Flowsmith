@@ -235,7 +235,10 @@ export const api = {
     return request('POST', `/executions/${id}/retry`, body)
   },
   resume: (id, approved = true) => request('POST', `/executions/${id}/resume`, { approved }),
-  getExecution: (id) => request('GET', `/executions/${id}`),
+  getExecution: (id, full = false) =>
+    request('GET', `/executions/${id}${full ? '?full=true' : ''}`),
+  getExecutionNodeOutput: (id, nodeId) =>
+    request('GET', `/executions/${id}/nodes/${encodeURIComponent(nodeId)}/output`),
   getExecutionSteps: (id) => request('GET', `/executions/${id}/steps`),
   getExecutionTimeline: (id) => request('GET', `/executions/${id}/timeline`),
   getExecutionRequests: (id) => request('GET', `/executions/${id}/requests`),

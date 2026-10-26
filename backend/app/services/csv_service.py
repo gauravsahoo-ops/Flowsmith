@@ -52,6 +52,7 @@ class CsvParseOptions:
     encoding: str = "utf-8"
     has_header: bool = True
     batch_size: int = 1000
+    row_limit: int = 0
     skip_empty_lines: bool = True
     strip_whitespace: bool = True
 
@@ -483,6 +484,7 @@ class CsvService:
 
         chunk: list[dict[str, Any]] = []
         row_num = 1 if opts.has_header else 0
+        emitted = 0
 
         for raw_row in reader:
             row_num += 1
@@ -503,6 +505,11 @@ class CsvService:
                 row_dict["_row_number"] = row_num
                 chunk.append(row_dict)
 
+            emitted += 1
+            if opts.row_limit > 0 and emitted >= opts.row_limit:
+                if chunk:
+                    yield chunk
+                return
             if len(chunk) >= opts.batch_size:
                 yield chunk
                 chunk = []

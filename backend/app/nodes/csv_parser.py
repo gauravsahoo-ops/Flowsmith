@@ -61,6 +61,9 @@ class CsvParserParams(BaseModel):
     batch_size: int = Field(
         default=1000, ge=1, le=10000, description="Processing and database batch size (range: 1-10000)."
     )
+    row_limit: int = Field(
+        default=0, ge=0, description="Maximum data rows to process (0 = unlimited)."
+    )
     target_object: str = Field(
         default="", description="Optional target schema object (Contact, Lead, Account, etc.)."
     )
@@ -147,6 +150,7 @@ class CsvParserNode(BaseNode[CsvParserParams]):
             escapechar=params.escapechar or None,
             has_header=params.has_header,
             batch_size=params.batch_size,
+            row_limit=params.row_limit,
         )
 
         exec_id = params.execution_id or (getattr(ctx, "execution_id", None) or f"exec_{uuid.uuid4().hex[:12]}")

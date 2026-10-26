@@ -19,6 +19,59 @@ function unwrapItem(item) {
   return item
 }
 
+function isTruncationMarker(value) {
+  return Boolean(
+    value
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && value._truncated === true
+    && (value._total_count != null || value._omitted != null)
+  )
+}
+
+/**
+ * Remove API preview markers from the data shown in the panel. The marker is
+ * transport metadata, not a row produced by the node. Rendering it as item
+ * 51 of 51 makes a 282-record output look as if only 51 records exist.
+ */
+function stripPreviewMarkers(value) {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => !isTruncationMarker(item))
+      .map(stripPreviewMarkers)
+  }
+  if (value && typeof value === 'object') {
+    const out = {}
+    for (const [key, child] of Object.entries(value)) {
+      out[key] = stripPreviewMarkers(child)
+    }
+    return out
+  }
+  return value
+}
+
+function findPreviewTruncation(value) {
+  if (Array.isArray(value)) {
+    const marker = value.find(isTruncationMarker)
+    if (marker) {
+      return {
+        returned: value.length - 1,
+        total: Number(marker._total_count) || value.length - 1,
+      }
+    }
+    for (const item of value) {
+      const found = findPreviewTruncation(item)
+      if (found) return found
+    }
+  } else if (value && typeof value === 'object') {
+    for (const child of Object.values(value)) {
+      const found = findPreviewTruncation(child)
+      if (found) return found
+    }
+  }
+  return null
+}
+
 function extractOutputData(data) {
   if (data == null) {
     return { hasData: false, branches: {}, defaultBranch: 'main' }
@@ -348,10 +401,12 @@ export default function OutputPanel({
   nodeId,
   nodeLabel,
   workflowId,
+  executionId,
   node,
   initialView = null,
   onExecuteStep,
   onAutoRepair,
+  onLoadFullOutput,
 }) {
   const [view, setView] = useState(() => initialView || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`op_view_${nodeId}`) : null) || 'schema')
   const [showDiagnostic, setShowDiagnostic] = useState(false)
@@ -373,6 +428,20 @@ export default function OutputPanel({
   })
   const pinned = storePinned !== undefined ? storePinned : localPinned
   const [selectedBinaryModal, setSelectedBinaryModal] = useState(null)
+  const [hydratedOutput, setHydratedOutput] = useState(null)
+  const [loadingFullOutput, setLoadingFullOutput] = useState(false)
+  const [fullOutputError, setFullOutputError] = useState(null)
+  const autoLoadKeyRef = useRef(null)
+  const loadRequestRef = useRef(0)
+
+  // A new node/run invalidates any full output loaded for the previous one.
+  useEffect(() => {
+    loadRequestRef.current += 1
+    setHydratedOutput(null)
+    setLoadingFullOutput(false)
+    setFullOutputError(null)
+    autoLoadKeyRef.current = null
+  }, [nodeId, executionId])
 
   const binaryEntries = useMemo(() => {
     const rawList = Array.isArray(data)
@@ -418,9 +487,57 @@ export default function OutputPanel({
     }
   }, [view, nodeId])
 
-  // Extract structured branch items from raw data (or pinned data)
-  const effectiveRaw = pinned || data
-  const extracted = useMemo(() => extractOutputData(effectiveRaw), [effectiveRaw])
+  // Extract structured branch items from raw data (or pinned data). The
+  // execution API returns a 50-item preview plus a metadata marker; strip the
+  // marker for display and offer an explicit load of the full node output.
+  const previewTruncation = useMemo(
+    () => findPreviewTruncation(pinned || data),
+    [data, pinned],
+  )
+  const effectiveRaw = pinned || hydratedOutput || data
+  const displayRaw = useMemo(
+    () => (previewTruncation && !hydratedOutput ? stripPreviewMarkers(effectiveRaw) : effectiveRaw),
+    [effectiveRaw, previewTruncation, hydratedOutput],
+  )
+  const extracted = useMemo(() => extractOutputData(displayRaw), [displayRaw])
+
+  const handleLoadFullOutput = useCallback(async () => {
+    if (!onLoadFullOutput || loadingFullOutput) return
+    const requestId = ++loadRequestRef.current
+    setLoadingFullOutput(true)
+    setFullOutputError(null)
+    try {
+      const fullOutput = await onLoadFullOutput()
+      if (requestId !== loadRequestRef.current) return
+      if (fullOutput != null) setHydratedOutput(fullOutput)
+    } catch (err) {
+      if (requestId !== loadRequestRef.current) return
+      setFullOutputError(err?.message || 'Could not load the full output.')
+    } finally {
+      if (requestId === loadRequestRef.current) setLoadingFullOutput(false)
+    }
+  }, [onLoadFullOutput, loadingFullOutput])
+
+  // Small/medium results are safe to hydrate automatically. Larger results
+  // stay behind the explicit button so opening a node never downloads 10k+
+  // records by surprise.
+  const AUTO_LOAD_LIMIT = 1000
+  useEffect(() => {
+    if (!previewTruncation || hydratedOutput || pinned || !onLoadFullOutput) return
+    if (previewTruncation.total > AUTO_LOAD_LIMIT) return
+    const key = `${executionId || ''}:${nodeId}:${previewTruncation.total}:${previewTruncation.returned}`
+    if (autoLoadKeyRef.current === key) return
+    autoLoadKeyRef.current = key
+    handleLoadFullOutput()
+  }, [
+    previewTruncation,
+    hydratedOutput,
+    pinned,
+    onLoadFullOutput,
+    executionId,
+    nodeId,
+    handleLoadFullOutput,
+  ])
 
   const branchKeys = Object.keys(extracted.branches)
   const activeBranch = selectedBranch && extracted.branches[selectedBranch] !== undefined
@@ -845,6 +962,26 @@ export default function OutputPanel({
 
       {/* Main Body */}
       <div className="op-body">
+        {!executing && !isError && previewTruncation && !hydratedOutput && !pinned && (
+          <div className="op-preview-banner" role="status">
+            <span>
+              {loadingFullOutput
+                ? `Loading all ${previewTruncation.total.toLocaleString()} records…`
+                : `Preview: showing ${previewTruncation.returned.toLocaleString()} of ${previewTruncation.total.toLocaleString()} records.`}
+            </span>
+            {!loadingFullOutput && onLoadFullOutput && (
+              <button
+                type="button"
+                className="ghost small op-preview-load-btn"
+                onClick={handleLoadFullOutput}
+              >
+                Load all {previewTruncation.total.toLocaleString()}
+              </button>
+            )}
+            {fullOutputError && <span className="op-preview-error">{fullOutputError}</span>}
+          </div>
+        )}
+
         {executing && (
           <div className="nem-empty-state">
             <div className="nem-empty-icon-wrap output-glow">

@@ -51,6 +51,19 @@ def test_valid_csv_parsing():
     assert rows[1]["_row_number"] == 3
 
 
+def test_csv_parser_row_limit_counts_data_rows():
+    """The CSV Parser row limit must stop after N data rows, not ignore N."""
+    rows = ["First,Last,Email"] + [f"F{i},L{i},u{i}@example.com" for i in range(1, 52)]
+    parsed = CsvService.parse_csv(
+        "\n".join(rows) + "\n",
+        CsvParseOptions(row_limit=50),
+    )
+    assert len(parsed) == 50
+    # _row_number is the physical source row; the header occupies row 1.
+    assert parsed[0]["_row_number"] == 2
+    assert parsed[-1]["_row_number"] == 51
+
+
 # 2. Quoted fields and embedded newlines
 def test_quoted_fields_and_embedded_newlines():
     csv_data = (

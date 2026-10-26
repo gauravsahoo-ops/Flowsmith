@@ -1241,6 +1241,31 @@ def get_execution_items(
     )
 
 
+@router.get("/api/executions/{execution_id}/nodes/{node_id}/output")
+def get_execution_node_output(
+    execution_id: str,
+    node_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Return the complete stored output for one node.
+
+    The normal execution payload is deliberately preview-sanitized for fast
+    rendering.  This endpoint is the explicit, per-node escape hatch used by
+    the output panel when the user asks to inspect the untruncated records.
+    """
+    rec = db.get(Execution, execution_id)
+    if rec is None or not _can_view_execution(db, rec, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
+    outputs = (rec.results or {}).get("outputs", {}) if isinstance(rec.results, dict) else {}
+    if node_id not in outputs:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Node output not found.")
+    return ok({
+        "node_id": node_id,
+        "output": redact_sensitive(outputs[node_id]),
+    })
+
+
 @router.get("/api/executions/{execution_id}/trace")
 def get_execution_trace(
     execution_id: str,

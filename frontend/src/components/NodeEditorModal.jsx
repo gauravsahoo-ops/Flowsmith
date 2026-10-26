@@ -272,6 +272,24 @@ export function NodeEditorModalDialog({ onClosed }) {
     }
   }, [workflow?.id, selectedId, executionId])
 
+  // The execution detail payload is a 50-item preview. When the user opens a
+  // truncated records array, fetch that one node's complete stored output.
+  const handleLoadFullOutput = useCallback(async () => {
+    if (!executionId || !selectedId) return null
+    try {
+      const result = await api.getExecutionNodeOutput(executionId, selectedId)
+      return result?.output ?? null
+    } catch (err) {
+      // Older deployments may not have the per-node output endpoint yet.
+      // Fall back to the existing full-execution endpoint for this node only.
+      if (err?.status !== 404) throw err
+      const execution = await api.getExecution(executionId, true)
+      const output = execution?.results?.outputs?.[selectedId]
+      if (!output) throw err
+      return output
+    }
+  }, [executionId, selectedId])
+
   const dynamicPanelProps = useMemo(
     () => ({
       node,
@@ -924,9 +942,11 @@ export function NodeEditorModalDialog({ onClosed }) {
               nodeId={selectedId}
               nodeLabel={node?.settings?.label || node?.name || node?.data?.label || meta?.display_name || node?.type}
               workflowId={workflow?.id}
+              executionId={executionId}
               node={node ? { ...node, id: node.id || selectedId } : null}
               onExecuteStep={handleExecuteStep}
               onAutoRepair={() => setShowAutoRepair(true)}
+              onLoadFullOutput={handleLoadFullOutput}
             />
           </div>
         </div>
