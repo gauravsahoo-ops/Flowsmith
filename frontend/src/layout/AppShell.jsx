@@ -68,10 +68,23 @@ export default function AppShell({ onLogout }) {
     setMobileOpen(false)
   }, [location.pathname])
 
-  // Init stores once
+  // Init stores once. When the app opens directly on /workflows/:id, the
+  // editor page owns hydration; init must not auto-load the most-recent
+  // workflow and overwrite it.
   useEffect(() => {
+    const match = typeof window !== 'undefined'
+      ? window.location.pathname.match(/^\/workflows\/([^/]+)\/?$/)
+      : null
+    let routeWorkflowId = null
+    if (match) {
+      try {
+        routeWorkflowId = decodeURIComponent(match[1])
+      } catch {
+        routeWorkflowId = match[1]
+      }
+    }
     useBrandingStore.getState().init().catch(() => {})
-    useWorkflowStore.getState().init().catch(() => {})
+    useWorkflowStore.getState().init(routeWorkflowId).catch(() => {})
     useCredentialStore.getState().load().catch(() => {})
     syncUserProfile(api).catch(() => {})
 

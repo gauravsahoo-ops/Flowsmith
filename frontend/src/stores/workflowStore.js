@@ -20,6 +20,7 @@ import { createHistory } from '../utils/history'
 
 let saveTimer = null
 let initPromise = null
+let loadSeq = 0
 
 function isDecorationId(id) {
   return typeof id === 'string' && (id.startsWith('comment_') || id.startsWith('group_'))
@@ -73,6 +74,7 @@ export const useWorkflowStore = create((set, get) => ({
 
   _history: createHistory(),
   _dirty: false,
+  _editSeq: 0,
   _dragHistoryOpen: false,
   autoSave: false, // Auto-save disabled by default (manual save only)
 
@@ -117,14 +119,22 @@ export const useWorkflowStore = create((set, get) => ({
     scheduleSave()
   },
 
+  // Called only after the user has confirmed leaving the editor. The next
+  // load of this workflow will replace the retained canvas with server state.
+  discardUnsavedChanges() {
+    clearTimeout(saveTimer)
+    set({ _dirty: false, savedAt: null })
+  },
+
   // ------------------------------------------------------------------
   // lifecycle
   // ------------------------------------------------------------------
 
-  async init() {
+  async init(preferredWorkflowId = null) {
     // Idempotent: React StrictMode double-invokes this in dev; a second
     // call must not create a duplicate workflow for fresh users.
     if (initPromise) return initPromise
+    const loadSeqAtStart = loadSeq
     initPromise = (async () => {
       try {
         const catalog = await api.listNodes()
@@ -133,6 +143,17 @@ export const useWorkflowStore = create((set, get) => ({
           catalogIndex: new Map(catalog.map((n) => [n.type, n])),
         })
         const list = await api.listWorkflows()
+
+        // On /workflows/:id the editor page owns hydration. Loading the
+        // most-recent workflow here would race it and can leave the canvas
+        // showing the wrong workflow.
+        if (preferredWorkflowId) return
+
+        // A route/user load may have started while the catalog/list were in
+        // flight. Let that newer request win instead of clobbering it with
+        // the most-recent workflow from this list.
+        if (loadSeq !== loadSeqAtStart) return
+
         // Keep loading=true until load/createNew finishes: showing the
         // canvas early lets edits race with the workflow hydration and
         // get clobbered (e.g. the first setName is lost).
@@ -148,6 +169,9 @@ export const useWorkflowStore = create((set, get) => ({
   async listVersions(workflowId) {
     try {
       const res = await api.listVersions(workflowId)
+      // A version response for the previous workflow must not leak into the
+      // history drawer after a switch.
+      if (get().workflow?.id !== workflowId) return
       const list = Array.isArray(res) ? res : (res?.data || [])
       set({ versions: list })
     } catch {
@@ -162,12 +186,15 @@ export const useWorkflowStore = create((set, get) => ({
       set({ previewVersion: null, previewLoading: false })
       return
     }
+    const workflowId = workflow.id
     set({ previewLoading: true })
     try {
-      const res = await api.getVersion(workflow.id, versionNum)
+      const res = await api.getVersion(workflowId, versionNum)
+      if (get().workflow?.id !== workflowId) return
       const data = res?.data || res
       set({ previewVersion: data, previewLoading: false })
     } catch (err) {
+      if (get().workflow?.id !== workflowId) return
       set({ previewLoading: false, error: `Failed to load version: ${err.message}` })
     }
   },
@@ -179,6 +206,7 @@ export const useWorkflowStore = create((set, get) => ({
   async rollbackVersion(workflowId, version) {
     try {
       const res = await api.rollbackVersion(workflowId, { version })
+      if (get().workflow?.id !== workflowId) return null
       const data = res?.data || res
       const { nodes, edges } = toReactFlow(data)
       const decor = readDecorations(data)
@@ -208,17 +236,33 @@ export const useWorkflowStore = create((set, get) => ({
       comments: [],
       groups: [],
       edgeLabels: {},
+      versions: [],
+      previewVersion: null,
+      previewLoading: false,
+      generated: null,
       savedAt: new Date(),
       loading: false,
+      saving: false,
+      error: null,
+      _dirty: false,
     })
+    useUiStore.getState().closeNodeEditor()
+    useUiStore.getState().selectNode(null)
     get()._history.reset()
     set({ canUndo: false, canRedo: false })
     return wf
   },
 
   async load(id) {
-    const wf = await api.getWorkflow(id)
-    let { nodes, edges } = toReactFlow(wf)
+    // Rapid A -> B -> C navigation can resolve out of order. Only the most
+    // recent load may hydrate the canvas; older responses are discarded.
+    const requestId = ++loadSeq
+    clearTimeout(saveTimer)
+    set({ loading: true, saving: false, error: null })
+    try {
+      const wf = await api.getWorkflow(id)
+      if (requestId !== loadSeq) return null
+      let { nodes, edges } = toReactFlow(wf)
     // Migrate legacy Salesforce nodes with operation 'execute' (engine generic) → valid curated op + upgrade Account Get Many SOQL to include Type/LastModifiedDate for Table
     let needsSave = false
     nodes = nodes.map(n => {
@@ -247,13 +291,42 @@ export const useWorkflowStore = create((set, get) => ({
       }
       return n
     })
-    if (needsSave && get().autoSave) setTimeout(() => get().save().catch(()=>{}), 600)
-    else if (needsSave) set({ _dirty: true, savedAt: null })
-    const decor = readDecorations(wf)
-    set({ workflow: wf, nodes, edges, ...decor, loading: false, savedAt: new Date() })
-    get()._history.reset()
-    set({ canUndo: false, canRedo: false })
-    get().listVersions(id).catch(() => {})
+      if (needsSave && get().autoSave) {
+        saveTimer = setTimeout(() => get().save().catch(()=>{}), 600)
+      }
+      const decor = readDecorations(wf)
+      set({
+        workflow: wf,
+        nodes,
+        edges,
+        ...decor,
+        loading: false,
+        saving: false,
+        error: null,
+        savedAt: needsSave ? null : new Date(),
+        // A freshly loaded workflow is clean. Migration edits above may
+        // legitimately need saving and therefore keep it dirty.
+        _dirty: Boolean(needsSave),
+        _editSeq: (get()._editSeq || 0) + 1,
+        versions: [],
+        previewVersion: null,
+        previewLoading: false,
+        generated: null,
+      })
+      useUiStore.getState().closeNodeEditor()
+      useUiStore.getState().selectNode(null)
+      useUiStore.getState().closeHistoryDrawer()
+      get()._history.reset()
+      set({ canUndo: false, canRedo: false })
+      get().listVersions(id).catch(() => {})
+      return wf
+    } catch (err) {
+      // A superseded request failed after a newer one succeeded; do not
+      // surface its error or clear the new workflow's loading state.
+      if (requestId !== loadSeq) return null
+      set({ loading: false, saving: false, error: err.message })
+      throw err
+    }
   },
 
   async deleteWorkflow(id) {
@@ -758,36 +831,44 @@ export const useWorkflowStore = create((set, get) => ({
   async toggleActive() {
     const { workflow } = get()
     if (!workflow?.id) return
-    const result = await api.setActive(workflow.id, !workflow.active)
-    set({ workflow: { ...workflow, active: result.active } })
+    const workflowId = workflow.id
+    const result = await api.setActive(workflowId, !workflow.active)
+    if (get().workflow?.id !== workflowId) return result
+    set({ workflow: { ...get().workflow, active: result.active } })
+    return result
   },
 
   async setActive(active) {
     const { workflow } = get()
     if (!workflow?.id) return
-    const result = await api.setActive(workflow.id, Boolean(active))
-    set({ workflow: { ...workflow, active: result.active } })
+    const workflowId = workflow.id
+    const result = await api.setActive(workflowId, Boolean(active))
+    if (get().workflow?.id !== workflowId) return result
+    set({ workflow: { ...get().workflow, active: result.active } })
     return result
   },
 
   async togglePinned() {
     const { workflow } = get()
     if (!workflow?.id) return
+    const workflowId = workflow.id
     const currentPinned = Boolean(workflow.pinned || workflow.settings?.pinned)
     const nextPinned = !currentPinned
     try {
-      await api.setPinned(workflow.id, nextPinned)
+      await api.setPinned(workflowId, nextPinned)
     } catch {
       // fallback
     }
-    const settings = { ...(workflow.settings || {}), pinned: nextPinned }
     try {
       const stored = JSON.parse(localStorage.getItem('pinned_workflows') || '[]')
       const s = new Set(Array.isArray(stored) ? stored : [])
-      if (nextPinned) s.add(workflow.id); else s.delete(workflow.id)
+      if (nextPinned) s.add(workflowId); else s.delete(workflowId)
       localStorage.setItem('pinned_workflows', JSON.stringify([...s]))
     } catch (err) { console.error('[flowsmith] stores/workflowStore.js', err) }
-    set({ workflow: { ...workflow, pinned: nextPinned, settings } })
+    if (get().workflow?.id !== workflowId) return
+    const current = get().workflow
+    const settings = { ...(current.settings || {}), pinned: nextPinned }
+    set({ workflow: { ...current, pinned: nextPinned, settings } })
   },
 
   setWorkflowSettings(patch) {
@@ -816,16 +897,32 @@ export const useWorkflowStore = create((set, get) => ({
       groups,
       edgeLabels,
     })
+    const savedWorkflowId = workflow.id
+    const editSeqAtStart = get()._editSeq || 0
+    const loadSeqAtStart = loadSeq
     // Consume the dirty flag: any edit made while the request is in flight
-    // re-sets it (and arms a fresh timer), so completion only clears state
-    // if nothing changed underneath us.
+    // bumps _editSeq, so completion only clears state if nothing changed
+    // underneath us.
     set({ saving: true, error: null })
     try {
-      const saved = await api.saveWorkflow(workflow.id, payload)
-      set({ workflow: saved, savedAt: new Date(), saving: false, _dirty: false })
+      const saved = await api.saveWorkflow(savedWorkflowId, payload)
+      // The user may have switched workflows while the save was in flight.
+      // Never apply an old workflow's response over the newly loaded one.
+      if (loadSeq !== loadSeqAtStart) return saved
+      if (get().workflow?.id !== savedWorkflowId) return saved
+      const hasNewerEdits = (get()._editSeq || 0) !== editSeqAtStart
+      set({
+        workflow: saved,
+        savedAt: hasNewerEdits ? get().savedAt : new Date(),
+        saving: false,
+        _dirty: hasNewerEdits,
+      })
+      if (hasNewerEdits && get().autoSave) scheduleSave()
       return saved
     } catch (err) {
-      set({ saving: false, error: err.message, _dirty: true })
+      if (loadSeq === loadSeqAtStart && get().workflow?.id === savedWorkflowId) {
+        set({ saving: false, error: err.message, _dirty: true })
+      }
       throw err
     }
   },
@@ -901,7 +998,12 @@ function pruneEmptyGroups(get, set) {
 }
 
 function scheduleSave() {
-  useWorkflowStore.setState({ _dirty: true, savedAt: null })
+  const current = useWorkflowStore.getState()
+  useWorkflowStore.setState({
+    _dirty: true,
+    savedAt: null,
+    _editSeq: (current._editSeq || 0) + 1,
+  })
   clearTimeout(saveTimer)
   // Auto-save is disabled by default: only manual save via Save button or Ctrl+S
   if (!useWorkflowStore.getState().autoSave) {

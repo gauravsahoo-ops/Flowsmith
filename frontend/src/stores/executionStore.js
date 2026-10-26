@@ -170,6 +170,7 @@ export const useExecutionStore = create((set, get) => ({
   results: null,
   socket: null,
   pollTimer: null,
+  _loadSeq: 0,
 
   // Phase 12 (premium editor): per-node last-run summary for the canvas
   // previews — {status, durationMs, inputCount, outputCount, error}.
@@ -208,9 +209,12 @@ export const useExecutionStore = create((set, get) => ({
   },
 
   async load(id) {
-    // Open any past (or still-running) execution into the inspector.
+    // Open any past (or still-running) execution into the inspector. A
+    // workflow switch can start several loads; only the newest may apply.
+    const requestId = (get()._loadSeq || 0) + 1
     get().close()
     set({
+      _loadSeq: requestId,
       executionId: id,
       running: false,
       status: null,
@@ -223,14 +227,17 @@ export const useExecutionStore = create((set, get) => ({
       error: null,
       pauseState: null,
       approval: null,
+      results: null,
     })
     let data
     try {
       data = await api.getExecution(id)
     } catch (err) {
+      if (get()._loadSeq !== requestId) return
       set({ status: 'failed', error: { code: 'LOAD_FAILED', message: err.message } })
       return
     }
+    if (get()._loadSeq !== requestId) return
     const live = data.status === 'running' || data.status === 'cancelling' || data.status === 'queued'
     set({
       status: data.status,
@@ -250,7 +257,10 @@ export const useExecutionStore = create((set, get) => ({
   },
 
   async run(workflowId) {
+    const requestId = (get()._loadSeq || 0) + 1
+    get().close()
     set({
+      _loadSeq: requestId,
       running: true,
       status: 'running',
       nodeStatuses: {},
@@ -266,9 +276,11 @@ export const useExecutionStore = create((set, get) => ({
     })
     try {
       const { execution_id } = await api.run(workflowId)
+      if (get()._loadSeq !== requestId) return
       set({ executionId: execution_id })
       get().connect(execution_id)
     } catch (err) {
+      if (get()._loadSeq !== requestId) return
       set({ running: false, status: 'failed', error: err.message })
       if (useUiStore.getState().soundEffects) {
         playChime('error')
@@ -279,7 +291,10 @@ export const useExecutionStore = create((set, get) => ({
   async retry() {
     const { executionId } = get()
     if (!executionId) return
+    const requestId = (get()._loadSeq || 0) + 1
+    get().close()
     set({
+      _loadSeq: requestId,
       running: true,
       status: 'running',
       nodeStatuses: {},
@@ -294,9 +309,11 @@ export const useExecutionStore = create((set, get) => ({
     })
     try {
       const { execution_id } = await api.retry(executionId)
+      if (get()._loadSeq !== requestId) return
       set({ executionId: execution_id })
       get().connect(execution_id)
     } catch (err) {
+      if (get()._loadSeq !== requestId) return
       set({ running: false, status: 'failed', error: err.message })
     }
   },
@@ -304,6 +321,7 @@ export const useExecutionStore = create((set, get) => ({
   clear() {
     get().close()
     set({
+      _loadSeq: (get()._loadSeq || 0) + 1,
       executionId: null,
       status: null,
       nodeStatuses: {},
@@ -314,13 +332,16 @@ export const useExecutionStore = create((set, get) => ({
       version: null,
       error: null,
       running: false,
+      results: null,
+      pauseState: null,
+      approval: null,
     })
   },
 
   connect(id) {
     get().close()
     const seq = (get()._connectSeq || 0) + 1
-    set({ _connectSeq: seq })
+    set({ _connectSeq: seq, executionId: id })
     ;(async () => {
       const ticket = await fetchWsTicket()
       if (get()._connectSeq !== seq) return // superseded by close()/newer connect
@@ -364,6 +385,7 @@ export const useExecutionStore = create((set, get) => ({
   },
 
   onEvent(id, msg) {
+    if (get().executionId !== id) return
     let ev
     try {
       ev = JSON.parse(msg.data)
@@ -415,8 +437,10 @@ export const useExecutionStore = create((set, get) => ({
   },
 
   async loadTrace(id, retries = 3) {
+    if (get().executionId !== id) return
     try {
       const data = await api.getExecution(id)
+      if (get().executionId !== id) return
       // If the trace is empty but we expect data (execution is terminal),
       // retry — the DB commit may not have propagated yet.
       const hasTrace = Array.isArray(data.trace) && data.trace.length > 0
@@ -446,6 +470,7 @@ export const useExecutionStore = create((set, get) => ({
     try {
       set({ status: 'cancelling' })
       const res = await api.cancel(executionId)
+      if (get().executionId !== executionId) return
       const data = res?.data || res
       if (data?.status === 'cancelled') {
         const batchHandle = get().rafBatchHandle
@@ -460,13 +485,15 @@ export const useExecutionStore = create((set, get) => ({
       }
     } catch {
       // already finished or error; the stream/poll picks up the real status
-      get().poll(executionId)
+      if (get().executionId === executionId) get().poll(executionId)
     }
   },
 
   async poll(id) {
+    if (get().executionId !== id) return
     try {
       const data = await api.getExecution(id)
+      if (get().executionId !== id) return
       set({
         status: data.status,
         nodeStatuses: data.node_statuses || {},
@@ -495,6 +522,7 @@ export const useExecutionStore = create((set, get) => ({
         get().loadTrace(id)
       }
     } catch (err) {
+      if (get().executionId !== id) return
       const retryCount = (get()._pollRetryCount || 0) + 1
       set({ _pollRetryCount: retryCount })
       if (retryCount > 10) {
@@ -506,6 +534,7 @@ export const useExecutionStore = create((set, get) => ({
   },
 
   schedulePoll(id) {
+    if (get().executionId !== id) return
     const { pollTimer } = get()
     if (pollTimer) clearTimeout(pollTimer)
     set({ pollTimer: setTimeout(() => get().poll(id), 500) })

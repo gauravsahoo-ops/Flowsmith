@@ -20,8 +20,22 @@ vi.mock('../api', () => ({ api: mockApi }))
 beforeEach(() => {
   vi.clearAllMocks()
   resetInit()
-  useWorkflowStore.setState({ nodes: [], edges: [], workflow: null })
-  useUiStore.setState({ selectedNodeId: null })
+  useWorkflowStore.setState({
+    nodes: [],
+    edges: [],
+    workflow: null,
+    loading: false,
+    saving: false,
+    savedAt: null,
+    error: null,
+    versions: [],
+    previewVersion: null,
+    previewLoading: false,
+    generated: null,
+    _dirty: false,
+    _editSeq: 0,
+  })
+  useUiStore.setState({ selectedNodeId: null, nodeEditorOpen: false })
 })
 
 function add(type = 'set_data', x = 0) {
@@ -267,6 +281,71 @@ describe('load / refresh', () => {
     expect(state.loading).toBe(false)
   })
 
+  it('clears dirty state and stale editor selection when loading another workflow', async () => {
+    const previous = { id: 'wf_old', name: 'Old', version: 1, nodes: [], connections: [], settings: {} }
+    const next = { id: 'wf_new', name: 'New', version: 1, nodes: [], connections: [], settings: {} }
+    useWorkflowStore.setState({ workflow: previous, _dirty: true })
+    useUiStore.setState({ selectedNodeId: 'set_data_1', nodeEditorOpen: true })
+    mockApi.getWorkflow.mockResolvedValue(next)
+
+    await useWorkflowStore.getState().load('wf_new')
+
+    expect(useWorkflowStore.getState()._dirty).toBe(false)
+    expect(useWorkflowStore.getState().workflow.id).toBe('wf_new')
+    expect(useUiStore.getState().selectedNodeId).toBeNull()
+    expect(useUiStore.getState().nodeEditorOpen).toBe(false)
+  })
+
+  it('ignores an out-of-order response when switching A -> B quickly', async () => {
+    let resolveA
+    let resolveB
+    const wfA = { id: 'wf_a', name: 'A', version: 1, nodes: [], connections: [], settings: {} }
+    const wfB = { id: 'wf_b', name: 'B', version: 1, nodes: [], connections: [], settings: {} }
+    mockApi.getWorkflow.mockImplementation((id) => new Promise((resolve) => {
+      if (id === 'wf_a') resolveA = resolve
+      else resolveB = resolve
+    }))
+
+    const loadA = useWorkflowStore.getState().load('wf_a')
+    const loadB = useWorkflowStore.getState().load('wf_b')
+    resolveB(wfB)
+    await loadB
+    resolveA(wfA)
+    await expect(loadA).resolves.toBeNull()
+
+    expect(useWorkflowStore.getState().workflow.id).toBe('wf_b')
+    expect(useWorkflowStore.getState().loading).toBe(false)
+  })
+
+  it('does not let a save response overwrite the newly selected workflow', async () => {
+    const wfA = { id: 'wf_a', name: 'A', version: 1, nodes: [], connections: [], settings: {} }
+    const wfB = { id: 'wf_b', name: 'B', version: 1, nodes: [], connections: [], settings: {} }
+    let finishSave
+    useWorkflowStore.setState({ workflow: wfA, nodes: [], edges: [], _dirty: true })
+    mockApi.saveWorkflow.mockImplementation(() => new Promise((resolve) => { finishSave = resolve }))
+
+    const savePromise = useWorkflowStore.getState().save()
+    useWorkflowStore.setState({ workflow: wfB, nodes: [], edges: [] })
+    finishSave({ ...wfA, version: 2 })
+    await savePromise
+
+    expect(useWorkflowStore.getState().workflow.id).toBe('wf_b')
+  })
+
+  it('keeps the dirty flag when an edit happens while a save is in flight', async () => {
+    const wf = { id: 'wf_a', name: 'A', version: 1, nodes: [], connections: [], settings: {} }
+    let finishSave
+    useWorkflowStore.setState({ workflow: wf, nodes: [], edges: [], _dirty: false, _editSeq: 0 })
+    mockApi.saveWorkflow.mockImplementation(() => new Promise((resolve) => { finishSave = resolve }))
+
+    const savePromise = useWorkflowStore.getState().save()
+    useWorkflowStore.getState().setName('Edited during save')
+    finishSave({ ...wf, name: 'A', version: 2 })
+    await savePromise
+
+    expect(useWorkflowStore.getState()._dirty).toBe(true)
+  })
+
   it('init reloads the most recent workflow after a browser refresh', async () => {
     const wf = { id: 'wf_1', name: 'Refreshed', version: 3, active: false, nodes: [], connections: [], settings: {} }
     mockApi.listNodes.mockResolvedValue([])
@@ -281,6 +360,36 @@ describe('load / refresh', () => {
     expect(mockApi.getWorkflow).toHaveBeenCalledWith('wf_1')
     expect(state.workflow.id).toBe('wf_1')
     expect(state.savedAt).not.toBeNull()
+  })
+
+  it('does not auto-load the first workflow when the route supplies a workflow id', async () => {
+    const first = { id: 'wf_first', name: 'First', version: 1, nodes: [], connections: [], settings: {} }
+    mockApi.listNodes.mockResolvedValue([])
+    mockApi.listWorkflows.mockResolvedValue([first])
+    useWorkflowStore.setState({ loading: true, workflow: null })
+
+    await useWorkflowStore.getState().init('wf_route')
+
+    expect(mockApi.getWorkflow).not.toHaveBeenCalled()
+  })
+
+  it('does not let init auto-load the first workflow over a route-specific load', async () => {
+    let finishList
+    const first = { id: 'wf_first', name: 'First', version: 1, nodes: [], connections: [], settings: {} }
+    const route = { id: 'wf_route', name: 'Route', version: 1, nodes: [], connections: [], settings: {} }
+    mockApi.listNodes.mockResolvedValue([])
+    mockApi.listWorkflows.mockImplementation(() => new Promise((resolve) => { finishList = resolve }))
+    mockApi.getWorkflow.mockResolvedValue(route)
+
+    const initPromise = useWorkflowStore.getState().init()
+    await vi.waitFor(() => expect(finishList).toBeDefined())
+    await useWorkflowStore.getState().load('wf_route')
+    finishList([first])
+    await initPromise
+
+    expect(useWorkflowStore.getState().workflow.id).toBe('wf_route')
+    expect(mockApi.getWorkflow).toHaveBeenCalledTimes(1)
+    expect(mockApi.getWorkflow).toHaveBeenCalledWith('wf_route')
   })
 
   it('init is idempotent under double invocation (StrictMode)', async () => {
@@ -314,6 +423,19 @@ describe('load / refresh', () => {
     await p
     expect(useWorkflowStore.getState().loading).toBe(false)
     expect(useWorkflowStore.getState().workflow.id).toBe('wf_1')
+  })
+})
+
+describe('discardUnsavedChanges', () => {
+  it('clears the dirty flag after the user confirms leaving the editor', () => {
+    const wf = { id: 'wf_1', name: 'A', version: 1, nodes: [], connections: [], settings: {} }
+    useWorkflowStore.setState({ workflow: wf, _dirty: true })
+    add('set_data', 0)
+
+    useWorkflowStore.getState().discardUnsavedChanges()
+
+    expect(useWorkflowStore.getState()._dirty).toBe(false)
+    expect(useWorkflowStore.getState().nodes).toHaveLength(1)
   })
 })
 

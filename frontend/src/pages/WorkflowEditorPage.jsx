@@ -1,4 +1,4 @@
-import React, { Component, useEffect, useState, isValidElement } from 'react'
+import React, { Component, useEffect, useRef, useState, isValidElement } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ReactFlowProvider } from '@xyflow/react'
 import TopBar from '../components/TopBar'
@@ -78,6 +78,10 @@ export default function WorkflowEditorPage() {
   const [debuggerOpen, setDebuggerOpen] = useState(false)
   const [smithOpen, setSmithOpen] = useState(false)
   const [testsOpen, setTestsOpen] = useState(false)
+  // Set when the user cancels the discard prompt. Navigate back to the
+  // current workflow without re-fetching it, otherwise the reload would
+  // overwrite the edits the user just chose to keep.
+  const skipReloadRef = useRef(false)
 
   const handleSetDebuggerOpen = (val) => {
     setDebuggerOpen((prev) => {
@@ -97,28 +101,56 @@ export default function WorkflowEditorPage() {
     toggleSidebar()
   }
 
+  const leaveEditor = (target) => {
+    const dirty = isDirty()
+    if (dirty && !confirmDiscard()) return false
+    if (dirty) useWorkflowStore.getState().discardUnsavedChanges()
+    navigate(target)
+    return true
+  }
+
   useEffect(() => {
     if (!id) return
-    // Ensure nodes panel is closed so workflow opens clean and full in fit view
-    useUiStore.getState().closeSidebar()
-    // If switching workflows with unsaved changes, guard
-    if (workflow && workflow.id !== id && isDirty()) {
+    if (skipReloadRef.current) {
+      skipReloadRef.current = false
+      return
+    }
+
+    let active = true
+    // Guard unsaved changes before touching the current editor's panels or
+    // selection. This also covers returning to the same workflow from the
+    // list after leaving it dirty: reloading would silently discard edits.
+    if (workflow && isDirty()) {
       if (!confirmDiscard()) {
-        navigate(`/workflows/${workflow.id}`, { replace: true })
+        if (workflow.id !== id) {
+          skipReloadRef.current = true
+          navigate(`/workflows/${workflow.id}`, { replace: true })
+        }
         return
       }
     }
+
+    // Ensure panels from the previous workflow are not left over.
+    useUiStore.getState().closeSidebar()
+    useUiStore.getState().closeHistoryDrawer()
+    useUiStore.getState().closeNodeEditor()
+    useUiStore.getState().selectNode(null)
+    setDebuggerOpen(false)
+    setSmithOpen(false)
+    setTestsOpen(false)
     setLocalError(null)
     // Clear any previous execution state immediately on workflow navigation
     useExecutionStore.getState().clear()
 
-    load(id).then(async () => {
+    load(id).then(async (loaded) => {
+      if (!active || !loaded || loaded.id !== id) return
       // When opening a workflow, attach to live execution or display latest execution status/errors
       try {
         const { api } = await import('../api')
         const { data } = await api.listExecutions({ workflowId: id, pageSize: 5 })
+        if (!active) return
         if (Array.isArray(data) && data.length > 0) {
-          const active = data.find(
+          const activeExecution = data.find(
             (e) =>
               (e.workflow_id === id || !e.workflow_id) &&
               (e.status === 'running' ||
@@ -126,15 +158,21 @@ export default function WorkflowEditorPage() {
                e.status === 'waiting' ||
                e.status === 'waiting_approval')
           )
-          const target = active || data[0]
-          if (target?.id) {
+          const target = activeExecution || data[0]
+          if (target?.id && active) {
             await useExecutionStore.getState().load(target.id)
           }
         }
       } catch {
         // non-blocking
       }
-    }).catch(e => setLocalError(e.message))
+    }).catch((e) => {
+      if (active) setLocalError(e.message)
+    })
+
+    return () => {
+      active = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
@@ -184,10 +222,13 @@ export default function WorkflowEditorPage() {
     }
   }, [id, workflow?.active])
 
-  // Leave the page: cleanly clear the execution state so navigating away
-  // never leaks sockets, poll timers, or execution state to other workflows.
+  // Leave the page: cleanly clear execution state and close editor overlays
+  // so navigating away never leaks sockets, poll timers, or a stale node
+  // editor from the workflow that was just closed.
   useEffect(() => () => {
     useExecutionStore.getState().clear()
+    useUiStore.getState().closeNodeEditor()
+    useUiStore.getState().selectNode(null)
   }, [])
 
   // Also ensure canvas is visible even if store still loading
@@ -217,8 +258,7 @@ export default function WorkflowEditorPage() {
       <div className="workflow-editor-shell">
         <TopBar
           onBack={() => {
-            if (isDirty() && !confirmDiscard()) return
-            navigate('/workflows')
+            leaveEditor('/workflows')
           }}
           onImportWorkflow={(imported) => {
             navigate(`/workflows/${imported.id}`)
@@ -234,19 +274,18 @@ export default function WorkflowEditorPage() {
             useUiStore.getState().toggleHistoryDrawer()
           }}
           onOpenExecutions={() => {
-            if (isDirty() && !confirmDiscard()) return
-            navigate(id ? `/executions?workflow_id=${id}` : '/executions')
+            leaveEditor(id ? `/executions?workflow_id=${id}` : '/executions')
           }}
-          onOpenApprovals={() => navigate('/approvals')}
-          onOpenTemplates={() => navigate('/templates')}
-          onOpenEnv={() => navigate('/variables')}
+          onOpenApprovals={() => leaveEditor('/approvals')}
+          onOpenTemplates={() => leaveEditor('/templates')}
+          onOpenEnv={() => leaveEditor('/variables')}
           onOpenTests={() => {
             if (debuggerOpen) setDebuggerOpen(false)
             if (smithOpen) setSmithOpen(false)
             closeHistoryDrawer()
             setTestsOpen(true)
           }}
-          onOpenRag={() => navigate('/knowledge')}
+          onOpenRag={() => leaveEditor('/knowledge')}
           onOpenSmith={() => {
             if (debuggerOpen) setDebuggerOpen(false)
             closeHistoryDrawer()

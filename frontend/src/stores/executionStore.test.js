@@ -29,12 +29,15 @@ const EXEC = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  useExecutionStore.getState().close()
   useExecutionStore.setState({
     executionId: null,
     status: null,
     nodeStatuses: {},
     trace: [],
     running: false,
+    results: null,
+    _loadSeq: 0,
     history: [],
     historyMeta: { page: 1, pageSize: 25, total: 0 },
     historyLoading: false,
@@ -100,6 +103,40 @@ describe('load', () => {
     await useExecutionStore.getState().load('exec_1')
     expect(useExecutionStore.getState().status).toBe('queued')
     expect(useExecutionStore.getState().running).toBe(true)
+  })
+
+  it('ignores an older execution response after a newer load starts', async () => {
+    let finishA
+    let finishB
+    mockApi.getExecution.mockImplementation((id) => new Promise((resolve) => {
+      if (id === 'exec_a') finishA = resolve
+      else finishB = resolve
+    }))
+
+    const loadA = useExecutionStore.getState().load('exec_a')
+    const loadB = useExecutionStore.getState().load('exec_b')
+    finishB({ ...EXEC, id: 'exec_b', status: 'success', trace: [{ node_id: 'b', status: 'success' }] })
+    await loadB
+    finishA({ ...EXEC, id: 'exec_a', status: 'failed', trace: [{ node_id: 'a', status: 'error' }] })
+    await loadA
+
+    const state = useExecutionStore.getState()
+    expect(state.executionId).toBe('exec_b')
+    expect(state.status).toBe('success')
+    expect(state.trace[0].node_id).toBe('b')
+  })
+
+  it('ignores a load response after clear()', async () => {
+    let finish
+    mockApi.getExecution.mockImplementation(() => new Promise((resolve) => { finish = resolve }))
+    const loadPromise = useExecutionStore.getState().load('exec_late')
+    useExecutionStore.getState().clear()
+    finish({ ...EXEC, id: 'exec_late', status: 'success' })
+    await loadPromise
+
+    const state = useExecutionStore.getState()
+    expect(state.executionId).toBeNull()
+    expect(state.status).toBeNull()
   })
 
   it('surfaces a load failure in the inspector', async () => {

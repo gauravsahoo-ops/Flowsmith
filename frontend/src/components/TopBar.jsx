@@ -182,6 +182,9 @@ export default function TopBar({
       const doc = JSON.parse(text)
       const imported = await api.importWorkflow(doc)
       if (imported?.id) {
+        // The discard prompt was already accepted above. Make the switch
+        // explicit so the editor guard does not ask a second time.
+        useWorkflowStore.getState().discardUnsavedChanges()
         if (onImportWorkflow) {
           onImportWorkflow(imported)
         } else {
@@ -219,15 +222,16 @@ export default function TopBar({
   }, [menuOpen])
 
   const handleToggleActive = async () => {
+    const workflowId = workflow?.id
     await toggleActive()
-    if (workflow?.id) {
-      try {
-        const { data } = await api.listExecutions({ workflowId: workflow.id, pageSize: 2 })
-        if (Array.isArray(data) && data[0]?.id) {
-          useExecutionStore.getState().load(data[0].id).catch(() => {})
-        }
-      } catch {}
-    }
+    if (!workflowId || useWorkflowStore.getState().workflow?.id !== workflowId) return
+    try {
+      const { data } = await api.listExecutions({ workflowId, pageSize: 2 })
+      if (useWorkflowStore.getState().workflow?.id !== workflowId) return
+      if (Array.isArray(data) && data[0]?.id) {
+        useExecutionStore.getState().load(data[0].id).catch(() => {})
+      }
+    } catch {}
   }
 
   // Auto-activate workflow when an activation run completes successfully
