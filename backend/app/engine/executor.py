@@ -1086,14 +1086,23 @@ async def _run_one(
         if _idem_key is not None:
             await ctx.storage.set(_idem_key, results[node.id])
         emit("node.completed", node_id=node.id, status="success")
+        batch_note = None
+        batch_meta = node_result.metadata or {}
+        if batch_meta.get("batches"):
+            batch_note = (
+                f"Processed {batch_meta.get('processed', 0)} item(s) in "
+                f"{len(batch_meta['batches'])} batch(es) of {batch_meta.get('batch_size')}."
+            )
         _add_step(
             result, node_id=node.id, node_type=node.type, status="success",
             started_at=started_wall,
             duration_ms=(time.monotonic() - started_mono) * 1000,
             inputs=inputs_capped,
             outputs=_cap(results[node.id]),
-            note=(f"Succeeded after {retries} retr{'y' if retries == 1 else 'ies'}."
-                  if retries > 0 else None),
+            note=(batch_note or (
+                f"Succeeded after {retries} retr{'y' if retries == 1 else 'ies'}."
+                if retries > 0 else None
+            )),
             attempts=retries + 1,
             retries=retries,
         )

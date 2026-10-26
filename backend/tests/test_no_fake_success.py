@@ -205,7 +205,7 @@ async def test_every_catalog_only_connector_fails_without_endpoint():
         if isinstance((connector := registry.get(info.connector_id)), ParityConnector)
     ]
 
-    assert len(catalog_only) >= 400, (
+    assert len(catalog_only) >= 100, (
         f"expected the full catalog-only set, found {len(catalog_only)}"
     )
 

@@ -43,14 +43,16 @@ async def test_loop_with_field_path():
 
 
 @pytest.mark.asyncio
-async def test_loop_batch_size():
-    """Limit output items to batch_size."""
+async def test_loop_batch_size_processes_all_items():
+    """batch_size groups items but never drops the remaining items."""
     node = LoopNode()
     ctx = _make_ctx()
     params = LoopParams(field="data", batch_size=2)
     items = [{"data": [1, 2, 3, 4, 5]}]
     result = await node.run(ctx, params, items)
-    assert len(result.output_items) == 2
+    assert len(result.output_items) == 5
+    assert result.metadata["batches"] == [2, 2, 1]
+    assert result.metadata["processed"] == 5
 
 
 @pytest.mark.asyncio
@@ -110,15 +112,14 @@ async def test_loop_direct_list_expression():
 
 @pytest.mark.asyncio
 async def test_loop_direct_list_with_batch_size():
-    """Direct list expression respects batch_size limit."""
+    """Direct list expressions keep every item and record batch boundaries."""
     node = LoopNode()
     ctx = _make_ctx()
     records = [{"item": 1}, {"item": 2}, {"item": 3}]
     params = LoopParams(field=records, batch_size=2)
     result = await node.run(ctx, params, [])
-    assert len(result.output_items) == 2
-    assert result.output_items[0] == {"item": 1}
-    assert result.output_items[1] == {"item": 2}
+    assert len(result.output_items) == 3
+    assert result.metadata["batches"] == [2, 1]
 
 
 @pytest.mark.asyncio

@@ -30,6 +30,8 @@ def _params(spec):
         "site": "acme",
         "workspace": "acme",
         "domain": "acme",
+        "app_id": "app1",
+        "app_name": "acme",
         "space_id": "space1",
         "environment_id": "master",
         "person_id": "p1",
@@ -42,6 +44,25 @@ def _params(spec):
         "cluster_id": "cluster1",
         "ticket_id": "ticket1",
         "bitlink": "bit.ly/abc",
+        "collection_id": "collection1",
+        "row_id": "row1",
+        "contact_id": "contact1",
+        "session_id": "session1",
+        "image_id": "image1",
+        "table_id": "table1",
+        "object_id": "object1",
+        "file_key": "file1",
+        "type": "person",
+        "name": "acme",
+        "host": "acme.example.com",
+        "campaign_id": "campaign1",
+        "email": "user@example.com",
+        "base_id": "base1",
+        "site_id": "site1",
+        "user_id": "user1",
+        "profile_id": "profile1",
+        "package": "lodash",
+        "project_id": "project1",
     }
     return {key: values[key] for key in spec.extra_required or () if key in values} | {
         key: values[key]
@@ -93,5 +114,5 @@ def test_batch_connectors_are_native_registry_entries():
         definition = registry.get_definition(key)
         assert definition is not None
         assert definition.metadata.get("implementation") == "native"
-        assert definition.metadata.get("batch") == "catalog_conversion_1"
+        assert definition.metadata.get("batch", "").startswith("catalog_conversion_")
         assert definition.operations

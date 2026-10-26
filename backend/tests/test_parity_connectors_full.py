@@ -49,7 +49,7 @@ def test_parity_connectors_registered_count():
 async def test_catalog_only_connector_requires_endpoint():
     """A catalog-only connector must fail loudly, never fabricate success."""
     reg = get_registry()
-    conn = reg.get("adalo")
+    conn = reg.get("discourse")
     assert conn is not None
 
     with pytest.raises(ConnectorError) as exc_info:
@@ -67,7 +67,7 @@ async def test_catalog_only_connector_requires_endpoint():
 async def test_catalog_only_connector_executes_with_explicit_endpoint():
     """With an explicit endpoint, the generic HTTP adapter performs real I/O."""
     reg = get_registry()
-    conn = reg.get("adalo")
+    conn = reg.get("discourse")
     assert conn is not None
 
     response = MagicMock()
@@ -89,7 +89,7 @@ async def test_catalog_only_connector_executes_with_explicit_endpoint():
         )
 
     assert result["status"] == "success"
-    assert result["connector_id"] == "adalo"
+    assert result["connector_id"] == "discourse"
     assert result["operation"] == "get"
     assert result["data"] == {"employees": [{"id": "EMP-100"}]}
     client.request.assert_awaited_once()
@@ -128,7 +128,7 @@ def test_catalog_only_scope_breakdown():
             scopes["trigger_alias"] += 1
         else:
             scopes["vendor"] += 1
-    assert scopes == {"vendor": 257, "trigger_alias": 95, "node_shadow": 73}
+    assert scopes == {"vendor": 143, "trigger_alias": 95, "node_shadow": 73}
 
 
 def test_catalog_only_definitions_are_labelled():
@@ -145,7 +145,7 @@ def test_catalog_only_definitions_are_labelled():
         assert definition.metadata.get("implementation") == "catalog_only"
         assert definition.metadata.get("requires_endpoint") is True
 
-    assert catalog_count >= 400
+    assert catalog_count >= 100
 
 
 def test_parity_connector_definitions_schema_validity():
@@ -178,7 +178,7 @@ async def test_every_catalog_only_connector_requires_endpoint():
             await connector.op_execute(operation, {})
         assert exc_info.value.code == ConnectorErrorCode.NOT_CONFIGURED.value
         assert "endpoint_url" in str(exc_info.value)
-    assert checked >= 400
+    assert checked >= 100
 
 
 @pytest.mark.asyncio
@@ -210,4 +210,4 @@ async def test_every_catalog_only_connector_executes_with_endpoint():
             )
             assert result["status"] == "success"
             assert result["connector_id"] == definition.connector_key
-        assert checked >= 400
+        assert checked >= 100

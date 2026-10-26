@@ -7,10 +7,10 @@ Flowsmith distinguishes three connector populations. They are **not** equivalent
 
 | Kind | Count | What it means |
 |---|---:|---|
-| **Native** | **86** | Hand-written, vendor-specific connector classes, plus batch-1 native REST connectors in `backend/app/connectors/vendor_rest.py` |
+| **Native** | **201** | Hand-written vendor connectors plus native REST batches in `vendor_rest.py` and `vendor_rest_batch*.py` |
 | **Generated** | **17** | Generated from OpenAPI descriptions under `backend/app/connectors/generated/` |
-| **Catalog-only** | **425** | Generic entries derived from the reference inventory. They have no vendor-specific execution code and require an explicit `endpoint_url`. |
-| **Total registered names** | **528** | The number the registry exposes to discovery/UI |
+| **Catalog-only** | **311** | Generic entries derived from the reference inventory. They have no vendor-specific execution code and require an explicit `endpoint_url`. |
+| **Total registered names** | **529** | The number the registry exposes to discovery/UI |
 
 These counts describe the built-in/factory registry. Admin-installed
 [connector packs](CONNECTOR_PACKS.md) add generated connectors at runtime and
@@ -24,11 +24,11 @@ vendor API has been live-certified.
 
 ### Catalog-only breakdown
 
-The 425 catalog-only registry entries are not 425 native-conversion targets:
+The 311 catalog-only registry entries are not 311 native-conversion targets:
 
 | Scope | Count | Meaning |
 |---|---:|---|
-| `vendor` | **257** | Remaining vendor-ish entries after batch 1 — native-conversion candidates |
+| `vendor` | **143** | Remaining vendor-ish entries after batches 1-22 — native-conversion candidates |
 | `trigger_alias` | **95** | Trigger aliases, not action connectors |
 | `node_shadow` | **73** | Names that already exist as workflow node classes |
 
@@ -47,14 +47,43 @@ client and cover host selection, required fields, auth failure, and operation
 metadata. **They are contract-tested, not live-certified**; live credentials
 are still required for vendor acceptance.
 
+Batch 2, implemented from the n8n node reference implementations, adds:
+
+`adalo`, `affinity`, `agile_crm`, `airtop`, `bannerbear`, `baserow`,
+`brandfetch`, `bubble`, `dhl`, and `figma`.
+
+Figma was not present in the original inventory, so it is a new native
+connector; the total registered names is now **529**.
+
+Batch 3, also mapped from n8n reference nodes, adds:
+
+`drift`, `dropcontact`, `egoi`, `emelia`, `harvest`, `lemlist`,
+`mailer_lite`, `mailgun`, `mattermost`, and `noco_d_b`.
+
+Batch 4 adds:
+
+`mailjet`, `message_bird`, `netlify`, `okta`, `onfleet`, `pushbullet`,
+`travis_ci`, `webflow`, `wise`, and `zammad`.
+
+Batch 5 adds:
+
+`open_ai`, `paddle`, `sms77`, `taiga`, `monica_crm`, `nasa`, `npm`,
+`marketstack`, `mailcheck`, and `mautic`.
+
+Parallel batches 6–22 added 75 more supported native connectors in
+`vendor_rest_batch6.py` through `vendor_rest_batch22.py`. Unsupported keys
+remain catalog-only with per-batch reasons; the main blockers are AWS SigV4,
+OAuth2 token exchange, body/form auth, wire protocols, and local-only
+transforms. **143 vendor candidates remain.**
+
 Declared operations by kind:
 
 | Kind | Declared operations |
 |---|---:|
-| Native | 501 |
+| Native | 1,177 |
 | Generated | 151 |
-| Catalog-only | 985 (generic HTTP operations) |
-| **Total** | **1,637** |
+| Catalog-only | 755 (generic HTTP operations) |
+| **Total** | **2,083** |
 
 ## What catalog-only means
 
@@ -76,10 +105,10 @@ This is enforced by:
 
 Use these numbers unless this document and the script are updated together:
 
-- **86 native connectors**
+- **201 native connectors**
 - **17 OpenAPI-generated connectors**
-- **425 catalog-only reference integrations**
-- **528 registered connector names**
+- **311 catalog-only reference integrations**
+- **529 registered connector names**
 
 Do not describe 528 as “528 native connectors” or “528 integrations equivalent to n8n.” Do not use 528 as proof of vendor coverage.
 

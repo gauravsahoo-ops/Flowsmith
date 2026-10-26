@@ -765,8 +765,40 @@ def register_builtin_connectors(generated_dir: str | None = None) -> None:
         (MQTTConnector(), build_mqtt_definition),
     ]
     from app.connectors.vendor_rest import build_vendor_connectors
+    from app.connectors.vendor_rest_batch6 import build_batch6_connectors
+    from app.connectors.vendor_rest_batch8 import build_batch8_connectors
+    from app.connectors.vendor_rest_batch9 import build_batch9_connectors
+    from app.connectors.vendor_rest_batch10 import build_batch10_connectors
+    from app.connectors.vendor_rest_batch11 import build_batch11_connectors
+    from app.connectors.vendor_rest_batch12 import build_batch12_connectors
+    from app.connectors.vendor_rest_batch13 import build_batch13_connectors
+    from app.connectors.vendor_rest_batch14 import build_batch14_connectors
+    from app.connectors.vendor_rest_batch15 import build_batch15_connectors
+    from app.connectors.vendor_rest_batch16 import build_batch16_connectors
+    from app.connectors.vendor_rest_batch17 import build_batch17_connectors
+    from app.connectors.vendor_rest_batch18 import build_batch18_connectors
+    from app.connectors.vendor_rest_batch19 import build_batch19_connectors
+    from app.connectors.vendor_rest_batch20 import build_batch20_connectors
+    from app.connectors.vendor_rest_batch21 import build_batch21_connectors
+    from app.connectors.vendor_rest_batch22 import build_batch22_connectors
 
     builtins.extend(build_vendor_connectors())
+    builtins.extend(build_batch6_connectors())
+    builtins.extend(build_batch8_connectors())
+    builtins.extend(build_batch9_connectors())
+    builtins.extend(build_batch10_connectors())
+    builtins.extend(build_batch11_connectors())
+    builtins.extend(build_batch12_connectors())
+    builtins.extend(build_batch13_connectors())
+    builtins.extend(build_batch14_connectors())
+    builtins.extend(build_batch15_connectors())
+    builtins.extend(build_batch16_connectors())
+    builtins.extend(build_batch17_connectors())
+    builtins.extend(build_batch18_connectors())
+    builtins.extend(build_batch19_connectors())
+    builtins.extend(build_batch20_connectors())
+    builtins.extend(build_batch21_connectors())
+    builtins.extend(build_batch22_connectors())
 
     with _builtin_reg_lock:
         registry = get_registry()

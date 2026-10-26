@@ -8,7 +8,8 @@ Parameters:
   - field: dot-path to a field within each input item (e.g. 'records'),
     or a direct expression (e.g. '{{ $json.records }}'), or drag-and-dropped
     array. If empty, input items themselves are treated as the value to iterate.
-  - batch_size: optional maximum number of items to emit (0 = unlimited).
+  - batch_size: optional grouping size for execution metadata; every item is
+    still emitted, so the loop never silently drops the tail of a list.
 """
 
 from __future__ import annotations
@@ -26,7 +27,11 @@ class LoopParams(BaseModel):
         default="",
         description="Field name (e.g. 'records') or expression (e.g. '{{ $json.records }}')",
     )
-    batch_size: int = Field(default=0, ge=0, description="Max items to emit (0 = unlimited)")
+    batch_size: int = Field(
+        default=0,
+        ge=0,
+        description="Grouping size for execution metadata; all input items are emitted (0 = no grouping)",
+    )
 
 
 @register
@@ -51,35 +56,41 @@ class LoopNode(BaseNode[LoopParams]):
             return NodeResult(output_items=[{}])
         output_items: list[dict[str, Any]] = []
 
-        # If params.field evaluated directly to a list (from expression like {{ $json.records }} or {{ $('...').records }})
-        if isinstance(params.field, list):
-            for element in params.field:
-                if isinstance(element, dict):
-                    output_items.append(element)
-                else:
-                    output_items.append({"value": element})
-                if params.batch_size > 0 and len(output_items) >= params.batch_size:
-                    break
+        def result_for(items: list[dict[str, Any]]) -> NodeResult:
+            batches = (
+                [
+                    len(items[index:index + params.batch_size])
+                    for index in range(0, len(items), params.batch_size)
+                ]
+                if params.batch_size > 0
+                else []
+            )
+            if batches:
+                logger = getattr(ctx, "logger", None)
+                if logger is not None:
+                    logger.info(
+                        "Loop Over Items processed %d item(s) in %d batch(es) of %d",
+                        len(items), len(batches), params.batch_size,
+                    )
             return NodeResult(
-                output_items=output_items,
-                output_by_handle={
-                    "main": output_items,
-                    "done": output_items,
-                    "loop": output_items,
+                output_items=items,
+                output_by_handle={"main": items, "done": items, "loop": items},
+                metadata={
+                    "batch_size": params.batch_size,
+                    "batches": batches,
+                    "processed": len(items),
                 },
             )
 
+        # If params.field evaluated directly to a list (from expression like {{ $json.records }} or {{ $('...').records }})
+        if isinstance(params.field, list):
+            for element in params.field:
+                output_items.append(element if isinstance(element, dict) else {"value": element})
+            return result_for(output_items)
+
         # If params.field is a single dict object
         if isinstance(params.field, dict):
-            output_items.append(params.field)
-            return NodeResult(
-                output_items=output_items,
-                output_by_handle={
-                    "main": output_items,
-                    "done": output_items,
-                    "loop": output_items,
-                },
-            )
+            return result_for([params.field])
 
         # If params.field is a string containing unresolved {{ ... }} expression
         if isinstance(params.field, str) and "{{" in params.field:
@@ -89,20 +100,8 @@ class LoopNode(BaseNode[LoopParams]):
                 resolved = expressions.resolve(params.field, eval_ctx)
                 if isinstance(resolved, list):
                     for element in resolved:
-                        if isinstance(element, dict):
-                            output_items.append(element)
-                        else:
-                            output_items.append({"value": element})
-                        if params.batch_size > 0 and len(output_items) >= params.batch_size:
-                            break
-                    return NodeResult(
-                        output_items=output_items,
-                        output_by_handle={
-                            "main": output_items,
-                            "done": output_items,
-                            "loop": output_items,
-                        },
-                    )
+                        output_items.append(element if isinstance(element, dict) else {"value": element})
+                    return result_for(output_items)
             except Exception:
                 pass
 
@@ -114,27 +113,13 @@ class LoopNode(BaseNode[LoopParams]):
 
             if isinstance(target, list):
                 for element in target:
-                    if isinstance(element, dict):
-                        output_items.append(element)
-                    else:
-                        output_items.append({"value": element})
+                    output_items.append(element if isinstance(element, dict) else {"value": element})
             elif isinstance(target, dict):
                 output_items.append(target)
             elif target is not None:
                 output_items.append({"value": target})
 
-            if params.batch_size > 0 and len(output_items) >= params.batch_size:
-                output_items = output_items[: params.batch_size]
-                break
-
-        return NodeResult(
-            output_items=output_items,
-            output_by_handle={
-                "main": output_items,
-                "done": output_items,
-                "loop": output_items,
-            },
-        )
+        return result_for(output_items)
 
 
 def _resolve_field(item: dict[str, Any], field: str) -> Any:
