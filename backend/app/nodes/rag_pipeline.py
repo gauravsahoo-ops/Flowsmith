@@ -88,20 +88,13 @@ class RAGParams(BaseModel):
     max_tokens: int | None = Field(default=None, ge=1, le=4000)
 
 
-# Module-level cache for the embedding model. The heavy embedding
-# dependency (`sentence-transformers`) is an optional extra
-# (backend/requirements-ai.txt): imported lazily at run time, so this
-# module always imports cleanly on a base install.
-_embedding_model: Any = None
-
-
+# Delegate to the shared, model-keyed cache in app.rag. The heavy
+# embedding dependency is still imported lazily only when a model is
+# first requested, and the wrapper remains monkeypatch-friendly for tests.
 def _get_embedding_model(model_name: str) -> Any:
-    global _embedding_model
-    if _embedding_model is None:
-        from sentence_transformers import SentenceTransformer  # pyright: ignore[reportMissingImports]
+    from app.rag import _get_embedding_model as shared_get_embedding_model
 
-        _embedding_model = SentenceTransformer(model_name)
-    return _embedding_model
+    return shared_get_embedding_model(model_name)
 
 
 def _embed_list(model: Any, texts: list[str]) -> list[list[float]]:
@@ -221,7 +214,13 @@ Answer using only the provided context. Cite the refs you used inline (e.g. [1])
 If the answer is not in the context, say you don't know."""
 
 
-def _resolve_collection(ctx: NodeContext, name: str):
+def _resolve_collection(
+    ctx: NodeContext,
+    name: str,
+    *,
+    dim: int | None = None,
+    embedding_model: str = "all-MiniLM-L6-v2",
+):
     """Tenant-safe collection resolution (Phase 18).
 
     With run identity (the normal worker path), collections resolve
@@ -258,7 +257,14 @@ def _resolve_collection(ctx: NodeContext, name: str):
                     workspace_id=ctx.workspace_id,
                     editable_workspaces={ctx.workspace_id} if ctx.workspace_id else set(),
                 ),
+                embedding_model=embedding_model,
             )
+        # The node writes vectors directly to the store; keep the registry's
+        # dimension in lockstep so API stats/query paths see the real store.
+        if rec.dim is None and dim is not None:
+            rec.dim = int(dim)
+            db.commit()
+            db.refresh(rec)
         return store, rec.store_name, rec
     finally:
         db.close()
@@ -314,7 +320,12 @@ class RAGPipelineNode(BaseNode[RAGParams]):
         # --- vector store phase (tenant-scoped since Phase 18) ----------
         try:
             try:
-                store, store_name, rec = _resolve_collection(ctx, params.collection_name)
+                store, store_name, rec = _resolve_collection(
+                    ctx,
+                    params.collection_name,
+                    dim=len(query_embedding),
+                    embedding_model=params.embedding_model,
+                )
             except VectorStoreUnavailable as e:
                 raise _store_unavailable(e) from e
             except ValueError as e:  # unknown backend configured
@@ -322,6 +333,14 @@ class RAGPipelineNode(BaseNode[RAGParams]):
                     str(e), code="UNKNOWN_VECTOR_STORE", node_id="rag_pipeline", retryable=False,
                 ) from e
             dim = rec.dim if (rec is not None and rec.dim) else len(query_embedding)
+            if rec is not None and rec.dim is not None and rec.dim != len(query_embedding):
+                raise NodeExecutionError(
+                    f"Collection '{params.collection_name}' uses embedding dimension "
+                    f"{rec.dim}, but the configured model produced {len(query_embedding)}.",
+                    code="EMBEDDING_DIMENSION_MISMATCH",
+                    node_id="rag_pipeline",
+                    retryable=False,
+                )
             handle = store.ensure_collection(store_name, dim)
 
             # Ingestion phase — stable doc ids make re-runs idempotent

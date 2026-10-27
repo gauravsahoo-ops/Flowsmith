@@ -231,6 +231,37 @@ def test_delete_deactivates_webhook_trigger(client):
         db.close()
 
 
+def test_delete_survives_invalid_unrelated_workflow_data(client):
+    """One malformed active workflow must not break trigger reconciliation."""
+    reg = register(client)
+    headers = auth_headers(reg["token"])
+    client.post("/api/workflows", json=make_workflow(), headers=headers)
+
+    db = get_session()
+    try:
+        db.add(WorkflowRecord(
+            id="wf_invalid_active",
+            user_id=reg["user"]["id"],
+            name="Invalid legacy workflow",
+            version=1,
+            data={},
+            active=True,
+        ))
+        db.commit()
+    finally:
+        db.close()
+
+    assert client.delete("/api/workflows/wf_1", headers=headers).status_code == 204
+
+    db = get_session()
+    try:
+        invalid = db.get(WorkflowRecord, "wf_invalid_active")
+        assert invalid is not None
+        assert invalid.active is True
+    finally:
+        db.close()
+
+
 def test_delete_is_audited(client):
     headers = _setup(client)
     client.post("/api/workflows", json=make_workflow(), headers=headers)

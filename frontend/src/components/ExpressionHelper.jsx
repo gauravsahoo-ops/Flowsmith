@@ -44,11 +44,22 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
     api
       .expressionContext(workflowId)
       .then((data) => alive && setCtx(data))
-      .catch((err) => alive && setError(err.message))
+      .catch((err) => {
+        if (alive) console.debug('[flowsmith] expression context unavailable', err)
+      })
     return () => {
       alive = false
     }
   }, [isOpen, workflowId, ctx])
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
 
   // Real-time live expression evaluation
   const evaluateExpression = useCallback(
@@ -60,6 +71,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
       }
       setPreviewLoading(true)
       setPreviewError(null)
+      setPreviewResult(null)
       try {
         const res = await api.previewExpression(workflowId, {
           expression: expr,
@@ -130,13 +142,34 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
     return ctx.env_keys.filter((k) => k.toLowerCase().includes(filter.toLowerCase()))
   }, [ctx, filter])
 
+  const filteredBaseVars = useMemo(() => {
+    if (!filter) return BASE_VARS
+    const query = filter.toLowerCase()
+    return BASE_VARS.filter(
+      (v) => v.name.toLowerCase().includes(query) || v.hint.toLowerCase().includes(query)
+    )
+  }, [filter])
+
+  const hasSearchResults =
+    filteredBaseVars.length > 0 ||
+    filteredNodes.length > 0 ||
+    filteredEnvs.length > 0 ||
+    filteredPipes.length > 0
+
+  const hasPreviewValue = Boolean(
+    previewResult && (previewResult.resolved !== undefined || previewResult.value !== undefined)
+  )
+  const previewValue = previewResult?.resolved !== undefined
+    ? previewResult.resolved
+    : previewResult?.value
+
   return (
     <div className="expr-helper-container">
       <button
         type="button"
         className="expr-trigger-btn"
         onClick={() => setIsOpen(true)}
-        title="Open Visual Expression Builder & Live Evaluator"
+        title="Open Expression Builder & Live Preview"
       >
         <span className="expr-fx-icon">fx</span>
         <span>Expression Builder</span>
@@ -145,15 +178,21 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
       {isOpen &&
         createPortal(
           <div className="expr-modal-overlay" onClick={() => setIsOpen(false)}>
-            <div className="expr-modal-window" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="expr-modal-window"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Expression Builder"
+            >
             {/* Header */}
             <div className="expr-modal-header">
               <div className="expr-header-title">
                 <span className="expr-fx-badge">fx</span>
                 <div>
-                  <h3>Expression Evaluator</h3>
+                  <h3>Expression Builder</h3>
                   <span className="expr-sub-hint">
-                    Safe dynamic expressions with real-time live preview
+                    Build and preview expressions against real upstream data
                   </span>
                 </div>
               </div>
@@ -162,6 +201,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                 className="expr-close-btn"
                 onClick={() => setIsOpen(false)}
                 title="Close (Esc)"
+                aria-label="Close expression builder"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -173,10 +213,15 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
               {/* Left Column: Variables & Pipes Tree */}
               <div className="expr-sidebar">
                 <div className="expr-search-box">
+                  <svg className="expr-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
                   <input
                     type="text"
                     className="expr-search-input"
                     placeholder="Search variables or pipes…"
+                    aria-label="Search variables and pipes"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                   />
@@ -185,6 +230,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                       type="button"
                       className="expr-search-clear"
                       onClick={() => setFilter("")}
+                      aria-label="Clear search"
                       style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -194,20 +240,23 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
 
                 <div className="expr-tree-scroll">
                   {/* Base Variables */}
-                  <div className="expr-group">
-                    <div className="expr-group-title">Variables</div>
-                    {BASE_VARS.map((v) => (
-                      <div
-                        key={v.name}
-                        className="expr-tree-item"
-                        onClick={() => insertSnippet(v.snippet)}
-                        title={`Click to insert: ${v.snippet}`}
-                      >
-                        <span className="expr-item-code">{v.name}</span>
-                        <span className="expr-item-desc">{v.hint}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {filteredBaseVars.length > 0 && (
+                    <div className="expr-group">
+                      <div className="expr-group-title">Variables</div>
+                      {filteredBaseVars.map((v) => (
+                        <button
+                          type="button"
+                          key={v.name}
+                          className="expr-tree-item"
+                          onClick={() => insertSnippet(v.snippet)}
+                          title={`Click to insert: ${v.snippet}`}
+                        >
+                          <span className="expr-item-code">{v.name}</span>
+                          <span className="expr-item-desc">{v.hint}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Nodes in Workflow */}
                   {filteredNodes.length > 0 && (
@@ -216,7 +265,8 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                       {filteredNodes.map((n) => {
                         const snippet = `{{ $node["${n.id}"].json }}`
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={n.id}
                             className="expr-tree-item"
                             onClick={() => insertSnippet(snippet)}
@@ -224,7 +274,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                           >
                             <span className="expr-item-code">{n.name || n.id}</span>
                             <span className="expr-item-badge">{n.type}</span>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
@@ -237,34 +287,44 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                       {filteredEnvs.map((k) => {
                         const snippet = `{{ $env.${k} }}`
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={k}
                             className="expr-tree-item"
                             onClick={() => insertSnippet(snippet)}
                             title={`Click to insert: ${snippet}`}
                           >
                             <span className="expr-item-code">$env.{k}</span>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
                   )}
 
                   {/* Transformation Pipes */}
-                  <div className="expr-group">
-                    <div className="expr-group-title">Pipes & Transforms</div>
-                    {filteredPipes.map((p) => (
-                      <div
-                        key={p.name}
-                        className="expr-tree-item pipe-item"
-                        onClick={() => insertSnippet(p.snippet)}
-                        title={`Click to append pipe: ${p.snippet}`}
-                      >
-                        <span className="expr-item-code">{p.snippet}</span>
-                        <span className="expr-item-desc">{p.hint}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {filteredPipes.length > 0 && (
+                    <div className="expr-group">
+                      <div className="expr-group-title">Pipes & Transforms</div>
+                      {filteredPipes.map((p) => (
+                        <button
+                          type="button"
+                          key={p.name}
+                          className="expr-tree-item pipe-item"
+                          onClick={() => insertSnippet(p.snippet)}
+                          title={`Click to append pipe: ${p.snippet}`}
+                        >
+                          <span className="expr-item-code">{p.snippet}</span>
+                          <span className="expr-item-desc">{p.hint}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {filter && !hasSearchResults && (
+                    <div className="expr-empty-search">
+                      No variables, nodes, or pipes match “{filter}”.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -272,26 +332,27 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
               <div className="expr-main-panel">
                 <div className="expr-editor-wrap">
                   <div className="expr-editor-top">
-                    <label className="expr-field-label">Expression Input</label>
+                    <label className="expr-field-label" htmlFor="expr-expression-input">Expression</label>
                     <div className="expr-quick-wrappers">
                       <button
                         type="button"
                         className="expr-mini-btn"
                         onClick={() => setExpression('{{ $json }}')}
                       >
-                        Reset $json
+                        Use $json
                       </button>
                       <button
                         type="button"
                         className="expr-mini-btn"
                         onClick={() => insertSnippet('{{ }}')}
                       >
-                        Wrap &#123;&#123; &#125;&#125;
+                        Wrap
                       </button>
                     </div>
                   </div>
 
                   <textarea
+                    id="expr-expression-input"
                     className="expr-textarea"
                     rows={4}
                     value={expression}
@@ -304,7 +365,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                 {/* Live Preview Section */}
                 <div className="expr-preview-wrap">
                   <div className="expr-preview-header">
-                    <span className="expr-preview-label">Live Evaluation Preview</span>
+                    <span className="expr-preview-label">Live preview</span>
                     {previewLoading ? (
                       <span className="expr-loading-chip">Evaluating…</span>
                     ) : previewResult?.type ? (
@@ -312,7 +373,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                     ) : null}
                   </div>
 
-                  <div className="expr-preview-box">
+                  <div className="expr-preview-box" aria-live="polite">
                     {previewError ? (
                       <div className="expr-preview-err">
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{previewError}</span>
@@ -321,15 +382,17 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                       <div className="expr-preview-err">
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{previewResult.error}</span>
                       </div>
-                    ) : previewResult?.resolved !== undefined ? (
+                    ) : previewLoading && !hasPreviewValue ? (
+                      <div className="expr-preview-loading">Resolving against upstream data…</div>
+                    ) : hasPreviewValue ? (
                       <pre className="expr-preview-val">
-                        {typeof previewResult.resolved === 'object'
-                          ? JSON.stringify(previewResult.resolved, null, 2)
-                          : String(previewResult.resolved)}
+                        {typeof previewValue === 'object'
+                          ? JSON.stringify(previewValue, null, 2)
+                          : String(previewValue)}
                       </pre>
                     ) : (
                       <div className="expr-preview-empty">
-                        <span>Type an expression above with <code>&#123;&#123; ... &#125;&#125;</code> to preview its evaluated value</span>
+                        <span>Start with <code>&#123;&#123; $json &#125;&#125;</code> or choose a variable to preview its resolved value.</span>
                       </div>
                     )}
                   </div>
@@ -371,7 +434,7 @@ export default function ExpressionHelper({ workflowId, nodeId, initialExpression
                 )}
                 <button
                   type="button"
-                  className="expr-btn secondary"
+                  className={`expr-btn ${onApply ? 'secondary' : 'primary'}`}
                   onClick={() => setIsOpen(false)}
                 >
                   Done

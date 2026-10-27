@@ -204,7 +204,10 @@ class QueueWorker:
 
         # A waiting_approval execution's job is done: the row stays open
         # until resume/cancel (spec 25.3: executions are authoritative).
-        self.queue.complete(job.id, DONE if status in ("success", "cancelled", "timeout", "waiting_approval") else FAILED)
+        self.queue.complete(
+            job.id,
+            DONE if status in ("success", "cancelled", "timeout", "waiting_approval", "waiting_auth") else FAILED,
+        )
         return True
 
     async def _heartbeat(self, job_id: str) -> None:

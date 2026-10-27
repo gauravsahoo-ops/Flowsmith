@@ -1,0 +1,3291 @@
+{
+  "logos": {
+    "salesforce": {
+      "src": "/brand-logos/domain-salesforce-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Salesforce",
+      "color": null
+    },
+    "hubspot": {
+      "src": "/brand-logos/domain-hubspot-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "HubSpot",
+      "color": null
+    },
+    "dynamics_crm": {
+      "src": "/brand-logos/official-dynamics-crm.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft Dynamics 365",
+      "color": null
+    },
+    "google_calendar": {
+      "src": "/brand-logos/iconify-google-calendar.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Calendar",
+      "color": "#3c90ff"
+    },
+    "google_sheets": {
+      "src": "/brand-logos/simple-googlesheets.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google Sheets",
+      "color": "#34A853"
+    },
+    "gmail": {
+      "src": "/brand-logos/iconify-google-gmail-2020.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Gmail",
+      "color": "#4285f4"
+    },
+    "postgres": {
+      "src": "/brand-logos/iconify-postgresql.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "PostgreSQL",
+      "color": "#336791"
+    },
+    "mysql": {
+      "src": "/brand-logos/iconify-mysql-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "MySQL",
+      "color": "#00546b"
+    },
+    "google_drive": {
+      "src": "/brand-logos/iconify-google-drive.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Drive",
+      "color": "#ffe921"
+    },
+    "slack": {
+      "src": "/brand-logos/iconify-slack-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Slack API",
+      "color": "#e01e5a"
+    },
+    "msteams": {
+      "src": "/brand-logos/iconify-microsoft-teams.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Microsoft Teams",
+      "color": "#5059c9"
+    },
+    "outlook": {
+      "src": "/brand-logos/official-outlook.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft Outlook",
+      "color": null
+    },
+    "github": {
+      "src": "/brand-logos/iconify-github-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "GitHub",
+      "color": "#161614"
+    },
+    "notion": {
+      "src": "/brand-logos/iconify-notion-icon.svg",
+      "kind": "iconify",
+      "tone": "dark",
+      "label": "Notion",
+      "color": null
+    },
+    "jira": {
+      "src": "/brand-logos/iconify-jira.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Jira",
+      "color": "#2684ff"
+    },
+    "discord": {
+      "src": "/brand-logos/iconify-discord-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Discord",
+      "color": "#5865f2"
+    },
+    "stripe": {
+      "src": "/brand-logos/domain-stripe-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Stripe",
+      "color": null
+    },
+    "mongodb": {
+      "src": "/brand-logos/iconify-mongodb-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "MongoDB",
+      "color": "#01ec64"
+    },
+    "redis": {
+      "src": "/brand-logos/iconify-redis.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Redis",
+      "color": "#912626"
+    },
+    "airtable": {
+      "src": "/brand-logos/iconify-airtable.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Airtable",
+      "color": "#ffbf00"
+    },
+    "shopify": {
+      "src": "/brand-logos/iconify-shopify.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Shopify",
+      "color": "#95bf46"
+    },
+    "trello": {
+      "src": "/brand-logos/iconify-trello.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Trello",
+      "color": "#0091e6"
+    },
+    "asana": {
+      "src": "/brand-logos/iconify-asana-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Asana",
+      "color": "#f06a6a"
+    },
+    "linear": {
+      "src": "/brand-logos/iconify-linear-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Linear",
+      "color": "#222326"
+    },
+    "calendly": {
+      "src": "/brand-logos/simple-calendly.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Calendly",
+      "color": "#006BFF"
+    },
+    "gitlab": {
+      "src": "/brand-logos/iconify-gitlab-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "GitLab",
+      "color": "#fc6d26"
+    },
+    "zoom": {
+      "src": "/brand-logos/iconify-zoom.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Zoom",
+      "color": "#0b5cff"
+    },
+    "twilio": {
+      "src": "/brand-logos/iconify-twilio-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Twilio",
+      "color": "#f12e45"
+    },
+    "bitbucket": {
+      "src": "/brand-logos/iconify-bitbucket.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Bitbucket",
+      "color": "#2684ff"
+    },
+    "whatsapp": {
+      "src": "/brand-logos/iconify-whatsapp-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "WhatsApp",
+      "color": "#1faf38"
+    },
+    "clickup": {
+      "src": "/brand-logos/domain-clickup-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "ClickUp",
+      "color": null
+    },
+    "pipedrive": {
+      "src": "/brand-logos/domain-pipedrive-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Pipedrive",
+      "color": null
+    },
+    "dropbox": {
+      "src": "/brand-logos/iconify-dropbox.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Dropbox",
+      "color": "#0061ff"
+    },
+    "openai": {
+      "src": "/brand-logos/iconify-openai-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "OpenAI",
+      "color": null
+    },
+    "mailchimp": {
+      "src": "/brand-logos/iconify-mailchimp.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mailchimp",
+      "color": null
+    },
+    "quickbooks": {
+      "src": "/brand-logos/simple-quickbooks.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "QuickBooks",
+      "color": "#2CA01C"
+    },
+    "google_docs": {
+      "src": "/brand-logos/simple-googledocs.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google Docs",
+      "color": "#4285F4"
+    },
+    "pagerduty": {
+      "src": "/brand-logos/iconify-pagerduty.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "PagerDuty",
+      "color": "#06ac38"
+    },
+    "zendesk": {
+      "src": "/brand-logos/iconify-zendesk-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Zendesk",
+      "color": "#03363d"
+    },
+    "todoist": {
+      "src": "/brand-logos/iconify-todoist-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Todoist",
+      "color": "#e44332"
+    },
+    "brevo": {
+      "src": "/brand-logos/simple-brevo.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Brevo",
+      "color": "#0B996E"
+    },
+    "freshdesk": {
+      "src": "/brand-logos/domain-freshdesk-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Freshdesk",
+      "color": null
+    },
+    "monday": {
+      "src": "/brand-logos/domain-monday-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Monday.com",
+      "color": null
+    },
+    "supabase": {
+      "src": "/brand-logos/iconify-supabase.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Supabase",
+      "color": "#3ecf8e"
+    },
+    "resend": {
+      "src": "/brand-logos/iconify-resend-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Resend",
+      "color": null
+    },
+    "pinecone": {
+      "src": "/brand-logos/iconify-pinecone-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Pinecone",
+      "color": "#201d1e"
+    },
+    "sentry": {
+      "src": "/brand-logos/iconify-sentry-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Sentry",
+      "color": "#362d59"
+    },
+    "s3": {
+      "src": "/brand-logos/iconify-aws-s3.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS S3 / Object Storage",
+      "color": "#1b660f"
+    },
+    "servicenow": {
+      "src": "/brand-logos/domain-servicenow-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "ServiceNow",
+      "color": null
+    },
+    "sap": {
+      "src": "/brand-logos/iconify-sap.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "SAP S/4HANA",
+      "color": "#00aeef"
+    },
+    "workday": {
+      "src": "/brand-logos/domain-workday-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Workday",
+      "color": null
+    },
+    "netsuite": {
+      "src": "/brand-logos/domain-netsuite-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Oracle NetSuite ERP",
+      "color": null
+    },
+    "anthropic": {
+      "src": "/brand-logos/iconify-anthropic-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Anthropic Claude",
+      "color": "#181818"
+    },
+    "gemini": {
+      "src": "/brand-logos/iconify-google-gemini-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Gemini",
+      "color": "#00b95c"
+    },
+    "snowflake": {
+      "src": "/brand-logos/iconify-snowflake-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Snowflake Data Cloud",
+      "color": "#29b5e8"
+    },
+    "box": {
+      "src": "/brand-logos/iconify-box.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Box",
+      "color": "#0061d5"
+    },
+    "typeform": {
+      "src": "/brand-logos/iconify-typeform-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Typeform",
+      "color": "#262627"
+    },
+    "bigquery": {
+      "src": "/brand-logos/simple-googlebigquery.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google BigQuery",
+      "color": "#669DF6"
+    },
+    "sendgrid": {
+      "src": "/brand-logos/iconify-sendgrid-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Twilio SendGrid",
+      "color": "#3f72ab"
+    },
+    "intercom": {
+      "src": "/brand-logos/iconify-intercom-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Intercom",
+      "color": null
+    },
+    "docusign": {
+      "src": "/brand-logos/domain-docusign-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "DocuSign",
+      "color": null
+    },
+    "coda": {
+      "src": "/brand-logos/iconify-coda.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Coda",
+      "color": "#101010"
+    },
+    "xero": {
+      "src": "/brand-logos/iconify-xero.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Xero",
+      "color": "#1fc0e7"
+    },
+    "zoho_crm": {
+      "src": "/brand-logos/domain-zoho-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Zoho CRM",
+      "color": null
+    },
+    "freshsales": {
+      "src": "/brand-logos/domain-freshworks-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Freshsales",
+      "color": null
+    },
+    "activecampaign": {
+      "src": "/brand-logos/domain-activecampaign-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "ActiveCampaign",
+      "color": null
+    },
+    "mssql": {
+      "src": "/brand-logos/iconify-microsoft-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Microsoft SQL Server",
+      "color": "#f1511b"
+    },
+    "sqlite": {
+      "src": "/brand-logos/iconify-sqlite.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "SQLite",
+      "color": "#0f80cc"
+    },
+    "rabbitmq": {
+      "src": "/brand-logos/iconify-rabbitmq-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "RabbitMQ",
+      "color": "#f60"
+    },
+    "kafka": {
+      "src": "/brand-logos/iconify-kafka-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Apache Kafka",
+      "color": "#1a1919"
+    },
+    "oracle": {
+      "src": "/brand-logos/domain-oracle-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Oracle Database",
+      "color": null
+    },
+    "mqtt": {
+      "src": "/brand-logos/simple-mqtt.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "MQTT",
+      "color": "#660066"
+    },
+    "action_network": {
+      "src": "/brand-logos/domain-actionnetwork-com.jpg",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Action Network",
+      "color": null
+    },
+    "bamboo_hr": {
+      "src": "/brand-logos/domain-bamboohr-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "BambooHR",
+      "color": null
+    },
+    "chargebee": {
+      "src": "/brand-logos/iconify-chargebee-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Chargebee",
+      "color": "#ff6c36"
+    },
+    "circle_ci": {
+      "src": "/brand-logos/iconify-circleci.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "CircleCI",
+      "color": "#343434"
+    },
+    "confluence": {
+      "src": "/brand-logos/iconify-confluence.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Confluence",
+      "color": "#0052cc"
+    },
+    "contentful": {
+      "src": "/brand-logos/iconify-contentful.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Contentful",
+      "color": "#fae501"
+    },
+    "customer_io": {
+      "src": "/brand-logos/iconify-customerio-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Customer.io",
+      "color": "#ffcd00"
+    },
+    "databricks": {
+      "src": "/brand-logos/iconify-databricks-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Databricks",
+      "color": "#ee3d2c"
+    },
+    "freshservice": {
+      "src": "/brand-logos/domain-freshservice-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Freshservice",
+      "color": null
+    },
+    "bitly": {
+      "src": "/brand-logos/simple-bitly.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Bitly",
+      "color": "#EE6123"
+    },
+    "adalo": {
+      "src": "/brand-logos/domain-adalo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Adalo",
+      "color": null
+    },
+    "affinity": {
+      "src": "/brand-logos/domain-affinity-co.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Affinity",
+      "color": null
+    },
+    "agile_crm": {
+      "src": "/brand-logos/domain-agilecrm-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Agile CRM",
+      "color": null
+    },
+    "airtop": {
+      "src": "/brand-logos/domain-airtop-ai.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Airtop",
+      "color": null
+    },
+    "bannerbear": {
+      "src": "/brand-logos/domain-bannerbear-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Bannerbear",
+      "color": null
+    },
+    "baserow": {
+      "src": "/brand-logos/simple-baserow.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Baserow",
+      "color": "#5190EF"
+    },
+    "brandfetch": {
+      "src": "/brand-logos/simple-brandfetch.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Brandfetch",
+      "color": "#0084FF"
+    },
+    "bubble": {
+      "src": "/brand-logos/iconify-bubble-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Bubble",
+      "color": "#262626"
+    },
+    "dhl": {
+      "src": "/brand-logos/simple-dhl.svg",
+      "kind": "simple",
+      "tone": "dark",
+      "label": "DHL",
+      "color": "#FFCC00"
+    },
+    "figma": {
+      "src": "/brand-logos/iconify-figma.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Figma",
+      "color": "#0acf83"
+    },
+    "drift": {
+      "src": "/brand-logos/iconify-drift.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Drift",
+      "color": "#111"
+    },
+    "dropcontact": {
+      "src": "/brand-logos/domain-dropcontact-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Dropcontact",
+      "color": null
+    },
+    "egoi": {
+      "src": "/brand-logos/domain-e-goi-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "E-goi",
+      "color": null
+    },
+    "emelia": {
+      "src": "/brand-logos/domain-emelia-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Emelia",
+      "color": null
+    },
+    "harvest": {
+      "src": "/brand-logos/domain-getharvest-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Harvest",
+      "color": null
+    },
+    "lemlist": {
+      "src": "/brand-logos/domain-lemlist-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Lemlist",
+      "color": null
+    },
+    "mailer_lite": {
+      "src": "/brand-logos/domain-mailerlite-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "MailerLite",
+      "color": null
+    },
+    "mailgun": {
+      "src": "/brand-logos/iconify-mailgun-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mailgun",
+      "color": "#f06b66"
+    },
+    "mattermost": {
+      "src": "/brand-logos/iconify-mattermost-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mattermost",
+      "color": "#0058cc"
+    },
+    "noco_d_b": {
+      "src": "/brand-logos/iconify-nocodb.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "NocoDB",
+      "color": "#0381fd"
+    },
+    "mailjet": {
+      "src": "/brand-logos/iconify-mailjet-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mailjet",
+      "color": "#9585f4"
+    },
+    "message_bird": {
+      "src": "/brand-logos/domain-messagebird-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "MessageBird",
+      "color": null
+    },
+    "netlify": {
+      "src": "/brand-logos/iconify-netlify-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Netlify",
+      "color": "#05bdba"
+    },
+    "okta": {
+      "src": "/brand-logos/iconify-okta-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Okta",
+      "color": null
+    },
+    "onfleet": {
+      "src": "/brand-logos/domain-onfleet-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Onfleet",
+      "color": null
+    },
+    "pushbullet": {
+      "src": "/brand-logos/iconify-pushbullet.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Pushbullet",
+      "color": "#67bf79"
+    },
+    "travis_ci": {
+      "src": "/brand-logos/iconify-travis-ci.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Travis CI",
+      "color": "#0e0f0d"
+    },
+    "webflow": {
+      "src": "/brand-logos/iconify-webflow.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Webflow",
+      "color": "#4353ff"
+    },
+    "wise": {
+      "src": "/brand-logos/simple-wise.svg",
+      "kind": "simple",
+      "tone": "dark",
+      "label": "Wise",
+      "color": "#9FE870"
+    },
+    "zammad": {
+      "src": "/brand-logos/domain-zammad-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Zammad",
+      "color": null
+    },
+    "open_ai": {
+      "src": "/brand-logos/iconify-openai-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "OpenAI API",
+      "color": null
+    },
+    "paddle": {
+      "src": "/brand-logos/simple-paddle.svg",
+      "kind": "simple",
+      "tone": "dark",
+      "label": "Paddle",
+      "color": "#FDDD35"
+    },
+    "sms77": {
+      "src": "/brand-logos/domain-seven-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "seven",
+      "color": null
+    },
+    "taiga": {
+      "src": "/brand-logos/iconify-taiga.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Taiga",
+      "color": "#3c3647"
+    },
+    "monica_crm": {
+      "src": "/brand-logos/simple-monica.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Monica CRM",
+      "color": "#2C2B29"
+    },
+    "nasa": {
+      "src": "/brand-logos/simple-nasa.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "NASA",
+      "color": "#E03C31"
+    },
+    "npm": {
+      "src": "/brand-logos/iconify-npm-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "npm",
+      "color": "#c12127"
+    },
+    "marketstack": {
+      "src": "/brand-logos/domain-marketstack-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Marketstack",
+      "color": null
+    },
+    "mailcheck": {
+      "src": "/brand-logos/domain-mailcheck-co.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Mailcheck",
+      "color": null
+    },
+    "mautic": {
+      "src": "/brand-logos/iconify-mautic-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mautic",
+      "color": "#4e5e9e"
+    },
+    "api_template_io": {
+      "src": "/brand-logos/domain-apitemplate-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "APITemplate.io",
+      "color": null
+    },
+    "autopilot": {
+      "src": "/brand-logos/domain-autopilotapp-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Autopilot",
+      "color": null
+    },
+    "beeminder": {
+      "src": "/brand-logos/domain-beeminder-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Beeminder",
+      "color": null
+    },
+    "clearbit": {
+      "src": "/brand-logos/domain-clearbit-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Clearbit",
+      "color": null
+    },
+    "clockify": {
+      "src": "/brand-logos/simple-clockify.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Clockify",
+      "color": "#03A9F4"
+    },
+    "cloudflare": {
+      "src": "/brand-logos/iconify-cloudflare.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Cloudflare",
+      "color": "#fbad41"
+    },
+    "cockpit": {
+      "src": "/brand-logos/iconify-cockpit.svg",
+      "kind": "iconify",
+      "tone": "dark",
+      "label": "Cockpit",
+      "color": null
+    },
+    "convert_kit": {
+      "src": "/brand-logos/domain-convertkit-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "ConvertKit",
+      "color": null
+    },
+    "hacker_news": {
+      "src": "/brand-logos/domain-news-ycombinator-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Hacker News",
+      "color": null
+    },
+    "home_assistant": {
+      "src": "/brand-logos/simple-homeassistant.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Home Assistant",
+      "color": "#18BCF2"
+    },
+    "humantic_ai": {
+      "src": "/brand-logos/domain-humantic-ai.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Humantic AI",
+      "color": null
+    },
+    "hunter": {
+      "src": "/brand-logos/domain-hunter-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Hunter",
+      "color": null
+    },
+    "invoice_ninja": {
+      "src": "/brand-logos/simple-invoiceninja.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Invoice Ninja",
+      "color": "#000000"
+    },
+    "iterable": {
+      "src": "/brand-logos/domain-iterable-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Iterable",
+      "color": null
+    },
+    "jenkins": {
+      "src": "/brand-logos/iconify-jenkins.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Jenkins",
+      "color": "#dcd9d8"
+    },
+    "jina_ai": {
+      "src": "/brand-logos/iconify-jina.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Jina AI",
+      "color": "#eb6161"
+    },
+    "ko_bo_toolbox": {
+      "src": "/brand-logos/domain-kobotoolbox-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "KoBoToolbox",
+      "color": null
+    },
+    "lingva_nex": {
+      "src": "/brand-logos/domain-lingvanex-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "LingvaNex",
+      "color": null
+    },
+    "lone_scale": {
+      "src": "/brand-logos/domain-lonescale-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "LoneScale",
+      "color": null
+    },
+    "magento2": {
+      "src": "/brand-logos/iconify-magento.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Magento 2",
+      "color": "#27140D"
+    },
+    "matrix": {
+      "src": "/brand-logos/simple-matrix.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Matrix",
+      "color": "#000000"
+    },
+    "medium": {
+      "src": "/brand-logos/iconify-medium-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Medium",
+      "color": null
+    },
+    "microsoft_dataverse": {
+      "src": "/brand-logos/domain-powerplatform-microsoft-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Microsoft Dataverse",
+      "color": null
+    },
+    "microsoft_dynamics_crm": {
+      "src": "/brand-logos/official-microsoft-dynamics-crm.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft Dynamics CRM",
+      "color": null
+    },
+    "microsoft_entra": {
+      "src": "/brand-logos/official-microsoft-entra.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft Entra ID",
+      "color": null
+    },
+    "microsoft_excel": {
+      "src": "/brand-logos/official-microsoft-excel.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft Excel",
+      "color": null
+    },
+    "microsoft_excel_share_point": {
+      "src": "/brand-logos/official-microsoft-excel-share-point.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft Excel (SharePoint)",
+      "color": null
+    },
+    "microsoft_graph_security": {
+      "src": "/brand-logos/domain-microsoft-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Microsoft Graph Security",
+      "color": null
+    },
+    "microsoft_one_drive": {
+      "src": "/brand-logos/official-microsoft-one-drive.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft OneDrive",
+      "color": null
+    },
+    "microsoft_sharepoint": {
+      "src": "/brand-logos/official-microsoft-sharepoint.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft SharePoint",
+      "color": null
+    },
+    "misp": {
+      "src": "/brand-logos/domain-misp-project-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "MISP",
+      "color": null
+    },
+    "mistral_ai": {
+      "src": "/brand-logos/iconify-mistral-ai-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mistral AI",
+      "color": "#eb5829"
+    },
+    "msg91": {
+      "src": "/brand-logos/domain-msg91-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "MSG91",
+      "color": null
+    },
+    "n8n": {
+      "src": "/brand-logos/iconify-n8n-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "n8n",
+      "color": "#ea4b71"
+    },
+    "netscaler_adc": {
+      "src": "/brand-logos/domain-netscaler-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Netscaler ADC",
+      "color": null
+    },
+    "one_simple_api": {
+      "src": "/brand-logos/domain-onesimpleapi-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "One Simple API",
+      "color": null
+    },
+    "open_thesaurus": {
+      "src": "/brand-logos/domain-openthesaurus-de.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "OpenThesaurus",
+      "color": null
+    },
+    "open_weather_map": {
+      "src": "/brand-logos/domain-openweathermap-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "OpenWeatherMap",
+      "color": null
+    },
+    "orbit": {
+      "src": "/brand-logos/domain-orbit-love.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Orbit",
+      "color": null
+    },
+    "oura": {
+      "src": "/brand-logos/domain-ouraring-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Oura",
+      "color": null
+    },
+    "peekalink": {
+      "src": "/brand-logos/domain-peekalink-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Peekalink",
+      "color": null
+    },
+    "perplexity": {
+      "src": "/brand-logos/iconify-perplexity-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Perplexity",
+      "color": "#3f7e8b"
+    },
+    "phantombuster": {
+      "src": "/brand-logos/domain-phantombuster-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "PhantomBuster",
+      "color": null
+    },
+    "plivo": {
+      "src": "/brand-logos/domain-plivo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Plivo",
+      "color": null
+    },
+    "post_bin": {
+      "src": "/brand-logos/domain-postb-in.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "PostBin",
+      "color": null
+    },
+    "profit_well": {
+      "src": "/brand-logos/domain-profitwell-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "ProfitWell",
+      "color": null
+    },
+    "pushcut": {
+      "src": "/brand-logos/domain-pushcut-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Pushcut",
+      "color": null
+    },
+    "quick_chart": {
+      "src": "/brand-logos/domain-quickchart-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "QuickChart",
+      "color": null
+    },
+    "rundeck": {
+      "src": "/brand-logos/simple-rundeck.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Rundeck",
+      "color": "#F73F39"
+    },
+    "security_scorecard": {
+      "src": "/brand-logos/simple-securityscorecard.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "SecurityScorecard",
+      "color": "#7033FD"
+    },
+    "segment": {
+      "src": "/brand-logos/iconify-segment.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Segment",
+      "color": "#4fb58b"
+    },
+    "send_grid": {
+      "src": "/brand-logos/iconify-sendgrid-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "SendGrid",
+      "color": "#3f72ab"
+    },
+    "sentry_io": {
+      "src": "/brand-logos/domain-sentry-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Sentry.io",
+      "color": null
+    },
+    "stackby": {
+      "src": "/brand-logos/domain-stackby-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Stackby",
+      "color": null
+    },
+    "storyblok": {
+      "src": "/brand-logos/iconify-storyblok-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Storyblok",
+      "color": "#0ab3af"
+    },
+    "strapi": {
+      "src": "/brand-logos/iconify-strapi-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Strapi",
+      "color": "#4945ff"
+    },
+    "syncro_msp": {
+      "src": "/brand-logos/domain-syncromsp-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "SyncroMSP",
+      "color": null
+    },
+    "tapfiliate": {
+      "src": "/brand-logos/domain-tapfiliate-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Tapfiliate",
+      "color": null
+    },
+    "the_hive": {
+      "src": "/brand-logos/domain-thehive-project-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "TheHive",
+      "color": null
+    },
+    "the_hive_project": {
+      "src": "/brand-logos/domain-thehive-project-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "TheHive 5",
+      "color": null
+    },
+    "twake": {
+      "src": "/brand-logos/domain-twake-app.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Twake",
+      "color": null
+    },
+    "u_proc": {
+      "src": "/brand-logos/domain-uproc-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "uProc",
+      "color": null
+    },
+    "uplead": {
+      "src": "/brand-logos/domain-uplead-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Uplead",
+      "color": null
+    },
+    "url_scan_io": {
+      "src": "/brand-logos/domain-urlscan-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "urlscan.io",
+      "color": null
+    },
+    "venafi_tls_protect_cloud": {
+      "src": "/brand-logos/domain-venafi-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Venafi TLS Protect Cloud",
+      "color": null
+    },
+    "whats_app": {
+      "src": "/brand-logos/iconify-whatsapp-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "WhatsApp Business Cloud",
+      "color": "#1faf38"
+    },
+    "woo_commerce": {
+      "src": "/brand-logos/iconify-woocommerce-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "WooCommerce",
+      "color": "#7f54b3"
+    },
+    "wordpress": {
+      "src": "/brand-logos/iconify-wordpress-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "WordPress",
+      "color": "#464342"
+    },
+    "yourls": {
+      "src": "/brand-logos/domain-yourls-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "YOURLS",
+      "color": null
+    },
+    "zulip": {
+      "src": "/brand-logos/iconify-zulip-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Zulip",
+      "color": "#24adff"
+    },
+    "coin_gecko": {
+      "src": "/brand-logos/domain-coingecko-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "CoinGecko",
+      "color": null
+    },
+    "dummy_json": {
+      "src": "/brand-logos/domain-dummyjson-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "DummyJSON",
+      "color": null
+    },
+    "frankfurter": {
+      "src": "/brand-logos/domain-frankfurter-app.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Frankfurter FX",
+      "color": null
+    },
+    "httpbin": {
+      "src": "/brand-logos/domain-httpbin-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "httpbin",
+      "color": null
+    },
+    "json_placeholder": {
+      "src": "/brand-logos/domain-jsonplaceholder-typicode-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "JSONPlaceholder",
+      "color": null
+    },
+    "open_meteo_air": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo Air Quality",
+      "color": null
+    },
+    "open_meteo_climate": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo Climate",
+      "color": null
+    },
+    "open_meteo": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo",
+      "color": null
+    },
+    "open_meteo_elevation": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo Elevation",
+      "color": null
+    },
+    "open_meteo_ensemble": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo Ensemble",
+      "color": null
+    },
+    "open_meteo_flood": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo Flood",
+      "color": null
+    },
+    "open_meteo_historical_weather": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo Historical Weather",
+      "color": null
+    },
+    "open_meteo_marine": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo Marine",
+      "color": null
+    },
+    "open_meteo_seasonal": {
+      "src": "/brand-logos/domain-open-meteo-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open-Meteo Seasonal",
+      "color": null
+    },
+    "open_notify": {
+      "src": "/brand-logos/domain-open-notify-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Open Notify",
+      "color": null
+    },
+    "open_router": {
+      "src": "/brand-logos/iconify-openrouter-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "OpenRouter",
+      "color": "#7624f4"
+    },
+    "poke_api": {
+      "src": "/brand-logos/domain-pokeapi-co.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "PokeAPI",
+      "color": null
+    },
+    "active_campaign_trigger": {
+      "src": "/brand-logos/iconify-active-campaign-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "ActiveCampaign Trigger",
+      "color": "#004cff"
+    },
+    "acuity_scheduling_trigger": {
+      "src": "/brand-logos/domain-acuityscheduling-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Acuity Scheduling Trigger",
+      "color": null
+    },
+    "affinity_trigger": {
+      "src": "/brand-logos/domain-affinity-co.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Affinity",
+      "color": null
+    },
+    "airtable_trigger": {
+      "src": "/brand-logos/iconify-airtable.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Airtable",
+      "color": "#ffbf00"
+    },
+    "asana_trigger": {
+      "src": "/brand-logos/iconify-asana-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Asana",
+      "color": "#f06a6a"
+    },
+    "autopilot_trigger": {
+      "src": "/brand-logos/domain-autopilotapp-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Autopilot",
+      "color": null
+    },
+    "aws_certificate_manager": {
+      "src": "/brand-logos/iconify-aws-certificate-manager.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS Certificate Manager",
+      "color": "#bd0816"
+    },
+    "aws_cognito": {
+      "src": "/brand-logos/iconify-aws-cognito.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS Cognito",
+      "color": "#bd0816"
+    },
+    "aws_comprehend": {
+      "src": "/brand-logos/iconify-aws.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS Comprehend",
+      "color": "#252f3e"
+    },
+    "aws_dynamo_d_b": {
+      "src": "/brand-logos/iconify-aws-dynamodb.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS DynamoDB",
+      "color": "#2e27ad"
+    },
+    "aws_elb": {
+      "src": "/brand-logos/iconify-aws-elb.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS ELB",
+      "color": "#4d27a8"
+    },
+    "aws_iam": {
+      "src": "/brand-logos/iconify-aws-iam.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS IAM",
+      "color": "#bd0816"
+    },
+    "aws_lambda": {
+      "src": "/brand-logos/iconify-aws-lambda.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS Lambda",
+      "color": "#c8511b"
+    },
+    "aws_rekognition": {
+      "src": "/brand-logos/iconify-aws.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS Rekognition",
+      "color": "#252f3e"
+    },
+    "aws_ses": {
+      "src": "/brand-logos/iconify-aws-ses.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS SES",
+      "color": "#bd0816"
+    },
+    "aws_sns": {
+      "src": "/brand-logos/iconify-aws-sns.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS SNS",
+      "color": "#b0084d"
+    },
+    "aws_sns_trigger": {
+      "src": "/brand-logos/iconify-aws-sns.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS SNS",
+      "color": "#b0084d"
+    },
+    "aws_sqs": {
+      "src": "/brand-logos/iconify-aws-sqs.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS SQS",
+      "color": "#b0084d"
+    },
+    "aws_textract": {
+      "src": "/brand-logos/iconify-aws.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS Textract",
+      "color": "#252f3e"
+    },
+    "aws_transcribe": {
+      "src": "/brand-logos/iconify-aws.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "AWS Transcribe",
+      "color": "#252f3e"
+    },
+    "azure_cosmos_db": {
+      "src": "/brand-logos/iconify-azure-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Azure Cosmos DB",
+      "color": "#0089D6"
+    },
+    "azure_storage": {
+      "src": "/brand-logos/iconify-azure-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Azure Storage",
+      "color": "#0089D6"
+    },
+    "bitbucket_trigger": {
+      "src": "/brand-logos/iconify-bitbucket.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Bitbucket",
+      "color": "#2684ff"
+    },
+    "bitwarden": {
+      "src": "/brand-logos/simple-bitwarden.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Bitwarden",
+      "color": "#175DDC"
+    },
+    "box_trigger": {
+      "src": "/brand-logos/iconify-box.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Box",
+      "color": "#0061d5"
+    },
+    "brevo_trigger": {
+      "src": "/brand-logos/simple-brevo.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Brevo",
+      "color": "#0B996E"
+    },
+    "cal_trigger": {
+      "src": "/brand-logos/domain-cal-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Cal.com Trigger",
+      "color": null
+    },
+    "calendly_trigger": {
+      "src": "/brand-logos/simple-calendly.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Calendly",
+      "color": "#006BFF"
+    },
+    "chargebee_trigger": {
+      "src": "/brand-logos/iconify-chargebee-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Chargebee",
+      "color": "#ff6c36"
+    },
+    "cisco_webex": {
+      "src": "/brand-logos/simple-webex.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Webex by Cisco",
+      "color": "#000000"
+    },
+    "cisco_webex_trigger": {
+      "src": "/brand-logos/simple-webex.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Webex by Cisco",
+      "color": "#000000"
+    },
+    "click_up_trigger": {
+      "src": "/brand-logos/iconify-clickup-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "ClickUp Trigger",
+      "color": "#7612fa"
+    },
+    "clockify_trigger": {
+      "src": "/brand-logos/simple-clockify.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Clockify",
+      "color": "#03A9F4"
+    },
+    "convert_kit_trigger": {
+      "src": "/brand-logos/domain-convertkit-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "ConvertKit",
+      "color": null
+    },
+    "copper": {
+      "src": "/brand-logos/domain-copper-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Copper",
+      "color": null
+    },
+    "copper_trigger": {
+      "src": "/brand-logos/domain-copper-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Copper",
+      "color": null
+    },
+    "cortex": {
+      "src": "/brand-logos/domain-cortex-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Cortex",
+      "color": null
+    },
+    "crate_db": {
+      "src": "/brand-logos/simple-cratedb.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "CrateDB",
+      "color": "#009DC7"
+    },
+    "customer_io_trigger": {
+      "src": "/brand-logos/iconify-customerio-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Customer.io",
+      "color": "#ffcd00"
+    },
+    "databricks_trigger": {
+      "src": "/brand-logos/iconify-databricks-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Databricks",
+      "color": "#ee3d2c"
+    },
+    "deep_l": {
+      "src": "/brand-logos/simple-deepl.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "DeepL",
+      "color": "#0F2B46"
+    },
+    "demio": {
+      "src": "/brand-logos/domain-demio-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Demio",
+      "color": null
+    },
+    "discourse": {
+      "src": "/brand-logos/iconify-discourse-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Discourse",
+      "color": "#fff9ae"
+    },
+    "disqus": {
+      "src": "/brand-logos/iconify-disqus.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Disqus",
+      "color": "#2e9fff"
+    },
+    "e_r_p_next": {
+      "src": "/brand-logos/simple-erpnext.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "ERPNext",
+      "color": "#0089FF"
+    },
+    "elastic_security": {
+      "src": "/brand-logos/domain-elastic-co.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Elastic Security",
+      "color": null
+    },
+    "elasticsearch": {
+      "src": "/brand-logos/iconify-elasticsearch.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Elasticsearch",
+      "color": "#343741"
+    },
+    "emelia_trigger": {
+      "src": "/brand-logos/domain-emelia-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Emelia",
+      "color": null
+    },
+    "eventbrite_trigger": {
+      "src": "/brand-logos/iconify-eventbrite-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Eventbrite Trigger",
+      "color": "#f05537"
+    },
+    "facebook_graph_api": {
+      "src": "/brand-logos/iconify-facebook.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Facebook Graph API",
+      "color": "#1877f2"
+    },
+    "facebook_lead_ads_trigger": {
+      "src": "/brand-logos/iconify-facebook.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Facebook Lead Ads Trigger",
+      "color": "#1877f2"
+    },
+    "facebook_trigger": {
+      "src": "/brand-logos/iconify-facebook.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Facebook Trigger",
+      "color": "#1877f2"
+    },
+    "figma_trigger": {
+      "src": "/brand-logos/iconify-figma.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Figma",
+      "color": "#0acf83"
+    },
+    "file_maker": {
+      "src": "/brand-logos/domain-filemaker-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "FileMaker",
+      "color": null
+    },
+    "form_io_trigger": {
+      "src": "/brand-logos/domain-form-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Form.io Trigger",
+      "color": null
+    },
+    "formstack_trigger": {
+      "src": "/brand-logos/domain-formstack-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Formstack Trigger",
+      "color": null
+    },
+    "freshworks_crm": {
+      "src": "/brand-logos/domain-freshworks-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Freshworks CRM",
+      "color": null
+    },
+    "g_suite_admin": {
+      "src": "/brand-logos/iconify-google-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Workspace Admin",
+      "color": "#4285f4"
+    },
+    "get_response": {
+      "src": "/brand-logos/domain-getresponse-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "GetResponse",
+      "color": null
+    },
+    "get_response_trigger": {
+      "src": "/brand-logos/domain-getresponse-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "GetResponse",
+      "color": null
+    },
+    "ghost": {
+      "src": "/brand-logos/iconify-ghost.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Ghost",
+      "color": "#3d515b"
+    },
+    "git": {
+      "src": "/brand-logos/simple-git.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Git",
+      "color": "#F03C2E"
+    },
+    "github_trigger": {
+      "src": "/brand-logos/iconify-github-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "GitHub",
+      "color": "#161614"
+    },
+    "gitlab_trigger": {
+      "src": "/brand-logos/iconify-gitlab-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "GitLab",
+      "color": "#fc6d26"
+    },
+    "gmail_trigger": {
+      "src": "/brand-logos/iconify-google-gmail-2020.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Gmail",
+      "color": "#4285f4"
+    },
+    "go_to_webinar": {
+      "src": "/brand-logos/domain-gotowebinar-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "GoToWebinar",
+      "color": null
+    },
+    "gong": {
+      "src": "/brand-logos/domain-gong-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Gong",
+      "color": null
+    },
+    "google_ads": {
+      "src": "/brand-logos/iconify-google-ads.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Ads",
+      "color": "#fbbc04"
+    },
+    "google_analytics": {
+      "src": "/brand-logos/iconify-google-analytics.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Analytics",
+      "color": "#f9ab00"
+    },
+    "google_books": {
+      "src": "/brand-logos/iconify-google-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Books",
+      "color": "#4285f4"
+    },
+    "google_business_profile": {
+      "src": "/brand-logos/iconify-google-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Business Profile",
+      "color": "#4285f4"
+    },
+    "google_business_profile_trigger": {
+      "src": "/brand-logos/iconify-google-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Business Profile",
+      "color": "#4285f4"
+    },
+    "google_calendar_trigger": {
+      "src": "/brand-logos/iconify-google-calendar.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Calendar",
+      "color": "#3c90ff"
+    },
+    "google_chat": {
+      "src": "/brand-logos/simple-googlechat.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google Chat",
+      "color": "#34A853"
+    },
+    "google_cloud_natural_language": {
+      "src": "/brand-logos/iconify-google-cloud.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Cloud Natural Language",
+      "color": "#ea4335"
+    },
+    "google_cloud_storage": {
+      "src": "/brand-logos/simple-googlecloudstorage.svg",
+      "kind": "simple",
+      "tone": "dark",
+      "label": "Google Cloud Storage",
+      "color": "#AECBFA"
+    },
+    "google_contacts": {
+      "src": "/brand-logos/iconify-google-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Contacts",
+      "color": "#4285f4"
+    },
+    "google_drive_trigger": {
+      "src": "/brand-logos/iconify-google-drive.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Google Drive",
+      "color": "#ffe921"
+    },
+    "google_firebase_cloud_firestore": {
+      "src": "/brand-logos/simple-firebase.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google Cloud Firestore",
+      "color": "#DD2C00"
+    },
+    "google_firebase_realtime_database": {
+      "src": "/brand-logos/simple-firebase.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google Cloud Realtime Database",
+      "color": "#DD2C00"
+    },
+    "google_perspective": {
+      "src": "/brand-logos/domain-perspectiveapi-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Google Perspective",
+      "color": null
+    },
+    "google_sheets_trigger": {
+      "src": "/brand-logos/simple-googlesheets.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google Sheets",
+      "color": "#34A853"
+    },
+    "google_slides": {
+      "src": "/brand-logos/simple-googleslides.svg",
+      "kind": "simple",
+      "tone": "dark",
+      "label": "Google Slides",
+      "color": "#FBBC04"
+    },
+    "google_tasks": {
+      "src": "/brand-logos/simple-googletasks.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google Tasks",
+      "color": "#2684FC"
+    },
+    "google_translate": {
+      "src": "/brand-logos/simple-googletranslate.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Google Translate",
+      "color": "#4285F4"
+    },
+    "gotify": {
+      "src": "/brand-logos/domain-gotify-net.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Gotify",
+      "color": null
+    },
+    "grafana": {
+      "src": "/brand-logos/iconify-grafana.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Grafana",
+      "color": "#fff100"
+    },
+    "grist": {
+      "src": "/brand-logos/domain-getgrist-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Grist",
+      "color": null
+    },
+    "gumroad_trigger": {
+      "src": "/brand-logos/domain-gumroad-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Gumroad Trigger",
+      "color": null
+    },
+    "halo_p_s_a": {
+      "src": "/brand-logos/domain-halopsa-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "HaloPSA",
+      "color": null
+    },
+    "help_scout": {
+      "src": "/brand-logos/iconify-helpscout.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Help Scout",
+      "color": "#2a3b47"
+    },
+    "help_scout_trigger": {
+      "src": "/brand-logos/iconify-helpscout.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Help Scout",
+      "color": "#2a3b47"
+    },
+    "high_level": {
+      "src": "/brand-logos/domain-gohighlevel-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "HighLevel",
+      "color": null
+    },
+    "hubspot_trigger": {
+      "src": "/brand-logos/domain-hubspot-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "HubSpot",
+      "color": null
+    },
+    "invoice_ninja_trigger": {
+      "src": "/brand-logos/simple-invoiceninja.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Invoice Ninja",
+      "color": "#000000"
+    },
+    "jira_trigger": {
+      "src": "/brand-logos/iconify-jira.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Jira",
+      "color": "#2684ff"
+    },
+    "jot_form_trigger": {
+      "src": "/brand-logos/domain-jotform-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Jotform Trigger",
+      "color": null
+    },
+    "jwt": {
+      "src": "/brand-logos/iconify-jwt-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "JWT",
+      "color": "#00f2e6"
+    },
+    "kafka_trigger": {
+      "src": "/brand-logos/iconify-kafka-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Apache Kafka",
+      "color": "#1a1919"
+    },
+    "keap": {
+      "src": "/brand-logos/domain-keap-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Keap",
+      "color": null
+    },
+    "keap_trigger": {
+      "src": "/brand-logos/domain-keap-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Keap",
+      "color": null
+    },
+    "ko_bo_toolbox_trigger": {
+      "src": "/brand-logos/domain-kobotoolbox-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "KoBoToolbox",
+      "color": null
+    },
+    "lemlist_trigger": {
+      "src": "/brand-logos/domain-lemlist-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Lemlist",
+      "color": null
+    },
+    "line": {
+      "src": "/brand-logos/domain-line-me.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Line",
+      "color": null
+    },
+    "linear_trigger": {
+      "src": "/brand-logos/iconify-linear-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Linear",
+      "color": "#222326"
+    },
+    "linked_in": {
+      "src": "/brand-logos/iconify-linkedin-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "LinkedIn",
+      "color": "#0a66c2"
+    },
+    "lone_scale_trigger": {
+      "src": "/brand-logos/domain-lonescale-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "LoneScale",
+      "color": null
+    },
+    "mailchimp_trigger": {
+      "src": "/brand-logos/iconify-mailchimp.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mailchimp",
+      "color": null
+    },
+    "mailer_lite_trigger": {
+      "src": "/brand-logos/domain-mailerlite-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "MailerLite",
+      "color": null
+    },
+    "mailjet_trigger": {
+      "src": "/brand-logos/iconify-mailjet-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mailjet",
+      "color": "#9585f4"
+    },
+    "mandrill": {
+      "src": "/brand-logos/iconify-mandrill.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mandrill",
+      "color": "#E6E6E1"
+    },
+    "mautic_trigger": {
+      "src": "/brand-logos/iconify-mautic-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Mautic",
+      "color": "#4e5e9e"
+    },
+    "metabase": {
+      "src": "/brand-logos/iconify-metabase.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Metabase",
+      "color": "#509ee3"
+    },
+    "microsoft_one_drive_trigger": {
+      "src": "/brand-logos/official-microsoft-one-drive.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft OneDrive",
+      "color": null
+    },
+    "microsoft_outlook_trigger": {
+      "src": "/brand-logos/official-microsoft-outlook-trigger.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft Outlook Trigger",
+      "color": null
+    },
+    "microsoft_share_point_trigger": {
+      "src": "/brand-logos/official-microsoft-share-point-trigger.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft SharePoint Trigger",
+      "color": null
+    },
+    "microsoft_sql": {
+      "src": "/brand-logos/domain-microsoft-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Microsoft SQL",
+      "color": null
+    },
+    "microsoft_teams_trigger": {
+      "src": "/brand-logos/official-microsoft-teams-trigger.svg",
+      "kind": "official",
+      "tone": "light",
+      "label": "Microsoft Teams Trigger",
+      "color": null
+    },
+    "microsoft_to_do": {
+      "src": "/brand-logos/domain-todo-microsoft-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Microsoft To Do",
+      "color": null
+    },
+    "mindee": {
+      "src": "/brand-logos/domain-mindee-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Mindee",
+      "color": null
+    },
+    "mocean": {
+      "src": "/brand-logos/domain-moceanapi-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Mocean",
+      "color": null
+    },
+    "mqtt_trigger": {
+      "src": "/brand-logos/simple-mqtt.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "MQTT",
+      "color": "#660066"
+    },
+    "n8n_trigger": {
+      "src": "/brand-logos/iconify-n8n-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "n8n",
+      "color": "#ea4b71"
+    },
+    "netlify_trigger": {
+      "src": "/brand-logos/iconify-netlify-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Netlify",
+      "color": "#05bdba"
+    },
+    "next_cloud": {
+      "src": "/brand-logos/simple-nextcloud.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Nextcloud",
+      "color": "#0082C9"
+    },
+    "notion_trigger": {
+      "src": "/brand-logos/iconify-notion-icon.svg",
+      "kind": "iconify",
+      "tone": "dark",
+      "label": "Notion",
+      "color": null
+    },
+    "odoo": {
+      "src": "/brand-logos/simple-odoo.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Odoo",
+      "color": "#714B67"
+    },
+    "onfleet_trigger": {
+      "src": "/brand-logos/domain-onfleet-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Onfleet",
+      "color": null
+    },
+    "pay_pal": {
+      "src": "/brand-logos/iconify-paypal.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "PayPal",
+      "color": "#27346a"
+    },
+    "pay_pal_trigger": {
+      "src": "/brand-logos/iconify-paypal.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "PayPal",
+      "color": "#27346a"
+    },
+    "philips_hue": {
+      "src": "/brand-logos/simple-philipshue.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Philips Hue",
+      "color": "#0065D3"
+    },
+    "pipedrive_trigger": {
+      "src": "/brand-logos/domain-pipedrive-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Pipedrive",
+      "color": null
+    },
+    "post_hog": {
+      "src": "/brand-logos/iconify-posthog-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "PostHog",
+      "color": "#f9bd2b"
+    },
+    "postgres_trigger": {
+      "src": "/brand-logos/iconify-postgresql.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "PostgreSQL",
+      "color": "#336791"
+    },
+    "postmark_trigger": {
+      "src": "/brand-logos/domain-postmarkapp-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Postmark Trigger",
+      "color": null
+    },
+    "pushcut_trigger": {
+      "src": "/brand-logos/domain-pushcut-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Pushcut",
+      "color": null
+    },
+    "pushover": {
+      "src": "/brand-logos/domain-pushover-net.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Pushover",
+      "color": null
+    },
+    "quest_db": {
+      "src": "/brand-logos/domain-questdb-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "QuestDB",
+      "color": null
+    },
+    "quick_base": {
+      "src": "/brand-logos/domain-quickbase-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Quick Base",
+      "color": null
+    },
+    "quick_books": {
+      "src": "/brand-logos/simple-quickbooks.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "QuickBooks Online",
+      "color": "#2CA01C"
+    },
+    "rabbit_m_q_trigger": {
+      "src": "/brand-logos/iconify-rabbitmq-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "RabbitMQ Trigger",
+      "color": "#f60"
+    },
+    "raindrop": {
+      "src": "/brand-logos/domain-raindrop-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Raindrop",
+      "color": null
+    },
+    "reddit": {
+      "src": "/brand-logos/iconify-reddit-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Reddit",
+      "color": "#ff4500"
+    },
+    "redis_trigger": {
+      "src": "/brand-logos/iconify-redis.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Redis",
+      "color": "#912626"
+    },
+    "rocketchat": {
+      "src": "/brand-logos/iconify-rocket-chat-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "RocketChat",
+      "color": "#f5455c"
+    },
+    "rss_feed": {
+      "src": "/brand-logos/simple-rss.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "RSS Feed",
+      "color": "#FFA500"
+    },
+    "rss_feed_read": {
+      "src": "/brand-logos/simple-rss.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "RSS Read",
+      "color": "#FFA500"
+    },
+    "rss_feed_read_trigger": {
+      "src": "/brand-logos/simple-rss.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "RSS Read",
+      "color": "#FFA500"
+    },
+    "salesforce_trigger": {
+      "src": "/brand-logos/domain-salesforce-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Salesforce",
+      "color": null
+    },
+    "salesmate": {
+      "src": "/brand-logos/domain-salesmate-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Salesmate",
+      "color": null
+    },
+    "sea_table": {
+      "src": "/brand-logos/domain-seatable-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "SeaTable",
+      "color": null
+    },
+    "sea_table_trigger": {
+      "src": "/brand-logos/domain-seatable-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "SeaTable",
+      "color": null
+    },
+    "sendy": {
+      "src": "/brand-logos/domain-sendy-co.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Sendy",
+      "color": null
+    },
+    "shopify_trigger": {
+      "src": "/brand-logos/iconify-shopify.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Shopify",
+      "color": "#95bf46"
+    },
+    "signl4": {
+      "src": "/brand-logos/domain-signl4-com.jpg",
+      "kind": "domain",
+      "tone": "light",
+      "label": "SIGNL4",
+      "color": null
+    },
+    "slack_trigger": {
+      "src": "/brand-logos/iconify-slack-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Slack API",
+      "color": "#e01e5a"
+    },
+    "splunk": {
+      "src": "/brand-logos/domain-splunk-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Splunk",
+      "color": null
+    },
+    "spotify": {
+      "src": "/brand-logos/iconify-spotify-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Spotify",
+      "color": "#1ed760"
+    },
+    "strava": {
+      "src": "/brand-logos/simple-strava.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Strava",
+      "color": "#FC4C02"
+    },
+    "strava_trigger": {
+      "src": "/brand-logos/simple-strava.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Strava",
+      "color": "#FC4C02"
+    },
+    "stripe_trigger": {
+      "src": "/brand-logos/domain-stripe-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Stripe",
+      "color": null
+    },
+    "survey_monkey_trigger": {
+      "src": "/brand-logos/simple-surveymonkey.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "SurveyMonkey Trigger",
+      "color": "#00BF6F"
+    },
+    "taiga_trigger": {
+      "src": "/brand-logos/iconify-taiga.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Taiga",
+      "color": "#3c3647"
+    },
+    "telegram": {
+      "src": "/brand-logos/iconify-telegram.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Telegram",
+      "color": "#2aabee"
+    },
+    "telegram_trigger": {
+      "src": "/brand-logos/iconify-telegram.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Telegram",
+      "color": "#2aabee"
+    },
+    "the_hive_project_trigger": {
+      "src": "/brand-logos/domain-thehive-project-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "TheHive 5",
+      "color": null
+    },
+    "the_hive_trigger": {
+      "src": "/brand-logos/domain-thehive-project-org.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "TheHive",
+      "color": null
+    },
+    "timescale_db": {
+      "src": "/brand-logos/domain-timescale-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "TimescaleDB",
+      "color": null
+    },
+    "toggl_trigger": {
+      "src": "/brand-logos/simple-toggl.svg",
+      "kind": "simple",
+      "tone": "dark",
+      "label": "Toggl Trigger",
+      "color": "#FFDE91"
+    },
+    "trello_trigger": {
+      "src": "/brand-logos/iconify-trello.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Trello",
+      "color": "#0091e6"
+    },
+    "twilio_trigger": {
+      "src": "/brand-logos/iconify-twilio-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Twilio",
+      "color": "#f12e45"
+    },
+    "twist": {
+      "src": "/brand-logos/domain-twist-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Twist",
+      "color": null
+    },
+    "twitter": {
+      "src": "/brand-logos/domain-x-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "X (Formerly Twitter)",
+      "color": null
+    },
+    "typeform_trigger": {
+      "src": "/brand-logos/iconify-typeform-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Typeform",
+      "color": "#262627"
+    },
+    "unleashed_software": {
+      "src": "/brand-logos/domain-unleashedsoftware-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Unleashed Software",
+      "color": null
+    },
+    "uptime_robot": {
+      "src": "/brand-logos/domain-uptimerobot-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "UptimeRobot",
+      "color": null
+    },
+    "venafi_tls_protect_cloud_trigger": {
+      "src": "/brand-logos/domain-venafi-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Venafi TLS Protect Cloud",
+      "color": null
+    },
+    "venafi_tls_protect_datacenter": {
+      "src": "/brand-logos/domain-venafi-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Venafi TLS Protect Datacenter",
+      "color": null
+    },
+    "vero": {
+      "src": "/brand-logos/domain-vero-co.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Vero",
+      "color": null
+    },
+    "vonage": {
+      "src": "/brand-logos/simple-vonage.svg",
+      "kind": "simple",
+      "tone": "light",
+      "label": "Vonage",
+      "color": "#000000"
+    },
+    "webflow_trigger": {
+      "src": "/brand-logos/iconify-webflow.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Webflow",
+      "color": "#4353ff"
+    },
+    "wekan": {
+      "src": "/brand-logos/domain-wekan-github-io.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Wekan",
+      "color": null
+    },
+    "whats_app_trigger": {
+      "src": "/brand-logos/iconify-whatsapp-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "WhatsApp Business Cloud",
+      "color": "#1faf38"
+    },
+    "wise_trigger": {
+      "src": "/brand-logos/simple-wise.svg",
+      "kind": "simple",
+      "tone": "dark",
+      "label": "Wise",
+      "color": "#9FE870"
+    },
+    "woo_commerce_trigger": {
+      "src": "/brand-logos/iconify-woocommerce-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "WooCommerce",
+      "color": "#7f54b3"
+    },
+    "workable_trigger": {
+      "src": "/brand-logos/domain-workable-com.png",
+      "kind": "domain",
+      "tone": "light",
+      "label": "Workable Trigger",
+      "color": null
+    },
+    "wufoo_trigger": {
+      "src": "/brand-logos/iconify-wufoo.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Wufoo Trigger",
+      "color": "#e66760"
+    },
+    "you_tube": {
+      "src": "/brand-logos/iconify-youtube-icon.svg",
+      "kind": "iconify",
+      "tone": "dark",
+      "label": "YouTube",
+      "color": null
+    },
+    "zendesk_trigger": {
+      "src": "/brand-logos/iconify-zendesk-icon.svg",
+      "kind": "iconify",
+      "tone": "light",
+      "label": "Zendesk",
+      "color": "#03363d"
+    }
+  },
+  "byName": {
+    "salesforce": "salesforce",
+    "hubspot": "hubspot",
+    "microsoft dynamics 365": "dynamics_crm",
+    "dynamics crm": "dynamics_crm",
+    "google calendar": "google_calendar",
+    "google sheets": "google_sheets",
+    "gmail": "gmail",
+    "postgresql": "postgres",
+    "postgres": "postgres",
+    "mysql": "mysql",
+    "google drive": "google_drive",
+    "slack api": "slack",
+    "slack": "slack",
+    "microsoft teams": "msteams",
+    "msteams": "msteams",
+    "microsoft outlook": "outlook",
+    "outlook": "outlook",
+    "github": "github",
+    "notion": "notion",
+    "jira": "jira",
+    "discord": "discord",
+    "stripe": "stripe",
+    "mongodb": "mongodb",
+    "redis": "redis",
+    "airtable": "airtable",
+    "shopify": "shopify",
+    "trello": "trello",
+    "asana": "asana",
+    "linear": "linear",
+    "calendly": "calendly",
+    "gitlab": "gitlab",
+    "zoom": "zoom",
+    "twilio": "twilio",
+    "bitbucket": "bitbucket",
+    "whatsapp": "whatsapp",
+    "clickup": "clickup",
+    "pipedrive": "pipedrive",
+    "dropbox": "dropbox",
+    "openai": "openai",
+    "mailchimp": "mailchimp",
+    "quickbooks": "quickbooks",
+    "google docs": "google_docs",
+    "pagerduty": "pagerduty",
+    "zendesk": "zendesk",
+    "todoist": "todoist",
+    "brevo": "brevo",
+    "freshdesk": "freshdesk",
+    "monday com": "monday",
+    "monday": "monday",
+    "supabase": "supabase",
+    "resend": "resend",
+    "pinecone": "pinecone",
+    "sentry": "sentry",
+    "aws s3 object storage": "s3",
+    "s3": "s3",
+    "servicenow": "servicenow",
+    "sap s 4hana": "sap",
+    "sap": "sap",
+    "workday": "workday",
+    "oracle netsuite erp": "netsuite",
+    "netsuite": "netsuite",
+    "anthropic claude": "anthropic",
+    "anthropic": "anthropic",
+    "google gemini": "gemini",
+    "gemini": "gemini",
+    "snowflake data cloud": "snowflake",
+    "snowflake": "snowflake",
+    "box": "box",
+    "typeform": "typeform",
+    "google bigquery": "bigquery",
+    "bigquery": "bigquery",
+    "twilio sendgrid": "sendgrid",
+    "sendgrid": "send_grid",
+    "intercom": "intercom",
+    "docusign": "docusign",
+    "coda": "coda",
+    "xero": "xero",
+    "zoho crm": "zoho_crm",
+    "freshsales": "freshsales",
+    "activecampaign": "activecampaign",
+    "microsoft sql server": "mssql",
+    "mssql": "mssql",
+    "sqlite": "sqlite",
+    "rabbitmq": "rabbitmq",
+    "apache kafka": "kafka",
+    "kafka": "kafka",
+    "oracle database": "oracle",
+    "oracle": "oracle",
+    "mqtt": "mqtt",
+    "action network": "action_network",
+    "bamboohr": "bamboo_hr",
+    "bamboo hr": "bamboo_hr",
+    "chargebee": "chargebee",
+    "circleci": "circle_ci",
+    "circle ci": "circle_ci",
+    "confluence": "confluence",
+    "contentful": "contentful",
+    "customer io": "customer_io",
+    "databricks": "databricks",
+    "freshservice": "freshservice",
+    "bitly": "bitly",
+    "adalo": "adalo",
+    "affinity": "affinity",
+    "agile crm": "agile_crm",
+    "airtop": "airtop",
+    "bannerbear": "bannerbear",
+    "baserow": "baserow",
+    "brandfetch": "brandfetch",
+    "bubble": "bubble",
+    "dhl": "dhl",
+    "figma": "figma",
+    "drift": "drift",
+    "dropcontact": "dropcontact",
+    "e goi": "egoi",
+    "egoi": "egoi",
+    "emelia": "emelia",
+    "harvest": "harvest",
+    "lemlist": "lemlist",
+    "mailerlite": "mailer_lite",
+    "mailer lite": "mailer_lite",
+    "mailgun": "mailgun",
+    "mattermost": "mattermost",
+    "nocodb": "noco_d_b",
+    "noco d b": "noco_d_b",
+    "mailjet": "mailjet",
+    "messagebird": "message_bird",
+    "message bird": "message_bird",
+    "netlify": "netlify",
+    "okta": "okta",
+    "onfleet": "onfleet",
+    "pushbullet": "pushbullet",
+    "travis ci": "travis_ci",
+    "webflow": "webflow",
+    "wise": "wise",
+    "zammad": "zammad",
+    "openai api": "open_ai",
+    "open ai": "open_ai",
+    "paddle": "paddle",
+    "seven": "sms77",
+    "sms77": "sms77",
+    "taiga": "taiga",
+    "monica crm": "monica_crm",
+    "nasa": "nasa",
+    "npm": "npm",
+    "marketstack": "marketstack",
+    "mailcheck": "mailcheck",
+    "mautic": "mautic",
+    "apitemplate io": "api_template_io",
+    "api template io": "api_template_io",
+    "autopilot": "autopilot",
+    "beeminder": "beeminder",
+    "clearbit": "clearbit",
+    "clockify": "clockify",
+    "cloudflare": "cloudflare",
+    "cockpit": "cockpit",
+    "convertkit": "convert_kit",
+    "convert kit": "convert_kit",
+    "hacker news": "hacker_news",
+    "home assistant": "home_assistant",
+    "humantic ai": "humantic_ai",
+    "hunter": "hunter",
+    "invoice ninja": "invoice_ninja",
+    "iterable": "iterable",
+    "jenkins": "jenkins",
+    "jina ai": "jina_ai",
+    "kobotoolbox": "ko_bo_toolbox",
+    "ko bo toolbox": "ko_bo_toolbox",
+    "lingvanex": "lingva_nex",
+    "lingva nex": "lingva_nex",
+    "lonescale": "lone_scale",
+    "lone scale": "lone_scale",
+    "magento 2": "magento2",
+    "magento2": "magento2",
+    "matrix": "matrix",
+    "medium": "medium",
+    "microsoft dataverse": "microsoft_dataverse",
+    "microsoft dynamics crm": "microsoft_dynamics_crm",
+    "microsoft entra id": "microsoft_entra",
+    "microsoft entra": "microsoft_entra",
+    "microsoft excel": "microsoft_excel",
+    "microsoft excel sharepoint": "microsoft_excel_share_point",
+    "microsoft excel share point": "microsoft_excel_share_point",
+    "microsoft graph security": "microsoft_graph_security",
+    "microsoft onedrive": "microsoft_one_drive",
+    "microsoft one drive": "microsoft_one_drive",
+    "microsoft sharepoint": "microsoft_sharepoint",
+    "misp": "misp",
+    "mistral ai": "mistral_ai",
+    "msg91": "msg91",
+    "n8n": "n8n",
+    "netscaler adc": "netscaler_adc",
+    "one simple api": "one_simple_api",
+    "openthesaurus": "open_thesaurus",
+    "open thesaurus": "open_thesaurus",
+    "openweathermap": "open_weather_map",
+    "open weather map": "open_weather_map",
+    "orbit": "orbit",
+    "oura": "oura",
+    "peekalink": "peekalink",
+    "perplexity": "perplexity",
+    "phantombuster": "phantombuster",
+    "plivo": "plivo",
+    "postbin": "post_bin",
+    "post bin": "post_bin",
+    "profitwell": "profit_well",
+    "profit well": "profit_well",
+    "pushcut": "pushcut",
+    "quickchart": "quick_chart",
+    "quick chart": "quick_chart",
+    "rundeck": "rundeck",
+    "securityscorecard": "security_scorecard",
+    "security scorecard": "security_scorecard",
+    "segment": "segment",
+    "send grid": "send_grid",
+    "sentry io": "sentry_io",
+    "stackby": "stackby",
+    "storyblok": "storyblok",
+    "strapi": "strapi",
+    "syncromsp": "syncro_msp",
+    "syncro msp": "syncro_msp",
+    "tapfiliate": "tapfiliate",
+    "thehive": "the_hive",
+    "the hive": "the_hive",
+    "thehive 5": "the_hive_project",
+    "the hive project": "the_hive_project",
+    "twake": "twake",
+    "uproc": "u_proc",
+    "u proc": "u_proc",
+    "uplead": "uplead",
+    "urlscan io": "url_scan_io",
+    "url scan io": "url_scan_io",
+    "venafi tls protect cloud": "venafi_tls_protect_cloud",
+    "whatsapp business cloud": "whats_app",
+    "whats app": "whats_app",
+    "woocommerce": "woo_commerce",
+    "woo commerce": "woo_commerce",
+    "wordpress": "wordpress",
+    "yourls": "yourls",
+    "zulip": "zulip",
+    "coingecko": "coin_gecko",
+    "coin gecko": "coin_gecko",
+    "dummyjson": "dummy_json",
+    "dummy json": "dummy_json",
+    "frankfurter fx": "frankfurter",
+    "frankfurter": "frankfurter",
+    "httpbin": "httpbin",
+    "jsonplaceholder": "json_placeholder",
+    "json placeholder": "json_placeholder",
+    "open meteo air quality": "open_meteo_air",
+    "open meteo air": "open_meteo_air",
+    "open meteo climate": "open_meteo_climate",
+    "open meteo": "open_meteo",
+    "open meteo elevation": "open_meteo_elevation",
+    "open meteo ensemble": "open_meteo_ensemble",
+    "open meteo flood": "open_meteo_flood",
+    "open meteo historical weather": "open_meteo_historical_weather",
+    "open meteo marine": "open_meteo_marine",
+    "open meteo seasonal": "open_meteo_seasonal",
+    "open notify": "open_notify",
+    "openrouter": "open_router",
+    "open router": "open_router",
+    "pokeapi": "poke_api",
+    "poke api": "poke_api",
+    "activecampaign trigger": "active_campaign_trigger",
+    "active campaign trigger": "active_campaign_trigger",
+    "acuity scheduling trigger": "acuity_scheduling_trigger",
+    "affinity trigger": "affinity_trigger",
+    "airtable trigger": "airtable_trigger",
+    "asana trigger": "asana_trigger",
+    "autopilot trigger": "autopilot_trigger",
+    "aws certificate manager": "aws_certificate_manager",
+    "aws cognito": "aws_cognito",
+    "aws comprehend": "aws_comprehend",
+    "aws dynamodb": "aws_dynamo_d_b",
+    "aws dynamo d b": "aws_dynamo_d_b",
+    "aws elb": "aws_elb",
+    "aws iam": "aws_iam",
+    "aws lambda": "aws_lambda",
+    "aws rekognition": "aws_rekognition",
+    "aws ses": "aws_ses",
+    "aws sns": "aws_sns",
+    "aws sns trigger": "aws_sns_trigger",
+    "aws sqs": "aws_sqs",
+    "aws textract": "aws_textract",
+    "aws transcribe": "aws_transcribe",
+    "azure cosmos db": "azure_cosmos_db",
+    "azure storage": "azure_storage",
+    "bitbucket trigger": "bitbucket_trigger",
+    "bitwarden": "bitwarden",
+    "box trigger": "box_trigger",
+    "brevo trigger": "brevo_trigger",
+    "cal com trigger": "cal_trigger",
+    "cal trigger": "cal_trigger",
+    "calendly trigger": "calendly_trigger",
+    "chargebee trigger": "chargebee_trigger",
+    "webex by cisco": "cisco_webex",
+    "cisco webex": "cisco_webex",
+    "webex by cisco trigger": "cisco_webex_trigger",
+    "cisco webex trigger": "cisco_webex_trigger",
+    "clickup trigger": "click_up_trigger",
+    "click up trigger": "click_up_trigger",
+    "clockify trigger": "clockify_trigger",
+    "convertkit trigger": "convert_kit_trigger",
+    "convert kit trigger": "convert_kit_trigger",
+    "copper": "copper",
+    "copper trigger": "copper_trigger",
+    "cortex": "cortex",
+    "cratedb": "crate_db",
+    "crate db": "crate_db",
+    "customer io trigger": "customer_io_trigger",
+    "databricks trigger": "databricks_trigger",
+    "deepl": "deep_l",
+    "deep l": "deep_l",
+    "demio": "demio",
+    "discourse": "discourse",
+    "disqus": "disqus",
+    "erpnext": "e_r_p_next",
+    "e r p next": "e_r_p_next",
+    "elastic security": "elastic_security",
+    "elasticsearch": "elasticsearch",
+    "emelia trigger": "emelia_trigger",
+    "eventbrite trigger": "eventbrite_trigger",
+    "facebook graph api": "facebook_graph_api",
+    "facebook lead ads trigger": "facebook_lead_ads_trigger",
+    "facebook trigger": "facebook_trigger",
+    "figma trigger beta": "figma_trigger",
+    "figma trigger": "figma_trigger",
+    "filemaker": "file_maker",
+    "file maker": "file_maker",
+    "form io trigger": "form_io_trigger",
+    "formstack trigger": "formstack_trigger",
+    "freshworks crm": "freshworks_crm",
+    "google workspace admin": "g_suite_admin",
+    "g suite admin": "g_suite_admin",
+    "getresponse": "get_response",
+    "get response": "get_response",
+    "getresponse trigger": "get_response_trigger",
+    "get response trigger": "get_response_trigger",
+    "ghost": "ghost",
+    "git": "git",
+    "github trigger": "github_trigger",
+    "gitlab trigger": "gitlab_trigger",
+    "gmail trigger": "gmail_trigger",
+    "gotowebinar": "go_to_webinar",
+    "go to webinar": "go_to_webinar",
+    "gong": "gong",
+    "google ads": "google_ads",
+    "google analytics": "google_analytics",
+    "google books": "google_books",
+    "google business profile": "google_business_profile",
+    "google business profile trigger": "google_business_profile_trigger",
+    "google calendar trigger": "google_calendar_trigger",
+    "google chat": "google_chat",
+    "google cloud natural language": "google_cloud_natural_language",
+    "google cloud storage": "google_cloud_storage",
+    "google contacts": "google_contacts",
+    "google drive trigger": "google_drive_trigger",
+    "google cloud firestore": "google_firebase_cloud_firestore",
+    "google firebase cloud firestore": "google_firebase_cloud_firestore",
+    "google cloud realtime database": "google_firebase_realtime_database",
+    "google firebase realtime database": "google_firebase_realtime_database",
+    "google perspective": "google_perspective",
+    "google sheets trigger": "google_sheets_trigger",
+    "google slides": "google_slides",
+    "google tasks": "google_tasks",
+    "google translate": "google_translate",
+    "gotify": "gotify",
+    "grafana": "grafana",
+    "grist": "grist",
+    "gumroad trigger": "gumroad_trigger",
+    "halopsa": "halo_p_s_a",
+    "halo p s a": "halo_p_s_a",
+    "help scout": "help_scout",
+    "help scout trigger": "help_scout_trigger",
+    "highlevel": "high_level",
+    "high level": "high_level",
+    "hubspot trigger": "hubspot_trigger",
+    "invoice ninja trigger": "invoice_ninja_trigger",
+    "jira trigger": "jira_trigger",
+    "jotform trigger": "jot_form_trigger",
+    "jot form trigger": "jot_form_trigger",
+    "jwt": "jwt",
+    "kafka trigger": "kafka_trigger",
+    "keap": "keap",
+    "keap trigger": "keap_trigger",
+    "kobotoolbox trigger": "ko_bo_toolbox_trigger",
+    "ko bo toolbox trigger": "ko_bo_toolbox_trigger",
+    "lemlist trigger": "lemlist_trigger",
+    "line": "line",
+    "linear trigger": "linear_trigger",
+    "linkedin": "linked_in",
+    "linked in": "linked_in",
+    "lonescale trigger": "lone_scale_trigger",
+    "lone scale trigger": "lone_scale_trigger",
+    "mailchimp trigger": "mailchimp_trigger",
+    "mailerlite trigger": "mailer_lite_trigger",
+    "mailer lite trigger": "mailer_lite_trigger",
+    "mailjet trigger": "mailjet_trigger",
+    "mandrill": "mandrill",
+    "mautic trigger": "mautic_trigger",
+    "metabase": "metabase",
+    "microsoft onedrive trigger": "microsoft_one_drive_trigger",
+    "microsoft one drive trigger": "microsoft_one_drive_trigger",
+    "microsoft outlook trigger": "microsoft_outlook_trigger",
+    "microsoft sharepoint trigger": "microsoft_share_point_trigger",
+    "microsoft share point trigger": "microsoft_share_point_trigger",
+    "microsoft sql": "microsoft_sql",
+    "microsoft teams trigger": "microsoft_teams_trigger",
+    "microsoft to do": "microsoft_to_do",
+    "mindee": "mindee",
+    "mocean": "mocean",
+    "mqtt trigger": "mqtt_trigger",
+    "n8n trigger": "n8n_trigger",
+    "netlify trigger": "netlify_trigger",
+    "nextcloud": "next_cloud",
+    "next cloud": "next_cloud",
+    "notion trigger": "notion_trigger",
+    "odoo": "odoo",
+    "onfleet trigger": "onfleet_trigger",
+    "paypal": "pay_pal",
+    "pay pal": "pay_pal",
+    "paypal trigger": "pay_pal_trigger",
+    "pay pal trigger": "pay_pal_trigger",
+    "philips hue": "philips_hue",
+    "pipedrive trigger": "pipedrive_trigger",
+    "posthog": "post_hog",
+    "post hog": "post_hog",
+    "postgres trigger": "postgres_trigger",
+    "postmark trigger": "postmark_trigger",
+    "pushcut trigger": "pushcut_trigger",
+    "pushover": "pushover",
+    "questdb": "quest_db",
+    "quest db": "quest_db",
+    "quick base": "quick_base",
+    "quickbooks online": "quick_books",
+    "quick books": "quick_books",
+    "rabbitmq trigger": "rabbit_m_q_trigger",
+    "rabbit m q trigger": "rabbit_m_q_trigger",
+    "raindrop": "raindrop",
+    "reddit": "reddit",
+    "redis trigger": "redis_trigger",
+    "rocketchat": "rocketchat",
+    "rss feed": "rss_feed",
+    "rss read": "rss_feed_read",
+    "rss feed read": "rss_feed_read",
+    "rss feed trigger": "rss_feed_read_trigger",
+    "rss feed read trigger": "rss_feed_read_trigger",
+    "salesforce trigger": "salesforce_trigger",
+    "salesmate": "salesmate",
+    "seatable": "sea_table",
+    "sea table": "sea_table",
+    "seatable trigger": "sea_table_trigger",
+    "sea table trigger": "sea_table_trigger",
+    "sendy": "sendy",
+    "shopify trigger": "shopify_trigger",
+    "signl4": "signl4",
+    "slack trigger": "slack_trigger",
+    "splunk": "splunk",
+    "spotify": "spotify",
+    "strava": "strava",
+    "strava trigger": "strava_trigger",
+    "stripe trigger": "stripe_trigger",
+    "surveymonkey trigger": "survey_monkey_trigger",
+    "survey monkey trigger": "survey_monkey_trigger",
+    "taiga trigger": "taiga_trigger",
+    "telegram": "telegram",
+    "telegram trigger": "telegram_trigger",
+    "thehive 5 trigger": "the_hive_project_trigger",
+    "the hive project trigger": "the_hive_project_trigger",
+    "thehive trigger": "the_hive_trigger",
+    "the hive trigger": "the_hive_trigger",
+    "timescaledb": "timescale_db",
+    "timescale db": "timescale_db",
+    "toggl trigger": "toggl_trigger",
+    "trello trigger": "trello_trigger",
+    "twilio trigger": "twilio_trigger",
+    "twist": "twist",
+    "x formerly twitter": "twitter",
+    "twitter": "twitter",
+    "typeform trigger": "typeform_trigger",
+    "unleashed software": "unleashed_software",
+    "uptimerobot": "uptime_robot",
+    "uptime robot": "uptime_robot",
+    "venafi tls protect cloud trigger": "venafi_tls_protect_cloud_trigger",
+    "venafi tls protect datacenter": "venafi_tls_protect_datacenter",
+    "vero": "vero",
+    "vonage": "vonage",
+    "webflow trigger": "webflow_trigger",
+    "wekan": "wekan",
+    "whatsapp trigger": "whats_app_trigger",
+    "whats app trigger": "whats_app_trigger",
+    "wise trigger": "wise_trigger",
+    "woocommerce trigger": "woo_commerce_trigger",
+    "woo commerce trigger": "woo_commerce_trigger",
+    "workable trigger": "workable_trigger",
+    "wufoo trigger": "wufoo_trigger",
+    "youtube": "you_tube",
+    "you tube": "you_tube",
+    "zendesk trigger": "zendesk_trigger"
+  }
+}

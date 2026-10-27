@@ -168,7 +168,7 @@ export default function AppShell({ onLogout }) {
               <span>Operational</span>
             </button>
 
-            {!isCanvas && (
+            {!isCanvas && !['/overview', '/workflows'].includes(location.pathname) && (
               <button
                 className="primary small topbar-create-btn"
                 onClick={() => navigate('/workflows')}
@@ -209,14 +209,14 @@ export default function AppShell({ onLogout }) {
                   width: 22,
                   height: 22,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                  background: 'var(--accent)',
                   color: '#fff',
                   fontSize: 10,
-                  fontWeight: 700,
+                  fontWeight: 650,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 0 8px rgba(99,102,241,0.5)',
+                  boxShadow: 'none',
                 }}
               >
                 {user.initials}

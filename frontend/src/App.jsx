@@ -243,6 +243,10 @@ export default function App() {
                   purgeUserStorage()
                   setToken(null)
                   setAuthed(false)
+                  // A full navigation guarantees the logout lands on the
+                  // clean login URL and drops any in-flight authenticated
+                  // requests from the previous session.
+                  window.location.replace('/')
                 }}
               />
             )

@@ -18,7 +18,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import cast, func, or_, select, String
+from sqlalchemy import and_, cast, func, or_, select, String
 from sqlalchemy.orm import Session, defer
 
 from app.api.access import accessible_ids, get_permission, get_workflow
@@ -57,6 +57,7 @@ router = APIRouter(tags=["executions"])
 logger = logging.getLogger("api.executions")
 
 IN_PROGRESS_STATUSES = frozenset({"queued", "running", "cancelling"})
+EXPORT_ROW_LIMIT = 10_000
 
 
 class RunRequest(BaseModel):
@@ -371,7 +372,9 @@ def has_running_execution(db: Session, workflow_id: str) -> bool:
     return db.scalar(
         select(Execution.id).where(
             Execution.workflow_id == workflow_id,
-            Execution.status.in_(("queued", "running", "cancelling")),
+            Execution.status.in_(
+                ("queued", "running", "cancelling", "waiting_approval", "waiting_auth")
+            ),
         )
     ) is not None
 
@@ -952,6 +955,38 @@ def list_executions(
     return ok(items, {"page": page, "pageSize": size, "total": total})
 
 
+@router.get("/api/executions/error-types")
+def list_execution_error_types(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Return error categories that actually occur in accessible executions.
+
+    The UI used to hard-code a stale taxonomy, so filters such as
+    ``AUTH_ERROR`` never matched the canonical ``AUTHENTICATION_ERROR``.
+    Returning observed values keeps both legacy rows and the current
+    taxonomy filterable.
+    """
+    ids = accessible_ids(db, user)
+    if not ids:
+        return ok([])
+
+    rows = db.execute(
+        select(Execution.error_type, func.count(Execution.id))
+        .where(
+            Execution.workflow_id.in_(ids),
+            Execution.error_type.is_not(None),
+        )
+        .group_by(Execution.error_type)
+        .order_by(func.count(Execution.id).desc(), Execution.error_type.asc())
+    ).all()
+    return ok([
+        {"value": str(error_type), "count": int(count)}
+        for error_type, count in rows
+        if error_type
+    ])
+
+
 @router.get("/api/executions/export")
 def export_executions_csv(
     workflow_id: str | None = None,
@@ -981,7 +1016,11 @@ def export_executions_csv(
         return Response(
             content=output.getvalue(),
             media_type="text/csv",
-            headers={"Content-Disposition": 'attachment; filename="flowsmith-executions-export.csv"'},
+            headers={
+                "Content-Disposition": 'attachment; filename="flowsmith-executions-export.csv"',
+                "X-Export-Truncated": "false",
+                "X-Export-Limit": str(EXPORT_ROW_LIMIT),
+            },
         )
 
     stmt = _build_execution_query(
@@ -998,9 +1037,12 @@ def export_executions_csv(
         search=search,
         start_date=start_date,
         end_date=end_date,
-    ).order_by(Execution.started_at.desc(), Execution.id.desc()).limit(10000)
+    ).order_by(Execution.started_at.desc(), Execution.id.desc()).limit(EXPORT_ROW_LIMIT + 1)
 
     recs = db.scalars(stmt).all()
+    truncated = len(recs) > EXPORT_ROW_LIMIT
+    if truncated:
+        recs = recs[:EXPORT_ROW_LIMIT]
     names = {
         wid: name
         for wid, name in db.execute(
@@ -1057,13 +1099,26 @@ def export_executions_csv(
         target_type="executions",
         target_id="filtered",
         user_id=user.id,
-        detail={"count": len(recs), "filters": {"workflow_id": workflow_id, "status": status, "connector": connector}},
+        detail={
+            "count": len(recs),
+            "truncated": truncated,
+            "limit": EXPORT_ROW_LIMIT,
+            "filters": {
+                "workflow_id": workflow_id,
+                "status": status,
+                "connector": connector,
+            },
+        },
     )
 
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="flowsmith-executions-export.csv"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="flowsmith-executions-export.csv"',
+            "X-Export-Truncated": "true" if truncated else "false",
+            "X-Export-Limit": str(EXPORT_ROW_LIMIT),
+        },
     )
 
 
@@ -1484,14 +1539,50 @@ def get_execution_timeline(
 @router.get("/api/executions/{execution_id}/requests")
 def list_execution_requests(
     execution_id: str,
+    page: int = 1,
+    pageSize: int = 50,
+    request_id: str | None = None,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Return lightweight list of outbound API calls for API inspector."""
+    """Return a lightweight page of outbound API calls for API inspector."""
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
+    p, size = page_params(page=page, pageSize=pageSize)
+    total = int(
+        db.scalar(
+            select(func.count(ApiRequestTelemetry.id)).where(
+                ApiRequestTelemetry.execution_id == execution_id
+            )
+        )
+        or 0
+    )
+    if request_id:
+        target = db.scalar(
+            select(ApiRequestTelemetry).where(
+                ApiRequestTelemetry.execution_id == execution_id,
+                ApiRequestTelemetry.id == request_id,
+            )
+        )
+        if target is not None:
+            preceding = int(
+                db.scalar(
+                    select(func.count(ApiRequestTelemetry.id)).where(
+                        ApiRequestTelemetry.execution_id == execution_id,
+                        or_(
+                            ApiRequestTelemetry.created_at < target.created_at,
+                            and_(
+                                ApiRequestTelemetry.created_at == target.created_at,
+                                ApiRequestTelemetry.id < target.id,
+                            ),
+                        ),
+                    )
+                )
+                or 0
+            )
+            p = (preceding // size) + 1
     rows = db.scalars(
         select(ApiRequestTelemetry)
         .options(
@@ -1499,7 +1590,9 @@ def list_execution_requests(
             defer(ApiRequestTelemetry.response_payload),
         )
         .where(ApiRequestTelemetry.execution_id == execution_id)
-        .order_by(ApiRequestTelemetry.created_at.asc())
+        .order_by(ApiRequestTelemetry.created_at.asc(), ApiRequestTelemetry.id.asc())
+        .offset((p - 1) * size)
+        .limit(size)
     ).all()
 
     items = [
@@ -1520,7 +1613,7 @@ def list_execution_requests(
         }
         for r in rows
     ]
-    return ok(items)
+    return ok(items, {"page": p, "pageSize": size, "total": total})
 
 
 @router.get("/api/executions/{execution_id}/requests/{request_id}")

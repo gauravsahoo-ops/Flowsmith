@@ -355,7 +355,7 @@ export default function HubSpotOAuthModal({
         <div className="hs-modal-header">
           <div className="hs-header-title-wrap">
             <div className="hs-brand-avatar">
-              <NodeIcon type="hubspot" size={24} />
+              <NodeIcon type="hubspot" size={32} />
             </div>
             <div className="hs-header-meta">
               <h3 id="hs-modal-title">

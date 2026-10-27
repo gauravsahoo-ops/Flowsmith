@@ -141,15 +141,33 @@ class PgVectorStore(VectorStore):
                     f"Collection '{name}' already exists with embedding dimension "
                     f"{row[0]}; current model produces {dim_val}."
                 )
-            if row is None:
-                conn.execute(
-                    text(f"INSERT INTO {CATALOG_TABLE} (name, suffix, dim) VALUES (:n, :s, :d)"),
-                    {"n": name, "s": "", "d": dim_val},
-                )
             suffix = _table_suffix(name)
+            if row is None:
+                # Store the final, unique suffix immediately. Inserting a
+                # shared empty suffix made concurrent provisioning of two
+                # different collections collide on the catalog UNIQUE index.
+                conn.execute(
+                    text(
+                        f"INSERT INTO {CATALOG_TABLE} (name, suffix, dim) "
+                        "VALUES (:n, :s, :d) ON CONFLICT (name) DO NOTHING"
+                    ),
+                    {"n": name, "s": suffix, "d": dim_val},
+                )
             table = _table_name(suffix)
             conn.execute(text(f'UPDATE {CATALOG_TABLE} SET suffix = :s WHERE name = :n'),
                          {"s": suffix, "n": name})
+            # A concurrent creator may have won the insert race with a
+            # different dimension; never create a table whose width disagrees
+            # with the catalog.
+            actual = conn.execute(
+                text(f"SELECT dim FROM {CATALOG_TABLE} WHERE name = :name"),
+                {"name": name},
+            ).fetchone()
+            if actual is not None and int(actual[0]) != dim_val:
+                raise ValueError(
+                    f"Collection '{name}' already exists with embedding dimension "
+                    f"{actual[0]}; current model produces {dim_val}."
+                )
             exists = conn.execute(
                 text("SELECT 1 FROM information_schema.tables WHERE table_name = :t"),
                 {"t": table},
@@ -194,6 +212,21 @@ class PgVectorStore(VectorStore):
             raise ValueError("documents/embeddings/metadatas must have equal length")
         if ids is not None and len(ids) != len(documents):
             raise ValueError("ids must match documents length when given")
+        vector_dim: int | None = None
+        for index, vector in enumerate(embeddings):
+            if not vector:
+                raise ValueError(f"embedding {index} is empty")
+            try:
+                width = len(vector)
+                finite = all(math.isfinite(float(value)) for value in vector)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"embedding {index} is not numeric") from exc
+            if not finite:
+                raise ValueError(f"embedding {index} contains NaN or Infinity")
+            if vector_dim is None:
+                vector_dim = width
+            elif width != vector_dim:
+                raise ValueError("all embeddings in one add() must have the same dimension")
         table = _table_name(handle)
         conn = self._connect()
         trans = None
@@ -245,6 +278,12 @@ class PgVectorStore(VectorStore):
         query_embedding: list[float],
         top_k: int,
     ) -> list[dict[str, Any]]:
+        if top_k <= 0:
+            return []
+        if not query_embedding or any(
+            not math.isfinite(float(value)) for value in query_embedding
+        ):
+            raise ValueError("query_embedding must be a non-empty finite vector.")
         table = _table_name(handle)
         conn = self._connect()
         try:
@@ -440,7 +479,7 @@ def migrate_legacy_sqlite_vec(sqlite_path: str) -> dict[str, Any]:
             documents=chunks,
             embeddings=embeddings,
             metadatas=metadatas,
-            ids=[i for i in ids if i is not None],
+            ids=ids,
         )
         report["collections"].append({
             "name": str(name),

@@ -24,6 +24,13 @@ from app.connectors import (
     make_connector_error,
 )
 from app.connectors.registry import validate_definition
+from app.connectors.naming import (
+    alias_target,
+    display_name_for,
+    humanize_operation_key,
+    is_internal,
+    operation_display_name,
+)
 
 if TYPE_CHECKING:
     from app.connectors.registry import ConnectorRegistry
@@ -403,7 +410,7 @@ def build_parity_definitions_and_connectors() -> list[tuple[ConnectorSDK, Connec
         cid = item.get("integration_id", "").strip()
         if not cid:
             continue
-        disp = item.get("display_name") or cid
+        disp = display_name_for(cid, item.get("display_name") or cid)
         raw_cat = item.get("category") or "api"
         cat = normalize_parity_category(raw_cat)
         is_trig = item.get("trigger_or_action") == "trigger"
@@ -423,19 +430,24 @@ def build_parity_definitions_and_connectors() -> list[tuple[ConnectorSDK, Connec
 
         # Operations
         ops: dict[str, ConnectorOperationV1] = {}
+        used_display_names: set[str] = set()
         op_list = item.get("operations") or ["execute"]
         for op_key in op_list:
             clean_op = op_key.lower().replace(" ", "_").replace("-", "_")
             if not clean_op:
                 clean_op = "execute"
             is_idem = any(w in clean_op for w in ("get", "read", "list", "query", "search", "describe"))
+            display = operation_display_name(cid, clean_op)
+            if display in used_display_names:
+                display = f"{display} ({humanize_operation_key(clean_op)})"
+            used_display_names.add(display)
             ops[clean_op] = ConnectorOperationV1(
                 connector_key=cid,
                 connector_version="1.0.0",
                 operation_key=clean_op,
                 operation_version="1.0.0",
-                display_name=clean_op.replace("_", " ").title(),
-                description=f"Execute {clean_op} operation on {disp}.",
+                display_name=display,
+                description=f"Execute {display} operation on {disp}.",
                 input_schema={"type": "object", "properties": {"resource": {"type": "string"}, "operation": {"type": "string"}}},
                 output_schema={"type": "object", "properties": {}},
                 credential_require=primary_cred,
@@ -471,6 +483,9 @@ def build_parity_definitions_and_connectors() -> list[tuple[ConnectorSDK, Connec
                 "implementation": "catalog_only",
                 "requires_endpoint": True,
                 "provenance": "reference_inventory",
+                "catalog_hidden": bool(alias_target(cid) or is_internal(cid)),
+                **({"alias_of": alias_target(cid)} if alias_target(cid) else {}),
+                **({"internal": True} if is_internal(cid) else {}),
             },
         )
 

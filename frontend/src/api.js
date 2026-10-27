@@ -241,27 +241,43 @@ export const api = {
     request('GET', `/executions/${id}/nodes/${encodeURIComponent(nodeId)}/output`),
   getExecutionSteps: (id) => request('GET', `/executions/${id}/steps`),
   getExecutionTimeline: (id) => request('GET', `/executions/${id}/timeline`),
-  getExecutionRequests: (id) => request('GET', `/executions/${id}/requests`),
+  getExecutionRequests: (id, params = {}, opts) => {
+    const q = new URLSearchParams()
+    if (params.page) q.set('page', String(params.page))
+    if (params.pageSize) q.set('pageSize', String(params.pageSize))
+    if (params.requestId) q.set('request_id', params.requestId)
+    const suffix = q.size ? `?${q.toString()}` : ''
+    return requestEnvelope('GET', `/executions/${id}/requests${suffix}`, undefined, opts)
+  },
   getExecutionRequestDetail: (id, reqId) => request('GET', `/executions/${id}/requests/${reqId}`),
   getExecutionRetries: (id) => request('GET', `/executions/${id}/retries`),
-  getMonitoringSummary: (params = {}) => {
+  getMonitoringSummary: (params = {}, opts) => {
     const q = new URLSearchParams()
+    const startDate = params.startDate ?? params.fromDate
+    const endDate = params.endDate ?? params.toDate
     if (params.workflowId) q.set('workflow_id', params.workflowId)
     if (params.connector) q.set('connector', params.connector)
-    if (params.startDate) q.set('start_date', params.startDate)
-    if (params.endDate) q.set('end_date', params.endDate)
+    if (startDate) q.set('start_date', startDate)
+    if (endDate) q.set('end_date', endDate)
     const suffix = q.size ? `?${q.toString()}` : ''
-    return request('GET', `/monitoring/summary${suffix}`)
+    return request('GET', `/monitoring/summary${suffix}`, undefined, opts)
   },
   exportExecutionsCsv: async (params = {}) => {
     const token = getToken()
     const q = new URLSearchParams()
+    const startDate = params.startDate ?? params.fromDate
+    const endDate = params.endDate ?? params.toDate
     if (params.workflowId) q.set('workflow_id', params.workflowId)
     if (params.status) q.set('status', params.status)
     if (params.connector) q.set('connector', params.connector)
+    if (params.sourceObject) q.set('source_object', params.sourceObject)
+    if (params.destinationObject) q.set('destination_object', params.destinationObject)
+    if (params.httpStatus != null && params.httpStatus !== '') q.set('http_status', String(params.httpStatus))
+    if (params.errorType) q.set('error_type', params.errorType)
+    if (params.trigger) q.set('trigger', params.trigger)
     if (params.search) q.set('search', params.search)
-    if (params.startDate) q.set('start_date', params.startDate)
-    if (params.endDate) q.set('end_date', params.endDate)
+    if (startDate) q.set('start_date', startDate)
+    if (endDate) q.set('end_date', endDate)
     const suffix = q.size ? `?${q.toString()}` : ''
     const res = await fetch(`/api/executions/export${suffix}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -272,15 +288,11 @@ export const api = {
       throw new ApiError(401, 'Session expired')
     }
     if (!res.ok) throw new Error(`Export failed: ${res.statusText}`)
-    const blob = await res.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `flowsmith-executions-${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    window.URL.revokeObjectURL(url)
+    return {
+      blob: await res.blob(),
+      truncated: res.headers.get('X-Export-Truncated') === 'true',
+      limit: Number(res.headers.get('X-Export-Limit') || 0) || null,
+    }
   },
   exportExecution: async (id, format = 'json') => {
     const token = getToken()
@@ -305,6 +317,8 @@ export const api = {
   },
   listExecutions: (params = {}, opts) => {
     const q = new URLSearchParams()
+    const startDate = params.startDate ?? params.fromDate
+    const endDate = params.endDate ?? params.toDate
     if (params.workflowId) q.set('workflow_id', params.workflowId)
     if (params.status) q.set('status', params.status)
     if (params.connector) q.set('connector', params.connector)
@@ -314,8 +328,8 @@ export const api = {
     if (params.errorType) q.set('error_type', params.errorType)
     if (params.trigger) q.set('trigger', params.trigger)
     if (params.search) q.set('search', params.search)
-    if (params.startDate) q.set('start_date', params.startDate)
-    if (params.endDate) q.set('end_date', params.endDate)
+    if (startDate) q.set('start_date', startDate)
+    if (endDate) q.set('end_date', endDate)
     if (params.sortBy) q.set('sort_by', params.sortBy)
     if (params.sortDir) q.set('sort_dir', params.sortDir)
     if (params.page) q.set('page', String(params.page))
@@ -323,14 +337,17 @@ export const api = {
     const suffix = q.size ? `?${q.toString()}` : ''
     return requestEnvelope('GET', `/executions${suffix}`, undefined, opts)
   },
+  getExecutionErrorTypes: () => request('GET', '/executions/error-types'),
   universalSearchExecutions: (params = {}, opts) => {
     const q = new URLSearchParams()
+    const startDate = params.startDate ?? params.fromDate
+    const endDate = params.endDate ?? params.toDate
     if (params.q) q.set('q', params.q)
     if (params.category) q.set('category', params.category)
     if (params.workflowId) q.set('workflow_id', params.workflowId)
     if (params.status) q.set('status', params.status)
-    if (params.startDate) q.set('start_date', params.startDate)
-    if (params.endDate) q.set('end_date', params.endDate)
+    if (startDate) q.set('start_date', startDate)
+    if (endDate) q.set('end_date', endDate)
     if (params.page) q.set('page', String(params.page))
     if (params.pageSize) q.set('pageSize', String(params.pageSize))
     const suffix = q.size ? `?${q.toString()}` : ''
@@ -367,6 +384,17 @@ export const api = {
   deleteTemplate: (id) => request('DELETE', `/templates/${id}`),
   // Workspace environment variables (Phase 31/32)
   listWorkspaces: () => request('GET', '/workspaces?pageSize=100'),
+  // Billing & subscription (backend-enforced quotas; Stripe optional).
+  listBillingPlans: () => request('GET', '/billing/plans'),
+  getBillingUsage: (workspaceId) => request('GET', `/billing/usage/${encodeURIComponent(workspaceId)}`),
+  checkBillingLimit: (workspaceId, limitType = 'executions') =>
+    request(
+      'GET',
+      `/billing/check-limit/${encodeURIComponent(workspaceId)}?limit_type=${encodeURIComponent(limitType)}`,
+    ),
+  getBillingSubscription: (organizationId) =>
+    request('GET', `/billing/subscription/${encodeURIComponent(organizationId)}`),
+  startBillingCheckout: (payload) => request('POST', '/billing/checkout', payload),
   listEnvVars: (workspaceId) => request('GET', `/environments/${workspaceId}`),
   upsertEnvVar: (payload) => request('POST', '/environments', payload),
   deleteEnvVar: (id) => request('DELETE', `/environments/${id}`),
@@ -455,7 +483,7 @@ export const api = {
     return requestEnvelope('GET', `/webhooks/deliveries${s}`)
   },
   // Monitoring
-  getMonitoringStats: () => request('GET', '/monitoring/stats'),
+  getMonitoringStats: (opts) => request('GET', '/monitoring/stats', undefined, opts),
   createDataTable: (payload) => request('POST', '/data-tables', payload),
   getDataTable: (id) => request('GET', `/data-tables/${id}`),
   updateDataTable: (id, payload) => request('PATCH', `/data-tables/${id}`, payload),
@@ -559,7 +587,7 @@ export const api = {
     const qs = q.toString() ? `?${q.toString()}` : ''
     return request('GET', `/notifications${qs}`)
   },
-  getNotificationStats: () => request('GET', '/notifications/stats'),
+  getNotificationStats: (opts) => request('GET', '/notifications/stats', undefined, opts),
   getNotificationDetail: (id) => request('GET', `/notifications/${encodeURIComponent(id)}`),
   acknowledgeNotification: (id) => request('POST', `/notifications/${encodeURIComponent(id)}/acknowledge`),
   resolveNotification: (id) => request('POST', `/notifications/${encodeURIComponent(id)}/resolve`),

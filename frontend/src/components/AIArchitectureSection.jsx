@@ -503,11 +503,12 @@ export default function AIArchitectureSection() {
   const selectedTool = mcpTools.find((t) => t.name === selectedToolName)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
+    <div className="ai-architecture-section" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
       {/* 1. TOP HERO CARDS (Restyled & Elevated) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+      <div className="ai-arch-hero-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
         {/* Card 1: RAG Vector Knowledge Bases */}
         <div
+          className="ai-arch-card ai-arch-card-rag"
           style={{
             padding: '1.6rem',
             background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(24, 24, 27, 0.8) 100%)',
@@ -554,6 +555,7 @@ export default function AIArchitectureSection() {
 
         {/* Card 2: Model Context Protocol (MCP) */}
         <div
+          className="ai-arch-card ai-arch-card-mcp"
           style={{
             padding: '1.6rem',
             background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.3) 0%, rgba(24, 24, 27, 0.8) 100%)',
@@ -604,6 +606,7 @@ export default function AIArchitectureSection() {
 
         {/* Card 3: Deterministic Graph Auto-Repair */}
         <div
+          className="ai-arch-card ai-arch-card-repair"
           style={{
             padding: '1.6rem',
             background: 'linear-gradient(135deg, rgba(88, 28, 135, 0.3) 0%, rgba(24, 24, 27, 0.8) 100%)',
@@ -690,6 +693,7 @@ export default function AIArchitectureSection() {
           {CONVERGENCE_PILLARS.map((p) => (
             <div
               key={p.id}
+              className="ai-convergence-pillar"
               style={{
                 padding: '1rem',
                 borderRadius: '10px',
@@ -836,7 +840,7 @@ export default function AIArchitectureSection() {
         </div>
 
         {/* 2-Column Studio Grid: Left Config, Right Live Runner */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.25fr)', gap: '1.5rem' }}>
+        <div className="ai-mcp-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.25fr)', gap: '1.5rem' }}>
           {/* Left: Client Setup */}
           <div
             style={{

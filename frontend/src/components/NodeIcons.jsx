@@ -1,11 +1,23 @@
 import React from 'react'
+import { BrandLogo } from './BrandLogo'
+import { getBrandLogo } from '../utils/brandLogoResolver'
 
 /**
- * High-fidelity, official vector logos and icons for all Flowsmith nodes & connectors.
- * Supports exact brand logos (multi-color / brand palette) for native connectors and catalog entries
- * and clean, modern SVG icons for all 57+ flow and logic nodes.
+ * Self-hosted brand marks take precedence for real vendor connectors.
+ * Flow / protocol nodes keep the original precision vector system below.
  */
-export function NodeIcon({ type, name, icon, size = 34, color }) {
+export function NodeIcon({ type, name, icon, size = 34, color, className, style }) {
+  if (getBrandLogo({ type, name, icon })) {
+    return <BrandLogo type={type} name={name} icon={icon} size={size} className={className} style={style} />
+  }
+  return <NodeIconArt type={type} name={name} icon={icon} size={size} color={color} className={className} style={style} />
+}
+
+/**
+ * High-fidelity vector icons for flow, logic, protocol, and fallback nodes.
+ * Real vendor marks are rendered by BrandLogo before this component is reached.
+ */
+function NodeIconArt({ type, name, icon, size = 34, color }) {
   const t = (type || '').toLowerCase().trim()
   const n = (name || '').toLowerCase().trim()
   const ic = (icon || '').toLowerCase().trim()
@@ -2272,53 +2284,36 @@ export function NodeIcon({ type, name, icon, size = 34, color }) {
 
   if (cleanLabel) {
     const words = cleanLabel.split(/\s+/).filter(Boolean)
-    const monogram = (words.length > 1 ? words[0][0] + words[1][0] : cleanLabel.slice(0, 2)).toUpperCase() || 'FS'
-    const colors = [
-      ['#4f46e5', '#6366f1'],
-      ['#2563eb', '#3b82f6'],
-      ['#0284c7', '#38bdf8'],
-      ['#0d9488', '#14b8a6'],
-      ['#059669', '#10b981'],
-      ['#d97706', '#f59e0b'],
-      ['#ea580c', '#f97316'],
-      ['#dc2626', '#ef4444'],
-      ['#e11d48', '#f43f5e'],
-      ['#c026d3', '#d946ef'],
-      ['#7c3aed', '#8b5cf6'],
-      ['#0891b2', '#06b6d4'],
-    ]
+    const fullMonogram = (words.length > 1 ? words[0][0] + words[1][0] : cleanLabel.slice(0, 2)).toUpperCase() || 'FS'
+    const monogram = fullMonogram.length > 1 && size < 22 ? fullMonogram[0] : fullMonogram
+    const accents = ['#6b8afd', '#4aa8d8', '#48b7a2', '#d0a44c', '#d2768b', '#9b7ad6', '#7da36b']
     let hash = 0
     for (let i = 0; i < cleanLabel.length; i++) {
-      hash = (hash << 5) - hash + cleanLabel.charCodeAt(i)
-      hash |= 0
+      hash = (hash * 31 + cleanLabel.charCodeAt(i)) | 0
     }
-    const colorPair = colors[Math.abs(hash) % colors.length]
-    const gradId = `grad-${Math.abs(hash) % 1000}`
+    const accent = accents[Math.abs(hash) % accents.length]
     const isTrigger = matches('trigger') || t.includes('trigger') || n.includes('trigger')
+    const fontSize = monogram.length > 1 ? (size < 28 ? 8.2 : 9.2) : (size < 28 ? 10.2 : 11.2)
 
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <defs>
-          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={colorPair[0]} />
-            <stop offset="100%" stopColor={colorPair[1]} />
-          </linearGradient>
-        </defs>
-        <rect width="20" height="20" x="2" y="2" rx="4.5" fill={`url(#${gradId})`} />
+        <rect x="1.5" y="1.5" width="21" height="21" rx="5.4" fill="#151a21" stroke="#303845" strokeWidth="0.9" />
+        <path d="M4.2 6.4A3.4 3.4 0 0 1 7.6 3h8.8a3.4 3.4 0 0 1 3.4 3.4" stroke="rgba(255,255,255,0.09)" strokeWidth="0.8" strokeLinecap="round" />
         <text
           x="12"
-          y="15.2"
-          fill="#FFFFFF"
-          fontSize={monogram.length > 1 ? "9.5" : "11"}
-          fontWeight="700"
-          fontFamily="system-ui, -apple-system, sans-serif"
+          y={monogram.length > 1 ? 15.1 : 15.6}
+          fill="#E7EDF7"
+          fontSize={fontSize}
+          fontWeight="650"
+          fontFamily="Inter, system-ui, -apple-system, sans-serif"
           textAnchor="middle"
-          letterSpacing="-0.3px"
+          letterSpacing="-0.35px"
         >
           {monogram}
         </text>
+        <rect x="9.2" y="18.9" width="5.6" height="1.1" rx="0.55" fill={accent} opacity="0.9" />
         {isTrigger && (
-          <polygon points="19 3 14 10 17 10 15 16 21 8 18 8" fill="#F97316" stroke="#FFFFFF" strokeWidth="0.8" />
+          <polygon points="20 2.5 15.8 8.5 18 8.5 16.4 13 21 7.2 18.8 7.2" fill="#F59E0B" stroke="#151A21" strokeWidth="0.65" />
         )}
       </svg>
     )

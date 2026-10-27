@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.auth import get_current_user
 from app.api.common import ok
 from app.connectors import get_registry as _get_connector_registry
+from app.connectors.naming import is_hidden_in_catalog
 from app.models import User
 from app.nodes.registry import NODE_REGISTRY, list_nodes
 from app.parameters import ParameterSchemaBuilder
@@ -243,9 +244,11 @@ def _connector_catalog_entries() -> list[dict]:
 
     entries: list[dict] = []
     for connector in registry.list_all():
+        if is_hidden_in_catalog(connector.connector_id):
+            continue
         definition = registry.get_definition(connector.connector_id)
         for node_type in connector.node_types:
-            if node_type in NODE_REGISTRY:
+            if node_type in NODE_REGISTRY or is_hidden_in_catalog(node_type):
                 continue
             def_cat = (definition.category if definition and definition.category else "connectors").lower()
             if def_cat in ("marketing", "content", "seo"):

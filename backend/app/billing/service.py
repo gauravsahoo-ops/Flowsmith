@@ -11,14 +11,19 @@
 
 from __future__ import annotations
 
+import logging
+
 from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Organization, Subscription, WorkflowRecord, Workspace
+
+logger = logging.getLogger("billing")
 
 PLANS: dict[str, dict[str, Any]] = {
     "free": {
@@ -51,16 +56,41 @@ PLANS: dict[str, dict[str, Any]] = {
 PURCHASABLE_PLANS = ("starter", "pro")
 
 
-def get_or_create_subscription(db: Session, organization_id: str) -> Subscription:
-    sub = db.scalars(
-        select(Subscription).where(Subscription.organization_id == organization_id)
-    ).first()
-    if sub is None:
-        sub = Subscription(organization_id=organization_id, plan="free", status="active")
-        db.add(sub)
+def get_or_create_subscription(
+    db: Session, organization_id: str, *, for_update: bool = False
+) -> Subscription:
+    stmt = select(Subscription).where(Subscription.organization_id == organization_id)
+    if for_update:
+        stmt = stmt.with_for_update()
+    sub = db.scalars(stmt).first()
+    if sub is not None:
+        return sub
+
+    # Lazy creation is a read-modify-write path: two first-time requests can
+    # both observe no row. Serialize on PostgreSQL and still handle the
+    # unique-constraint race on every backend.
+    if db.get_bind().dialect.name == "postgresql":
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:scope), 8)"),
+            {"scope": f"subscription:{organization_id}"},
+        )
+        sub = db.scalars(stmt).first()
+        if sub is not None:
+            return sub
+    sub = Subscription(organization_id=organization_id, plan="free", status="active")
+    db.add(sub)
+    try:
         db.commit()
         db.refresh(sub)
-    return sub
+        return sub
+    except IntegrityError:
+        db.rollback()
+        sub = db.scalars(
+            select(Subscription).where(Subscription.organization_id == organization_id)
+        ).first()
+        if sub is None:
+            raise
+        return sub
 
 
 def resolve_organization_for_workspace(db: Session, workspace_id: str | None) -> Organization | None:
@@ -90,23 +120,29 @@ def workspace_usage(db: Session, workspace_id: str) -> dict[str, int]:
     from app.models import Execution
 
     wf_ids = select(WorkflowRecord.id).where(WorkflowRecord.workspace_id == workspace_id)
-    executions_month = db.execute(
-        select(Execution.id).where(
-            Execution.workflow_id.in_(wf_ids.scalar_subquery()),
-            Execution.started_at >= month_start,
+    executions_month = int(
+        db.scalar(
+            select(func.count(Execution.id)).where(
+                Execution.workflow_id.in_(wf_ids.scalar_subquery()),
+                Execution.started_at >= month_start,
+            )
         )
-    ).scalars().all()
+        or 0
+    )
     # Quota semantics (Phase 34): count ALL stored workflows of the
     # workspace (not just armed ones) - a plan buys storage for work.
-    workflows_total = db.execute(
-        select(WorkflowRecord.id).where(
-            WorkflowRecord.workspace_id == workspace_id,
-            WorkflowRecord.deleted_at.is_(None),
+    workflows_total = int(
+        db.scalar(
+            select(func.count(WorkflowRecord.id)).where(
+                WorkflowRecord.workspace_id == workspace_id,
+                WorkflowRecord.deleted_at.is_(None),
+            )
         )
-    ).scalars().all()
+        or 0
+    )
     return {
-        "executions_month": len(executions_month),
-        "workflows_total": len(workflows_total),
+        "executions_month": executions_month,
+        "workflows_total": workflows_total,
     }
 
 
@@ -119,6 +155,8 @@ def check_within_limit(db: Session, workspace_id: str | None, limit_type: str) -
     bypass. Quota checks therefore deny instead of silently passing;
     raising still only happens when BILLING_ENFORCEMENT=true.
     """
+    if limit_type not in ("executions", "workflows"):
+        raise ValueError("limit_type must be 'executions' or 'workflows'.")
     plan_key, plan = plan_for_workspace(db, workspace_id)
     usage = workspace_usage(db, workspace_id) if workspace_id else {"executions_month": 0, "workflows_total": 0}
     current, max_limit = {
@@ -160,6 +198,12 @@ def enforce_plan_limit(db: Session, workspace_id: str | None, limit_type: str) -
                 "a workspace to continue."
             ),
         )
+    # Lazy subscription creation commits. Do it BEFORE taking the
+    # transaction-scoped quota lock; otherwise that commit would release
+    # the lock before the caller inserts the execution/workflow.
+    org = resolve_organization_for_workspace(db, workspace_id)
+    if org is not None:
+        get_or_create_subscription(db, org.id)
     # Serialize the check with the caller's following insert/commit. Without
     # this, two concurrent starts both read the last remaining quota slot and
     # both commit. PostgreSQL transaction-scoped advisory locks make the
@@ -241,7 +285,9 @@ def apply_webhook_event(db: Session, event: dict[str, Any], *, applier=_apply_su
         org_id = _org_id()
         if not org_id:
             return "ignored"
-        sub = get_or_create_subscription(db, org_id)
+        if db.get(Organization, org_id) is None:
+            return "ignored"
+        sub = get_or_create_subscription(db, org_id, for_update=True)
         applier(
             db, sub,
             plan=(obj.get("metadata") or {}).get("plan", sub.plan),
@@ -256,18 +302,26 @@ def apply_webhook_event(db: Session, event: dict[str, Any], *, applier=_apply_su
         org_id = _org_id()
         if not org_id:
             return "ignored"
-        sub = get_or_create_subscription(db, org_id)
+        if db.get(Organization, org_id) is None:
+            return "ignored"
+        sub = get_or_create_subscription(db, org_id, for_update=True)
         statuses: dict[str | None, str] = {
             "active": "active", "trialing": "trialing", "past_due": "past_due", "canceled": "canceled",
         }
         period_end = obj.get("current_period_end")
         new_status = obj.get("status")
+        period_end_dt = None
+        if isinstance(period_end, (int, float)) and not isinstance(period_end, bool):
+            try:
+                period_end_dt = datetime.fromtimestamp(period_end, UTC)
+            except (OverflowError, OSError, ValueError):
+                logger.warning("ignoring invalid Stripe current_period_end: %r", period_end)
         applier(
             db, sub,
             plan=(obj.get("metadata") or {}).get("plan", sub.plan),
             status=statuses.get(new_status if isinstance(new_status, str) else None, sub.status),
             stripe_sub=obj.get("id") or sub.stripe_subscription_id,
-            period_end=datetime.fromtimestamp(period_end, UTC) if period_end else None,
+            period_end=period_end_dt,
         )
         return "updated"
 
@@ -275,7 +329,9 @@ def apply_webhook_event(db: Session, event: dict[str, Any], *, applier=_apply_su
         org_id = _org_id()
         if not org_id:
             return "ignored"
-        sub = get_or_create_subscription(db, org_id)
+        if db.get(Organization, org_id) is None:
+            return "ignored"
+        sub = get_or_create_subscription(db, org_id, for_update=True)
         applier(db, sub, plan="free", status="canceled")
         return "canceled"
 

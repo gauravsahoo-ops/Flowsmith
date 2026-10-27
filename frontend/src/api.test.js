@@ -407,6 +407,34 @@ describe('rag endpoints (Phase 18)', () => {
   })
 })
 
+describe('billing endpoints', () => {
+  it('loads plans, usage, and the organization subscription', async () => {
+    mockFetchSuccess({ free: { name: 'Free' } })
+    await api.listBillingPlans()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/billing/plans')
+
+    mockFetchSuccess({ executions_month: 3, workflows_total: 2 })
+    await api.getBillingUsage('ws_1')
+    expect(fetchMock.mock.calls.at(-1)[0]).toBe('/api/billing/usage/ws_1')
+
+    mockFetchSuccess({ plan: 'free', status: 'active', stripe_configured: false })
+    await api.getBillingSubscription('org_1')
+    expect(fetchMock.mock.calls.at(-1)[0]).toBe('/api/billing/subscription/org_1')
+  })
+
+  it('checks a limit and starts checkout with the expected body', async () => {
+    mockFetchSuccess({ within_limit: true })
+    await api.checkBillingLimit('ws_1', 'workflows')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/billing/check-limit/ws_1?limit_type=workflows')
+
+    mockFetchSuccess({ checkout_url: 'https://checkout.stripe.com/c/1' })
+    await api.startBillingCheckout({ organization_id: 'org_1', plan: 'pro' })
+    const [url, init] = fetchMock.mock.calls.at(-1)
+    expect(url).toBe('/api/billing/checkout')
+    expect(JSON.parse(init.body)).toEqual({ organization_id: 'org_1', plan: 'pro' })
+  })
+})
+
 // ---- Auth header ----
 
 describe('authorization header', () => {
@@ -493,11 +521,63 @@ describe('listExecutions status filter', () => {
   })
 })
 
+describe('date range query contract', () => {
+  it('maps monitoring startDate/endDate to backend query keys', async () => {
+    mockFetchSuccess({})
+    await api.getMonitoringSummary({
+      startDate: '2026-10-25T00:00:00.000Z',
+      endDate: '2026-10-26T00:00:00.000Z',
+    })
+    const url = fetchMock.mock.calls[0][0]
+    expect(url).toContain('start_date=2026-10-25T00%3A00%3A00.000Z')
+    expect(url).toContain('end_date=2026-10-26T00%3A00%3A00.000Z')
+  })
+
+  it('accepts legacy fromDate/toDate callers', async () => {
+    mockFetchSuccess([])
+    await api.listExecutions({
+      fromDate: '2026-10-25T00:00:00.000Z',
+      toDate: '2026-10-26T00:00:00.000Z',
+    })
+    const url = fetchMock.mock.calls[0][0]
+    expect(url).toContain('start_date=')
+    expect(url).toContain('end_date=')
+  })
+
+  it('passes all export filters and reports truncation metadata', async () => {
+    const blob = new Blob(['a,b\n1,2'], { type: 'text/csv' })
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: (name) => (name === 'X-Export-Truncated' ? 'true' : '10000') },
+      blob: () => Promise.resolve(blob),
+    })
+    const result = await api.exportExecutionsCsv({
+      workflowId: 'wf1',
+      status: 'failed',
+      connector: 'salesforce',
+      httpStatus: 429,
+      errorType: 'RATE_LIMITED',
+      search: 'lead',
+      startDate: '2026-10-25T00:00:00.000Z',
+      endDate: '2026-10-26T00:00:00.000Z',
+    })
+    const url = fetchMock.mock.calls[0][0]
+    expect(url).toContain('workflow_id=wf1')
+    expect(url).toContain('http_status=429')
+    expect(url).toContain('error_type=RATE_LIMITED')
+    expect(url).toContain('start_date=')
+    expect(result.blob).toBe(blob)
+    expect(result.truncated).toBe(true)
+    expect(result.limit).toBe(10000)
+  })
+})
+
 describe('templates endpoints', () => {
   it('lists templates', async () => {
     mockFetchSuccess([{ id: 1, name: 'T' }])
     const data = await api.listTemplates()
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/templates')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/templates?page=1&pageSize=100')
     expect(data[0].name).toBe('T')
   })
 

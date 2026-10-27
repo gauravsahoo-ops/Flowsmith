@@ -31,7 +31,7 @@ from app.db import (
 )
 from app.lifecycle import LifecycleManager, StartupStage, get_lifecycle
 from app.main import app as main_app
-from app.middleware.rate_limit import RateLimitMiddleware, _SKIP_PATHS
+from app.middleware.rate_limit import RateLimitMiddleware, _SKIP_PATHS, _SKIP_PREFIXES
 from app.db import Base
 
 
@@ -369,6 +369,12 @@ def test_rate_limit_skip_paths_includes_readiness():
     assert "/readyz" in _SKIP_PATHS
     assert "/api/readyz" in _SKIP_PATHS
     assert "/api/health" in _SKIP_PATHS
+
+
+def test_rate_limit_skips_browser_assets():
+    """Brand marks and bundled assets must not consume API request budgets."""
+    assert "/brand-logos/" in _SKIP_PREFIXES
+    assert "/assets/" in _SKIP_PREFIXES
 
 
 def test_rate_limit_strict_auth_paths():

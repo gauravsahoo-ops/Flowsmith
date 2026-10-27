@@ -213,7 +213,7 @@ def _slack_credential_type() -> dict[str, CredentialTypeV1]:
     return {
         "slack": CredentialTypeV1(
             type_key="slack",
-            display_name="Slack",
+            display_name="Slack API Credentials",
             description=(
                 "Slack bot connection. Create a Slack app with chat:write, "
                 "channels:read, channels:history, users:read, users:read.email, "
@@ -237,7 +237,7 @@ def build_slack_definition() -> ConnectorDefinitionV1:
     """Build the Slack connector definition (version 1.0.0)."""
     return ConnectorDefinitionV1(
         connector_key=SLACK_CONNECTOR_KEY,
-        display_name="Slack",
+        display_name="Slack API",
         description="Send, read, update, and delete Slack messages; list channels and users via the Web API.",
         category="communication",
         connector_version=SLACK_CONNECTOR_VERSION,

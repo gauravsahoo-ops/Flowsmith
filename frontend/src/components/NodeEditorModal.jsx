@@ -407,7 +407,7 @@ export function NodeEditorModalDialog({ onClosed }) {
         <header className="nem-header">
           <div className="nem-title">
             <span className="nem-icon">
-              <NodeIcon type={node.type} icon={node.settings?.icon || meta?.icon} size={26} />
+              <NodeIcon type={node.type} icon={node.settings?.icon || meta?.icon} size={32} />
             </span>
             <div className="nem-title-text">
               <div className="nem-title-row">

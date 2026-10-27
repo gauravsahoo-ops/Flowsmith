@@ -6,16 +6,63 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import func, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params
 from app.db import get_db
 from app.metrics import _PROCESS_START
-from app.models import Execution, User, WebhookDelivery, WorkflowRecord
+from app.models import (
+    ApiRequestTelemetry,
+    Execution,
+    User,
+    WebhookDelivery,
+    WorkflowRecord,
+)
 
 router = APIRouter(prefix="/api/monitoring", tags=["monitoring"])
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    """Parse an ISO-8601 query value without failing the whole dashboard."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _empty_summary() -> dict:
+    """Return the complete summary shape for accounts with no workflows."""
+    cards = {
+        "total_executions": 0,
+        "successful_executions": 0,
+        "failed_executions": 0,
+        "in_progress_executions": 0,
+        "partially_successful_executions": 0,
+        "cancelled_executions": 0,
+        "success_rate": 0.0,
+        "avg_duration_ms": 0.0,
+        "total_records_processed": 0,
+        "total_records_read": 0,
+        "total_records_failed": 0,
+        "retry_volume": 0,
+        "total_api_calls": 0,
+    }
+    return {
+        **cards,
+        "running_executions": 0,
+        "success_rate_percent": 0.0,
+        "total_retries": 0,
+        "error_breakdown": {},
+        "cards": cards,
+        "error_distribution": {},
+    }
 
 
 @router.get("/stats")
@@ -32,58 +79,125 @@ def get_stats(
     ids = list(accessible_ids(db, user))
 
     # Every aggregate is scoped to workflows the caller can access. The
-    # dashboard is not an installation-wide admin surface.
-    wf_scope = WorkflowRecord.id.in_(ids) if ids else None
-    exec_scope = Execution.workflow_id.in_(ids) if ids else None
-    delivery_scope = WebhookDelivery.workflow_id.in_(ids) if ids else None
+    # dashboard is not an installation-wide admin surface. Each table gets
+    # one conditional aggregate instead of one COUNT round-trip per card.
+    if ids:
+        wf_row = db.execute(
+            select(
+                func.count(WorkflowRecord.id),
+                func.coalesce(
+                    func.sum(case((WorkflowRecord.active.is_(True), 1), else_=0)),
+                    0,
+                ),
+            ).where(WorkflowRecord.id.in_(ids))
+        ).one()
+        exec_row = db.execute(
+            select(
+                func.count(Execution.id),
+                func.coalesce(
+                    func.sum(case((Execution.status == "running", 1), else_=0)),
+                    0,
+                ),
+                func.coalesce(
+                    func.sum(case((Execution.status == "queued", 1), else_=0)),
+                    0,
+                ),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                and_(
+                                    Execution.status.in_(("success", "completed")),
+                                    Execution.started_at >= hour_ago,
+                                ),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                and_(
+                                    Execution.status.in_(("failed", "error", "timeout")),
+                                    Execution.started_at >= hour_ago,
+                                ),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                and_(
+                                    Execution.status.in_(("success", "completed")),
+                                    Execution.started_at >= day_ago,
+                                ),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                and_(
+                                    Execution.status.in_(("failed", "error", "timeout")),
+                                    Execution.started_at >= day_ago,
+                                ),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ),
+            ).where(Execution.workflow_id.in_(ids))
+        ).one()
+        delivery_row = db.execute(
+            select(
+                func.count(WebhookDelivery.id),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (WebhookDelivery.received_at >= hour_ago, 1),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ),
+            ).where(WebhookDelivery.workflow_id.in_(ids))
+        ).one()
 
-    def count(model, *where) -> int:
-        if not ids:
-            return 0
-        return db.scalar(select(func.count()).select_from(model).where(*where)) or 0
-
-    total_workflows = count(WorkflowRecord, wf_scope) if wf_scope is not None else 0
-    active_workflows = (
-        count(WorkflowRecord, wf_scope, WorkflowRecord.active.is_(True))
-        if wf_scope is not None else 0
-    )
-    total_executions = count(Execution, exec_scope) if exec_scope is not None else 0
-    running_executions = (
-        count(Execution, exec_scope, Execution.status == "running")
-        if exec_scope is not None else 0
-    )
-    queued_executions = (
-        count(Execution, exec_scope, Execution.status == "queued")
-        if exec_scope is not None else 0
-    )
-    hour_success = (
-        count(Execution, exec_scope, Execution.status == "success",
-              Execution.started_at >= hour_ago)
-        if exec_scope is not None else 0
-    )
-    hour_failed = (
-        count(Execution, exec_scope, Execution.status == "failed",
-              Execution.started_at >= hour_ago)
-        if exec_scope is not None else 0
-    )
-    day_success = (
-        count(Execution, exec_scope, Execution.status == "success",
-              Execution.started_at >= day_ago)
-        if exec_scope is not None else 0
-    )
-    day_failed = (
-        count(Execution, exec_scope, Execution.status == "failed",
-              Execution.started_at >= day_ago)
-        if exec_scope is not None else 0
-    )
-    total_deliveries = (
-        count(WebhookDelivery, delivery_scope)
-        if delivery_scope is not None else 0
-    )
-    recent_deliveries = (
-        count(WebhookDelivery, delivery_scope, WebhookDelivery.received_at >= hour_ago)
-        if delivery_scope is not None else 0
-    )
+        total_workflows, active_workflows = (int(wf_row[0]), int(wf_row[1]))
+        (
+            total_executions,
+            running_executions,
+            queued_executions,
+            hour_success,
+            hour_failed,
+            day_success,
+            day_failed,
+        ) = (int(value) for value in exec_row)
+        total_deliveries, recent_deliveries = (
+            int(delivery_row[0]),
+            int(delivery_row[1]),
+        )
+    else:
+        total_workflows = active_workflows = 0
+        total_executions = running_executions = queued_executions = 0
+        hour_success = hour_failed = day_success = day_failed = 0
+        total_deliveries = recent_deliveries = 0
 
     # System uptime
     uptime_seconds = time.monotonic() - _PROCESS_START
@@ -156,16 +270,27 @@ def get_dead_letter_queue(
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     p, sz = page_params(page=page, pageSize=pageSize)
     executions = db.scalars(stmt.offset((p - 1) * sz).limit(sz)).all()
+    workflow_ids = {exc.workflow_id for exc in executions if exc.workflow_id}
+    workflow_names = (
+        dict(
+            db.execute(
+                select(WorkflowRecord.id, WorkflowRecord.name).where(
+                    WorkflowRecord.id.in_(workflow_ids)
+                )
+            ).all()
+        )
+        if workflow_ids
+        else {}
+    )
 
     items = []
     for exc in executions:
-        wf = db.get(WorkflowRecord, exc.workflow_id)
         statuses = exc.node_statuses or {}
         failed_nodes = [nid for nid, st in statuses.items() if st in ("failed", "error")]
         items.append({
             "id": exc.id,
             "workflow_id": exc.workflow_id,
-            "workflow_name": wf.name if wf else "Unknown Workflow",
+            "workflow_name": workflow_names.get(exc.workflow_id, "Unknown Workflow"),
             "status": exc.status,
             "error": exc.error,
             "failed_nodes": failed_nodes,
@@ -205,139 +330,169 @@ def get_monitoring_summary(
     """Return comprehensive monitoring summary cards, error distribution, and activity metrics."""
     from app.api.access import accessible_ids
 
-    allowed_wfs = accessible_ids(db, user)
+    allowed_wfs = list(accessible_ids(db, user))
     if not allowed_wfs:
-        return ok({
-            "cards": {
-                "total_executions": 0,
-                "successful_executions": 0,
-                "failed_executions": 0,
-                "in_progress_executions": 0,
-                "partially_successful_executions": 0,
-                "cancelled_executions": 0,
-                "success_rate": 0.0,
-                "avg_duration_ms": 0.0,
-                "total_records_processed": 0,
-                "total_records_read": 0,
-                "total_records_failed": 0,
-                "retry_volume": 0,
-            },
-            "error_distribution": {},
-        })
+        return ok(_empty_summary())
 
-    stmt = select(Execution).where(Execution.workflow_id.in_(allowed_wfs))
+    filters = [Execution.workflow_id.in_(allowed_wfs)]
     if workflow_id:
-        stmt = stmt.where(Execution.workflow_id == workflow_id)
+        filters.append(Execution.workflow_id == workflow_id)
     if connector:
         term = f"%{connector.strip()}%"
-        stmt = stmt.where(
-            (Execution.source_connector.ilike(term)) | (Execution.destination_connector.ilike(term))
+        filters.append(
+            or_(
+                Execution.source_connector.ilike(term),
+                Execution.destination_connector.ilike(term),
+            )
         )
-    if start_date:
-        try:
-            dt_s = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
-            stmt = stmt.where(Execution.started_at >= dt_s)
-        except Exception:
-            pass
-    if end_date:
-        try:
-            dt_e = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
-            stmt = stmt.where(Execution.started_at <= dt_e)
-        except Exception:
-            pass
+    parsed_start = _parse_iso_datetime(start_date)
+    parsed_end = _parse_iso_datetime(end_date)
+    if parsed_start:
+        filters.append(Execution.started_at >= parsed_start)
+    if parsed_end:
+        filters.append(Execution.started_at <= parsed_end)
 
-    from sqlalchemy.orm import defer
+    status = func.lower(Execution.status)
+    success_condition = status.in_(("success", "completed"))
+    failed_condition = status.in_(("failed", "error", "timeout"))
+    partial_condition = status == "partial_success"
+    cancelled_condition = status.in_(("cancelled", "cancelling"))
 
-    recs = db.scalars(
-        stmt.options(
-            defer(Execution.trace),
-            defer(Execution.results),
-            defer(Execution.workflow_data),
-            defer(Execution.node_statuses),
-        )
+    duration_expr = case(
+        (Execution.duration_ms > 0, Execution.duration_ms),
+        (
+            and_(
+                Execution.duration_ms.is_(None),
+                Execution.started_at.is_not(None),
+                Execution.finished_at.is_not(None),
+            ),
+            func.extract("epoch", Execution.finished_at - Execution.started_at) * 1000.0,
+        ),
+        else_=None,
+    )
+    records_expr = case(
+        (
+            func.coalesce(Execution.records_processed, 0) > 0,
+            Execution.records_processed,
+        ),
+        else_=(
+            func.coalesce(Execution.records_created, 0)
+            + func.coalesce(Execution.records_updated, 0)
+        ),
+    )
+
+    aggregate = db.execute(
+        select(
+            func.count(Execution.id),
+            func.coalesce(func.sum(case((success_condition, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((failed_condition, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((partial_condition, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((cancelled_condition, 1), else_=0)), 0),
+            func.avg(duration_expr),
+            func.coalesce(func.sum(records_expr), 0),
+            func.coalesce(func.sum(Execution.records_read), 0),
+            func.coalesce(func.sum(Execution.records_failed), 0),
+            func.coalesce(func.sum(Execution.retry_count), 0),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (and_(failed_condition, Execution.error_type.is_(None)), 1),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+        ).where(*filters)
+    ).one()
+
+    (
+        total_execs,
+        success_count,
+        failed_count,
+        partial_success_count,
+        cancelled_count,
+        avg_duration,
+        total_records,
+        total_read,
+        total_failed_records,
+        total_retries,
+        failed_without_error,
+    ) = aggregate
+    total_execs = int(total_execs or 0)
+    success_count = int(success_count or 0)
+    failed_count = int(failed_count or 0)
+    partial_success_count = int(partial_success_count or 0)
+    cancelled_count = int(cancelled_count or 0)
+    total_records = int(total_records or 0)
+    total_read = int(total_read or 0)
+    total_failed_records = int(total_failed_records or 0)
+    total_retries = int(total_retries or 0)
+    failed_without_error = int(failed_without_error or 0)
+    in_progress_count = max(
+        0,
+        total_execs
+        - success_count
+        - failed_count
+        - partial_success_count
+        - cancelled_count,
+    )
+
+    error_rows = db.execute(
+        select(Execution.error_type, func.count(Execution.id))
+        .where(*filters, Execution.error_type.is_not(None))
+        .group_by(Execution.error_type)
     ).all()
+    errors_by_type = {
+        str(error_type): int(count)
+        for error_type, count in error_rows
+        if error_type
+    }
+    if failed_without_error:
+        errors_by_type["UNSPECIFIED_FAILURE"] = failed_without_error
+    errors_by_type = dict(
+        sorted(errors_by_type.items(), key=lambda item: item[1], reverse=True)
+    )
 
-    total_execs = len(recs)
-    success_count = 0
-    failed_count = 0
-    in_progress_count = 0
-    partial_success_count = 0
-    cancelled_count = 0
-    total_duration_ms = 0.0
-    duration_sample_count = 0
-    total_records = 0
-    total_read = 0
-    total_failed_records = 0
-    total_retries = 0
-    errors_by_type: dict[str, int] = {}
-
-    for r in recs:
-        st = (r.status or "").lower()
-        if st in ("success", "completed"):
-            success_count += 1
-        elif st in ("failed", "error", "timeout"):
-            failed_count += 1
-        elif st in ("running", "queued", "waiting_approval", "waiting_auth"):
-            in_progress_count += 1
-        elif st == "partial_success":
-            partial_success_count += 1
-        elif st in ("cancelled", "cancelling"):
-            cancelled_count += 1
-        else:
-            in_progress_count += 1
-
-        dur = r.duration_ms
-        if dur is None and r.started_at and r.finished_at:
-            dur = (r.finished_at - r.started_at).total_seconds() * 1000.0
-        if dur is not None and dur > 0:
-            total_duration_ms += dur
-            duration_sample_count += 1
-
-        rec_proc = r.records_processed or ((r.records_created or 0) + (r.records_updated or 0))
-        total_records += rec_proc
-        total_read += (r.records_read or 0)
-        total_failed_records += (r.records_failed or 0)
-        total_retries += (r.retry_count or 0)
-
-        if r.error_type:
-            errors_by_type[r.error_type] = errors_by_type.get(r.error_type, 0) + 1
-        elif st in ("failed", "error", "timeout"):
-            errors_by_type["UNSPECIFIED_FAILURE"] = errors_by_type.get("UNSPECIFIED_FAILURE", 0) + 1
+    total_api_calls = int(
+        db.scalar(
+            select(func.count(ApiRequestTelemetry.id))
+            .select_from(ApiRequestTelemetry)
+            .join(Execution, Execution.id == ApiRequestTelemetry.execution_id)
+            .where(*filters)
+        )
+        or 0
+    )
 
     eligible_terminal = success_count + failed_count + partial_success_count
-    success_rate = round((success_count / eligible_terminal) * 100.0, 1) if eligible_terminal > 0 else 0.0
-    avg_duration_ms = round(total_duration_ms / duration_sample_count, 1) if duration_sample_count > 0 else 0.0
+    success_rate = (
+        round((success_count / eligible_terminal) * 100.0, 1)
+        if eligible_terminal > 0
+        else 0.0
+    )
+    avg_duration_ms = round(float(avg_duration), 1) if avg_duration is not None else 0.0
 
-    return ok({
+    cards = {
         "total_executions": total_execs,
         "successful_executions": success_count,
         "failed_executions": failed_count,
         "in_progress_executions": in_progress_count,
-        "running_executions": in_progress_count,
         "partially_successful_executions": partial_success_count,
         "cancelled_executions": cancelled_count,
-        "success_rate_percent": success_rate,
         "success_rate": success_rate,
         "avg_duration_ms": avg_duration_ms,
         "total_records_processed": total_records,
         "total_records_read": total_read,
         "total_records_failed": total_failed_records,
+        "retry_volume": total_retries,
+        "total_api_calls": total_api_calls,
+    }
+    return ok({
+        **cards,
+        "running_executions": in_progress_count,
+        "success_rate_percent": success_rate,
         "total_retries": total_retries,
         "error_breakdown": errors_by_type,
-        "cards": {
-            "total_executions": total_execs,
-            "successful_executions": success_count,
-            "failed_executions": failed_count,
-            "in_progress_executions": in_progress_count,
-            "partially_successful_executions": partial_success_count,
-            "cancelled_executions": cancelled_count,
-            "success_rate": success_rate,
-            "avg_duration_ms": avg_duration_ms,
-            "total_records_processed": total_records,
-            "total_records_read": total_read,
-            "total_records_failed": total_failed_records,
-            "retry_volume": total_retries,
-        },
+        "cards": cards,
         "error_distribution": errors_by_type,
     })
 

@@ -45,3 +45,6 @@
 /* 14. AI Agent Chat Drawer & Copilot */
 @import './styles/ai.css';
 
+/* 15. Flowsmith Foundry design system (final cascade layer) */
+@import './styles/foundry.css';
+

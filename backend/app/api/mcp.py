@@ -457,10 +457,14 @@ async def call_mcp_tool(
 
         elif payload.name == "list_connectors":
             from app.connectors import ensure_builtin_connectors, get_registry as get_conn_registry
+            from app.connectors.naming import is_hidden_in_catalog
             ensure_builtin_connectors()
             registry = get_conn_registry()
             category_filter = args.get("category")
-            definitions = registry.list_definitions()
+            definitions = [
+                d for d in registry.list_definitions()
+                if not is_hidden_in_catalog(d.connector_key)
+            ]
             if category_filter:
                 definitions = [d for d in definitions if d.category == category_filter]
             result = [

@@ -279,154 +279,66 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
   // Common input style using Flowsmith tokens
   const inputStyle = {
     width: '100%',
-    padding: '0.55rem 0.75rem',
-    borderRadius: 'var(--radius-sm)',
-    background: 'var(--panel-2)',
-    color: 'var(--text)',
-    border: '1px solid var(--border)',
-    fontSize: '0.84rem',
+    height: '36px',
+    borderRadius: '7px',
+    fontSize: '11.5px',
     fontFamily: 'inherit',
-    outline: 'none',
-    boxShadow: 'var(--shadow-xs)',
-    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
   }
 
   const labelStyle = {
     display: 'block',
-    fontSize: '0.78rem',
+    fontSize: '9.5px',
     fontWeight: 600,
-    color: 'var(--text-secondary)',
-    marginBottom: '0.35rem',
-    letterSpacing: '-0.01em',
+    color: 'var(--text-dim)',
+    marginBottom: '6px',
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
   }
 
   const cardStyle = {
-    background: 'var(--panel)',
-    padding: '1rem',
-    borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--border)',
-    boxShadow: 'var(--shadow-card)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.75rem',
+    gap: '10px',
   }
 
   return (
-    <div className="flowsmith-dataload-editor" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.25rem' }}>
-      {/* Node Identity Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(37, 99, 235, 0.06) 100%)',
-        padding: '1rem 1.2rem',
-        borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--border)',
-        boxShadow: 'var(--shadow-sm)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.6rem',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-              <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                CSV Parser
-              </span>
-              <span style={{
-                fontSize: '0.68rem',
-                background: 'var(--panel-3)',
-                color: 'var(--text-secondary)',
-                padding: '0.15rem 0.45rem',
-                borderRadius: 'var(--radius-xs)',
-                fontWeight: 600,
-                border: '1px solid var(--border)',
-              }}>
-                csv_parser
-              </span>
-            </div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
-              Download, import, and parse CSV, TSV, and delimited files into clean records.
-            </div>
-          </div>
-          <span style={{
-            fontSize: '0.72rem',
-            background: 'rgba(5, 150, 105, 0.12)',
-            color: 'var(--green)',
-            padding: '0.2rem 0.55rem',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(5, 150, 105, 0.3)',
-            fontWeight: 600,
-          }}>
-            Production Ready
-          </span>
+    <div className="flowsmith-dataload-editor" style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '0' }}>
+      <div className="dl-intro">
+        <div className="dl-intro-row">
+          <span className="dl-intro-title">CSV Parser</span>
+          <span className="dl-intro-code">csv_parser</span>
+          <span className="dl-intro-formats">CSV · TSV · ZIP · TAR · GZIP</span>
         </div>
-
-        {/* Supported Formats Tags */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.1rem' }}>
-          {[
-            { label: 'CSV', color: 'var(--blue)' },
-            { label: 'TSV', color: 'var(--green)' },
-            { label: 'ZIP (Single & Multi-File)', color: 'var(--amber)' },
-            { label: 'Nested Archives', color: 'var(--accent)' },
-            { label: 'GZIP (.gz)', color: 'var(--purple)' },
-          ].map((tag) => (
-            <span
-              key={tag.label}
-              style={{
-                fontSize: '0.68rem',
-                padding: '0.15rem 0.5rem',
-                borderRadius: 'var(--radius-xs)',
-                background: 'var(--panel-2)',
-                color: tag.color,
-                border: '1px solid var(--border)',
-                fontWeight: 500,
-              }}
-            >
-              {tag.label}
-            </span>
-          ))}
-        </div>
+        <p className="dl-intro-copy">
+          Download, import, and parse delimited files into clean records.
+        </p>
       </div>
 
-      {/* Two Mandatory Input Modes Selector */}
-      <div className="form-section" style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
-            Source Mode
-          </h4>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Select ingestion mechanism</span>
+      {/* Source selection */}
+      <div className="form-section dl-section" style={cardStyle}>
+        <div className="dl-section-head">
+          <h4 className="dl-section-title">Source</h4>
+          <span className="dl-section-hint">Select ingestion mechanism</span>
         </div>
 
-        {/* Segmented Control */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+        <div className="dl-source-options" role="group" aria-label="Source mode">
           {[
-            { id: 'upload', label: 'Option A: Upload File', desc: 'Direct / ObjectStore' },
-            { id: 'url', label: 'Option B: Download URL', desc: 'Remote HTTP / HTTPS' },
-            { id: 'file_path', label: 'Local File Path', desc: 'Container / Disk' },
-            { id: 'inline', label: 'Inline Content', desc: 'Raw / Expression' },
+            { id: 'upload', label: 'Upload file', desc: 'Object storage' },
+            { id: 'url', label: 'Download URL', desc: 'HTTP / HTTPS' },
+            { id: 'file_path', label: 'Local path', desc: 'Container disk' },
+            { id: 'inline', label: 'Inline text', desc: 'Raw / expression' },
           ].map((mode) => {
             const isActive = sourceMode === mode.id
             return (
               <button
                 key={mode.id}
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => handleSourceModeChange(mode.id)}
-                style={{
-                  padding: '0.65rem 0.5rem',
-                  borderRadius: 'var(--radius-sm)',
-                  background: isActive ? 'var(--accent-subtle)' : 'var(--panel-2)',
-                  border: isActive ? '1px solid var(--accent)' : '1px solid var(--border)',
-                  color: isActive ? 'var(--text)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.2rem',
-                  alignItems: 'center',
-                  transition: 'all 0.15s ease',
-                  boxShadow: isActive ? '0 0 0 1px var(--accent-subtle)' : 'none',
-                }}
+                className={`dl-source-option${isActive ? ' is-active' : ''}`}
               >
-                <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{mode.label}</span>
-                <span style={{ fontSize: '0.67rem', color: isActive ? 'var(--text-secondary)' : 'var(--muted)' }}>{mode.desc}</span>
+                <span className="dl-source-label">{mode.label}</span>
+                <span className="dl-source-desc">{mode.desc}</span>
               </button>
             )
           })}
@@ -434,21 +346,22 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
 
         {/* Option A: Upload File */}
         {sourceMode === 'upload' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
+          <div className="dl-stack">
             <div
+              className={`dl-dropzone${isDragOver ? ' is-dragover' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
               onDragLeave={() => setIsDragOver(false)}
               onDrop={handleDrop}
-              style={{
-                border: isDragOver ? '2px dashed var(--accent)' : '2px dashed var(--border-strong)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1.4rem',
-                textAlign: 'center',
-                background: isDragOver ? 'rgba(79, 70, 229, 0.08)' : 'var(--panel-2)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
               onClick={() => document.getElementById('dataload-file-picker')?.click()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  document.getElementById('dataload-file-picker')?.click()
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Choose or drop a CSV file"
             >
               <input
                 id="dataload-file-picker"
@@ -457,28 +370,16 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 onChange={handleFileInputChange}
                 style={{ display: 'none' }}
               />
-              <div style={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                background: 'rgba(79, 70, 229, 0.12)',
-                color: 'var(--accent)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '0.5rem',
-              }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="dl-drop-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text)' }}>
-                Choose file or drag & drop here
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.25rem', maxWidth: 440, marginInline: 'auto' }}>
-                Supports CSV, TSV, and ZIP archives (.zip, .gz, .tar). Files are stored securely in Flowsmith ObjectStore.
+              <div className="dl-drop-title">Drop a file here or browse</div>
+              <div className="dl-drop-copy">
+                CSV, TSV, or ZIP archives. Files are stored securely in Flowsmith ObjectStore.
               </div>
             </div>
 
@@ -576,11 +477,13 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
         {sourceMode === 'url' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.25rem' }}>
             <div>
-              <label style={labelStyle}>
-                Download URL (Supports Expressions)
+              <label style={labelStyle} htmlFor="dataload-download-url">
+                Download URL
               </label>
               <input
+                id="dataload-download-url"
                 type="text"
+                className="dl-input dl-input-mono"
                 value={downloadUrl}
                 placeholder="https://example.com/data/contacts.csv or {{ $json.export_url }}"
                 onChange={(e) => {
@@ -589,25 +492,19 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
                 }}
                 style={inputStyle}
               />
+              <span className="dl-field-hint">Supports literal URLs and <code>{'{{ expressions }}'}</code>.</span>
             </div>
 
             {/* SSRF & Security Guard Indicator */}
-            <div style={{
-              background: 'rgba(5, 150, 105, 0.08)',
-              border: '1px solid rgba(5, 150, 105, 0.25)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0.55rem 0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.74rem',
-              color: 'var(--text-secondary)',
-            }}>
-              <span style={{ color: 'var(--green)', fontSize: '0.9rem' }}>🔒</span>
+            <div className="dl-callout dl-callout-safe">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
               <span><strong>SSRF Guard Active:</strong> Rejects loopback, private networks (RFC 1918), and cloud metadata destinations. Validates DNS and redirects.</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="dl-grid dl-grid-2">
               <div>
                 <label style={labelStyle}>
                   Authentication Type
@@ -647,7 +544,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="dl-grid dl-grid-2">
               <div>
                 <label style={labelStyle}>
                   Timeout (Seconds)
@@ -724,9 +621,13 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
               }}
               style={{
                 ...inputStyle,
+                height: 'auto',
+                minHeight: 96,
+                padding: '8px 10px',
                 fontFamily: 'var(--font-mono)',
-                fontSize: '0.8rem',
-                lineHeight: 1.5,
+                fontSize: '10.5px',
+                lineHeight: 1.55,
+                resize: 'vertical',
               }}
             />
           </div>
@@ -768,14 +669,12 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
       )}
 
       {/* Archive Configuration (Shown for ZIP / TAR) */}
-      <div className="form-section" style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
-            Archive & ZIP Extraction Settings
-          </h4>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Multi-file unpacking rules</span>
+      <div className="form-section dl-section" style={cardStyle}>
+        <div className="dl-section-head">
+          <h4 className="dl-section-title">Archive extraction</h4>
+          <span className="dl-section-hint">ZIP, TAR, and GZIP only</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+        <div className="dl-grid dl-grid-2">
           <div>
             <label style={labelStyle}>
               Process Mode
@@ -812,7 +711,7 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+        <div className="dl-grid dl-grid-2">
           <div>
             <label style={labelStyle}>
               Target Entry Filename (Optional)
@@ -848,14 +747,12 @@ export default function CsvNodeEditor({ node, onParamsChange }) {
       </div>
 
       {/* Parser & Delimiter Settings */}
-      <div className="form-section" style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)' }}>
-            Parser & Delimiter Settings
-          </h4>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>Dialect & batch options</span>
+      <div className="form-section dl-section" style={cardStyle}>
+        <div className="dl-section-head">
+          <h4 className="dl-section-title">Parsing</h4>
+          <span className="dl-section-hint">Dialect and batch options</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+        <div className="dl-grid dl-grid-3">
           <div>
             <label style={labelStyle}>
               Delimiter

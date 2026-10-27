@@ -3,265 +3,215 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import EmptyState from '../components/shared/EmptyState'
-import { SkeletonCard } from '../components/shared/LoadingSkeleton'
 import { summarizeConnectors } from '../utils/connectorStats'
 
-function Icon({ name, size = 20, color = 'currentColor' }) {
+function Icon({ name, size = 18, color = 'currentColor' }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: color,
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  }
   switch (name) {
     case 'workflows':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2" />
+        <svg {...common}>
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
         </svg>
       )
     case 'executions':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <polyline points="12 7 12 12 15.5 14" />
         </svg>
       )
     case 'credentials':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m15.5 7.5 3 3L22 7l-3-3" />
-          <circle cx="7.5" cy="16.5" r="4.5" />
-          <line x1="10.5" y1="13.5" x2="17" y2="7" />
+        <svg {...common}>
+          <circle cx="8" cy="15" r="3.5" />
+          <path d="m10.5 12.5 8-8" />
+          <path d="m15 8 3 3" />
+          <path d="m18 5 2 2" />
         </svg>
       )
-    case 'data-tables':
+    case 'connectors':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2" />
-          <line x1="3" y1="9" x2="21" y2="9" />
-          <line x1="3" y1="15" x2="21" y2="15" />
-          <line x1="9" y1="3" x2="9" y2="21" />
-        </svg>
-      )
-    case 'templates':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="12 2 2 7 12 12 22 7 12 2" />
-          <polyline points="2 17 12 22 22 17" />
-          <polyline points="2 12 12 17 22 12" />
-        </svg>
-      )
-    case 'knowledge':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-          <line x1="9" y1="7" x2="15" y2="7" />
-          <line x1="9" y1="11" x2="13" y2="11" />
+        <svg {...common}>
+          <path d="M12 3v5m0 8v5M3 12h5m8 0h5" />
+          <rect x="8" y="8" width="8" height="8" rx="2" />
         </svg>
       )
     case 'health':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-        </svg>
-      )
-    case 'ai':
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+        <svg {...common}>
+          <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />
         </svg>
       )
     case 'plus':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg {...common}>
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       )
-    case 'help':
+    case 'data':
+      return (
+        <svg {...common}>
+          <ellipse cx="12" cy="5" rx="7" ry="3" />
+          <path d="M5 5v7c0 1.7 3.1 3 7 3s7-1.3 7-3V5" />
+          <path d="M5 12v7c0 1.7 3.1 3 7 3s7-1.3 7-3v-7" />
+        </svg>
+      )
+    case 'templates':
+      return (
+        <svg {...common}>
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M3 9h18M8 4v16" />
+        </svg>
+      )
+    case 'ai':
+      return (
+        <svg {...common}>
+          <path d="m12 3-1.6 4.8a2 2 0 0 1-1.3 1.3L4.5 11l4.6 1.9a2 2 0 0 1 1.3 1.3L12 19l1.6-4.8a2 2 0 0 1 1.3-1.3L19.5 11l-4.6-1.9a2 2 0 0 1-1.3-1.3Z" />
+        </svg>
+      )
+    case 'approvals':
+      return (
+        <svg {...common}>
+          <path d="M12 21s7-3.5 7-9V5l-7-3-7 3v7c0 5.5 7 9 7 9z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      )
+    case 'arrow':
+      return (
+        <svg {...common}>
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      )
     default:
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v4m0 4h.01" />
         </svg>
       )
   }
 }
 
-function StatCard({ label, value, hint, onClick, iconName, iconColor }) {
-  return (
-    <button
-      className="stat-card"
-      onClick={onClick}
-      disabled={!onClick}
-      style={{ '--stat-color': iconColor }}
-      type="button"
-    >
-      <div
-        className="stat-icon"
-        style={{
-          background: `radial-gradient(circle at 35% 35%, ${iconColor}26 0%, ${iconColor}0a 100%)`,
-          borderColor: `${iconColor}45`,
-          boxShadow: `0 4px 14px -2px ${iconColor}33`,
-        }}
-      >
-        <Icon name={iconName} size={20} color={iconColor} />
-      </div>
-      <div className="stat-body">
-        <div className="stat-value">{value}</div>
-        <div className="stat-label">{label}</div>
-        {hint && <div className="stat-hint">{hint}</div>}
-      </div>
-    </button>
-  )
+function formatRelative(value) {
+  if (!value) return 'Never'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Unknown'
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
+  if (seconds < 60) return 'Just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function RecentWorkflows({ workflows, loading }) {
-  const navigate = useNavigate()
-  if (loading) return <div className="skeleton-grid"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
-  if (!workflows.length) {
-    return (
-      <EmptyState
-        icon="workflows"
-        title="No workflows yet"
-        description="Create your first workflow to get started."
-        action={<button className="primary" onClick={() => navigate('/workflows')}>Create Workflow</button>}
-      />
-    )
-  }
+function formatDuration(started, finished) {
+  if (!started || !finished) return '—'
+  const ms = new Date(finished).getTime() - new Date(started).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return '—'
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`
+}
+
+function KpiCard({ icon, label, value, meta, tone = 'neutral' }) {
   return (
-    <div className="overview-cards">
-      {workflows.slice(0, 6).map(w => (
-        <div
-          key={w.id}
-          className="overview-card"
-          onClick={() => navigate(`/workflows/${w.id}`)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(ev) => { if (ev.key === 'Enter') navigate(`/workflows/${w.id}`) }}
-        >
-          <div className="overview-card-head">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <span className="overview-card-icon" style={{
-                width: 26, height: 26, borderRadius: 7,
-                background: w.active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.12)',
-                display: 'inline-grid', placeItems: 'center',
-                color: w.active ? '#34d399' : '#818cf8', flexShrink: 0,
-                boxShadow: w.active ? '0 0 10px rgba(16, 185, 129, 0.25)' : 'none'
-              }}>
-                <Icon name="workflows" size={13} color="currentColor" />
-              </span>
-              <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {w.name ? w.name : <span className="muted">Untitled workflow</span>}
-              </strong>
-            </div>
-            <span className={`status-pill ${w.active ? 'status-success' : 'status-failed'}`} style={{
-              fontSize: 10.5, padding: '2px 8px',
-              color: w.active ? '#34d399' : '#94a3b8',
-              background: w.active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-              borderColor: w.active ? 'rgba(16, 185, 129, 0.28)' : 'rgba(255, 255, 255, 0.1)'
-            }}>
-              <span className="dot" style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
-              {w.active ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-          <div className="hint" style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', marginTop: 4, color: '#64748b' }}>
-            {w.id.slice(0, 8)} · v{w.version} · {w.updated_at ? new Date(w.updated_at).toLocaleDateString() : '—'}
-          </div>
-          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{
-              fontSize: 11, padding: '2px 8px', borderRadius: 99,
-              background: 'rgba(255, 255, 255, 0.04)', color: '#94a3b8',
-              border: '1px solid rgba(255, 255, 255, 0.06)'
-            }}>
-              {(w.data?.nodes?.length ?? w.node_count ?? 0)} nodes Â· {(w.data?.connections?.length ?? 0)} links
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button
-                type="button"
-                className="ghost ghost--sm"
-                title="Run workflow"
-                style={{ padding: '3px 8px', fontSize: 11, color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  api.run(w.id).then(() => {
-                    navigate('/executions')
-                  }).catch(() => {
-                    navigate(`/workflows/${w.id}`)
-                  })
-                }}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                <span>Run</span>
-              </button>
-              <span className="overview-card-arrow">→</span>
-            </div>
-          </div>
-        </div>
-      ))}
+    <div className={`f-kpi f-kpi--${tone}`}>
+      <div className="f-kpi-top">
+        <span className="f-kpi-label">{label}</span>
+        <span className="f-kpi-icon"><Icon name={icon} size={16} /></span>
+      </div>
+      <div className="f-kpi-value">{value}</div>
+      <div className="f-kpi-meta">{meta}</div>
     </div>
   )
 }
 
-function RecentExecutions({ executions, loading }) {
-  const navigate = useNavigate()
-  if (loading) return <div className="skeleton-grid"><SkeletonCard /><SkeletonCard /></div>
+function WorkflowRow({ workflow, onOpen }) {
+  const nodeCount = workflow.data?.nodes?.length ?? workflow.node_count ?? 0
+  return (
+    <button type="button" className="f-workflow-row" onClick={() => onOpen(workflow.id)}>
+      <span className="f-workflow-icon"><Icon name="workflows" size={17} /></span>
+      <span className="f-workflow-copy">
+        <strong>{workflow.name || 'Untitled workflow'}</strong>
+        <small>{workflow.id.slice(0, 12)} · v{workflow.version || 1} · {nodeCount} nodes</small>
+      </span>
+      <span className={`f-status ${workflow.active ? 'is-active' : 'is-idle'}`}>
+        <span />{workflow.active ? 'Active' : 'Inactive'}
+      </span>
+      <span className="f-workflow-time">{formatRelative(workflow.updated_at)}</span>
+      <span className="f-row-arrow"><Icon name="arrow" size={14} /></span>
+    </button>
+  )
+}
+
+function ExecutionTable({ executions, loading, onOpen }) {
+  if (loading) {
+    return (
+      <div className="f-skeleton-list">
+        {[0, 1, 2, 3].map((row) => <div key={row} className="f-skeleton-row" />)}
+      </div>
+    )
+  }
   if (!executions.length) {
     return (
       <EmptyState
         icon="executions"
         title="No executions yet"
-        description="Run a workflow to see execution history here."
-        action={<button className="ghost" onClick={() => navigate('/executions')}>View executions</button>}
+        description="Run a workflow and its execution history will appear here."
+        action={<button className="ghost" onClick={() => onOpen(null)}>View executions</button>}
       />
     )
   }
-  const fmt = (iso) => iso ? new Date(iso).toLocaleString() : '—'
-  const dur = (s, f) => {
-    if (!s) return ''
-    const ms = f ? new Date(f) - new Date(s) : Date.now() - new Date(s)
-    return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms/1000).toFixed(1)}s`
-  }
   return (
-    <div className="table-wrap">
-      <table className="data-table">
+    <div className="f-table-wrap">
+      <table className="f-table">
         <thead>
           <tr>
             <th>Workflow</th>
             <th>Status</th>
             <th>Started</th>
             <th>Duration</th>
-            <th style={{ textAlign: 'right' }}>Action</th>
+            <th aria-label="Open" />
           </tr>
         </thead>
         <tbody>
-          {executions.slice(0, 5).map(e => (
-            <tr key={e.id} className="clickable" onClick={() => navigate(`/executions/${e.id}`)} tabIndex={0} onKeyDown={ev => { if (ev.key === 'Enter') navigate(`/executions/${e.id}`)}}>
-              <td style={{ fontWeight: 600, color: '#f8fafc' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#818cf8', display: 'inline-flex', alignItems: 'center' }}>
-                    <Icon name="workflows" size={13} color="currentColor" />
-                  </span>
-                  <span>{e.workflow_name || (e.workflow_id ? e.workflow_id.slice(0, 8) : e.id.slice(0, 8))}</span>
+          {executions.slice(0, 6).map((execution) => (
+            <tr
+              key={execution.id}
+              onClick={() => onOpen(execution.id)}
+              onKeyDown={(event) => { if (event.key === 'Enter') onOpen(execution.id) }}
+              tabIndex={0}
+            >
+              <td>
+                <div className="f-exec-workflow">
+                  <span className="f-exec-icon"><Icon name="executions" size={14} /></span>
+                  <div>
+                    <strong>{execution.workflow_name || execution.workflow_id?.slice(0, 12) || 'Workflow'}</strong>
+                    <small>{execution.id}</small>
+                  </div>
                 </div>
               </td>
-              <td>
-                <span className={`status-pill status-${e.status}`}>
-                  <span className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-                  {e.status}
-                </span>
-              </td>
-              <td style={{ color: '#94a3b8', fontSize: 12.5 }}>{fmt(e.started_at)}</td>
-              <td>
-                <span style={{
-                  fontFamily: 'JetBrains Mono, monospace', fontSize: 11.5,
-                  padding: '2px 7px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.04)',
-                  color: '#cbd5e1'
-                }}>
-                  {dur(e.started_at, e.finished_at) || '—'}
-                </span>
-              </td>
-              <td style={{ textAlign: 'right' }}>
-                <span style={{ color: '#6366f1', fontSize: 12, fontWeight: 500 }}>Trace →</span>
-              </td>
+              <td><span className={`f-status status-${execution.status}`}><span />{execution.status}</span></td>
+              <td className="f-table-muted">{formatRelative(execution.started_at)}</td>
+              <td className="f-table-mono">{formatDuration(execution.started_at, execution.finished_at)}</td>
+              <td><span className="f-row-arrow"><Icon name="arrow" size={14} /></span></td>
             </tr>
           ))}
         </tbody>
@@ -278,12 +228,7 @@ export default function OverviewPage() {
   const [templates, setTemplates] = useState([])
   const [dataTables, setDataTables] = useState([])
   const [health, setHealth] = useState(null)
-  const [connectorStats, setConnectorStats] = useState({
-    total: 0,
-    native: 0,
-    generated: 0,
-    catalogOnly: 0,
-  })
+  const [connectorStats, setConnectorStats] = useState({ total: 0, native: 0, generated: 0, catalogOnly: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -292,10 +237,10 @@ export default function OverviewPage() {
     setLoading(true)
     Promise.allSettled([
       api.listWorkflows(),
-      api.listExecutions({ pageSize: 10 }).then(r => r.data || r),
+      api.listExecutions({ pageSize: 10 }).then((result) => result.data || result),
       api.listCredentials().catch(() => []),
       api.listTemplates().catch(() => []),
-      api.listDataTables({ pageSize: 100 }).then(r => r.data || []).catch(() => []),
+      api.listDataTables({ pageSize: 100 }).then((result) => result.data || []).catch(() => []),
       api.getHealth().catch(() => null),
       api.listConnectors().catch(() => []),
     ]).then(([wf, ex, cr, tp, dt, hl, cn]) => {
@@ -310,37 +255,50 @@ export default function OverviewPage() {
       if (dt.status === 'fulfilled') setDataTables(Array.isArray(dt.value) ? dt.value : [])
       if (hl.status === 'fulfilled') setHealth(hl.value)
       if (cn.status === 'fulfilled') {
-        const connList = Array.isArray(cn.value) ? cn.value : (cn.value?.data || cn.value?.connectors || [])
-        if (connList.length > 0) setConnectorStats(summarizeConnectors(connList))
+        const connectorList = Array.isArray(cn.value) ? cn.value : (cn.value?.data || cn.value?.connectors || [])
+        if (connectorList.length > 0) setConnectorStats(summarizeConnectors(connectorList))
       }
       setLoading(false)
-    }).catch(err => { if (alive) { setError(err.message); setLoading(false) } })
+    }).catch((err) => {
+      if (alive) {
+        setError(err.message)
+        setLoading(false)
+      }
+    })
     return () => { alive = false }
   }, [])
 
-  // Auto-poll recent executions if any are active
   useEffect(() => {
-    const hasActive = executions.some(e => ['running', 'queued', 'waiting_approval'].includes(e.status))
-    if (!hasActive) return
-
+    const hasActive = executions.some((execution) => ['running', 'queued', 'waiting_approval'].includes(execution.status))
+    if (!hasActive) return undefined
     const timer = setInterval(() => {
-      api.listExecutions({ pageSize: 10 }).then(r => {
-        const data = r?.data ?? r
+      api.listExecutions({ pageSize: 10 }).then((result) => {
+        const data = result?.data ?? result
         if (Array.isArray(data)) setExecutions(data)
       }).catch(() => {})
-    }, 2500)
-
+    }, 3000)
     return () => clearInterval(timer)
   }, [executions])
 
-  const activeCount = workflows.filter(w => w.active).length
-  const failedRecent = executions.filter(e => e.status === 'failed').length
+  const activeCount = workflows.filter((workflow) => workflow.active).length
+  const failedRecent = executions.filter((execution) => execution.status === 'failed').length
+  const successRate = executions.length
+    ? Math.round(((executions.length - failedRecent) / executions.length) * 100)
+    : 100
+  const successTone = successRate >= 90 ? 'positive' : successRate >= 70 ? 'warning' : 'negative'
+  const connectorCount = connectorStats.native || connectorStats.total || 0
+  const totalRows = dataTables.reduce((sum, table) => sum + (table.row_count || 0), 0)
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
 
   if (error) {
     return (
-      <div className="page">
+      <div className="page overview-page">
         <PageHeader title="Overview" description="Your automation workspace at a glance." />
-        <div className="banner-inline err">{error} <button className="ghost" onClick={() => window.location.reload()}>Retry</button></div>
+        <div className="banner-inline err">{error} <button className="ghost small" onClick={() => window.location.reload()}>Retry</button></div>
       </div>
     )
   }
@@ -349,151 +307,129 @@ export default function OverviewPage() {
     <div className="page overview-page">
       <PageHeader
         title="Overview"
-        description="Your automation workspace — workflows, executions, and shortcuts."
-        actions={<>
-          <button className="ghost" onClick={() => navigate('/workflows')}>Manage workflows</button>
-          <button className="primary" onClick={() => navigate('/workflows')}>Create workflow</button>
-        </>}
+        description={`${today} · Personal workspace`}
+        actions={
+          <>
+            <button className="ghost" onClick={() => navigate('/executions')}>Run history</button>
+            <button className="primary" onClick={() => navigate('/workflows')}>
+              <Icon name="plus" size={14} />
+              New workflow
+            </button>
+          </>
+        }
       />
 
-      {/* Executive Quick Launcher Banner */}
-      <section className="overview-hero-card">
-        <div className="overview-hero-left">
-          <div className="overview-hero-badge">
-            <span className="dot pulse" />
-            <span>Autonomous Automation Engine</span>
-          </div>
-          <h2 className="overview-hero-heading">
-            Enterprise Workflow Orchestration
-          </h2>
-          <p className="overview-hero-sub">
-            {connectorStats.total
-              ? `Connect ${connectorStats.native} native connectors across ${connectorStats.total} registered connector names, automate real-time data flows, and build with AI agents.`
-              : 'Connect native and catalog-only connectors, automate real-time data flows, and build with AI agents.'}
-          </p>
-          <div className="overview-hero-btn-row">
-            <button className="primary" onClick={() => navigate('/workflows')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span>New Workflow</span>
-            </button>
-            <button className="ghost overview-hero-ai-btn" onClick={() => navigate('/ai')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="ai" size={14} color="#a855f7" />
-              <span>AI Workflow Copilot</span>
-            </button>
-            <button className="ghost" onClick={() => navigate('/integrations')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><rect x="8" y="8" width="8" height="8" rx="2"/></svg>
-              <span>{connectorStats.total ? `${connectorStats.total} Connector Entries` : 'Connector Catalog'}</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="stat-grid">
-        <StatCard
-          iconName="workflows"
-          iconColor="#818cf8"
-          label="Workflows"
-          value={loading ? '…' : workflows.length}
-          hint={loading ? '' : `${activeCount} active`}
-          onClick={() => navigate('/workflows')}
+      <div className="f-kpi-grid">
+        <KpiCard
+          icon="workflows"
+          label="Active workflows"
+          value={loading ? '—' : activeCount}
+          meta={loading ? 'Loading workspace' : `${workflows.length} total workflows`}
         />
-        <StatCard
-          iconName="executions"
-          iconColor="#38bdf8"
+        <KpiCard
+          icon="executions"
           label="Recent executions"
-          value={loading ? '…' : executions.length}
-          hint={failedRecent ? `${failedRecent} failed` : 'All recent runs fetched'}
-          onClick={() => navigate('/executions')}
+          value={loading ? '—' : executions.length}
+          meta={loading ? 'Loading run history' : `${failedRecent} failed in the last 10 runs`}
+          tone={failedRecent ? 'warning' : 'neutral'}
         />
-        <StatCard
-          iconName="health"
-          iconColor="#10b981"
-          label="Success Rate"
-          value={loading ? '…' : executions.length ? `${Math.round(((executions.length - failedRecent) / executions.length) * 100)}%` : '100%'}
-          hint="Operational telemetry"
-          onClick={() => navigate('/monitoring')}
+        <KpiCard
+          icon="health"
+          label="Success rate"
+          value={loading ? '—' : `${successRate}%`}
+          meta={loading ? 'Loading telemetry' : 'Across the last 10 executions'}
+          tone={successTone}
         />
-        <StatCard
-          iconName="credentials"
-          iconColor="#fbbf24"
-          label="Credentials"
-          value={loading ? '…' : credentials.length}
-          hint={`${credentials.length ? 'Encrypted at rest' : 'No credentials yet'}`}
-          onClick={() => navigate('/credentials')}
+        <KpiCard
+          icon="connectors"
+          label="Connectors"
+          value={loading ? '—' : connectorCount}
+          meta={loading ? 'Loading catalog' : `${connectorStats.total || connectorCount} registered entries`}
         />
-        <StatCard
-          iconName="data-tables"
-          iconColor="#c084fc"
-          label="Data Tables"
-          value={loading ? '…' : dataTables.length}
-          hint={`${dataTables.reduce((s, t) => s + (t.row_count||0), 0)} rows`}
-          onClick={() => navigate('/data-tables')}
-        />
-        <StatCard
-          iconName="templates"
-          iconColor="#f43f5e"
-          label="Templates"
-          value={loading ? '…' : templates.length}
-          hint="Reusable blueprints"
-          onClick={() => navigate('/templates')}
-        />
-      </section>
+      </div>
 
-      {health && (
-        <div className="health-banner">
-          <span className="dot" />
-          <span>System: <strong>{health.status}</strong> | Uptime: <strong>{Math.floor((health.uptime_s || 0) / 60)}m</strong> | v{health.version}</span>
-        </div>
-      )}
+      <div className="f-overview-grid">
+        <section className="f-panel f-recent-workflows">
+          <div className="f-panel-head">
+            <div>
+              <h2>Recent workflows</h2>
+              <p>Pick up where you left off.</p>
+            </div>
+            <button className="ghost small" onClick={() => navigate('/workflows')}>View all</button>
+          </div>
+          {loading ? (
+            <div className="f-skeleton-list">
+              {[0, 1, 2, 3].map((row) => <div key={row} className="f-skeleton-row" />)}
+            </div>
+          ) : workflows.length ? (
+            <div className="f-workflow-list">
+              {workflows.slice(0, 8).map((workflow) => (
+                <WorkflowRow key={workflow.id} workflow={workflow} onOpen={(id) => navigate(`/workflows/${id}`)} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon="workflows"
+              title="No workflows yet"
+              description="Create your first workflow to start automating your workspace."
+              action={<button className="primary" onClick={() => navigate('/workflows')}>Create workflow</button>}
+            />
+          )}
+        </section>
 
-      <section className="overview-section">
-        <div className="section-head">
-          <h2>Workflows</h2>
-          <button className="ghost" onClick={() => navigate('/workflows')}>View all →</button>
-        </div>
-        <RecentWorkflows workflows={workflows} loading={loading} />
-      </section>
+        <aside className="f-overview-side">
+          <section className="f-panel f-health-panel">
+            <div className="f-panel-head">
+              <div>
+                <h2>System health</h2>
+                <p>Runtime and telemetry.</p>
+              </div>
+              <span className={`f-status ${health ? 'is-active' : 'is-idle'}`}>
+                <span />{health ? 'Operational' : 'Connecting'}
+              </span>
+            </div>
+            <div className="f-health-list">
+              <div><span>Version</span><strong>{health?.version || '—'}</strong></div>
+              <div><span>Uptime</span><strong>{health?.uptime_s != null ? `${Math.floor(health.uptime_s / 60)}m ${Math.round(health.uptime_s % 60)}s` : '—'}</strong></div>
+              <div><span>Credentials</span><strong>{credentials.length}</strong></div>
+              <div><span>Data tables</span><strong>{dataTables.length} <small>{totalRows} rows</small></strong></div>
+              <div><span>Templates</span><strong>{templates.length}</strong></div>
+            </div>
+            <button className="ghost f-full-button" onClick={() => navigate('/monitoring')}>Open monitoring</button>
+          </section>
 
-      <section className="overview-section">
-        <div className="section-head">
-          <h2>Recent executions</h2>
-          <button className="ghost" onClick={() => navigate('/executions')}>View all →</button>
-        </div>
-        <RecentExecutions executions={executions} loading={loading} />
-      </section>
+          <section className="f-panel f-quick-panel">
+            <div className="f-panel-head">
+              <div>
+                <h2>Quick actions</h2>
+                <p>Common workspace shortcuts.</p>
+              </div>
+            </div>
+            <div className="f-quick-grid">
+              <button onClick={() => navigate('/credentials')}><span><Icon name="credentials" size={16} /></span>Credential</button>
+              <button onClick={() => navigate('/templates')}><span><Icon name="templates" size={16} /></span>Templates</button>
+              <button onClick={() => navigate('/data-tables')}><span><Icon name="data" size={16} /></span>Data table</button>
+              <button onClick={() => navigate('/ai')}><span><Icon name="ai" size={16} /></span>AI Studio</button>
+              <button onClick={() => navigate('/approvals')}><span><Icon name="approvals" size={16} /></span>Approvals</button>
+              <button onClick={() => navigate('/integrations')}><span><Icon name="connectors" size={16} /></span>Connectors</button>
+            </div>
+          </section>
+        </aside>
+      </div>
 
-      <section className="overview-section">
-        <h2>Quick actions</h2>
-        <div className="quick-actions">
-          <button className="quick-action" onClick={() => navigate('/workflows')}>
-            <span className="qa-icon"><Icon name="plus" size={16} /></span>
-            <span>Create workflow</span>
-          </button>
-          <button className="quick-action" onClick={() => navigate('/credentials')}>
-            <span className="qa-icon"><Icon name="credentials" size={16} /></span>
-            <span>Add credential</span>
-          </button>
-          <button className="quick-action" onClick={() => navigate('/data-tables')}>
-            <span className="qa-icon"><Icon name="data-tables" size={16} /></span>
-            <span>Create table</span>
-          </button>
-          <button className="quick-action" onClick={() => navigate('/templates')}>
-            <span className="qa-icon"><Icon name="templates" size={16} /></span>
-            <span>Use template</span>
-          </button>
-          <button className="quick-action" onClick={() => navigate('/knowledge')}>
-            <span className="qa-icon"><Icon name="knowledge" size={16} /></span>
-            <span>Manage knowledge</span>
-          </button>
-          <button className="quick-action" onClick={() => navigate('/executions')}>
-            <span className="qa-icon"><Icon name="executions" size={16} /></span>
-            <span>View executions</span>
-          </button>
-          <button className="quick-action" onClick={() => navigate('/help')}>
-            <span className="qa-icon"><Icon name="help" size={16} /></span>
-            <span>Help & docs</span>
-          </button>
+      <section className="f-panel f-execution-panel">
+        <div className="f-panel-head">
+          <div>
+            <h2>Recent executions</h2>
+            <p>Latest runs across your workspace.</p>
+          </div>
+          <button className="ghost small" onClick={() => navigate('/executions')}>View all</button>
         </div>
+        <ExecutionTable
+          executions={executions}
+          loading={loading}
+          onOpen={(id) => navigate(id ? `/executions/${id}` : '/executions')}
+        />
       </section>
     </div>
   )

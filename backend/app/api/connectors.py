@@ -29,6 +29,7 @@ from app.api.common import ok
 from app.models import User
 from app.connectors.registry import ConnectorRegistry
 from app.connectors import get_registry as _get_registry, ensure_builtin_connectors
+from app.connectors.naming import is_hidden_in_catalog
 
 router = APIRouter(prefix="/api/connectors", tags=["connectors"])
 
@@ -45,7 +46,10 @@ def list_connectors(
 ) -> dict:
     """List all registered connectors (public discovery)."""
     registry = get_registry()
-    definitions = registry.list_definitions()
+    definitions = [
+        d for d in registry.list_definitions()
+        if not is_hidden_in_catalog(d.connector_key)
+    ]
     return ok(
         [
             {

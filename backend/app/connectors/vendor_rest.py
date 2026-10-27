@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import base64
 import json
+import math
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -697,7 +699,11 @@ class VendorRESTConnector(ConnectorSDK):
         return [self.spec.key]
 
     async def connect(self, config: dict[str, Any]) -> bool:
-        self.status = "connected" if any(config.get(k) for k in self.spec.credential_fields) else "initialized"
+        required = tuple(self.spec.credential_fields)
+        configured = bool(required) and all(
+            str(config.get(k) or "").strip() for k in required
+        )
+        self.status = "connected" if configured else "initialized"
         return self.status == "connected"
 
     async def disconnect(self) -> None:
@@ -710,7 +716,14 @@ class VendorRESTConnector(ConnectorSDK):
             value = creds.get(name)
         return value
 
-    def _format(self, template: str, payload: dict[str, Any], creds: dict[str, Any]) -> str:
+    def _format(
+        self,
+        template: str,
+        payload: dict[str, Any],
+        creds: dict[str, Any],
+        *,
+        validate_host: bool = False,
+    ) -> str:
         values = {**creds, **payload}
         missing = [name for name in self.spec.extra_required if not values.get(name)]
         missing += [
@@ -723,6 +736,19 @@ class VendorRESTConnector(ConnectorSDK):
                 f"{self.display_name} requires: {', '.join(sorted(set(missing)))}.",
                 retryable=False,
             )
+        if validate_host and "://" in template:
+            host_template = template.split("://", 1)[1].split("/", 1)[0]
+            for name in re.findall(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", host_template):
+                value = str(values.get(name) or "").strip()
+                if not re.fullmatch(
+                    r"[A-Za-z0-9](?:[A-Za-z0-9._-]{0,251}[A-Za-z0-9])?(?::[0-9]{1,5})?",
+                    value,
+                ):
+                    raise make_connector_error(
+                        ConnectorErrorCode.BAD_REQUEST,
+                        f"{self.display_name} has an invalid host value for '{name}'.",
+                        retryable=False,
+                    )
         try:
             return template.format(**values)
         except KeyError as exc:
@@ -756,7 +782,9 @@ class VendorRESTConnector(ConnectorSDK):
             creds = context["credentials"].get(self.spec.key) or {}
 
         path = self._format(op.path, params.params, creds)
-        base = self._format(self.spec.base_url, params.params, creds).rstrip("/")
+        base = self._format(
+            self.spec.base_url, params.params, creds, validate_host=True
+        ).rstrip("/")
         headers: dict[str, str] = {"Accept": "application/json"}
         if self.spec.auth_kind == "bearer":
             token = str(
@@ -804,6 +832,9 @@ class VendorRESTConnector(ConnectorSDK):
                 f"{username}:{password}".encode()
             ).decode()
 
+        # Preserve the established vendor contract: GET params are forwarded
+        # as query parameters (some vendors, and existing connector users,
+        # rely on path identifiers also being available there).
         query = dict(params.params) if op.method == "GET" and params.params else {}
         if self.spec.auth_kind == "query":
             query[self.spec.query_param] = creds.get(self.spec.query_param) or creds.get("api_key")
@@ -846,10 +877,23 @@ class VendorRESTConnector(ConnectorSDK):
                 else ConnectorErrorCode.UNAVAILABLE if response.status_code >= 500
                 else ConnectorErrorCode.BAD_REQUEST
             )
+            retry_after = None
+            try:
+                raw_retry = response.headers.get("Retry-After")
+            except (AttributeError, TypeError):
+                raw_retry = None
+            if raw_retry:
+                try:
+                    parsed = float(raw_retry)
+                except (TypeError, ValueError, OverflowError):
+                    parsed = None
+                if parsed is not None and math.isfinite(parsed) and parsed >= 0:
+                    retry_after = parsed
             raise make_connector_error(
                 code,
                 f"{self.display_name} returned HTTP {response.status_code}: {response.text[:200]}",
                 retryable=response.status_code in (429, 500, 502, 503, 504),
+                retry_after=retry_after,
             )
         try:
             data = response.json()

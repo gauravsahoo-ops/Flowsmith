@@ -287,7 +287,7 @@ export default function DynamicsCrmOAuthModal({
         <div className="dynamics-modal-header">
           <div className="dynamics-modal-title-area">
             <div className="dynamics-modal-icon-badge">
-              <NodeIcon type="dynamics_crm" size={20} />
+              <NodeIcon type="dynamics_crm" size={24} />
             </div>
             <div>
               <h2>Connect Microsoft Dynamics 365</h2>
@@ -438,7 +438,7 @@ export default function DynamicsCrmOAuthModal({
                   onClick={handleOAuthConnect}
                   disabled={busy}
                 >
-                  <NodeIcon type="dynamics_crm" size={16} />
+                  <NodeIcon type="dynamics_crm" size={18} />
                   {busy ? 'Opening Microsoft Login...' : connectedUser ? 'Reconnect Dynamics 365' : 'Sign in with Microsoft 365'}
                 </button>
               </div>

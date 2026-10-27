@@ -5,6 +5,7 @@ import { api } from '../api'
 import { useCredentialStore } from '../stores/credentialStore'
 import { useWorkflowStore } from '../stores/workflowStore'
 import PageHeader from '../components/shared/PageHeader'
+import Tabs from '../components/shared/Tabs'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import EmptyState from '../components/shared/EmptyState'
 import { NodeIcon } from '../components/NodeIcons'
@@ -141,7 +142,7 @@ export default function IntegrationsPage() {
     <div className="page integrations-page" style={{ padding: '1.5rem', maxWidth: 1400, margin: '0 auto' }}>
       <PageHeader
         title="Integrations & Marketplace"
-        subtitle={
+        description={
           loading
             ? 'Loading connector catalog…'
             : `${connectorSummaryText(connectorSummary)} Catalog-only entries require an explicit endpoint URL.`
@@ -219,33 +220,37 @@ export default function IntegrationsPage() {
       )}
 
       {/* Primary View Switcher */}
-      <div style={{ display: 'flex', gap: '0.5rem', margin: '1.25rem 0 1rem 0', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
-        <button
-          className={mainTab === 'marketplace' ? 'primary' : 'ghost'}
-          onClick={() => setMainTab('marketplace')}
-          style={{ fontSize: '13px', padding: '0.5rem 1.1rem', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-            <line x1="6" y1="6" x2="6.01" y2="6" />
-            <line x1="6" y1="18" x2="6.01" y2="18" />
-          </svg>
-          Connector Entries ({connectorSummary.total})
-        </button>
-        <button
-          className={mainTab === 'coverage' ? 'primary' : 'ghost'}
-          onClick={() => setMainTab('coverage')}
-          style={{ fontSize: '13px', padding: '0.5rem 1.1rem', borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10" />
-            <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
-          </svg>
-          Enterprise Capability & Coverage Matrix
-        </button>
-      </div>
+      <Tabs
+        className="f-tabs integrations-page-tabs"
+        ariaLabel="Integration views"
+        value={mainTab}
+        onChange={setMainTab}
+        tabs={[
+          {
+            id: 'marketplace',
+            label: `Connector Entries (${connectorSummary.total})`,
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                <line x1="6" y1="6" x2="6.01" y2="6" />
+                <line x1="6" y1="18" x2="6.01" y2="18" />
+              </svg>
+            ),
+          },
+          {
+            id: 'coverage',
+            label: 'Enterprise Coverage Matrix',
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
+            ),
+          },
+        ]}
+      />
 
       {mainTab === 'coverage' ? (
         <CoverageDashboard connectorStats={connectorSummary} />
@@ -359,19 +364,8 @@ export default function IntegrationsPage() {
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 10,
-                        background: 'rgba(255, 255, 255, 0.06)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                      }}
-                    >
-                      <NodeIcon type={conn.connector_key} name={conn.display_name} icon={conn.icon} size={28} />
+                    <div className="connector-icon-shell connector-icon-shell--card">
+                      <NodeIcon type={conn.connector_key} name={conn.display_name} icon={conn.icon} size={38} />
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#f8fafc' }}>
@@ -499,19 +493,8 @@ export default function IntegrationsPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 12,
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                  }}
-                >
-                  <NodeIcon type={selectedConnector.connector_key} name={selectedConnector.display_name} icon={selectedConnector.icon} size={36} />
+                <div className="connector-icon-shell connector-icon-shell--detail">
+                  <NodeIcon type={selectedConnector.connector_key} name={selectedConnector.display_name} icon={selectedConnector.icon} size={44} />
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#f8fafc' }}>

@@ -628,6 +628,13 @@
    ========================================================================== */
 .knowledge-page {
   animation: fadeIn 0.25s ease-out;
+  max-width: 100%;
+}
+
+.knowledge-page .page-description {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .knowledge-layout {
@@ -648,12 +655,53 @@
 
 .knowledge-create {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .knowledge-create input {
-  flex: 1;
+  width: 100%;
   min-width: 0;
+  box-sizing: border-box;
+}
+
+.knowledge-create-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.knowledge-create-actions select {
+  flex: 1 1 150px;
+  min-width: 0;
+  max-width: none;
+}
+
+.knowledge-create-actions button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.knowledge-scope {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  min-width: 0;
+}
+
+.knowledge-scope label {
+  flex: 0 0 auto;
+  color: var(--text-dim, #94a3b8);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.knowledge-scope select {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .rag-list {

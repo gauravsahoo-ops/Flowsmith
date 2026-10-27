@@ -77,8 +77,13 @@ def build_connector_entries() -> list[dict[str, Any]]:
 
     ensure_builtin_connectors()
     registry = get_connector_registry()
+    from app.connectors.naming import is_hidden_in_catalog
+
     entries: list[dict[str, Any]] = []
-    definitions = sorted(registry.list_definitions(), key=lambda d: d.connector_key)
+    definitions = sorted(
+        (d for d in registry.list_definitions() if not is_hidden_in_catalog(d.connector_key)),
+        key=lambda d: d.connector_key,
+    )
     for definition in definitions:
         ops: dict[str, Any] = {}
         cred_requirements: set[str] = set()

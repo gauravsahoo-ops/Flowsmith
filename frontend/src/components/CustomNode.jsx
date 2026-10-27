@@ -666,9 +666,13 @@ function CustomNode({ id, data, selected }) {
           />
         ))}
 
-        {/* Centered Large Vector Icon */}
+        {/* Node identity */}
         <div className="rf-node-icon-wrap">
-          <NodeIcon type={data.node.type} icon={settings.icon} size={36} color={accent} />
+          <NodeIcon type={data.node.type} icon={settings.icon} size={30} color={accent} />
+        </div>
+        <div className="rf-node-info">
+          <div className="rf-node-label" title={label}>{label}</div>
+          {subtitle && <div className="rf-node-subtitle" title={fullSubtitle}>{subtitle}</div>}
         </div>
 
         {/* Status indicator dot with radar wave */}
@@ -710,13 +714,7 @@ function CustomNode({ id, data, selected }) {
         ))}
       </div>
 
-      {/* Label and Subtitle underneath the card */}
-      <div className="rf-node-info">
-        <div className="rf-node-label" title={label}>{label}</div>
-        {subtitle && <div className="rf-node-subtitle" title={fullSubtitle}>{subtitle}</div>}
-      </div>
-
-      {/* Execution chips below info */}
+      {/* Execution chips */}
       {showPreview && (
         <div className="rf-node-preview">
           {running ? (

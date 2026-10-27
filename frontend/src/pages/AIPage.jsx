@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
+import Tabs from '../components/shared/Tabs'
 import AIArchitectureSection from '../components/AIArchitectureSection'
 import AIBuilderConsole from '../components/AIBuilderConsole'
 import SmithDrawer from '../components/SmithDrawer'
@@ -153,41 +154,39 @@ export default function AIPage() {
       />
 
       {/* Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          borderBottom: '1px solid var(--border-color, #27272a)',
-          marginBottom: '1.5rem',
-          paddingBottom: '0.5rem',
-          flexWrap: 'wrap',
+      <Tabs
+        className="f-tabs ai-page-tabs"
+        ariaLabel="AI Studio sections"
+        value={activeTab}
+        onChange={(id) => {
+          setActiveTab(id)
+          setSearchParams({ tab: id })
         }}
-      >
-        <button
-          className={activeTab === 'builder' ? 'primary' : 'ghost'}
-          onClick={() => { setActiveTab('builder'); setSearchParams({ tab: 'builder' }) }}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-          </svg>
-          AI Workflow Builder (Plan · Simulate · Repair)
-        </button>
-        <button
-          className={activeTab === 'capabilities' ? 'primary' : 'ghost'}
-          onClick={() => { setActiveTab('capabilities'); setSearchParams({ tab: 'capabilities' }) }}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="12 2 2 7 12 12 22 7 12 2" />
-            <polyline points="2 17 12 22 22 17" />
-            <polyline points="2 12 12 17 22 12" />
-          </svg>
-          AI Architecture & MCP
-        </button>
-      </div>
+        tabs={[
+          {
+            id: 'builder',
+            label: 'AI Workflow Builder',
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+            ),
+          },
+          {
+            id: 'capabilities',
+            label: 'AI Architecture & MCP',
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+            ),
+          },
+        ]}
+      />
 
       {/* TAB 1: AI BUILDER CONSOLE */}
       {activeTab === 'builder' && (

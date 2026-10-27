@@ -23,6 +23,7 @@ export default function TemplatesPage() {
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
+  const [visibleCount, setVisibleCount] = useState(12)
   const [busyId, setBusyId] = useState(null)
 
   // Modal dialog state
@@ -68,6 +69,8 @@ export default function TemplatesPage() {
 
   const categories = useMemo(() => [...new Set(templates.map(t => t.category).filter(Boolean))], [templates])
 
+  useEffect(() => { setVisibleCount(12) }, [search, category])
+
   const filtered = templates.filter(t => {
     if (category !== 'all' && t.category !== category) return false
     if (search.trim()) {
@@ -76,6 +79,7 @@ export default function TemplatesPage() {
     }
     return true
   })
+  const visibleTemplates = filtered.slice(0, visibleCount)
 
   async function handleUse(t) {
     setBusyId(t.id)
@@ -183,10 +187,10 @@ export default function TemplatesPage() {
         )
       ) : (
         <div className="template-grid">
-          {filtered.map(t => {
+          {visibleTemplates.map((t, index) => {
             const catColor = CATEGORY_COLORS[t.category] || '#94a3b8'
             return (
-              <div key={t.id} className="template-card">
+              <div key={`${t.id}-${index}`} className="template-card">
                 <div className="template-card-head">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
@@ -258,6 +262,15 @@ export default function TemplatesPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {!loading && filtered.length > visibleCount && (
+        <div className="templates-load-more">
+          <span>Showing {visibleCount} of {filtered.length} templates</span>
+          <button type="button" className="ghost" onClick={() => setVisibleCount((count) => count + 12)}>
+            Load more
+          </button>
         </div>
       )}
 

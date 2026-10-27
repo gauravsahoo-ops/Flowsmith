@@ -104,9 +104,9 @@ class SplitParams(BaseModel):
 @register
 class SplitNode(BaseNode[SplitParams]):
     node_type = "split"
-    display_name = "Split Out"
+    display_name = "Split Out (Legacy)"
     version = 1
-    description = "Turn a list inside item(s) into separate items"
+    description = "Legacy alias for Split Out; keeps existing workflows executable."
     category = "Flow"
     icon = "split_out"
     parameters_schema = SplitParams

@@ -29,7 +29,7 @@ function PaletteRow({ node, onCanvasCount, onJump, onClick }) {
       onKeyDown={(e) => { if (e.key === 'Enter') onClick?.() }}
     >
       <span className="node-icon">
-        <NodeIcon type={node.type} name={node.display_name} icon={node.icon} size={20} color="#cbd5e1" />
+        <NodeIcon type={node.type} name={node.display_name} icon={node.icon} size={24} color="#cbd5e1" />
       </span>
       <div className="palette-info">
         <div className="palette-name">
@@ -64,7 +64,7 @@ function PaletteRow({ node, onCanvasCount, onJump, onClick }) {
             onJump(node.type)
           }}
         >
-          ×{onCanvasCount}
+          Ã—{onCanvasCount}
         </button>
       )}
       {(node.type === 'sub_workflow' || node.type === 'execute_sub_workflow') && (
@@ -124,7 +124,7 @@ function Sidebar({ onOpenCredentials }) {
     }
   }, [closeSidebar])
 
-  // How many of each type are already on the canvas (drives the ×N chips).
+  // How many of each type are already on the canvas (drives the Ã—N chips).
   const countsByType = useMemo(() => {
     const counts = new Map()
     if (!nodeTypesKey) return counts
@@ -135,7 +135,7 @@ function Sidebar({ onOpenCredentials }) {
   }, [nodeTypesKey])
 
   const connectorNodes = useMemo(() => {
-    return catalog.filter((n) => n.icon === '🔌' || n.category === 'Connectors' || n.is_connector || n.icon === 'connector' || (n.credential_types && n.credential_types.length > 0))
+    return catalog.filter((n) => n.icon === 'ðŸ”Œ' || n.category === 'Connectors' || n.is_connector || n.icon === 'connector' || (n.credential_types && n.credential_types.length > 0))
   }, [catalog])
 
   const groups = useMemo(() => {
@@ -143,7 +143,7 @@ function Sidebar({ onOpenCredentials }) {
     const matches = catalog.filter((node) => {
       if (node.type === 'loop') return false
       if (!q && selectedCategory === 'Connectors') {
-        return Boolean(node.icon === '🔌' || node.category === 'Connectors' || node.is_connector || node.icon === 'connector' || (node.credential_types && node.credential_types.length > 0))
+        return Boolean(node.icon === 'ðŸ”Œ' || node.category === 'Connectors' || node.is_connector || node.icon === 'connector' || (node.credential_types && node.credential_types.length > 0))
       }
       if (!q && selectedCategory === 'Triggers') {
         return Boolean(node.category === 'Triggers' || node.type?.includes('trigger') || node.display_name?.toLowerCase().includes('trigger'))
@@ -539,7 +539,7 @@ function Sidebar({ onOpenCredentials }) {
 
       {searching && !Object.keys(groups).length && !connectorNodes.length && (
         <p className="hint" style={{ padding: '8px 4px' }}>
-          No nodes match “{query}”. Try the command palette (Ctrl+K).
+          No nodes match "{query}". Try the command palette (Ctrl+K).
         </p>
       )}
 

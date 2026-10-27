@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
@@ -55,10 +55,14 @@ export default function ExecutionDetailPage() {
 
   // Outbound API Telemetry inspector state
   const [apiRequests, setApiRequests] = useState([])
+  const [requestsPage, setRequestsPage] = useState(1)
+  const [requestsMeta, setRequestsMeta] = useState({ page: 1, pageSize: 50, total: 0 })
   const [selectedRequestId, setSelectedRequestId] = useState(null)
   const [selectedRequestDetail, setSelectedRequestDetail] = useState(null)
   const [loadingRequests, setLoadingRequests] = useState(false)
   const [copiedPayload, setCopiedPayload] = useState(null)
+  const requestsAbortRef = useRef(null)
+  const targetRequestFocusRef = useRef(Boolean(targetRequestId))
 
   // Retry history state
   const [retryHistory, setRetryHistory] = useState([])
@@ -68,6 +72,11 @@ export default function ExecutionDetailPage() {
   const [retryModalOpen, setRetryModalOpen] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const [retryReason, setRetryReason] = useState('')
+
+  useEffect(() => {
+    setRequestsPage(1)
+    targetRequestFocusRef.current = Boolean(targetRequestId)
+  }, [id, targetRequestId])
 
   // Load execution core payload
   const fetchExecution = useCallback((silent = false) => {
@@ -101,6 +110,14 @@ export default function ExecutionDetailPage() {
     fetchExecution()
   }, [fetchExecution])
 
+  const loadFullNodeOutput = useCallback(
+    (nodeId) =>
+      api
+        .getExecutionNodeOutput(id, nodeId)
+        .then((res) => res?.output ?? res),
+    [id],
+  )
+
   // Sync state if URL search parameters change
   useEffect(() => {
     if (initialTab) setTab(initialTab)
@@ -116,32 +133,62 @@ export default function ExecutionDetailPage() {
   useEffect(() => {
     if (!isRunning) return
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
       fetchExecution(true)
     }, 2000)
     return () => clearInterval(timer)
   }, [isRunning, fetchExecution])
 
-  // Load API requests when switching to 'requests' tab
+  // Load a page of API requests when viewing the API Inspector.
   useEffect(() => {
-    if (tab === 'requests') {
-      setLoadingRequests(true)
-      api
-        .getExecutionRequests(id)
-        .then((res) => {
-          const reqs = res?.data || res || []
-          setApiRequests(Array.isArray(reqs) ? reqs : [])
-          if (reqs.length > 0) {
-            if (targetRequestId && reqs.some((r) => r.id === targetRequestId)) {
-              setSelectedRequestId(targetRequestId)
-            } else {
-              setSelectedRequestId((prev) => prev || reqs[0].id)
-            }
+    if (tab !== 'requests') return
+
+    requestsAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    requestsAbortRef.current = ctrl
+    setLoadingRequests(true)
+    const focusRequestId = targetRequestFocusRef.current ? targetRequestId : undefined
+    api
+      .getExecutionRequests(
+        id,
+        { page: requestsPage, pageSize: 50, requestId: focusRequestId },
+        { signal: ctrl.signal },
+      )
+      .then((res) => {
+        if (ctrl.signal.aborted) return
+        const reqs = Array.isArray(res?.data) ? res.data : []
+        const meta = res?.meta || { page: requestsPage, pageSize: 50, total: reqs.length }
+        setApiRequests(reqs)
+        setRequestsMeta(meta)
+        targetRequestFocusRef.current = false
+        if (meta.page && meta.page !== requestsPage) {
+          setRequestsPage(meta.page)
+        }
+        if (reqs.length > 0) {
+          if (targetRequestId && reqs.some((r) => r.id === targetRequestId)) {
+            setSelectedRequestId(targetRequestId)
+          } else {
+            setSelectedRequestId(reqs[0].id)
           }
-        })
-        .catch(() => setApiRequests([]))
-        .finally(() => setLoadingRequests(false))
+        } else {
+          setSelectedRequestId(null)
+          setSelectedRequestDetail(null)
+        }
+      })
+      .catch(() => {
+        if (!ctrl.signal.aborted) {
+          setApiRequests([])
+          setRequestsMeta({ page: requestsPage, pageSize: 50, total: 0 })
+        }
+      })
+      .finally(() => {
+        if (!ctrl.signal.aborted) setLoadingRequests(false)
+      })
+
+    return () => {
+      ctrl.abort()
     }
-  }, [id, tab, targetRequestId])
+  }, [id, tab, targetRequestId, requestsPage])
 
   // Load detailed request payload when selected
   useEffect(() => {
@@ -457,7 +504,7 @@ export default function ExecutionDetailPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span className="muted">Source:</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#e2e8f0' }}>
-                {data.source_connector && <NodeIcon type={data.source_connector} size={14} />}
+                {data.source_connector && <NodeIcon type={data.source_connector} size={16} />}
                 <strong>{data.source_connector || 'Webhook / Trigger'}</strong>
                 {data.source_object && <span className="muted">({data.source_object})</span>}
               </span>
@@ -466,7 +513,7 @@ export default function ExecutionDetailPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span className="muted">Destination:</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#e2e8f0' }}>
-                {data.destination_connector && <NodeIcon type={data.destination_connector} size={14} />}
+                {data.destination_connector && <NodeIcon type={data.destination_connector} size={16} />}
                 <strong>{data.destination_connector || 'Flow Output'}</strong>
                 {data.destination_object && <span className="muted">({data.destination_object})</span>}
               </span>
@@ -647,6 +694,7 @@ export default function ExecutionDetailPage() {
                   step={selectedStep}
                   search={searchHighlight}
                   highlightField={highlightField}
+                  onLoadFullOutput={loadFullNodeOutput}
                   onRetryNode={(nodeId) => {
                     api
                       .retry(id, nodeId)
@@ -661,7 +709,7 @@ export default function ExecutionDetailPage() {
 
         {/* Tab 2: Steps Table */}
         {tab === 'steps' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 16 }}>
+          <div className="execution-steps-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 16 }}>
             <div className="steps-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {steps.length === 0 && <p className="hint">No steps recorded in this run.</p>}
               {steps.map((s) => (
@@ -716,6 +764,7 @@ export default function ExecutionDetailPage() {
                 step={selectedStep}
                 search={searchHighlight}
                 highlightField={highlightField}
+                onLoadFullOutput={loadFullNodeOutput}
                 onRetryNode={(nodeId) => {
                   api
                     .retry(id, nodeId)
@@ -748,8 +797,8 @@ export default function ExecutionDetailPage() {
                 {/* Outbound Request List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {apiRequests.map((req) => {
-                    const isOk = req.status_code && req.status_code >= 200 && req.status_code < 300
-                    const isErr = req.status_code && req.status_code >= 400
+                    const isOk = req.http_status_code && req.http_status_code >= 200 && req.http_status_code < 300
+                    const isErr = req.http_status_code && req.http_status_code >= 400
                     const isSel = selectedRequestId === req.id
                     return (
                       <button
@@ -780,7 +829,7 @@ export default function ExecutionDetailPage() {
                               color: isOk ? '#34d399' : isErr ? '#f87171' : '#cbd5e1',
                             }}
                           >
-                            {req.method} {req.status_code || ''}
+                            {req.http_method} {req.http_status_code || ''}
                           </span>
                           <span
                             style={{
@@ -790,9 +839,9 @@ export default function ExecutionDetailPage() {
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
                             }}
-                            title={req.url}
+                            title={req.endpoint_url}
                           >
-                            {req.url}
+                            {req.endpoint_url}
                           </span>
                         </div>
                         <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0, fontFamily: 'monospace' }}>
@@ -801,6 +850,38 @@ export default function ExecutionDetailPage() {
                       </button>
                     )
                   })}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
+                    <span className="hint" style={{ fontSize: 11 }}>
+                      Showing {requestsMeta.total ? (requestsMeta.page - 1) * requestsMeta.pageSize + 1 : 0}–
+                      {Math.min(requestsMeta.page * requestsMeta.pageSize, requestsMeta.total)} of {requestsMeta.total}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        type="button"
+                        className="ghost"
+                        disabled={requestsPage <= 1 || loadingRequests}
+                        onClick={() => setRequestsPage((current) => Math.max(1, current - 1))}
+                        style={{ fontSize: 11, padding: '2px 6px' }}
+                      >
+                        Prev
+                      </button>
+                      <span className="hint" style={{ fontSize: 11 }}>
+                        {requestsPage} / {Math.max(1, Math.ceil(requestsMeta.total / (requestsMeta.pageSize || 50)))}
+                      </span>
+                      <button
+                        type="button"
+                        className="ghost"
+                        disabled={
+                          requestsPage * (requestsMeta.pageSize || 50) >= requestsMeta.total ||
+                          loadingRequests
+                        }
+                        onClick={() => setRequestsPage((current) => current + 1)}
+                        style={{ fontSize: 11, padding: '2px 6px' }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Request / Response Details Pane */}
@@ -827,15 +908,15 @@ export default function ExecutionDetailPage() {
                               color: '#818cf8',
                             }}
                           >
-                            {selectedRequestDetail.method}
+                            {selectedRequestDetail.http_method}
                           </span>
                           <code style={{ fontSize: 12.5, color: '#f8fafc' }}>
-                            {selectedRequestDetail.url}
+                            {selectedRequestDetail.endpoint_url}
                           </code>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span className="hint">
-                            Status: <strong style={{ color: selectedRequestDetail.status_code < 400 ? '#34d399' : '#f87171' }}>{selectedRequestDetail.status_code || '—'}</strong>
+                            Status: <strong style={{ color: selectedRequestDetail.http_status_code == null ? '#94a3b8' : selectedRequestDetail.http_status_code < 400 ? '#34d399' : '#f87171' }}>{selectedRequestDetail.http_status_code ?? '—'}</strong>
                           </span>
                           <span className="hint">
                             Latency: <strong>{selectedRequestDetail.duration_ms ? `${Math.round(selectedRequestDetail.duration_ms)}ms` : '—'}</strong>
@@ -885,15 +966,15 @@ export default function ExecutionDetailPage() {
                           <button
                             type="button"
                             className="ghost"
-                            onClick={() => copyText(selectedRequestDetail.request_body, 'req_b')}
+                            onClick={() => copyText(selectedRequestDetail.request_payload, 'req_b')}
                             style={{ fontSize: 11, padding: '2px 6px' }}
                           >
                             {copiedPayload === 'req_b' ? '✓ Copied' : 'Copy'}
                           </button>
                         </div>
-                        {typeof selectedRequestDetail.request_body === 'object' && selectedRequestDetail.request_body !== null ? (
+                        {typeof selectedRequestDetail.request_payload === 'object' && selectedRequestDetail.request_payload !== null ? (
                           <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)', maxHeight: 220, overflowY: 'auto' }}>
-                            <JsonTree data={selectedRequestDetail.request_body} search={searchHighlight} defaultExpandDepth={searchHighlight ? 10 : 3} />
+                            <JsonTree data={selectedRequestDetail.request_payload} search={searchHighlight} defaultExpandDepth={searchHighlight ? 10 : 3} />
                           </div>
                         ) : (
                           <pre
@@ -910,7 +991,7 @@ export default function ExecutionDetailPage() {
                               overflowY: 'auto',
                             }}
                           >
-                            {selectedRequestDetail.request_body || '—'}
+                            {selectedRequestDetail.request_payload || '—'}
                           </pre>
                         )}
                       </div>
@@ -924,15 +1005,15 @@ export default function ExecutionDetailPage() {
                           <button
                             type="button"
                             className="ghost"
-                            onClick={() => copyText(selectedRequestDetail.response_body, 'res_b')}
+                            onClick={() => copyText(selectedRequestDetail.response_payload, 'res_b')}
                             style={{ fontSize: 11, padding: '2px 6px' }}
                           >
                             {copiedPayload === 'res_b' ? '✓ Copied' : 'Copy'}
                           </button>
                         </div>
-                        {typeof selectedRequestDetail.response_body === 'object' && selectedRequestDetail.response_body !== null ? (
+                        {typeof selectedRequestDetail.response_payload === 'object' && selectedRequestDetail.response_payload !== null ? (
                           <div style={{ background: 'rgba(0,0,0,0.3)', padding: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)', maxHeight: 260, overflowY: 'auto' }}>
-                            <JsonTree data={selectedRequestDetail.response_body} search={searchHighlight} defaultExpandDepth={searchHighlight ? 10 : 3} />
+                            <JsonTree data={selectedRequestDetail.response_payload} search={searchHighlight} defaultExpandDepth={searchHighlight ? 10 : 3} />
                           </div>
                         ) : (
                           <pre
@@ -949,7 +1030,7 @@ export default function ExecutionDetailPage() {
                               overflowY: 'auto',
                             }}
                           >
-                            {selectedRequestDetail.response_body || '—'}
+                            {selectedRequestDetail.response_payload || '—'}
                           </pre>
                         )}
                       </div>

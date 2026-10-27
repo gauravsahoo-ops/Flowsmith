@@ -12,6 +12,7 @@ import contextlib
 import copy
 import hashlib
 import json
+import math
 import logging
 import time
 from dataclasses import dataclass, field
@@ -40,6 +41,29 @@ NodeResults = dict[str, dict[str, list[dict[str, Any]]]]
 
 DEFAULT_MAX_PARALLELISM = 8
 MAX_RETRY_BACKOFF_S = 60.0
+
+
+def _retry_delay(backoff: float, retries: int, retry_after: Any = None) -> float:
+    """Return a bounded, safe retry delay.
+
+    Provider ``Retry-After`` values are untrusted and can be negative,
+    non-finite, or absurdly large. They must never reach ``asyncio.sleep``
+    raw. The fallback is exponential backoff capped at 60 seconds.
+    """
+    if retry_after is not None:
+        try:
+            candidate = float(retry_after)
+        except (TypeError, ValueError, OverflowError):
+            candidate = None
+        if candidate is not None and math.isfinite(candidate) and candidate >= 0:
+            return min(candidate, MAX_RETRY_BACKOFF_S)
+    try:
+        computed = float(backoff) * (2 ** max(retries - 1, 0))
+    except (TypeError, ValueError, OverflowError):
+        computed = 0.0
+    if not math.isfinite(computed):
+        computed = 0.0
+    return max(0.0, min(computed, MAX_RETRY_BACKOFF_S))
 MERGE_MODES = ("wait_for_all", "wait_for_one", "combine")
 
 
@@ -55,7 +79,10 @@ class ExecutionResult:
     events: list[dict[str, Any]] = field(default_factory=list)
     inputs: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     error: NodeExecutionError | None = None
-    started_at: float = field(default_factory=time.monotonic)
+    # perf_counter has sub-millisecond resolution on Windows; monotonic can
+    # return the same tick for very fast workflows, producing a misleading
+    # 0.0ms duration. Only differences are used, so the epoch is arbitrary.
+    started_at: float = field(default_factory=time.perf_counter)
     finished_at: float | None = None
     # Phase 14: PASS/FAIL/DIFF report when this run was a workflow test.
     test_report: dict[str, Any] | None = None
@@ -290,7 +317,7 @@ async def execute_workflow(
     if result.status != "timeout" and (cancelled.is_set() or ctx.is_cancelled()):
         result.status = "cancelled"
 
-    result.finished_at = time.monotonic()
+    result.finished_at = time.perf_counter()
     result.events = event_queue
     return result
 
@@ -569,8 +596,7 @@ async def _run_via_connector(
         # Phase 9: when the provider sent Retry-After (Salesforce 429),
         # wait exactly as long as instructed instead of the computed
         # exponential backoff; still capped by MAX_RETRY_BACKOFF_S.
-        computed_delay = min(backoff * (2 ** (_current_retries - 1)), MAX_RETRY_BACKOFF_S)
-        delay = min(getattr(node_error, "retry_after", None) or computed_delay, MAX_RETRY_BACKOFF_S)
+        delay = _retry_delay(backoff, _current_retries, getattr(node_error, "retry_after", None))
         emit("node.retry", node_id=node.id, status="retry",
              attempt=_current_retries, max_attempts=max_attempts,
              retry_after_s=delay, error={"message": str(node_error), "code": node_error.code})
@@ -659,15 +685,23 @@ async def _run_one(
         return _fail(node, gnode, results, result, error, emit, graph)
 
 
-    if any(parent_id in result.node_errors for parent_id in gnode.input_node_ids):
-        result.skipped.append(node.id)
-        emit("node.completed", node_id=node.id, status="skipped")
-        _add_step(
-            result, node_id=node.id, node_type=node.type, status="skipped",
-            started_at=datetime.now(UTC).isoformat(), duration_ms=0,
-            note="Parent node failed; step was not executed.",
-        )
-        return
+    failed_parents = {
+        parent_id for parent_id in gnode.input_node_ids
+        if parent_id in result.node_errors
+    }
+    if failed_parents:
+        # wait_for_one is explicitly allowed to proceed on any live branch;
+        # only skip when every input branch has failed.
+        parents = set(gnode.input_node_ids)
+        if _merge_mode(node) != "wait_for_one" or failed_parents >= parents:
+            result.skipped.append(node.id)
+            emit("node.completed", node_id=node.id, status="skipped")
+            _add_step(
+                result, node_id=node.id, node_type=node.type, status="skipped",
+                started_at=datetime.now(UTC).isoformat(), duration_ms=0,
+                note="Parent node failed; step was not executed.",
+            )
+            return
 
     input_items = _gather_input(gnode, results) if gnode.input_connections else (seed_items or [])
     if hasattr(result, "inputs"):
@@ -801,8 +835,7 @@ async def _run_one(
                             break
                         raise node_error
                     _retries += 1
-                    computed_delay = min(backoff * (2 ** (_retries - 1)), MAX_RETRY_BACKOFF_S)
-                    delay = min(getattr(node_error, "retry_after", None) or computed_delay, MAX_RETRY_BACKOFF_S)
+                    delay = _retry_delay(backoff, _retries, getattr(node_error, "retry_after", None))
                     emit("node.retry", node_id=node.id, status="retry",
                          attempt=_retries, max_attempts=max_attempts,
                          retry_after_s=delay, error={"message": str(node_error), "code": node_error.code})
@@ -933,13 +966,7 @@ async def _run_one(
                         batch_errors.append(f"Item {idx + 1}: {exc}")
                         break
                     item_retries += 1
-                    computed_delay = min(
-                        backoff * (2 ** (item_retries - 1)), MAX_RETRY_BACKOFF_S
-                    )
-                    delay = min(
-                        getattr(exc, "retry_after", None) or computed_delay,
-                        MAX_RETRY_BACKOFF_S,
-                    )
+                    delay = _retry_delay(backoff, item_retries, getattr(exc, "retry_after", None))
                     emit(
                         "node.retry",
                         node_id=node.id,
@@ -1069,7 +1096,7 @@ async def _run_one(
                 if retries + 1 >= max_attempts or not exc.retryable:
                     raise
                 retries += 1
-                delay = min(backoff * (2 ** (retries - 1)), MAX_RETRY_BACKOFF_S)
+                delay = _retry_delay(backoff, retries, getattr(exc, "retry_after", None))
                 emit("node.retry", node_id=node.id, status="retry",
                      attempt=retries, max_attempts=max_attempts,
                      retry_after_s=delay, error=exc.to_dict())

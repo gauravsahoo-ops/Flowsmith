@@ -3,13 +3,15 @@
 // Input/Output data inspection with Schema / Table / JSON segmented views,
 // syncs selection with the canvas on click, and can pop out into the full console.
 
-import { memo, useState, useRef, useEffect, useMemo } from 'react'
+import { memo, useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { api } from '../api'
 import { useExecutionStore } from '../stores/executionStore'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
 import { NodeIcon } from './NodeIcons'
 import { TableView, SchemaView } from './DataViewer'
 import JsonTree from './JsonTree'
+import { findPreviewTruncation, stripPreviewMarkers } from '../utils/preview'
 
 function fmtTime(iso) {
   if (!iso) return ''
@@ -64,10 +66,10 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
 
   const [panelHeight, setPanelHeight] = useState(() => {
     try {
-      const saved = Number(localStorage.getItem('workflow_logs_height'))
-      return saved && saved >= 120 && saved <= 700 ? saved : 240
+      const saved = Number(localStorage.getItem('workflow_logs_height_foundry'))
+      return saved && saved >= 200 && saved <= 700 ? saved : 320
     } catch {
-      return 240
+      return 320
     }
   })
 
@@ -88,9 +90,9 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   // 'schema' | 'table' | 'json'
   const [viewMode, setViewMode] = useState(() => {
     try {
-      return localStorage.getItem('workflow_logs_view_mode') || 'schema'
+      return localStorage.getItem('workflow_logs_view_mode_foundry') || 'json'
     } catch {
-      return 'schema'
+      return 'json'
     }
   })
 
@@ -101,11 +103,17 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   const logListRef = useRef(null)
 
   const trace = useExecutionStore((s) => s.trace)
+  const executionId = useExecutionStore((s) => s.executionId)
   const executionStatus = useExecutionStore((s) => s.status)
   const running = useExecutionStore((s) => s.running)
   const executionError = useExecutionStore((s) => s.error)
   const clearExecution = useExecutionStore((s) => s.clear)
   const results = useExecutionStore((s) => s.results)
+  const [hydrated, setHydrated] = useState(null)
+  const [loadingFullData, setLoadingFullData] = useState(false)
+  const [fullDataError, setFullDataError] = useState(null)
+  const loadRequestRef = useRef(0)
+  const autoLoadKeyRef = useRef(null)
 
   const nodes = useWorkflowStore((s) => s.nodes)
   const selectNode = useUiStore((s) => s.selectNode)
@@ -164,7 +172,7 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   function handleSelectViewMode(mode) {
     setViewMode(mode)
     try {
-      localStorage.setItem('workflow_logs_view_mode', mode)
+      localStorage.setItem('workflow_logs_view_mode_foundry', mode)
     } catch (err) { console.error('[flowsmith] components/LogsPanel.jsx', err) }
   }
 
@@ -220,7 +228,7 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
       const delta = startY - ev.clientY
       const finalH = Math.max(120, Math.min(window.innerHeight * 0.75, startH + delta))
       try {
-        localStorage.setItem('workflow_logs_height', String(Math.round(finalH)))
+        localStorage.setItem('workflow_logs_height_foundry', String(Math.round(finalH)))
       } catch (err) { console.error('[flowsmith] components/LogsPanel.jsx', err) }
     }
 
@@ -239,15 +247,69 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
     return trace.length > 0 ? trace[trace.length - 1] : null
   }, [trace, selectedNodeId])
 
-  // Active data for Input or Output
-  const stepData = useMemo(() => {
-    if (!activeStep) return { raw: null, items: [] }
-    const raw = activeTab === 'input'
+  // Active data for Input or Output. The execution payload is a bounded
+  // preview; hydrate the selected node's complete stored output just like
+  // the node editor and execution-detail views.
+  const sourceRaw = useMemo(() => {
+    if (!activeStep || (activeTab !== 'input' && activeTab !== 'output')) return null
+    return activeTab === 'input'
       ? (activeStep.full_inputs ?? results?.inputs?.[activeStep.node_id] ?? activeStep.inputs)
       : (activeStep.full_outputs ?? results?.outputs?.[activeStep.node_id] ?? activeStep.outputs)
+  }, [activeStep, activeTab, results])
+  const preview = useMemo(() => findPreviewTruncation(sourceRaw), [sourceRaw])
+  const hydratedRaw =
+    hydrated
+    && hydrated.executionId === executionId
+    && hydrated.nodeId === activeStep?.node_id
+      ? hydrated.data
+      : null
+
+  useEffect(() => {
+    loadRequestRef.current += 1
+    setHydrated(null)
+    setLoadingFullData(false)
+    setFullDataError(null)
+    autoLoadKeyRef.current = null
+  }, [executionId, activeStep?.node_id, activeTab])
+
+  const loadFullData = useCallback(async () => {
+    if (!executionId || !activeStep?.node_id || activeTab !== 'output' || loadingFullData) return
+    const requestId = ++loadRequestRef.current
+    setLoadingFullData(true)
+    setFullDataError(null)
+    try {
+      const result = await api.getExecutionNodeOutput(executionId, activeStep.node_id)
+      if (requestId !== loadRequestRef.current) return
+      const full = result?.output ?? result
+      if (full != null) {
+        setHydrated({
+          executionId,
+          nodeId: activeStep.node_id,
+          data: full,
+        })
+      }
+    } catch (err) {
+      if (requestId !== loadRequestRef.current) return
+      setFullDataError(err?.message || 'Could not load the complete output.')
+    } finally {
+      if (requestId === loadRequestRef.current) setLoadingFullData(false)
+    }
+  }, [activeStep?.node_id, activeTab, executionId, loadingFullData])
+
+  useEffect(() => {
+    if (!preview || hydratedRaw != null || activeTab !== 'output' || !executionId) return
+    if (preview.total > 1000) return
+    const key = `${executionId}:${activeStep?.node_id}:${preview.total}:${preview.returned}`
+    if (autoLoadKeyRef.current === key) return
+    autoLoadKeyRef.current = key
+    loadFullData()
+  }, [activeStep?.node_id, activeTab, executionId, hydratedRaw, loadFullData, preview])
+
+  const stepData = useMemo(() => {
+    const raw = hydratedRaw ?? (preview ? stripPreviewMarkers(sourceRaw) : sourceRaw)
     const items = unrollItems(raw)
     return { raw, items }
-  }, [activeStep, activeTab, results])
+  }, [hydratedRaw, preview, sourceRaw])
 
   // Filter items by search query
   const displayItems = useMemo(() => {
@@ -513,6 +575,7 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                   <path d="M3 6v12h6" />
                   <line x1="3" y1="12" x2="9" y2="12" />
                 </svg>
+                <span className="logs-segmented-label">Schema</span>
               </button>
               <button
                 type="button"
@@ -527,6 +590,7 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                   <line x1="9" y1="3" x2="9" y2="21" />
                   <line x1="15" y1="3" x2="15" y2="21" />
                 </svg>
+                <span className="logs-segmented-label">Table</span>
               </button>
               <button
                 type="button"
@@ -535,6 +599,7 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                 title="JSON view"
               >
                 <span className="logs-json-glyph">{'{ }'}</span>
+                <span className="logs-segmented-label">JSON</span>
               </button>
             </div>
 
@@ -547,7 +612,7 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
           <div className="logs-sub-right">
             {activeStep && (
               <span className="logs-sub-node-badge">
-                <NodeIcon type={activeNode.type} icon={activeNode.icon} size={14} />
+                <NodeIcon type={activeNode.type} icon={activeNode.icon} size={16} />
                 <span>{activeNodeName}</span>
               </span>
             )}
@@ -611,7 +676,7 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
                       </span>
 
                       <span className="logs-col-node">
-                        <NodeIcon type={node.type} icon={node.icon} size={15} />
+                        <NodeIcon type={node.type} icon={node.icon} size={16} />
                         <span className="logs-node-name">{displayName}</span>
                       </span>
 
@@ -656,6 +721,32 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
           ) : (
             /* Input or Output Data Inspector */
             <div className="logs-data-body">
+              {preview && hydratedRaw == null && (
+                <div
+                  className="banner-inline info"
+                  role="status"
+                  style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
+                >
+                  <span>
+                    {loadingFullData
+                      ? `Loading all ${preview.total.toLocaleString()} records…`
+                      : `Preview: showing ${preview.returned.toLocaleString()} of ${preview.total.toLocaleString()} records.`}
+                  </span>
+                  {activeTab === 'output' && !loadingFullData && (
+                    <button
+                      type="button"
+                      className="ghost small"
+                      onClick={loadFullData}
+                      style={{ flexShrink: 0 }}
+                    >
+                      Load all {preview.total.toLocaleString()}
+                    </button>
+                  )}
+                  {fullDataError && (
+                    <span style={{ color: '#fca5a5', fontSize: 11 }}>{fullDataError}</span>
+                  )}
+                </div>
+              )}
               {stepData.items.length === 0 && !running ? (
                 <div className="logs-empty-state">
                   <span>No {activeTab} data for this step yet. Execute the workflow to trace data.</span>

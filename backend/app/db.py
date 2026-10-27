@@ -145,6 +145,8 @@ def _migrate_missing_indexes() -> None:
         ("executions", "ix_executions_user_started", 'CREATE INDEX IF NOT EXISTS ix_executions_user_started ON "executions" (user_id, started_at DESC)'),
         ("executions", "ix_executions_parent", 'CREATE INDEX IF NOT EXISTS ix_executions_parent ON "executions" (parent_execution_id)'),
         ("executions", "ix_executions_correlation", 'CREATE INDEX IF NOT EXISTS ix_executions_correlation ON "executions" (correlation_id)'),
+        # Global log search uses ILIKE on this consolidated text column.
+        ("executions", "ix_executions_search_text_trgm", 'CREATE INDEX IF NOT EXISTS ix_executions_search_text_trgm ON "executions" USING gin (search_text gin_trgm_ops)'),
         # Workflows (dashboard sort & filter)
         ("workflows", "ix_workflows_updated_at", 'CREATE INDEX IF NOT EXISTS ix_workflows_updated_at ON "workflows" (updated_at DESC)'),
         ("workflows", "ix_workflows_user_updated", 'CREATE INDEX IF NOT EXISTS ix_workflows_user_updated ON "workflows" (user_id, deleted_at, updated_at DESC)'),
@@ -152,17 +154,26 @@ def _migrate_missing_indexes() -> None:
         ("jobs", "ix_jobs_claim", 'CREATE INDEX IF NOT EXISTS ix_jobs_claim ON "jobs" (status, next_retry_at, created_at, id)'),
     ]
 
-    with engine.begin() as conn:
-        for tbl, idx_name, ddl in critical_indexes:
-            if tbl not in existing_tables:
-                continue
-            try:
+    if engine.dialect.name == "postgresql":
+        # pg_trgm powers the LIKE/ILIKE search index below. Keep this
+        # best-effort so restricted development accounts can still boot.
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        except Exception as e:
+            logger.debug("pg_trgm extension creation skipped or error: %s", e)
+
+    for tbl, idx_name, ddl in critical_indexes:
+        if tbl not in existing_tables:
+            continue
+        try:
+            with engine.begin() as conn:
                 conn.execute(text(ddl))
-            except Exception as e:
-                logger.debug("Index creation %s skipped or error: %s", idx_name, e)
+        except Exception as e:
+            logger.debug("Index creation %s skipped or error: %s", idx_name, e)
 
 
-EXPECTED_ALEMBIC_HEAD: str = "d2e3f4a5b6c7"
+EXPECTED_ALEMBIC_HEAD: str = "e9f0a1b2c3d4"
 FLOWSMITH_MIGRATION_LOCK_ID: int = 84729104
 _migration_thread_lock = threading.Lock()
 

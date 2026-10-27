@@ -6,13 +6,15 @@ test database to be PostgreSQL (conftest creates ``<db>_test``).
 
 from __future__ import annotations
 
+import json
+import sqlite3
 import uuid
 
 import pytest
 
 from app.config import get_settings
 from app.vectorstores import store_names
-from app.vectorstores.pgvector import PgVectorStore
+from app.vectorstores.pgvector import PgVectorStore, migrate_legacy_sqlite_vec
 
 V1 = [0.1, 0.2, 0.3]
 V2 = [0.9, 0.1, 0.1]
@@ -245,5 +247,65 @@ def test_delete_collection_drops_everything(store: PgVectorStore):
     handle2 = store.ensure_collection(name, 5)
     try:
         assert handle2  # new table created with dim 5
+    finally:
+        store.delete_collection(name)
+
+
+def test_add_rejects_nonfinite_and_inconsistent_vectors(store: PgVectorStore):
+    name = _uid("badvec")
+    handle = store.ensure_collection(name, 3)
+    try:
+        with pytest.raises(ValueError, match="same dimension"):
+            store.add(handle, documents=["a", "b"], embeddings=[V1, [0.1, 0.2]], metadatas=[{}, {}])
+        with pytest.raises(ValueError, match="NaN or Infinity"):
+            store.add(handle, documents=["a"], embeddings=[[0.1, float("nan"), 0.2]], metadatas=[{}])
+    finally:
+        store.delete_collection(name)
+
+
+def test_query_rejects_invalid_vectors_and_nonpositive_top_k(store: PgVectorStore):
+    name = _uid("badquery")
+    handle = store.ensure_collection(name, 3)
+    try:
+        with pytest.raises(ValueError):
+            store.query(handle, [], 5)
+        with pytest.raises(ValueError):
+            store.query(handle, [0.1, float("inf"), 0.2], 5)
+        assert store.query(handle, V1, 0) == []
+    finally:
+        store.delete_collection(name)
+
+
+def test_legacy_migration_keeps_ids_aligned(store: PgVectorStore, tmp_path):
+    """Rows without a doc_id must not shift/filter ids out of alignment."""
+    path = tmp_path / "legacy-vectors.db"
+    name = _uid("legacy")
+    suffix = "legacyabc123"
+    con = sqlite3.connect(path)
+    try:
+        con.execute("CREATE TABLE collections (name TEXT, suffix TEXT, dim INTEGER)")
+        con.execute("CREATE TABLE meta_legacyabc123 (chunk_id INTEGER, document TEXT, metadata TEXT, doc_id TEXT)")
+        con.execute("CREATE TABLE vec_legacyabc123 (chunk_id INTEGER, embedding TEXT)")
+        con.execute("INSERT INTO collections VALUES (?, ?, 3)", (name, suffix))
+        con.execute(
+            "INSERT INTO meta_legacyabc123 VALUES (1, 'first', ?, 'doc-1')",
+            (json.dumps({"source": "legacy"}),),
+        )
+        con.execute(
+            "INSERT INTO meta_legacyabc123 VALUES (2, 'second', ?, NULL)",
+            (json.dumps({"source": "legacy"}),),
+        )
+        con.execute("INSERT INTO vec_legacyabc123 VALUES (1, ?)", (json.dumps(V1),))
+        con.execute("INSERT INTO vec_legacyabc123 VALUES (2, ?)", (json.dumps(V2),))
+        con.commit()
+    finally:
+        con.close()
+
+    report = migrate_legacy_sqlite_vec(str(path))
+    try:
+        item = next(c for c in report["collections"] if c["name"] == name)
+        assert item["chunks"] == 2
+        assert item["stored_ids"] == 2
+        assert store.count(store.ensure_collection(name, 3)) == 2
     finally:
         store.delete_collection(name)

@@ -28,6 +28,7 @@ from app.rag import (
     DEFAULT_EMBEDDING_MODEL,
     EmbeddingUnavailable,
     RagAccess,
+    RagDimensionError,
     RagPermissionError,
     collection_stats,
     create_collection,
@@ -208,6 +209,8 @@ async def post_documents(
         raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
+    except RagDimensionError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
     except EmbeddingUnavailable as exc:
         raise _unavailable(exc)
     log_event(db, AI_ASSIST, target_type="rag_collection", target_id=collection_id,
@@ -240,6 +243,8 @@ async def post_reindex(
         raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
+    except RagDimensionError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
     except EmbeddingUnavailable as exc:
         raise _unavailable(exc)
     log_event(db, AI_ASSIST, target_type="rag_collection", target_id=collection_id,
@@ -288,6 +293,8 @@ async def post_query(
         raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
+    except RagDimensionError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
     except EmbeddingUnavailable as exc:
         raise _unavailable(exc)
     return ok(result)

@@ -113,7 +113,7 @@ export default function InputPanel({
   executing = false,
   onExecutePrevious,
 }) {
-  const [viewMode, setViewMode] = useState('schema') // 'schema' | 'table' | 'json'
+  const [viewMode, setViewMode] = useState('json') // 'schema' | 'table' | 'json'
   const [showSearch, setShowSearch] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedNodes, setExpandedNodes] = useState({})
@@ -361,7 +361,7 @@ export default function InputPanel({
               </span>
 
               <span className="nem-upstream-icon">
-                <NodeIcon type={currentNode.type || 'webhook'} size={15} />
+                <NodeIcon type={currentNode.type || 'webhook'} size={16} />
               </span>
 
               <span className="nem-upstream-label" title={detailedUpstreamNodes.length === 0 ? 'Trigger / Initial Input Payload' : 'Direct Step Inputs'}>
@@ -541,7 +541,7 @@ export default function InputPanel({
                     </span>
 
                     <span className="nem-upstream-icon">
-                      <NodeIcon type={up.node.type} size={15} />
+                      <NodeIcon type={up.node.type} size={16} />
                     </span>
 
                     <span className="nem-upstream-label" title={up.label}>

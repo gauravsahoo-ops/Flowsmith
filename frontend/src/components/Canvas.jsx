@@ -267,8 +267,9 @@ function CanvasInner() {
     }
     if (nodesInitialized && fittedWorkflowId.current !== workflow.id) {
       fittedWorkflowId.current = workflow.id
-      const safeMaxZoom = nodes.length <= 2 ? 0.85 : 1.0
-      // Immediate frame fit plus smooth 250ms animation settle, capped at 100% zoom (maxZoom: 1)
+      const safeMaxZoom = nodes.length <= 2 ? 1.05 : 1.0
+      // Immediate frame fit plus smooth 250ms animation settle, with a calm
+      // 105% cap for tiny graphs so sparse canvases still feel deliberate.
       requestAnimationFrame(() => {
         fitView({ padding: 0.25, duration: 250, maxZoom: safeMaxZoom })
       })
@@ -626,9 +627,9 @@ function CanvasInner() {
         onlyRenderVisibleElements={true}
         elevateEdgesOnSelect
         fitView={nodes.length > 0}
-        fitViewOptions={{ padding: 0.25, includeHiddenNodes: true, maxZoom: nodes.length <= 2 ? 0.85 : 1.0, duration: 450 }}
+        fitViewOptions={{ padding: 0.25, includeHiddenNodes: true, maxZoom: nodes.length <= 2 ? 1.05 : 1.0, duration: 450 }}
         onInit={(instance) => {
-          const safeMaxZoom = nodes.length <= 2 ? 0.85 : 1.0
+          const safeMaxZoom = nodes.length <= 2 ? 1.05 : 1.0
           if (nodes.length > 0) {
             clearTimeout(initFitTimerRef.current)
             initFitTimerRef.current = setTimeout(() => instance.fitView({ padding: 0.25, maxZoom: safeMaxZoom, duration: 450 }), 50)

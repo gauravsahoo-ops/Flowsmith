@@ -6,7 +6,7 @@
 // catalog metadata declares idempotent operations; requires an explicit
 // confirmation otherwise (side effects may repeat).
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkflowStore } from '../stores/workflowStore'
 import JsonTree from './JsonTree'
 import {
@@ -15,12 +15,27 @@ import {
   extractApiStatus,
   retrySafety,
 } from '../utils/debugger'
+import { findPreviewTruncation, stripPreviewMarkers } from '../utils/preview'
 import { NodeIcon } from './NodeIcons'
 
 function fmtDuration(ms) {
   if (ms == null) return '—'
   if (ms < 1000) return `${Math.round(ms)}ms`
   return `${(ms / 1000).toFixed(2)}s`
+}
+
+function formatItemCount(value, preview) {
+  if (preview) {
+    return `${preview.total.toLocaleString()} items (preview ${preview.returned.toLocaleString()})`
+  }
+  if (Array.isArray(value)) {
+    return `${value.length} item${value.length !== 1 ? 's' : ''}`
+  }
+  if (value && typeof value === 'object') {
+    const count = Object.keys(value).length
+    return `${count} field${count !== 1 ? 's' : ''}`
+  }
+  return ''
 }
 
 function Badge({ tone = 'muted', title, children }) {
@@ -31,15 +46,86 @@ function Badge({ tone = 'muted', title, children }) {
   )
 }
 
-export default function StepDetail({ execution, step, onRetryNode, search, highlightField: _highlightField }) {
+export default function StepDetail({
+  execution,
+  step,
+  onRetryNode,
+  onLoadFullOutput,
+  search,
+  highlightField: _highlightField,
+}) {
   const catalogIndex = useWorkflowStore((s) => s.catalogIndex)
   const [confirmUnsafe, setConfirmUnsafe] = useState(false)
+  const [hydratedOutput, setHydratedOutput] = useState(null)
+  const [loadingFullOutput, setLoadingFullOutput] = useState(false)
+  const [fullOutputError, setFullOutputError] = useState(null)
+  const autoLoadKeyRef = useRef(null)
+  const loadRequestRef = useRef(0)
 
   const nodeType = step?.node_type
   const meta = useMemo(
     () => (catalogIndex?.get ? catalogIndex.get(nodeType) || null : null),
     [catalogIndex, nodeType],
   )
+
+  const inputSource =
+    step?.full_inputs ?? execution?.results?.inputs?.[step?.node_id] ?? step?.inputs
+  const outputSource =
+    step?.full_outputs ?? execution?.results?.outputs?.[step?.node_id] ?? step?.outputs
+  const inputPreview = useMemo(() => findPreviewTruncation(inputSource), [inputSource])
+  const outputPreview = useMemo(() => findPreviewTruncation(outputSource), [outputSource])
+  const displayInputs = useMemo(
+    () => (inputPreview ? stripPreviewMarkers(inputSource) : inputSource),
+    [inputSource, inputPreview],
+  )
+  const displayOutputs = useMemo(() => {
+    if (hydratedOutput != null) return hydratedOutput
+    return outputPreview ? stripPreviewMarkers(outputSource) : outputSource
+  }, [hydratedOutput, outputPreview, outputSource])
+
+  useEffect(() => {
+    loadRequestRef.current += 1
+    setHydratedOutput(null)
+    setLoadingFullOutput(false)
+    setFullOutputError(null)
+    autoLoadKeyRef.current = null
+  }, [execution?.id, step?.node_id])
+
+  const loadFullOutput = useCallback(async () => {
+    if (!onLoadFullOutput || !step?.node_id || loadingFullOutput) return
+    const requestId = ++loadRequestRef.current
+    setLoadingFullOutput(true)
+    setFullOutputError(null)
+    try {
+      const fullOutput = await onLoadFullOutput(step.node_id)
+      if (requestId !== loadRequestRef.current) return
+      if (fullOutput != null) setHydratedOutput(fullOutput)
+    } catch (err) {
+      if (requestId !== loadRequestRef.current) return
+      setFullOutputError(err?.message || 'Could not load the full node output.')
+    } finally {
+      if (requestId === loadRequestRef.current) setLoadingFullOutput(false)
+    }
+  }, [loadingFullOutput, onLoadFullOutput, step?.node_id])
+
+  useEffect(() => {
+    if (!outputPreview || hydratedOutput != null || loadingFullOutput || !onLoadFullOutput) {
+      return
+    }
+    if (outputPreview.total > 1000) return
+    const key = `${execution?.id || ''}:${step?.node_id}:${outputPreview.total}:${outputPreview.returned}`
+    if (autoLoadKeyRef.current === key) return
+    autoLoadKeyRef.current = key
+    loadFullOutput()
+  }, [
+    execution?.id,
+    hydratedOutput,
+    loadFullOutput,
+    loadingFullOutput,
+    onLoadFullOutput,
+    outputPreview,
+    step?.node_id,
+  ])
 
   if (!step) {
     return <p className="hint">Select a step to trace its inputs, outputs and errors.</p>
@@ -75,7 +161,7 @@ export default function StepDetail({ execution, step, onRetryNode, search, highl
     <div className="step-detail">
       <header className="sd-head">
         <h4 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <NodeIcon type={nodeType} icon={meta?.icon} size={18} />
+          <NodeIcon type={nodeType} icon={meta?.icon} size={20} />
           <span>{step.node_id}</span>
           <span className="muted"> · {nodeType}</span>
         </h4>
@@ -199,37 +285,46 @@ export default function StepDetail({ execution, step, onRetryNode, search, highl
         </div>
       )}
 
-      {(() => {
-        const effectiveInputs = step.full_inputs ?? execution?.results?.inputs?.[step.node_id] ?? step.inputs
-        const effectiveOutputs = step.full_outputs ?? execution?.results?.outputs?.[step.node_id] ?? step.outputs
-        return (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 4 }}>
-              <h5 style={{ margin: 0 }}>Inputs</h5>
-              {effectiveInputs != null && (
-                <span className="muted" style={{ fontSize: 11 }}>
-                  {Array.isArray(effectiveInputs)
-                    ? `${effectiveInputs.length} item${effectiveInputs.length !== 1 ? 's' : ''}`
-                    : (typeof effectiveInputs === 'object' && effectiveInputs !== null ? `${Object.keys(effectiveInputs).length} field${Object.keys(effectiveInputs).length !== 1 ? 's' : ''}` : '')}
-                </span>
-              )}
-            </div>
-            <JsonTree value={effectiveInputs} defaultExpandDepth={search ? 10 : 3} search={search} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 4 }}>
+        <h5 style={{ margin: 0 }}>Inputs</h5>
+        {displayInputs != null && (
+          <span className="muted" style={{ fontSize: 11 }}>
+            {formatItemCount(displayInputs, inputPreview)}
+          </span>
+        )}
+      </div>
+      <JsonTree value={displayInputs} defaultExpandDepth={search ? 10 : 3} search={search} />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 4 }}>
-              <h5 style={{ margin: 0 }}>Outputs</h5>
-              {effectiveOutputs != null && (
-                <span className="muted" style={{ fontSize: 11 }}>
-                  {Array.isArray(effectiveOutputs)
-                    ? `${effectiveOutputs.length} item${effectiveOutputs.length !== 1 ? 's' : ''}`
-                    : (typeof effectiveOutputs === 'object' && effectiveOutputs !== null ? `${Object.keys(effectiveOutputs).length} field${Object.keys(effectiveOutputs).length !== 1 ? 's' : ''}` : '')}
-                </span>
-              )}
-            </div>
-            <JsonTree value={effectiveOutputs} defaultExpandDepth={search ? 10 : 3} search={search} />
-          </>
-        )
-      })()}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 4 }}>
+        <h5 style={{ margin: 0 }}>Outputs</h5>
+        {displayOutputs != null && (
+          <span className="muted" style={{ fontSize: 11 }}>
+            {formatItemCount(displayOutputs, hydratedOutput != null ? null : outputPreview)}
+          </span>
+        )}
+      </div>
+      {outputPreview && hydratedOutput == null && (
+        <div
+          className="banner-inline info"
+          role="status"
+          style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
+        >
+          <span>
+            {loadingFullOutput
+              ? `Loading all ${outputPreview.total.toLocaleString()} records…`
+              : `Preview: showing ${outputPreview.returned.toLocaleString()} of ${outputPreview.total.toLocaleString()} records.`}
+          </span>
+          {!loadingFullOutput && onLoadFullOutput && (
+            <button type="button" className="ghost" onClick={loadFullOutput} style={{ fontSize: 11, flexShrink: 0 }}>
+              Load all {outputPreview.total.toLocaleString()}
+            </button>
+          )}
+          {fullOutputError && (
+            <span style={{ color: '#fca5a5', fontSize: 11 }}>{fullOutputError}</span>
+          )}
+        </div>
+      )}
+      <JsonTree value={displayOutputs} defaultExpandDepth={search ? 10 : 3} search={search} />
     </div>
   )
 }

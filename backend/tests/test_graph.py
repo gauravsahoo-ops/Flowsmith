@@ -18,6 +18,14 @@ def test_empty_workflow_allowed():
     assert order == []
 
 
+def test_empty_workflow_with_stray_connection_rejected():
+    """An empty canvas is valid, but it cannot smuggle dangling edges."""
+    wf = make_workflow([], [conn("ghost", "also_ghost")])
+    with pytest.raises(WorkflowValidationError) as exc:
+        validate_graph(wf)
+    assert "INVALID_CONNECTION" in [i["code"] for i in exc.value.issues]
+
+
 def test_duplicate_node_ids_rejected():
     wf = make_workflow([make_node("n1", "manual_trigger"), make_node("n1", "set_data")])
     with pytest.raises(WorkflowValidationError) as exc:
@@ -103,6 +111,16 @@ def test_valid_workflow_passes():
     assert order.index("n1") < order.index("n2")
 
 
+def test_duplicate_edges_do_not_break_topological_order():
+    """Duplicate wires are allowed; they must not inflate dependency counts."""
+    wf = make_workflow(
+        [make_node("A", "set_data"), make_node("Z", "set_data"), make_node("B", "set_data")],
+        [conn("A", "Z"), conn("A", "Z"), conn("Z", "B")],
+    )
+    order = topological_sort(build_graph(wf))
+    assert order.index("A") < order.index("Z") < order.index("B")
+
+
 def test_topological_order_respects_dependencies():
     wf = make_workflow(
         [make_node("n1", "set_data"), make_node("n2", "set_data"), make_node("n3", "set_data")],
@@ -144,6 +162,23 @@ def test_invalid_retry_settings_rejected():
         [make_node("n1", "set_data", settings={"retry_backoff_seconds": -1})],
     )
     assert "INVALID_SETTING" in _setting_issues(wf)
+
+
+def test_boolean_and_nonfinite_settings_rejected():
+    for settings in (
+        {"retry_max_attempts": True},
+        {"retry_backoff_seconds": float("nan")},
+        {"timeout_seconds": float("inf")},
+    ):
+        wf = make_workflow(
+            [make_node("n1", "set_data", settings=settings)],
+        )
+        assert "INVALID_SETTING" in _setting_issues(wf), settings
+
+    for settings in ({"max_parallelism": True}, {"timeout_seconds": float("nan")}):
+        wf = make_workflow([make_node("n1", "set_data")])
+        wf.settings.update(settings)
+        assert "INVALID_SETTING" in _setting_issues(wf), settings
 
 
 def test_invalid_workflow_settings_rejected():

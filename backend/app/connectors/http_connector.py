@@ -9,6 +9,7 @@ Uses SafeHTTPClient for all external API calls (spec 37.28).
 
 import asyncio
 import logging
+import math
 from typing import Any, Literal, Optional
 
 from app.security.safe_http_client import get_safe_http_client
@@ -83,9 +84,9 @@ class HTTPConnectorParams(BaseModel):
     auth_key_in: Literal["header", "query"] = "header"
 
     # Execution controls
-    timeout_seconds: float = 30.0
-    max_retries: int = 2
-    retry_delay_seconds: float = 0.5
+    timeout_seconds: float = Field(default=30.0, ge=1.0, le=300.0)
+    max_retries: int = Field(default=2, ge=0, le=10)
+    retry_delay_seconds: float = Field(default=0.5, ge=0.0, le=60.0)
     idempotency_key: Optional[str] = None
     infer_schema: bool = False
 
@@ -94,8 +95,8 @@ class HTTPConnectorParams(BaseModel):
     pagination_type: Literal["offset", "page", "cursor"] = "page"
     page_param: str = "page"
     limit_param: str = "limit"
-    page_size: int = 50
-    max_pages: int = 1
+    page_size: int = Field(default=50, ge=1, le=1000)
+    max_pages: int = Field(default=1, ge=1, le=100)
     # Cursor pagination: where the outgoing cursor goes and where the incoming
     # one is read back from (dot path, e.g. "meta.next_cursor").
     cursor_param: str = "cursor"
@@ -104,6 +105,29 @@ class HTTPConnectorParams(BaseModel):
     # detect a short page and stop early; an empty page still terminates.
     records_path: str = ""
     stop_when_short: bool = True
+
+
+def retry_delay_seconds(response: Any, fallback: float) -> float:
+    """Return a bounded Retry-After delay; malformed headers must not crash."""
+    raw = ""
+    try:
+        raw = response.headers.get("Retry-After", "")
+    except Exception:
+        raw = ""
+    if raw:
+        try:
+            candidate = float(raw)
+        except (TypeError, ValueError, OverflowError):
+            candidate = None
+        if candidate is not None and math.isfinite(candidate) and candidate >= 0:
+            return min(candidate, 5.0)
+    try:
+        base = float(fallback)
+    except (TypeError, ValueError, OverflowError):
+        base = 0.0
+    if not math.isfinite(base) or base < 0:
+        base = 0.0
+    return min(base, 5.0)
 
 
 def dig(data: Any, path: str) -> Any:
@@ -341,10 +365,12 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
 
                     # Handle 429 Rate Limit or 5xx Transient Errors
                     if response.status_code in (429, 502, 503, 504) and retries < params.max_retries:
-                        retry_after = float(response.headers.get("Retry-After", params.retry_delay_seconds * (2 ** retries)))
+                        retry_after = retry_delay_seconds(
+                            response, params.retry_delay_seconds * (2 ** retries)
+                        )
                         retries += 1
                         logger.warning("HTTP %d received; retrying %d/%d after %0.2fs", response.status_code, retries, params.max_retries, retry_after)
-                        await asyncio.sleep(min(retry_after, 5.0))
+                        await asyncio.sleep(retry_after)
                         continue
 
                     last_status_code = response.status_code
@@ -380,7 +406,7 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
                 except httpx.TimeoutException as exc:
                     if retries < params.max_retries:
                         retries += 1
-                        await asyncio.sleep(params.retry_delay_seconds)
+                        await asyncio.sleep(retry_delay_seconds(None, params.retry_delay_seconds))
                         continue
                     raise make_connector_error(
                         ConnectorErrorCode.TIMEOUT,
@@ -390,7 +416,7 @@ class HTTPConnector(ConnectorSDK, ConnectorOperations):
                 except httpx.RequestError as exc:
                     if retries < params.max_retries:
                         retries += 1
-                        await asyncio.sleep(params.retry_delay_seconds)
+                        await asyncio.sleep(retry_delay_seconds(None, params.retry_delay_seconds))
                         continue
                     raise make_connector_error(
                         ConnectorErrorCode.UNAVAILABLE,

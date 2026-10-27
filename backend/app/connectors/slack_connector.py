@@ -46,7 +46,7 @@ class SlackConnectorParams(BaseModel):
 
 class SlackConnector(ConnectorSDK):
     connector_id = "slack"
-    display_name = "Slack"
+    display_name = "Slack API"
     description = "Send messages, reactions, look up users and manage Slack channels."
     category = ConnectorCategory.API
     version = "1.0.0"

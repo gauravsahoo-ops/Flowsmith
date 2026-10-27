@@ -124,7 +124,10 @@ def check_limit(
     from app.api.workspaces import _require_ws_member
 
     _require_ws_member(db, workspace_id, user)
-    return ok(check_within_limit(db, workspace_id, limit_type))
+    try:
+        return ok(check_within_limit(db, workspace_id, limit_type))
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
 
 
 @router.get("/api/billing/subscription/{organization_id}")

@@ -18,7 +18,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger("workflows")
@@ -47,7 +47,17 @@ from app.api.auth import get_current_user
 from app.api.common import ok, page_params, validate_workflow_payload
 from app.db import get_db
 from app.importexport import WorkflowImportError, build_export, parse_import, sanitize_workflow_data
-from app.models import AuditEvent, Credential, User, WebhookTrigger, WorkflowRecord, WorkflowShare, WorkflowVersionRecord
+from app.models import (
+    AuditEvent,
+    Credential,
+    PollingTrigger,
+    ScheduleTrigger,
+    User,
+    WebhookTrigger,
+    WorkflowRecord,
+    WorkflowShare,
+    WorkflowVersionRecord,
+)
 from app.nodes.registry import NODE_REGISTRY
 from app.schemas.workflow import Workflow
 from app.engine.expressions import resolve as resolve_expression, build_node_name_map
@@ -515,13 +525,36 @@ def create_workflow(body: dict, user: User = Depends(get_current_user), db: Sess
 def update_workflow(
     workflow_id: str, body: dict, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
-    rec = get_workflow(db, workflow_id, user, require_edit=True)
+    rec = get_workflow(db, workflow_id, user, require_edit=True, for_update=True)
+
+    # Optional optimistic concurrency guard. The editor sends the version
+    # it loaded; a stale tab must not silently overwrite a newer save.
+    # Older API clients omit the field and keep the historical behavior.
+    raw_expected = body.get("version") if isinstance(body, dict) else None
+    if raw_expected is not None:
+        try:
+            expected_version = int(raw_expected)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "Workflow version must be an integer.",
+            ) from None
+        if expected_version != rec.version:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"Workflow version conflict: expected {expected_version}, "
+                f"current version is {rec.version}. Reload and retry.",
+            )
+
     workflow = validate_workflow_payload(body)
     _validate_credential_refs(workflow, user, db)
     _validate_webhook_paths(workflow, db, exclude_id=workflow_id)
     if workflow.id != workflow_id:
         raise HTTPException(status.HTTP_409_CONFLICT, "Workflow id in body does not match the URL.")
     new_version = rec.version + 1
+    # Keep the stored document version in lockstep with the record and the
+    # immutable snapshot; clients send the version they loaded.
+    workflow.version = new_version
     # Immutable snapshot of the new version (workflow_versions row)
     ver_id = f"ver_{uuid.uuid4().hex[:12]}"
     ver = WorkflowVersionRecord(
@@ -896,9 +929,21 @@ def delete_workflow(workflow_id: str, user: User = Depends(get_current_user), db
         select(WorkflowShare).where(WorkflowShare.workflow_id == workflow_id)
     ).all():
         db.delete(share)
+    # Remove this workflow's trigger rows in the same transaction as the
+    # soft delete. The global reconciliation below can then safely reconcile
+    # unrelated workflows without leaving a deleted workflow's callback alive.
+    for trigger_model in (WebhookTrigger, ScheduleTrigger, PollingTrigger):
+        db.execute(
+            delete(trigger_model).where(trigger_model.workflow_id == workflow_id)
+        )
     db.commit()
     log_event(db, WORKFLOW_DELETE, target_type=SHARE_TARGET, target_id=workflow_id, user_id=user.id)
-    _sync_triggers(db)
+    try:
+        _sync_triggers(db)
+    except Exception:
+        # The deleted workflow's own triggers are already gone. A malformed
+        # unrelated workflow must not turn a successful delete into a 500.
+        logger.exception("trigger reconciliation failed after workflow delete id=%s", workflow_id)
 
 
 class ShareRequest(BaseModel):
@@ -1179,17 +1224,18 @@ def rollback_workflow(
         )
     # Permission-scoped (owner/edit; deleted workflows are invisible):
     # this also keeps rollback from resurrecting a deleted workflow.
-    rec = get_workflow(db, workflow_id, user, require_edit=True)
-    if rec is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
+    # Lock the row so concurrent saves cannot allocate the same version.
+    rec = get_workflow(db, workflow_id, user, require_edit=True, for_update=True)
     new_version = rec.version + 1
+    rolled_back_data = dict(ver.data or {})
+    rolled_back_data["version"] = new_version
     # Immutable snapshot of the rolled-back version
     ver_id = f"ver_{uuid.uuid4().hex[:12]}"
     db.add(WorkflowVersionRecord(
         id=ver_id,
         workflow_id=workflow_id,
         version=new_version,
-        data=ver.data,
+        data=rolled_back_data,
         user_id=user.id,
         is_active=True,
     ))
@@ -1199,9 +1245,9 @@ def rollback_workflow(
     ).update({"is_active": False})
     # Update the mutable latest record in place (workflows.id is the PK)
     rec.name = ver.data.get("name", "")
-    rec.description = ver.data.get("settings", {}).get("description", "")
+    rec.description = rolled_back_data.get("settings", {}).get("description", "")
     rec.version = new_version
-    rec.data = ver.data
+    rec.data = rolled_back_data
     db.commit()
     db.refresh(rec)
     log_event(db, WORKFLOW_UPDATE, target_type=SHARE_TARGET, target_id=rec.id, user_id=user.id)

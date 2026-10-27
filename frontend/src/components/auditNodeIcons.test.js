@@ -25,7 +25,8 @@ describe('Comprehensive Node & Connector Logo/Icon Realness Audit', () => {
     for (const key of allConnectors) {
       const el = React.createElement(NodeIcon, { type: key, size: 32 })
       const html = renderToStaticMarkup(el)
-      const isFallback = html.includes(FALLBACK_PATH) || html.includes('<span')
+      const isBrandMark = html.includes('fs-brand-mark') && html.includes('<img')
+      const isFallback = html.includes(FALLBACK_PATH) || (html.includes('<span') && !isBrandMark)
 
       if (isFallback) {
         results.connectorsWithFallback.push(key)
@@ -36,7 +37,7 @@ describe('Comprehensive Node & Connector Logo/Icon Realness Audit', () => {
     }
 
     console.log(`\n=== CONNECTOR LOGOS AUDIT (${allConnectors.length} total) ===`)
-    console.log(`Real dedicated SVG brand logos: ${results.connectorsWithRealLogos.length}`)
+    console.log(`Real brand marks or dedicated icons: ${results.connectorsWithRealLogos.length}`)
     console.log(`Fallback / generic icon:        ${results.connectorsWithFallback.length}`)
     expect(results.connectorsWithFallback).toEqual([])
   })
@@ -45,7 +46,8 @@ describe('Comprehensive Node & Connector Logo/Icon Realness Audit', () => {
     for (const key of allBuiltins) {
       const el = React.createElement(NodeIcon, { type: key, size: 32 })
       const html = renderToStaticMarkup(el)
-      const isFallback = html.includes(FALLBACK_PATH) || html.includes('<span')
+      const isBrandMark = html.includes('fs-brand-mark') && html.includes('<img')
+      const isFallback = html.includes(FALLBACK_PATH) || (html.includes('<span') && !isBrandMark)
 
       if (isFallback) {
         results.builtinsWithFallback.push(key)
@@ -61,7 +63,8 @@ describe('Comprehensive Node & Connector Logo/Icon Realness Audit', () => {
     for (const key of allCredentials) {
       const el = React.createElement(NodeIcon, { type: key, size: 32 })
       const html = renderToStaticMarkup(el)
-      const isFallback = html.includes(FALLBACK_PATH) || html.includes('<span')
+      const isBrandMark = html.includes('fs-brand-mark') && html.includes('<img')
+      const isFallback = html.includes(FALLBACK_PATH) || (html.includes('<span') && !isBrandMark)
 
       if (isFallback) {
         results.credentialsWithFallback.push(key)

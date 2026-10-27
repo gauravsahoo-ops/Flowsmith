@@ -118,13 +118,33 @@ def get_permission(db: Session, workflow_id: str, user: User) -> str | None:
     return permission_for_user_id(db, workflow_id, user.id)
 
 
-def get_workflow(db: Session, workflow_id: str, user: User, *, require_edit: bool = False) -> WorkflowRecord:
-    """Fetch a workflow the user may access; 404 hides existence."""
+def get_workflow(
+    db: Session,
+    workflow_id: str,
+    user: User,
+    *,
+    require_edit: bool = False,
+    for_update: bool = False,
+) -> WorkflowRecord:
+    """Fetch a workflow the user may access; 404 hides existence.
+
+    ``for_update`` takes a row lock so a read-modify-write sequence
+    (notably workflow save/version bumping) is serialized across workers.
+    """
     permission = get_permission(db, workflow_id, user)
     if permission is None or (require_edit and permission == PERMISSION_VIEW):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
-    rec = db.get(WorkflowRecord, workflow_id)
-    assert rec is not None
+    if for_update:
+        rec = db.scalar(
+            select(WorkflowRecord)
+            .where(WorkflowRecord.id == workflow_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    else:
+        rec = db.get(WorkflowRecord, workflow_id)
+    if rec is None or rec.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
     return rec
 
 

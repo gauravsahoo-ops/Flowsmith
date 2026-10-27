@@ -70,25 +70,22 @@ export default function CoverageDashboard({ initialLoading = true, connectorStat
   return (
     <div className="coverage-dashboard" style={{ marginTop: '1rem' }}>
       {/* Sub-tabs */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem' }}>
+      <div className="f-tabs f-tabs-sm coverage-tabs" style={{ marginBottom: '1.5rem' }}>
         <button
-          className={activeTab === 'overview' ? 'primary' : 'ghost'}
+          className={activeTab === 'overview' ? 'active' : ''}
           onClick={() => setActiveTab('overview')}
-          style={{ fontSize: '13px', padding: '0.45rem 1rem' }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Coverage & Benchmarks
         </button>
         <button
-          className={activeTab === 'certifications' ? 'primary' : 'ghost'}
+          className={activeTab === 'certifications' ? 'active' : ''}
           onClick={() => setActiveTab('certifications')}
-          style={{ fontSize: '13px', padding: '0.45rem 1rem' }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Connector Certifications ({certifications.length})
         </button>
         <button
-          className={activeTab === 'canonical' ? 'primary' : 'ghost'}
+          className={activeTab === 'canonical' ? 'active' : ''}
           onClick={() => setActiveTab('canonical')}
-          style={{ fontSize: '13px', padding: '0.45rem 1rem' }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Canonical Node Contract ({canonicalNodes.length})
         </button>
@@ -336,7 +333,7 @@ export default function CoverageDashboard({ initialLoading = true, connectorStat
                   return (
                     <tr key={c.connector || c.connector_key} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                       <td style={{ padding: '0.65rem 0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <NodeIcon name={c.connector || c.connector_key} style={{ width: 18, height: 18 }} />
+                        <NodeIcon name={c.connector || c.connector_key} size={18} />
                         <div>
                           <div>{c.application || c.display_name || c.name || c.connector_key}</div>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
@@ -435,7 +432,7 @@ export default function CoverageDashboard({ initialLoading = true, connectorStat
                 {canonicalNodes.map((n) => (
                   <tr key={n.id || n.slug} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <NodeIcon name={n.slug} style={{ width: 18, height: 18 }} />
+                      <NodeIcon name={n.slug} size={18} />
                       {n.display_name || n.name}
                     </td>
                     <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>{n.category}</td>

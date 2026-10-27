@@ -89,6 +89,52 @@ def test_cross_tenant_access_is_404_not_403(client):
     assert client.delete(f"/api/rag/collections/{rec['id']}", headers=bob).status_code == 404
 
 
+def test_workspace_member_access_resolves_membership(client):
+    """A workspace member must reach a workspace RAG collection via HTTP.
+
+    API callers pass only (user_id, workspace_id); the service has to
+    resolve the member's readable/editable workspace sets itself.
+    """
+    alice = _setup(client, "rag-ws-alice@example.com")
+    bob_data = register(client, email="rag-ws-bob@example.com")
+    bob = auth_headers(bob_data["token"])
+
+    org = client.post("/api/organizations", json={"name": "RAG WS Org"}, headers=alice)
+    assert org.status_code == 200, org.text
+    org_id = org.json()["data"]["id"]
+    ws = client.post(
+        "/api/workspaces",
+        json={"name": "RAG WS", "organization_id": org_id},
+        headers=alice,
+    )
+    assert ws.status_code == 200, ws.text
+    ws_id = ws.json()["data"]["id"]
+    added = client.post(
+        f"/api/workspaces/{ws_id}/members",
+        json={"user_id": bob_data["user"]["id"], "role": "member"},
+        headers=alice,
+    )
+    assert added.status_code == 200, added.text
+
+    rec = _mk_collection(client, alice, "team-kb", workspace_id=ws_id)
+    assert client.get(f"/api/rag/collections/{rec['id']}", headers=bob).status_code == 200
+    listed = client.get("/api/rag/collections", headers=bob).json()["data"]
+    assert rec["id"] in {row["id"] for row in listed}
+
+    queried = client.post(
+        f"/api/rag/collections/{rec['id']}/query",
+        json={"query": "hello"}, headers=bob,
+    )
+    assert queried.status_code == 200, queried.text
+
+    # Viewer can read/query but cannot write.
+    denied = client.post(
+        f"/api/rag/collections/{rec['id']}/documents",
+        json={"documents": [{"text": "intrude"}]}, headers=bob,
+    )
+    assert denied.status_code == 404
+
+
 def test_ingest_query_and_stats_over_http(client):
     token = _setup(client)
     rec = _mk_collection(client, token, "docs")

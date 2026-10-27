@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import pytest
 
-from app.models import RagCollection, WorkspaceMember
+from app.models import RagCollection, User, WorkspaceMember
 from app.rag import (
     DEFAULT_EMBEDDING_MODEL,
     EmbeddingUnavailable,
     RagAccess,
+    RagDimensionError,
     RagPermissionError,
     build_cited_context,
     chunk_text,
@@ -206,6 +207,95 @@ def test_query_debug_telemetry_and_threshold_funnel(db, users):
     assert debug["total_candidates"] >= 0
     assert {"embed", "search", "total"} <= set(debug["timing_ms"])
     assert debug["similarity_threshold"] == 0.95
+
+
+def test_stats_and_delete_do_not_initialize_dimension(db, users):
+    """Stats/deletion on an empty collection must not create a dim-1 store."""
+    rec = create_collection(db, name="uninitialized", access=_access(users["alice"]))
+    stats = collection_stats(db, rec.id, _access(users["alice"]))
+    assert stats["dim"] is None
+    assert stats["chunks"] == 0
+    assert stats["documents"] == []
+    db.refresh(rec)
+    assert rec.dim is None
+
+    removed = delete_document(db, rec.id, "missing", access=_access(users["alice"]))
+    assert removed["chunks_removed"] == 0
+    db.refresh(rec)
+    assert rec.dim is None
+
+
+def test_duplicate_document_ids_in_one_request_rejected(db, users):
+    rec = create_collection(db, name="dupes", access=_access(users["alice"]))
+    with pytest.raises(ValueError, match="Duplicate document id"):
+        ingest_documents(
+            db, rec.id, embed_fn=_fake_embed, access=_access(users["alice"]),
+            documents=[
+                {"id": "same", "text": "first"},
+                {"id": "same", "text": "second"},
+            ],
+        )
+
+
+def test_invalid_embedding_outputs_are_rejected(db, users):
+    rec = create_collection(db, name="bad-embeddings", access=_access(users["alice"]))
+
+    bad_outputs = [
+        lambda texts, model: [],
+        lambda texts, model: [[0.1, 0.2]],  # wrong count
+        lambda texts, model: [[0.1, 0.2], [0.3]],  # inconsistent dimension
+        lambda texts, model: [[float("nan"), 0.2]],  # non-finite
+        lambda texts, model: [[]],  # empty vector
+    ]
+    for embed_fn in bad_outputs:
+        with pytest.raises(EmbeddingUnavailable):
+            ingest_documents(
+                db, rec.id, embed_fn=embed_fn, access=_access(users["alice"]),
+                documents=[{"id": "doc", "text": "one"}, {"id": "doc2", "text": "two"}],
+            )
+    db.refresh(rec)
+    assert rec.dim is None
+
+
+def test_query_dimension_mismatch_is_explicit(db, users):
+    rec = create_collection(db, name="dim-check", access=_access(users["alice"]))
+    ingest_documents(
+        db, rec.id, embed_fn=_fake_embed, access=_access(users["alice"]),
+        documents=[{"id": "doc", "text": "dimension three"}],
+    )
+    with pytest.raises(RagDimensionError):
+        query_collection(
+            db, rec.id, query_text="dimension query", access=_access(users["alice"]),
+            embed_fn=lambda texts, model: [[0.1, 0.2, 0.3, 0.4] for _ in texts],
+        )
+
+
+def test_embedding_model_cache_is_keyed_by_model(monkeypatch):
+    """A second collection/model must not silently reuse the first model."""
+    import sys
+    from types import SimpleNamespace
+    import app.rag as rag
+
+    created: list[str] = []
+
+    class FakeModel:
+        def __init__(self, name: str):
+            self.name = name
+            created.append(name)
+
+    monkeypatch.setitem(
+        sys.modules, "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=FakeModel),
+    )
+    monkeypatch.setattr(rag, "_embedding_models", {})
+
+    first = rag._get_embedding_model("model-a")
+    second = rag._get_embedding_model("model-b")
+    again = rag._get_embedding_model("model-a")
+    assert first.name == "model-a"
+    assert second.name == "model-b"
+    assert again is first
+    assert created == ["model-a", "model-b"]
 
 
 # ----------------------------------------------------------------------

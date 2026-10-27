@@ -9,6 +9,16 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+# Hard upper bounds protect the API and the execution scheduler from
+# pathological workflow documents while leaving ample room for real use.
+MAX_WORKFLOW_NODES = 500
+MAX_WORKFLOW_CONNECTIONS = 2000
+MAX_WORKFLOW_ID_LENGTH = 64
+MAX_NODE_ID_LENGTH = 128
+MAX_NODE_TYPE_LENGTH = 128
+MAX_HANDLE_LENGTH = 64
+MAX_NODE_NAME_LENGTH = 255
+
 
 def utcnow() -> datetime:
     return datetime.now(UTC)
@@ -47,14 +57,14 @@ class WorkflowNode(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    id: str
-    type: str
-    version: int = 1
+    id: str = Field(min_length=1, max_length=MAX_NODE_ID_LENGTH)
+    type: str = Field(min_length=1, max_length=MAX_NODE_TYPE_LENGTH)
+    version: int = Field(default=1, ge=1)
     position: NodePosition = Field(default_factory=NodePosition)
     parameters: dict = Field(default_factory=dict)
     settings: dict = Field(default_factory=dict)
     credentials: dict[str, str] = Field(default_factory=dict)
-    name: str = Field(default="", description="Display name for $('Name') expressions.")
+    name: str = Field(default="", max_length=MAX_NODE_NAME_LENGTH, description="Display name for $('Name') expressions.")
     pinned_data: Any = Field(default=None, description="Pinned mock output data (bypasses execution).")
 
     @model_validator(mode="before")
@@ -96,10 +106,10 @@ class WorkflowNode(BaseModel):
 class Connection(BaseModel):
     """A directed edge between two nodes (spec 6.2)."""
 
-    source: str
-    sourceHandle: str = "main"
-    target: str
-    targetHandle: str = "main"
+    source: str = Field(min_length=1, max_length=MAX_NODE_ID_LENGTH)
+    sourceHandle: str = Field(default="main", max_length=MAX_HANDLE_LENGTH)
+    target: str = Field(min_length=1, max_length=MAX_NODE_ID_LENGTH)
+    targetHandle: str = Field(default="main", max_length=MAX_HANDLE_LENGTH)
 
     @model_validator(mode="before")
     @classmethod
@@ -155,12 +165,12 @@ WORKFLOW_STATUSES = ("draft", "active", "inactive", "archived")
 class Workflow(BaseModel):
     """The full graph document (spec 6.3, 24.1)."""
 
-    id: str
+    id: str = Field(min_length=1, max_length=MAX_WORKFLOW_ID_LENGTH)
     name: str = Field(min_length=0, max_length=255, default="")
-    version: int = 1
+    version: int = Field(default=1, ge=1)
     status: str = "draft"
-    nodes: list[WorkflowNode] = Field(default_factory=list)
-    connections: list[Connection] = Field(default_factory=list)
+    nodes: list[WorkflowNode] = Field(default_factory=list, max_length=MAX_WORKFLOW_NODES)
+    connections: list[Connection] = Field(default_factory=list, max_length=MAX_WORKFLOW_CONNECTIONS)
     settings: dict = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)

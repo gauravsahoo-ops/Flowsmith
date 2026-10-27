@@ -7,6 +7,7 @@ import BinaryDataViewModal from './BinaryDataViewModal'
 import NodeAutoRepair from './NodeAutoRepair'
 import { useWorkflowStore } from '../stores/workflowStore'
 import { downloadStoredFile } from '../api'
+import { findPreviewTruncation, stripPreviewMarkers } from '../utils/preview'
 import './OutputPanel.css'
 
 function unwrapItem(item) {
@@ -17,59 +18,6 @@ function unwrapItem(item) {
     return item.json
   }
   return item
-}
-
-function isTruncationMarker(value) {
-  return Boolean(
-    value
-    && typeof value === 'object'
-    && !Array.isArray(value)
-    && value._truncated === true
-    && (value._total_count != null || value._omitted != null)
-  )
-}
-
-/**
- * Remove API preview markers from the data shown in the panel. The marker is
- * transport metadata, not a row produced by the node. Rendering it as item
- * 51 of 51 makes a 282-record output look as if only 51 records exist.
- */
-function stripPreviewMarkers(value) {
-  if (Array.isArray(value)) {
-    return value
-      .filter((item) => !isTruncationMarker(item))
-      .map(stripPreviewMarkers)
-  }
-  if (value && typeof value === 'object') {
-    const out = {}
-    for (const [key, child] of Object.entries(value)) {
-      out[key] = stripPreviewMarkers(child)
-    }
-    return out
-  }
-  return value
-}
-
-function findPreviewTruncation(value) {
-  if (Array.isArray(value)) {
-    const marker = value.find(isTruncationMarker)
-    if (marker) {
-      return {
-        returned: value.length - 1,
-        total: Number(marker._total_count) || value.length - 1,
-      }
-    }
-    for (const item of value) {
-      const found = findPreviewTruncation(item)
-      if (found) return found
-    }
-  } else if (value && typeof value === 'object') {
-    for (const child of Object.values(value)) {
-      const found = findPreviewTruncation(child)
-      if (found) return found
-    }
-  }
-  return null
 }
 
 function extractOutputData(data) {
@@ -408,7 +356,7 @@ export default function OutputPanel({
   onAutoRepair,
   onLoadFullOutput,
 }) {
-  const [view, setView] = useState(() => initialView || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`op_view_${nodeId}`) : null) || 'schema')
+  const [view, setView] = useState(() => initialView || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`op_view_${nodeId}`) : null) || (error ? 'schema' : 'json'))
   const [showDiagnostic, setShowDiagnostic] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [search, setSearch] = useState('')
@@ -471,7 +419,7 @@ export default function OutputPanel({
     if (nodeId !== prevNodeId.current) {
       const saved = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`op_view_${nodeId}`) : null
       if (saved) setView(saved)
-      else setView('schema')
+      else setView(error ? 'schema' : 'json')
       prevNodeId.current = nodeId
       setShowDiagnostic(false)
       setSearch('')
@@ -479,7 +427,7 @@ export default function OutputPanel({
       setSelectedBranch(null)
       setCurrentItemIdx(0)
     }
-  }, [nodeId])
+  }, [nodeId, error])
 
   useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {

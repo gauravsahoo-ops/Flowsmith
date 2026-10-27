@@ -26,8 +26,28 @@ def page_params(
     page: int = Query(default=1, ge=1),
     pageSize: int = Query(default=50, ge=1),
 ) -> tuple[int, int]:
-    size = min(pageSize, get_settings().page_size_max)
-    return page, size
+    """Validate pagination even for endpoints that declare plain int
+    defaults (and therefore do not get FastAPI's Query constraints)."""
+    try:
+        page_num = int(page)
+    except (TypeError, ValueError):
+        page_num = 0
+    if page_num < 1:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Query parameter 'page' must be greater than or equal to 1.",
+        )
+    try:
+        requested_size = int(pageSize)
+    except (TypeError, ValueError):
+        requested_size = 0
+    if requested_size < 1:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Query parameter 'pageSize' must be greater than or equal to 1.",
+        )
+    size = min(requested_size, get_settings().page_size_max)
+    return page_num, size
 
 
 def validate_workflow_payload(payload: dict) -> Workflow:

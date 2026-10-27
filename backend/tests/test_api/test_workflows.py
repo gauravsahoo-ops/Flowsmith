@@ -145,6 +145,34 @@ def test_save_requires_authentication(client):
     assert client.post("/api/workflows", json=wf).status_code == 401
 
 
+def test_list_workflows_rejects_invalid_pagination(client):
+    headers = _setup(client)
+    assert client.get("/api/workflows?page=0", headers=headers).status_code == 422
+    assert client.get("/api/workflows?pageSize=0", headers=headers).status_code == 422
+
+
+def test_stale_save_with_version_is_rejected(client):
+    """Optimistic concurrency: a tab that loaded v1 cannot overwrite v2."""
+    headers = _setup(client)
+    client.post("/api/workflows", json=make_workflow(), headers=headers)
+
+    first = make_workflow(name="First save")
+    first["version"] = 1
+    saved = client.put("/api/workflows/wf_1", json=first, headers=headers)
+    assert saved.status_code == 200
+    assert saved.json()["data"]["version"] == 2
+
+    stale = make_workflow(name="Stale overwrite")
+    stale["version"] = 1
+    conflict = client.put("/api/workflows/wf_1", json=stale, headers=headers)
+    assert conflict.status_code == 409
+    assert "version conflict" in conflict.json()["detail"].lower()
+
+    current = client.get("/api/workflows/wf_1", headers=headers).json()["data"]
+    assert current["version"] == 2
+    assert current["name"] == "First save"
+
+
 def test_save_invalid_graph_rejected_and_not_persisted(client):
     """Cycles are now tolerated; this tests an actually invalid graph (unknown type)."""
     headers = _setup(client)

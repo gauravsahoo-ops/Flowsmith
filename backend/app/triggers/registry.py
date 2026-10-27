@@ -155,7 +155,17 @@ def sync_webhooks(db: Session) -> None:
     wanted_schedule_ids: set[str] = set()
     wanted_polling_ids: set[str] = set()
     for rec in recs:
-        workflow = Workflow.model_validate(rec.data)
+        # One malformed/legacy workflow must not make every save, delete, or
+        # activation request fail trigger reconciliation for all workflows.
+        try:
+            workflow = Workflow.model_validate(rec.data)
+        except Exception as exc:
+            logger.error(
+                "skipping invalid workflow data during trigger sync workflow=%s: %s",
+                rec.id,
+                exc,
+            )
+            continue
         for trig in workflow_trigger_nodes(workflow):
             if trig["type"] in WEBHOOK_TRIGGER_TYPES:
                 path = trig["params"].get("path")

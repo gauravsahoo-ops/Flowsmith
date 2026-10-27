@@ -85,7 +85,7 @@ function EdgeNodePicker({ onSelect, onClose }) {
               onClick={() => onSelect(node.type)}
             >
               <span className="edge-picker-item-icon">
-                <NodeIcon type={node.type} icon={node.icon} size={15} />
+                <NodeIcon type={node.type} icon={node.icon} size={16} />
               </span>
               <div className="edge-picker-item-info">
                 <span className="edge-picker-item-name">{node.display_name}</span>

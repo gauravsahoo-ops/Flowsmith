@@ -109,6 +109,35 @@ async def test_error_stops_downstream():
     assert "set" in result.skipped
 
 
+async def test_wait_for_one_runs_when_one_branch_fails():
+    """A wait_for_one merge should not be poisoned by a failed sibling.
+
+    The failed branch still marks the execution failed, but the merge
+    itself must run from the live branch instead of being skipped.
+    """
+    wf = make_workflow(
+        [
+            make_node("trigger", "manual_trigger"),
+            make_node("boom", "boom"),
+            make_node("ok", "set_data", parameters={"fields": {"ok": True}}),
+            make_node(
+                "join", "set_data", parameters={"fields": {"joined": True}},
+                settings={"merge_mode": "wait_for_one"},
+            ),
+        ],
+        [
+            conn("trigger", "boom"),
+            conn("trigger", "ok"),
+            conn("boom", "join"),
+            conn("ok", "join"),
+        ],
+    )
+    result = await execute_workflow(wf)
+    assert "join" in result.results, result.skipped
+    assert result.results["join"]["main"][0]["joined"] is True
+    assert result.status == "failed"
+
+
 async def test_continue_on_error_passes_error_item():
     wf = make_workflow(
         [

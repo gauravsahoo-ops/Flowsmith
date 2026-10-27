@@ -16,7 +16,6 @@ Validates:
 from __future__ import annotations
 
 import uuid
-import pytest
 from datetime import datetime, timezone, timedelta
 from contextlib import contextmanager
 
@@ -25,7 +24,6 @@ from app.models.execution import Execution
 from app.models.monitoring_telemetry import (
     ExecutionStep,
     ApiRequestTelemetry,
-    ExecutionRetryHistory,
 )
 from app.engine.redact import (
     MASK,
@@ -445,6 +443,7 @@ def test_csv_export_with_formula_injection_protection(client):
     res = client.get(f"/api/executions/export?search={malicious_id}", headers=headers)
     assert res.status_code == 200
     assert "text/csv" in res.headers["content-type"]
+    assert res.headers["x-export-truncated"] == "false"
     csv_text = res.text
 
     # Verify formula prefixes: '=' and '+' must be escaped with a single quote "'"
@@ -494,6 +493,183 @@ def test_monitoring_summary_aggregation(client):
     assert body["success_rate_percent"] > 0
     assert body["total_records_processed"] >= 500
     assert "RATE_LIMIT" in body["error_breakdown"]
+
+
+def test_monitoring_summary_date_filter_and_api_call_count(client):
+    """Summary must honor the selected window and count outbound API telemetry."""
+    headers, user = _setup_user(client)
+    wf_id = f"wf_summary_window_{uuid.uuid4().hex[:6]}"
+    client.post("/api/workflows", json=make_workflow(wf_id, "Summary Window Flow"), headers=headers)
+    now = datetime.now(timezone.utc)
+
+    with session_scope() as session:
+        recent = _create_execution(
+            session,
+            id=f"exec_recent_{uuid.uuid4().hex[:6]}",
+            workflow_id=wf_id,
+            user_id=user["id"],
+            status="success",
+            started_at=now - timedelta(minutes=5),
+            finished_at=now,
+            records_processed=4,
+        )
+        _create_execution(
+            session,
+            id=f"exec_old_{uuid.uuid4().hex[:6]}",
+            workflow_id=wf_id,
+            user_id=user["id"],
+            status="failed",
+            error_type="AUTH_ERROR",
+            started_at=now - timedelta(days=3),
+            finished_at=now - timedelta(days=3) + timedelta(seconds=2),
+        )
+        for index in range(2):
+            session.add(
+                ApiRequestTelemetry(
+                    execution_id=recent.id,
+                    connector_name="salesforce",
+                    http_method="POST",
+                    endpoint_url=f"https://api.salesforce.test/v1/records/{index}",
+                    http_status_code=201,
+                    request_timestamp=now,
+                )
+            )
+        session.flush()
+
+    window_start = (now - timedelta(hours=1)).isoformat()
+    res = client.get(
+        "/api/monitoring/summary",
+        params={"start_date": window_start},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    body = res.json()["data"]
+    assert body["total_executions"] == 1
+    assert body["successful_executions"] == 1
+    assert body["failed_executions"] == 0
+    assert body["total_api_calls"] == 2
+    assert body["error_breakdown"] == {}
+
+    all_time = client.get("/api/monitoring/summary", headers=headers)
+    assert all_time.status_code == 200
+    all_body = all_time.json()["data"]
+    assert all_body["total_executions"] == 2
+    assert all_body["failed_executions"] == 1
+    assert all_body["error_breakdown"]["AUTH_ERROR"] == 1
+
+
+def test_monitoring_stats_use_conditional_aggregates(client):
+    """Runtime stats must preserve all counters after query consolidation."""
+    headers, user = _setup_user(client)
+    wf_id = f"wf_stats_{uuid.uuid4().hex[:6]}"
+    client.post("/api/workflows", json=make_workflow(wf_id, "Stats Flow"), headers=headers)
+    client.patch(f"/api/workflows/{wf_id}/active", json={"active": True}, headers=headers)
+    now = datetime.now(timezone.utc)
+
+    with session_scope() as session:
+        for status, started_at in (
+            ("success", now - timedelta(minutes=10)),
+            ("failed", now - timedelta(minutes=20)),
+            ("running", now - timedelta(minutes=30)),
+            ("queued", now - timedelta(minutes=40)),
+            ("success", now - timedelta(days=3)),
+        ):
+            _create_execution(
+                session,
+                workflow_id=wf_id,
+                user_id=user["id"],
+                status=status,
+                started_at=started_at,
+                finished_at=started_at + timedelta(seconds=1),
+            )
+
+    res = client.get("/api/monitoring/stats", headers=headers)
+    assert res.status_code == 200
+    body = res.json()["data"]
+    assert body["workflows"] == {"total": 1, "active": 1}
+    assert body["executions"] == {"total": 5, "running": 1, "queued": 1}
+    assert body["last_hour"] == {"success": 1, "failed": 1}
+    assert body["last_24h"] == {"success": 1, "failed": 1}
+
+
+def test_execution_error_types_are_discovered_from_data(client):
+    """The filter menu is populated from values actually stored in executions."""
+    headers, user = _setup_user(client)
+    wf_id = f"wf_error_types_{uuid.uuid4().hex[:6]}"
+    client.post("/api/workflows", json=make_workflow(wf_id, "Error Type Flow"), headers=headers)
+    now = datetime.now(timezone.utc)
+
+    with session_scope() as session:
+        for error_type in ("AUTH_ERROR", "AUTHENTICATION_ERROR"):
+            _create_execution(
+                session,
+                workflow_id=wf_id,
+                user_id=user["id"],
+                status="failed",
+                error_type=error_type,
+                started_at=now,
+                finished_at=now,
+            )
+
+    res = client.get("/api/executions/error-types", headers=headers)
+    assert res.status_code == 200
+    values = {row["value"] for row in res.json()["data"]}
+    assert {"AUTH_ERROR", "AUTHENTICATION_ERROR"} <= values
+
+
+def test_api_inspector_requests_pagination(client):
+    """API Inspector must not return an unbounded request list."""
+    headers, user = _setup_user(client)
+    wf_id = f"wf_api_pages_{uuid.uuid4().hex[:6]}"
+    client.post("/api/workflows", json=make_workflow(wf_id, "API Paging Flow"), headers=headers)
+    now = datetime.now(timezone.utc)
+
+    with session_scope() as session:
+        execution = _create_execution(
+            session,
+            workflow_id=wf_id,
+            user_id=user["id"],
+            status="success",
+            started_at=now,
+            finished_at=now,
+        )
+        request_ids = []
+        for index in range(3):
+            request = ApiRequestTelemetry(
+                execution_id=execution.id,
+                connector_name="hubspot",
+                http_method="GET",
+                endpoint_url=f"https://api.hubspot.test/v1/objects/{index}",
+                http_status_code=200,
+                request_timestamp=now,
+                created_at=now + timedelta(seconds=index),
+            )
+            session.add(request)
+            session.flush()
+            request_ids.append(request.id)
+        execution_id = execution.id
+
+    res = client.get(
+        f"/api/executions/{execution_id}/requests",
+        params={"page": 1, "pageSize": 2},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert len(body["data"]) == 2
+    assert body["meta"]["total"] == 3
+    assert body["meta"]["page"] == 1
+    assert body["meta"]["pageSize"] == 2
+
+    focused = client.get(
+        f"/api/executions/{execution_id}/requests",
+        params={"page": 1, "pageSize": 2, "request_id": request_ids[2]},
+        headers=headers,
+    )
+    assert focused.status_code == 200
+    focused_body = focused.json()
+    assert focused_body["meta"]["page"] == 2
+    assert [row["id"] for row in focused_body["data"]] == [request_ids[2]]
 
 
 def test_multi_tenant_isolation(client):

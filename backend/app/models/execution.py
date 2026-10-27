@@ -84,7 +84,9 @@ class Execution(Base):
     error_code: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # High-performance consolidated global search text index
+    # Consolidated global search text. The pg_trgm GIN index lives in
+    # migration e9f0a1b2c3d4 (and db.py's dev index patch) rather than in
+    # metadata so create_all() does not require the extension.
     search_text: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Declared so the unit of work orders inserts by FK dependency

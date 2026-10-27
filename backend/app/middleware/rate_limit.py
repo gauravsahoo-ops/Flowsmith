@@ -41,6 +41,20 @@ _SKIP_PATHS = frozenset({
     "/openapi.json",
 })
 
+# Static SPA assets are immutable and are fetched in large batches by the
+# browser (a single catalogue page can request hundreds of brand marks).
+# They are not API calls and must never consume a user's API budget.
+_SKIP_PREFIXES = (
+    "/assets/",
+    "/brand-logos/",
+    "/fonts/",
+    "/static/",
+    "/trigger-beacon",
+    "/favicon",
+    "/manifest.webmanifest",
+    "/robots.txt",
+)
+
 _AUTH_PATHS = frozenset({
     "/api/auth/login",
     "/api/auth/register",
@@ -74,12 +88,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not get_settings().rate_limit_enabled:
             return await call_next(request)
 
-        # Skip rate limiting for health checks, readiness probes, and static docs
-        if request.url.path in _SKIP_PATHS:
+        # Skip rate limiting for health checks, readiness probes, static docs,
+        # and browser-fetched immutable assets.
+        path = request.url.path
+        if path in _SKIP_PATHS or path.startswith(_SKIP_PREFIXES):
             return await call_next(request)
 
         user_id = self._get_user_id(request)
-        path = request.url.path
 
         is_limited, retry_after = await self._check_rate_limit(user_id, path)
         if is_limited:

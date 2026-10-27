@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import EmptyState from '../components/shared/EmptyState'
@@ -19,19 +19,61 @@ export default function KnowledgePage() {
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [workspaces, setWorkspaces] = useState([])
+  const [scope, setScope] = useState('all')
+  const [newWorkspaceId, setNewWorkspaceId] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
-    try { const data = await api.listRagCollections(); setCollections(data || []); if (data?.length && !selectedId) setSelectedId(data[0].id) } catch(e){ setError(e.message)} finally{ setLoading(false)}
-  }, [selectedId])
+    try {
+      const data = await api.listRagCollections()
+      const rows = Array.isArray(data) ? data : []
+      setCollections(rows)
+      setSelectedId(prev => (prev && rows.some(c => c.id === prev)) ? prev : (rows[0]?.id || null))
+    } catch(e){ setError(e.message) } finally { setLoading(false) }
+  }, [])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    let cancelled = false
+    api.listWorkspaces()
+      .then(data => {
+        if (cancelled) return
+        setWorkspaces(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const scopedCollections = useMemo(() => collections.filter(c => {
+    if (scope === 'all') return true
+    if (scope === 'personal') return !c.workspace_id
+    return c.workspace_id === scope
+  }), [collections, scope])
+
+  useEffect(() => {
+    if (!scopedCollections.length) {
+      setSelectedId(null)
+      return
+    }
+    setSelectedId(prev => scopedCollections.some(c => c.id === prev) ? prev : scopedCollections[0].id)
+  }, [scopedCollections])
 
   async function handleCreate(e) {
     e.preventDefault()
     if (!newName.trim()) return
     setBusy(true); setError(null)
-    try { const rec = await api.createRagCollection({ name: newName.trim() }); setNotice(`Created “${rec.name}”.`); setNewName(''); setSelectedId(rec.id); await load() } catch(err){ setError(err.message)} finally{ setBusy(false)}
+    try {
+      const payload = { name: newName.trim() }
+      if (newWorkspaceId) payload.workspace_id = newWorkspaceId
+      const rec = await api.createRagCollection(payload)
+      setNotice(`Created "${rec.name}".`)
+      setNewName('')
+      setSelectedId(rec.id)
+      setScope(newWorkspaceId || 'personal')
+      await load()
+    } catch(err){ setError(err.message) } finally { setBusy(false) }
   }
   async function handleIngest() {
     if (!selectedId || !ingestText.trim()) return
@@ -45,7 +87,7 @@ export default function KnowledgePage() {
     try { const res = await api.ragQuery(selectedId, { query: query.trim(), top_k: 5 }); setResult(res)} catch(err){ setError(err.message)} finally{ setBusy(false)}
   }
 
-  const selected = collections.find(c => c.id === selectedId) || null
+  const selected = scopedCollections.find(c => c.id === selectedId) || null
 
   return (
     <div className="page knowledge-page">
@@ -55,18 +97,56 @@ export default function KnowledgePage() {
       <div className="knowledge-layout">
         <div className="knowledge-sidebar">
           <form onSubmit={handleCreate} className="knowledge-create">
-            <input placeholder="New collection name" value={newName} onChange={e => setNewName(e.target.value)} disabled={busy} />
-            <button className="primary" type="submit" disabled={busy || !newName.trim()}>Create</button>
+            <input
+              placeholder="New collection name"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              disabled={busy}
+              aria-label="New collection name"
+            />
+            <div className="knowledge-create-actions">
+              <select
+                className="glass-select"
+                value={newWorkspaceId}
+                onChange={e => setNewWorkspaceId(e.target.value)}
+                disabled={busy}
+                aria-label="New collection scope"
+                title="Create in personal scope or a workspace"
+              >
+                <option value="">Personal</option>
+                {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+              <button className="primary" type="submit" disabled={busy || !newName.trim()}>Create</button>
+            </div>
           </form>
+
+          <div className="knowledge-scope">
+            <label htmlFor="rag-scope-filter">Scope</label>
+            <select
+              id="rag-scope-filter"
+              className="glass-select"
+              value={scope}
+              onChange={e => {
+                const next = e.target.value
+                setScope(next)
+                if (next !== 'all' && next !== 'personal') setNewWorkspaceId(next)
+              }}
+              aria-label="Filter collections by scope"
+            >
+              <option value="all">All collections</option>
+              <option value="personal">Personal</option>
+              {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+          </div>
 
           {error && <div className="banner-inline err">{error}</div>}
           {notice && <div className="banner-inline ok">{notice}</div>}
 
-          {loading ? <LoadingSkeleton rows={3} /> : collections.length === 0 ? (
+          {loading ? <LoadingSkeleton rows={3} /> : scopedCollections.length === 0 ? (
             <EmptyState icon="knowledge" title="No collections" description="Create a collection to start ingesting documents." />
           ) : (
             <div className="rag-list" style={{ marginTop: 12 }}>
-              {collections.map(c => (
+              {scopedCollections.map(c => (
                 <div key={c.id} className={`rag-row ${c.id === selectedId ? 'is-selected' : ''}`}>
                   <button className="rag-item" onClick={() => { setSelectedId(c.id); setResult(null) }}>
                     <span className="rag-name">{c.name}</span>
@@ -112,7 +192,7 @@ export default function KnowledgePage() {
           ) : (
             <div className="knowledge-detail">
               <h3>{selected.name}</h3>
-              <p className="hint">Collection {selected.id.slice(0,8)} · {selected.workspace_id ? 'Workspace scoped' : 'Personal'}</p>
+              <p className="hint">Collection {selected.id.slice(0,8)} ? {selected.workspace_id ? 'Workspace scoped' : 'Personal'}{' ? '}{selected.dim ? `${selected.dim}-dim` : 'dimension not initialized'}</p>
 
               <section className="card" style={{ marginTop: 16 }}>
                 <h4>Ingest document</h4>

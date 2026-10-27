@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import heapq
+import math
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -11,17 +13,37 @@ from app.nodes.registry import NODE_REGISTRY
 
 MERGE_MODES = ("wait_for_all", "wait_for_one", "combine")
 
+def _is_finite_number(value: Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
+def _is_non_negative_number(value: Any) -> bool:
+    return _is_finite_number(value) and float(value) >= 0
+
+
+def _is_positive_number(value: Any) -> bool:
+    return _is_finite_number(value) and float(value) > 0
+
+
+def _is_int_in_range(value: Any, low: int, high: int) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and low <= value <= high
+
+
 _NODE_SETTING_CHECKS: dict[str, Callable[[Any], bool]] = {
     "merge_mode": lambda v: v in MERGE_MODES,
-    "retry_max_attempts": lambda v: isinstance(v, int) and 0 <= v <= 10,
-    "retry_backoff_seconds": lambda v: isinstance(v, (int, float)) and v >= 0,
-    "timeout_seconds": lambda v: isinstance(v, (int, float)) and v > 0,
+    "retry_max_attempts": lambda v: _is_int_in_range(v, 0, 10),
+    "retry_backoff_seconds": _is_non_negative_number,
+    "timeout_seconds": _is_positive_number,
     "continue_on_error": lambda v: isinstance(v, bool),
 }
 
 _WORKFLOW_SETTING_CHECKS: dict[str, Callable[[Any], bool]] = {
-    "timeout_seconds": lambda v: isinstance(v, (int, float)) and v > 0,
-    "max_parallelism": lambda v: isinstance(v, int) and 1 <= v <= 32,
+    "timeout_seconds": _is_positive_number,
+    "max_parallelism": lambda v: _is_int_in_range(v, 1, 32),
 }
 
 
@@ -51,9 +73,11 @@ def build_graph(workflow: Workflow) -> Graph:
     for node in workflow.nodes:
         graph[node.id] = GraphNode(node=node)
     for conn in workflow.connections:
-        if conn.source in graph:
+        # Only materialize edges whose both endpoints exist. Validation
+        # reports dangling edges separately; keeping them out of the
+        # adjacency map also makes topological_sort safe on raw drafts.
+        if conn.source in graph and conn.target in graph:
             graph[conn.source].output_node_ids.append(conn.target)
-        if conn.target in graph:
             graph[conn.target].input_node_ids.append(conn.source)
             graph[conn.target].input_connections.append((conn.source, conn.sourceHandle))
 
@@ -76,17 +100,16 @@ def validate_graph(workflow: Workflow, graph: Graph | None = None, validate_para
     """
     issues: list[dict] = []
 
-    if not workflow.nodes:
-        # Allow empty workflows — user may clear canvas to add notes/comments
-        # No structural issues for empty graph
-        return
-
+    # Empty workflows are valid (the canvas may contain only notes), but
+    # their settings and any stray connections still have to be audited.
     node_ids: set[str] = set()
+    node_types: dict[str, str] = {}
     for node in workflow.nodes:
         if node.id in node_ids:
             issues.append({"code": "DUPLICATE_NODE_ID", "node_id": node.id,
                            "field": "id", "message": f"Duplicate node id '{node.id}'."})
         node_ids.add(node.id)
+        node_types[node.id] = node.type
 
         for key, check in _NODE_SETTING_CHECKS.items():
             if key in node.settings and not check(node.settings[key]):
@@ -125,7 +148,7 @@ def validate_graph(workflow: Workflow, graph: Graph | None = None, validate_para
             issues.append({"code": "INVALID_CONNECTION", "node_id": conn.source,
                            "field": "source", "message": f"Connection references unknown source node '{conn.source}'."})
         elif conn.sourceHandle != "main":
-            src_type = _node_type(workflow, conn.source)
+            src_type = node_types.get(conn.source, "")
             if src_type in ("loop", "loop_over_items") and conn.sourceHandle in ("done", "loop", "main"):
                 pass
             else:
@@ -138,7 +161,7 @@ def validate_graph(workflow: Workflow, graph: Graph | None = None, validate_para
             issues.append({"code": "INVALID_CONNECTION", "node_id": conn.target,
                            "field": "target", "message": f"Connection references unknown target node '{conn.target}'."})
         elif conn.targetHandle != "main":
-            node_cls = NODE_REGISTRY.get(_node_type(workflow, conn.target))
+            node_cls = NODE_REGISTRY.get(node_types.get(conn.target, ""))
             if node_cls is not None and conn.targetHandle not in node_cls().input_handles:
                 issues.append({"code": "INVALID_INPUT_HANDLE", "node_id": conn.target,
                                "field": "targetHandle",
@@ -147,12 +170,6 @@ def validate_graph(workflow: Workflow, graph: Graph | None = None, validate_para
     if issues:
         raise WorkflowValidationError(issues)
 
-
-def _node_type(workflow: Workflow, node_id: str) -> str:
-    for node in workflow.nodes:
-        if node.id == node_id:
-            return node.type
-    return ""
 
 
 def topological_sort(graph: Graph) -> list[str]:
@@ -177,23 +194,23 @@ def topological_sort(graph: Graph) -> list[str]:
         for child in gnode.output_node_ids:
             forward_graph[nid].add(child)
 
-    in_degree: dict[str, int] = {nid: 0 for nid in graph}
-    for nid in graph:
-        in_degree[nid] = len(graph[nid].input_node_ids)
+    in_degree: dict[str, int] = {
+        nid: len(set(graph[nid].input_node_ids)) for nid in graph
+    }
 
-    ready: list[str] = sorted(
-        [nid for nid, deg in in_degree.items() if deg == 0]
-    )
+    ready: list[str] = [
+        nid for nid, deg in in_degree.items() if deg == 0
+    ]
+    heapq.heapify(ready)
     order: list[str] = []
 
     while ready:
-        current = ready.pop(0)
+        current = heapq.heappop(ready)
         order.append(current)
         for child in sorted(forward_graph.get(current, set())):
             in_degree[child] -= 1
             if in_degree[child] == 0:
-                ready.append(child)
-                ready.sort()
+                heapq.heappush(ready, child)
 
     # Cycle fallback: any nodes still with in_degree > 0 are in a
     # strongly connected component (cycle). Append them in a stable

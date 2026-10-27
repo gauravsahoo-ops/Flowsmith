@@ -4,7 +4,6 @@ durable events, crash recovery and cooperative cancellation."""
 from __future__ import annotations
 
 import asyncio
-import time
 from typing import Any
 
 import pytest
@@ -141,6 +140,28 @@ def test_worker_transitions_queued_to_running(db_and_queue):
                          poll_interval_s=0.01, heartbeat_s=0.01)
     asyncio.run(worker.consume_once())
     assert _execution("exec_run").status == "success"
+
+
+def test_worker_treats_waiting_auth_as_paused(monkeypatch, db_and_queue):
+    """A paused auth execution is not a failed/dead-letter job."""
+    queue = db_and_queue
+    _enqueue(queue, _wf(), "exec_wait_auth")
+
+    async def fake_run_job(job, sink):
+        return "waiting_auth"
+
+    monkeypatch.setattr("app.queue.worker.run_job", fake_run_job)
+    worker = QueueWorker(queue=queue, event_sink=lambda ev: None,
+                         poll_interval_s=0.01, heartbeat_s=0.01)
+    assert asyncio.run(worker.consume_once()) is True
+
+    db = get_session()
+    try:
+        row = db.get(Job, "job_exec_wait_auth")
+        assert row is not None
+        assert row.status == DONE
+    finally:
+        db.close()
 
 
 def test_worker_persists_events_to_db(db_and_queue):

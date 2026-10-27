@@ -760,7 +760,7 @@ export default function CredentialsPage() {
           />
         )
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap creds-table-wrap">
           <table className="data-table">
             <thead><tr><th>Name</th><th>Type</th><th>Auth Method</th><th>Status</th><th style={{ textAlign: 'right', paddingRight: '20px' }}>Actions</th></tr></thead>
             <tbody>
@@ -769,7 +769,7 @@ export default function CredentialsPage() {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.04)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-                        <NodeIcon type={c.type} size={20} />
+                        <NodeIcon type={c.type} size={26} />
                       </div>
                       <div>
                         <strong>{c.name}</strong>
@@ -957,7 +957,7 @@ export default function CredentialsPage() {
                                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                 </svg>
                               </span>
-                              <span>Authentication Settings</span>
+                              <span>Recovery &amp; Alerts</span>
                             </button>
 
                             {!['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs', 'llm'].includes(c.type) && !c.type.startsWith('google_') && (
@@ -1046,7 +1046,7 @@ export default function CredentialsPage() {
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                                   </svg>
                                 </span>
-                                <span>Settings</span>
+                                <span>Provider Settings</span>
                               </button>
                             )}
 
@@ -1068,7 +1068,7 @@ export default function CredentialsPage() {
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                                   </svg>
                                 </span>
-                                <span>Settings</span>
+                                <span>Provider Settings</span>
                               </button>
                             )}
 
@@ -1090,7 +1090,7 @@ export default function CredentialsPage() {
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                                   </svg>
                                 </span>
-                                <span>Settings</span>
+                                <span>Provider Settings</span>
                               </button>
                             )}
 
@@ -1113,7 +1113,7 @@ export default function CredentialsPage() {
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                                   </svg>
                                 </span>
-                                <span>Settings</span>
+                                <span>Provider Settings</span>
                               </button>
                             )}
 
@@ -1135,7 +1135,7 @@ export default function CredentialsPage() {
                                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
                                   </svg>
                                 </span>
-                                <span>Logout</span>
+                                <span>Disconnect &amp; Revoke</span>
                               </button>
                             ) : (
                               <button
@@ -1257,7 +1257,7 @@ export default function CredentialsPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(0, 161, 224, 0.12)', border: '1px solid rgba(0, 161, 224, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <NodeIcon type="salesforce" size={24} />
+                  <NodeIcon type="salesforce" size={32} />
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
@@ -1321,7 +1321,7 @@ export default function CredentialsPage() {
                         className="ghost small"
                         style={{ padding: '2px 6px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
-                        title="Logout and revoke access"
+                        title="Disconnect and revoke access"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -1372,7 +1372,7 @@ export default function CredentialsPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(255, 122, 89, 0.12)', border: '1px solid rgba(255, 122, 89, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <NodeIcon type="hubspot" size={24} />
+                  <NodeIcon type="hubspot" size={32} />
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
@@ -1436,7 +1436,7 @@ export default function CredentialsPage() {
                         className="ghost small"
                         style={{ padding: '2px 6px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
-                        title="Logout and revoke access"
+                        title="Disconnect and revoke access"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -1487,7 +1487,7 @@ export default function CredentialsPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(66, 133, 244, 0.12)', border: '1px solid rgba(66, 133, 244, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <NodeIcon type={form.type} size={24} />
+                  <NodeIcon type={form.type} size={32} />
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>
@@ -1552,7 +1552,7 @@ export default function CredentialsPage() {
                         className="ghost small"
                         style={{ padding: '2px 6px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
-                        title="Logout and revoke access"
+                        title="Disconnect and revoke access"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -1605,7 +1605,7 @@ export default function CredentialsPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(0, 120, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <NodeIcon type="dynamics_crm" size={24} />
+                  <NodeIcon type="dynamics_crm" size={32} />
                 </div>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
@@ -1669,7 +1669,7 @@ export default function CredentialsPage() {
                         className="ghost small"
                         style={{ padding: '2px 6px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
-                        title="Logout and revoke access"
+                        title="Disconnect and revoke access"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -1753,7 +1753,7 @@ export default function CredentialsPage() {
                         className="ghost small"
                         style={{ padding: '0 4px', fontSize: 11, color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                         onClick={() => setLogoutTarget(acc)}
-                        title="Logout and revoke this account"
+                        title="Disconnect and revoke this account"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -1864,9 +1864,9 @@ export default function CredentialsPage() {
 
       <ConfirmDialog
         open={Boolean(logoutTarget)}
-        title={`Total Logout: Disconnect “${logoutTarget?.name}”?`}
+        title={`Disconnect "${logoutTarget?.name}"?`}
         description={`This will completely revoke the active OAuth session and tokens with ${logoutTarget?.type?.toUpperCase()} on their servers, and remove the connection from Flowsmith. Workflows using this account will stop working until reconnected.`}
-        confirmLabel="Logout & Revoke"
+        confirmLabel="Disconnect & Revoke"
         variant="danger"
         onCancel={() => setLogoutTarget(null)}
         onConfirm={async () => {
@@ -1875,7 +1875,7 @@ export default function CredentialsPage() {
             const res = await logout(target.id)
             setNotice(
               <span>
-                {res?.message || `Logged out and revoked ${target.name}.`}
+                {res?.message || `Disconnected and revoked ${target.name}.`}
                 {res?.logout_url && (
                   <span style={{ marginLeft: 8 }}>
                     · <a
@@ -1892,7 +1892,7 @@ export default function CredentialsPage() {
             )
             await load()
           } catch (e) {
-            setError(e.message || 'Logout failed.')
+            setError(e.message || 'Disconnect failed.')
           } finally {
             setLogoutTarget(null)
           }

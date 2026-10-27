@@ -8,8 +8,6 @@ workspace/user identity on the context).
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 
 from app.engine.executor import execute_workflow
@@ -117,6 +115,7 @@ async def test_node_auto_provisions_in_personal_scope_and_cites(tmp_path, monkey
         rec = next(r for r in recs if r.owner_user_id == user_id)
         assert rec.workspace_id is None  # personal scope
         assert rec.store_name.startswith("rcstore_")
+        assert rec.dim == 384  # node ingestion keeps the registry dimension in sync
     finally:
         db.close()
 

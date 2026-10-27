@@ -146,7 +146,7 @@ describe('CredentialsPage & Reconnection Suite', () => {
     expect(html).not.toContain('Session Expired')
     expect(html).not.toContain('App Config')
     expect(html).toContain('Reconnect')
-    expect(html).toContain('Logout')
+    expect(html).toContain('Disconnect')
   })
 
   it('renders Reconnect Required status pill and highlighted reconnect button when credential has expired session', () => {

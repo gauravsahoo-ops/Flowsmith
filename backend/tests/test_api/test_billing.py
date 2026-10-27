@@ -261,8 +261,6 @@ def test_workflow_quota_blocks_create_at_limit(client, monkeypatch):
 
 
 def test_enterprise_plan_is_unlimited(client):
-    from datetime import UTC, datetime
-
     from app.billing.service import check_within_limit, get_or_create_subscription
     from app.db import get_session
 
@@ -282,6 +280,29 @@ def test_enterprise_plan_is_unlimited(client):
     db_session.close()
     assert report["within_limit"] is True
     assert report["max"] == -1
+
+
+def test_check_limit_rejects_unknown_limit_type(client):
+    headers = auth_headers(register(client)["token"])
+    org_id = client.post("/api/organizations", json={"name": "Lim Org"}, headers=headers).json()["data"]["id"]
+    ws_id = client.post("/api/workspaces", json={"name": "Lim WS", "organization_id": org_id}, headers=headers).json()["data"]["id"]
+    resp = client.get(
+        f"/api/billing/check-limit/{ws_id}?limit_type=bogus", headers=headers
+    )
+    assert resp.status_code == 422
+    assert "limit_type" in resp.json()["detail"]
+
+
+def test_webhook_ignores_unknown_organization(client, monkeypatch):
+    secret = "whsec_unknown_org"
+    monkeypatch.setattr("app.billing.get_settings", lambda: Settings(stripe_webhook_secret=secret))
+    event = {
+        "type": "checkout.session.completed",
+        "data": {"object": {"client_reference_id": "org_does_not_exist"}},
+    }
+    resp = _webhook(client, secret, event)
+    assert resp.status_code == 200
+    assert resp.json()["data"]["action"] == "ignored"
 
 
 def test_checkout_stripe_error_returns_static_detail(client, monkeypatch):

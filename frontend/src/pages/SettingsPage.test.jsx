@@ -36,5 +36,6 @@ describe('SettingsPage Component', () => {
     expect(html).toContain('Automatic Email Alerts')
     expect(html).toContain('Alert Recipient Email Override')
     expect(html).toContain('Alert Throttling &amp; Delivery Routing')
+    expect(html).toContain('Platform audit events are available to administrators only.')
   })
 })

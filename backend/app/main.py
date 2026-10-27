@@ -240,7 +240,7 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
                 if candidate.name == "index.html":
                     return self._index_response(request)
                 headers: dict[str, str] = {}
-                if "/assets/" in path or path.startswith("assets/"):
+                if path.startswith(("/assets/", "assets/", "/brand-logos/", "brand-logos/", "/fonts/", "fonts/")):
                     headers["Cache-Control"] = "public, max-age=31536000, immutable"
                 return FileResponse(candidate, headers=headers)
         response = await call_next(request)

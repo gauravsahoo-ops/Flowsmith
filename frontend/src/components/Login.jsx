@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api, setToken } from '../api'
 import { useBrandingStore } from '../stores/brandingStore'
 import FlowsmithBrandMark from './FlowsmithBrandMark'
@@ -24,6 +25,7 @@ const SSO_ICONS = {
 }
 
 export default function Login({ onAuthed }) {
+  const navigate = useNavigate()
   const [mode, setMode] = useState('login') // login | register | forgot | reset
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -74,6 +76,9 @@ export default function Login({ onAuthed }) {
       } catch (err) { console.error('[flowsmith] components/Login.jsx', err) }
     }
     onAuthed(result)
+    // Reset links keep the browser on /reset-password; move cleanly into the
+    // workspace after any successful auth instead of leaving a stale URL.
+    navigate('/overview', { replace: true })
   }
 
   function cancelMfa() {
@@ -217,9 +222,6 @@ export default function Login({ onAuthed }) {
     const controller = new AbortController()
     ;(async () => {
       try {
-        const data = await api.webauthnConditionalOptions()
-        if (cancelled) return
-        setPasskeyLogin(data)
         let conditional = false
         try {
           conditional = Boolean(
@@ -229,6 +231,9 @@ export default function Login({ onAuthed }) {
           conditional = false
         }
         if (cancelled || !conditional) return
+        const data = await api.webauthnConditionalOptions()
+        if (cancelled) return
+        setPasskeyLogin(data)
         const assertion = await navigator.credentials.get({
           publicKey: prepareRequestOptions(data.options),
           mediation: 'conditional',
@@ -290,12 +295,30 @@ export default function Login({ onAuthed }) {
       <div className="login-container">
         {/* Left Side: Enterprise Feature Showcase */}
         <div className="login-hero">
+          <div className="login-hero-brand">
+            <span className="login-hero-brand-mark">
+              {logoSrc ? (
+                <img src={logoSrc} alt={appName} />
+              ) : (
+                <FlowsmithBrandMark size={22} variant="glyph" style={{ color: '#fff' }} />
+              )}
+            </span>
+            <span className="login-hero-brand-copy">
+              <strong>{appName}</strong>
+              <small>Enterprise Automation Cloud</small>
+            </span>
+            <span className="login-hero-brand-chip">
+              <span className="dot" />
+              Self-hosted
+            </span>
+          </div>
+
           <h1 className="hero-heading">
-            Automate at the <span className="gradient-text">speed of thought.</span>
+            Automation with <span className="gradient-text">engineering discipline.</span>
           </h1>
 
           <p className="hero-subheading">
-            The next-generation distributed workflow engine orchestrating autonomous AI agents, enterprise APIs, relational databases, and real-time streaming with zero latency.
+            Design, run, and observe workflows across APIs, databases, AI agents, and human approvals from one precise workspace.
           </p>
 
           {/* Interactive Visual Flow Diagram Preview */}
@@ -307,12 +330,12 @@ export default function Login({ onAuthed }) {
                   <span className="dot dot-yellow" />
                   <span className="dot dot-green" />
                 </div>
-                <span className="flow-card-title">Live Pipeline Execution</span>
+                <span className="flow-card-title">Workflow preview</span>
               </div>
               <div className="flow-card-header-right">
                 <span className="flow-status-pill">
                   <span className="flow-status-beacon" />
-                  Active • 99.99% SLA
+                  Example run
                 </span>
               </div>
             </div>
@@ -392,45 +415,24 @@ export default function Login({ onAuthed }) {
               </div>
             </div>
 
-            <div className="flow-metrics-bar">
-              <div className="metric-item">
-                <span className="metric-label">Latency</span>
-                <span className="metric-val text-green">12ms (P99)</span>
-              </div>
-              <div className="metric-divider" />
-              <div className="metric-item">
-                <span className="metric-label">Security</span>
-                <span className="metric-val text-blue">AES-256-GCM</span>
-              </div>
-              <div className="metric-divider" />
-              <div className="metric-item">
-                <span className="metric-label">Engine</span>
-                <span className="metric-val text-purple">Dual Redis + WS</span>
-              </div>
-              <div className="metric-divider" />
-              <div className="metric-item">
-                <span className="metric-label">Throughput</span>
-                <span className="metric-val text-cyan">45k ops/s</span>
-              </div>
-            </div>
           </div>
 
           <div className="hero-features-list">
             <div className="feature-chip">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>528+ Visual Connectors</span>
+              <span>Visual DAG builder</span>
             </div>
             <div className="feature-chip">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Autonomous AI Agents</span>
+              <span>Native connectors</span>
             </div>
             <div className="feature-chip">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Self-Healing Execution</span>
+              <span>AI agents</span>
             </div>
             <div className="feature-chip">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Zero-Trust Encryption</span>
+              <span>Human approvals</span>
             </div>
           </div>
         </div>
@@ -643,25 +645,27 @@ export default function Login({ onAuthed }) {
               )
             ) : (
             <div className="login-fields-group">
-              <label className="input-field-label">
-                <span className="label-text">{mode === 'login' ? 'Email or username' : 'Email address'}</span>
-                <div className="input-with-icon">
-                  <svg className="input-prefix-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect width="20" height="16" x="2" y="4" rx="2" />
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                  </svg>
-                  <input
-                    type={mode === 'login' ? 'text' : 'email'}
-                    className="styled-input"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required={mode !== 'reset'}
-                    placeholder={mode === 'login' ? 'name@company.com or username' : 'name@company.com'}
-                    autoComplete={mode === 'login' ? 'username' : 'email'}
-                    autoFocus
-                  />
-                </div>
-              </label>
+              {mode !== 'reset' && (
+                <label className="input-field-label">
+                  <span className="label-text">{mode === 'login' ? 'Email or username' : 'Email address'}</span>
+                  <div className="input-with-icon">
+                    <svg className="input-prefix-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                    <input
+                      type={mode === 'login' ? 'text' : 'email'}
+                      className="styled-input"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder={mode === 'login' ? 'name@company.com or username' : 'name@company.com'}
+                      autoComplete={mode === 'login' ? 'username' : 'email'}
+                      autoFocus
+                    />
+                  </div>
+                </label>
+              )}
 
               {mode !== 'forgot' && (
                 <label className="input-field-label">
@@ -673,7 +677,7 @@ export default function Login({ onAuthed }) {
                         className="forgot-link"
                         onClick={() => { setMode('forgot'); setError(null); setNotice(null); }}
                       >
-                        Forgot?
+                        Forgot password?
                       </button>
                     )}
                   </div>
@@ -691,13 +695,14 @@ export default function Login({ onAuthed }) {
                       placeholder="••••••••••••"
                       minLength={mode === 'login' ? 1 : 8}
                       autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                      autoFocus={mode === 'reset'}
                     />
                     <button
                       type="button"
                       className="password-toggle-btn"
                       onClick={() => setShowPassword(!showPassword)}
-                      tabIndex="-1"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
                     >
                       {showPassword ? (
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
@@ -774,10 +779,16 @@ export default function Login({ onAuthed }) {
               </button>
             )}
 
+            <div className="login-trust-row" aria-label="Security features">
+              <span>256-bit encryption</span>
+              <span>SSO + MFA</span>
+              <span>Passkeys</span>
+            </div>
+
             {/* Footer Credit */}
             <div className="login-card-footer">
               <span className="footer-credit">
-                Engineered with precision by <strong className="credit-name">Gaurav</strong>
+                {appName} · Secure workspace
               </span>
             </div>
           </form>

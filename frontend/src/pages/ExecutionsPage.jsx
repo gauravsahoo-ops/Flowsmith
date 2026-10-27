@@ -31,6 +31,39 @@ const CONNECTOR_PRESETS = [
   { id: 'slack', label: 'Slack' },
 ]
 
+const ERROR_TYPE_LABELS = {
+  AUTHENTICATION_ERROR: 'Authentication / Authorization',
+  RATE_LIMITED: 'Rate Limited (429)',
+  TIMEOUT: 'Network Timeout',
+  NETWORK_ERROR: 'Network / Connection',
+  VALIDATION_ERROR: 'Payload / Schema Validation',
+  CONNECTOR_ERROR: 'Connector / Provider Error',
+  CANCELLED: 'Cancelled',
+  INTERNAL_ERROR: 'Engine Internal',
+  EXECUTION_ERROR: 'Execution Error',
+  UNKNOWN_ERROR: 'Unknown Error',
+  // Values written by older telemetry versions remain selectable.
+  AUTH_ERROR: 'Auth Error (legacy)',
+  RATE_LIMIT: 'Rate Limit (legacy)',
+  DOWNSTREAM_5XX: 'Downstream Server Error (legacy)',
+  ENGINE_INTERNAL: 'Engine Internal (legacy)',
+  UNKNOWN: 'Unknown Error (legacy)',
+}
+
+const ERROR_TYPE_OPTS = [
+  { id: '', label: 'All Error Categories' },
+  { id: 'AUTHENTICATION_ERROR', label: ERROR_TYPE_LABELS.AUTHENTICATION_ERROR },
+  { id: 'RATE_LIMITED', label: ERROR_TYPE_LABELS.RATE_LIMITED },
+  { id: 'TIMEOUT', label: ERROR_TYPE_LABELS.TIMEOUT },
+  { id: 'NETWORK_ERROR', label: ERROR_TYPE_LABELS.NETWORK_ERROR },
+  { id: 'VALIDATION_ERROR', label: ERROR_TYPE_LABELS.VALIDATION_ERROR },
+  { id: 'CONNECTOR_ERROR', label: ERROR_TYPE_LABELS.CONNECTOR_ERROR },
+  { id: 'CANCELLED', label: ERROR_TYPE_LABELS.CANCELLED },
+  { id: 'INTERNAL_ERROR', label: ERROR_TYPE_LABELS.INTERNAL_ERROR },
+  { id: 'EXECUTION_ERROR', label: ERROR_TYPE_LABELS.EXECUTION_ERROR },
+  { id: 'UNKNOWN_ERROR', label: ERROR_TYPE_LABELS.UNKNOWN_ERROR },
+]
+
 const HTTP_STATUS_OPTS = [
   { id: '', label: 'All HTTP Statuses' },
   { id: '200', label: '200 OK' },
@@ -43,17 +76,6 @@ const HTTP_STATUS_OPTS = [
   { id: '500', label: '500 Server Error' },
   { id: '502', label: '502 Bad Gateway' },
   { id: '503', label: '503 Service Unavailable' },
-]
-
-const ERROR_TYPE_OPTS = [
-  { id: '', label: 'All Error Categories' },
-  { id: 'AUTH_ERROR', label: 'Auth Error (401/403)' },
-  { id: 'RATE_LIMIT', label: 'Rate Limit (429)' },
-  { id: 'DOWNSTREAM_5XX', label: 'Downstream Server Error (5xx)' },
-  { id: 'VALIDATION_ERROR', label: 'Payload / Schema Validation' },
-  { id: 'TIMEOUT', label: 'Network Timeout' },
-  { id: 'ENGINE_INTERNAL', label: 'Engine Internal' },
-  { id: 'UNKNOWN', label: 'Unknown Error' },
 ]
 
 const DATE_RANGE_OPTS = [
@@ -72,6 +94,26 @@ const SORT_OPTS = [
   { id: 'records_processed:desc', label: 'Most Records Processed' },
   { id: 'status:asc', label: 'Status (A-Z)' },
 ]
+
+function titleCaseErrorType(value) {
+  if (ERROR_TYPE_LABELS[value]) return ERROR_TYPE_LABELS[value]
+  return String(value)
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function buildErrorTypeOptions(rows) {
+  const options = [...ERROR_TYPE_OPTS]
+  const existing = new Set(options.map((option) => option.id))
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const value = row?.value
+    if (!value || existing.has(value)) continue
+    existing.add(value)
+    options.push({ id: value, label: titleCaseErrorType(value) })
+  }
+  return options
+}
 
 function fmtTime(iso) {
   if (!iso) return '—'
@@ -92,14 +134,14 @@ function fmtDur(s, f) {
 }
 
 function getDateRangeIso(preset) {
-  if (!preset) return { fromDate: undefined, toDate: undefined }
+  if (!preset) return { startDate: undefined, endDate: undefined }
   const now = new Date()
   let from = new Date(now)
   if (preset === '1h') from.setHours(from.getHours() - 1)
   else if (preset === '24h') from.setDate(from.getDate() - 1)
   else if (preset === '7d') from.setDate(from.getDate() - 7)
   else if (preset === '30d') from.setDate(from.getDate() - 30)
-  return { fromDate: from.toISOString(), toDate: now.toISOString() }
+  return { startDate: from.toISOString(), endDate: now.toISOString() }
 }
 
 export default function ExecutionsPage() {
@@ -120,7 +162,8 @@ export default function ExecutionsPage() {
   const [searchFacets, setSearchFacets] = useState({})
   const [viewMode, setSearchViewMode] = useState('table') // 'table' | 'occurrences'
   const [occurrences, setOccurrences] = useState([])
-  const [occurrencesMeta, setOccurrencesMeta] = useState({ total: 0, page: 1, pageSize: 20 })
+  const [occurrencePage, setOccurrencePage] = useState(1)
+  const [occurrencesMeta, setOccurrencesMeta] = useState({ total: 0, page: 1, pageSize: 50 })
   const [loadingOccurrences, setLoadingOccurrences] = useState(false)
 
   const [status, setStatus] = useState(params.get('status') || '')
@@ -133,6 +176,8 @@ export default function ExecutionsPage() {
   const [pageSize, setPageSize] = useState(Number(params.get('pageSize') || 25))
 
   const [workflows, setWorkflows] = useState([])
+  const [connectorOptions, setConnectorOptions] = useState([])
+  const [errorTypeOptions, setErrorTypeOptions] = useState(ERROR_TYPE_OPTS)
   const [copiedId, setCopiedId] = useState(null)
 
   const page = Number(params.get('page') || 1)
@@ -154,28 +199,38 @@ export default function ExecutionsPage() {
     }
   }, [params, searchCategory])
 
+  // A new query/filter starts at page 1; paging only changes occurrencePage.
+  useEffect(() => {
+    setOccurrencePage(1)
+  }, [debouncedSearch, searchCategory, dateRange, workflowId, status])
+
   // Fetch universal occurrences & facet counts when search query is active
   useEffect(() => {
     if (!debouncedSearch || !debouncedSearch.trim()) {
       setOccurrences([])
       setSearchFacets({})
-      setOccurrencesMeta({ total: 0, page: 1, pageSize: 20 })
+      setOccurrencesMeta({ total: 0, page: 1, pageSize: 50 })
       return
     }
 
     let active = true
     setLoadingOccurrences(true)
+    const { startDate, endDate } = getDateRangeIso(dateRange)
     api
       .universalSearchExecutions({
         q: debouncedSearch.trim(),
         category: searchCategory !== 'all' ? searchCategory : undefined,
-        page: 1,
+        workflowId: workflowId || undefined,
+        status: status || undefined,
+        startDate,
+        endDate,
+        page: occurrencePage,
         pageSize: 50,
       })
       .then((res) => {
         if (!active) return
         setOccurrences(res?.data || [])
-        setOccurrencesMeta(res?.meta || { total: 0, page: 1, pageSize: 20 })
+        setOccurrencesMeta(res?.meta || { total: 0, page: occurrencePage, pageSize: 50 })
         if (res?.meta?.facets) {
           setSearchFacets(res.meta.facets)
         }
@@ -190,7 +245,7 @@ export default function ExecutionsPage() {
     return () => {
       active = false
     }
-  }, [debouncedSearch, searchCategory])
+  }, [debouncedSearch, searchCategory, dateRange, occurrencePage, workflowId, status])
 
   const load = useCallback(async (p = page, silent = false) => {
     abortRef.current?.abort()
@@ -201,7 +256,7 @@ export default function ExecutionsPage() {
     setError(null)
 
     const [sortBy, sortOrder] = sortKey.split(':')
-    const { fromDate, toDate } = getDateRangeIso(dateRange)
+    const { startDate, endDate } = getDateRangeIso(dateRange)
 
     try {
       const { data, meta: m } = await api.listExecutions(
@@ -212,8 +267,8 @@ export default function ExecutionsPage() {
           httpStatus: httpStatus || undefined,
           errorType: errorType || undefined,
           search: debouncedSearch || undefined,
-          fromDate,
-          toDate,
+          startDate,
+          endDate,
           sortBy,
           sortOrder,
           page: p,
@@ -238,7 +293,36 @@ export default function ExecutionsPage() {
   }, [load])
 
   useEffect(() => {
-    api.listWorkflows().then(d => setWorkflows(Array.isArray(d) ? d : [])).catch(() => {})
+    let active = true
+    Promise.allSettled([
+      api.listWorkflows(),
+      api.listConnectors(),
+      api.getExecutionErrorTypes(),
+    ]).then(([workflowResult, connectorResult, errorTypeResult]) => {
+      if (!active) return
+      if (workflowResult.status === 'fulfilled') {
+        setWorkflows(Array.isArray(workflowResult.value) ? workflowResult.value : [])
+      }
+      if (connectorResult.status === 'fulfilled') {
+        const connectors = Array.isArray(connectorResult.value) ? connectorResult.value : []
+        const options = connectors
+          .map((c) => ({
+            id: c.connector_key || c.id,
+            label: c.display_name || c.connector_key || c.id,
+          }))
+          .filter((c) => c.id)
+          .sort((a, b) => String(a.label).localeCompare(String(b.label)))
+        if (options.length) {
+          setConnectorOptions([{ id: '', label: 'All Connectors' }, ...options])
+        }
+      }
+      if (errorTypeResult.status === 'fulfilled') {
+        setErrorTypeOptions(buildErrorTypeOptions(errorTypeResult.value))
+      }
+    })
+    return () => {
+      active = false
+    }
   }, [])
 
   // Auto-poll every 2.5s while any execution in view is active
@@ -247,6 +331,7 @@ export default function ExecutionsPage() {
     if (!hasActive) return
 
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
       load(page, true)
     }, 2500)
 
@@ -311,17 +396,17 @@ export default function ExecutionsPage() {
     if (exporting) return
     setExporting(true)
     setExportNotice('Generating sanitized CSV export…')
-    const { fromDate, toDate } = getDateRangeIso(dateRange)
+    const { startDate, endDate } = getDateRangeIso(dateRange)
     try {
-      const blob = await api.exportExecutionsCsv({
+      const { blob, truncated, limit } = await api.exportExecutionsCsv({
         workflowId: workflowId || undefined,
         status: status || undefined,
         connector: connector || undefined,
         httpStatus: httpStatus || undefined,
         errorType: errorType || undefined,
         search: debouncedSearch || undefined,
-        fromDate,
-        toDate,
+        startDate,
+        endDate,
       })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -331,8 +416,12 @@ export default function ExecutionsPage() {
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-      setExportNotice('CSV export downloaded successfully.')
-      setTimeout(() => setExportNotice(null), 4000)
+      setExportNotice(
+        truncated
+          ? `CSV downloaded, but the export was capped at ${(limit || 10000).toLocaleString()} rows. Narrow the filters to export the remainder.`
+          : 'CSV export downloaded successfully.',
+      )
+      setTimeout(() => setExportNotice(null), truncated ? 8000 : 4000)
     } catch (err) {
       setExportNotice(`Export failed: ${err.message}`)
       setTimeout(() => setExportNotice(null), 5000)
@@ -352,6 +441,11 @@ export default function ExecutionsPage() {
 
   const hasActiveFilters = Boolean(
     status || workflowId || connector || httpStatus || errorType || dateRange || debouncedSearch,
+  )
+  const connectorChoices = connectorOptions.length ? connectorOptions : CONNECTOR_PRESETS
+  const occurrenceTotalPages = Math.max(
+    1,
+    Math.ceil((occurrencesMeta.total || 0) / (occurrencesMeta.pageSize || 50)),
   )
 
   return (
@@ -530,9 +624,12 @@ export default function ExecutionsPage() {
           }}
           aria-label="Filter by connector"
         >
-          {CONNECTOR_PRESETS.map(c => (
+          {connectorChoices.map(c => (
             <option key={c.id} value={c.id}>{c.label}</option>
           ))}
+          {connector && !connectorChoices.some(c => c.id === connector) && (
+            <option value={connector}>{connector}</option>
+          )}
         </select>
 
         {/* HTTP Status Code */}
@@ -558,9 +655,12 @@ export default function ExecutionsPage() {
           }}
           aria-label="Filter by error category"
         >
-          {ERROR_TYPE_OPTS.map(et => (
+          {errorTypeOptions.map(et => (
             <option key={et.id} value={et.id}>{et.label}</option>
           ))}
+          {errorType && !errorTypeOptions.some(et => et.id === errorType) && (
+            <option value={errorType}>{titleCaseErrorType(errorType)}</option>
+          )}
         </select>
 
         {/* Date Range Selector */}
@@ -756,18 +856,46 @@ export default function ExecutionsPage() {
                 })}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, gap: 12, flexWrap: 'wrap' }}>
                 <span className="hint">
-                  Showing top {occurrences.length} of {occurrencesMeta.total} occurrences across executions
+                  {occurrencesMeta.total > 0
+                    ? `Showing ${(occurrencesMeta.page - 1) * occurrencesMeta.pageSize + 1}–${Math.min(
+                        occurrencesMeta.page * occurrencesMeta.pageSize,
+                        occurrencesMeta.total,
+                      )} of ${occurrencesMeta.total} occurrences`
+                    : 'No matching occurrences'}
                 </span>
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => setSearchViewMode('table')}
-                  style={{ fontSize: 12 }}
-                >
-                  ← Switch to Table View
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={occurrencePage <= 1 || loadingOccurrences}
+                    onClick={() => setOccurrencePage((current) => Math.max(1, current - 1))}
+                    style={{ fontSize: 12 }}
+                  >
+                    ← Previous
+                  </button>
+                  <span className="hint" style={{ fontWeight: 600 }}>
+                    Page {occurrencePage} of {occurrenceTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={occurrencePage >= occurrenceTotalPages || loadingOccurrences}
+                    onClick={() => setOccurrencePage((current) => current + 1)}
+                    style={{ fontSize: 12 }}
+                  >
+                    Next →
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => setSearchViewMode('table')}
+                    style={{ fontSize: 12 }}
+                  >
+                    Switch to Table View
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -794,7 +922,7 @@ export default function ExecutionsPage() {
         )
       ) : (
         <>
-          <div className="table-wrap">
+          <div className="table-wrap exec-table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
@@ -968,7 +1096,7 @@ export default function ExecutionsPage() {
                               }}
                               title={`Source Connector: ${e.source_connector}`}
                             >
-                              <NodeIcon type={e.source_connector} size={13} />
+                              <NodeIcon type={e.source_connector} size={16} />
                               <span>{e.source_connector}</span>
                             </span>
                           ) : (
@@ -992,7 +1120,7 @@ export default function ExecutionsPage() {
                               }}
                               title={`Destination Connector: ${e.destination_connector}`}
                             >
-                              <NodeIcon type={e.destination_connector} size={13} />
+                              <NodeIcon type={e.destination_connector} size={16} />
                               <span>{e.destination_connector}</span>
                             </span>
                           ) : (

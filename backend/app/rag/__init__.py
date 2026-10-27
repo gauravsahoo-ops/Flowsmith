@@ -20,7 +20,9 @@ from __future__ import annotations
 import copy
 import hashlib
 import logging
+import math
 import re
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -36,17 +38,26 @@ logger = logging.getLogger("rag")
 
 DEFAULT_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
-# Module-level cache (the model is expensive to load once per process).
-_embedding_model: Any = None
+# Model cache keyed by model name (the model is expensive to load once per
+# process, but different collections may legitimately use different models).
+_embedding_models: dict[str, Any] = {}
+_embedding_models_lock = threading.Lock()
+
+
+def _model_key(model_name: str) -> str:
+    return (str(model_name or "").strip() or DEFAULT_EMBEDDING_MODEL)
 
 
 def _get_embedding_model(model_name: str) -> Any:
-    global _embedding_model
-    if _embedding_model is None:
-        from sentence_transformers import SentenceTransformer  # pyright: ignore[reportMissingImports]
+    key = _model_key(model_name)
+    with _embedding_models_lock:
+        model = _embedding_models.get(key)
+        if model is None:
+            from sentence_transformers import SentenceTransformer  # pyright: ignore[reportMissingImports]
 
-        _embedding_model = SentenceTransformer(model_name)
-    return _embedding_model
+            model = SentenceTransformer(key)
+            _embedding_models[key] = model
+        return model
 
 
 def embed_texts(texts: list[str], model_name: str = DEFAULT_EMBEDDING_MODEL) -> list[list[float]]:
@@ -170,6 +181,56 @@ def _resolve_access(db: Session, access: RagAccess) -> None:
                 access.editable_workspaces.add(ws_id)
 
 
+class RagDimensionError(RuntimeError):
+    """The collection's stored embedding dimension no longer matches the model."""
+
+
+def _normalize_embedding_matrix(
+    embeddings: Any,
+    *,
+    expected: int,
+    model_name: str,
+) -> tuple[list[list[float]], int]:
+    """Validate model output before it reaches SQL/pgvector.
+
+    A provider/model returning the wrong number of vectors, an empty vector,
+    inconsistent dimensions, or NaN/Infinity must fail with a clear service
+    error instead of a low-level database exception.
+    """
+    try:
+        rows = list(embeddings)
+    except TypeError as exc:
+        raise EmbeddingUnavailable("The embedding model returned no vectors.") from exc
+    if len(rows) != expected:
+        raise EmbeddingUnavailable(
+            f"The embedding model returned {len(rows)} vectors for {expected} texts."
+        )
+    cleaned: list[list[float]] = []
+    dim: int | None = None
+    for index, row in enumerate(rows):
+        if row is None or isinstance(row, (str, bytes, dict)):
+            raise EmbeddingUnavailable(f"Embedding {index} is not a numeric vector.")
+        try:
+            values = [float(value) for value in row]
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise EmbeddingUnavailable(f"Embedding {index} contains non-numeric values.") from exc
+        if not values:
+            raise EmbeddingUnavailable(f"Embedding {index} is empty.")
+        if any(not math.isfinite(value) for value in values):
+            raise EmbeddingUnavailable(f"Embedding {index} contains NaN or Infinity.")
+        if dim is None:
+            dim = len(values)
+        elif len(values) != dim:
+            raise EmbeddingUnavailable(
+                f"Embedding model '{model_name}' returned inconsistent dimensions "
+                f"({dim} and {len(values)})."
+            )
+        cleaned.append(values)
+    if dim is None:
+        raise EmbeddingUnavailable("The embedding model returned no usable vectors.")
+    return cleaned, dim
+
+
 # ----------------------------------------------------------------------
 # collection management
 # ----------------------------------------------------------------------
@@ -221,6 +282,9 @@ def get_collection(db: Session, collection_id: str, access: RagAccess) -> RagCol
     rec = db.get(RagCollection, collection_id)
     if rec is None:
         raise LookupError("Collection not found.")
+    # API callers only have a user id; resolve workspace membership here so
+    # every read/edit/query/ingest/delete path enforces the same rules.
+    _resolve_access(db, access)
     if not _can_read(rec, access):
         raise RagPermissionError()
     return rec
@@ -248,9 +312,22 @@ def delete_collection(db: Session, collection_id: str, access: RagAccess) -> dic
 
 def collection_stats(db: Session, collection_id: str, access: RagAccess) -> dict:
     rec = get_collection(db, collection_id, access)
+    if rec.dim is None:
+        # No ingestion has fixed the dimension yet. Never create a physical
+        # collection at a guessed dimension (that would permanently poison it
+        # for the real embedding model).
+        return {
+            "id": rec.id,
+            "name": rec.name,
+            "workspace_id": rec.workspace_id,
+            "embedding_model": rec.embedding_model,
+            "dim": None,
+            "chunks": 0,
+            "documents": [],
+        }
     store = get_vector_store()
     try:
-        handle = store.ensure_collection(rec.store_name, rec.dim or 1)
+        handle = store.ensure_collection(rec.store_name, rec.dim)
         chunks = store.count(handle) if hasattr(store, "count") else None
         docs = store.document_ids(handle) if hasattr(store, "document_ids") else []
     except VectorStoreUnavailable as exc:
@@ -318,12 +395,31 @@ def ingest_documents(
 
     t0 = time.perf_counter()
     prepared: list[dict[str, Any]] = []
-    for doc in documents:
+    seen_doc_ids: set[str] = set()
+    for index, doc in enumerate(documents):
+        if not isinstance(doc, dict):
+            raise ValueError(f"Document {index} must be an object.")
         text = str(doc.get("text") or "").strip()
         if not text:
             continue
-        doc_id = str(doc.get("id") or hashlib.sha256(text.encode("utf-8")).hexdigest()[:24])
-        base_meta = {"collection": rec.name, **(doc.get("metadata") or {})}
+        raw_id = str(doc.get("id") or "").strip()
+        doc_id = raw_id or hashlib.sha256(text.encode("utf-8")).hexdigest()[:24]
+        if len(doc_id) > 256:
+            raise ValueError(f"Document {index} id is longer than 256 characters.")
+        if doc_id in seen_doc_ids:
+            raise ValueError(
+                f"Duplicate document id '{doc_id}' in one ingest request; "
+                "submit each document id once."
+            )
+        seen_doc_ids.add(doc_id)
+        raw_meta = doc.get("metadata")
+        if raw_meta is None:
+            base_meta: dict[str, Any] = {}
+        elif isinstance(raw_meta, dict):
+            base_meta = dict(raw_meta)
+        else:
+            raise ValueError(f"Document '{doc_id}' metadata must be an object.")
+        base_meta = {"collection": rec.name, **base_meta}
         for i, piece in enumerate(chunk_text(text, chunk_size, chunk_overlap)):
             prepared.append({
                 "doc_id": doc_id,
@@ -334,22 +430,27 @@ def ingest_documents(
         raise ValueError("Documents contained no usable text.")
 
     try:
-        embeddings = _embed([p["text"] for p in prepared], rec.embedding_model)
+        raw_embeddings = _embed([p["text"] for p in prepared], rec.embedding_model)
+        embeddings, embedding_dim = _normalize_embedding_matrix(
+            raw_embeddings,
+            expected=len(prepared),
+            model_name=rec.embedding_model,
+        )
     except EmbeddingUnavailable:
         raise
     t_embed = time.perf_counter()
 
     if rec.dim is None:
-        rec.dim = len(embeddings[0])
+        rec.dim = embedding_dim
         db.commit()
-    elif rec.dim != len(embeddings[0]):
-        raise RuntimeError(
+    elif rec.dim != embedding_dim:
+        raise RagDimensionError(
             f"Collection '{rec.name}' was built with dim={rec.dim}; "
-            f"current embeddings are dim={len(embeddings[0])}."
+            f"current embeddings are dim={embedding_dim}."
         )
 
     store = get_vector_store()
-    handle = store.ensure_collection(rec.store_name, rec.dim)
+    handle = store.ensure_collection(rec.store_name, embedding_dim)
     store.add(
         handle,
         documents=[p["text"] for p in prepared],
@@ -373,8 +474,12 @@ def delete_document(
     db: Session, collection_id: str, document_id: str, *, access: RagAccess,
 ) -> dict:
     rec = require_edit(db, collection_id, access)
+    if rec.dim is None:
+        # An uninitialized collection cannot contain this document, and
+        # deleting must not create a dimension-1 table as a side effect.
+        return {"document_id": document_id, "chunks_removed": 0}
     store = get_vector_store()
-    handle = store.ensure_collection(rec.store_name, rec.dim or 1)
+    handle = store.ensure_collection(rec.store_name, rec.dim)
     removed = store.delete_documents(handle, [document_id])
     return {"document_id": document_id, "chunks_removed": removed}
 
@@ -484,14 +589,28 @@ def query_collection(
     # Not every caller is schema-validated (e.g. MCP tool args): bound the
     # candidate set so one query cannot pull an unbounded result window.
     top_k = max(1, min(int(top_k), 50))
-    similarity_threshold = min(max(float(similarity_threshold), 0.0), 1.0)
+    threshold_value = float(similarity_threshold)
+    if not math.isfinite(threshold_value):
+        raise ValueError("similarity_threshold must be a finite number.")
+    similarity_threshold = min(max(threshold_value, 0.0), 1.0)
     _embed = embed_fn or embed_texts
 
     t0 = time.perf_counter()
-    qvec = _embed([query_text], rec.embedding_model)[0]
+    raw_embeddings = _embed([query_text], rec.embedding_model)
+    embeddings, query_dim = _normalize_embedding_matrix(
+        raw_embeddings,
+        expected=1,
+        model_name=rec.embedding_model,
+    )
+    qvec = embeddings[0]
     if rec.dim is None:
-        rec.dim = len(qvec)
+        rec.dim = query_dim
         db.commit()
+    elif rec.dim != query_dim:
+        raise RagDimensionError(
+            f"Collection '{rec.name}' was built with dim={rec.dim}; "
+            f"current query embeddings are dim={query_dim}."
+        )
     t_embed = time.perf_counter()
 
     store = get_vector_store()

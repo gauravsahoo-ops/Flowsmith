@@ -10,11 +10,19 @@ Flowsmith distinguishes three connector populations. They are **not** equivalent
 | **Native** | **201** | Hand-written vendor connectors plus native REST batches in `vendor_rest.py` and `vendor_rest_batch*.py` |
 | **Generated** | **17** | Generated from OpenAPI descriptions under `backend/app/connectors/generated/` |
 | **Catalog-only** | **311** | Generic entries derived from the reference inventory. They have no vendor-specific execution code and require an explicit `endpoint_url`. |
-| **Total registered names** | **529** | The number the registry exposes to discovery/UI |
+| **Total registered names** | **529** | Registry entries retained for workflow/credential compatibility |
+| **Canonical discovery entries** | **504** | 529 minus 25 internal-test and duplicate aliases hidden from discovery |
 
 These counts describe the built-in/factory registry. Admin-installed
 [connector packs](CONNECTOR_PACKS.md) add generated connectors at runtime and
 are intentionally **not** included in these static counts.
+
+Discovery hides internal test fixtures (`e2e_test`,
+`e2e_test_polling_trigger`) and duplicate catalog aliases such as
+`active_campaign` and `microsoft_teams`. Those keys remain registered so old
+workflows and credentials still resolve, but they are not advertised as
+separate integrations. The audit manifest records each entry's
+`catalog_hidden`, `alias_of`, and `internal` fields.
 
 The runtime **node registry currently exposes 78 node keys**, including the
 provider-trigger and HTTP-polling trigger nodes. The certification manifest
@@ -109,6 +117,7 @@ Use these numbers unless this document and the script are updated together:
 - **17 OpenAPI-generated connectors**
 - **311 catalog-only reference integrations**
 - **529 registered connector names**
+- **504 canonical connector names shown in discovery**
 
 Do not describe 528 as “528 native connectors” or “528 integrations equivalent to n8n.” Do not use 528 as proof of vendor coverage.
 

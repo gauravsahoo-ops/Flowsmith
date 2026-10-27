@@ -16,6 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR / "backend"))
 
 from app.connectors import get_registry, ensure_builtin_connectors
+from app.connectors.naming import alias_target, is_hidden_in_catalog, is_internal
 from app.nodes.registry import NODE_REGISTRY, _ALIASES, list_nodes
 from app.integrations.catalog import certification_state_machine as csm
 
@@ -216,6 +217,9 @@ def build_manifest() -> dict:
             "version": defn.connector_version,
             "lifecycle_status": defn.lifecycle_status,
             "quality_tier": quality_tier,
+            "catalog_hidden": is_hidden_in_catalog(cid),
+            "alias_of": alias_target(cid),
+            "internal": is_internal(cid),
             "node_types": getattr(instance, "node_types", [cid]) if instance else [cid],
             "schema_hash": audit_info.get("schema_hash", csm.compute_schema_hash(defn)),
             "certification_tier": audit_info.get("certification", "MOCK_VALIDATED"),
@@ -266,6 +270,12 @@ def build_manifest() -> dict:
         "phase": "PHASE 4 — COMPLETE NODE AND CONNECTOR CERTIFICATION",
         "summary": {
             "total_registered_connectors": len(connectors_list),
+            "total_canonical_connectors": sum(
+                1 for entry in connectors_list if not entry["catalog_hidden"]
+            ),
+            "hidden_catalog_entries": sum(
+                1 for entry in connectors_list if entry["catalog_hidden"]
+            ),
             "total_connector_operations": total_ops,
             "total_connector_triggers": total_trigs,
             "distinct_credential_types": distinct_creds,

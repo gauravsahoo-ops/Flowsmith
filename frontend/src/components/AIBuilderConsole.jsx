@@ -202,6 +202,7 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
     <div className="ai-builder-console" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
       {/* Top Controls Bar: Modes & Model Router */}
       <div
+        className="ai-builder-controls"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -235,7 +236,7 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
         </div>
 
         {/* Model Router */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div className="ai-builder-router" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted, #94a3b8)' }}>Model Router:</span>
           <select
             value={modelMode}
@@ -272,9 +273,9 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
 
       {/* 3-COLUMN PRODUCTION WORKFLOW ENGINE LAYOUT */}
       <div
+        className="ai-builder-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(320px, 1fr) minmax(360px, 1.4fr) minmax(280px, 0.95fr)',
           gap: '1.25rem',
           alignItems: 'stretch',
         }}

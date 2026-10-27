@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { api, getToken, setToken } from '../api'
 import PageHeader from '../components/shared/PageHeader'
+import Tabs from '../components/shared/Tabs'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
 import ErrorAlertsList from '../components/ErrorAlertsList'
 import UniversalExecutionSearch from '../components/UniversalExecutionSearch'
@@ -180,14 +181,14 @@ function SystemInfo({ stats }) {
 }
 
 function getDateRangeIso(preset) {
-  if (!preset || preset === 'all') return { fromDate: undefined, toDate: undefined }
+  if (!preset || preset === 'all') return { startDate: undefined, endDate: undefined }
   const now = new Date()
   let from = new Date(now)
   if (preset === '1h') from.setHours(from.getHours() - 1)
   else if (preset === '24h') from.setDate(from.getDate() - 1)
   else if (preset === '7d') from.setDate(from.getDate() - 7)
   else if (preset === '30d') from.setDate(from.getDate() - 30)
-  return { fromDate: from.toISOString(), toDate: now.toISOString() }
+  return { startDate: from.toISOString(), endDate: now.toISOString() }
 }
 
 const DATE_OPTIONS = [
@@ -212,12 +213,15 @@ export default function MonitoringPage() {
   // Summary Metrics State (Cyclr-style integration telemetry)
   const [summary, setSummary] = useState(null)
   const [loadingSummary, setLoadingSummary] = useState(true)
+  const [summaryError, setSummaryError] = useState(null)
+  const summaryAbortRef = useRef(null)
 
   // Cluster Runtime Stats & Alert Stats
   const [stats, setStats] = useState(null)
   const [alertStats, setAlertStats] = useState({ unresolved_count: 0, critical_count: 0 })
   const [_loadingCluster, setLoadingCluster] = useState(true)
   const [error, setError] = useState(null)
+  const statsAbortRef = useRef(null)
 
   useEffect(() => {
     const t = searchParams.get('tab')
@@ -229,28 +233,45 @@ export default function MonitoringPage() {
   }, [searchParams])
 
   const fetchSummary = useCallback(() => {
+    summaryAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    summaryAbortRef.current = ctrl
     setLoadingSummary(true)
-    const { fromDate, toDate } = getDateRangeIso(datePreset)
+    const { startDate, endDate } = getDateRangeIso(datePreset)
     api
-      .getMonitoringSummary({ fromDate, toDate })
+      .getMonitoringSummary({ startDate, endDate }, { signal: ctrl.signal })
       .then((data) => {
+        if (ctrl.signal.aborted) return
         setSummary(data)
+        setSummaryError(null)
       })
       .catch((err) => {
-        console.error('Error fetching monitoring summary', err)
+        if (ctrl.signal.aborted) return
+        setSummaryError(err.message || 'Monitoring summary is temporarily unavailable.')
       })
-      .finally(() => setLoadingSummary(false))
+      .finally(() => {
+        if (!ctrl.signal.aborted) setLoadingSummary(false)
+      })
   }, [datePreset])
 
   const fetchClusterStats = useCallback(() => {
+    statsAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    statsAbortRef.current = ctrl
     api
-      .getMonitoringStats()
+      .getMonitoringStats({ signal: ctrl.signal })
       .then((data) => {
+        if (ctrl.signal.aborted) return
         setStats(data)
         setError(null)
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoadingCluster(false))
+      .catch((err) => {
+        if (ctrl.signal.aborted) return
+        setError(err.message)
+      })
+      .finally(() => {
+        if (!ctrl.signal.aborted) setLoadingCluster(false)
+      })
   }, [])
 
   const fetchAlertStats = useCallback(() => {
@@ -263,31 +284,28 @@ export default function MonitoringPage() {
   }, [])
 
   useEffect(() => {
-    fetchSummary()
-    fetchClusterStats()
-    fetchAlertStats()
-
-    const timer = setInterval(() => {
+    const refresh = () => {
       if (typeof document !== 'undefined' && document.hidden) return
-      fetchSummary()
-      fetchClusterStats()
+      if (tab === 'summary') fetchSummary()
+      if (tab === 'telemetry') fetchClusterStats()
       fetchAlertStats()
-    }, 12000)
+    }
+
+    refresh()
+    const timer = setInterval(refresh, 12000)
 
     const handleVisibility = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
-        fetchSummary()
-        fetchClusterStats()
-        fetchAlertStats()
-      }
+      if (typeof document !== 'undefined' && !document.hidden) refresh()
     }
     document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', handleVisibility)
+      if (tab === 'summary') summaryAbortRef.current?.abort()
+      if (tab === 'telemetry') statsAbortRef.current?.abort()
     }
-  }, [fetchSummary, fetchClusterStats, fetchAlertStats])
+  }, [tab, fetchSummary, fetchClusterStats, fetchAlertStats])
 
   const openMetricsExporter = async (e) => {
     e.preventDefault()
@@ -327,11 +345,28 @@ export default function MonitoringPage() {
     })
   }
 
+  const successRate =
+    summary && summary.total_executions > 0 ? summary.success_rate_percent : null
+  const successRateLabel = successRate == null ? '—' : `${successRate}%`
+  const successRateColor =
+    successRate == null
+      ? '#94a3b8'
+      : successRate >= 98
+      ? '#10b981'
+      : successRate >= 90
+      ? '#f59e0b'
+      : '#ef4444'
+
   return (
     <div className="page monitoring-page">
       {error && (
         <div className="banner-inline err" style={{ marginBottom: 12 }}>
           Live telemetry update notice: {error} — auto-retrying.
+        </div>
+      )}
+      {summaryError && tab === 'summary' && (
+        <div className="banner-inline err" style={{ marginBottom: 12 }}>
+          Monitoring summary could not be refreshed: {summaryError}. Showing the last available data.
         </div>
       )}
 
@@ -378,116 +413,41 @@ export default function MonitoringPage() {
       </div>
 
       {/* Primary Tab Navigation */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid var(--border)',
-          marginBottom: 20,
-          flexWrap: 'wrap',
-          gap: 12,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button
-            type="button"
-            onClick={() => handleTabChange('summary')}
-            style={{
-              padding: '10px 16px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              borderBottom: tab === 'summary' ? '2px solid #6366f1' : '2px solid transparent',
-              color: tab === 'summary' ? '#818cf8' : 'var(--text-muted)',
-              background: 'transparent',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-            }}
-          >
-            Integration Health & Telemetry
-          </button>
+      <div className="f-tab-row">
+        <Tabs
+          className="f-tabs"
+          ariaLabel="Monitoring sections"
+          value={tab}
+          onChange={handleTabChange}
+          tabs={[
+            { id: 'summary', label: 'Integration Health' },
+            { id: 'telemetry', label: 'Cluster & Runtime' },
+            {
+              id: 'alerts',
+              label: (
+                <span className="f-tab-label-with-count">
+                  Error Alerts
+                  {alertStats.unresolved_count > 0 && (
+                    <span className={`f-tab-count ${alertStats.critical_count > 0 ? 'is-critical' : ''}`}>
+                      {alertStats.unresolved_count}
+                    </span>
+                  )}
+                </span>
+              ),
+            },
+          ]}
+        />
 
-          <button
-            type="button"
-            onClick={() => handleTabChange('telemetry')}
-            style={{
-              padding: '10px 16px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              borderBottom: tab === 'telemetry' ? '2px solid #6366f1' : '2px solid transparent',
-              color: tab === 'telemetry' ? '#818cf8' : 'var(--text-muted)',
-              background: 'transparent',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-            }}
-          >
-            Cluster & Runtime Telemetry
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleTabChange('alerts')}
-            style={{
-              padding: '10px 16px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              borderBottom: tab === 'alerts' ? '2px solid #6366f1' : '2px solid transparent',
-              color: tab === 'alerts' ? '#818cf8' : 'var(--text-muted)',
-              background: 'transparent',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            <span>Error Alerts & Notifications</span>
-            {alertStats.unresolved_count > 0 && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: '1px 7px',
-                  borderRadius: 999,
-                  background: alertStats.critical_count > 0 ? '#e11d48' : '#f59e0b',
-                  color: '#fff',
-                }}
-              >
-                {alertStats.unresolved_count}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Date Range Selector Pill Set (Active on summary tab) */}
         {tab === 'summary' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginRight: 2 }}>Timeframe:</span>
-            {DATE_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                className={`ghost ${datePreset === opt.id ? 'active' : ''}`}
-                onClick={() => handleRangeChange(opt.id)}
-                style={{
-                  fontSize: 11.5,
-                  padding: '3px 9px',
-                  borderRadius: 6,
-                  background: datePreset === opt.id ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.03)',
-                  color: datePreset === opt.id ? '#ffffff' : '#94a3b8',
-                  border: `1px solid ${datePreset === opt.id ? 'rgba(99, 102, 241, 0.5)' : 'rgba(255, 255, 255, 0.08)'}`,
-                  fontWeight: datePreset === opt.id ? 600 : 400,
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
+          <div className="f-range-row">
+            <span className="f-range-label">Timeframe</span>
+            <Tabs
+              className="f-tabs f-tabs-sm"
+              ariaLabel="Monitoring timeframe"
+              value={datePreset}
+              onChange={handleRangeChange}
+              tabs={DATE_OPTIONS.map((opt) => ({ id: opt.id, label: opt.label }))}
+            />
           </div>
         )}
       </div>
@@ -501,9 +461,8 @@ export default function MonitoringPage() {
             <>
               {/* 8 Summary Metric Cards Grid */}
               <div
+                className="monitoring-stat-grid"
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
                   gap: 14,
                   marginBottom: 20,
                 }}
@@ -551,14 +510,8 @@ export default function MonitoringPage() {
                 {/* 4. Success Rate % */}
                 <MonitoringStatCard
                   title="Success Rate"
-                  value={`${summary?.success_rate_percent ?? 100}%`}
-                  color={
-                    (summary?.success_rate_percent ?? 100) >= 98
-                      ? '#10b981'
-                      : (summary?.success_rate_percent ?? 100) >= 90
-                      ? '#f59e0b'
-                      : '#ef4444'
-                  }
+                  value={successRateLabel}
+                  color={successRateColor}
                   icon={
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10" />

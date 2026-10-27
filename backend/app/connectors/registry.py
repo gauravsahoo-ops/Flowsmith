@@ -17,6 +17,7 @@ import re
 from typing import Dict, List, Optional, Set
 
 
+from app.connectors.naming import normalize_definition_names
 from app.connectors import (
     ConnectorSDK,
     ConnectorError,
@@ -260,6 +261,7 @@ class ConnectorRegistry:
         (downgrades are not allowed). A strictly newer version upgrades
         the active definition.
         """
+        normalize_definition_names(definition)
         validate_definition(definition)
         cid = definition.connector_key
 

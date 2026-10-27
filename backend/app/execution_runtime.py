@@ -661,7 +661,23 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
                 except Exception:
                     logger.exception("Failed to capture error for execution %s", execution_id)
                 if result.error is not None:
-                    await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, result.error.to_dict())
+                    # Error-handler invocation is best-effort. During worker
+                    # shutdown the default executor can already be closed;
+                    # that must not overwrite the already-recorded failure
+                    # with an EXECUTION_CRASHED status.
+                    try:
+                        await asyncio.to_thread(
+                            _maybe_run_error_workflow,
+                            db,
+                            job,
+                            execution_id,
+                            result.error.to_dict(),
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to start error workflow for execution %s",
+                            execution_id,
+                        )
             return final_status
         finally:
             _ACTIVE_CANCEL_EVENTS.pop(execution_id, None)
@@ -719,7 +735,10 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
             await asyncio.to_thread(ErrorMonitoringService.capture_execution_error, None, execution_id, job, crash_error, rec)
         except Exception:
             logger.exception("Failed to capture crash error for execution %s", execution_id)
-        await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, crash_error)
+        try:
+            await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, crash_error)
+        except Exception:
+            logger.exception("Failed to start error workflow for crashed execution %s", execution_id)
         return "failed"
     finally:
         db.close()

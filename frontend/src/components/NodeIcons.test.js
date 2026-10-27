@@ -9,7 +9,7 @@ describe('NodeIcon Real Logos Suite', () => {
     'jira', 'notion', 'airtable', 'trello', 'asana', 'linear',
     'clickup', 'monday', 'todoist', 'msteams', 'outlook', 'discord',
     'twilio', 'whatsapp', 'zoom', 'zendesk', 'freshdesk', 'pagerduty',
-    'stripe', 'shopify', 'quickbooks', 'dropbox', 'calendly', 'openai',
+    'stripe', 'shopify', 'quickbooks', 'dropbox', 'calendly', 'openai', 'telegram', 'salesforce_trigger',
     'mailchimp', 'brevo', 'pipedrive', 'google_drive', 'google_sheets',
     'google_calendar', 'google_docs', 'gmail', 'postgres', 'mysql',
     'mongodb', 'redis', 'supabase', 'resend', 'pinecone', 'sentry',
@@ -22,24 +22,23 @@ describe('NodeIcon Real Logos Suite', () => {
     'loop_over_items', 'split', 'merge', 'wait', 'filter',
     'set_data', 'aggregate', 'compare_datasets', 'data_table',
     'database_query', 'manual_trigger', 'error_trigger', 'schedule', 'webhook',
-    'form_trigger', 'chat_trigger', 'salesforce_trigger',
+    'form_trigger', 'chat_trigger',
     'stop_and_error', 'human_approval', 'noop', 'ai', 'ai_agent',
     'embeddings', 'rag_pipeline', 'memory', 'text_splitter',
     'output_parser', 'token_manager', 'token_fetch', 'token_store',
     'crypto_tools', 'csv_json_transform', 'date_time', 'email_read',
-    'send_email', 'file_io', 'ftp', 'git', 'graphql', 'html_extract',
+    'send_email', 'file_io', 'ftp', 'graphql', 'html_extract',
     'item_lists', 'markdown_text', 'pagination', 'respond_to_webhook',
-    'rss_feed', 'ssh', 'telegram', 'websocket', 'xml_ops'
+    'ssh', 'websocket', 'xml_ops'
   ]
 
   connectors.forEach((type) => {
-    it(`renders real SVG logo for connector: ${type}`, () => {
+    it(`renders a brand mark or premium icon for connector: ${type}`, () => {
       const el = React.createElement(NodeIcon, { type, size: 32 })
       const html = renderToStaticMarkup(el)
-      expect(html).toContain('<svg')
-      expect(html).toContain('width="32"')
-      expect(html).toContain('height="32"')
-      expect(html).not.toContain('<span')
+      expect(html).toMatch(/<svg|<img/)
+      expect(html).toMatch(/width="32"|width:32px/)
+      expect(html).toMatch(/height="32"|height:32px/)
     })
   })
 

@@ -405,7 +405,7 @@ export default function SalesforceOAuthModal({
         <div className="sf-modal-header">
           <div className="sf-header-title-wrap">
             <div className="sf-brand-avatar">
-              <NodeIcon type="salesforce" size={24} />
+              <NodeIcon type="salesforce" size={32} />
             </div>
             <div className="sf-header-meta">
               <h3 id="sf-modal-title">

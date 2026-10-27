@@ -45,6 +45,14 @@ export default function SettingsPage() {
   const [newKeyName, setNewKeyName] = useState('')
   const [newKey, setNewKey] = useState(null)
   const [keyBusy, setKeyBusy] = useState(false)
+  const [billingPlans, setBillingPlans] = useState({})
+  const [billingSubscription, setBillingSubscription] = useState(null)
+  const [billingUsage, setBillingUsage] = useState(null)
+  const [billingWorkspaceId, setBillingWorkspaceId] = useState('')
+  const [billingLoading, setBillingLoading] = useState(false)
+  const [billingError, setBillingError] = useState(null)
+  const [billingNotice, setBillingNotice] = useState(null)
+  const [checkoutPlan, setCheckoutPlan] = useState('')
 
   const branding = useBrandingStore()
   const soundEffects = useUiStore((s) => s.soundEffects)
@@ -133,8 +141,16 @@ export default function SettingsPage() {
   }, [auditActionFilter, auditPage])
 
   useEffect(() => {
-    loadAuditEvents(auditActionFilter, auditPage)
-  }, [loadAuditEvents, auditActionFilter, auditPage])
+    // /api/audit is admin-only. Do not send members a guaranteed 403 or
+    // present an empty trail as if nothing had ever been logged.
+    if (profile?.role === 'admin') {
+      loadAuditEvents(auditActionFilter, auditPage)
+    } else {
+      setAuditEvents([])
+      setAuditTotal(0)
+      setAuditLoading(false)
+    }
+  }, [profile?.role, loadAuditEvents, auditActionFilter, auditPage])
 
   useEffect(() => {
     setBrandForm({
@@ -296,6 +312,64 @@ export default function SettingsPage() {
     })
     return () => { alive = false }
   }, [])
+
+  useEffect(() => {
+    if (!workspaces.length) return
+    const workspace = workspaces.find(w => w.id === billingWorkspaceId) || workspaces[0]
+    const organizationId = workspace?.organization_id || orgs[0]?.id || ''
+    if (!organizationId) return
+    if (!billingWorkspaceId) {
+      setBillingWorkspaceId(workspace.id)
+      return
+    }
+
+    let alive = true
+    setBillingLoading(true)
+    setBillingError(null)
+    Promise.all([
+      api.listBillingPlans().catch(() => null),
+      api.getBillingUsage(workspace.id).catch(() => null),
+      api.getBillingSubscription(organizationId).catch(() => null),
+    ]).then(([plans, usage, subscription]) => {
+      if (!alive) return
+      if (plans) setBillingPlans(plans)
+      if (usage) setBillingUsage(usage)
+      if (subscription) setBillingSubscription(subscription)
+      if (!usage || !subscription) {
+        setBillingError('Billing usage is unavailable for this workspace.')
+      }
+    }).catch((err) => {
+      if (alive) setBillingError(err.message || 'Could not load billing information.')
+    }).finally(() => {
+      if (alive) setBillingLoading(false)
+    })
+    return () => { alive = false }
+  }, [workspaces, orgs, billingWorkspaceId])
+
+  async function handleBillingCheckout(planKey) {
+    const workspace = workspaces.find(w => w.id === billingWorkspaceId) || workspaces[0]
+    const organizationId = workspace?.organization_id || billingSubscription?.organization_id || orgs[0]?.id || ''
+    if (!organizationId) {
+      setBillingError('Choose a workspace before upgrading a plan.')
+      return
+    }
+    setCheckoutPlan(planKey)
+    setBillingError(null)
+    setBillingNotice(null)
+    try {
+      const result = await api.startBillingCheckout({ organization_id: organizationId, plan: planKey })
+      if (result?.checkout_url) {
+        setBillingNotice('Redirecting to secure checkout...')
+        window.location.assign(result.checkout_url)
+        return
+      }
+      setBillingNotice('Checkout session created.')
+    } catch (err) {
+      setBillingError(err.message || 'Could not start checkout.')
+    } finally {
+      setCheckoutPlan('')
+    }
+  }
 
   async function createKey(e) {
     e.preventDefault()
@@ -553,6 +627,12 @@ export default function SettingsPage() {
       setError(`Could not copy recovery codes: ${err.message}`)
     }
   }
+
+  const billingWorkspace = workspaces.find(w => w.id === billingWorkspaceId) || workspaces[0] || null
+  const currentPlan = billingSubscription?.plan || 'free'
+  const planLabel = billingPlans[currentPlan]?.name || currentPlan
+  const formatLimit = (value) => (value === -1 ? 'Unlimited' : (value ?? '?'))
+  const formatPrice = (cents) => cents > 0 ? `$${(cents / 100).toFixed(0)}/mo` : 'Free'
 
   if (loading) return <div className="page settings-page"><PageHeader title="Settings" /><LoadingSkeleton rows={6} /></div>
 
@@ -1344,6 +1424,84 @@ export default function SettingsPage() {
         )}
       </Section>
 
+      <Section title="Billing & Usage" description="Monitor workspace quotas and manage the organization subscription. Stripe checkout is optional for self-hosted deployments.">
+        {billingError && <div className="banner-inline err" style={{ marginBottom: 12 }}>{billingError}</div>}
+        {billingNotice && <div className="banner-inline ok" style={{ marginBottom: 12 }}>{billingNotice}</div>}
+        {!billingWorkspace ? (
+          <p className="hint">Create or join a workspace to view billing usage.</p>
+        ) : billingLoading && !billingSubscription ? (
+          <LoadingSkeleton rows={3} />
+        ) : (
+          <>
+            <div className="billing-current">
+              <span className={`plan-badge plan-${currentPlan}`}>{planLabel}</span>
+              <span className="hint">{billingSubscription?.status || 'active'}</span>
+              <select
+                className="glass-select"
+                value={billingWorkspace?.id || ''}
+                onChange={e => setBillingWorkspaceId(e.target.value)}
+                aria-label="Billing workspace"
+              >
+                {workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+            <div className="settings-grid" style={{ margin: '12px 0' }}>
+              <div className="settings-attr">
+                <div className="settings-attr-label">Executions this month</div>
+                <div className="settings-attr-value">
+                  {billingUsage?.executions_month ?? '?'} / {formatLimit(billingPlans[currentPlan]?.max_executions_month)}
+                </div>
+              </div>
+              <div className="settings-attr">
+                <div className="settings-attr-label">Stored workflows</div>
+                <div className="settings-attr-value">
+                  {billingUsage?.workflows_total ?? '?'} / {formatLimit(billingPlans[currentPlan]?.max_workflows)}
+                </div>
+              </div>
+              <div className="settings-attr">
+                <div className="settings-attr-label">Billing</div>
+                <div className="settings-attr-value">{billingSubscription?.stripe_configured ? 'Stripe connected' : 'Self-hosted / no Stripe'}</div>
+              </div>
+            </div>
+            <div className="plans-list">
+              {Object.entries(billingPlans).map(([planKey, plan]) => {
+                const isCurrent = planKey === currentPlan
+                const purchasable = planKey === 'starter' || planKey === 'pro'
+                return (
+                  <div key={planKey} className={`plan-row ${isCurrent ? 'is-current' : ''}`}>
+                    <div className="plan-info">
+                      <strong>{plan.name || planKey}</strong>
+                      <span className="hint">
+                        {formatPrice(plan.price_month)} ? {formatLimit(plan.max_executions_month)} executions ? {formatLimit(plan.max_workflows)} workflows
+                      </span>
+                    </div>
+                    {isCurrent ? (
+                      <span className="plan-current-label">Current plan</span>
+                    ) : purchasable ? (
+                      <button
+                        className="ghost small"
+                        disabled={Boolean(checkoutPlan) || !billingSubscription?.stripe_configured}
+                        onClick={() => handleBillingCheckout(planKey)}
+                        title={billingSubscription?.stripe_configured ? `Upgrade to ${plan.name}` : 'Stripe is not configured on this deployment.'}
+                      >
+                        {checkoutPlan === planKey ? 'Starting...' : 'Upgrade'}
+                      </button>
+                    ) : (
+                      <span className="hint">Contact sales</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            {billingSubscription && !billingSubscription.stripe_configured && (
+              <p className="hint" style={{ marginTop: 10 }}>
+                Stripe checkout is not configured. Plan limits still apply according to the organization subscription.
+              </p>
+            )}
+          </>
+        )}
+      </Section>
+
       <Section title="API Keys" description="Programmatic API tokens. The secret key is only revealed once upon creation.">
         <form onSubmit={createKey} className="inline-form">
           <input
@@ -1770,6 +1928,12 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Platform Audit Trail" description="Immutable security audit events, credential operations, and user access history.">
+        {profile?.role !== 'admin' ? (
+          <p className="hint" style={{ margin: 0 }}>
+            Platform audit events are available to administrators only.
+          </p>
+        ) : (
+        <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <label style={{ fontSize: 12.5, color: '#94a3b8' }}>
@@ -1894,6 +2058,8 @@ export default function SettingsPage() {
             </tbody>
           </table>
         </div>
+        </>
+        )}
       </Section>
 
       <Section title="Execution Engine" description="Durable job queue and worker architecture.">

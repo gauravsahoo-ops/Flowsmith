@@ -275,7 +275,7 @@ export function CommandPaletteModal({ open, onClose }) {
                   </span>
                 ) : item.icon && (
                   <span className="node-icon">
-                    <NodeIcon type={item.type} icon={item.icon} size={16} />
+                    <NodeIcon type={item.type} icon={item.icon} size={18} />
                   </span>
                 )}
                 <span className="palette-title">{item.title}</span>

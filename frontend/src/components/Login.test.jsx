@@ -1,51 +1,50 @@
 import { describe, it, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router-dom'
 import Login from './Login'
 
 describe('Login Component Suite', () => {
-  it('renders modern v2.5 platform hero with badges, metrics, and live pipeline', () => {
-    const html = renderToStaticMarkup(React.createElement(Login, { onAuthed: () => {} }))
+  it('renders the Foundry login hero, workflow preview, and secure auth card', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        MemoryRouter,
+        null,
+        React.createElement(Login, { onAuthed: () => {} }),
+      ),
+    )
 
-    // Ensure removed badges and system status pill are absent
-    expect(html).not.toContain('FLOWSMITH PLATFORM')
-    expect(html).not.toContain('v2.5 Enterprise Live')
-    expect(html).not.toContain('SOC-2 Ready')
-    expect(html).not.toContain('All systems operational')
+    // Brand and product statement
+    expect(html).toContain('Flowsmith')
+    expect(html).toContain('Enterprise Automation Cloud')
+    expect(html).toContain('Self-hosted')
+    expect(html).toContain('Automation with')
+    expect(html).toContain('engineering discipline.')
+    expect(html).toContain('Design, run, and observe workflows')
 
-    // Headline & Subheading
-    expect(html).toContain('Automate at the')
-    expect(html).toContain('speed of thought.')
-    expect(html).toContain('autonomous AI agents')
-
-    // Live Pipeline Card & Nodes
-    expect(html).toContain('Live Pipeline Execution')
-    expect(html).not.toContain('sync-crm-contacts')
-    expect(html).toContain('Active • 99.99% SLA')
+    // Workflow preview
+    expect(html).toContain('Workflow preview')
+    expect(html).toContain('Example run')
     expect(html).toContain('Webhook')
     expect(html).toContain('Salesforce')
     expect(html).toContain('AI Agent')
 
-    // Enterprise Performance Metrics
-    expect(html).toContain('12ms (P99)')
-    expect(html).toContain('AES-256-GCM')
-    expect(html).toContain('Dual Redis + WS')
-    expect(html).toContain('45k ops/s')
+    // Factual capability list
+    expect(html).toContain('Visual DAG builder')
+    expect(html).toContain('Native connectors')
+    expect(html).toContain('AI agents')
+    expect(html).toContain('Human approvals')
 
-    // Capability Badges (Valid 528+ Connectors)
-    expect(html).toContain('528+ Visual Connectors')
-    expect(html).toContain('Autonomous AI Agents')
-    expect(html).toContain('Self-Healing Execution')
-    expect(html).toContain('Zero-Trust Encryption')
-
-    // Auth Form & Controls
+    // Auth form and security strip
     expect(html).toContain('Log in')
     expect(html).toContain('Sign up')
     expect(html).toContain('Email or username')
     expect(html).toContain('Password')
     expect(html).toContain('Sign In to Workspace')
+    expect(html).toContain('256-bit encryption')
+    expect(html).toContain('Passkeys')
 
-    // Engineer Credit
-    expect(html).toContain('Gaurav')
+    // Product footer
+    expect(html).toContain('Secure workspace')
   })
 })

@@ -344,7 +344,7 @@ export default function GoogleOAuthModal({
         <div className="goog-modal-header">
           <div className="goog-header-title-wrap">
             <div className="goog-brand-avatar">
-              <NodeIcon type={serviceType} size={24} />
+              <NodeIcon type={serviceType} size={32} />
             </div>
             <div className="goog-header-meta">
               <h3 id="google-modal-title">

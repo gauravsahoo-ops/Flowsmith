@@ -84,6 +84,30 @@ def test_node_catalog_endpoint_includes_connector_types(client):
     assert "operation" in schema.json()["data"]["properties"]
 
 
+def test_discovery_hides_internal_and_duplicate_alias_connectors(client):
+    headers = _setup(client)
+    body = client.get("/api/connectors", headers=headers).json()["data"]
+    keys = {c["connector_key"] for c in body}
+    assert "activecampaign" in keys
+    assert "active_campaign" not in keys
+    assert "e2e_test" not in keys
+    assert "e2e_test_polling_trigger" not in keys
+    names = [c["display_name"] for c in body]
+    assert len(names) == len(set(names))
+
+
+def test_node_catalog_hides_internal_entries_and_uses_canonical_names(client):
+    headers = _setup(client)
+    catalog = client.get("/api/nodes", headers=headers).json()["data"]
+    by_type = {entry["type"]: entry for entry in catalog}
+    assert "e2e_test" not in by_type
+    assert by_type["slack_api"]["display_name"] == "Slack API"
+    assert by_type["split"]["display_name"] == "Split Out (Legacy)"
+    assert by_type["split_out"]["display_name"] == "Split Out"
+    names = [entry["display_name"] for entry in catalog]
+    assert len(names) == len(set(names))
+
+
 def test_discovery_returns_populated_connectors(client):
     headers = _setup(client)
     resp = client.get("/api/connectors", headers=headers)

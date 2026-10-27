@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import CsvNodeEditor from './CsvNodeEditor'
 
 describe('CsvNodeEditor Suite', () => {
-  it('renders CSV Parser identity banner and supported format tags', () => {
+  it('renders the CSV Parser parameters intro and supported formats', () => {
     const node = {
       id: 'node_dataload_1',
       type: 'flowsmith.data_load',
@@ -19,12 +19,9 @@ describe('CsvNodeEditor Suite', () => {
       })
     )
     expect(html).toContain('CSV Parser')
-    expect(html).toContain('Production Ready')
-    expect(html).toContain('CSV')
-    expect(html).toContain('TSV')
-    expect(html).toContain('ZIP (Single &amp; Multi-File)')
-    expect(html).toContain('Nested Archives')
-    expect(html).toContain('GZIP (.gz)')
+    expect(html).toContain('csv_parser')
+    expect(html).toContain('CSV · TSV · ZIP · TAR · GZIP')
+    expect(html).not.toContain('Production Ready')
   })
 
   it('renders 4 source modes: upload, url, file_path, and inline', () => {
@@ -41,10 +38,10 @@ describe('CsvNodeEditor Suite', () => {
         onParamsChange: () => {},
       })
     )
-    expect(html).toContain('Option A: Upload File')
-    expect(html).toContain('Option B: Download URL')
-    expect(html).toContain('Local File Path')
-    expect(html).toContain('Inline Content')
+    expect(html).toContain('Upload file')
+    expect(html).toContain('Download URL')
+    expect(html).toContain('Local path')
+    expect(html).toContain('Inline text')
   })
 
   it('renders SSRF protection guard when in URL mode', () => {
@@ -64,7 +61,7 @@ describe('CsvNodeEditor Suite', () => {
     )
     expect(html).toContain('SSRF Guard Active')
     expect(html).toContain('Rejects loopback, private networks')
-    expect(html).toContain('Download URL (Supports Expressions)')
+    expect(html).toContain('Download URL')
   })
 
   it('removes Field Mapping section and Auto-Map controls as requested (handled in subsequent step)', () => {
