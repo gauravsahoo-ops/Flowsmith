@@ -16,6 +16,7 @@ from typing import Any
 from app.db import get_session
 from app.models.file import FileRecord
 from app.objectstore.factory import get_object_store
+from sqlalchemy import select
 
 
 def format_file_size(num_bytes: int) -> str:
@@ -112,10 +113,49 @@ def prepare_binary_data(
     }
 
 
-def get_binary_data_buffer(binary_entry: dict[str, Any]) -> bytes:
+def _authorized_object_key(
+    object_key: str,
+    *,
+    user_id: int | None,
+    workspace_id: str | None = None,
+) -> str:
+    """Return *object_key* only when the caller may read its FileRecord.
+
+    Binary metadata is data flowing through a workflow, so ``objectKey`` can
+    be supplied by an upstream item. Reading it without authorization would
+    turn File I/O / email attachments into an object-store read primitive.
+    Trusted internal/test callers (no user context) keep the historical direct
+    read; execution paths always pass the caller's identity.
+    """
+    if user_id is None:
+        return object_key
+    with get_session() as db:
+        rec = db.scalar(
+            select(FileRecord).where(FileRecord.object_key == object_key).limit(1)
+        )
+        if rec is None:
+            raise FileNotFoundError(f"Binary object '{object_key}' has no file record.")
+        authorized = rec.owner_user_id == user_id
+        if not authorized and rec.workspace_id:
+            from app.api.access import workspace_can_view
+
+            authorized = workspace_can_view(db, rec.workspace_id, user_id)
+        if not authorized:
+            raise PermissionError("Binary object access denied.")
+    return object_key
+
+
+def get_binary_data_buffer(
+    binary_entry: dict[str, Any],
+    *,
+    user_id: int | None = None,
+    workspace_id: str | None = None,
+) -> bytes:
     """Retrieve raw bytes from an IBinaryData metadata dictionary.
 
     Attempts ObjectStore retrieval first via objectKey or id; falls back to base64 decoding.
+    When a user context is supplied, object-store reads are authorized against
+    the FileRecord owner/workspace ACL.
     """
     if not isinstance(binary_entry, dict):
         raise ValueError("binary_entry must be a dictionary")
@@ -124,16 +164,29 @@ def get_binary_data_buffer(binary_entry: dict[str, Any]) -> bytes:
     object_key = binary_entry.get("objectKey")
     file_id = binary_entry.get("id")
 
-    if not object_key and file_id:
+    if file_id:
         try:
             with get_session() as db:
                 rec = db.get(FileRecord, file_id)
                 if rec:
+                    if user_id is not None:
+                        authorized = rec.owner_user_id == user_id
+                        if not authorized and rec.workspace_id:
+                            from app.api.access import workspace_can_view
+
+                            authorized = workspace_can_view(db, rec.workspace_id, user_id)
+                        if not authorized:
+                            raise PermissionError("Binary object access denied.")
                     object_key = rec.object_key
+        except PermissionError:
+            raise
         except Exception:
             pass
 
     if object_key:
+        object_key = _authorized_object_key(
+            str(object_key), user_id=user_id, workspace_id=workspace_id
+        )
         store = get_object_store()
         try:
             return store.get(object_key)

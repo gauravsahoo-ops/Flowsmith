@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from sqlalchemy import and_, cast, func, or_, select, String
 from sqlalchemy.orm import Session, defer
 
-from app.api.access import accessible_ids, get_permission, get_workflow
+from app.api.access import accessible_ids, batch_permissions, get_permission, get_workflow
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params
 from app.audit import (
@@ -87,6 +87,7 @@ def _to_dict(
     preloaded_staged: list[Any] | None = None,
     preloaded_api_reqs: list[Any] | None = None,
     preloaded_errors: list[Any] | None = None,
+    redact_search_values: bool = False,
 ) -> dict[str, Any]:
     duration_ms = rec.duration_ms
     if duration_ms is None and rec.started_at:
@@ -201,6 +202,7 @@ def _to_dict(
                 preloaded_staged=preloaded_staged,
                 preloaded_api_reqs=preloaded_api_reqs,
                 preloaded_errors=preloaded_errors,
+                redact_values=redact_search_values,
             )
         except Exception:
             pass
@@ -844,6 +846,7 @@ def list_executions(
             )
         ).all() if u_ids
     }
+    perms = batch_permissions(db, wf_ids, user)
     # Pre-batch search dependencies to eliminate N+1 queries during list serialization
     from collections import defaultdict
 
@@ -949,6 +952,7 @@ def list_executions(
             preloaded_staged=staged_by_exec.get(r.id, []),
             preloaded_api_reqs=api_by_exec.get(r.id, []),
             preloaded_errors=err_by_exec.get(r.id, []),
+            redact_search_values=perms.get(r.workflow_id) not in ("owner", "edit"),
         )
         for r in recs
     ]
@@ -1376,7 +1380,7 @@ def get_execution_steps(
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
-
+    can_edit = _can_edit_execution(db, rec, user)
     step_rows = db.scalars(
         select(ExecutionStep)
         .where(ExecutionStep.execution_id == execution_id)
@@ -1405,9 +1409,9 @@ def get_execution_steps(
                 "error_code": s.error_code,
                 "error_message": s.error_message,
                 "retry_count": s.retry_count,
-                "metadata": getattr(s, "error_details", None) or getattr(s, "step_metadata", None),
-                "inputs": getattr(s, "inputs", None),
-                "outputs": getattr(s, "outputs", None),
+                "metadata": (getattr(s, "error_details", None) or getattr(s, "step_metadata", None)) if can_edit else None,
+                "inputs": getattr(s, "inputs", None) if can_edit else None,
+                "outputs": getattr(s, "outputs", None) if can_edit else None,
             }
             for s in step_rows
         ]
@@ -1428,6 +1432,7 @@ def get_execution_timeline(
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
+    can_edit = _can_edit_execution(db, rec, user)
 
     events: list[dict[str, Any]] = []
 
@@ -1516,7 +1521,7 @@ def get_execution_timeline(
                 "node_type": s.get("node_type", "node"),
                 "status": "failed" if s.get("status") in ("error", "failed") else "success",
                 "duration_ms": s.get("duration_ms", 0),
-                "error": s.get("error"),
+                "error": s.get("error") if can_edit else redact_sensitive(s.get("error")),
                 "api_calls": [],
             })
 
@@ -1626,6 +1631,11 @@ def get_execution_request_detail(
     """Lazy-load full payload and headers for one specific API call."""
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
+    # Full payloads/query params can contain credentials or tokens echoed by
+    # the upstream API. The list view stays available to view shares, but the
+    # raw capture is an editor-only surface.
+    if not _can_edit_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
     req = db.scalar(

@@ -129,38 +129,26 @@ async def _load_source_text(source_type: str, source: str, ctx: Any | None = Non
             if not file_id:
                 raise ValueError("file: reference missing id")
             from app.db import get_session
-            from app.models import FileRecord
+            from app.services.file_access import resolve_file_reference
 
             db = get_session()
             try:
-                rec = db.get(FileRecord, file_id)
-                if rec is None:
-                    raise FileNotFoundError(f"File not found: {file_id}")
-                # Workspace isolation: file must belong to the run's workspace
-                # or be a personal file owned by the run's user.
-                if ctx is not None and hasattr(ctx, "workspace_id"):
-                    run_ws = getattr(ctx, "workspace_id", None)
-                    run_user = int(getattr(ctx, "user_id", 0) or 0)
-                    if rec.workspace_id is not None and rec.workspace_id != run_ws:
-                        # Allow cross-workspace only when the file is personal
-                        # and owned by the runner (already checked below).
-                        raise PermissionError(f"File {file_id} belongs to a different workspace.")
-                    if rec.owner_user_id != run_user and rec.workspace_id != run_ws:
-                        # Fallback membership check for shared workspaces
-                        if rec.workspace_id is not None:
-                            from app.api.access import workspace_can_view
-
-                            if not workspace_can_view(db, rec.workspace_id, run_user):
-                                raise PermissionError(f"No access to file {file_id}.")
-                from app.objectstore.factory import get_object_store
-
-                raw = get_object_store().get(rec.object_key)
-                try:
-                    return raw.decode("utf-8")
-                except UnicodeDecodeError:
-                    return raw.decode("utf-8", errors="replace")
+                ref = resolve_file_reference(
+                    db,
+                    file_id,
+                    user_id=int(getattr(ctx, "user_id", 0) or 0) or None,
+                    workspace_id=getattr(ctx, "workspace_id", None),
+                    node_id="rag_pipeline",
+                )
             finally:
                 db.close()
+            from app.objectstore.factory import get_object_store
+
+            raw = get_object_store().get(ref.object_key)
+            try:
+                return raw.decode("utf-8")
+            except UnicodeDecodeError:
+                return raw.decode("utf-8", errors="replace")
         path = Path(source)
         # Containment: raw filesystem reads must stay inside the configured
         # file root (never .env, /etc, or other server files).

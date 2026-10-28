@@ -33,6 +33,7 @@ from app.nodes.csv_parser import CsvParserNode, CsvParserParams
 from app.connectors.csv_connector import CsvConnector
 from app.connectors.salesforce_connector import SalesforceConnector
 from app.engine.node_base import NodeContext
+from app.engine.errors import NodeExecutionError
 from app.models.staged_record import StagedContactRecord
 from app.db import get_session
 from app.connectors import ConnectorError, ConnectorErrorCode
@@ -442,6 +443,27 @@ def test_gzip_compressed_file_parsing():
     rows = chunks[0]
     assert rows[0]["FirstName"] == "Margaret"
     assert meta["detected_format"] == "gzip"
+
+
+def test_csv_remote_fetch_blocks_private_and_metadata_destinations():
+    """The synchronous CSV downloader must enforce the shared SSRF policy."""
+    for url in (
+        "http://169.254.169.254/latest/meta-data/",
+        "http://10.1.2.3/export.csv",
+        "file:///etc/passwd",
+    ):
+        with pytest.raises(NodeExecutionError) as exc:
+            CsvService.fetch_url_content(url)
+        assert exc.value.code == "SSRF_BLOCKED"
+
+
+def test_csv_file_path_blocks_files_outside_the_contained_root():
+    """CSV file_path must not become an arbitrary local-file read primitive."""
+    from app.nodes.file_io import FileIONode
+
+    with pytest.raises(NodeExecutionError) as exc:
+        FileIONode._validate_path("../.env")
+    assert exc.value.code == "PATH_BLOCKED"
 
 
 # 22. Base64 Data URL decoding (e.g. file upload in browser)

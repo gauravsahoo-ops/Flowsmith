@@ -29,8 +29,10 @@ import httpx
 from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
+from app.engine.errors import NodeExecutionError
 from app.objectstore.factory import get_object_store
 from app.models.staged_record import StagedContactRecord
+from app.security.ssrf import assert_public_url_sync
 
 
 @dataclass
@@ -102,10 +104,18 @@ EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 class CsvService:
     """Production CSV, TSV, and Archive ingestion, validation, deduplication, and persistence engine."""
 
+    MAX_REMOTE_BYTES = 50 * 1024 * 1024
+    MAX_REDIRECTS = 5
+    MAX_ARCHIVE_TOTAL_BYTES = 150 * 1024 * 1024
+    MAX_ARCHIVE_FILE_BYTES = 100 * 1024 * 1024
+    MAX_ARCHIVE_FILES = 1000
+
     @staticmethod
     def fetch_url_content(url: str, timeout: float = 60.0) -> tuple[bytes, str]:
         """Fetch remote file content from an HTTP or HTTPS link with timeout and redirect handling.
 
+        Every initial request and redirect hop is checked against the shared
+        SSRF policy, and the body is bounded to avoid memory exhaustion.
         Returns a tuple of (content_bytes, filename_hint).
         """
         clean_url = url.strip()
@@ -118,17 +128,56 @@ class CsvService:
         headers = {
             "User-Agent": "Flowsmith-Ingest-Engine/1.0 (Enterprise CSV/TSV/Archive Parser)"
         }
-        with httpx.Client(follow_redirects=True, timeout=timeout) as client:
-            resp = client.get(clean_url, headers=headers)
-            resp.raise_for_status()
+        current_url = clean_url
+        with httpx.Client(follow_redirects=False, timeout=timeout) as client:
+            for redirects in range(CsvService.MAX_REDIRECTS + 1):
+                assert_public_url_sync(current_url, node_id="csv_parser")
+                with client.stream("GET", current_url, headers=headers) as resp:
+                    if resp.status_code in (301, 302, 303, 307, 308):
+                        location = resp.headers.get("location", "").strip()
+                        if not location:
+                            raise ValueError("Remote CSV download returned a redirect without a Location header.")
+                        if redirects >= CsvService.MAX_REDIRECTS:
+                            raise ValueError("Remote CSV download exceeded the redirect limit.")
+                        current_url = urllib.parse.urljoin(current_url, location)
+                        continue
 
-            cd = resp.headers.get("content-disposition", "")
-            if "filename=" in cd:
-                match = re.search(r'filename\*?=(?:UTF-8\'\')?["\']?([^"\';\r\n]+)', cd, re.IGNORECASE)
-                if match:
-                    filename_hint = match.group(1).strip()
+                    resp.raise_for_status()
+                    content_length = resp.headers.get("content-length", "")
+                    if content_length.isdigit() and int(content_length) > CsvService.MAX_REMOTE_BYTES:
+                        raise NodeExecutionError(
+                            "Remote CSV file exceeds the maximum allowed download size.",
+                            code="FILE_TOO_LARGE",
+                            node_id="csv_parser",
+                            retryable=False,
+                        )
 
-            return resp.content, filename_hint
+                    chunks: list[bytes] = []
+                    total = 0
+                    for chunk in resp.iter_bytes():
+                        total += len(chunk)
+                        if total > CsvService.MAX_REMOTE_BYTES:
+                            raise NodeExecutionError(
+                                "Remote CSV file exceeds the maximum allowed download size.",
+                                code="FILE_TOO_LARGE",
+                                node_id="csv_parser",
+                                retryable=False,
+                            )
+                        chunks.append(chunk)
+
+                    content_disposition = resp.headers.get("content-disposition", "")
+                    if "filename=" in content_disposition:
+                        match = re.search(
+                            r'filename\*?=(?:UTF-8\'\')?["\']?([^"\';\r\n]+)',
+                            content_disposition,
+                            re.IGNORECASE,
+                        )
+                        if match:
+                            filename_hint = match.group(1).strip()
+
+                    return b"".join(chunks), filename_hint
+
+        raise ValueError("Remote CSV download exceeded the redirect limit.")
 
     @classmethod
     def extract_from_archive_bytes(
@@ -150,14 +199,17 @@ class CsvService:
         if is_zip:
             try:
                 with zipfile.ZipFile(io.BytesIO(raw_bytes)) as zf:
+                    from app.services.dataload.security import ZipSecurityValidator
+
+                    valid_infos = ZipSecurityValidator.validate_archive(
+                        zf,
+                        max_total_bytes=cls.MAX_ARCHIVE_TOTAL_BYTES,
+                        max_single_entry_bytes=cls.MAX_ARCHIVE_FILE_BYTES,
+                        max_entries=cls.MAX_ARCHIVE_FILES,
+                        node_id="csv_parser",
+                    )
                     all_entries = zf.namelist()
-                    valid_files = [
-                        name for name in all_entries
-                        if not name.endswith("/")
-                        and not name.startswith("__MACOSX/")
-                        and not os.path.basename(name).startswith("._")
-                        and os.path.basename(name) != ".DS_Store"
-                    ]
+                    valid_files = [info.filename for info in valid_infos]
                     if not valid_files:
                         raise ValueError(f"ZIP archive contains no usable files. Entries: {all_entries}")
 
@@ -180,6 +232,8 @@ class CsvService:
                         chosen_entry = candidates[0] if candidates else valid_files[0]
 
                     inner_data = zf.read(chosen_entry)
+                    if len(inner_data) > cls.MAX_ARCHIVE_FILE_BYTES:
+                        raise ValueError("ZIP entry exceeds the maximum allowed uncompressed size.")
                     decoded_text = inner_data.decode("utf-8-sig", errors="replace")
                     is_tsv = chosen_entry.lower().endswith((".tsv", ".tab"))
                     return ExtractedSourceMeta(
@@ -197,7 +251,10 @@ class CsvService:
         is_gzip = raw_bytes.startswith(b"\x1f\x8b") or lowered_name.endswith((".gz", ".gzip", ".tgz"))
         if is_gzip:
             try:
-                decompressed = gzip.decompress(raw_bytes)
+                with gzip.GzipFile(fileobj=io.BytesIO(raw_bytes)) as gz:
+                    decompressed = gz.read(cls.MAX_ARCHIVE_TOTAL_BYTES + 1)
+                if len(decompressed) > cls.MAX_ARCHIVE_TOTAL_BYTES:
+                    raise ValueError("GZIP expansion exceeds the maximum allowed size.")
                 if lowered_name.endswith((".tar.gz", ".tgz")) or decompressed.startswith(b"ustar"):
                     return cls._extract_from_tar(decompressed, filename_hint, archive_inner_file)
 
@@ -244,6 +301,11 @@ class CsvService:
         try:
             with tarfile.open(fileobj=io.BytesIO(raw_bytes)) as tf:
                 members = [m for m in tf.getmembers() if m.isfile() and not m.name.startswith("__MACOSX")]
+                if len(members) > cls.MAX_ARCHIVE_FILES:
+                    raise ValueError("TAR archive contains too many entries.")
+                total_uncompressed = sum(max(0, m.size) for m in members)
+                if total_uncompressed > cls.MAX_ARCHIVE_TOTAL_BYTES:
+                    raise ValueError("TAR archive exceeds the maximum allowed uncompressed size.")
                 member_names = [m.name for m in members]
                 if not members:
                     raise ValueError(f"TAR archive contains no regular files. Available: {member_names}")
@@ -264,7 +326,11 @@ class CsvService:
                 extracted_f = tf.extractfile(chosen_member)
                 if not extracted_f:
                     raise ValueError(f"Could not read TAR member '{chosen_member.name}'")
-                content = extracted_f.read().decode("utf-8-sig", errors="replace")
+                if chosen_member.size > cls.MAX_ARCHIVE_FILE_BYTES:
+                    raise ValueError("TAR member exceeds the maximum allowed uncompressed size.")
+                content = extracted_f.read(cls.MAX_ARCHIVE_FILE_BYTES + 1).decode("utf-8-sig", errors="replace")
+                if len(content) > cls.MAX_ARCHIVE_FILE_BYTES:
+                    raise ValueError("TAR member exceeds the maximum allowed uncompressed size.")
                 is_tsv = chosen_member.name.lower().endswith((".tsv", ".tab"))
                 return ExtractedSourceMeta(
                     text=content,
@@ -285,6 +351,8 @@ class CsvService:
         file_id: str | None = None,
         download_url: str | None = None,
         archive_inner_file: str | None = None,
+        user_id: int | None = None,
+        workspace_id: str | None = None,
     ) -> tuple[io.StringIO, ExtractedSourceMeta]:
         """Resolve tabular text stream and metadata from URL, base64 data URL, archive, file path, or string."""
         # 1. Download link / URL
@@ -296,9 +364,34 @@ class CsvService:
 
         # 2. Flowsmith ObjectStore file_id
         if file_id and file_id.strip():
+            from app.db import get_session
+            from app.services.file_access import resolve_file_reference
+
+            db = get_session()
+            try:
+                ref = resolve_file_reference(
+                    db,
+                    file_id.strip(),
+                    user_id=user_id,
+                    workspace_id=workspace_id,
+                    node_id="csv_parser",
+                )
+            finally:
+                db.close()
             store = get_object_store()
-            raw_bytes = store.get(file_id.strip())
-            meta = cls.extract_from_archive_bytes(raw_bytes, filename_hint=file_id, archive_inner_file=archive_inner_file)
+            raw_bytes = store.get(ref.object_key)
+            if len(raw_bytes) > cls.MAX_REMOTE_BYTES:
+                raise NodeExecutionError(
+                    "Stored CSV file exceeds the maximum allowed size.",
+                    code="FILE_TOO_LARGE",
+                    node_id="csv_parser",
+                    retryable=False,
+                )
+            meta = cls.extract_from_archive_bytes(
+                raw_bytes,
+                filename_hint=ref.filename or file_id,
+                archive_inner_file=archive_inner_file,
+            )
             meta.source_type = "file_id"
             return io.StringIO(meta.text), meta
 
@@ -358,15 +451,24 @@ class CsvService:
                 ]
                 for cand in candidates:
                     try:
-                        if cand.is_file():
-                            raw_bytes = cand.read_bytes()
-                            meta = cls.extract_from_archive_bytes(
-                                raw_bytes,
-                                filename_hint=cand.name,
-                                archive_inner_file=archive_inner_file,
-                            )
-                            meta.source_type = "file_path"
-                            return io.StringIO(meta.text), meta
+                        if not cand.is_file():
+                            continue
+                        # Local file access must obey the same containment
+                        # policy as File I/O: never read .env, source files,
+                        # or arbitrary server paths from a workflow.
+                        from app.nodes.file_io import FileIONode
+
+                        FileIONode._validate_path(str(cand))
+                        raw_bytes = cand.read_bytes()
+                        meta = cls.extract_from_archive_bytes(
+                            raw_bytes,
+                            filename_hint=cand.name,
+                            archive_inner_file=archive_inner_file,
+                        )
+                        meta.source_type = "file_path"
+                        return io.StringIO(meta.text), meta
+                    except NodeExecutionError:
+                        raise
                     except Exception:
                         continue
 
@@ -390,6 +492,8 @@ class CsvService:
         *,
         download_url: str | None = None,
         archive_inner_file: str | None = None,
+        user_id: int | None = None,
+        workspace_id: str | None = None,
     ) -> io.StringIO:
         """Resolve CSV/TSV content from raw string, raw bytes, URL, or Flowsmith object store file_id."""
         stream, _ = cls.get_tabular_stream_and_meta(
@@ -397,6 +501,8 @@ class CsvService:
             file_id=file_id,
             download_url=download_url,
             archive_inner_file=archive_inner_file,
+            user_id=user_id,
+            workspace_id=workspace_id,
         )
         return stream
 
@@ -410,6 +516,8 @@ class CsvService:
         download_url: str | None = None,
         archive_inner_file: str | None = None,
         source_meta_out: dict[str, Any] | None = None,
+        user_id: int | None = None,
+        workspace_id: str | None = None,
     ) -> Generator[list[dict[str, Any]], None, None]:
         """Stream parsed CSV, TSV, or Archive rows in bounded chunks, preserving 1-indexed source row numbers."""
         opts = options or CsvParseOptions()
@@ -419,6 +527,8 @@ class CsvService:
             file_id=file_id,
             download_url=download_url,
             archive_inner_file=archive_inner_file,
+            user_id=user_id,
+            workspace_id=workspace_id,
         )
 
         first_line = text_stream.readline()
@@ -527,6 +637,8 @@ class CsvService:
         download_url: str | None = None,
         archive_inner_file: str | None = None,
         source_meta_out: dict[str, Any] | None = None,
+        user_id: int | None = None,
+        workspace_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """Parse CSV or tabular source into structured records.
 
@@ -542,6 +654,8 @@ class CsvService:
             download_url=download_url,
             archive_inner_file=archive_inner_file,
             source_meta_out=source_meta_out,
+            user_id=user_id,
+            workspace_id=workspace_id,
         ):
             records.extend(chunk)
         return records

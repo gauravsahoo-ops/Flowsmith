@@ -36,6 +36,8 @@ class DataLoadService:
         max_download_bytes: int = 52_428_800,
         allow_loopback_in_dev: bool = False,
         node_id: str = "data_load",
+        user_id: int | None = None,
+        workspace_id: str | None = None,
     ) -> tuple[bytes, str, dict[str, Any]]:
         """Resolve raw file bytes and filename hint from URL, ObjectStore file_id, file path, or inline content.
 
@@ -71,127 +73,76 @@ class DataLoadService:
 
         # 3. Upload / ObjectStore file_id mode
         if (file_id and file_id.strip()) or (file_name and file_name.strip()):
-            clean_id = (file_id or file_name).strip()
+            clean_id = (file_id or "").strip()
             clean_name = file_name.strip() if file_name and file_name.strip() else ""
+            from app.services.file_access import (
+                resolve_file_reference,
+                resolve_file_reference_by_name,
+            )
+
+            db = get_session()
+            try:
+                if clean_id:
+                    ref = resolve_file_reference(
+                        db,
+                        clean_id,
+                        user_id=user_id,
+                        workspace_id=workspace_id,
+                        node_id=node_id,
+                    )
+                else:
+                    # Legacy saved workflows may carry only file_name. Resolve
+                    # it against the caller's authorized FileRecords instead
+                    # of scanning the object store or another user's files.
+                    ref = resolve_file_reference_by_name(
+                        db,
+                        clean_name,
+                        user_id=user_id,
+                        workspace_id=workspace_id,
+                        node_id=node_id,
+                    )
+            finally:
+                db.close()
             store = get_object_store()
             try:
-                # Try getting directly by object_key / file_id
-                raw_bytes = store.get(clean_id)
-                meta["source_type"] = "object_store"
-                meta["file_id"] = clean_id
-                hint = clean_name or clean_id
-                return raw_bytes, hint, meta
-            except Exception:
-                pass
-
-            # Check FileRecord database table if exists
-            rec = None
-            try:
-                from app.models.file import FileRecord
-                db = get_session()
-                try:
-                    if file_id and file_id.strip():
-                        rec = db.get(FileRecord, file_id.strip())
-                    if rec is None and clean_name:
-                        rec = db.query(FileRecord).filter(FileRecord.filename == clean_name).first()
-                    if rec is not None:
-                        try:
-                            raw_bytes = store.get(rec.object_key)
-                            meta["source_type"] = "object_store"
-                            meta["file_id"] = rec.id
-                            meta["filename"] = rec.filename
-                            return raw_bytes, rec.filename, meta
-                        except Exception:
-                            pass
-                finally:
-                    db.close()
-            except Exception as e:
-                logger.warning("dataload: failed looking up FileRecord %s: %s", clean_id, e)
-
-            # Fallback: scan candidate paths on disk for the file by object_key, clean_id, or filename
-            search_targets: list[str] = []
-            if rec and rec.object_key:
-                search_targets.append(rec.object_key)
-            if rec and rec.filename:
-                search_targets.append(rec.filename)
-            if clean_id:
-                search_targets.append(clean_id)
-            if clean_name and clean_name not in search_targets:
-                search_targets.append(clean_name)
-
-            candidate_roots = [
-                Path(__file__).resolve().parents[3] / "backend" / "data" / "objects",
-                Path(__file__).resolve().parents[3] / "data" / "objects",
-                Path(__file__).resolve().parents[2] / "data" / "objects",
-                Path("/app/backend/data/objects"),
-                Path.cwd() / "data" / "objects",
-                Path.cwd() / "backend" / "data" / "objects",
-                Path(r"C:\Flowsmith\backend\data\objects"),
-                Path(r"C:\Flowsmith\data\objects"),
-            ]
-
-            for root in candidate_roots:
-                if not root.is_dir():
-                    continue
-                for target in search_targets:
-                    target_safe = target.lstrip("/").replace("..", "_")
-                    cand = root / target_safe
-                    if cand.is_file():
-                        meta["source_type"] = "disk_fallback"
-                        meta["file_id"] = clean_id
-                        meta["path"] = str(cand)
-                        return cand.read_bytes(), cand.name, meta
-                # Recursive search in root for file matching clean_id or clean_name
-                try:
-                    query_terms = [clean_id]
-                    if clean_name and clean_name not in query_terms:
-                        query_terms.append(clean_name)
-                    for term in query_terms:
-                        matches = list(root.glob(f"**/*{term}*"))
-                        for match in matches:
-                            if match.is_file():
-                                meta["source_type"] = "disk_fallback"
-                                meta["file_id"] = clean_id
-                                meta["path"] = str(match)
-                                return match.read_bytes(), match.name, meta
-                except Exception:
-                    continue
-
-            raise NodeExecutionError(
-                f"Uploaded file '{clean_name or clean_id}' could not be located in object store or may have expired.",
-                code="FILE_NOT_FOUND",
-                node_id=node_id,
-                retryable=False,
-            )
+                raw_bytes = store.get(ref.object_key)
+            except Exception as exc:
+                raise NodeExecutionError(
+                    "Uploaded file bytes could not be read from object storage.",
+                    code="FILE_NOT_FOUND",
+                    node_id=node_id,
+                    retryable=False,
+                ) from exc
+            if max_download_bytes and len(raw_bytes) > max_download_bytes:
+                raise NodeExecutionError(
+                    "Uploaded file exceeds the maximum allowed size.",
+                    code="FILE_TOO_LARGE",
+                    node_id=node_id,
+                    retryable=False,
+                )
+            meta["source_type"] = "object_store"
+            meta["file_id"] = ref.id
+            meta["filename"] = ref.filename
+            return raw_bytes, ref.filename or clean_name or ref.id, meta
 
         # 4. Local or Container File Path
         clean_path = file_path.strip() if file_path else ""
         if clean_path:
-            # Check candidate paths on disk
-            candidates = [
-                Path(clean_path),
-                Path.cwd() / clean_path,
-                Path.cwd().parent / clean_path,
-                Path(__file__).resolve().parents[3] / clean_path,
-                Path(r"c:\Flowsmith") / clean_path,
-                Path("/app") / clean_path,
-                Path("/app/backend") / clean_path,
-            ]
-            for cand in candidates:
-                try:
-                    if cand.is_file():
-                        raw_bytes = cand.read_bytes()
-                        meta["source_type"] = "file_path"
-                        meta["path"] = str(cand)
-                        return raw_bytes, cand.name, meta
-                except Exception:
-                    continue
-            raise NodeExecutionError(
-                f"File path '{clean_path}' not found on filesystem.",
-                code="FILE_NOT_FOUND",
-                node_id=node_id,
-                retryable=False,
-            )
+            from app.nodes.file_io import FileIONode
+
+            FileIONode._validate_path(clean_path)
+            candidate = Path(clean_path)
+            if not candidate.is_file():
+                raise NodeExecutionError(
+                    f"File path '{clean_path}' not found on filesystem.",
+                    code="FILE_NOT_FOUND",
+                    node_id=node_id,
+                    retryable=False,
+                )
+            raw_bytes = candidate.read_bytes()
+            meta["source_type"] = "file_path"
+            meta["path"] = str(candidate)
+            return raw_bytes, candidate.name, meta
 
         # 5. Inline raw CSV / TSV text
         if csv_content and csv_content.strip():

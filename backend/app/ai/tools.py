@@ -23,6 +23,7 @@ from typing import Any, Callable
 
 
 from app.engine.node_base import NodeContext
+from app.engine.redact import redact_sensitive
 from app.security.safe_http_client import SafeHTTPClient
 
 logger = logging.getLogger("ai.tools")
@@ -378,6 +379,11 @@ def _workflow_get_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
         data = rec.data or {}
         nodes = data.get("nodes") or []
         edges = data.get("edges") or []
+        # View-only collaborators must not receive node-level secret values
+        # merely because the AI tool can read the workflow document. The
+        # REST canvas applies the same redaction in api.workflows._to_dict.
+        view_only = _workflow_perm(db, workflow_id, ctx) == "view"
+
         return {
             "id": rec.id,
             "workflow_id": rec.id,
@@ -392,7 +398,11 @@ def _workflow_get_handler(ctx: NodeContext, args: dict[str, Any]) -> Any:
                     "name": n.get("name") or (n.get("settings") or {}).get("label") or n.get("type"),
                     "type": n.get("type"),
                     "position": n.get("position"),
-                    "parameters": n.get("parameters") or {},
+                    "parameters": (
+                        redact_sensitive(n.get("parameters") or {})
+                        if view_only
+                        else (n.get("parameters") or {})
+                    ),
                 }
                 for n in nodes
             ],

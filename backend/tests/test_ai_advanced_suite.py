@@ -458,6 +458,38 @@ async def test_platform_system_health_tool():
 
 
 @pytest.mark.asyncio
+async def test_workflow_get_redacts_secrets_for_view_only_collaborators():
+    """A view share must not expose node parameters through the AI tool."""
+    mock_wf = MagicMock()
+    mock_wf.id = "wf_view_test"
+    mock_wf.name = "Shared Workflow"
+    mock_wf.version = 3
+    mock_wf.deleted_at = None
+    mock_wf.user_id = 1
+    mock_wf.data = {
+        "nodes": [{
+            "id": "node_1",
+            "type": "http_request",
+            "name": "Fetch",
+            "parameters": {"url": "https://api.example.com", "api_key": "super-secret"},
+        }],
+        "edges": [],
+    }
+    with patch("app.db.SessionLocal") as mock_session_cls, \
+            patch("app.ai.tools._workflow_perm", return_value="view"):
+        mock_session = MagicMock()
+        mock_session_cls.return_value.__enter__.return_value = mock_session
+        mock_session.get.return_value = mock_wf
+        ctx = _make_ctx()
+        ctx.user_id = 99
+        ctx.workflow_id = "wf_view_test"
+        res = await run_tool(ctx, "workflow_get", {"workflow_id": "wf_view_test"})
+        data = json.loads(res)
+        assert data["nodes"][0]["parameters"]["url"] == "https://api.example.com"
+        assert data["nodes"][0]["parameters"]["api_key"] != "super-secret"
+
+
+@pytest.mark.asyncio
 async def test_workflow_canvas_tools():
     """Verify workflow_get, workflow_add_node, workflow_update_node, workflow_connect_nodes, and workflow_delete_node."""
     mock_wf = MagicMock()

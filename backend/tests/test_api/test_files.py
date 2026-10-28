@@ -49,6 +49,57 @@ def test_upload_list_download_delete_roundtrip():
     assert resp.status_code == 404
 
 
+def test_data_file_reference_requires_owner_or_workspace_access():
+    """Node-side file_id resolution must not bypass File API authorization."""
+    from app.db import get_session
+    from app.engine.errors import NodeExecutionError
+    from app.models import FileRecord
+    from app.services.file_access import resolve_file_reference, resolve_file_reference_by_name
+
+    client = TestClient(app)
+    owner_h = _auth_header(client, email="files_ref_owner@example.com")
+    other_h = _auth_header(client, email="files_ref_other@example.com")
+    other_me = client.get("/api/auth/me", headers=other_h).json()["data"]
+    resp = client.post(
+        "/api/files",
+        headers=owner_h,
+        files={"file": ("private.txt", io.BytesIO(b"private"), "text/plain")},
+    )
+    assert resp.status_code == 201, resp.text
+    file_id = resp.json()["data"]["id"]
+
+    db = get_session()
+    try:
+        rec = db.get(FileRecord, file_id)
+        assert rec is not None
+        with pytest.raises(NodeExecutionError) as exc:
+            resolve_file_reference(db, file_id, user_id=other_me["id"], node_id="data_load")
+        assert exc.value.code == "FILE_ACCESS_DENIED"
+        # The owner can resolve the same reference.
+        ref = resolve_file_reference(db, file_id, user_id=rec.owner_user_id, node_id="data_load")
+        assert ref.object_key == rec.object_key
+        # Legacy filename-only references resolve only for an authorized
+        # caller; another user cannot select the same-named file.
+        with pytest.raises(NodeExecutionError) as by_name_exc:
+            resolve_file_reference_by_name(db, "private.txt", user_id=other_me["id"], node_id="data_load")
+        assert by_name_exc.value.code == "FILE_ACCESS_DENIED"
+        by_name = resolve_file_reference_by_name(db, "private.txt", user_id=rec.owner_user_id, node_id="data_load")
+        assert by_name.id == file_id
+        # Binary metadata objectKey is not a capability: the reader must be
+        # authorized for the underlying FileRecord.
+        from app.engine.binary_data import get_binary_data_buffer
+
+        assert get_binary_data_buffer(
+            {"objectKey": rec.object_key}, user_id=rec.owner_user_id
+        ) == b"private"
+        with pytest.raises(PermissionError):
+            get_binary_data_buffer(
+                {"objectKey": rec.object_key}, user_id=other_me["id"]
+            )
+    finally:
+        db.close()
+
+
 def test_workspace_isolation_on_files():
     client = TestClient(app)
     owner_h = _auth_header(client, email="files_wsa@example.com")

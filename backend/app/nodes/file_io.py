@@ -179,7 +179,11 @@ class FileIONode(BaseNode[FileIOParams]):
                 bin_entry = bin_dict.get(params.binary_property)
                 if bin_entry and isinstance(bin_entry, dict):
                     try:
-                        raw = get_binary_data_buffer(bin_entry)
+                        raw = get_binary_data_buffer(
+                            bin_entry,
+                            user_id=ctx.user_id,
+                            workspace_id=ctx.workspace_id,
+                        )
                     except Exception as e:
                         raise NodeExecutionError(
                             f"Failed to read binary input buffer: {e}",

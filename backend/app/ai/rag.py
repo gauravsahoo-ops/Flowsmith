@@ -135,6 +135,10 @@ class EmbeddingService:
         base_url: str = "",
     ) -> list[float]:
         p = provider.lower()
+        if base_url:
+            from app.security.ssrf import assert_public_url
+
+            await assert_public_url(base_url, node_id="embedding_base_url")
         if p == "ollama":
             return await self._get_ollama_embedding(text, model=model or "nomic-embed-text", base_url=base_url)
         # Default: OpenAI
@@ -157,6 +161,10 @@ class EmbeddingService:
         if not texts:
             return []
         p = provider.lower()
+        if base_url:
+            from app.security.ssrf import assert_public_url
+
+            await assert_public_url(base_url, node_id="embedding_base_url")
         if p == "openai" and api_key:
             return await self._get_openai_embeddings_batch(
                 texts,

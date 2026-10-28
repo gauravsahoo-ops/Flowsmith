@@ -89,9 +89,10 @@ async def chat_completion(
     timeout_s = float(credential.get("timeout_s") or (120.0 if prov_name == "ollama" else 60.0))
 
     # SSRF: a credential-supplied base_url is fetched server-side and must
-    # never reach internal/metadata hosts. Local-only providers (ollama/
-    # builtin/offline) are exempt by design; dev keeps loopback for mocks.
-    if base_url and prov_name not in ("ollama", "builtin", "local_ai", "offline", "mock"):
+    # never reach internal/metadata hosts. Only providers with no network
+    # egress are exempt; localhost Ollama must be explicitly allowlisted
+    # (SAFE_HTTP_ALLOWED_HOSTS) in production.
+    if base_url and prov_name not in ("builtin", "local_ai", "offline", "mock"):
         from app.engine.errors import NodeExecutionError
         from app.security.ssrf import assert_public_url
 

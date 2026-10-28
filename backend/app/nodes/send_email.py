@@ -75,7 +75,11 @@ class SendEmailNode(BaseNode[SendEmailParams]):
                 for prop_name, bin_entry in bin_dict.items():
                     if isinstance(bin_entry, dict):
                         try:
-                            raw_bytes = get_binary_data_buffer(bin_entry)
+                            raw_bytes = get_binary_data_buffer(
+                                bin_entry,
+                                user_id=getattr(ctx, "user_id", None),
+                                workspace_id=getattr(ctx, "workspace_id", None),
+                            )
                             fname = bin_entry.get("fileName") or f"{prop_name}.bin"
                             mtype = bin_entry.get("mimeType", "application/octet-stream")
                             maintype, subtype = mtype.split("/", 1) if "/" in mtype else ("application", "octet-stream")

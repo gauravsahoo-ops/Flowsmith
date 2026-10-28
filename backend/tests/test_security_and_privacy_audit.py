@@ -486,6 +486,47 @@ def test_rate_limiting_and_abuse_resistance(client):
 # 10. Security Regression Tests After Fixes
 # ---------------------------------------------------------------------------
 
+def test_execution_search_snippets_are_redacted_for_view_only():
+    """Search must not be a side channel that returns raw execution secrets."""
+    from types import SimpleNamespace
+
+    from app.services.telemetry_service import extract_execution_search_matches
+
+    rec = SimpleNamespace(
+        id="exec_search_redact",
+        workflow_id="wf_search_redact",
+        status="success",
+        trigger="manual",
+        started_at=datetime.now(UTC),
+        finished_at=datetime.now(UTC),
+        duration_ms=10.0,
+        source_connector="http",
+        destination_connector="http",
+        source_object="request",
+        destination_object="response",
+        api_endpoint="https://api.example.com",
+        http_method="POST",
+        http_status_code=200,
+        error=None,
+        error_summary="",
+        error_code="",
+        error_type="",
+        trigger_data=None,
+        results=None,
+        trace=[{
+            "node_id": "n1",
+            "node_title": "HTTP Request",
+            "node_type": "http_request",
+            "status": "success",
+            "outputs": {"body": {"access_token": "sk-live-secret-123"}},
+        }],
+    )
+    matches = extract_execution_search_matches(rec, "sk-live-secret-123", redact_values=True)
+    assert matches
+    assert all("sk-live-secret-123" not in (m.get("snippet") or "") for m in matches)
+    assert all(m.get("field_value") is None for m in matches)
+
+
 def test_security_regression_tests_after_fixes(client):
     """Verify regression protection against known vulnerability classes."""
     # 1. Token Tampering: altering 'sub' user ID in token signature invalidates JWT

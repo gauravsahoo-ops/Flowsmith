@@ -5,7 +5,6 @@ import uuid
 import pytest
 
 from app.objectstore.factory import get_object_store, reset_object_store
-from app.objectstore.local import LocalObjectStore
 
 
 @pytest.fixture
@@ -30,6 +29,17 @@ def test_put_get_delete_exists(store):
     assert store.delete(key) is True
     assert not store.exists(key)
     assert store.delete(key) is False
+
+
+def test_get_does_not_search_other_keys(store):
+    """Object lookup is exact-key only; prefix/substring fallback would leak
+    files across workspace namespaces."""
+    key = f"ws_a/{uuid.uuid4().hex}.txt"
+    store.put(key, b"private")
+    with pytest.raises(FileNotFoundError):
+        store.get(f"{uuid.uuid4().hex}.txt")
+    with pytest.raises(FileNotFoundError):
+        store.get("ws_a")
 
 
 def test_workspace_isolation_via_keys(store):

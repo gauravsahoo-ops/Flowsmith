@@ -838,6 +838,8 @@ def _dynamics_normalize_urls(login_url: str, settings: Settings) -> tuple[str, s
                 tenant = parts[3]
         elif url.startswith("http://") or url.startswith("https://"):
             instance_url = url.rstrip("/")
+        elif url.lower().endswith(".onmicrosoft.com"):
+            tenant = url
         elif "." in url:
             instance_url = f"https://{url.rstrip('/')}"
         else:

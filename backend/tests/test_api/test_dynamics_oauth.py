@@ -125,6 +125,17 @@ def test_connect_success(client):
         assert state_row.code_verifier
 
 
+def test_connect_rejects_untrusted_bare_login_host(client):
+    """A bare value is a tenant id or trusted Microsoft/Dataverse host, not an arbitrary domain."""
+    headers = _setup(client)
+    resp = client.post(
+        "/api/auth/dynamics_crm/connect",
+        json={"login_url": "evil.example.com"},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
 def test_callback_stores_encrypted_credential(client):
     headers = _setup(client)
     connect = client.post(

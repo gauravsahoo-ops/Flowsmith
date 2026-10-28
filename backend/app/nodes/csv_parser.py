@@ -172,6 +172,8 @@ class CsvParserNode(BaseNode[CsvParserParams]):
                 download_url=download_url,
                 archive_inner_file=params.archive_inner_file or None,
                 source_meta_out=meta_info,
+                user_id=getattr(ctx, "user_id", None),
+                workspace_id=getattr(ctx, "workspace_id", None),
             ):
                 # Pure parsing: if optional field_mapping is provided, apply column mapping
                 if params.field_mapping:

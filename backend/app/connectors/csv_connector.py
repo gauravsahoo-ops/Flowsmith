@@ -87,7 +87,7 @@ class CsvConnector(ConnectorSDK):
             op = params.operation.lower()
 
         if op == "parse":
-            return await self._op_parse(params)
+            return await self._op_parse(params, context)
         elif op == "validate_and_map":
             return await self._op_validate_and_map(params)
         elif op == "stage_to_database":
@@ -101,7 +101,7 @@ class CsvConnector(ConnectorSDK):
             retryable=False,
         )
 
-    async def _op_parse(self, params: CsvConnectorParams) -> dict[str, Any]:
+    async def _op_parse(self, params: CsvConnectorParams, context: dict[str, Any] | None = None) -> dict[str, Any]:
         source = params.file_path or params.csv_content
         file_id = params.file_id or None
         download_url = params.download_url or None
@@ -128,6 +128,8 @@ class CsvConnector(ConnectorSDK):
             download_url=download_url,
             archive_inner_file=params.archive_inner_file or None,
             source_meta_out=meta_out,
+            user_id=(context or {}).get("user_id"),
+            workspace_id=(context or {}).get("workspace_id"),
         ):
             all_rows.extend(batch)
 

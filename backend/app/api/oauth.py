@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from secrets import compare_digest, token_urlsafe
 from typing import Any
@@ -177,6 +178,7 @@ _DYN_LOGIN_HOST_SUFFIXES = (
     ".dynamics.com",
     ".dynamics365.com",
     ".microsoftonline.com",
+    ".onmicrosoft.com",
 )
 
 
@@ -202,7 +204,16 @@ def _validate_login_url(spec, raw: str) -> str:
     else:
         if spec.key == "dynamics_crm" and "/" not in url:
             # Bare Azure AD tenant id ("common", "organizations", a GUID) — no host.
-            return url
+            if url.lower() in ("common", "organizations", "consumers"):
+                return url
+            if re.fullmatch(r"[0-9a-fA-F-]{36}", url):
+                return url
+            if any(url.lower().endswith(suffix) for suffix in _DYN_LOGIN_HOST_SUFFIXES):
+                return url
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"login_url host '{url}' is not an allowed {spec.display_name} login host",
+            )
         host = url.split("/")[0].split(":")[0].lower()
     if spec.key == "salesforce":
         allowed = _SF_LOGIN_HOST_SUFFIXES

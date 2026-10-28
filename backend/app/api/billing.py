@@ -110,7 +110,8 @@ def get_usage(workspace_id: str, user: User = Depends(get_current_user), db: Ses
     from app.billing.service import workspace_usage
     from app.api.workspaces import _require_ws_member
 
-    _require_ws_member(db, workspace_id, user)
+    if not _require_ws_member(db, workspace_id, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workspace not found.")
     return ok(workspace_usage(db, workspace_id))
 
 
@@ -123,7 +124,8 @@ def check_limit(
 ) -> dict:
     from app.api.workspaces import _require_ws_member
 
-    _require_ws_member(db, workspace_id, user)
+    if not _require_ws_member(db, workspace_id, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workspace not found.")
     try:
         return ok(check_within_limit(db, workspace_id, limit_type))
     except ValueError as exc:

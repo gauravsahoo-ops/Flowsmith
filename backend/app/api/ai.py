@@ -591,12 +591,14 @@ def _upstream_fields(db: Session, workflow_data: dict, node_id: str) -> list[dic
     except Exception:
         return []
     outputs = uf.get("outputs") or {}
+    from app.engine.redact import redact_sensitive
+
     fields: list[dict] = []
     for nid in uf.get("upstream_nodes") or []:
         items = (outputs.get(nid) or {}).get("main") or []
         if not items:
             continue
-        for f in _flatten_item(items[0]):
+        for f in _flatten_item(redact_sensitive(items[0])):
             fields.append({"node_id": nid, **f})
     return fields
 
@@ -794,7 +796,11 @@ async def auto_fix_endpoint(
     from app.ai.assistant import repair_node_failure
     from app.schemas.workflow import Workflow
 
-    rec = get_workflow_read(db, body.workflow_id, user)
+    # Auto-fix returns candidate parameter values (including restored
+    # secrets); it is an editing surface, never a read-only one.
+    from app.api.access import get_workflow
+
+    rec = get_workflow(db, body.workflow_id, user, require_edit=True)
     workflow = Workflow.model_validate(rec.data or {})
     node = next((n for n in workflow.nodes if n.id == body.node_id), None)
     if node is None:

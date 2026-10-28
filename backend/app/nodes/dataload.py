@@ -257,6 +257,8 @@ class DataLoadNode(BaseNode[DataLoadParams]):
                 max_download_bytes=params.max_download_bytes,
                 allow_loopback_in_dev=allow_loopback,
                 node_id="flowsmith.data_load",
+                user_id=getattr(ctx, "user_id", None),
+                workspace_id=getattr(ctx, "workspace_id", None),
             )
         except NodeExecutionError as exc:
             logger.warning("DataLoadNode failed during payload resolution: %s", exc)

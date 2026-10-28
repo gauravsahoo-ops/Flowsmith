@@ -929,6 +929,7 @@ def extract_execution_search_matches(
     preloaded_api_reqs: list[Any] | None = None,
     preloaded_errors: list[Any] | None = None,
     preloaded_steps: list[Any] | None = None,
+    redact_values: bool = False,
 ) -> list[dict[str, Any]]:
     """Extract prioritized structured match descriptors for search highlighting and deep-linking."""
     if not search_term or not search_term.strip():
@@ -1495,6 +1496,15 @@ def extract_execution_search_matches(
         except Exception:
             pass
 
+    if redact_values:
+        # A view-only collaborator may search, but must not receive raw
+        # payload/output/telemetry snippets: those can contain tokens echoed
+        # by an upstream API, even under a non-sensitive field name.
+        for match in matches:
+            if match.get("category") in ("steps", "payloads", "api_requests", "records", "errors"):
+                match["snippet"] = "Match found in execution data; edit access is required to view the value."
+                match["field_value"] = None
+
     return matches[:max_matches]
 
 
@@ -1512,7 +1522,7 @@ def search_universal_executions(
     page_size: int = 20,
 ) -> dict[str, Any]:
     """Execute a YouTube-like deep universal search across all execution logs and monitoring details."""
-    from app.api.access import accessible_ids
+    from app.api.access import accessible_ids, batch_permissions
     from app.models.workflow import WorkflowRecord
     from app.models.user import User
     from app.models.monitoring_telemetry import ExecutionStep, ApiRequestTelemetry
@@ -1817,6 +1827,7 @@ def search_universal_executions(
 
     # Pre-fetch workflow names and user emails
     wf_ids = {r.workflow_id for r in recs if r.workflow_id}
+    perms = batch_permissions(db, wf_ids, user) if wf_ids else {}
     names = {
         wid: name
         for wid, name in db.execute(
@@ -1927,6 +1938,7 @@ def search_universal_executions(
             preloaded_api_reqs=api_by_exec.get(rec.id, []),
             preloaded_errors=err_by_exec.get(rec.id, []),
             preloaded_steps=steps_by_exec.get(rec.id, []),
+            redact_values=perms.get(rec.workflow_id) not in ("owner", "edit"),
         )
 
         for occ in occ_list:

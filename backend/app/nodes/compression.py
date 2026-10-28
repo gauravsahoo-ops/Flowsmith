@@ -20,6 +20,21 @@ from app.engine.errors import NodeExecutionError
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
 from app.nodes.registry import register
 
+# Archive expansion limits: a small compressed payload must not be able to
+# materialise gigabytes in the worker (zip/gzip/tar bombs).
+MAX_ARCHIVE_TOTAL_BYTES = 100 * 1024 * 1024
+MAX_ARCHIVE_FILE_BYTES = 50 * 1024 * 1024
+MAX_ARCHIVE_FILES = 1000
+
+
+def _archive_too_large(what: str, node_id: str) -> NodeExecutionError:
+    return NodeExecutionError(
+        f"Archive expansion exceeds the {what} safety limit.",
+        code="ARCHIVE_TOO_LARGE",
+        node_id=node_id,
+        retryable=False,
+    )
+
 
 class CompressionParams(BaseModel):
     operation: Literal["zip", "unzip", "gzip", "gunzip", "tar", "untar"] = Field(
@@ -76,7 +91,10 @@ class CompressionNode(BaseNode[CompressionParams]):
                 first = input_items[0]
                 raw_b64 = first.get(params.source_field) or first.get("base64") or ""
                 compressed_bytes = base64.b64decode(raw_b64.strip())
-                decompressed = gzip.decompress(compressed_bytes)
+                with gzip.GzipFile(fileobj=io.BytesIO(compressed_bytes)) as gz:
+                    decompressed = gz.read(MAX_ARCHIVE_TOTAL_BYTES + 1)
+                if len(decompressed) > MAX_ARCHIVE_TOTAL_BYTES:
+                    raise _archive_too_large("gzip size", ctx.node_id)
                 try:
                     text_out = decompressed.decode("utf-8")
                 except UnicodeDecodeError:
@@ -110,20 +128,29 @@ class CompressionNode(BaseNode[CompressionParams]):
                 buf = io.BytesIO(zip_bytes)
                 extracted_items: List[dict[str, Any]] = []
                 with zipfile.ZipFile(buf, "r") as zf:
-                    for info in zf.infolist():
-                        if info.is_dir():
-                            continue
+                    infos = [info for info in zf.infolist() if not info.is_dir()]
+                    if len(infos) > MAX_ARCHIVE_FILES:
+                        raise _archive_too_large("file count", ctx.node_id)
+                    total_bytes = 0
+                    for info in infos:
+                        if info.file_size > MAX_ARCHIVE_FILE_BYTES:
+                            raise _archive_too_large("per-file size", ctx.node_id)
                         with zf.open(info.filename) as f:
-                            raw = f.read()
-                            try:
-                                text_content = raw.decode("utf-8")
-                            except UnicodeDecodeError:
-                                text_content = base64.b64encode(raw).decode("ascii")
-                            extracted_items.append({
-                                "filename": info.filename,
-                                "content": text_content,
-                                "file_size": info.file_size,
-                            })
+                            raw = f.read(MAX_ARCHIVE_FILE_BYTES + 1)
+                        if len(raw) > MAX_ARCHIVE_FILE_BYTES:
+                            raise _archive_too_large("per-file size", ctx.node_id)
+                        total_bytes += len(raw)
+                        if total_bytes > MAX_ARCHIVE_TOTAL_BYTES:
+                            raise _archive_too_large("total size", ctx.node_id)
+                        try:
+                            text_content = raw.decode("utf-8")
+                        except UnicodeDecodeError:
+                            text_content = base64.b64encode(raw).decode("ascii")
+                        extracted_items.append({
+                            "filename": info.filename,
+                            "content": text_content,
+                            "file_size": info.file_size,
+                        })
                 return NodeResult(output_items=extracted_items)
 
             elif params.operation == "tar":
@@ -152,12 +179,21 @@ class CompressionNode(BaseNode[CompressionParams]):
                 buf = io.BytesIO(tar_bytes)
                 extracted_items = []
                 with tarfile.open(fileobj=buf, mode="r:*") as tf:
-                    for member in tf.getmembers():
-                        if not member.isfile():
-                            continue
+                    members = [m for m in tf.getmembers() if m.isfile()]
+                    if len(members) > MAX_ARCHIVE_FILES:
+                        raise _archive_too_large("file count", ctx.node_id)
+                    total_bytes = 0
+                    for member in members:
+                        if member.size > MAX_ARCHIVE_FILE_BYTES:
+                            raise _archive_too_large("per-file size", ctx.node_id)
                         f = tf.extractfile(member)
                         if f:
-                            raw = f.read()
+                            raw = f.read(MAX_ARCHIVE_FILE_BYTES + 1)
+                            if len(raw) > MAX_ARCHIVE_FILE_BYTES:
+                                raise _archive_too_large("per-file size", ctx.node_id)
+                            total_bytes += len(raw)
+                            if total_bytes > MAX_ARCHIVE_TOTAL_BYTES:
+                                raise _archive_too_large("total size", ctx.node_id)
                             try:
                                 text_content = raw.decode("utf-8")
                             except UnicodeDecodeError:

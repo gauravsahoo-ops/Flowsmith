@@ -647,6 +647,10 @@ def upstream_fields(
     uf = _uf_impl(db, rec.data or {}, node_id)
     upstream = uf["upstream_nodes"]
     outputs = uf["outputs"]
+    if get_permission(db, workflow_id, user) not in ("owner", "edit"):
+        # Execution outputs can contain secrets echoed by upstream APIs.
+        # View-only collaborators must see shapes, never raw values.
+        outputs = redact_sensitive(outputs)
 
     fields = []
     for nid in upstream:
@@ -764,6 +768,10 @@ def preview_expression(
     rec = get_workflow(db, workflow_id, user)
 
     uf = _uf_impl(db, rec.data or {}, body.node_id)
+    if get_permission(db, workflow_id, user) not in ("owner", "edit"):
+        # Preview is an evaluation surface: without redaction a view-only
+        # collaborator could read any secret present in the latest outputs.
+        uf = {**uf, "outputs": redact_sensitive(uf.get("outputs") or {})}
     node_ctx: dict[str, Any] = {}
     json_first: dict[str, Any] | None = None
     node_name_map = build_node_name_map((rec.data or {}).get("nodes") or [])
@@ -839,7 +847,8 @@ def _non_secret_env(db: Session, workspace_id: str | None, user: User) -> dict[s
     if not workspace_id:
         return {}
     try:
-        _require_ws_member(db, workspace_id, user)
+        if not _require_ws_member(db, workspace_id, user):
+            return {}
         from app.environments import decrypt_env_value
 
         rows = db.execute(
@@ -883,7 +892,8 @@ def expression_context(
         from app.models import Environment
 
         try:
-            _require_ws_member(db, rec.workspace_id, user)
+            if not _require_ws_member(db, rec.workspace_id, user):
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "Workspace not found.")
             rows = db.execute(
                 select(Environment.key).where(Environment.workspace_id == rec.workspace_id)
             ).scalars().all()

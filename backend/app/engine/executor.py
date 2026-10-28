@@ -559,6 +559,8 @@ async def _run_via_connector(
         "credentials": ctx.credentials,
         "execution_id": ctx.execution_id,
         "workflow_id": ctx.workflow_id,
+        "user_id": ctx.user_id,
+        "workspace_id": ctx.workspace_id,
         "input_items": input_items,
     }
 
@@ -803,6 +805,8 @@ async def _run_one(
                     "credentials": ctx.credentials,
                     "execution_id": ctx.execution_id,
                     "workflow_id": ctx.workflow_id,
+                    "user_id": ctx.user_id,
+                    "workspace_id": ctx.workspace_id,
                     "input_items": [single_item],
                 }
                 # Per-item retry loop (mirrors _run_via_connector)

@@ -73,8 +73,8 @@ async def diagnose_connector(
     else:
         base_tier = "Tier 3: MOCK_VALIDATED"
 
-    # 2. Inspect SSRF protections
-    ssrf_protected = True
+    # 2. SSRF posture is reported as unverified: the diagnostic probe does
+    # not independently exercise the connector's outbound policy.
 
     # 3. Parameter and operation capabilities
     ops = list(definition.operations.keys())
@@ -99,7 +99,9 @@ async def diagnose_connector(
                     probe_result = res
                     if res.get("ok"):
                         live_verified = True
-                        final_tier = "Tier 4: PRODUCTION_CERTIFIED"
+                        # A single successful probe is evidence of reachability,
+                        # not vendor certification. Keep the label explicit.
+                        final_tier = "Tier 4: LIVE_PROBE_SUCCEEDED"
             except Exception as exc:
                 probe_result = {"ok": False, "message": f"Diagnostic probe raised unexpected error: {exc}"}
         else:
@@ -130,8 +132,13 @@ async def diagnose_connector(
         "version": definition.connector_version,
         "certification_tier": final_tier,
         "live_verified": live_verified,
-        "ssrf_protected": ssrf_protected,
-        "zero_fake_success_guaranteed": True,
+        "ssrf_protected": None,
+        "ssrf_verification": "not independently verified",
+        "zero_fake_success_guaranteed": False,
+        "certification_note": (
+            "A successful live probe proves reachability only; it is not "
+            "vendor certification or an independent security review."
+        ),
         "probe_supported": probe_supported,
         "operations_count": len(ops),
         "triggers_count": len(triggers),
@@ -172,6 +179,10 @@ def list_all_certification_tiers() -> dict[str, Any]:
     return {
         "total_connectors": len(items),
         "tier_summary": tier_counts,
-        "zero_fake_success_enforced": True,
-        "ssrf_firewall_enforced": True,
+        "zero_fake_success_enforced": False,
+        "ssrf_firewall_enforced": False,
+        "certification_note": (
+            "Tier labels are implementation evidence levels, not vendor "
+            "certification. SSRF enforcement was not independently verified."
+        ),
     }
