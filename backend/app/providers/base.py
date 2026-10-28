@@ -78,6 +78,19 @@ class BaseProviderClient:
     def _client_id_secret(self) -> tuple[str, str]:
         raise NotImplementedError
 
+    def _resolve_client_id_secret(self, creds: dict[str, Any] | None) -> tuple[str, str]:
+        """Prefer app credentials bound to the stored connection.
+
+        DB-only Connected App credentials are attached to the encrypted OAuth
+        credential at connect time. Falling back to settings keeps existing
+        environment-configured deployments working unchanged.
+        """
+        cid = str((creds or {}).get("client_id") or "").strip()
+        csecret = str((creds or {}).get("client_secret") or "").strip()
+        if cid and csecret:
+            return cid, csecret
+        return self._client_id_secret()
+
     async def _refresh(self, http_client: Any, refresh_token: str) -> tuple[str, float]:
         """POST the refresh grant; return (access_token, expires_at_epoch)."""
         raise NotImplementedError
@@ -108,7 +121,7 @@ class BaseProviderClient:
             cached = self._access_tokens.get(refresh_token)
             if cached and cached[1] > time.monotonic():
                 return cached[0]
-            settings_client_id, settings_client_secret = self._client_id_secret()
+            settings_client_id, settings_client_secret = self._resolve_client_id_secret(creds)
             if not settings_client_id or not settings_client_secret:
                 raise make_connector_error(
                     ConnectorErrorCode.NOT_CONFIGURED,
@@ -117,7 +130,12 @@ class BaseProviderClient:
                 )
             try:
                 async with get_safe_http_client() as client:
-                    response = await self._post_refresh(client, refresh_token)
+                    response = await self._post_refresh(
+                        client,
+                        refresh_token,
+                        client_id=settings_client_id,
+                        client_secret=settings_client_secret,
+                    )
             except httpx.TimeoutException as exc:
                 raise make_connector_error(ConnectorErrorCode.TIMEOUT, "Token endpoint timed out.", retryable=True) from exc
             except Exception as exc:
@@ -138,10 +156,18 @@ class BaseProviderClient:
             self._access_tokens[refresh_token] = (token, expires_at)
             return token
 
-    async def _post_refresh(self, http_client: Any, refresh_token: str) -> httpx.Response:
+    async def _post_refresh(
+        self,
+        http_client: Any,
+        refresh_token: str,
+        *,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+    ) -> httpx.Response:
         from urllib.parse import urlencode
 
-        client_id, client_secret = self._client_id_secret()
+        if not client_id or not client_secret:
+            client_id, client_secret = self._client_id_secret()
         body = urlencode({
             "grant_type": "refresh_token",
             "client_id": client_id,

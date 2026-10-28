@@ -25,7 +25,7 @@ export default function GoogleOAuthModal({
   const activeService = GOOGLE_SERVICES.find((s) => s.key === serviceType) || GOOGLE_SERVICES[0]
   const [name, setName] = useState(initialData?.name || `${activeService.name} account`)
   const [clientId, setClientId] = useState(initialData?.data?.client_id || '')
-  const [clientSecret, setClientSecret] = useState(initialData?.data?.client_secret || '')
+  const [clientSecret, setClientSecret] = useState('')
   const [showSecret, setShowSecret] = useState(false)
   const [copiedKey, setCopiedKey] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -70,7 +70,8 @@ export default function GoogleOAuthModal({
     if (initialData) {
       setName(initialData.name || `${activeService.name} account`)
       setClientId(initialData.data?.client_id || '')
-      setClientSecret(initialData.data?.client_secret || '')
+      // Secrets are write-only; never prefill a stored or masked value.
+      setClientSecret('')
       setConnectedUser(initialData.data?.user || null)
     } else {
       setName(`${activeService.name} account`)
@@ -319,13 +320,12 @@ export default function GoogleOAuthModal({
     }
 
     if (onSave) {
+      const data = { client_id: clientId.trim() }
+      if (clientSecret.trim()) data.client_secret = clientSecret.trim()
       onSave({
         name: name.trim(),
         type: serviceType,
-        data: {
-          client_id: clientId.trim(),
-          client_secret: clientSecret.trim(),
-        },
+        data,
       })
     }
     onClose()

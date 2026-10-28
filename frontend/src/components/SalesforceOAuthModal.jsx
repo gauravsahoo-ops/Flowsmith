@@ -15,7 +15,7 @@ export default function SalesforceOAuthModal({
   const [tab, setTab] = useState('connection') // 'connection' | 'environment' | 'details'
   const [name, setName] = useState(initialData?.name || 'Salesforce account')
   const [clientId, setClientId] = useState(initialData?.data?.client_id || '')
-  const [clientSecret, setClientSecret] = useState(initialData?.data?.client_secret || '')
+  const [clientSecret, setClientSecret] = useState('')
   const [showSecret, setShowSecret] = useState(false)
   const [envType, setEnvType] = useState(
     initialData?.data?.login_url?.includes('test.salesforce.com') ? 'sandbox' : 'production'
@@ -72,7 +72,9 @@ export default function SalesforceOAuthModal({
     if (initialData) {
       setName(initialData.name || 'Salesforce account')
       setClientId(initialData.data?.client_id || '')
-      setClientSecret(initialData.data?.client_secret || '')
+      // Never hydrate a secret from props: the API returns metadata only, and
+      // a stale/masked value must not be re-submitted as a new secret.
+      setClientSecret('')
       setEnvType(initialData.data?.login_url?.includes('test.salesforce.com') ? 'sandbox' : 'production')
       const pol = initialData.data?.allowed_domains || 'all'
       if (!['all', 'none'].includes(pol)) {
@@ -384,15 +386,16 @@ export default function SalesforceOAuthModal({
       return
     }
     if (onSave) {
+      const data = {
+        client_id: clientId.trim(),
+        login_url: envType === 'sandbox' ? 'https://test.salesforce.com' : 'https://login.salesforce.com',
+        allowed_domains: domainPolicy === 'specific' ? specificDomains.trim() : domainPolicy,
+      }
+      if (clientSecret.trim()) data.client_secret = clientSecret.trim()
       onSave({
         name: name.trim(),
         type: 'salesforce',
-        data: {
-          client_id: clientId.trim(),
-          client_secret: clientSecret.trim(),
-          login_url: envType === 'sandbox' ? 'https://test.salesforce.com' : 'https://login.salesforce.com',
-          allowed_domains: domainPolicy === 'specific' ? specificDomains.trim() : domainPolicy,
-        }
+        data,
       })
     }
     onClose()

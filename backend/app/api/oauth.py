@@ -25,13 +25,13 @@ from __future__ import annotations
 import json
 import logging
 from datetime import UTC, datetime, timedelta
-from secrets import token_urlsafe
+from secrets import compare_digest, token_urlsafe
 from typing import Any
 from urllib.parse import quote, urlparse
 
 from app.credentials.service import create_for_user
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
@@ -221,6 +221,7 @@ def _validate_login_url(spec, raw: str) -> str:
 @router.post("/{provider}/connect")
 def connect_provider(
     provider: str,
+    response: Response,
     body: ConnectRequest | None = None,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -228,8 +229,10 @@ def connect_provider(
     """Start the OAuth authorization flow.
 
     Returns the authorize URL the frontend opens in a popup / new tab.
-    The state is recorded server-side and bound to the user.
+    The state is recorded server-side and bound to the user, and a
+    short-lived HttpOnly cookie binds the callback to this browser.
     """
+    settings = get_settings()
     spec = get_provider(provider)
     if spec.authorize_url is None:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"provider {provider} misconfigured")
@@ -252,7 +255,15 @@ def connect_provider(
             except Exception:
                 pass
 
-    client_id, _client_secret, redirect_uri = spec.server_config(
+    db_config = None
+    if db is not None and not (body_cid and body_sec):
+        db_config = spec.database_config(db, user.id)
+    if db_config and not body_cid and not body_sec:
+        # Bind a database-only Connected App to this connection so every
+        # provider can refresh later without relying on process-wide env vars.
+        body_cid, body_sec, _ = db_config
+
+    client_id, _resolved_secret, redirect_uri = spec.server_config(
         get_settings(), db=db, user_id=user.id, client_id=body_cid, client_secret=body_sec
     )
     if not login_url:
@@ -316,6 +327,15 @@ def connect_provider(
             authorize_url = spec.authorize_url(
                 get_settings(), state=state, challenge=challenge, login_url=login_url
             )
+    response.set_cookie(
+        key=f"oauth_state_{provider}",
+        value=state,
+        max_age=max(60, int(settings.oauth_state_ttl_seconds)),
+        httponly=True,
+        samesite="lax",
+        secure=bool((settings.public_url or "").strip().lower().startswith("https://")),
+        path="/api/auth",
+    )
     return ok({"authorize_url": authorize_url, "state": state})
 
 
@@ -347,6 +367,14 @@ async def provider_callback(
 
     if not code or not state:
         return _fail_redirect(frontend_url, spec, "missing code or state")
+
+    # The state row binds the flow to the user who started it; the HttpOnly
+    # cookie binds it to the browser that started it. Without this check an
+    # attacker could hand another user their authorize URL and have the
+    # resulting tokens stored on the attacker's account (login CSRF).
+    state_cookie = request.cookies.get(f"oauth_state_{provider}") or ""
+    if not state_cookie or not compare_digest(state_cookie, state):
+        return _fail_redirect(frontend_url, spec, "invalid state")
 
     row = db.get(OAuthState, state)
     if row is None:

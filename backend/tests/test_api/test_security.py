@@ -135,6 +135,39 @@ def test_shared_workflow_view_edit_lifecycle(client):
     assert client.get(f"/api/workflows/{wid}", headers=auth_headers(viewer["token"])).status_code == 404
 
 
+def test_viewer_does_not_receive_workflow_node_secrets(client):
+    """View access must not expose secrets embedded in node parameters."""
+    from app.engine.redact import MASK
+
+    owner = register(client, "secret-owner@x.com")
+    viewer = register(client, "secret-viewer@x.com")
+    wf = make_workflow()
+    wf["nodes"][1]["parameters"] = {
+        "fields": {"password": "top-secret-password", "api_key": "top-secret-key", "visible": "ok"}
+    }
+    created = client.post("/api/workflows", json=wf, headers=auth_headers(owner["token"]))
+    assert created.status_code == 201, created.text
+    wid = created.json()["data"]["id"]
+    share = client.post(
+        f"/api/workflows/{wid}/shares",
+        json={"email": "secret-viewer@x.com", "permission": "view"},
+        headers=auth_headers(owner["token"]),
+    )
+    assert share.status_code == 201, share.text
+
+    owner_wf = client.get(f"/api/workflows/{wid}", headers=auth_headers(owner["token"])).json()["data"]
+    assert owner_wf["nodes"][1]["parameters"]["fields"]["password"] == "top-secret-password"
+
+    viewer_wf = client.get(f"/api/workflows/{wid}", headers=auth_headers(viewer["token"])).json()["data"]
+    fields = viewer_wf["nodes"][1]["parameters"]["fields"]
+    assert fields["password"] == MASK
+    assert fields["api_key"] == MASK
+    assert fields["visible"] == "ok"
+
+    listed = client.get("/api/workflows", headers=auth_headers(viewer["token"])).json()["data"]
+    assert listed[0]["nodes"][1]["parameters"]["fields"]["password"] == MASK
+
+
 def test_owner_cannot_share_with_self_or_unknown_email(client):
     owner = register(client, "owner@x.com")
     wf = make_workflow()

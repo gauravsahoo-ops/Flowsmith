@@ -141,11 +141,21 @@ class SalesforceProviderClient:
         if not client_id or not client_secret:
             try:
                 from app.db import get_session
+                from app.models.credential import Credential
                 from app.oauth_providers import SALESFORCE
                 with get_session() as db:
-                    cid, sec, _ = SALESFORCE.server_config(settings, db=db)
-                    client_id = client_id or cid
-                    client_secret = client_secret or sec
+                    # DB-backed Connected App config is tenant-scoped. Resolve
+                    # the credential owner first so an unfiltered fallback can
+                    # never use another tenant's client id/secret.
+                    owner_id = None
+                    credential_id = str(creds.get("_credential_id") or "").strip()
+                    if credential_id:
+                        owner = db.get(Credential, credential_id)
+                        owner_id = owner.user_id if owner is not None else None
+                    if owner_id is not None:
+                        cid, sec, _ = SALESFORCE.server_config(settings, db=db, user_id=owner_id)
+                        client_id = client_id or cid
+                        client_secret = client_secret or sec
             except Exception:
                 pass
         return {

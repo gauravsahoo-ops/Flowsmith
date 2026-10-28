@@ -21,6 +21,7 @@ describe('SalesforceOAuthModal Component', () => {
           name: 'My Production Salesforce',
           data: {
             client_id: '3MVG9_TEST_CLIENT_ID',
+            client_secret: 'DO_NOT_RENDER_THIS_SECRET',
             login_url: 'https://login.salesforce.com',
           },
         },
@@ -40,6 +41,7 @@ describe('SalesforceOAuthModal Component', () => {
     // Initial data
     expect(html).toContain('My Production Salesforce')
     expect(html).toContain('3MVG9_TEST_CLIENT_ID')
+    expect(html).not.toContain('DO_NOT_RENDER_THIS_SECRET')
 
     // Action buttons
     expect(html).toContain('Save Credential')

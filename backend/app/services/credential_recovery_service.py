@@ -280,7 +280,11 @@ class CredentialRecoveryService:
             refresh_token = str(updated.get("refresh_token") or "").strip()
             if not refresh_token:
                 raise ValueError("HubSpot OAuth requires a valid refresh token.")
-            token, exp_epoch = await client._refresh_access_token(refresh_token)
+            token, exp_epoch = await client._refresh_access_token(
+                refresh_token,
+                str(updated.get("client_id") or "").strip(),
+                str(updated.get("client_secret") or "").strip(),
+            )
             updated["access_token"] = token
             updated["expires_at"] = exp_epoch
             return updated

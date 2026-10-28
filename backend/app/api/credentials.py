@@ -11,7 +11,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
@@ -26,6 +26,24 @@ from app.models import User
 router = APIRouter(prefix="/api/credentials", tags=["credentials"])
 
 logger = logging.getLogger("api.credentials")
+
+
+def _validation_detail(exc: Exception) -> str:
+    """Return a validation message that never echoes submitted field values.
+
+    Pydantic's default ``str(ValidationError)`` includes ``input_value`` for
+    the failing field. Credential payloads contain secrets, so returning the
+    raw error would reflect the secret back to the caller (and into access
+    logs). Keep only field locations and human-readable messages.
+    """
+    if isinstance(exc, ValidationError):
+        parts: list[str] = []
+        for error in exc.errors(include_url=False, include_input=False):
+            location = ".".join(str(part) for part in error.get("loc", ()))
+            message = str(error.get("msg") or "Invalid value.")
+            parts.append(f"{location}: {message}" if location else message)
+        return "; ".join(parts) or "Invalid credential data."
+    return str(exc)
 
 
 async def _connector_live_test(cred_type: str, data: dict[str, Any]) -> dict[str, Any] | None:
@@ -120,7 +138,7 @@ def create_credential(
     try:
         meta = service.create_for_user(db, user.id, body.name, body.type, body.data)
     except ValueError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, _validation_detail(exc))
     log_event(db, CREDENTIAL_CREATE, target_type="credential", target_id=meta["id"], user_id=user.id)
     return ok(meta)
 
@@ -144,7 +162,7 @@ def update_credential(
     except service.CredentialError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, exc.message)
     except ValueError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc))
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, _validation_detail(exc))
     return ok(meta)
 
 
@@ -415,16 +433,21 @@ def update_credential_config(
 
     if body.name is not None and body.name.strip():
         rec.name = body.name.strip()
-    if body.client_id is not None:
+    # Empty values mean "leave the stored value unchanged". OAuth edit modals
+    # load metadata only and intentionally cannot re-display a secret; treating
+    # an empty field as a new value would silently wipe a working credential.
+    if body.client_id is not None and body.client_id.strip():
         data["client_id"] = body.client_id.strip()
-    if body.client_secret is not None:
-        data["client_secret"] = body.client_secret.strip()
-    if body.login_url is not None:
+    secret = (body.client_secret or "").strip()
+    if secret and "••••" not in secret and secret != "********":
+        data["client_secret"] = secret
+    if body.login_url is not None and body.login_url.strip():
         data["login_url"] = body.login_url.strip()
-    if body.instance_url is not None:
+    if body.instance_url is not None and body.instance_url.strip():
         data["instance_url"] = body.instance_url.strip()
-    if body.private_token is not None:
-        data["private_token"] = body.private_token.strip()
+    private_token = (body.private_token or "").strip()
+    if private_token and "••••" not in private_token and private_token != "********":
+        data["private_token"] = private_token
 
     rec.data = encrypt_text(json.dumps(data, ensure_ascii=False))
     db.commit()

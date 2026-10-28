@@ -236,6 +236,24 @@ def test_callback_invalid_state_redirects_failed(client, _configure_oauth):
     assert _error_of(resp.headers["location"]) == "invalid state"
 
 
+def test_callback_rejects_state_without_browser_cookie(client, _configure_oauth):
+    """OAuth login CSRF: a valid server-side state is not enough.
+
+    An attacker can start a flow on their own account and send the authorize
+    URL to a victim. The callback must reject the flow unless the browser
+    that started it presents the matching HttpOnly cookie.
+    """
+    headers = _setup(client)
+    state = _connect(client, headers)["state"]
+    client.cookies.clear()
+
+    resp = client.get(f"/api/auth/salesforce/callback?code=stolen&state={state}")
+
+    assert resp.status_code == 302
+    assert _error_of(resp.headers["location"]) == "invalid state"
+    assert _count_sf_credentials(client, headers) == 0
+
+
 def test_callback_rejects_used_state(client, _configure_oauth):
     headers = _setup(client)
     state = _connect(client, headers)["state"]
@@ -723,6 +741,100 @@ def test_database_oauth_config_save_and_connect(client, monkeypatch):
     assert data["authorize_url"].startswith("https://test.salesforce.com/services/oauth2/authorize?")
 
 
+def test_connect_does_not_use_another_users_oauth_config(client, monkeypatch):
+    """A user without a Connected App must not inherit another tenant's app."""
+    from app.api import oauth as oauth_mod
+
+    empty = Settings(
+        salesforce_client_id="",
+        salesforce_client_secret="",
+        salesforce_redirect_uri="",
+        public_url="https://flowsmith.dev.idslogic.net",
+    )
+    monkeypatch.setattr(oauth_mod, "get_settings", lambda: empty)
+
+    headers_a = _setup(client)
+    save_res = client.post(
+        "/api/credentials/oauth-config/salesforce",
+        json={
+            "client_id": "TENANT_A_CLIENT",
+            "client_secret": "TENANT_A_SECRET",
+            "login_url": "https://login.salesforce.com",
+        },
+        headers=headers_a,
+    )
+    assert save_res.status_code == 200, save_res.text
+
+    headers_b = auth_headers(register(client, email="other-tenant@example.com")["token"])
+    resp = client.post("/api/auth/salesforce/connect", json={}, headers=headers_b)
+    assert resp.status_code == 422, resp.text
+    assert "not configured" in resp.json()["detail"]
+    assert "TENANT_A_CLIENT" not in resp.text
+
+
+def test_database_oauth_config_is_embedded_for_refresh(client, monkeypatch):
+    """DB-only app credentials are bound to the encrypted OAuth connection.
+
+    This keeps refresh working after the environment-only deployment path is
+    removed: the provider can use the credential's app credentials instead of
+    expecting process-wide env vars.
+    """
+    from app.api import oauth as oauth_mod
+
+    empty = Settings(
+        salesforce_client_id="",
+        salesforce_client_secret="",
+        salesforce_redirect_uri="",
+        public_url="http://testserver",
+    )
+    monkeypatch.setattr(oauth_mod, "get_settings", lambda: empty)
+
+    headers = _setup(client)
+    save_res = client.post(
+        "/api/credentials/oauth-config/salesforce",
+        json={
+            "client_id": "DB_ONLY_CID",
+            "client_secret": "DB_ONLY_SECRET",
+            "login_url": "https://login.salesforce.com",
+        },
+        headers=headers,
+    )
+    assert save_res.status_code == 200, save_res.text
+
+    connect = client.post("/api/auth/salesforce/connect", json={}, headers=headers)
+    assert connect.status_code == 200, connect.text
+    state = connect.json()["data"]["state"]
+
+    patcher, fake = _patch_client([
+        _json_response(200, TOKEN_PAYLOAD),
+        _json_response(200, {"username": "db-config@example.com"}),
+    ])
+    try:
+        callback = client.get(f"/api/auth/salesforce/callback?code=db-config&state={state}")
+    finally:
+        patcher.stop()
+
+    assert callback.status_code == 302
+    assert "ok=1" in callback.headers["location"]
+
+    # The token exchange uses the DB values and the OAuth credential now
+    # carries them encrypted for later refresh.
+    assert "client_id=DB_ONLY_CID" in fake.calls[0][2]["data"]
+    assert "client_secret=DB_ONLY_SECRET" in fake.calls[0][2]["data"]
+    creds = client.get("/api/credentials", headers=headers).json()["data"]
+    matching = [c for c in creds if c["type"] == "salesforce"]
+    assert len(matching) == 1
+    db = get_session()
+    try:
+        rec = db.get(Credential, matching[0]["id"])
+        assert rec is not None
+        plain = json.loads(decrypt_text(rec.data))
+        assert plain["client_id"] == "DB_ONLY_CID"
+        assert plain["client_secret"] == "DB_ONLY_SECRET"
+    finally:
+        db.close()
+
+
 def test_update_credential_config_patch(client, monkeypatch):
     """PATCH /api/credentials/{id}/config updates credentials directly in database."""
     headers = _setup(client)
@@ -753,6 +865,34 @@ def test_update_credential_config_patch(client, monkeypatch):
     )
     assert patch_res.status_code == 200, patch_res.text
     assert patch_res.json()["data"]["id"] == cred_id
+
+    # Editing a credential in the UI shows metadata only, so the secret field
+    # is blank. A blank PATCH must preserve the working secret instead of
+    # replacing it with an empty string.
+    blank_patch = client.patch(
+        f"/api/credentials/{cred_id}/config",
+        json={"client_id": "", "client_secret": "", "login_url": ""},
+        headers=headers,
+    )
+    assert blank_patch.status_code == 200, blank_patch.text
+
+    masked_patch = client.patch(
+        f"/api/credentials/{cred_id}/config",
+        json={"client_secret": "••••••••", "private_token": "••••••••"},
+        headers=headers,
+    )
+    assert masked_patch.status_code == 200, masked_patch.text
+
+    db = get_session()
+    try:
+        rec = db.get(Credential, cred_id)
+        assert rec is not None
+        plain = json.loads(decrypt_text(rec.data))
+        assert plain["client_id"] == "PATCHED_CID"
+        assert plain["client_secret"] == "PATCHED_SEC"
+        assert plain["login_url"] == "https://patched.my.salesforce.com"
+    finally:
+        db.close()
 
 
 def test_connect_and_callback_with_custom_client_credentials(client):

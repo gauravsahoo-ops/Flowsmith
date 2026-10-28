@@ -56,10 +56,15 @@ class GoogleCalendarProviderClient:
             )
         return refresh_token
 
-    async def _refresh_access_token(self, refresh_token: str) -> tuple[str, float]:
+    async def _refresh_access_token(
+        self,
+        refresh_token: str,
+        client_id: str = "",
+        client_secret: str = "",
+    ) -> tuple[str, float]:
         settings = get_settings()
-        client_id = settings.google_client_id
-        client_secret = settings.google_client_secret
+        client_id = (client_id or "").strip() or settings.google_client_id
+        client_secret = (client_secret or "").strip() or settings.google_client_secret
         if not client_id or not client_secret:
             raise make_connector_error(
                 ConnectorErrorCode.NOT_CONFIGURED,
@@ -115,12 +120,23 @@ class GoogleCalendarProviderClient:
         # Refresh 60s early to dodge clock skew.
         return token, time.monotonic() + max(expires_in - 60.0, 30.0)
 
-    async def _access_token(self, refresh_token: str) -> str:
+    async def _access_token(self, creds: dict) -> str:
+        refresh_token = str((creds or {}).get("refresh_token") or "").strip()
+        if not refresh_token:
+            raise make_connector_error(
+                ConnectorErrorCode.NOT_CONFIGURED,
+                "Google Calendar credential has no refresh token.",
+                retryable=False,
+            )
         async with self._lock:
             cached = self._access_tokens.get(refresh_token)
             if cached and cached[1] > time.monotonic():
                 return cached[0]
-            token, expires_at = await self._refresh_access_token(refresh_token)
+            token, expires_at = await self._refresh_access_token(
+                refresh_token,
+                str(creds.get("client_id") or "").strip(),
+                str(creds.get("client_secret") or "").strip(),
+            )
             self._access_tokens[refresh_token] = (token, expires_at)
             return token
 
@@ -150,7 +166,7 @@ class GoogleCalendarProviderClient:
         timeout: float = 30.0,
     ) -> httpx.Response:
         self._validate_creds(creds)
-        token = await self._access_token(str(creds.get("refresh_token") or "").strip())
+        token = await self._access_token(creds)
         return await self._send(creds, method, path, token, json_body, params, timeout)
 
     async def _send(
@@ -191,7 +207,7 @@ class GoogleCalendarProviderClient:
         if response.status_code == 401 and not force_refresh:
             refresh_token = str(creds.get("refresh_token") or "").strip()
             self._access_tokens.pop(refresh_token, None)
-            fresh = await self._access_token(refresh_token)
+            fresh = await self._access_token(creds)
             return await self._send(creds, method, path, fresh, json_body, params, timeout, True)
         return response
 

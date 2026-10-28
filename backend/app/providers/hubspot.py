@@ -62,14 +62,21 @@ class HubSpotProviderClient:
                 retryable=False,
             )
 
-    async def _refresh_access_token(self, refresh_token: str) -> tuple[str, float]:
-        """Exchange the refresh token for an access token (server config).
+    async def _refresh_access_token(
+        self,
+        refresh_token: str,
+        client_id: str = "",
+        client_secret: str = "",
+    ) -> tuple[str, float]:
+        """Exchange the refresh token for an access token.
 
-        Returns (access_token, expires_at_epoch).
+        App credentials bound to the credential (database-only Connected App)
+        take precedence over server settings. Returns (access_token,
+        expires_at_epoch).
         """
         settings = get_settings()
-        client_id = settings.hubspot_client_id
-        client_secret = settings.hubspot_client_secret
+        client_id = (client_id or "").strip() or settings.hubspot_client_id
+        client_secret = (client_secret or "").strip() or settings.hubspot_client_secret
         if not client_id or not client_secret:
             raise make_connector_error(
                 ConnectorErrorCode.NOT_CONFIGURED,
@@ -136,7 +143,11 @@ class HubSpotProviderClient:
             cached = self._access_tokens.get(refresh_token)
             if cached and cached[1] > time.monotonic():
                 return cached[0]
-            token, expires_at = await self._refresh_access_token(refresh_token)
+            token, expires_at = await self._refresh_access_token(
+                refresh_token,
+                str(creds.get("client_id") or "").strip(),
+                str(creds.get("client_secret") or "").strip(),
+            )
             self._access_tokens[refresh_token] = (token, expires_at)
             return token
 

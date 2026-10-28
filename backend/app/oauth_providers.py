@@ -55,6 +55,68 @@ class OAuthProviderSpec:
     supports_pkce: bool = True
     uses_login_url: bool = False  # Salesforce lets users pick their org base
 
+    def database_config(self, db: Any, user_id: int | None) -> tuple[str, str, str] | None:
+        """Return this provider's complete encrypted app config for a caller.
+
+        Resolution order is the caller's own config first, then a config shared
+        by another member of the same organization. There is deliberately no
+        global fallback: a Connected App secret belongs to one tenant.
+        """
+        if db is None or not user_id:
+            return None
+
+        import json
+        from sqlalchemy import select
+        from app.models.credential import Credential
+        from app.security.crypto import decrypt_text
+
+        prefix = self.config_prefix or self.key
+        types_to_check = [
+            f"{self.credential_type}_oauth_config",
+            f"{self.key}_oauth_config",
+            f"{prefix}_oauth_config",
+            self.credential_type,
+            self.key,
+            prefix,
+        ]
+        query = select(Credential).where(Credential.type.in_(types_to_check))
+        try:
+            candidates = list(
+                db.scalars(
+                    query.where(Credential.user_id == user_id).order_by(Credential.created_at.desc())
+                ).all()
+            )
+            if not candidates:
+                user = db.get(User, user_id)
+                org_id = getattr(user, "organization_id", None) if user else None
+                config_types = [t for t in types_to_check if t.endswith("_oauth_config")]
+                if org_id and config_types:
+                    candidates = list(
+                        db.scalars(
+                            select(Credential)
+                            .join(User, Credential.user_id == User.id)
+                            .where(
+                                Credential.type.in_(config_types),
+                                User.organization_id == org_id,
+                            )
+                            .order_by(Credential.created_at.desc())
+                        ).all()
+                    )
+        except Exception as exc:
+            logger.debug("Could not query OAuth database config: %s", exc)
+            return None
+
+        for cand in candidates:
+            try:
+                data = json.loads(decrypt_text(cand.data))
+                cid = (data.get("client_id") or "").strip()
+                csec = (data.get("client_secret") or "").strip()
+                if cid and csec:
+                    return cid, csec, (data.get("redirect_uri") or "").strip()
+            except Exception:
+                continue
+        return None
+
     def server_config(
         self,
         settings: Settings,
@@ -66,57 +128,20 @@ class OAuthProviderSpec:
     ) -> tuple[str, str, str]:
         """(client_id, client_secret, redirect_uri) or HTTP 422.
 
-        Resolves client credentials from explicit arguments first, Settings (env vars) second,
-        and falls back to encrypted database credentials so credentials stay encrypted in
-        the database only without requiring plain text secrets in config files.
+        Resolves client credentials from explicit arguments first, encrypted
+        database configuration second, and Settings (env vars) last.
         """
         prefix = self.config_prefix or self.key
         cid = (client_id or "").strip()
         csecret = (client_secret or "").strip()
         redirect = (redirect_uri or "").strip()
 
-        # Prioritize encrypted database credentials so secrets never need to live in plaintext .env
-        if db is not None:
-            try:
-                import json
-                from sqlalchemy import select
-                from app.models.credential import Credential
-                from app.security.crypto import decrypt_text
-
-                prefix = self.config_prefix or self.key
-                types_to_check = [
-                    f"{self.credential_type}_oauth_config",
-                    f"{self.key}_oauth_config",
-                    f"{prefix}_oauth_config",
-                    self.credential_type,
-                    self.key,
-                    prefix,
-                ]
-                query = select(Credential).where(Credential.type.in_(types_to_check))
-                candidates = []
-                if user_id:
-                    candidates = list(
-                        db.scalars(query.where(Credential.user_id == user_id).order_by(Credential.created_at.desc())).all()
-                    )
-                if not candidates:
-                    candidates = list(db.scalars(query.order_by(Credential.created_at.desc())).all())
-
-                for cand in candidates:
-                    try:
-                        data = json.loads(decrypt_text(cand.data))
-                        cand_cid = (data.get("client_id") or "").strip()
-                        cand_sec = (data.get("client_secret") or "").strip()
-                        cand_red = (data.get("redirect_uri") or "").strip()
-                        if cand_cid and cand_sec:
-                            cid = cid or cand_cid
-                            csecret = csecret or cand_sec
-                            if cand_red and not redirect:
-                                redirect = cand_red
-                            break
-                    except Exception:
-                        continue
-            except Exception as exc:
-                logger.debug("Could not resolve credentials from database: %s", exc)
+        db_config = self.database_config(db, user_id)
+        if db_config is not None:
+            db_cid, db_secret, db_redirect = db_config
+            cid = cid or db_cid
+            csecret = csecret or db_secret
+            redirect = redirect or db_redirect
 
         cid = cid or getattr(settings, f"{prefix}_client_id", "")
         csecret = csecret or getattr(settings, f"{prefix}_client_secret", "")

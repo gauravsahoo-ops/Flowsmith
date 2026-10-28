@@ -62,6 +62,23 @@ def test_create_validates_data(client):
     assert resp.status_code == 422
 
 
+def test_validation_error_does_not_echo_secret_input(client):
+    headers = _setup(client)
+    secret = "DO_NOT_ECHO_THIS_SECRET_123"
+    resp = client.post(
+        "/api/credentials",
+        json={
+            "name": "bad shape",
+            "type": "http",
+            "data": {"api_key": {"unexpected": secret}},
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 422
+    assert secret not in resp.text
+    assert "api_key" in resp.text
+
+
 def test_stored_blob_is_encrypted_and_round_trips(client):
     headers = _setup(client)
     meta = _create(client, headers, data={"host": "smtp.example.com", "password": "topsecret"})

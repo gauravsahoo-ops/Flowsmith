@@ -14,8 +14,8 @@ export default function HubSpotOAuthModal({
   const [tab, setTab] = useState('connection') // 'connection' | 'private_app' | 'guide'
   const [name, setName] = useState(initialData?.name || 'HubSpot account')
   const [clientId, setClientId] = useState(initialData?.data?.client_id || '')
-  const [clientSecret, setClientSecret] = useState(initialData?.data?.client_secret || '')
-  const [privateToken, setPrivateToken] = useState(initialData?.data?.private_token || '')
+  const [clientSecret, setClientSecret] = useState('')
+  const [privateToken, setPrivateToken] = useState('')
   const [showSecret, setShowSecret] = useState(false)
   const [showPrivateToken, setShowPrivateToken] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -59,8 +59,9 @@ export default function HubSpotOAuthModal({
     if (initialData) {
       setName(initialData.name || 'HubSpot account')
       setClientId(initialData.data?.client_id || '')
-      setClientSecret(initialData.data?.client_secret || '')
-      setPrivateToken(initialData.data?.private_token || '')
+      // Secrets/tokens are write-only; never prefill a stored or masked value.
+      setClientSecret('')
+      setPrivateToken('')
       setConnectedUser(initialData.data?.user || null)
       setConnectedHubId(initialData.data?.hub_id || null)
     } else {
@@ -330,13 +331,12 @@ export default function HubSpotOAuthModal({
     }
 
     if (onSave) {
+      const data = { client_id: clientId.trim() }
+      if (clientSecret.trim()) data.client_secret = clientSecret.trim()
       onSave({
         name: name.trim(),
         type: 'hubspot',
-        data: {
-          client_id: clientId.trim(),
-          client_secret: clientSecret.trim(),
-        },
+        data,
       })
     }
     onClose()

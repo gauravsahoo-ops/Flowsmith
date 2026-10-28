@@ -18,7 +18,7 @@ export default function DynamicsCrmOAuthModal({
   )
   const [tenantId, setTenantId] = useState(initialData?.data?.tenant_id || 'common')
   const [clientId, setClientId] = useState(initialData?.data?.client_id || '')
-  const [clientSecret, setClientSecret] = useState(initialData?.data?.client_secret || '')
+  const [clientSecret, setClientSecret] = useState('')
   const [showSecret, setShowSecret] = useState(false)
   const [showCustomApp, setShowCustomApp] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -61,7 +61,8 @@ export default function DynamicsCrmOAuthModal({
       setInstanceUrl(initialData.data?.instance_url || 'https://myorg.crm.dynamics.com')
       setTenantId(initialData.data?.tenant_id || 'common')
       setClientId(initialData.data?.client_id || '')
-      setClientSecret(initialData.data?.client_secret || '')
+      // Client secrets are write-only; never hydrate them from props.
+      setClientSecret('')
       setConnectedUser(initialData.data?.user || initialData.data?.username || null)
     }
   }, [initialData])

@@ -100,7 +100,7 @@ def _describe_table(engine: Engine, table: str, schema: str | None = None) -> di
             "type": str(column.get("type")) if column.get("type") is not None else "",
             "nullable": column.get("nullable"),
             "default": (
-                str(column.get("default")) if column.get("default") is not None else None
+                column.get("default") if column.get("default") is not None else None
             ),
             "primary_key": column.get("name") in primary_names,
         }
@@ -123,7 +123,7 @@ def _describe_table(engine: Engine, table: str, schema: str | None = None) -> di
             {
                 "name": index.get("name"),
                 "columns": index.get("column_names") or [],
-                "unique": bool(index.get("unique")),
+                "unique": index.get("unique") is True,
             }
             for index in inspector.get_indexes(table, schema=schema)
         ]
@@ -250,14 +250,14 @@ class SQLProviderClient:
 
     async def describe_table(self, creds: dict[str, Any], table: str,
                              schema: str | None = None) -> dict[str, Any]:
-        table_name = str(table or "").strip()
+        table_name = (table or "").strip()
         if not table_name or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
                 "operation=describe_table requires a valid plain table name (alphanumeric/underscore only).",
                 retryable=False,
             )
-        schema_name = str(schema or "").strip() or None
+        schema_name = (schema or "").strip() or None
         if schema_name and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", schema_name):
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,

@@ -59,6 +59,11 @@ async def test_salesforce_oauth_full_exchange_wire_simulation(client):
     db.add(state_row)
     db.commit()
 
+    # The callback additionally requires the browser-bound HttpOnly cookie
+    # set by the connect endpoint. This test seeds the state row directly, so
+    # set the matching cookie explicitly.
+    client.cookies.set("oauth_state_salesforce", state_val, path="/api/auth")
+
     # Scripted token response simulating Salesforce OAuth token endpoint
     mock_token_payload = {
         "access_token": "mock_test_access_token_xyz123",

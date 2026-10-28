@@ -61,6 +61,7 @@ from app.models import (
 from app.nodes.registry import NODE_REGISTRY
 from app.schemas.workflow import Workflow
 from app.engine.expressions import resolve as resolve_expression, build_node_name_map
+from app.engine.redact import redact_sensitive
 from app.triggers.paths import (
     PATH_TRIGGER_TYPES,
     PROVIDER_TRIGGER_TYPES,
@@ -229,12 +230,14 @@ def _validate_credential_refs(
 def _to_dict(rec: WorkflowRecord, permission: str) -> dict[str, Any]:
     """The stored JSON plus record-level metadata.
 
-    NOTE: We intentionally do NOT redact node parameters here. The frontend
-    needs real values (auth_token, auth_password, etc.) to display and persist
-    them correctly. Redaction is applied only to execution traces/logs, not
-    the workflow definition itself.
+    Owners and editors get real parameter values so the canvas can edit and
+    persist them. View-only collaborators get sensitive-keyed values masked;
+    they must never receive node-level credentials merely because they can
+    open the workflow.
     """
     data = dict(rec.data)
+    if permission not in ("owner", "edit"):
+        data = redact_sensitive(data)
     pinned = bool(data.get("settings", {}).get("pinned", False))
     return {
         **data,

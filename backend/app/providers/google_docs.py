@@ -60,15 +60,26 @@ class GoogleDocsProviderClient:
             cached = self._access_tokens.get(refresh_token)
             if cached and cached[1] > time.time() + 60:
                 return cached[0]
-            token, expires_at = await self._refresh_access_token(refresh_token)
+            token, expires_at = await self._refresh_access_token(
+                refresh_token,
+                str((creds or {}).get("client_id") or "").strip(),
+                str((creds or {}).get("client_secret") or "").strip(),
+            )
             self._access_tokens[refresh_token] = (token, expires_at)
             return token
 
-    async def _refresh_access_token(self, refresh_token: str) -> tuple[str, float]:
+    async def _refresh_access_token(
+        self,
+        refresh_token: str,
+        client_id: str = "",
+        client_secret: str = "",
+    ) -> tuple[str, float]:
         from urllib.parse import urlencode
 
         settings = get_settings()
-        if not settings.google_client_id or not settings.google_client_secret:
+        client_id = (client_id or "").strip() or settings.google_client_id
+        client_secret = (client_secret or "").strip() or settings.google_client_secret
+        if not client_id or not client_secret:
             raise make_connector_error(
                 ConnectorErrorCode.NOT_CONFIGURED,
                 "Google OAuth is not configured on the server "
@@ -77,8 +88,8 @@ class GoogleDocsProviderClient:
             )
         body = urlencode({
             "grant_type": "refresh_token",
-            "client_id": settings.google_client_id,
-            "client_secret": settings.google_client_secret,
+            "client_id": client_id,
+            "client_secret": client_secret,
             "refresh_token": refresh_token,
         })
         try:
