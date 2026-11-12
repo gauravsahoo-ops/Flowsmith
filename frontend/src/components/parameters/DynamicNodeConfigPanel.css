@@ -131,6 +131,10 @@
   outline: none;
 }
 
+.dncp-op-select-wrap {
+  width: 100%;
+}
+
 .dncp-op-select option {
   background-color: #0f1422;
   color: #f1f5f9;

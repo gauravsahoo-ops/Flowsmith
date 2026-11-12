@@ -14,6 +14,7 @@ import hashlib
 import json
 import math
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -41,6 +42,19 @@ NodeResults = dict[str, dict[str, list[dict[str, Any]]]]
 
 DEFAULT_MAX_PARALLELISM = 8
 MAX_RETRY_BACKOFF_S = 60.0
+
+# Per-record trace rows are the execution-log contract: each processed item
+# gets its own row (inputs/outputs/status/searchable note). The upper bound
+# only protects a single node from writing an unbounded trace/telemetry
+# payload for pathological batches; the remainder is reported explicitly in
+# one summary row instead of silently disappearing. Override with
+# FLOWSMITH_MAX_ITEM_TRACE_STEPS.
+try:
+    MAX_INDIVIDUAL_TRACE_ITEMS = max(
+        1, int(os.environ.get("FLOWSMITH_MAX_ITEM_TRACE_STEPS", "2500") or "2500")
+    )
+except (TypeError, ValueError):
+    MAX_INDIVIDUAL_TRACE_ITEMS = 2500
 
 
 def _retry_delay(backoff: float, retries: int, retry_after: Any = None) -> float:
@@ -136,6 +150,8 @@ def _add_step(
     trace_id: str | None = None,
     span_id: str | None = None,
     memory_delta_kb: float | None = None,
+    item_index: int | None = None,
+    item_total: int | None = None,
 ) -> None:
     # Phase 13 (workflow debugger) & Roadmap C (Distributed Tracing):
     # attempts/retries and W3C trace identifiers for execution waterfall
@@ -150,8 +166,8 @@ def _add_step(
         "status": status,
         "started_at": started_at,
         "duration_ms": round(duration_ms, 1),
-        "inputs": _cap(inputs, max_items=200, max_str=1000) if inputs is not None else None,
-        "outputs": _cap(outputs, max_items=200, max_str=1000) if outputs is not None else None,
+        "inputs": _cap(inputs, max_items=500, max_str=1000) if inputs is not None else None,
+        "outputs": _cap(outputs, max_items=500, max_str=1000) if outputs is not None else None,
         "error": error,
         "note": note,
         "attempts": max(1, attempts),
@@ -163,6 +179,10 @@ def _add_step(
         step_data["span_id"] = current_span
     if memory_delta_kb is not None:
         step_data["memory_delta_kb"] = memory_delta_kb
+    if item_index is not None:
+        step_data["item_index"] = item_index
+    if item_total is not None:
+        step_data["item_total"] = item_total
 
     result.trace.append(step_data)
 
@@ -791,7 +811,11 @@ async def _run_one(
         # remain single-call (they expect a batch).
         if len(input_items) > 1 and not is_bulk:
             all_outputs: list[dict[str, Any]] = []
-            for single_item in input_items:
+            item_total = len(input_items)
+            untraced_items = 0
+            untraced_samples: list[dict[str, Any]] = []
+            for item_index, single_item in enumerate(input_items, 1):
+                item_started = time.monotonic()
                 per_ctx = dict(context)
                 if isinstance(single_item, dict) and "json" in single_item and isinstance(single_item["json"], dict):
                     per_ctx["$json"] = single_item["json"]
@@ -811,6 +835,7 @@ async def _run_one(
                 }
                 # Per-item retry loop (mirrors _run_via_connector)
                 _retries = 0
+                item_error: NodeExecutionError | None = None
                 while True:
                     try:
                         op = connector.op_execute("execute", connector_payload, connector_context)
@@ -820,6 +845,7 @@ async def _run_one(
                         break
                     except asyncio.TimeoutError:
                         node_error = NodeTimeoutError(node.id, timeout or 0.0)
+                        item_error = node_error
                         if _retries:
                             node_error.details = {"retries": _retries}
                     except NodeCancelledError:
@@ -830,6 +856,7 @@ async def _run_one(
                             node_id=node.id, retryable=getattr(ce, "retryable", False),
                             details={"retries": _retries} if _retries else None,
                         )
+                        item_error = node_error
                         if getattr(ce, "retry_after", None) is not None:
                             node_error.retry_after = ce.retry_after
                     if _retries + 1 >= max_attempts or not node_error.retryable:
@@ -847,6 +874,24 @@ async def _run_one(
                     if cancelled.is_set() or ctx.is_cancelled():
                         raise NodeCancelledError(node.id)
                 if raw_result is None:
+                    if item_index <= MAX_INDIVIDUAL_TRACE_ITEMS:
+                        _add_step(
+                            result, node_id=node.id, node_type=node.type, status="error",
+                            started_at=datetime.now(UTC).isoformat(),
+                            duration_ms=(time.monotonic() - item_started) * 1000,
+                            inputs=_cap({"main": [single_item]}),
+                            outputs=_cap({"main": []}),
+                            error={"message": str(item_error) if item_error else f"Record {item_index} failed"},
+                            note=f"Record {item_index}/{item_total} failed; continuing.",
+                            attempts=_retries + 1,
+                            retries=_retries,
+                            item_index=item_index,
+                            item_total=item_total,
+                        )
+                    else:
+                        untraced_items += 1
+                        if len(untraced_samples) < 5:
+                            untraced_samples.append(single_item)
                     continue  # error already recorded as item when continue_on_error
                 output = raw_result.get("output", raw_result) if isinstance(raw_result, dict) else raw_result
                 if isinstance(output, dict):
@@ -868,17 +913,38 @@ async def _run_one(
                     else:
                         merged_items.append(out)
                 all_outputs.extend(merged_items)
+                if item_index <= MAX_INDIVIDUAL_TRACE_ITEMS:
+                    _add_step(
+                        result, node_id=node.id, node_type=node.type, status="success",
+                        started_at=datetime.now(UTC).isoformat(),
+                        duration_ms=(time.monotonic() - item_started) * 1000,
+                        inputs=_cap({"main": [single_item]}),
+                        outputs=_cap({"main": merged_items}),
+                        note=f"Record {item_index}/{item_total} via connector '{connector.connector_id}'.",
+                        attempts=_retries + 1,
+                        retries=_retries,
+                        item_index=item_index,
+                        item_total=item_total,
+                    )
+                else:
+                    untraced_items += 1
+                    if len(untraced_samples) < 5:
+                        untraced_samples.append(single_item)
+            if untraced_items:
+                _add_step(
+                    result, node_id=node.id, node_type=node.type, status="success",
+                    started_at=datetime.now(UTC).isoformat(),
+                    duration_ms=0,
+                    inputs=_cap({"main": untraced_samples}),
+                    outputs=_cap({"main": untraced_samples}),
+                    note=(
+                        f"Record trace limited to {MAX_INDIVIDUAL_TRACE_ITEMS}/{item_total} items; "
+                        f"{untraced_items} further records completed but are not individually traced."
+                    ),
+                    item_total=item_total,
+                )
             results[node.id] = {"main": all_outputs}
             emit("node.completed", node_id=node.id, status="success")
-            _add_step(
-                result, node_id=node.id, node_type=node.type, status="success",
-                started_at=started_wall,
-                duration_ms=(time.monotonic() - started_mono) * 1000,
-                inputs=inputs_capped,
-                outputs=_cap({"main": all_outputs}),
-                note=f"Batch connector '{connector.connector_id}' processed {len(input_items)} item(s).",
-                attempts=1,
-            )
             return
         params = expressions.resolve(node.parameters, context)
         try:
@@ -925,7 +991,11 @@ async def _run_one(
     # When a Split/Loop fans out items, downstream nodes should process
     # each item individually with its own $json context. Self-resolving
     # nodes (IF, LoopWhile) already handle this internally.
-    # Optimization: batch trace steps for 100+ items to avoid O(N) trace overhead.
+    #
+    # Each processed item gets its own trace row (inputs, outputs, status and
+    # a searchable "Record i/N" note). MAX_INDIVIDUAL_TRACE_ITEMS bounds the
+    # pathological case; the untraced remainder is reported in one explicit
+    # summary row rather than an opaque batch row.
     if (
         len(input_items) > 1
         and not node_instance.resolves_own_expressions
@@ -933,11 +1003,9 @@ async def _run_one(
         and node.type not in ("split", "loop", "loop_over_items", "loop_while", "aggregate", "merge", "pagination", "sub_workflow")
     ):
         all_output_items: list[dict[str, Any]] = []
-        batch_threshold = 100
-        is_large_batch = len(input_items) > batch_threshold
-        batch_outputs: list[dict[str, Any]] = []
-        batch_started = time.monotonic()
-        batch_errors: list[str] = []
+        item_total = len(input_items)
+        untraced_items = 0
+        untraced_samples: list[dict[str, Any]] = []
 
         for idx, single_item in enumerate(input_items):
             per_context = dict(context)
@@ -947,6 +1015,7 @@ async def _run_one(
             per_started = time.monotonic()
             item_retries = 0
             per_result = None
+            per_error_message: str | None = None
             while True:
                 try:
                     per_result = await _run_attempt(
@@ -965,9 +1034,7 @@ async def _run_one(
                             "item": single_item,
                         }
                         all_output_items.append(error_item)
-                        if is_large_batch:
-                            batch_outputs.append(error_item)
-                        batch_errors.append(f"Item {idx + 1}: {exc}")
+                        per_error_message = str(exc)
                         break
                     item_retries += 1
                     delay = _retry_delay(backoff, item_retries, getattr(exc, "retry_after", None))
@@ -999,63 +1066,63 @@ async def _run_one(
                         "item": single_item,
                     }
                     all_output_items.append(error_item)
-                    if is_large_batch:
-                        batch_outputs.append(error_item)
-                    batch_errors.append(f"Item {idx + 1}: {wrapped}")
+                    per_error_message = str(wrapped)
                     break
 
-            if per_result is not None:
-                if per_result.output_items:
-                    all_output_items.extend(per_result.output_items)
-                    if is_large_batch:
-                        batch_outputs.extend(per_result.output_items)
-                # Emit individual trace steps only for small batches
-                if not is_large_batch:
-                    per_elapsed = (time.monotonic() - per_started) * 1000
+            if per_result is not None and per_result.output_items:
+                all_output_items.extend(per_result.output_items)
+
+            if idx < MAX_INDIVIDUAL_TRACE_ITEMS:
+                per_elapsed = (time.monotonic() - per_started) * 1000
+                if per_result is not None:
                     _add_step(
                         result, node_id=node.id, node_type=node.type, status="success",
                         started_at=datetime.now(UTC).isoformat(),
                         duration_ms=per_elapsed,
                         inputs=_cap({"main": [single_item]}),
                         outputs=_cap({"main": per_result.output_items or []}),
-                        note=f"Per-item {idx + 1}/{len(input_items)}.",
+                        note=f"Record {idx + 1}/{item_total}.",
                         attempts=item_retries + 1,
                         retries=item_retries,
+                        item_index=idx + 1,
+                        item_total=item_total,
                     )
-            elif not is_large_batch:
-                # continue_on_error: keep the failure in the trace so a
-                # "successful" batch is not silently missing items.
-                per_elapsed = (time.monotonic() - per_started) * 1000
-                last_error = next(
-                    (e for e in reversed(batch_errors) if e.startswith(f"Item {idx + 1}:")),
-                    f"Item {idx + 1}: failed",
-                )
-                _add_step(
-                    result, node_id=node.id, node_type=node.type, status="error",
-                    started_at=datetime.now(UTC).isoformat(),
-                    duration_ms=per_elapsed,
-                    inputs=_cap({"main": [single_item]}),
-                    outputs=_cap({"main": []}),
-                    error={"message": last_error},
-                    note=f"Per-item {idx + 1}/{len(input_items)} failed; continuing.",
-                    attempts=item_retries + 1,
-                    retries=item_retries,
-                )
+                else:
+                    # continue_on_error: keep the failure in the trace so a
+                    # "successful" batch is not silently missing items.
+                    _add_step(
+                        result, node_id=node.id, node_type=node.type, status="error",
+                        started_at=datetime.now(UTC).isoformat(),
+                        duration_ms=per_elapsed,
+                        inputs=_cap({"main": [single_item]}),
+                        outputs=_cap({"main": []}),
+                        error={"message": per_error_message or f"Record {idx + 1} failed"},
+                        note=f"Record {idx + 1}/{item_total} failed; continuing.",
+                        attempts=item_retries + 1,
+                        retries=item_retries,
+                        item_index=idx + 1,
+                        item_total=item_total,
+                    )
+            else:
+                untraced_items += 1
+                if len(untraced_samples) < 5:
+                    untraced_samples.append(single_item)
+
             if cancelled.is_set() or ctx.is_cancelled():
                 raise NodeCancelledError(node.id)
 
-        # Emit a single batched trace step for large batches
-        if is_large_batch:
-            batch_elapsed = (time.monotonic() - batch_started) * 1000
-            error_note = f" ({len(batch_errors)} errors)" if batch_errors else ""
+        if untraced_items:
             _add_step(
                 result, node_id=node.id, node_type=node.type, status="success",
                 started_at=datetime.now(UTC).isoformat(),
-                duration_ms=batch_elapsed,
-                inputs=_cap({"main": input_items[:5]}),  # Sample first 5
-                outputs=_cap({"main": batch_outputs[:5]}),  # Sample first 5
-                note=f"Per-item batch: {len(input_items)} items processed in {batch_elapsed:.0f}ms{error_note}.",
-                attempts=1,
+                duration_ms=0,
+                inputs=_cap({"main": untraced_samples}),
+                outputs=_cap({"main": untraced_samples}),
+                note=(
+                    f"Record trace limited to {MAX_INDIVIDUAL_TRACE_ITEMS}/{item_total} items; "
+                    f"{untraced_items} further records completed but are not individually traced."
+                ),
+                item_total=item_total,
             )
 
         results[node.id] = {"main": all_output_items}

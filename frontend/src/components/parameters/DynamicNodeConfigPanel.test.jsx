@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import DynamicNodeConfigPanel from './DynamicNodeConfigPanel'
+import { buildOperationSearchOptions } from '../../utils/operationOptions'
 
 describe('DynamicNodeConfigPanel Suite', () => {
   const mockNode = {
@@ -195,5 +196,63 @@ describe('DynamicNodeConfigPanel Suite', () => {
     expect(html).toContain('Test Step')
     expect(JSON.stringify(mockNode.settings)).toBe(before)
     expect(mockNode.settings).toEqual({ timeout_seconds: 30 })
+  })
+
+  it('builds operation search aliases that match "HubSpot methods"', () => {
+    const options = buildOperationSearchOptions(
+      ['search', 'list_object_types'],
+      {
+        search: { display_name: 'Search Record', description: 'Find records by property value.' },
+        list_object_types: { display_name: 'List Object Types', description: 'Discover custom objects.' },
+      },
+      'HubSpot',
+    )
+    const haystack = options.map((opt) => [
+      opt.label,
+      opt.description,
+      ...(opt.aliases || []),
+    ].join(' ').toLowerCase())
+
+    expect(haystack.some((text) => text.includes('hubspot') && text.includes('methods'))).toBe(true)
+  })
+
+  it('renders HubSpot operation and object controls as searchable selects', () => {
+    const hubspotMeta = {
+      display_name: 'HubSpot',
+      credential_types: ['hubspot'],
+      operations: {
+        search: {
+          display_name: 'Search Record',
+          description: 'Find records by property value.',
+          properties: ['object_type', 'search_field', 'search_value'],
+        },
+      },
+      parameters_schema: { type: 'object', properties: {} },
+      fields: [
+        { name: 'operation', title: 'Operation', type: 'select', required: true },
+        { name: 'object_type', title: 'Object type', type: 'string', required: true, default: 'contacts' },
+        { name: 'search_field', title: 'Search property', type: 'string' },
+        { name: 'search_value', title: 'Search value', type: 'string' },
+      ],
+    }
+    const html = renderToStaticMarkup(
+      React.createElement(DynamicNodeConfigPanel, {
+        node: {
+          id: 'hs-1',
+          type: 'hubspot',
+          parameters: { operation: 'search', object_type: 'contacts', search_field: 'email', search_value: 'a@b.com' },
+          credentials: { hubspot: 'cred-hs' },
+          settings: {},
+        },
+        meta: hubspotMeta,
+        onParamsChange: () => {},
+        credentials: [{ id: 'cred-hs', name: 'HubSpot account', type: 'hubspot' }],
+      })
+    )
+
+    expect(html).toContain('searchable-select')
+    expect(html).toContain('Search Record')
+    expect(html).toContain('data-testid="dncp-select-object_type"')
+    expect(html).not.toContain('id="dncp-op-select"')
   })
 })

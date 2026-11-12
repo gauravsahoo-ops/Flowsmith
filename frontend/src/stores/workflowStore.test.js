@@ -24,6 +24,7 @@ beforeEach(() => {
     nodes: [],
     edges: [],
     workflow: null,
+    hydratedId: null,
     loading: false,
     saving: false,
     savedAt: null,
@@ -275,6 +276,7 @@ describe('load / refresh', () => {
 
     const state = useWorkflowStore.getState()
     expect(state.workflow).toBe(saved)
+    expect(state.hydratedId).toBe('wf_1')
     expect(state.nodes.map((n) => n.id)).toEqual(['trigger', 'transform'])
     expect(state.edges).toHaveLength(1)
     expect(state.savedAt).not.toBeNull()
@@ -390,6 +392,23 @@ describe('load / refresh', () => {
     expect(useWorkflowStore.getState().workflow.id).toBe('wf_route')
     expect(mockApi.getWorkflow).toHaveBeenCalledTimes(1)
     expect(mockApi.getWorkflow).toHaveBeenCalledWith('wf_route')
+  })
+
+  it('does not let a background createNew overwrite a route-specific load', async () => {
+    let resolveCreate
+    const created = { id: 'wf_created', name: 'My Workflow', version: 1, active: false, nodes: [], connections: [], settings: {} }
+    const route = { id: 'wf_route', name: 'Route', version: 1, nodes: [], connections: [], settings: {} }
+    mockApi.createWorkflow.mockImplementation(() => new Promise((resolve) => { resolveCreate = resolve }))
+    mockApi.getWorkflow.mockResolvedValue(route)
+
+    const createPromise = useWorkflowStore.getState().createNew('My Workflow')
+    await useWorkflowStore.getState().load('wf_route')
+    resolveCreate(created)
+    await createPromise
+
+    expect(useWorkflowStore.getState().workflow.id).toBe('wf_route')
+    expect(useWorkflowStore.getState().hydratedId).toBe('wf_route')
+    expect(useWorkflowStore.getState().nodes).toEqual([])
   })
 
   it('init is idempotent under double invocation (StrictMode)', async () => {

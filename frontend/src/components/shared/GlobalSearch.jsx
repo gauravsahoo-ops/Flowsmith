@@ -331,9 +331,11 @@ export default function GlobalSearch({ open, onClose }) {
         const dts = (Array.isArray(dtRes) ? dtRes : []).filter(t =>
           `${t.name} ${t.description}`.toLowerCase().includes(q)
         ).slice(0, 5)
-        const conns = (Array.isArray(connectors) ? connectors : []).filter(c =>
-          `${c.display_name} ${c.connector_key} ${c.category} ${c.description}`.toLowerCase().includes(q)
-        ).slice(0, 5)
+        const terms = q.split(/\s+/).filter(Boolean)
+        const conns = (Array.isArray(connectors) ? connectors : []).filter(c => {
+          const haystack = `${c.display_name} ${c.connector_key} ${c.category} ${c.description} methods operations actions`.toLowerCase()
+          return terms.every(term => haystack.includes(term))
+        }).slice(0, 5)
         const ex = (Array.isArray(execs) ? execs : []).filter(e =>
           `${e.id} ${e.workflow_id} ${e.status} ${e.trigger}`.toLowerCase().includes(q)
         ).slice(0, 4)

@@ -40,6 +40,7 @@ interface WfStoreConnection {
 
 interface WfStoreState {
   workflow: WfStoreWorkflow | null;
+  hydratedId?: string | null;
   nodes: WfStoreNode[];
   edges: WfStoreEdge[];
   loading?: boolean;

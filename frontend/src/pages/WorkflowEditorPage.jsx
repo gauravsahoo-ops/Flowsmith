@@ -63,6 +63,7 @@ export default function WorkflowEditorPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const workflow = useWorkflowStore(s => s.workflow)
+  const hydratedId = useWorkflowStore(s => s.hydratedId)
   const loading = useWorkflowStore(s => s.loading)
   const error = useWorkflowStore(s => s.error)
   const executionError = useExecutionStore(s => s.error)
@@ -232,12 +233,21 @@ export default function WorkflowEditorPage() {
   }, [])
 
   // Also ensure canvas is visible even if store still loading
-  if (loading && !workflow) return <div className="center-message">Loading workflow…</div>
+  const retryLoad = () => {
+    setLocalError(null)
+    useWorkflowStore.setState({ error: null })
+    load(id).catch((e) => setLocalError(e.message))
+  }
+
   if (localError) {
     return (
       <div className="page">
         <PageHeader title="Workflow" description={id} />
-        <div className="banner-inline err">{localError} <button className="ghost" onClick={() => navigate('/workflows')}>Back to list</button></div>
+        <div className="banner-inline err">
+          {localError}
+          <button className="ghost" onClick={retryLoad} style={{ marginLeft: 8 }}>Retry</button>
+          <button className="ghost" onClick={() => navigate('/workflows')}>Back to list</button>
+        </div>
       </div>
     )
   }
@@ -245,13 +255,18 @@ export default function WorkflowEditorPage() {
     return (
       <div className="page">
         <div className="banner err">{typeof error === 'object' && error !== null ? (error.message || JSON.stringify(error)) : error}</div>
+        <button className="ghost" onClick={retryLoad}>Retry</button>
         <button className="ghost" onClick={() => navigate('/workflows')}>Back to Workflows</button>
       </div>
     )
   }
 
-  // If loaded workflow id mismatch (still loading next), show loading
-  if (workflow && workflow.id !== id) return <div className="center-message">Switching workflow…</div>
+  // Never render the editor shell with a different/empty canvas while the
+  // requested workflow is still hydrating. This is the first-load blank
+  // canvas guard: hydration is keyed to the exact workflow id.
+  if (hydratedId !== id) {
+    return <div className="center-message">{loading ? 'Loading workflow…' : 'Preparing workflow…'}</div>
+  }
 
   return (
     <div className="workflow-editor-page">

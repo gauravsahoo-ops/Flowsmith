@@ -33,7 +33,7 @@ from sqlalchemy import select, text
 from app.config import get_settings
 from app.connectors import ConnectorError, ConnectorErrorCode
 from app.db import get_engine, get_session
-from app.engine.executor import _cap, execute_workflow
+from app.engine.executor import MAX_INDIVIDUAL_TRACE_ITEMS, _cap, execute_workflow
 from app.engine.node_base import NodeContext
 from app.main import app
 from app.models import Execution
@@ -296,10 +296,18 @@ async def test_04_large_payloads_and_high_volume_execution_history():
     assert res.status == "success"
     assert len(res.results["batch_transform"]["main"]) == large_item_count
 
-    # 3. Verify batch trace optimization preserves small row sizes for large batches
-    step = next(s for s in res.trace if s["node_id"] == "batch_transform")
-    assert "Per-item batch" in step.get("note", "")
-    assert len(step["outputs"]["main"]) <= 5  # Trace samples outputs to avoid bloat
+    # 3. Per-record trace rows: every item up to the safety bound gets its
+    # own row, and any remainder is explicitly summarized (no opaque batch).
+    batch_steps = [s for s in res.trace if s["node_id"] == "batch_transform"]
+    individual_steps = [s for s in batch_steps if s.get("item_index") is not None]
+    assert len(individual_steps) == MAX_INDIVIDUAL_TRACE_ITEMS
+    assert individual_steps[0]["item_index"] == 1
+    assert individual_steps[0]["item_total"] == large_item_count
+    assert "Record 1/5000" in individual_steps[0]["note"]
+    assert len(individual_steps[0]["outputs"]["main"]) == 1
+    summary_steps = [s for s in batch_steps if s.get("item_index") is None]
+    assert len(summary_steps) == 1
+    assert "further records completed" in summary_steps[0]["note"]
 
     # 4. High-volume execution history queries with limit and offset
     db = get_session()

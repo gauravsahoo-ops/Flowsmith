@@ -3,7 +3,7 @@
 // Input/Output data inspection with Schema / Table / JSON segmented views,
 // syncs selection with the canvas on click, and can pop out into the full console.
 
-import { memo, useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { Fragment, memo, useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { api } from '../api'
 import { useExecutionStore } from '../stores/executionStore'
 import { useWorkflowStore } from '../stores/workflowStore'
@@ -12,6 +12,14 @@ import { NodeIcon } from './NodeIcons'
 import { TableView, SchemaView } from './DataViewer'
 import JsonTree from './JsonTree'
 import { findPreviewTruncation, stripPreviewMarkers } from '../utils/preview'
+import {
+  extractTraceRecords,
+  formatRecordPreview,
+  matchesQuery,
+  recordMatchesQuery,
+  traceStepHaystack,
+  unrollItems,
+} from '../utils/logRecords'
 
 function fmtTime(iso) {
   if (!iso) return ''
@@ -29,30 +37,7 @@ function fmtDuration(ms) {
   return `${(ms / 1000).toFixed(2)}s`
 }
 
-function unrollItems(data) {
-  if (data == null) return []
-  if (Array.isArray(data)) {
-    return data.map((item) => {
-      if (item && typeof item === 'object' && 'json' in item) {
-        return item.json
-      }
-      return item
-    })
-  }
-  if (typeof data === 'object') {
-    if (Array.isArray(data.main)) {
-      return unrollItems(data.main)
-    }
-    if (Array.isArray(data.records)) {
-      return data.records
-    }
-    if ('json' in data && typeof data.json === 'object') {
-      return [data.json]
-    }
-    return [data]
-  }
-  return [{ value: data }]
-}
+const MAX_VISIBLE_LOG_ROWS = 1500
 
 function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   const handleOpenConsole = onOpenConsole || onOpenDebugger
@@ -98,6 +83,8 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
 
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [expandedRecordSteps, setExpandedRecordSteps] = useState(() => new Set())
+  const [visibleLogLimit, setVisibleLogLimit] = useState(MAX_VISIBLE_LOG_ROWS)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
   const logListRef = useRef(null)
@@ -237,6 +224,64 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
   }
 
   const hasLogs = Array.isArray(trace) && trace.length > 0
+
+  // Log search covers node names, messages, errors and the per-record
+  // input/output payloads. Records inside a connector search/list response
+  // are also matched individually and rendered as searchable child rows.
+  const logRows = useMemo(() => {
+    const q = search.trim()
+    return trace.map((step, index) => {
+      const node = nodeMap.get(step.node_id) || {}
+      const nodeName = node.name || node.display_name || step.node_id || ''
+      const allRecords = extractTraceRecords(step)
+      const matchingRecords = q
+        ? allRecords.filter((record) => recordMatchesQuery(record, q))
+        : allRecords
+      const stepMatches = q ? matchesQuery(traceStepHaystack(step, nodeName), q) : true
+      return {
+        step,
+        index,
+        nodeName,
+        allRecords,
+        records: matchingRecords,
+        stepMatches,
+        visible: stepMatches || (Boolean(q) && matchingRecords.length > 0),
+      }
+    })
+  }, [trace, nodeMap, search])
+
+  const visibleLogRows = useMemo(
+    () => logRows.filter((row) => row.visible).slice(0, visibleLogLimit),
+    [logRows, visibleLogLimit],
+  )
+  const matchingLogCount = useMemo(
+    () => logRows.filter((row) => row.visible).length,
+    [logRows],
+  )
+  const recordRowCount = useMemo(() => {
+    const q = search.trim()
+    return logRows.reduce(
+      (total, row) => total + (q ? row.records.length : row.allRecords.length),
+      0,
+    )
+  }, [logRows, search])
+
+  useEffect(() => {
+    setVisibleLogLimit(MAX_VISIBLE_LOG_ROWS)
+  }, [search])
+
+  function toggleRecordStep(key) {
+    setExpandedRecordSteps((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  function showMoreLogs() {
+    setVisibleLogLimit((limit) => limit + MAX_VISIBLE_LOG_ROWS)
+  }
 
   // Active step for Input/Output inspection
   const activeStep = useMemo(() => {
@@ -531,6 +576,44 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
         </div>
       </div>
 
+      {/* Sub-toolbar row for the log stream: record/node search + counts */}
+      {open && activeTab === 'logs' && (hasLogs || running) && (
+        <div className="logs-sub-toolbar logs-sub-toolbar--logs">
+          <div className="logs-sub-left">
+            <div className="logs-search-wrap">
+              <button
+                type="button"
+                className={`logs-search-toggle ${searchOpen || search ? 'active' : ''}`}
+                onClick={() => setSearchOpen((v) => !v)}
+                title="Search logs, nodes, records and errors"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </button>
+              {(searchOpen || search) && (
+                <input
+                  type="text"
+                  className="logs-search-input"
+                  placeholder="Search logs, nodes or records…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  autoFocus
+                  aria-label="Search execution logs"
+                />
+              )}
+            </div>
+            <span className="logs-item-count" data-testid="logs-search-count">
+              {search.trim()
+                ? `${matchingLogCount} of ${logRows.length} steps`
+                : `${logRows.length} ${logRows.length === 1 ? 'step' : 'steps'}`}
+              {recordRowCount > 0 ? ` · ${recordRowCount} ${recordRowCount === 1 ? 'record' : 'records'}` : ''}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Sub-toolbar row for Input / Output mode (matches screenshot) */}
       {open && (activeTab === 'input' || activeTab === 'output') && (
         <div className="logs-sub-toolbar">
@@ -631,75 +714,141 @@ function LogsPanel({ onOpenConsole, onOpenDebugger }) {
               </div>
             ) : (
               <div ref={logListRef} className="logs-stream">
-                {trace.map((step, idx) => {
+                {visibleLogRows.map(({ step, index, nodeName, records, allRecords }) => {
                   const node = nodeMap.get(step.node_id) || {}
-                  const displayName = node.name || node.display_name || step.node_id
+                  const displayName = nodeName || node.name || node.display_name || step.node_id
                   const isSelected = selectedNodeId === step.node_id
                   const status = step.status || 'running'
+                  const rowKey = step.id || `${step.node_id}_${index}`
+                  const hasRecordChildren = allRecords.length > 1
+                  const recordSearchActive = Boolean(search.trim())
+                  const recordsExpanded = recordSearchActive || expandedRecordSteps.has(rowKey)
+                  const shownRecords = recordsExpanded ? records.slice(0, 200) : []
+                  const outputPayload = step.full_outputs ?? step.outputs
+                  const outputItems = Array.isArray(outputPayload)
+                    ? outputPayload
+                    : Array.isArray(outputPayload?.main)
+                      ? outputPayload.main
+                      : null
+                  const itemLabel = step.item_index != null && step.item_total != null
+                    ? `Record ${step.item_index}/${step.item_total}`
+                    : outputItems
+                      ? `${outputItems.length} items`
+                      : (step.output_count != null ? `${step.output_count} items` : '')
 
                   return (
-                    <div
-                      key={step.id || `${step.node_id}_${idx}`}
-                      className={`logs-row ${status} ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleRowClick(step)}
-                      onDoubleClick={() => handleRowDoubleClick(step)}
-                      title="Click to select on canvas, double-click to view output"
-                    >
-                      <span className="logs-col-time">{fmtTime(step.started_at)}</span>
+                    <Fragment key={rowKey}>
+                      <div
+                        className={`logs-row ${status} ${isSelected ? 'selected' : ''}`}
+                        onClick={() => handleRowClick(step)}
+                        onDoubleClick={() => handleRowDoubleClick(step)}
+                        title="Click to select on canvas, double-click to view output"
+                      >
+                        <span className="logs-col-time">{fmtTime(step.started_at)}</span>
 
-                      <span className={`logs-col-status status-${status}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        {status === 'success' && (
-                          <>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Success</span>
-                          </>
-                        )}
-                        {status === 'running' && (
-                          <>
-                            <span className="status-dot-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-                            <span>Running</span>
-                          </>
-                        )}
-                        {(status === 'failed' || status === 'error') && (
-                          <>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            <span>Error</span>
-                          </>
-                        )}
-                        {status === 'skipped' && <span>— Skipped</span>}
-                        {status === 'waiting_approval' && (
-                          <>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>
-                            <span>Waiting</span>
-                          </>
-                        )}
-                      </span>
+                        <span className={`logs-col-status status-${status}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {status === 'success' && (
+                            <>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                              <span>Success</span>
+                            </>
+                          )}
+                          {status === 'running' && (
+                            <>
+                              <span className="status-dot-pulse" style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                              <span>Running</span>
+                            </>
+                          )}
+                          {(status === 'failed' || status === 'error') && (
+                            <>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                              <span>Error</span>
+                            </>
+                          )}
+                          {status === 'skipped' && <span>— Skipped</span>}
+                          {status === 'waiting_approval' && (
+                            <>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="4" height="16" x="6" y="4"/><rect width="4" height="16" x="14" y="4"/></svg>
+                              <span>Waiting</span>
+                            </>
+                          )}
+                        </span>
 
-                      <span className="logs-col-node">
-                        <NodeIcon type={node.type} icon={node.icon} size={16} />
-                        <span className="logs-node-name">{displayName}</span>
-                      </span>
+                        <span className="logs-col-node">
+                          <NodeIcon type={node.type} icon={node.icon} size={16} />
+                          <span className="logs-node-name">{displayName}</span>
+                          {step.item_index != null && (
+                            <span className="logs-record-chip">#{step.item_index}</span>
+                          )}
+                        </span>
 
-                      <span className="logs-col-duration">{fmtDuration(step.duration_ms)}</span>
+                        <span className="logs-col-duration">{fmtDuration(step.duration_ms)}</span>
 
-                      <span className="logs-col-items">
-                        {Array.isArray(step.full_outputs ?? step.outputs)
-                          ? `${(step.full_outputs ?? step.outputs).length} items`
-                          : (step.output_count != null ? `${step.output_count} items` : '')}
-                      </span>
+                        <span className="logs-col-items">{itemLabel}</span>
 
-                      <span className="logs-col-msg">
-                        {step.error ? (
-                          <span className="logs-error-text">
-                            {typeof step.error === 'string' ? step.error : (step.error.message || JSON.stringify(step.error))}
+                        <span className="logs-col-msg">
+                          {step.error ? (
+                            <span className="logs-error-text">
+                              {typeof step.error === 'string' ? step.error : (step.error.message || JSON.stringify(step.error))}
+                            </span>
+                          ) : (
+                            step.note || (status === 'success' ? 'Finished successfully' : '')
+                          )}
+                        </span>
+                      </div>
+
+                      {hasRecordChildren && !recordSearchActive && (
+                        <button
+                          type="button"
+                          className="logs-record-toggle"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleRecordStep(rowKey)
+                          }}
+                        >
+                          {recordsExpanded ? '▾ Hide' : '▸ Show'} {allRecords.length} records
+                        </button>
+                      )}
+
+                      {shownRecords.map((record, recordIndex) => (
+                        <div
+                          key={`${rowKey}_record_${recordIndex}`}
+                          className="logs-row logs-record-row"
+                          onClick={() => handleRowClick(step)}
+                          onDoubleClick={() => handleRowDoubleClick(step)}
+                          title="Record carried by this step. Double-click to open the full output."
+                        >
+                          <span className="logs-col-time" />
+                          <span className="logs-col-status status-success">
+                            <span className="logs-record-dot" />
+                            <span>Record</span>
                           </span>
-                        ) : (
-                          status === 'success' ? 'Finished successfully' : ''
-                        )}
-                      </span>
-                    </div>
+                          <span className="logs-col-node">
+                            <span className="logs-record-index">#{recordIndex + 1}</span>
+                            <span className="logs-node-name">{displayName}</span>
+                          </span>
+                          <span className="logs-col-duration" />
+                          <span className="logs-col-items">{step.item_total ? `${step.item_total} total` : ''}</span>
+                          <span className="logs-col-msg" title={formatRecordPreview(record, 500)}>
+                            {formatRecordPreview(record)}
+                          </span>
+                        </div>
+                      ))}
+
+                      {recordsExpanded && records.length > shownRecords.length && (
+                        <div className="logs-record-more">
+                          Showing {shownRecords.length} of {records.length} matching records. Double-click the step to inspect the full output.
+                        </div>
+                      )}
+                    </Fragment>
                   )
                 })}
+
+                {matchingLogCount > visibleLogRows.length && (
+                  <button type="button" className="logs-show-more" onClick={showMoreLogs}>
+                    Show more log rows ({visibleLogRows.length} of {matchingLogCount})
+                  </button>
+                )}
 
                 {executionError && (
                   <div className="logs-row error execution-fatal">

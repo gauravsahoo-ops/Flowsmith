@@ -44,10 +44,11 @@ class HubSpotConnectorParams(BaseModel):
         default="search",
         description=(
             "Operation to run: search, list, get, create, update, delete, "
-            "get_properties, associate_records, get_owner, list_pipelines."
+            "get_properties, list_object_types, associate_records, get_owner, "
+            "list_pipelines."
         ),
     )
-    object_type: str = Field(default="contacts", description="Standard object: contacts, companies, deals, tickets...")
+    object_type: str = Field(default="contacts", description="Standard or custom CRM object API name (e.g. contacts, 2-12345678).")
     owner_id: str = Field(default="", description="HubSpot owner id (operation=get_owner).")
     record_id: str = Field(default="", description="Record id (operation=get/update/delete).")
     properties: dict[str, Any] = Field(
@@ -84,7 +85,7 @@ class HubSpotConnector(ConnectorSDK, ConnectorOperations):
 
     connector_id = "hubspot"
     display_name = "HubSpot"
-    description = "Search and manage contacts, companies, deals and tickets in HubSpot."
+    description = "Search and manage standard and custom objects in HubSpot CRM."
     category = ConnectorCategory.API
     version = "1.0.0"
 
@@ -165,6 +166,10 @@ class HubSpotConnector(ConnectorSDK, ConnectorOperations):
                 return await self._op_delete(creds, params, payload)
             if op == "get_properties":
                 return await self._op_get_properties(creds, params, payload)
+            if op == "list_object_types":
+                return await self._provider.list_object_types(
+                    creds, timeout=params.timeout_seconds,
+                )
             if op == "associate_records":
                 return await self._op_associate_records(creds, params, payload)
             if op == "get_owner":

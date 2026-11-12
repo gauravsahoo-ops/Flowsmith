@@ -131,3 +131,53 @@ def test_trace_404_for_other_user(client):
     assert client.get(
         f"/api/executions/{execution_id}/trace", headers=auth_headers(token_b)
     ).status_code == 404
+
+
+def test_preview_trace_keeps_every_per_record_step(client):
+    """The 50-row preview cap must not hide records after the 49th step."""
+    wf = {
+        "id": "wf_per_record_preview",
+        "name": "Per-record preview",
+        "nodes": [
+            {
+                "id": "split",
+                "type": "split",
+                "parameters": {"fieldToSplitOut": "items", "include": "allOtherFields"},
+            },
+            {"id": "enrich", "type": "set_data", "parameters": {"fields": {"seen": True}}},
+        ],
+        "connections": [{"source": "split", "target": "enrich"}],
+        "settings": {},
+    }
+    headers = _setup(client)
+    items = [{"email": f"person{i}@example.com", "idx": i} for i in range(150)]
+    execution_id = _run(client, headers, wf, data={"items": items})
+    detail = _wait_done(client, execution_id, headers)
+    assert detail["status"] == "success"
+
+    enrich = [step for step in detail["trace"] if step["node_id"] == "enrich"]
+    assert len(enrich) == 150
+    assert enrich[0]["item_index"] == 1
+    assert enrich[-1]["item_index"] == 150
+    assert enrich[99]["note"] == "Record 100/150."
+    assert enrich[99]["inputs"]["main"][0]["email"] == "person99@example.com"
+
+    trace_steps = client.get(
+        f"/api/executions/{execution_id}/trace", headers=headers
+    ).json()["data"]["steps"]
+    trace_enrich = [step for step in trace_steps if step["node_id"] == "enrich"]
+    assert len(trace_enrich) == 150
+
+
+def test_preview_trace_rows_has_explicit_overall_cap():
+    from app.api.executions import TRACE_PREVIEW_MAX_ROWS, _preview_trace_rows
+
+    rows = [
+        {"node_id": f"n{i}", "node_type": "set_data", "status": "success", "started_at": "2026-01-01T00:00:00Z"}
+        for i in range(TRACE_PREVIEW_MAX_ROWS + 3)
+    ]
+    preview = _preview_trace_rows(rows)
+
+    assert len(preview) == TRACE_PREVIEW_MAX_ROWS + 1
+    assert preview[-1]["node_id"] == "__trace_truncated__"
+    assert "3 further steps are stored" in preview[-1]["note"]

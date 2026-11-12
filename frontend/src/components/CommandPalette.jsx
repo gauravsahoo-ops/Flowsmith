@@ -14,6 +14,7 @@ import { useExecutionStore } from '../stores/executionStore'
 import { useUiStore } from '../stores/uiStore'
 import { NodeIcon } from './NodeIcons'
 import { fuzzyScore } from '../utils/fuzzy'
+import { nodeSearchText } from '../utils/nodeSearch'
 
 export function CommandPaletteModal({ open, onClose }) {
   const catalog = useWorkflowStore((s) => s.catalog)
@@ -177,7 +178,7 @@ export function CommandPaletteModal({ open, onClose }) {
     })()
     for (const meta of catalog) {
       const title = `Add ${meta.display_name}`
-      const s = fuzzyScore(query, `${title} ${meta.type} ${meta.category || ''}`)
+      const s = fuzzyScore(query, nodeSearchText(meta, title))
       if (s >= 0 && !title.includes('Add TEMPLATE')) {
         results.push({
           id: `add-${meta.type}`,

@@ -554,3 +554,30 @@ async def test_large_workflows_and_complex_multibranch_scenarios():
     assert "notify" in result_std.results
     assert result_std.results["notify"]["main"][0]["tier"] == "standard"
     assert result_std.results["notify"]["main"][0]["discount"] == 0.05
+
+
+async def test_per_record_execution_trace_for_large_batches():
+    """Every item above the old 100-item threshold gets its own log row."""
+    wf = make_wf_model(
+        [
+            make_node("trigger", "manual_trigger"),
+            make_node("enrich", "set_data", parameters={"fields": {"seen": True}}),
+        ],
+        [conn("trigger", "enrich")],
+        wf_id="wf_per_record_trace",
+    )
+    items = [{"email": f"person{idx}@example.com", "idx": idx} for idx in range(150)]
+
+    result = await execute_workflow(wf, items)
+
+    assert result.status == "success"
+    enrich_steps = [s for s in result.trace if s["node_id"] == "enrich"]
+    assert len(enrich_steps) == 150
+    assert [s["item_index"] for s in enrich_steps] == list(range(1, 151))
+    assert all(s["item_total"] == 150 for s in enrich_steps)
+    assert enrich_steps[0]["note"] == "Record 1/150."
+    assert enrich_steps[-1]["note"] == "Record 150/150."
+    # The per-record payload is bounded to that item, so the record is
+    # directly searchable in the execution log.
+    assert enrich_steps[42]["inputs"]["main"][0]["email"] == "person42@example.com"
+    assert enrich_steps[42]["outputs"]["main"][0]["email"] == "person42@example.com"

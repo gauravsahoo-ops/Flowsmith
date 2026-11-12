@@ -521,6 +521,10 @@ app.include_router(code.router)
 from app.api import salesforce_discovery as salesforce_discovery_router  # noqa: E402
 
 app.include_router(salesforce_discovery_router.router)
+# HubSpot standard/custom object discovery (dynamic object picker).
+from app.api import hubspot_discovery as hubspot_discovery_router  # noqa: E402
+
+app.include_router(hubspot_discovery_router.router)
 # Phase 10: Salesforce Outbound Message event trigger (public, no JWT).
 app.include_router(salesforce_events.router)
 # White-labeling and custom company branding

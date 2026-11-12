@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import DynamicNodeConfigPanel from './DynamicNodeConfigPanel'
+import { buildOperationSearchOptions } from '../../utils/operationOptions'
 
 // The panel reads the selected operation off whichever property the node names
 // as its selector. Most nodes gate on `operation`; rename_keys gates on `mode`.
@@ -61,17 +62,20 @@ describe('DynamicNodeConfigPanel selector awareness', () => {
   })
 
   it('lists every declared mode as an option', () => {
-    const html = renderPanel(RENAME_META, { parameters: { mode: 'copy' } })
-    expect(html).toContain('value="rename"')
-    expect(html).toContain('value="copy"')
-    expect(html).toContain('value="remove"')
+    const options = buildOperationSearchOptions(
+      Object.keys(RENAME_META.operations),
+      RENAME_META.operations,
+      RENAME_META.display_name,
+    )
+    expect(options.map((opt) => opt.value)).toEqual(['rename', 'copy', 'remove'])
+    expect(options.map((opt) => opt.label)).toEqual(['Rename', 'Copy', 'Remove'])
   })
 
   it("marks the node's own selector value as selected", () => {
     const html = renderPanel(RENAME_META, { parameters: { mode: 'remove' } })
-    // renderToStaticMarkup puts `selected=""` on the chosen option.
-    expect(html).toMatch(/<option[^>]*value="remove"[^>]*selected/)
-    expect(html).not.toMatch(/<option[^>]*value="rename"[^>]*selected/)
+    // The searchable trigger exposes the current value accessibly.
+    expect(html).toContain('aria-label="Selected: Remove"')
+    expect(html).not.toContain('aria-label="Selected: Rename"')
   })
 
   it('renders a node that gates on the default `operation` selector unchanged', () => {

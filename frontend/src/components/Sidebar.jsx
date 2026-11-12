@@ -4,6 +4,7 @@ import { useWorkflowStore } from '../stores/workflowStore'
 import { useUiStore } from '../stores/uiStore'
 import { startNodeDrag } from '../utils/drag'
 import { fuzzyScore } from '../utils/fuzzy'
+import { nodeSearchText } from '../utils/nodeSearch'
 import SalesforceBrowser from './SalesforceBrowser'
 import SubWorkflowBrowser from './SubWorkflowBrowser'
 import Input from './shared/Input'
@@ -152,9 +153,7 @@ function Sidebar({ onOpenCredentials }) {
         return false
       }
       if (!q) return true
-      return (
-        fuzzyScore(q, `${node.display_name} ${node.type} ${node.category || ''} ${node.description || ''}`) >= 0
-      )
+      return fuzzyScore(q, nodeSearchText(node)) >= 0
     })
     const out = {}
     const seen = new Set()

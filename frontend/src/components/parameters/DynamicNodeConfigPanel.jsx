@@ -1,8 +1,20 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import MappingField from '../MappingField'
+import SearchableSelect from '../SearchableSelect'
 import { CollapsibleSection } from '../shared/CollapsibleSection'
 import { validateField, groupFields } from './parameterValidation'
+import { buildOperationSearchOptions } from '../../utils/operationOptions'
+import { api } from '../../api'
 import './DynamicNodeConfigPanel.css'
+
+const HUBSPOT_STANDARD_OBJECT_OPTIONS = [
+  { value: 'contacts', label: 'Contacts', description: 'Standard object', category: 'Standard' },
+  { value: 'companies', label: 'Companies', description: 'Standard object', category: 'Standard' },
+  { value: 'deals', label: 'Deals', description: 'Standard object', category: 'Standard' },
+  { value: 'tickets', label: 'Tickets', description: 'Standard object', category: 'Standard' },
+  { value: 'products', label: 'Products', description: 'Standard object', category: 'Standard' },
+  { value: 'quotes', label: 'Quotes', description: 'Standard object', category: 'Standard' },
+]
 
 export default function DynamicNodeConfigPanel({
   node,
@@ -19,9 +31,67 @@ export default function DynamicNodeConfigPanel({
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState(node?.last_execution?.output ?? null)
   const [testError, setTestError] = useState(null)
+  const [hubspotObjects, setHubspotObjects] = useState([])
+  const [hubspotObjectsLoading, setHubspotObjectsLoading] = useState(false)
+  const [hubspotObjectsError, setHubspotObjectsError] = useState(null)
 
   const params = useMemo(() => node?.parameters || {}, [node?.parameters])
   const settings = useMemo(() => node?.settings || {}, [node?.settings])
+
+  const isHubspot = node?.type === 'hubspot'
+  const hubspotCredentialId = node?.credentials?.hubspot || ''
+
+  // HubSpot custom objects are portal-specific and can be created after the
+  // OAuth connection, so the object picker is discovered live instead of
+  // relying on a hard-coded enum.
+  useEffect(() => {
+    if (!isHubspot) {
+      setHubspotObjects([])
+      setHubspotObjectsError(null)
+      setHubspotObjectsLoading(false)
+      return undefined
+    }
+    let active = true
+    setHubspotObjectsLoading(true)
+    setHubspotObjectsError(null)
+    api
+      .hubspotObjects(hubspotCredentialId || null)
+      .then((res) => {
+        if (!active) return
+        const list = Array.isArray(res?.objects) ? res.objects : Array.isArray(res?.data?.objects) ? res.data.objects : []
+        setHubspotObjects(list)
+      })
+      .catch((err) => {
+        if (!active) return
+        setHubspotObjects([])
+        setHubspotObjectsError(err?.message || 'Live object discovery is unavailable.')
+      })
+      .finally(() => {
+        if (active) setHubspotObjectsLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [isHubspot, hubspotCredentialId])
+
+  const hubspotObjectOptions = useMemo(
+    () =>
+      hubspotObjects.map((obj) => ({
+        value: obj.key,
+        label: obj.label || obj.key,
+        description: obj.is_custom ? 'Custom object' : 'Standard object',
+        category: obj.is_custom ? 'Custom' : 'Standard',
+        meta: obj.object_type_id || '',
+        aliases: [
+          obj.key,
+          obj.object_type_id || '',
+          obj.fully_qualified_name || '',
+          'HubSpot object',
+          obj.is_custom ? 'custom object' : 'standard object',
+        ].filter(Boolean),
+      })),
+    [hubspotObjects],
+  )
 
   // Required credential types — all of them are rendered, not just the first.
   const credentialTypes = useMemo(() => {
@@ -71,6 +141,18 @@ export default function DynamicNodeConfigPanel({
       ? 'Operation'
       : selectorName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   }, [meta, selectorName])
+
+  // Searchable operation/method list. Aliases include the connector name and
+  // the words "method"/"methods" so queries like "HubSpot methods" match
+  // even though the option labels are just the operation display names.
+  const operationOptions = useMemo(
+    () => buildOperationSearchOptions(
+      operationKeys,
+      operationsMeta,
+      meta?.display_name || node?.type || 'Connector',
+    ),
+    [operationKeys, operationsMeta, meta?.display_name, node?.type],
+  )
 
   const handleParamChange = useCallback(
     (key, val) => {
@@ -285,22 +367,18 @@ export default function DynamicNodeConfigPanel({
         <div className="dncp-op-section" data-testid="dncp-operation-section">
           <div className="dncp-op-field-row">
             <label className="dncp-op-label" htmlFor="dncp-op-select">{selectorLabel}</label>
-            <select
-              id="dncp-op-select"
-              className="dncp-op-select"
-              value={currentOp}
-              onChange={(e) => handleOperationChange(e.target.value)}
-              data-testid="dncp-operation-select"
-            >
-              {operationKeys.map((opKey) => {
-                const opLabel = operationsMeta[opKey]?.display_name || opKey.replace(/_/g, ' ').toUpperCase()
-                return (
-                  <option key={opKey} value={opKey}>
-                    {opLabel}
-                  </option>
-                )
-              })}
-            </select>
+            <div data-testid="dncp-operation-select" className="dncp-op-select-wrap">
+              <SearchableSelect
+                value={currentOp}
+                onChange={handleOperationChange}
+                options={operationOptions}
+                placeholder={`Select ${selectorLabel.toLowerCase()}…`}
+                searchPlaceholder={`Search ${selectorLabel.toLowerCase()} or method…`}
+                emptyMessage={`No ${selectorLabel.toLowerCase()} matches`}
+                clearable={false}
+                maxDropdownHeight={280}
+              />
+            </div>
           </div>
 
           <div className="dncp-op-meta-row">
@@ -336,6 +414,16 @@ export default function DynamicNodeConfigPanel({
           const enumVals = field.enum
           const error = fieldErrors[propKey]
           const options = field.options || (enumVals || []).map((v) => ({ label: String(v), value: v }))
+          const isHubspotObjectField = Boolean(
+            isHubspot
+            && ['object_type', 'from_object_type', 'to_object_type'].includes(propKey)
+            // list_pipelines is intentionally limited to deals/tickets.
+            && currentOp !== 'list_pipelines',
+          )
+          const selectOptions = isHubspotObjectField
+            ? (hubspotObjectOptions.length > 0 ? hubspotObjectOptions : HUBSPOT_STANDARD_OBJECT_OPTIONS)
+            : options
+          const isSelectField = fieldType === 'select' || isHubspotObjectField
 
           return (
             <div
@@ -350,22 +438,34 @@ export default function DynamicNodeConfigPanel({
                 </label>
               </div>
 
-              {/* SELECT / ENUM */}
-              {fieldType === 'select' && options.length > 0 ? (
-                <select
-                  id={`dncp-input-${propKey}`}
-                  className="dncp-input"
-                  aria-invalid={error ? 'true' : undefined}
-                  value={val ?? field.default ?? ''}
-                  onChange={(e) => handleParamChange(propKey, e.target.value)}
-                >
-                  <option value="">-- select --</option>
-                  {options.map((opt) => (
-                    <option key={String(opt.value)} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+              {/* SEARCHABLE SELECT (operations/enums and HubSpot objects) */}
+              {isSelectField ? (
+                <div data-testid={`dncp-select-${propKey}`}>
+                  <SearchableSelect
+                    value={val ?? field.default ?? ''}
+                    onChange={(next) => handleParamChange(propKey, next)}
+                    options={selectOptions}
+                    placeholder={isHubspotObjectField ? 'Select a HubSpot object…' : 'Select…'}
+                    searchPlaceholder={isHubspotObjectField ? 'Search standard or custom objects…' : 'Search…'}
+                    emptyMessage={isHubspotObjectField ? 'No object matches. Type a custom object API name.' : 'No matches'}
+                    clearable={isHubspotObjectField}
+                    allowCustom={isHubspotObjectField}
+                    customLabel="Use object API name"
+                    loading={isHubspotObjectField && hubspotObjectsLoading}
+                    maxDropdownHeight={260}
+                  />
+                  {isHubspotObjectField && hubspotObjectsError && (
+                    <span className="dncp-field-hint">
+                      Live object discovery is unavailable ({hubspotObjectsError}). You can still type a standard
+                      or custom object API name.
+                    </span>
+                  )}
+                  {isHubspotObjectField && !hubspotObjectsLoading && !hubspotObjectsError && hubspotObjectOptions.length > 0 && (
+                    <span className="dncp-field-hint">
+                      {hubspotObjects.filter((o) => o.is_custom).length} custom object(s) discovered from HubSpot.
+                    </span>
+                  )}
+                </div>
               ) : fieldType === 'boolean' ? (
                 /* BOOLEAN SWITCH */
                 <label className="dncp-toggle-row">

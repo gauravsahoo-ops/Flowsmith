@@ -2,7 +2,8 @@
 
 Versioned ConnectorDefinitionV1 for the HubSpot connector, registered
 through the ConnectorRegistry. The v3 CRM API is uniform across standard
-objects, so one operation set covers contacts/companies/deals/tickets:
+and custom objects, so one operation set covers contacts/companies/
+deals/tickets plus any portal-specific object:
 
 1. search - Search Record (find by property value)
 2. get    - Get Record (by id)
@@ -67,8 +68,12 @@ def _hubspot_operations() -> dict[str, ConnectorOperationV1]:
         "type": "string",
         "title": "Object type",
         "default": "contacts",
-        "enum": ["contacts", "companies", "deals", "tickets", "products", "quotes"],
-        "description": "Standard CRM object the operation targets.",
+        "description": (
+            "Standard or custom CRM object API name. Standard names include "
+            "contacts, companies, deals, tickets, products and quotes; custom "
+            "objects can be discovered from the HubSpot object picker (or use "
+            "an object type id such as 2-12345678)."
+        ),
     }
     record_id = {
         "type": "string",
@@ -269,6 +274,25 @@ def _hubspot_operations() -> dict[str, ConnectorOperationV1]:
             },
             retryable=True,
         ),
+        "list_object_types": _operation(
+            "list_object_types",
+            "List Object Types",
+            "Discover standard and custom CRM object types (including objects created after the connection was made).",
+            {"timeout_seconds": _TIMEOUT_PROP},
+            [],
+            {
+                "type": "object",
+                "properties": {
+                    "objects": {"type": "array", "items": {"type": "object"}},
+                    "count": {"type": "integer"},
+                    "standard_count": {"type": "integer"},
+                    "custom_count": {"type": "integer"},
+                    "custom_objects_available": {"type": "boolean"},
+                    "custom_error": {"type": ["string", "null"]},
+                },
+            },
+            retryable=True,
+        ),
         "associate_records": _operation(
             "associate_records",
             "Associate Records",
@@ -367,7 +391,7 @@ def build_hubspot_definition() -> ConnectorDefinitionV1:
     return ConnectorDefinitionV1(
         connector_key=HUBSPOT_CONNECTOR_KEY,
         display_name="HubSpot",
-        description="HubSpot connector: search, list, get, create, update and delete contacts, companies, deals and tickets via CRM v3, with cursor pagination.",
+        description="HubSpot connector: search, list, get, create, update and delete records for standard and custom objects via CRM v3, with cursor pagination and live object discovery.",
         category="crm",
         connector_version=HUBSPOT_CONNECTOR_VERSION,
         lifecycle_status=ConnectorLifecycle.STABLE.value,
@@ -377,7 +401,8 @@ def build_hubspot_definition() -> ConnectorDefinitionV1:
         metadata={
             "initial_operations": [
                 "search", "list", "get", "create", "update", "delete",
-                "get_properties", "associate_records", "get_owner", "list_pipelines",
+                "get_properties", "list_object_types", "associate_records",
+                "get_owner", "list_pipelines",
             ],
             "pagination": {"strategy": "cursor", "params": ["limit", "after", "return_all", "max_pages"]},
             "auth": "OAuth2 authorization-code (Connect HubSpot) or private-app token",

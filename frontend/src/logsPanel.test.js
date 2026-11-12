@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import {
+  extractTraceRecords,
+  formatRecordPreview,
+  recordMatchesQuery,
+  traceStepHaystack,
+} from './utils/logRecords'
 
 function unrollItems(data) {
   if (data == null) return []
@@ -86,5 +92,46 @@ describe('Logs feature utils and data structures', () => {
     expect(getStatusLabel('error')).toBe('Error')
     expect(getStatusLabel('skipped')).toBe('Skipped')
     expect(getStatusLabel('waiting_approval')).toBe('Waiting')
+  })
+
+  it('finds records inside a node step and matches record values', () => {
+    const step = {
+      node_id: 'hs',
+      node_type: 'hubspot',
+      status: 'success',
+      note: 'List records',
+      outputs: {
+        main: [{
+          object_type: 'cars',
+          records: [
+            { id: '1', properties: { email: 'alice@example.com', model: 'Roadster' } },
+            { id: '2', properties: { email: 'bob@example.com', model: 'Cybertruck' } },
+          ],
+        }],
+      },
+    }
+
+    const records = extractTraceRecords(step)
+    expect(records).toHaveLength(2)
+    expect(formatRecordPreview(records[0])).toContain('alice@example.com')
+    expect(recordMatchesQuery(records[1], 'cybertruck')).toBe(true)
+    expect(recordMatchesQuery(records[1], 'roadster')).toBe(false)
+
+    const haystack = traceStepHaystack(step, 'HubSpot')
+    expect(haystack).toContain('hubspot')
+    expect(haystack).toContain('alice@example.com')
+  })
+
+  it('does not duplicate a per-item trace row as a record child', () => {
+    const step = {
+      node_id: 'hs',
+      item_index: 2,
+      item_total: 10,
+      inputs: { main: [{ email: 'item2@example.com' }] },
+      outputs: { main: [{ id: '2', email: 'item2@example.com' }] },
+    }
+
+    expect(extractTraceRecords(step)).toEqual([])
+    expect(traceStepHaystack(step, 'HubSpot')).toContain('item2@example.com')
   })
 })

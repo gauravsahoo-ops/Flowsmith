@@ -414,6 +414,14 @@ export const api = {
       'GET',
       `/connectors/salesforce/schema/${encodeURIComponent(objectName)}${refresh ? '?refresh=true' : ''}`,
     ),
+  // Live HubSpot standard/custom object discovery for the object picker.
+  hubspotObjects: (credentialId = null, refresh = false) => {
+    const params = new URLSearchParams()
+    if (credentialId) params.set('credential_id', credentialId)
+    if (refresh) params.set('refresh', 'true')
+    const qs = params.toString()
+    return request('GET', `/connectors/hubspot/objects${qs ? `?${qs}` : ''}`)
+  },
   connectOAuth: (provider, loginUrl, prompt, extra = {}) => {
     let actualLoginUrl = loginUrl
     let actualPrompt = prompt

@@ -48,6 +48,7 @@ function defaultsFromSchema(schema) {
 
 export const useWorkflowStore = create((set, get) => ({
   workflow: null, // {id, name, version, active, ...}
+  hydratedId: null, // workflow id whose nodes/edges are currently on the canvas
   nodes: [],
   edges: [],
   catalog: [],
@@ -222,6 +223,7 @@ export const useWorkflowStore = create((set, get) => ({
 
   async createNew(name) {
     const id = crypto.randomUUID()
+    const requestId = loadSeq
     const wf = await api.createWorkflow({
       id,
       name,
@@ -229,8 +231,13 @@ export const useWorkflowStore = create((set, get) => ({
       connections: [],
       settings: {},
     })
+    // A route-specific load may have started while createWorkflow was in
+    // flight (first load of /workflows, then opening a workflow before the
+    // background init resolves). The route load owns the canvas now.
+    if (requestId !== loadSeq) return wf
     set({
       workflow: wf,
+      hydratedId: wf.id,
       nodes: [],
       edges: [],
       comments: [],
@@ -297,6 +304,7 @@ export const useWorkflowStore = create((set, get) => ({
       const decor = readDecorations(wf)
       set({
         workflow: wf,
+        hydratedId: wf.id,
         nodes,
         edges,
         ...decor,
@@ -334,7 +342,7 @@ export const useWorkflowStore = create((set, get) => ({
     // after the workflow is gone.
     clearTimeout(saveTimer)
     await api.deleteWorkflow(id)
-    set({ workflow: null, nodes: [], edges: [], versions: [], comments: [], groups: [], edgeLabels: {}, savedAt: null })
+    set({ workflow: null, hydratedId: null, nodes: [], edges: [], versions: [], comments: [], groups: [], edgeLabels: {}, savedAt: null })
     get()._history.reset()
     set({ canUndo: false, canRedo: false })
     const list = await api.listWorkflows()

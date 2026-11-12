@@ -58,6 +58,43 @@ logger = logging.getLogger("api.executions")
 
 IN_PROGRESS_STATUSES = frozenset({"queued", "running", "cancelling"})
 EXPORT_ROW_LIMIT = 10_000
+# Trace payloads are already bounded by the executor (one item per record
+# step). Keep a page-sized window so a HubSpot search/list result remains
+# searchable in the log stream without shipping an unbounded array.
+TRACE_PREVIEW_MAX_ITEMS = 500
+TRACE_PREVIEW_MAX_ROWS = 5000
+
+
+def _preview_trace_rows(trace: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Window each trace step's payload without dropping record-level rows.
+
+    The generic preview sanitizer caps a list at 50 entries. Applied to the
+    trace itself that silently hid every record after the 50th even though
+    the engine emitted per-record steps. Keep all rows, bound each row's
+    inputs/outputs instead. A generous overall row cap protects the response
+    from pathological multi-node runs; the omission is explicit and the full
+    trace remains available through Export.
+    """
+    rows = [
+        preview_sanitize(dict(step), max_items=TRACE_PREVIEW_MAX_ITEMS)
+        for step in (trace or [])
+        if isinstance(step, dict)
+    ]
+    if len(rows) > TRACE_PREVIEW_MAX_ROWS:
+        omitted = len(rows) - TRACE_PREVIEW_MAX_ROWS
+        rows = rows[:TRACE_PREVIEW_MAX_ROWS]
+        rows.append({
+            "node_id": "__trace_truncated__",
+            "node_type": "trace",
+            "status": "skipped",
+            "started_at": rows[-1].get("started_at") if rows else None,
+            "duration_ms": 0,
+            "note": (
+                f"Trace preview limited to {TRACE_PREVIEW_MAX_ROWS} rows; "
+                f"{omitted} further steps are stored. Use Export for the complete trace."
+            ),
+        })
+    return rows
 
 
 class RunRequest(BaseModel):
@@ -1182,7 +1219,7 @@ def get_execution(
     raw_wf_data = rec.workflow_data
 
     if not full:
-        trace = preview_sanitize(trace)
+        trace = _preview_trace_rows(trace)
         raw_results = preview_sanitize(raw_results)
         raw_wf_data = preview_sanitize(raw_wf_data)
 
@@ -1349,7 +1386,7 @@ def get_execution_trace(
             if not step.get("inputs") and results_inputs and isinstance(results_inputs, dict) and nid in results_inputs:
                 step["inputs"] = results_inputs[nid]
     if not full:
-        trace = preview_sanitize(trace)
+        trace = _preview_trace_rows(trace)
     return ok({"steps": redact_trace_steps(trace)})
 
 
@@ -1415,10 +1452,10 @@ def get_execution_steps(
             }
             for s in step_rows
         ]
-        return ok(preview_sanitize(data))
+        return ok([preview_sanitize(row) for row in data])
 
     # Fallback to rec.trace for runs executed prior to telemetry table migration
-    trace = redact_trace_steps(preview_sanitize([dict(s) for s in (rec.trace or [])]))
+    trace = redact_trace_steps(_preview_trace_rows([dict(s) for s in (rec.trace or [])]))
     return ok(trace)
 
 

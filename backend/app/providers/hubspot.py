@@ -18,22 +18,40 @@ stored in the credential blob.
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from typing import Any
 
 import httpx
 
-from app.connectors import ConnectorErrorCode, make_connector_error
+from app.connectors import ConnectorError, ConnectorErrorCode, make_connector_error
 from app.config import get_settings
 from app.security.safe_http_client import get_safe_http_client
 
 HUBSPOT_API_BASE = "https://api.hubapi.com"
 
-# Standard CRM objects accepted for object_type (v3 API is uniform across
-# them; the allowlist stops the object type acting as a path-injection vector).
+# Standard CRM objects known to the v3 API. Custom objects are discovered
+# live from /crm/v3/schemas; this set is only used to present the standard
+# entries first in the object picker and remains the fallback when the
+# portal's schema scope is unavailable.
 STANDARD_OBJECTS = frozenset({
     "contacts", "companies", "deals", "tickets", "products", "quotes",
 })
+
+# HubSpot object type identifiers are the plural API name (contacts) or a
+# custom-object type id such as "2-12345678". Validate the shape rather
+# than allowlisting names: this still blocks path traversal and query
+# injection, while allowing every valid custom object.
+_OBJECT_TYPE_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,127}$")
+
+_STANDARD_OBJECT_LABELS = {
+    "contacts": "Contacts",
+    "companies": "Companies",
+    "deals": "Deals",
+    "tickets": "Tickets",
+    "products": "Products",
+    "quotes": "Quotes",
+}
 
 
 class HubSpotProviderClient:
@@ -206,8 +224,14 @@ class HubSpotProviderClient:
                 retryable=True,
             ) from exc
 
-        if response.status_code == 401 and not force_refresh:
-            # Access token expired/revoked mid-flight: refresh once.
+        if (
+            response.status_code == 401
+            and not force_refresh
+            and str(creds.get("refresh_token") or "").strip()
+        ):
+            # Access token expired/revoked mid-flight: refresh once. Private
+            # app tokens cannot be refreshed, so a 401 is returned directly
+            # instead of making a pointless duplicate request.
             refresh_token = str(creds.get("refresh_token") or "").strip()
             self._access_tokens.pop(refresh_token, None)
             fresh = await self._access_token(creds)
@@ -251,14 +275,117 @@ class HubSpotProviderClient:
     @staticmethod
     def _object_type(object_type: str) -> str:
         value = str(object_type or "").strip().lower()
-        if value not in STANDARD_OBJECTS:
+        if not _OBJECT_TYPE_RE.fullmatch(value):
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
-                f"Unsupported HubSpot object_type '{object_type}' "
-                f"(use one of: {', '.join(sorted(STANDARD_OBJECTS))}).",
+                f"Unsupported HubSpot object_type '{object_type}'. Use a standard object "
+                "name (contacts, companies, deals, tickets, products, quotes) or a "
+                "custom object API name / object type id such as '2-12345678'.",
                 retryable=False,
             )
         return value
+
+    async def list_object_types(
+        self,
+        creds: dict[str, Any],
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        """Return standard and custom CRM object types for the picker.
+
+        ``GET /crm/v3/schemas`` lists the portal's custom object schemas.
+        Standard objects are always included so the picker remains usable
+        with private apps that only have CRM object scopes (no schema read).
+        """
+        standard = [
+            {
+                "key": key,
+                "label": _STANDARD_OBJECT_LABELS.get(key, key.replace("_", " ").title()),
+                "object_type_id": None,
+                "fully_qualified_name": None,
+                "is_custom": False,
+            }
+            for key in sorted(STANDARD_OBJECTS)
+        ]
+
+        custom: list[dict[str, Any]] = []
+        custom_error: str | None = None
+        try:
+            cursor: str | None = None
+            pages = 0
+            while True:
+                params: dict[str, Any] = {"limit": 100}
+                if cursor:
+                    params["after"] = cursor
+                response = await self.request(
+                    creds, "GET", "/crm/v3/schemas", params=params, timeout=timeout,
+                )
+                if response.status_code in (403, 404):
+                    # Not all private apps are granted crm.schemas.read. The
+                    # standard objects still work; surface a warning instead of
+                    # making the whole picker fail. A 401 is different: it means
+                    # the credential itself is invalid/expired and must surface
+                    # as an auth failure so the UI can prompt a reconnect.
+                    custom_error = (
+                        "Custom object discovery is unavailable for this connection "
+                        f"(HubSpot returned {response.status_code}). Standard objects remain selectable."
+                    )
+                    break
+                self._raise_for_status(response, "list object schemas")
+                data = response.json()
+                results = data.get("results") if isinstance(data, dict) else None
+                if not isinstance(results, list):
+                    raise make_connector_error(
+                        ConnectorErrorCode.BAD_REQUEST,
+                        "HubSpot schemas returned an unexpected payload.",
+                        retryable=False,
+                    )
+                for schema in results:
+                    if not isinstance(schema, dict):
+                        continue
+                    key = str(schema.get("name") or schema.get("objectTypeId") or "").strip().lower()
+                    if not key or not _OBJECT_TYPE_RE.fullmatch(key):
+                        continue
+                    labels = schema.get("labels") if isinstance(schema.get("labels"), dict) else {}
+                    custom.append({
+                        "key": key,
+                        "label": (
+                            str(labels.get("plural") or "").strip()
+                            or str(labels.get("singular") or "").strip()
+                            or key.replace("_", " ").title()
+                        ),
+                        "object_type_id": schema.get("objectTypeId"),
+                        "fully_qualified_name": schema.get("fullyQualifiedName"),
+                        "is_custom": True,
+                    })
+                pages += 1
+                paging = data.get("paging") if isinstance(data, dict) else None
+                nxt = (paging or {}).get("next") if isinstance(paging, dict) else None
+                cursor = str(nxt.get("after") or "") if isinstance(nxt, dict) else None
+                if not cursor or pages >= 10:
+                    break
+        except asyncio.CancelledError:
+            raise
+        except ConnectorError as exc:
+            # Malformed schema payloads degrade to standard objects. Auth,
+            # permission, rate-limit and availability failures must surface
+            # so the UI can prompt a reconnect or retry.
+            if exc.code == ConnectorErrorCode.BAD_REQUEST.value:
+                custom_error = f"Custom object discovery failed: {exc}"
+            else:
+                raise
+        except Exception as exc:  # noqa: BLE001 - degrade to standard objects
+            custom_error = f"Custom object discovery failed: {exc}"
+
+        custom.sort(key=lambda item: (item["label"].lower(), item["key"]))
+        objects = standard + custom
+        return {
+            "objects": objects,
+            "count": len(objects),
+            "standard_count": len(standard),
+            "custom_count": len(custom),
+            "custom_objects_available": custom_error is None,
+            "custom_error": custom_error,
+        }
 
     # ------------------------------------------------------------------
     # Operations (CRM v3 is uniform across standard objects)
