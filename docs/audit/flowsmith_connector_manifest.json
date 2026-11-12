@@ -1,13 +1,13 @@
 {
   "manifest_version": "4.0.0",
-  "generated_at": "2026-10-26T09:57:48.729838+00:00",
+  "generated_at": "2026-11-12T08:32:11.621968+00:00",
   "platform": "Flowsmith Integration Engine",
   "phase": "PHASE 4 \u2014 COMPLETE NODE AND CONNECTOR CERTIFICATION",
   "summary": {
     "total_registered_connectors": 529,
     "total_canonical_connectors": 504,
     "hidden_catalog_entries": 25,
-    "total_connector_operations": 2083,
+    "total_connector_operations": 2084,
     "total_connector_triggers": 120,
     "distinct_credential_types": 429,
     "total_canonical_nodes": 78,
@@ -20592,10 +20592,10 @@
       "node_types": [
         "hubspot"
       ],
-      "schema_hash": "sha256:43ec78dc4ee7446f",
+      "schema_hash": "sha256:c432354aa238aa5f",
       "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
-      "operations_count": 10,
+      "operations_count": 11,
       "operations": {
         "search": {
           "operation_key": "search",
@@ -20701,6 +20701,18 @@
           "credential_require": "hubspot",
           "input_schema_fields": [
             "object_type",
+            "timeout_seconds"
+          ],
+          "timeout_seconds": 30.0
+        },
+        "list_object_types": {
+          "operation_key": "list_object_types",
+          "display_name": "List Object Types",
+          "description": "Discover standard and custom CRM object types (including objects created after the connection was made).",
+          "retryable": true,
+          "idempotency": "idempotent",
+          "credential_require": "hubspot",
+          "input_schema_fields": [
             "timeout_seconds"
           ],
           "timeout_seconds": 30.0

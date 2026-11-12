@@ -181,3 +181,21 @@ def test_preview_trace_rows_has_explicit_overall_cap():
     assert len(preview) == TRACE_PREVIEW_MAX_ROWS + 1
     assert preview[-1]["node_id"] == "__trace_truncated__"
     assert "3 further steps are stored" in preview[-1]["note"]
+
+
+def test_execution_duration_handles_naive_datetimes():
+    """SQLite returns naive timestamps; duration calculation must not crash."""
+    from datetime import datetime
+
+    from app.api.executions import _to_dict
+    from app.models import Execution
+
+    rec = Execution(
+        id="exec_naive",
+        workflow_id="wf_naive",
+        status="success",
+        started_at=datetime(2026, 1, 1, 0, 0, 0),
+        finished_at=datetime(2026, 1, 1, 0, 0, 1),
+    )
+    payload = _to_dict(rec)
+    assert payload["duration_ms"] == 1000.0

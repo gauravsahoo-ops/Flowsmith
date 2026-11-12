@@ -9,8 +9,11 @@ async def test_diagnose_salesforce_contract_validated():
     assert diag["ok"] is True
     assert diag["connector_id"] == "salesforce"
     assert diag["certification_tier"] == "Tier 2: CONTRACT_VALIDATED"
-    assert diag["ssrf_protected"] is True
-    assert diag["zero_fake_success_guaranteed"] is True
+    # SSRF enforcement is deliberately not claimed without an independent
+    # outbound-policy probe; the diagnostic engine reports it as unverified.
+    assert diag["ssrf_protected"] is None
+    assert diag["ssrf_verification"] == "not independently verified"
+    assert diag["zero_fake_success_guaranteed"] is False
     assert diag["probe_supported"] is True
 
 
@@ -39,7 +42,8 @@ async def test_diagnose_parity_tier_upgrade_on_successful_probe():
         })
 
     assert diag["ok"] is True
-    assert diag["certification_tier"] == "Tier 4: PRODUCTION_CERTIFIED"
+    # A single live probe is reachability evidence, not vendor certification.
+    assert diag["certification_tier"] == "Tier 4: LIVE_PROBE_SUCCEEDED"
     assert diag["live_verified"] is True
     assert diag["diagnostic_probe"]["ok"] is True
 
@@ -70,8 +74,8 @@ async def test_diagnose_probe_rejection_remediation_guide():
 def test_list_all_certification_tiers_catalog_integrity():
     summary = list_all_certification_tiers()
     assert summary["total_connectors"] >= 528
-    assert summary["zero_fake_success_enforced"] is True
-    assert summary["ssrf_firewall_enforced"] is True
+    assert summary["zero_fake_success_enforced"] is False
+    assert summary["ssrf_firewall_enforced"] is False
     tiers = summary["tier_summary"]
     assert tiers["Tier 1: LIVE_API_VALIDATED"] >= 1
     assert tiers["Tier 2: CONTRACT_VALIDATED"] >= 10

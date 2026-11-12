@@ -127,9 +127,16 @@ def _to_dict(
     redact_search_values: bool = False,
 ) -> dict[str, Any]:
     duration_ms = rec.duration_ms
-    if duration_ms is None and rec.started_at:
-        end = rec.finished_at or datetime.now(UTC)
-        duration_ms = round((end - rec.started_at).total_seconds() * 1000.0, 2)
+    if duration_ms is None and rec.started_at is not None:
+        # SQLite returns naive datetimes while PostgreSQL returns aware ones.
+        # Normalize both so acceptance runs on SQLite do not crash here.
+        started = rec.started_at
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=UTC)
+        finished = rec.finished_at or datetime.now(UTC)
+        if finished.tzinfo is None:
+            finished = finished.replace(tzinfo=UTC)
+        duration_ms = round((finished - started).total_seconds() * 1000.0, 2)
 
     source_conn = rec.source_connector
     dest_conn = rec.destination_connector
@@ -1593,7 +1600,7 @@ def list_execution_requests(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
     p, size = page_params(page=page, pageSize=pageSize)
-    total = int(
+    total = (
         db.scalar(
             select(func.count(ApiRequestTelemetry.id)).where(
                 ApiRequestTelemetry.execution_id == execution_id
@@ -1609,7 +1616,7 @@ def list_execution_requests(
             )
         )
         if target is not None:
-            preceding = int(
+            preceding = (
                 db.scalar(
                     select(func.count(ApiRequestTelemetry.id)).where(
                         ApiRequestTelemetry.execution_id == execution_id,
@@ -1965,7 +1972,7 @@ def resume_execution(
     db: Session = Depends(get_db),
 ) -> dict:
     """Resume a paused execution with an approve/reject decision or after authentication reconnect."""
-    approved = bool(approved) if approved is not None else (bool(body.approved) if body is not None else True)
+    approved = approved if approved is not None else (body.approved if body is not None else True)
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_edit_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")

@@ -221,27 +221,46 @@ def test_salesforce_outbound_soap_event_ingestion(client):
 # Area 3: Stress Testing Async Redis Queue Under Concurrency
 # ==============================================================================
 
-def test_redis_queue_concurrent_job_dispatch():
-    """Area 3: Enqueues multiple concurrent jobs to Redis and verifies atomic claiming."""
+def test_redis_queue_concurrent_job_dispatch(monkeypatch):
+    """Area 3: Enqueues multiple concurrent jobs to Redis and verifies atomic claiming.
+
+    Uses a dedicated Redis logical DB so an embedded consumer left running by
+    another test cannot claim one of the ten jobs before this test does.
+    """
+    import redis
+    from app.queue import redis_queue as redis_queue_module
+
+    base_url = get_settings().redis_url.rsplit("/", 1)[0]
+    isolated_url = f"{base_url}/13"
+    isolated = redis.Redis.from_url(isolated_url, decode_responses=True)
+    isolated.flushdb()
+    monkeypatch.setattr(
+        redis_queue_module,
+        "get_settings",
+        lambda: get_settings().model_copy(update={"redis_url": isolated_url}),
+    )
     queue = RedisJobQueue()
     jobs = [(f"job_s_{uuid.uuid4().hex[:8]}", f"exec_s_{uuid.uuid4().hex[:8]}") for _ in range(10)]
+    try:
+        # Enqueue 10 rapid jobs
+        for jid, eid in jobs:
+            ok = queue.enqueue(jid, eid, {"workflow_id": "wf_stress", "priority": "high", "ts": time.time()})
+            assert ok is True
 
-    # Enqueue 10 rapid jobs
-    for jid, eid in jobs:
-        ok = queue.enqueue(jid, eid, {"workflow_id": "wf_stress", "priority": "high", "ts": time.time()})
-        assert ok is True
+        # Claim jobs and verify no duplicates
+        claimed_exec_ids = []
+        for _ in range(10):
+            job = queue.claim()
+            if job:
+                claimed_exec_ids.append(job.execution_id)
+                queue.complete(job.id)
 
-    # Claim jobs and verify no duplicates
-    claimed_exec_ids = []
-    for _ in range(10):
-        job = queue.claim()
-        if job:
-            claimed_exec_ids.append(job.execution_id)
-            queue.complete(job.id)
-
-    # Assert that all jobs were claimed cleanly without duplication
-    assert len(claimed_exec_ids) == len(set(claimed_exec_ids)), "Race condition detected: duplicate job claimed!"
-    assert len(claimed_exec_ids) == 10, f"Expected 10 claimed jobs, got {len(claimed_exec_ids)}"
+        # Assert that all jobs were claimed cleanly without duplication
+        assert len(claimed_exec_ids) == len(set(claimed_exec_ids)), "Race condition detected: duplicate job claimed!"
+        assert len(claimed_exec_ids) == 10, f"Expected 10 claimed jobs, got {len(claimed_exec_ids)}"
+    finally:
+        isolated.flushdb()
+        isolated.close()
 
 
 # ==============================================================================
