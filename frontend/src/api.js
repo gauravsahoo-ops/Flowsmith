@@ -31,6 +31,31 @@ export class ApiError extends Error {
   }
 }
 
+// A 401 can mean two very different things:
+//   1. the Flowsmith session/JWT is invalid -> sign the user out;
+//   2. a *third-party* credential (HubSpot, Salesforce, an LLM key, …) was
+//      rejected while the Flowsmith session is still valid -> keep the user
+//      signed in and let the caller surface the error.
+// Discovery/test endpoints report (2) with a structured connector error code,
+// so match that code instead of relying only on a brittle path allow-list.
+const THIRD_PARTY_AUTH_CODES = new Set([
+  'CONNECTOR_AUTH_FAILED',
+  'CONNECTOR_NOT_CONFIGURED',
+])
+
+export function isThirdPartyAuthFailure(path, detail) {
+  if (
+    path.startsWith('/connectors/salesforce/') ||
+    path.startsWith('/connectors/hubspot/') ||
+    path.includes('/llm/test-connection') ||
+    /^\/credentials\/[^/]+\/test/.test(path)
+  ) {
+    return true
+  }
+  const code = detail && typeof detail === 'object' ? detail.code : null
+  return typeof code === 'string' && THIRD_PARTY_AUTH_CODES.has(code)
+}
+
 async function request(method, path, body, opts) {
   const { data } = await requestEnvelope(method, path, body, opts)
   return data
@@ -110,26 +135,16 @@ async function requestEnvelope(method, path, body, opts = {}) {
     clearTimeout(timer)
   }
 
-  if (resp.status === 401) {
-    // Suppress auto-logout ONLY when the 401 comes from a *third-party*
-    // credential failing (Salesforce discovery, credential/LLM connection
-    // tests) while the Flowsmith session is still valid. Every other 401
-    // means our session token is bad and the user must be logged out.
-    const isThirdPartyAuth =
-      path.startsWith('/connectors/salesforce/') ||
-      path.includes('/llm/test-connection') ||
-      /^\/credentials\/[^/]+\/test/.test(path)
-    if (!isThirdPartyAuth) {
-      setToken(null)
-      window.dispatchEvent(new Event('auth:expired'))
-    }
-  }
   const text = await resp.text()
   let parsed = null
   try {
     parsed = text ? JSON.parse(text) : null
   } catch {
     // Non-JSON response (HTML error page, proxy 502/503, etc.)
+    if (resp.status === 401 && !isThirdPartyAuthFailure(path, null)) {
+      setToken(null)
+      window.dispatchEvent(new Event('auth:expired'))
+    }
     let cleanMsg = `Server error (${resp.status})`
     if (resp.status === 502) {
       cleanMsg = '502 Bad Gateway — The backend service is temporarily restarting. Please refresh in a moment.'
@@ -142,6 +157,10 @@ async function requestEnvelope(method, path, body, opts = {}) {
     }
     if (!resp.ok) throw new ApiError(resp.status, cleanMsg)
     throw new ApiError(resp.status, 'Invalid response from server')
+  }
+  if (resp.status === 401 && !isThirdPartyAuthFailure(path, parsed?.detail)) {
+    setToken(null)
+    window.dispatchEvent(new Event('auth:expired'))
   }
   if (!resp.ok) throw new ApiError(resp.status, parsed?.detail ?? text)
   return { data: parsed?.data, meta: parsed?.meta }

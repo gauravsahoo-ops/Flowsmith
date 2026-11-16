@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getToken, setToken, ApiError, api } from './api.js'
+import { getToken, setToken, ApiError, api, isThirdPartyAuthFailure } from './api.js'
 
 // --- localStorage mock ---
 const store = {}
@@ -484,6 +484,34 @@ describe('error handling', () => {
     await expect(api.listWorkflows()).rejects.toThrow()
     expect(mockStorage.removeItem).toHaveBeenCalledWith('mat_token')
     expect(mockDispatchEvent).toHaveBeenCalledWith(expect.any(Event))
+  })
+
+  it('keeps the session when HubSpot rejects the stored credential', async () => {
+    store.mat_token = 'valid-session'
+    mockFetchError(401, {
+      code: 'CONNECTOR_AUTH_FAILED',
+      message: 'HubSpot rejected the refresh token; reconnect the account.',
+    })
+    await expect(api.hubspotObjects()).rejects.toThrow(/reconnect the account/)
+    // A third-party credential failure must not sign the user out of Flowsmith.
+    expect(mockStorage.removeItem).not.toHaveBeenCalledWith('mat_token')
+    expect(mockDispatchEvent).not.toHaveBeenCalled()
+  })
+
+  it('keeps the session when HubSpot is not configured yet', async () => {
+    store.mat_token = 'valid-session'
+    mockFetchError(401, {
+      code: 'CONNECTOR_NOT_CONFIGURED',
+      message: 'HubSpot connector needs a credential.',
+    })
+    await expect(api.hubspotObjects()).rejects.toThrow(ApiError)
+    expect(mockDispatchEvent).not.toHaveBeenCalled()
+  })
+
+  it('recognises connector auth codes without a path allow-list', () => {
+    expect(isThirdPartyAuthFailure('/workflows', { code: 'CONNECTOR_AUTH_FAILED' })).toBe(true)
+    expect(isThirdPartyAuthFailure('/workflows', { code: 'CONNECTOR_NOT_CONFIGURED' })).toBe(true)
+    expect(isThirdPartyAuthFailure('/workflows', 'Invalid or expired token.')).toBe(false)
   })
 })
 
