@@ -66,6 +66,10 @@ def recover_orphaned_executions(grace_seconds: float) -> int:
             select(Execution).where(
                 Execution.status.in_(("queued", "running", "cancelling")),
                 Execution.started_at < cutoff,
+                # Nested sub-workflow runs have no queue job and are never
+                # independently recoverable: the parent execution owns the
+                # resume authority and re-enters the child checkpoint.
+                Execution.trigger != "sub_workflow",
             )
         ).all()
         for rec in stuck:
@@ -173,7 +177,12 @@ def fail_expired_approvals(db: Session, now: datetime) -> int:
     no worker owns a waiting execution. Returns the count expired.
     """
     rows = db.scalars(
-        select(Execution).where(Execution.status == "waiting_approval")
+        select(Execution).where(
+            Execution.status == "waiting_approval",
+            # A child sub-workflow pause is a checkpoint, not a resumable
+            # run: the parent's pause state governs its timeout.
+            Execution.trigger != "sub_workflow",
+        )
     ).all()
     expired = 0
     for rec in rows:
@@ -202,10 +211,50 @@ def fail_expired_approvals(db: Session, now: datetime) -> int:
                 "message": f"No decision within {hours:g}h — auto-rejected.",
             }
             rec.pause_state = None
+            # Close the linked durable request so a terminal run cannot be
+            # decided later from the approval inbox.
+            try:
+                from app.models import ApprovalRequest
+
+                request = None
+                if pause.get("approval_id"):
+                    request = db.get(ApprovalRequest, pause["approval_id"])
+                if request is None or request.status != "pending":
+                    pending_request = db.execute(
+                        select(ApprovalRequest).where(
+                            ApprovalRequest.run_id == rec.id,
+                            ApprovalRequest.node_id == pause.get("node_id"),
+                            ApprovalRequest.status == "pending",
+                        )
+                    ).scalars().first()
+                    request = pending_request or request
+                if request is not None and request.status == "pending":
+                    request.status = "expired"
+                    request.decision = {
+                        **(request.decision or {}),
+                        "reason": "execution_timeout",
+                    }
+            except Exception:
+                logger.exception(
+                    "failed to close the durable approval for timed-out execution %s",
+                    rec.id,
+                )
             expired += 1
     if expired:
         db.commit()
         logger.info("auto-rejected %d approval(s) past their timeout", expired)
+
+    # Durable approval records have their own TTL; expire them even when the
+    # execution row has no ``pause_state`` (for example an approval whose run
+    # was archived or reaped before the request expired).
+    try:
+        from app.approvals.service import expire_stale
+
+        expired_requests = expire_stale(db, now)
+        if expired_requests:
+            logger.info("expired %d durable approval request(s)", expired_requests)
+    except Exception:
+        logger.exception("failed to expire durable approval requests")
     return expired
 
 
@@ -288,12 +337,31 @@ class MaintenanceDaemon:
 
     async def _cred_renewal_loop(self) -> None:
         while True:
+            renewal_stats: dict[str, int] | None = None
             try:
-                await self.renew_credentials()
+                renewal_stats = await self.renew_credentials()
             except asyncio.CancelledError:
                 raise
             except Exception:
                 logger.exception("credential renewal loop error")
+            # Reap MCP sandbox containers left behind by a crashed API/worker.
+            # Its own guard keeps renewal results (and the loop) intact when
+            # Docker is unavailable or a sweep fails.
+            reaped = 0
+            try:
+                from app.tools.mcp.orphan_reaper import reap_mcp_orphans
+
+                reaped = await asyncio.to_thread(reap_mcp_orphans)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("MCP orphan container sweep failed")
+            if reaped:
+                logger.info(
+                    "credential renewal: %s; removed %d orphaned MCP container(s)",
+                    renewal_stats,
+                    reaped,
+                )
             await asyncio.sleep(600)  # Sweep every 10 minutes
 
     async def renew_credentials(self) -> dict[str, int]:

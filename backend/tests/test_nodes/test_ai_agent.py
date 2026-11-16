@@ -114,14 +114,14 @@ async def test_agent_tool_error_continues_loop(monkeypatch):
 
     call_state = {"called": False}
 
-    async def failing_then_ok(ctx, name, args):
+    async def failing_then_ok(ctx, name, args, **kwargs):
         if not call_state["called"]:
             call_state["called"] = True
             raise RuntimeError("transient failure")
         return "2026-01-01T12:00:00Z"
 
     import app.nodes.ai_agent as agent_module
-    monkeypatch.setattr(agent_module, "run_tool", failing_then_ok)
+    monkeypatch.setattr(agent_module, "execute_tool", failing_then_ok)
 
     result = await _run_agent(
         {"instructions": "Keep trying", "input": "Get time"},

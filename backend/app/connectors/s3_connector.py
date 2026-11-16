@@ -20,11 +20,11 @@ import hashlib
 import hmac
 import logging
 import time
-import xml.etree.ElementTree as ET
 from typing import Any, Dict, List
 from urllib.parse import quote, urlencode, urlparse
 
 import httpx
+from defusedxml import ElementTree as ET
 
 from app.connectors import (
     ConnectorSDK,
@@ -421,7 +421,7 @@ class S3Connector(ConnectorSDK, ConnectorOperations):
                 retryable=True,
             ) from exc
 
-        def _t(el: ET.Element, tag: str) -> str:
+        def _t(el: Any, tag: str) -> str:
             return el.findtext(f"s3:{tag}", default="", namespaces=_S3_NS) or el.findtext(tag) or ""
 
         items: List[Dict[str, Any]] = []

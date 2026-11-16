@@ -399,6 +399,16 @@ async def test_custom_api_version_property(client: SalesforceProviderClient) -> 
 # ----------------------------------------------------------------------
 
 
+async def test_search_records_rejects_injected_identifiers(client: SalesforceProviderClient) -> None:
+    """Object/field names come from workflow input; they must be identifiers."""
+    from app.connectors import ConnectorError
+
+    with pytest.raises(ConnectorError):
+        await client.search_records(CREDS, "Lead; DROP TABLE Lead", "Email", "x")
+    with pytest.raises(ConnectorError):
+        await client.search_records(CREDS, "Lead", "Email = 'x' OR Name", "x")
+
+
 async def test_search_records_found(client: SalesforceProviderClient) -> None:
     patcher, fake = _patch_client([
         _json_response(200, TOKEN_BODY),
@@ -570,6 +580,28 @@ async def test_create_record_api_error_translated(client: SalesforceProviderClie
         patcher.stop()
     assert getattr(excinfo.value, "code", None) == ConnectorErrorCode.BAD_REQUEST.value
     assert "INVALID_FIELD_FOR_INSERT_UPDATE" in str(excinfo.value)
+
+
+async def test_create_record_storage_limit_has_actionable_message(client: SalesforceProviderClient) -> None:
+    """A full Salesforce org is a hard 400; surface why and how to fix it."""
+    patcher, _fake = _patch_client([
+        _json_response(200, TOKEN_BODY),
+        httpx.Response(
+            400,
+            json=[{"message": "storage limit exceeded", "errorCode": "STORAGE_LIMIT_EXCEEDED"}],
+            request=httpx.Request("GET", "http://fake"),
+        ),
+    ])
+    try:
+        with pytest.raises(Exception) as excinfo:
+            await client.create_record(CREDS, "products__c", {"Name": "Feeding Bundle"})
+    finally:
+        patcher.stop()
+    assert getattr(excinfo.value, "code", None) == ConnectorErrorCode.BAD_REQUEST.value
+    assert getattr(excinfo.value, "retryable", None) is False
+    message = str(excinfo.value)
+    assert "STORAGE_LIMIT_EXCEEDED" in message
+    assert "Recycle Bin" in message
 
 
 async def test_create_record_rate_limit_stays_retryable_at_provider(client: SalesforceProviderClient) -> None:

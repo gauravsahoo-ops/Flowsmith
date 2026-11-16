@@ -192,6 +192,28 @@ class TestDockerComposeNetworkBindingDefaults:
 class TestDisasterRecoveryAndBackupCLI:
     """Validates real backup creation, listing, and streaming restore operations."""
 
+    def test_docker_transport_uses_container_side_port(self, monkeypatch):
+        from app.utils import backup
+
+        settings = Settings(
+            app_env="production",
+            credentials_encryption_key=Fernet.generate_key().decode(),
+            jwt_secret="secure-high-entropy-production-secret-min-32-chars",
+            database_url="postgresql://u:p@127.0.0.1:55432/automate_test",
+            pg_client_mode="docker",
+            pg_docker_container="flowsmith-test-postgres",
+        )
+        monkeypatch.setattr(backup, "get_settings", lambda: settings)
+
+        base, _env = backup._base_cmd(
+            "pg_dump", "postgresql://u:p@127.0.0.1:55432/automate_test"
+        )
+
+        assert base[:2] == ["docker", "exec"]
+        assert "flowsmith-test-postgres" in base
+        assert "pg_dump" in base
+        assert base[base.index("-p") + 1] == "5432"
+
     def test_backup_and_prune_lifecycle(self, tmp_path):
         dump_path = create_backup("lifecycle_test", out_dir=tmp_path)
         assert dump_path.exists()

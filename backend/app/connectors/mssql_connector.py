@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
@@ -23,6 +24,33 @@ from app.connectors import (
 from app.connectors.operations import ConnectorOperations
 
 logger = logging.getLogger(__name__)
+
+_TABLE_IDENTIFIER_RE = re.compile(
+    r"^[A-Za-z_][A-Za-z0-9_$#@]*(?:\.[A-Za-z_][A-Za-z0-9_$#@]*){0,2}$"
+)
+_COLUMN_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$#@]*$")
+
+
+def _quote_table(table: str) -> str:
+    value = str(table or "").strip()
+    if not _TABLE_IDENTIFIER_RE.fullmatch(value):
+        raise make_connector_error(
+            ConnectorErrorCode.BAD_REQUEST,
+            f"Invalid MSSQL table identifier: {table!r}",
+            retryable=False,
+        )
+    return ".".join(f"[{part}]" for part in value.split("."))
+
+
+def _quote_column(column: str) -> str:
+    value = str(column or "").strip()
+    if not _COLUMN_IDENTIFIER_RE.fullmatch(value):
+        raise make_connector_error(
+            ConnectorErrorCode.BAD_REQUEST,
+            f"Invalid MSSQL column identifier: {column!r}",
+            retryable=False,
+        )
+    return f"[{value}]"
 
 
 class MSSQLConnectorParams(BaseModel):
@@ -199,24 +227,28 @@ class MSSQLConnector(ConnectorSDK, ConnectorOperations):
         return {"output": rows}
 
     async def _execute_insert(self, table: str, data: dict, creds: dict) -> Dict[str, Any]:
-        cols = ", ".join(f"[{k}]" for k in data.keys())
-        placeholders = ", ".join(f"%({k})s" for k in data.keys())
-        sql = f"INSERT INTO {table} ({cols}) VALUES ({placeholders})"
+        table_sql = _quote_table(table)
+        cols = ", ".join(_quote_column(k) for k in data.keys())
+        placeholders = ", ".join(["%s"] * len(data))
+        sql = f"INSERT INTO {table_sql} ({cols}) VALUES ({placeholders})"
         return await self._execute_query(sql, list(data.values()), creds, 30.0)
 
     async def _execute_update(self, table: str, data: dict, where: str, creds: dict) -> Dict[str, Any]:
-        sets = ", ".join(f"[{k}] = %({k})s" for k in data.keys())
-        sql = f"UPDATE {table} SET {sets} WHERE {where}"
+        table_sql = _quote_table(table)
+        sets = ", ".join(f"{_quote_column(k)} = %s" for k in data.keys())
+        sql = f"UPDATE {table_sql} SET {sets} WHERE {where}"
         return await self._execute_query(sql, list(data.values()), creds, 30.0)
 
     async def _execute_delete(self, table: str, where: str, creds: dict) -> Dict[str, Any]:
-        sql = f"DELETE FROM {table} WHERE {where}"
+        table_sql = _quote_table(table)
+        sql = f"DELETE FROM {table_sql} WHERE {where}"
         return await self._execute_query(sql, [], creds, 30.0)
 
     async def _execute_describe(self, table: str, creds: dict) -> Dict[str, Any]:
+        _quote_table(table)
         sql = (
             "SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, CHARACTER_MAXIMUM_LENGTH "
             "FROM INFORMATION_SCHEMA.COLUMNS "
-            f"WHERE TABLE_NAME = '{table.split('.')[-1]}'"
+            "WHERE TABLE_NAME = %s"
         )
-        return await self._execute_query(sql, [], creds, 30.0)
+        return await self._execute_query(sql, [table.split('.')[-1]], creds, 30.0)

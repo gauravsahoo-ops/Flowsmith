@@ -10,6 +10,7 @@ GET /api/metrics.
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 import time
 from typing import Any
@@ -26,7 +27,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
 
-from app.api import admin, ai, audit, auth, billing, branding, code, connector_packs, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, monitoring, nodes, notifications, oauth, organizations, provider_webhooks, rag, salesforce_events, saml, scim, scim_groups, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
+from app.api import admin, ai, approvals, audit, auth, billing, branding, code, connector_packs, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, mcp_servers, monitoring, nodes, notifications, oauth, organizations, provider_webhooks, rag, salesforce_events, saml, scim, scim_groups, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
 from app.api.auth import get_metrics_user
 from app.api.common import ok
 from app.config import get_settings
@@ -34,6 +35,14 @@ from app.metrics import http_duration, http_requests
 from app.telemetry.middleware import OpenTelemetryMiddleware
 
 logger = logging.getLogger("app.request")
+
+
+def _env_flag(name: str, *, default: bool = False) -> bool:
+    """Read an opt-in boolean environment flag (``1/true/yes/on``)."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 @asynccontextmanager
@@ -53,6 +62,7 @@ async def lifespan(_app: FastAPI):
     from app.triggers.registry import sync_webhooks
 
     lifecycle = get_lifecycle()
+    outbox_relay: Any = None
 
     try:
         # Stage 1: CONFIG_VALIDATION
@@ -137,6 +147,14 @@ async def lifespan(_app: FastAPI):
         runner.submit(provider_webhook_reaper.ensure_started)
         ensure_embedded_consumer()
 
+        if _env_flag("OUTBOX_RELAY_ENABLED"):
+            from app.platform.outbox_relay import OutboxRelay
+            from app.platform.redis_event_bus import RedisEventBus
+
+            outbox_relay = OutboxRelay(RedisEventBus().publish)
+            await outbox_relay.start()
+            _app.state.outbox_relay = outbox_relay
+
         # Stage 7: STARTUP_COMPLETE
         lifecycle.transition_to(StartupStage.STARTUP_COMPLETE, "Application startup complete.")
         logger.info("Application startup complete.")
@@ -145,6 +163,11 @@ async def lifespan(_app: FastAPI):
         lifecycle.transition_to(StartupStage.READINESS_ENABLED, "Readiness probes active.")
 
     except Exception as exc:
+        if outbox_relay is not None:
+            try:
+                await outbox_relay.stop()
+            except Exception:
+                logger.exception("outbox relay stop failed during startup cleanup")
         lifecycle.mark_failed(exc, lifecycle.current_stage)
         logger.exception("Application startup failed at stage %s: %s", lifecycle.current_stage.value, exc)
         raise
@@ -153,6 +176,12 @@ async def lifespan(_app: FastAPI):
 
     lifecycle.transition_to(StartupStage.SHUTTING_DOWN, "Graceful application shutdown initiated")
     stop_embedded_consumer()
+    if outbox_relay is not None:
+        try:
+            await outbox_relay.stop()
+        except Exception:
+            logger.exception("outbox relay stop failed")
+        _app.state.outbox_relay = None
     try:
         await connection_health_monitor.stop()
     except Exception:
@@ -497,10 +526,12 @@ app.include_router(billing.router)
 app.include_router(credentials.router)
 app.include_router(environments.router)
 app.include_router(mcp.router)
+app.include_router(mcp_servers.router)
 app.include_router(organizations.router)
 app.include_router(workspaces.router)
 app.include_router(workflows.router)
 app.include_router(executions.router)
+app.include_router(approvals.router)
 app.include_router(workflow_tests.router)
 app.include_router(rag.router)
 app.include_router(data_tables.router)
@@ -605,6 +636,17 @@ def readyz() -> Any:
                 ready = False
     else:
         checks["redis"] = "skipped"
+
+    # 3. Transactional outbox relay (production fan-out)
+    if _env_flag("OUTBOX_RELAY_ENABLED"):
+        relay = getattr(app.state, "outbox_relay", None)
+        if relay is None or not getattr(relay, "running", False):
+            checks["outbox_relay"] = "not_running"
+            ready = False
+        else:
+            checks["outbox_relay"] = "ok"
+    else:
+        checks["outbox_relay"] = "disabled"
 
     payload = ok({
         "status": "ready" if ready else "not_ready",

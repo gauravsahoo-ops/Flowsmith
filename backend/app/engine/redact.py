@@ -229,7 +229,10 @@ def sanitize_error(error: Any) -> tuple[str, str, str]:
         error_type = "RATE_LIMITED"
     elif any(k in code_upper for k in ("TIMEOUT", "DEADLINE")):
         error_type = "TIMEOUT"
-    elif any(k in code_upper for k in ("NETWORK", "CONNECT", "DISCONNECT", "SSRF")):
+    # Match "CONNECT_" rather than "CONNECT": the latter is a substring of
+    # CONNECTOR_*, which made every connector failure (including a Salesforce
+    # 400) show up as a NETWORK_ERROR in the execution diagnostic banner.
+    elif any(k in code_upper for k in ("NETWORK", "CONNECT_", "CONNECTION", "DISCONNECT", "SSRF")):
         error_type = "NETWORK_ERROR"
     elif any(k in code_upper for k in ("VALIDATION", "BAD_REQUEST", "INVALID", "SCHEMA")):
         error_type = "VALIDATION_ERROR"

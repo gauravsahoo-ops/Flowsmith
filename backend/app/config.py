@@ -58,6 +58,17 @@ class Settings(BaseSettings):
         "webauthn_attestation_roots_file",
         "webauthn_allowed_aaguids",
         "webauthn_allowed_formats",
+        "mcp_stdio_sandbox_backend",
+        "mcp_stdio_sandbox_fallback",
+        "mcp_stdio_sandbox_workspace_mode",
+        "mcp_stdio_sandbox_workspace_root",
+        "mcp_stdio_docker_executable",
+        "mcp_stdio_docker_image",
+        "mcp_stdio_docker_images",
+        "mcp_stdio_docker_network",
+        "mcp_stdio_docker_networks",
+        "mcp_stdio_docker_user",
+        "mcp_stdio_docker_pull",
         mode="before",
     )
     @classmethod
@@ -82,6 +93,10 @@ class Settings(BaseSettings):
     db_max_overflow: int = 20
     db_pool_recycle_s: int = 1800
     db_pool_pre_ping: bool = True
+    # Server-side runaway-query guards (PostgreSQL only). Keep these above the
+    # slowest legitimate API query but below the pool checkout timeout.
+    db_statement_timeout_ms: int = 30000
+    db_lock_timeout_ms: int = 10000
 
     # E2E: allow safe_http_client to bypass SSRF for the local stub server
     # (127.0.0.1:8181). read by app.security.safe_http_client as a fallback
@@ -101,6 +116,54 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     page_size_max: int = 100
     credentials_encryption_key: str = ""
+    # Phase 3 migration flag: route AI-agent tool calls through the policy
+    # gateway. Default false preserves current behavior until the gateway has
+    # production evidence.
+    agent_tool_policy_enabled: bool = False
+
+    # MCP stdio sandbox seam. The default is the historical host subprocess;
+    # Docker is opt-in, never selected implicitly, and fails closed when the
+    # CLI or daemon is unavailable. Defaults preserve existing behavior and
+    # require no new environment variables.
+    mcp_stdio_sandbox_backend: str = "subprocess"  # subprocess | docker
+    mcp_stdio_sandbox_fallback: str = "fail"  # fail | subprocess
+    mcp_stdio_allow_unsandboxed: bool = False
+    mcp_stdio_timeout_s: float = 30.0
+    mcp_stdio_close_timeout_s: float = 5.0
+    mcp_stdio_sandbox_memory_mb: int = 256
+    mcp_stdio_sandbox_cpu_seconds: int = 60
+    mcp_stdio_sandbox_pids: int = 64
+    mcp_stdio_sandbox_nofile: int = 256
+    mcp_stdio_sandbox_fsize_mb: int = 64
+    # none = no workspace; ephemeral = writable tmpfs; configured = read-only
+    # bind of mcp_stdio_sandbox_workspace_root (or the per-server path).
+    mcp_stdio_sandbox_workspace_mode: str = "none"
+    mcp_stdio_sandbox_workspace_root: str = ""
+    mcp_stdio_sandbox_workspace_read_only: bool = False
+    # Docker backend policy. Images must match the exact allowlist; tags are
+    # accepted only when mcp_stdio_docker_require_digest is false.
+    mcp_stdio_docker_executable: str = "docker"
+    mcp_stdio_docker_image: str = ""
+    mcp_stdio_docker_images: str = ""
+    mcp_stdio_docker_network: str = "none"
+    mcp_stdio_docker_networks: str = "none"
+    mcp_stdio_docker_user: str = "65534:65534"
+    mcp_stdio_docker_allow_root: bool = False
+    mcp_stdio_docker_cpus: float = 1.0
+    mcp_stdio_docker_tmpfs_mb: int = 16
+    mcp_stdio_docker_run_tmpfs_mb: int = 16
+    mcp_stdio_docker_shm_mb: int = 64
+    mcp_stdio_docker_workspace_tmpfs_mb: int = 64
+    mcp_stdio_docker_pull: str = "never"
+    mcp_stdio_docker_startup_timeout_s: float = 15.0
+    mcp_stdio_docker_require_digest: bool = False
+    # Orphaned-container reaper (app/tools/mcp/orphan_reaper.py). Containers
+    # left behind by an API/worker crash are removed once they are older than
+    # the TTL. The sweep itself runs on the existing maintenance cadence.
+    mcp_stdio_docker_orphan_ttl_s: int = 3600
+    mcp_stdio_docker_orphan_sweep_interval_s: int = 300
+    mcp_stdio_max_command_args: int = 64
+    mcp_stdio_max_command_arg_length: int = 4096
 
     # Deployment mode (Phase 23 hardening): "development" (default) or
     # "production". Production startup refuses to run without the
@@ -143,6 +206,9 @@ class Settings(BaseSettings):
     # (the server runs in Docker in dev/single-host deployments).
     pg_client_mode: str = "auto"  # auto | local | docker
     pg_docker_container: str = "mat-postgres"
+    # Port PostgreSQL listens on *inside* the Docker container. This is not
+    # always the host-mapped port (e.g. an isolated test DB mapped to 55432).
+    pg_docker_port: int = 5432
     backup_retention_days: int = 14
 
     # Security & access (next phase): throttling, limits.

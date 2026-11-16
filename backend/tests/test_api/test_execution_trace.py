@@ -169,6 +169,21 @@ def test_preview_trace_keeps_every_per_record_step(client):
     assert len(trace_enrich) == 150
 
 
+def test_preview_trace_rows_caps_nested_lists():
+    """Aggregate loop/trigger payloads must not ship hundreds of records."""
+    from app.api.executions import TRACE_PREVIEW_MAX_ITEMS, _preview_trace_rows
+
+    total = TRACE_PREVIEW_MAX_ITEMS + 25
+    preview = _preview_trace_rows([
+        {"node_id": "loop", "inputs": list(range(total))},
+    ])
+
+    inputs = preview[0]["inputs"]
+    assert len(inputs) == TRACE_PREVIEW_MAX_ITEMS + 1
+    assert inputs[-1]["_truncated"] is True
+    assert inputs[-1]["_total_count"] == total
+
+
 def test_preview_trace_rows_has_explicit_overall_cap():
     from app.api.executions import TRACE_PREVIEW_MAX_ROWS, _preview_trace_rows
 

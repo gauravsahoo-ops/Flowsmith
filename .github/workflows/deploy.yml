@@ -1,0 +1,585 @@
+name: Deploy
+
+# Builds one immutable image per commit, publishes an SBOM, scans it, signs the
+# digest with cosign keyless, deploys staging, and only then requests the
+# protected `production` environment. Environment protection rules (required
+# reviewers, wait timer, tag restrictions) are configured in the repository
+# settings; see docs/DEPLOYMENT_PIPELINE.md for the full contract.
+#
+# Required environment secrets and variables are listed in
+# docs/DEPLOYMENT_PIPELINE.md. No secret values belong in this file.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      rollback_revision:
+        description: "Rollback only: production Helm revision to restore (0 = previous). Leave empty for a normal deploy."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize deployments across refs. Production releases must never be
+# cancelled mid-flight; a queued run waits for the active one to finish.
+concurrency:
+  group: flowsmith-deploy
+  cancel-in-progress: false
+
+env:
+  CHART_PATH: deploy/helm/flowsmith
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build, scan, and sign
+    if: ${{ github.event_name != 'workflow_dispatch' || !github.event.inputs.rollback_revision }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      image_repo: ${{ steps.meta.outputs.repo }}
+      image_tag: ${{ steps.meta.outputs.tag }}
+      image_ref: ${{ steps.meta.outputs.repo }}:${{ steps.meta.outputs.tag }}
+      image_digest: ${{ steps.meta.outputs.repo }}@${{ steps.build.outputs.digest }}
+      version: ${{ steps.meta.outputs.version }}
+      sha: ${{ steps.meta.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Version consistency
+        run: python scripts/check_version_consistency.py
+
+      - name: Verify release tag matches VERSION
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match VERSION ${version}."
+            exit 1
+          fi
+
+      - name: Helm lint (release gate)
+        run: |
+          docker run --rm \
+            -v "$PWD/deploy/helm/flowsmith:/chart" \
+            alpine/helm:3.15.4 lint /chart -f /chart/ci/test-values.yaml
+
+      - name: Resolve immutable image metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          repo="${REGISTRY}/${GITHUB_REPOSITORY,,}"
+          tag="sha-${sha}"
+          push_version_tag=false
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            version="${GITHUB_REF_NAME}"
+            push_version_tag=true
+          else
+            version="sha-${sha:0:12}"
+          fi
+          if [ -z "$version" ]; then
+            version="sha-${sha:0:12}"
+          fi
+          version="${version//$'\n'/}"
+          version="${version//$'\r'/}"
+          if ! [[ "$version" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            version="sha-${sha:0:12}"
+            push_version_tag=false
+          fi
+          {
+            echo "repo=${repo}"
+            echo "sha=${sha}"
+            echo "tag=${tag}"
+            echo "image=${repo}:${tag}"
+            echo "version=${version}"
+            echo "tags<<EOF"
+            echo "${repo}:${tag}"
+            # Publish an extra human-readable tag only for tags/manual release
+            # labels, and only when it is a valid Docker tag. The SHA tag above
+            # is always the deploy tag.
+            if [ "$push_version_tag" = "true" ] \
+              && [ "$version" != "$tag" ] \
+              && [[ "$version" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+              echo "${repo}:${version}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.meta.outputs.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+          provenance: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Pull published digest
+        env:
+          IMAGE_DIGEST: ${{ steps.meta.outputs.repo }}@${{ steps.build.outputs.digest }}
+        run: docker pull "$IMAGE_DIGEST"
+
+      - name: Container scan (HIGH and CRITICAL block)
+        uses: aquasecurity/trivy-action@0.28.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+        with:
+          image-ref: ${{ steps.meta.outputs.repo }}@${{ steps.build.outputs.digest }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Generate SBOMs (CycloneDX and SPDX)
+        env:
+          IMAGE_DIGEST: ${{ steps.meta.outputs.repo }}@${{ steps.build.outputs.digest }}
+          SBOM_BASENAME: flowsmith-${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          syft "docker:${IMAGE_DIGEST}" -o "cyclonedx-json=${SBOM_BASENAME}.cdx.json"
+          syft "docker:${IMAGE_DIGEST}" -o "spdx-json=${SBOM_BASENAME}.spdx.json"
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sbom-${{ steps.meta.outputs.tag }}
+          path: |
+            flowsmith-*.cdx.json
+            flowsmith-*.spdx.json
+          retention-days: 90
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image digest (keyless)
+        id: sign
+        continue-on-error: true
+        env:
+          IMAGE_DIGEST: ${{ steps.meta.outputs.repo }}@${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "$IMAGE_DIGEST"
+
+      - name: Warn when keyless signing was unavailable
+        if: ${{ steps.sign.outcome == 'failure' }}
+        run: |
+          echo "::warning::cosign keyless signing failed. Production verification stays required unless vars.REQUIRE_IMAGE_SIGNATURE=false."
+
+  staging:
+    name: Deploy staging
+    needs: build
+    if: ${{ needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    permissions:
+      contents: read
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
+    steps:
+      - name: Checkout chart
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.4
+
+      - name: Configure kubeconfig and values
+        id: config
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_STAGING }}
+          HELM_VALUES_YAML: ${{ secrets.STAGING_VALUES }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KUBE_CONFIG_B64:-}" ] || [ -z "${HELM_VALUES_YAML:-}" ]; then
+            echo "::notice::Staging deploy skipped: set KUBE_CONFIG_STAGING and STAGING_VALUES environment secrets to enable it."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBE_CONFIG_B64" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          printf '%s' "$HELM_VALUES_YAML" > "$RUNNER_TEMP/values.yaml"
+          chmod 600 "$RUNNER_TEMP/values.yaml"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: Helm upgrade (staging)
+        id: deploy
+        if: ${{ steps.config.outputs.enabled == 'true' }}
+        env:
+          IMAGE_REPO: ${{ needs.build.outputs.image_repo }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+          NAMESPACE: ${{ vars.STAGING_NAMESPACE }}
+          RELEASE: ${{ vars.STAGING_RELEASE }}
+        run: |
+          set -euo pipefail
+          NAMESPACE="${NAMESPACE:-flowsmith-staging}"
+          RELEASE="${RELEASE:-flowsmith}"
+          helm upgrade --install "$RELEASE" "$CHART_PATH" \
+            --namespace "$NAMESPACE" --create-namespace \
+            --values "$RUNNER_TEMP/values.yaml" \
+            --set-string image.repository="$IMAGE_REPO" \
+            --set-string image.tag="$IMAGE_TAG" \
+            --atomic --wait --timeout 15m
+          deployments="$(kubectl --namespace "$NAMESPACE" get deployment \
+            --selector "app.kubernetes.io/instance=$RELEASE" \
+            --output jsonpath='{.items[*].metadata.name}')"
+          if [ -z "$deployments" ]; then
+            echo "::error::No deployments found for release $RELEASE in namespace $NAMESPACE."
+            exit 1
+          fi
+          for deployment in $deployments; do
+            kubectl --namespace "$NAMESPACE" rollout status "deployment/$deployment" --timeout=180s
+          done
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke check (staging)
+        if: ${{ steps.config.outputs.enabled == 'true' }}
+        env:
+          BASE_URL: ${{ vars.STAGING_URL }}
+          NAMESPACE: ${{ vars.STAGING_NAMESPACE }}
+          RELEASE: ${{ vars.STAGING_RELEASE }}
+        run: |
+          set -euo pipefail
+          NAMESPACE="${NAMESPACE:-flowsmith-staging}"
+          RELEASE="${RELEASE:-flowsmith}"
+          PF_PID=""
+          trap 'if [ -n "$PF_PID" ]; then kill "$PF_PID" 2>/dev/null || true; fi' EXIT
+          if [ -n "${BASE_URL:-}" ]; then
+            url="${BASE_URL%/}"
+          else
+            service="$(kubectl --namespace "$NAMESPACE" get service \
+              --selector "app.kubernetes.io/instance=$RELEASE" \
+              --output jsonpath='{.items[0].metadata.name}')"
+            service_port="$(kubectl --namespace "$NAMESPACE" get service "$service" \
+              --output jsonpath='{.spec.ports[0].port}')"
+            kubectl --namespace "$NAMESPACE" port-forward "service/$service" "18080:${service_port}" \
+              >/tmp/staging-port-forward.log 2>&1 &
+            PF_PID=$!
+            url="http://127.0.0.1:18080"
+          fi
+          for _ in $(seq 1 30); do
+            if curl -fsS "$url/api/health" >/tmp/staging-health.json \
+              && curl -fsS "$url/api/readyz" >/tmp/staging-readyz.json; then
+              echo "staging smoke ok: $(cat /tmp/staging-health.json)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "staging smoke check failed against $url" >&2
+          cat /tmp/staging-health.json /tmp/staging-readyz.json 2>/dev/null || true
+          kubectl --namespace "$NAMESPACE" get pods \
+            --selector "app.kubernetes.io/instance=$RELEASE" >&2 || true
+          exit 1
+
+      - name: Roll back staging on post-deploy smoke failure
+        if: ${{ failure() && steps.deploy.outcome == 'success' }}
+        env:
+          NAMESPACE: ${{ vars.STAGING_NAMESPACE }}
+          RELEASE: ${{ vars.STAGING_RELEASE }}
+        run: |
+          set -euo pipefail
+          NAMESPACE="${NAMESPACE:-flowsmith-staging}"
+          RELEASE="${RELEASE:-flowsmith}"
+          echo "::warning::Staging smoke failed after Helm reported success; rolling back to the previous revision."
+          helm rollback "$RELEASE" 0 --namespace "$NAMESPACE" --wait --timeout 10m
+
+  production:
+    name: Deploy production
+    needs: [build, staging]
+    if: ${{ needs.build.result == 'success' && needs.staging.outputs.deployed == 'true' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # The `production` environment must be protected with required reviewers
+    # and a tag/branch policy. Approval is enforced by GitHub, not by a script.
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
+    steps:
+      - name: Checkout chart
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.4
+
+      - name: Require and install production deployment configuration
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_PRODUCTION }}
+          HELM_VALUES_YAML: ${{ secrets.PRODUCTION_VALUES }}
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${KUBE_CONFIG_B64:-}" ]; then
+            echo "::error::KUBE_CONFIG_PRODUCTION is not set in the production environment."
+            missing=1
+          fi
+          if [ -z "${HELM_VALUES_YAML:-}" ]; then
+            echo "::error::PRODUCTION_VALUES is not set in the production environment."
+            missing=1
+          fi
+          [ "$missing" -eq 0 ] || exit 1
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBE_CONFIG_B64" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          printf '%s' "$HELM_VALUES_YAML" > "$RUNNER_TEMP/values.yaml"
+          chmod 600 "$RUNNER_TEMP/values.yaml"
+
+      - name: Log in to GHCR (read-only, for signature verification)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Verify tag resolves to the built digest
+        env:
+          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+          EXPECTED_DIGEST: ${{ needs.build.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+          actual="$(docker buildx imagetools inspect "$IMAGE_REF" \
+            | awk '/Digest:/ {print $2; exit}')"
+          expected="${EXPECTED_DIGEST##*@}"
+          if [ -z "$actual" ] || [ "$actual" != "$expected" ]; then
+            echo "::error::Image tag $IMAGE_REF resolves to ${actual:-<unknown>}, expected $expected."
+            exit 1
+          fi
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Verify image signature (keyless)
+        if: ${{ vars.REQUIRE_IMAGE_SIGNATURE != 'false' }}
+        env:
+          IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+          cosign verify "$IMAGE_DIGEST" \
+            --certificate-identity-regexp "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/deploy.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+      - name: Canary observation (documented placeholder)
+        if: ${{ vars.CANARY_ENABLED == 'true' }}
+        env:
+          CANARY_URL: ${{ vars.CANARY_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CANARY_URL:-}" ]; then
+            echo "::notice::CANARY_ENABLED=true but CANARY_URL is not set; canary analysis did not run."
+            exit 0
+          fi
+          echo "Validating a separately managed canary endpoint. This workflow does not shift production traffic."
+          for _ in $(seq 1 15); do
+            if curl -fsS "${CANARY_URL%/}/api/health" >/dev/null \
+              && curl -fsS "${CANARY_URL%/}/api/readyz" >/dev/null; then
+              echo "canary endpoint healthy"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "::error::Canary endpoint failed health checks; aborting before the stable rollout."
+          exit 1
+
+      - name: Helm upgrade (production)
+        id: deploy
+        env:
+          IMAGE_REPO: ${{ needs.build.outputs.image_repo }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+          NAMESPACE: ${{ vars.PRODUCTION_NAMESPACE }}
+          RELEASE: ${{ vars.PRODUCTION_RELEASE }}
+        run: |
+          set -euo pipefail
+          NAMESPACE="${NAMESPACE:-flowsmith}"
+          RELEASE="${RELEASE:-flowsmith}"
+          helm upgrade --install "$RELEASE" "$CHART_PATH" \
+            --namespace "$NAMESPACE" --create-namespace \
+            --values "$RUNNER_TEMP/values.yaml" \
+            --set-string image.repository="$IMAGE_REPO" \
+            --set-string image.tag="$IMAGE_TAG" \
+            --atomic --wait --timeout 20m
+          deployments="$(kubectl --namespace "$NAMESPACE" get deployment \
+            --selector "app.kubernetes.io/instance=$RELEASE" \
+            --output jsonpath='{.items[*].metadata.name}')"
+          if [ -z "$deployments" ]; then
+            echo "::error::No deployments found for release $RELEASE in namespace $NAMESPACE."
+            exit 1
+          fi
+          for deployment in $deployments; do
+            kubectl --namespace "$NAMESPACE" rollout status "deployment/$deployment" --timeout=240s
+          done
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke check (production)
+        env:
+          BASE_URL: ${{ vars.PRODUCTION_URL }}
+          NAMESPACE: ${{ vars.PRODUCTION_NAMESPACE }}
+          RELEASE: ${{ vars.PRODUCTION_RELEASE }}
+        run: |
+          set -euo pipefail
+          NAMESPACE="${NAMESPACE:-flowsmith}"
+          RELEASE="${RELEASE:-flowsmith}"
+          PF_PID=""
+          trap 'if [ -n "$PF_PID" ]; then kill "$PF_PID" 2>/dev/null || true; fi' EXIT
+          if [ -n "${BASE_URL:-}" ]; then
+            url="${BASE_URL%/}"
+          else
+            service="$(kubectl --namespace "$NAMESPACE" get service \
+              --selector "app.kubernetes.io/instance=$RELEASE" \
+              --output jsonpath='{.items[0].metadata.name}')"
+            service_port="$(kubectl --namespace "$NAMESPACE" get service "$service" \
+              --output jsonpath='{.spec.ports[0].port}')"
+            kubectl --namespace "$NAMESPACE" port-forward "service/$service" "18081:${service_port}" \
+              >/tmp/production-port-forward.log 2>&1 &
+            PF_PID=$!
+            url="http://127.0.0.1:18081"
+          fi
+          for _ in $(seq 1 30); do
+            if curl -fsS "$url/api/health" >/tmp/production-health.json \
+              && curl -fsS "$url/api/readyz" >/tmp/production-readyz.json; then
+              echo "production smoke ok: $(cat /tmp/production-health.json)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "production smoke check failed against $url" >&2
+          cat /tmp/production-health.json /tmp/production-readyz.json 2>/dev/null || true
+          kubectl --namespace "$NAMESPACE" get pods \
+            --selector "app.kubernetes.io/instance=$RELEASE" >&2 || true
+          exit 1
+
+      - name: Roll back production on post-deploy smoke failure
+        if: ${{ failure() && steps.deploy.outcome == 'success' }}
+        env:
+          NAMESPACE: ${{ vars.PRODUCTION_NAMESPACE }}
+          RELEASE: ${{ vars.PRODUCTION_RELEASE }}
+        run: |
+          set -euo pipefail
+          NAMESPACE="${NAMESPACE:-flowsmith}"
+          RELEASE="${RELEASE:-flowsmith}"
+          echo "::warning::Production smoke failed after Helm reported success; rolling back to the previous revision."
+          helm rollback "$RELEASE" 0 --namespace "$NAMESPACE" --wait --timeout 15m
+
+  rollback:
+    name: Manual production rollback
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.rollback_revision != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.4
+
+      - name: Configure production kubeconfig
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_PRODUCTION }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KUBE_CONFIG_B64:-}" ]; then
+            echo "::error::KUBE_CONFIG_PRODUCTION is not set in the production environment."
+            exit 1
+          fi
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBE_CONFIG_B64" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Helm rollback (production)
+        env:
+          NAMESPACE: ${{ vars.PRODUCTION_NAMESPACE }}
+          RELEASE: ${{ vars.PRODUCTION_RELEASE }}
+          REVISION: ${{ github.event.inputs.rollback_revision }}
+        run: |
+          set -euo pipefail
+          NAMESPACE="${NAMESPACE:-flowsmith}"
+          RELEASE="${RELEASE:-flowsmith}"
+          if ! [[ "$REVISION" =~ ^[0-9]+$ ]]; then
+            echo "::error::rollback_revision must be a Helm revision number (0 restores the previous revision)."
+            exit 1
+          fi
+          helm rollback "$RELEASE" "$REVISION" --namespace "$NAMESPACE" --wait --timeout 20m
+          deployments="$(kubectl --namespace "$NAMESPACE" get deployment \
+            --selector "app.kubernetes.io/instance=$RELEASE" \
+            --output jsonpath='{.items[*].metadata.name}')"
+          for deployment in $deployments; do
+            kubectl --namespace "$NAMESPACE" rollout status "deployment/$deployment" --timeout=240s
+          done
+          echo "rollback to revision $REVISION completed"

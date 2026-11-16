@@ -3,9 +3,11 @@
 Pauses the workflow until a human approves or rejects, then continues.
 The pause is durable (spec 25.2): the node marks the execution
 ``waiting_approval`` in PostgreSQL and records ``pause_state``; the run
-ends without touching downstream nodes. The approval inbox (or
-``POST /api/executions/{id}/resume``) re-enqueues the execution with the
-decision; the engine replays persisted node outputs up to this node and
+ends without touching downstream nodes. It also mirrors the pause into a
+durable ``ApprovalRequest`` (risk tier 2) for the approval inbox, while the
+execution row remains the authority for resuming the run. The approval
+inbox (or ``POST /api/executions/{id}/resume``) re-enqueues the execution with
+the decision; the engine replays persisted node outputs up to this node and
 the node consumes the decision:
 
 - approved → passes its original input items through (metadata records
@@ -16,6 +18,7 @@ the node consumes the decision:
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -24,6 +27,8 @@ from pydantic import BaseModel, Field
 from app.engine.errors import NodeExecutionError
 from app.engine.node_base import BaseNode, NodeContext, NodeResult
 from app.nodes.registry import register
+
+logger = logging.getLogger("nodes.human_approval")
 
 
 class HumanApprovalParams(BaseModel):
@@ -52,8 +57,16 @@ class HumanApprovalNode(BaseNode[HumanApprovalParams]):
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
         decision = await ctx.storage.get(STORAGE_KEY)
+        if (
+            isinstance(decision, dict)
+            and decision.get("node_id") is not None
+            and decision.get("node_id") != ctx.node_id
+        ):
+            # A decision recorded for another approval node (for example an
+            # upstream gate in a resumed run) must not be consumed here.
+            decision = None
 
-        if decision is not None:
+        if isinstance(decision, dict):
             # Resumed run: consume the recorded decision.
             approved = bool(decision.get("approved"))
             if not approved:
@@ -87,13 +100,26 @@ class HumanApprovalNode(BaseNode[HumanApprovalParams]):
             ).scalar_one_or_none()
 
             if execution:
+                # Durable nested approvals: the checkpoint stays on this
+                # run's row, but the root ApprovalRequest belongs to the
+                # top-level execution that owns the resume authority.
+                owner = ctx.approval_owner if isinstance(ctx.approval_owner, dict) else {}
+
+                def _owner(key: str, fallback: Any) -> Any:
+                    return owner[key] if key in owner else fallback
+
+                approval_run_id = owner.get("run_id") or ctx.execution_id
+                approval_node_id = owner.get("node_id") or ctx.node_id
+
                 execution.status = "waiting_approval"
                 execution.pause_state = {
                     "node_id": ctx.node_id,
+                    "type": "human_approval",
                     "message": params.message,
                     "approvers": params.approvers,
                     # timeout_hours=0 means "no timeout" (documented v1 contract)
                     "timeout_hours": params.timeout_hours,
+                    "risk_tier": 2,
                     "paused_at": datetime.now(UTC).isoformat(),
                 }
                 execution.node_statuses = {
@@ -102,12 +128,70 @@ class HumanApprovalNode(BaseNode[HumanApprovalParams]):
                 }
                 db.commit()
 
-                # Emit event for WebSocket streaming
-                ctx._emit_event({
-                    "event": "node.waiting_approval",
-                    "node_id": ctx.node_id,
-                    "status": "waiting_approval",
-                })
+                # Mirror the pause into a durable approval record. The
+                # execution row remains the resume authority, so a failure
+                # here must never lose the pause or block the run.
+                try:
+                    from app.approvals import service as approvals
+                    from app.models import ApprovalRequest
+
+                    pending = db.execute(
+                        select(ApprovalRequest).where(
+                            ApprovalRequest.run_id == approval_run_id,
+                            ApprovalRequest.node_id == approval_node_id,
+                            ApprovalRequest.status == "pending",
+                        )
+                    ).scalars().first()
+                    if pending is None:
+                        request = approvals.create_request(
+                            db,
+                            run_id=approval_run_id,
+                            node_id=approval_node_id,
+                            workflow_id=_owner("workflow_id", execution.workflow_id),
+                            organization_id=_owner(
+                                "organization_id", execution.organization_id
+                            ),
+                            workspace_id=_owner("workspace_id", execution.workspace_id),
+                            reason=params.message,
+                            summary="Workflow approval gate",
+                            requested_by=_owner("requested_by", execution.user_id),
+                            approvers=params.approvers,
+                            quorum=1,
+                            # Preserve the v1 node contract: the workflow
+                            # owner may also be the approver.
+                            separation_of_duties=False,
+                            ttl_seconds=(
+                                params.timeout_hours * 3600
+                                if params.timeout_hours > 0
+                                else 30 * 86400
+                            ),
+                            risk_tier=2,
+                        )
+                    else:
+                        request = pending
+                    # Bind the resume to this exact pause. Without it, a
+                    # later pause at the same node could be resumed by an
+                    # older decision.
+                    pause_state = dict(execution.pause_state or {})
+                    pause_state["approval_id"] = request.id
+                    execution.pause_state = pause_state
+                    db.commit()
+                except Exception:
+                    logger.warning(
+                        "Could not create durable approval request for execution %s node %s",
+                        ctx.execution_id,
+                        ctx.node_id,
+                        exc_info=True,
+                    )
+                    db.rollback()
+
+                # Emit event for WebSocket streaming (ctx.emit_event adds
+                # execution_id so parent status maps can filter child events).
+                ctx.emit_event(
+                    "node.waiting_approval",
+                    node_id=ctx.node_id,
+                    status="waiting_approval",
+                )
         finally:
             db.close()
 

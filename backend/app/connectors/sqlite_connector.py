@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import sqlite3
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
@@ -24,6 +25,31 @@ from app.connectors import (
 from app.connectors.operations import ConnectorOperations
 
 logger = logging.getLogger(__name__)
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _quote_table(table: str) -> str:
+    value = str(table or "").strip()
+    parts = value.split(".")
+    if len(parts) > 2 or not all(_IDENTIFIER_RE.fullmatch(part) for part in parts):
+        raise make_connector_error(
+            ConnectorErrorCode.BAD_REQUEST,
+            f"Invalid SQLite table identifier: {table!r}",
+            retryable=False,
+        )
+    return ".".join(f'"{part}"' for part in parts)
+
+
+def _quote_column(column: str) -> str:
+    value = str(column or "").strip()
+    if not _IDENTIFIER_RE.fullmatch(value):
+        raise make_connector_error(
+            ConnectorErrorCode.BAD_REQUEST,
+            f"Invalid SQLite column identifier: {column!r}",
+            retryable=False,
+        )
+    return f'"{value}"'
 
 
 class SQLiteConnectorParams(BaseModel):
@@ -142,9 +168,9 @@ class SQLiteConnector(ConnectorSDK, ConnectorOperations):
                 elif op_name == "insert":
                     if not params.table or not params.data:
                         raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "SQLite insert requires 'table' and 'data'.")
-                    cols = ", ".join(params.data.keys())
+                    cols = ", ".join(_quote_column(k) for k in params.data.keys())
                     placeholders = ", ".join("?" for _ in params.data)
-                    sql = f"INSERT INTO {params.table} ({cols}) VALUES ({placeholders})"
+                    sql = f"INSERT INTO {_quote_table(params.table)} ({cols}) VALUES ({placeholders})"
                     cursor.execute(sql, tuple(params.data.values()))
                     conn.commit()
                     return [{"id": cursor.lastrowid, "rows_affected": cursor.rowcount, "status": "inserted"}]
@@ -152,8 +178,8 @@ class SQLiteConnector(ConnectorSDK, ConnectorOperations):
                 elif op_name == "update":
                     if not params.table or not params.data or not params.where:
                         raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "SQLite update requires 'table', 'data', and 'where'.")
-                    set_clause = ", ".join(f"{k} = ?" for k in params.data.keys())
-                    sql = f"UPDATE {params.table} SET {set_clause} WHERE {params.where}"
+                    set_clause = ", ".join(f"{_quote_column(k)} = ?" for k in params.data.keys())
+                    sql = f"UPDATE {_quote_table(params.table)} SET {set_clause} WHERE {params.where}"
                     cursor.execute(sql, tuple(params.data.values()))
                     conn.commit()
                     return [{"rows_affected": cursor.rowcount, "status": "updated"}]
@@ -161,7 +187,7 @@ class SQLiteConnector(ConnectorSDK, ConnectorOperations):
                 elif op_name == "delete":
                     if not params.table or not params.where:
                         raise make_connector_error(ConnectorErrorCode.BAD_REQUEST, "SQLite delete requires 'table' and 'where'.")
-                    sql = f"DELETE FROM {params.table} WHERE {params.where}"
+                    sql = f"DELETE FROM {_quote_table(params.table)} WHERE {params.where}"
                     cursor.execute(sql)
                     conn.commit()
                     return [{"rows_affected": cursor.rowcount, "status": "deleted"}]

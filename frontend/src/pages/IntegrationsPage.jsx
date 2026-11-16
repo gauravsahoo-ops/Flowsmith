@@ -12,6 +12,7 @@ import { NodeIcon } from '../components/NodeIcons'
 import OpenApiImportModal from '../components/OpenApiImportModal'
 import ConnectorPacksModal from '../components/ConnectorPacksModal'
 import CoverageDashboard from '../components/CoverageDashboard'
+import MCPServersPanel from '../features/mcp/MCPServersPanel'
 
 import { CATEGORIES, matchesCategory } from '../utils/connectorCategories'
 import { connectorSummaryText, summarizeConnectors } from '../utils/connectorStats'
@@ -249,11 +250,25 @@ export default function IntegrationsPage() {
               </svg>
             ),
           },
+          {
+            id: 'mcp',
+            label: 'MCP Servers',
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="6" rx="2" />
+                <rect x="3" y="14" width="18" height="6" rx="2" />
+                <line x1="7" y1="7" x2="7.01" y2="7" />
+                <line x1="7" y1="17" x2="7.01" y2="17" />
+              </svg>
+            ),
+          },
         ]}
       />
 
       {mainTab === 'coverage' ? (
         <CoverageDashboard connectorStats={connectorSummary} />
+      ) : mainTab === 'mcp' ? (
+        <MCPServersPanel />
       ) : (
         <>
           {/* Filter Toolbar */}

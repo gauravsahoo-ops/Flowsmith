@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
+from sqlalchemy import update
+
+from app.db import get_session
+from app.models import WorkflowRecord
 from tests.test_api.conftest import auth_headers, make_workflow, register
 
 
@@ -327,4 +333,150 @@ def test_set_pinned(client):
     unpin_res = client.patch(f"/api/workflows/{wf['id']}/pinned", json={"pinned": False}, headers=headers)
     assert unpin_res.status_code == 200
     assert unpin_res.json()["data"]["pinned"] is False
+
+
+def test_list_workflows_envelope_and_updated_at_order(client):
+    headers = _setup(client)
+    for i in range(3):
+        wf = make_workflow(workflow_id=f"wf_order_{i}", name=f"Order {i}")
+        assert client.post("/api/workflows", json=wf, headers=headers).status_code == 201
+
+    now = datetime.now(UTC)
+    with get_session() as db:
+        for workflow_id, updated_at in (
+            ("wf_order_0", now - timedelta(hours=2)),
+            ("wf_order_1", now - timedelta(hours=1)),
+            ("wf_order_2", now),
+        ):
+            db.execute(
+                update(WorkflowRecord)
+                .where(WorkflowRecord.id == workflow_id)
+                .values(updated_at=updated_at)
+            )
+        db.commit()
+
+    first = client.get("/api/workflows?page=1&pageSize=2", headers=headers)
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert set(body) == {"data", "meta"}
+    assert [row["id"] for row in body["data"]] == ["wf_order_2", "wf_order_1"]
+    assert body["meta"] == {"page": 1, "pageSize": 2, "total": 3}
+
+    second = client.get("/api/workflows?page=2&pageSize=2", headers=headers)
+    assert second.status_code == 200, second.text
+    assert [row["id"] for row in second.json()["data"]] == ["wf_order_0"]
+    assert second.json()["meta"] == {"page": 2, "pageSize": 2, "total": 3}
+
+
+def test_versions_require_edit_permission_and_activation_history_visibility(client):
+    owner = register(client, email="version-owner@example.com")
+    viewer = register(client, email="version-viewer@example.com")
+    editor = register(client, email="version-editor@example.com")
+    outsider = register(client, email="version-outsider@example.com")
+    owner_headers = auth_headers(owner["token"])
+    viewer_headers = auth_headers(viewer["token"])
+    editor_headers = auth_headers(editor["token"])
+    outsider_headers = auth_headers(outsider["token"])
+
+    created = client.post("/api/workflows", json=make_workflow(), headers=owner_headers)
+    assert created.status_code == 201, created.text
+    wf_id = created.json()["data"]["id"]
+
+    for email, permission in (
+        (viewer["user"]["email"], "view"),
+        (editor["user"]["email"], "edit"),
+    ):
+        share = client.post(
+            f"/api/workflows/{wf_id}/shares",
+            json={"email": email, "permission": permission},
+            headers=owner_headers,
+        )
+        assert share.status_code == 201, share.text
+
+    for headers in (owner_headers, editor_headers):
+        versions = client.get(f"/api/workflows/{wf_id}/versions", headers=headers)
+        assert versions.status_code == 200, versions.text
+        assert [row["version"] for row in versions.json()["data"]] == [1]
+        detail = client.get(
+            f"/api/workflows/{wf_id}/versions/1", headers=headers
+        )
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["data"]["version"] == 1
+
+    for headers in (viewer_headers, outsider_headers):
+        assert (
+            client.get(f"/api/workflows/{wf_id}/versions", headers=headers).status_code
+            == 404
+        )
+        assert (
+            client.get(
+                f"/api/workflows/{wf_id}/versions/1", headers=headers
+            ).status_code
+            == 404
+        )
+
+    # Activation history follows view access, not edit access.
+    assert (
+        client.get(
+            f"/api/workflows/{wf_id}/activation-history", headers=viewer_headers
+        ).status_code
+        == 200
+    )
+    assert (
+        client.get(
+            f"/api/workflows/{wf_id}/activation-history", headers=outsider_headers
+        ).status_code
+        == 404
+    )
+
+
+def test_list_shares_requires_edit_permission(client):
+    owner = register(client, email="share-owner@example.com")
+    viewer = register(client, email="share-viewer@example.com")
+    editor = register(client, email="share-editor@example.com")
+    outsider = register(client, email="share-outsider@example.com")
+    owner_headers = auth_headers(owner["token"])
+    viewer_headers = auth_headers(viewer["token"])
+    editor_headers = auth_headers(editor["token"])
+    outsider_headers = auth_headers(outsider["token"])
+
+    created = client.post("/api/workflows", json=make_workflow(), headers=owner_headers)
+    assert created.status_code == 201, created.text
+    wf_id = created.json()["data"]["id"]
+
+    for email, permission in (
+        (viewer["user"]["email"], "view"),
+        (editor["user"]["email"], "edit"),
+    ):
+        share = client.post(
+            f"/api/workflows/{wf_id}/shares",
+            json={"email": email, "permission": permission},
+            headers=owner_headers,
+        )
+        assert share.status_code == 201, share.text
+
+    for headers in (owner_headers, editor_headers):
+        response = client.get(f"/api/workflows/{wf_id}/shares", headers=headers)
+        assert response.status_code == 200, response.text
+        rows = response.json()["data"]
+        assert {
+            (row["user_id"], row["email"], row["permission"]) for row in rows
+        } == {
+            (
+                viewer["user"]["id"],
+                viewer["user"]["email"],
+                "view",
+            ),
+            (
+                editor["user"]["id"],
+                editor["user"]["email"],
+                "edit",
+            ),
+        }
+
+    for headers in (viewer_headers, outsider_headers):
+        assert (
+            client.get(f"/api/workflows/{wf_id}/shares", headers=headers).status_code
+            == 404
+        )
 

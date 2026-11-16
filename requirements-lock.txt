@@ -18,7 +18,7 @@ croniter==6.2.4
 cryptography==50.0.0
 cyclonedx-python-lib==11.12.0
 defusedxml==0.7.1
-dnspython==2.8.0
+dnspython==2.9.2
 dukpy==0.6.0
 email-validator==2.3.0
 execnet==2.1.2
@@ -47,7 +47,7 @@ msgpack==1.2.3
 multidict==6.9.1
 nodeenv==1.11.0
 numpy==2.5.3
-oauthlib==4.0.0
+oauthlib==4.0.1
 opentelemetry-api==1.45.1
 opentelemetry-exporter-http-transport==0.66b1
 opentelemetry-exporter-otlp-common==0.66b1
@@ -72,7 +72,7 @@ psycopg==3.3.6
 psycopg-binary==3.3.6
 psycopg2-binary==2.9.12
 py-serializable==2.1.0
-pyasn1==0.6.4
+pyasn1==0.6.5
 pyasn1-modules==0.4.2
 pycparser==3.0
 pydantic==2.13.4
@@ -82,7 +82,7 @@ pyee==13.0.1
 Pygments==2.21.0
 pyjsparser==2.7.1
 PyJWT==2.15.0
-pymongo==4.18.2
+pymongo==4.18.3
 PyMySQL==1.2.0
 PyNaCl==1.6.2
 pyOpenSSL==26.4.0
@@ -113,7 +113,7 @@ starlette==1.6.0
 stevedore==5.9.1
 tomli==2.4.1
 tomli_w==1.2.0
-tornado==6.5.9
+tornado==6.6
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 tzdata==2026.3

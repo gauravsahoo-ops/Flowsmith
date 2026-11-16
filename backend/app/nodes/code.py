@@ -517,7 +517,7 @@ def _run_dukpy(js_wrapper: str, timeout: float, mem_limit_mb: int = 64) -> Any:
         return payload.get("ok")
 
 
-def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout: float = 5.0, language: str = "javascript") -> List[dict[str, Any]]:
+def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout: float = 5.0, language: str = "javascript", max_memory_mb: int = 64) -> List[dict[str, Any]]:
     """Execute JavaScript code with $input API via dukpy/js2py."""
     logs: List[str] = []
     def console_log(*args):
@@ -685,41 +685,11 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
     py_code = "\n".join(transformed)
     if "__output" not in py_code:
         py_code += "\ntry:\n    __output\nexcept NameError:\n    __output = input_wrapper.all()"
-    namespace: dict[str, Any] = {
-        "input_wrapper": input_wrapper,
-        "items": items,
-        "item": items[0] if len(items) == 1 else None,
-        "$input": input_wrapper,
-        "console": {"log": console_log},
-        "print": console_log,
-        "_normalize_output": _normalize_output,
-    }
-    # Sandbox gate: the fallback path must pass the same AST security
-    # analyzer as the primary path (defense-in-depth against escapes when
-    # the JS engine is unavailable and code is executed as Python).
-    try:
-        PythonSecurityAnalyzer().visit(ast.parse(py_code, filename="<code_fallback>"))
-    except SyntaxError as exc:
-        raise NodeExecutionError(
-            f"Generated code is not valid Python: {exc}",
-            code="CODE_ERROR", node_id="code", retryable=False,
-        ) from exc
     logger.info("Python fallback: language=%r code=%r py_code=%r", language, code[:200], py_code[:500])
     _safe_print(f"PY_FALLBACK language={language!r} code={code[:200]!r} py_code={py_code[:500]!r}", flush=True)
-    try:
-        exec(py_code, {"__builtins__": _SAFE_BUILTINS}, namespace)
-    except Exception as exc:
-        logger.error("Python exec failed for code %r py_code %r: %s", code[:200], py_code[:500], exc, exc_info=True)
-        _safe_print(f"PY_CODE_FAIL code={code[:200]!r} py_code={py_code[:500]!r} error={exc}", flush=True)
-        raise NodeExecutionError(f"Code execution failed: {exc} (py_code: {py_code[:200]!r})", code="CODE_ERROR", node_id="code", retryable=False, details={"py_code": py_code[:500], "code": code[:200]}) from exc
-
-    output = namespace.get("__output", items)
-    logger.info("Python fallback output %r", output)
-    try:
-        return _normalize_output(output, logs)
-    except Exception as exc:
-        logger.error("_normalize_output failed for output %r: %s", output, exc, exc_info=True)
-        raise NodeExecutionError(f"Code execution failed: _normalize_output error {exc} output={output!r}", code="CODE_ERROR", node_id="code", retryable=False) from exc
+    # Run the translated code in the same killable, memory-capped child
+    # sandbox as native Python. Never execute it in the worker process.
+    return _exec_python_code(py_code, items, mode, timeout, max_memory_mb)
 
 
 _PYTHON_SANDBOX = r'''
@@ -1199,7 +1169,8 @@ class CodeNode(BaseNode[CodeParams]):
                     # For each item, $input.all() should return [item] and $input.item is item
                     if params.language.lower() in ("javascript", "js"):
                         output = await asyncio.to_thread(
-                            _exec_javascript, params.code, single_input, mode, timeout
+                            _exec_javascript, params.code, single_input, mode, timeout,
+                            params.language, params.max_memory_mb,
                         )
                         # For per-item, code is expected to return $input.item or single item
                         # _exec_javascript will return a list; we need to collect the first item or all
@@ -1229,7 +1200,8 @@ class CodeNode(BaseNode[CodeParams]):
                 # Run Once for All Items
                 if params.language.lower() in ("javascript", "js"):
                     output = await asyncio.to_thread(
-                        _exec_javascript, params.code, input_items, mode, timeout
+                        _exec_javascript, params.code, input_items, mode, timeout,
+                        params.language, params.max_memory_mb,
                     )
                 else:
                     output = await asyncio.to_thread(

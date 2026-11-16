@@ -123,6 +123,44 @@ class TestSessionManager:
             assert session.token_jti != initial_jti
             assert session.is_active is True
 
+    def test_revoked_session_rejected_without_redis(self, monkeypatch):
+        from fastapi import HTTPException
+
+        from app.api.auth import authenticate_token
+        from app.security import jwt as jwt_module
+
+        monkeypatch.setattr("app.security.redis_client.get_shared_redis", lambda: None)
+        with get_session() as db:
+            user = _get_or_create_test_user(db, "session_revoke_offline@example.com")
+            token = create_token(user.id, email=user.email)
+            payload = decode_token(token)
+            session = SessionManager.create_session(db, user=user, token=token)
+            SessionManager.revoke_session(db, user.id, session.id)
+            # Simulate another worker: its in-process fallback never saw this jti.
+            jwt_module._token_blacklist.pop(payload["jti"], None)
+            with pytest.raises(HTTPException) as exc_info:
+                authenticate_token(token, db)
+            assert exc_info.value.status_code == 401
+
+    def test_rotated_token_rejected_without_redis(self, monkeypatch):
+        from fastapi import HTTPException
+
+        from app.api.auth import authenticate_token
+        from app.security import jwt as jwt_module
+
+        monkeypatch.setattr("app.security.redis_client.get_shared_redis", lambda: None)
+        with get_session() as db:
+            user = _get_or_create_test_user(db, "session_rotate_offline@example.com")
+            old_token = create_token(user.id, email=user.email)
+            old_payload = decode_token(old_token)
+            SessionManager.create_session(db, user=user, token=old_token)
+            renewed = SessionManager.renew_session(db, current_token=old_token)
+            jwt_module._token_blacklist.pop(old_payload["jti"], None)
+            with pytest.raises(HTTPException) as exc_info:
+                authenticate_token(old_token, db)
+            assert exc_info.value.status_code == 401
+            assert authenticate_token(renewed["token"], db).id == user.id
+
     def test_renew_fails_if_auto_renew_disabled(self):
         with get_session() as db:
             user = _get_or_create_test_user(db, "session_user_3@example.com")

@@ -1,0 +1,17 @@
+export const EMPTY_MCP_SERVER_FORM = {
+  name: '',
+  endpoint: '',
+  transport: 'http',
+  auth_type: 'none',
+  credential_id: '',
+  description: '',
+  trust_level: 'untrusted',
+  allowed_tools: '',
+  denied_tools: '',
+  sandbox_backend: 'subprocess',
+  sandbox_image: '',
+  sandbox_workspace_mode: 'none',
+  sandbox_workspace_path: '',
+  sandbox_network: 'none',
+  sandbox_read_only: true,
+}

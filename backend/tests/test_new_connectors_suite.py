@@ -104,6 +104,42 @@ async def test_sqlite_exact_row_count_is_not_reported_as_truncated():
 
 
 @pytest.mark.asyncio
+async def test_sql_connectors_reject_invalid_identifiers():
+    """Table/column names must not be able to escape the intended statement."""
+    from app.connectors import ConnectorError, ConnectorErrorCode
+
+    sqlite = SQLiteConnector()
+    assert await sqlite.connect({}) is True
+    with pytest.raises(ConnectorError) as exc_info:
+        await sqlite.op_execute(
+            "insert",
+            {
+                "table": "users; DROP TABLE users; --",
+                "data": {"name": "x"},
+                "database_path": ":memory:",
+            },
+        )
+    assert exc_info.value.code == ConnectorErrorCode.BAD_REQUEST.value
+    with pytest.raises(ConnectorError) as exc_info:
+        await sqlite.op_execute(
+            "update",
+            {
+                "table": "users",
+                "data": {"name; DROP": "x"},
+                "where": "id = 1",
+                "database_path": ":memory:",
+            },
+        )
+    assert exc_info.value.code == ConnectorErrorCode.BAD_REQUEST.value
+    await sqlite.disconnect()
+
+    mssql = MSSQLConnector()
+    with pytest.raises(ConnectorError) as exc_info:
+        await mssql._execute_insert("Users; DROP TABLE Users; --", {"a": 1}, {})
+    assert exc_info.value.code == ConnectorErrorCode.BAD_REQUEST.value
+
+
+@pytest.mark.asyncio
 async def test_mssql_connector_reports_errors_instead_of_faking_success():
     """MSSQL must never report success for a query that never reached a server.
 

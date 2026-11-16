@@ -41,7 +41,7 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
             cursor.close()
 
 
-def _engine_kwargs() -> dict:
+def _engine_kwargs(url: str | None = None) -> dict:
     """Shared engine options (pool sizing from settings).
 
     Pool arguments are only valid for queue-pool style engines; SQLite
@@ -49,13 +49,20 @@ def _engine_kwargs() -> dict:
     to non-SQLite URLs defensively.
     """
     settings = get_settings()
+    db_url = url or settings.database_url
     kwargs: dict = {}
-    if not settings.database_url.lower().startswith("sqlite"):
+    if not db_url.lower().startswith("sqlite"):
         kwargs.update(
             pool_size=settings.db_pool_size,
             max_overflow=settings.db_max_overflow,
             pool_recycle=settings.db_pool_recycle_s,
             pool_pre_ping=settings.db_pool_pre_ping,
+            connect_args={
+                "options": (
+                    f"-c statement_timeout={settings.db_statement_timeout_ms} "
+                    f"-c lock_timeout={settings.db_lock_timeout_ms}"
+                )
+            },
         )
     return kwargs
 
@@ -173,7 +180,7 @@ def _migrate_missing_indexes() -> None:
             logger.debug("Index creation %s skipped or error: %s", idx_name, e)
 
 
-EXPECTED_ALEMBIC_HEAD: str = "e9f0a1b2c3d4"
+EXPECTED_ALEMBIC_HEAD: str = "e7f8a9b0c1d2"
 FLOWSMITH_MIGRATION_LOCK_ID: int = 84729104
 _migration_thread_lock = threading.Lock()
 
@@ -273,7 +280,7 @@ def init_db(url: str | None = None) -> None:
     if url:
         url = _normalize_db_url(url)
         old_engine = engine
-        engine = create_engine(url, **_engine_kwargs())
+        engine = create_engine(url, **_engine_kwargs(url))
         SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
         try:
             old_engine.dispose()

@@ -95,6 +95,26 @@ def test_list_executions_paginated_and_filtered(client):
     assert body["data"][0]["status"] == "success"
 
 
+def test_list_executions_rejects_invalid_start_date(client):
+    headers = _setup(client)
+    client.post("/api/workflows", json=WF_OK, headers=headers)
+
+    resp = client.get("/api/executions?start_date=not-a-timestamp", headers=headers)
+
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == "start_date must be a valid ISO-8601 timestamp."
+
+
+def test_list_executions_rejects_invalid_end_date(client):
+    headers = _setup(client)
+    client.post("/api/workflows", json=WF_OK, headers=headers)
+
+    resp = client.get("/api/executions?end_date=not-a-timestamp", headers=headers)
+
+    assert resp.status_code == 422
+    assert resp.json()["detail"] == "end_date must be a valid ISO-8601 timestamp."
+
+
 def test_execution_items_paginated(client):
     headers = _setup(client)
     client.post("/api/workflows", json=WF_OK, headers=headers)
@@ -487,3 +507,293 @@ def test_get_execution_flamegraph(client):
     assert "total_duration_ms" in fg_data
     assert "spans" in fg_data
     assert fg_data["step_count"] >= 1
+
+
+def test_execution_error_types_are_scoped_and_counted(client):
+    owner = register(client, email="error_types_owner@example.com")
+    headers = auth_headers(owner["token"])
+    other = register(client, email="error_types_other@example.com")
+    other_headers = auth_headers(other["token"])
+    client.post("/api/workflows", json=make_workflow("wf_error_scope"), headers=headers)
+    client.post(
+        "/api/workflows",
+        json=make_workflow("wf_error_other"),
+        headers=other_headers,
+    )
+
+    from datetime import UTC, datetime, timedelta
+
+    from app.db import get_session
+    from app.models import Execution
+
+    now = datetime.now(UTC)
+    with get_session() as db:
+        for index, error_type in enumerate(("AUTH_ERROR", "AUTH_ERROR", "NETWORK_ERROR")):
+            db.add(
+                Execution(
+                    id=f"exec_error_scope_{index}",
+                    workflow_id="wf_error_scope",
+                    user_id=owner["user"]["id"],
+                    workflow_version=1,
+                    workflow_data={"id": "wf_error_scope", "nodes": [], "connections": []},
+                    trigger="manual",
+                    status="failed",
+                    error_type=error_type,
+                    started_at=now - timedelta(minutes=index),
+                )
+            )
+        db.add(
+            Execution(
+                id="exec_error_other",
+                workflow_id="wf_error_other",
+                user_id=other["user"]["id"],
+                workflow_version=1,
+                workflow_data={"id": "wf_error_other", "nodes": [], "connections": []},
+                trigger="manual",
+                status="failed",
+                error_type="RATE_LIMIT",
+                started_at=now,
+            )
+        )
+        db.commit()
+
+    rows = client.get("/api/executions/error-types", headers=headers).json()["data"]
+    assert rows == [
+        {"value": "AUTH_ERROR", "count": 2},
+        {"value": "NETWORK_ERROR", "count": 1},
+    ]
+
+
+def test_execution_requests_focus_page(client):
+    owner = register(client, email="requests_focus@example.com")
+    headers = auth_headers(owner["token"])
+    client.post("/api/workflows", json=make_workflow("wf_requests_focus"), headers=headers)
+
+    from datetime import UTC, datetime, timedelta
+
+    from app.db import get_session
+    from app.models import ApiRequestTelemetry, Execution
+
+    now = datetime.now(UTC)
+    with get_session() as db:
+        db.add(
+            Execution(
+                id="exec_requests_focus",
+                workflow_id="wf_requests_focus",
+                user_id=owner["user"]["id"],
+                workflow_version=1,
+                workflow_data={"id": "wf_requests_focus", "nodes": [], "connections": []},
+                trigger="manual",
+                status="success",
+                started_at=now,
+            )
+        )
+        db.flush()
+        for index in range(5):
+            db.add(
+                ApiRequestTelemetry(
+                    id=f"req_focus_{index}",
+                    execution_id="exec_requests_focus",
+                    connector_name="hubspot",
+                    http_method="GET",
+                    endpoint_url=f"https://api.hubspot.test/v1/objects/{index}",
+                    http_status_code=200,
+                    request_timestamp=now + timedelta(seconds=index),
+                    created_at=now + timedelta(seconds=index),
+                )
+            )
+        db.commit()
+
+    body = client.get(
+        "/api/executions/exec_requests_focus/requests",
+        params={"page": 1, "pageSize": 2, "request_id": "req_focus_4"},
+        headers=headers,
+    ).json()
+    assert body["meta"] == {"page": 3, "pageSize": 2, "total": 5}
+    assert [row["id"] for row in body["data"]] == ["req_focus_4"]
+
+    unfocused = client.get(
+        "/api/executions/exec_requests_focus/requests",
+        params={"page": 2, "pageSize": 2},
+        headers=headers,
+    ).json()
+    assert unfocused["meta"]["page"] == 2
+    assert [row["id"] for row in unfocused["data"]] == ["req_focus_2", "req_focus_3"]
+
+
+def test_execution_steps_hide_editor_only_fields_from_viewer(client):
+    owner = register(client, email="steps_owner@example.com")
+    viewer = register(client, email="steps_viewer@example.com")
+    headers = auth_headers(owner["token"])
+    viewer_headers = auth_headers(viewer["token"])
+    client.post("/api/workflows", json=make_workflow("wf_steps_editor"), headers=headers)
+    share = client.post(
+        "/api/workflows/wf_steps_editor/shares",
+        json={"email": "steps_viewer@example.com", "permission": "view"},
+        headers=headers,
+    )
+    assert share.status_code == 201, share.text
+
+    from datetime import UTC, datetime
+
+    from app.db import get_session
+    from app.models import Execution, ExecutionStep
+
+    now = datetime.now(UTC)
+    with get_session() as db:
+        db.add(
+            Execution(
+                id="exec_steps_editor",
+                workflow_id="wf_steps_editor",
+                user_id=owner["user"]["id"],
+                workflow_version=1,
+                workflow_data={"id": "wf_steps_editor", "nodes": [], "connections": []},
+                trigger="manual",
+                status="success",
+                started_at=now,
+            )
+        )
+        db.flush()
+        db.add(
+            ExecutionStep(
+                id="step_editor_only",
+                execution_id="exec_steps_editor",
+                node_id="transform",
+                node_type="set_data",
+                sequence_number=1,
+                status="success",
+                started_at=now,
+                inputs={"email": "ada@example.com"},
+                outputs={"main": [{"greeting": "hi"}]},
+                error_details={"debug": "owner only"},
+            )
+        )
+        db.commit()
+
+    owner_rows = client.get(
+        "/api/executions/exec_steps_editor/steps", headers=headers
+    ).json()["data"]
+    assert owner_rows[0]["inputs"] == {"email": "ada@example.com"}
+    assert owner_rows[0]["outputs"] == {"main": [{"greeting": "hi"}]}
+    assert owner_rows[0]["metadata"] == {"debug": "owner only"}
+
+    viewer_rows = client.get(
+        "/api/executions/exec_steps_editor/steps", headers=viewer_headers
+    ).json()["data"]
+    assert viewer_rows[0]["node_id"] == "transform"
+    assert viewer_rows[0]["status"] == "success"
+    assert viewer_rows[0]["inputs"] is None
+    assert viewer_rows[0]["outputs"] is None
+    assert viewer_rows[0]["metadata"] is None
+
+
+def test_execution_retry_history_ordered_by_attempt(client):
+    owner = register(client, email="retry_history@example.com")
+    headers = auth_headers(owner["token"])
+    client.post("/api/workflows", json=make_workflow("wf_retry_history"), headers=headers)
+
+    from datetime import UTC, datetime
+
+    from app.db import get_session
+    from app.models import Execution, ExecutionRetryHistory
+
+    now = datetime.now(UTC)
+    with get_session() as db:
+        for execution_id in (
+            "exec_retry_history_parent",
+            "exec_retry_history_1",
+            "exec_retry_history_2",
+        ):
+            db.add(
+                Execution(
+                    id=execution_id,
+                    workflow_id="wf_retry_history",
+                    user_id=owner["user"]["id"],
+                    workflow_version=1,
+                    workflow_data={"id": "wf_retry_history", "nodes": [], "connections": []},
+                    trigger="manual",
+                    status="failed",
+                    started_at=now,
+                )
+            )
+        db.flush()
+        db.add_all(
+            [
+                ExecutionRetryHistory(
+                    id="retry_history_attempt_2",
+                    original_execution_id="exec_retry_history_parent",
+                    retry_execution_id="exec_retry_history_2",
+                    attempt_number=2,
+                    retry_trigger="manual",
+                    retry_reason="second try",
+                    status="success",
+                    initiated_by_user_id=owner["user"]["id"],
+                    created_at=now,
+                ),
+                ExecutionRetryHistory(
+                    id="retry_history_attempt_1",
+                    original_execution_id="exec_retry_history_parent",
+                    retry_execution_id="exec_retry_history_1",
+                    attempt_number=1,
+                    retry_trigger="manual",
+                    retry_reason="first try",
+                    status="failed",
+                    initiated_by_user_id=owner["user"]["id"],
+                    created_at=now,
+                ),
+            ]
+        )
+        db.commit()
+
+    rows = client.get(
+        "/api/executions/exec_retry_history_parent/retries", headers=headers
+    ).json()["data"]
+    assert [row["attempt_number"] for row in rows] == [1, 2]
+    assert rows[0]["execution_id"] == "exec_retry_history_1"
+    assert rows[0]["original_execution_id"] == "exec_retry_history_parent"
+    assert rows[0]["triggered_by"] == owner["user"]["id"]
+    assert rows[0]["retry_reason"] == "first try"
+
+    from_retry = client.get(
+        "/api/executions/exec_retry_history_1/retries", headers=headers
+    ).json()["data"]
+    assert [row["id"] for row in from_retry] == ["retry_history_attempt_1"]
+
+
+def test_execution_export_truncates_at_limit(client, monkeypatch):
+    monkeypatch.setattr("app.api.executions.EXPORT_ROW_LIMIT", 2)
+    owner = register(client, email="export_limit@example.com")
+    headers = auth_headers(owner["token"])
+    client.post("/api/workflows", json=make_workflow("wf_export_limit"), headers=headers)
+
+    from datetime import UTC, datetime, timedelta
+
+    from app.db import get_session
+    from app.models import Execution
+
+    now = datetime.now(UTC)
+    with get_session() as db:
+        for index in range(3):
+            db.add(
+                Execution(
+                    id=f"exec_export_limit_{index}",
+                    workflow_id="wf_export_limit",
+                    user_id=owner["user"]["id"],
+                    workflow_version=1,
+                    workflow_data={"id": "wf_export_limit", "nodes": [], "connections": []},
+                    trigger="manual",
+                    status="success",
+                    started_at=now - timedelta(minutes=index),
+                )
+            )
+        db.commit()
+
+    resp = client.get("/api/executions/export", headers=headers)
+    assert resp.status_code == 200
+    assert resp.headers["x-export-truncated"] == "true"
+    assert resp.headers["x-export-limit"] == "2"
+    lines = resp.text.strip().splitlines()
+    assert len(lines) == 3  # header + two newest rows
+    assert "exec_export_limit_0" in lines[1]
+    assert "exec_export_limit_1" in lines[2]
+    assert "exec_export_limit_2" not in resp.text

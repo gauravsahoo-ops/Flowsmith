@@ -106,6 +106,9 @@ execution_duration = Histogram("execution_duration_seconds", "Execution wall tim
 webhook_deliveries = Counter("webhook_deliveries_total", "Webhook deliveries", ("status",))
 ratelimit_rejected = Counter("ratelimit_rejected_total", "Requests rejected by a rate limiter", ("scope",))
 audit_events = Counter("audit_events_total", "Audit events recorded")
+approval_requests = Counter("approval_requests_total", "Durable approval requests created", ("risk_tier",))
+approval_decisions = Counter("approval_decisions_total", "Durable approval decisions", ("status",))
+mcp_tool_calls = Counter("mcp_tool_calls_total", "MCP tool invocations by outcome", ("status",))
 
 _STARTED_AT: dict[str, float] = {}
 _start_lock = Lock()
@@ -140,6 +143,9 @@ def render_metrics(live: list[tuple[str, float]] | None = None) -> str:
         webhook_deliveries.render(),
         ratelimit_rejected.render(),
         audit_events.render(),
+        approval_requests.render(),
+        approval_decisions.render(),
+        mcp_tool_calls.render(),
         executions_running.render(),
     ]
     for name, value in (live or []):

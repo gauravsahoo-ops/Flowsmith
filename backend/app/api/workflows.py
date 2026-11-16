@@ -18,7 +18,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger("workflows")
@@ -48,7 +48,6 @@ from app.api.common import ok, page_params, validate_workflow_payload
 from app.db import get_db
 from app.importexport import WorkflowImportError, build_export, parse_import, sanitize_workflow_data
 from app.models import (
-    AuditEvent,
     Credential,
     PollingTrigger,
     ScheduleTrigger,
@@ -59,6 +58,8 @@ from app.models import (
     WorkflowVersionRecord,
 )
 from app.nodes.registry import NODE_REGISTRY
+from app.repositories import ExecutionRepository
+from app.repositories.workflows import WorkflowRepository
 from app.schemas.workflow import Workflow
 from app.engine.expressions import resolve as resolve_expression, build_node_name_map
 from app.engine.redact import redact_sensitive
@@ -263,16 +264,7 @@ def list_workflows(
     ids = accessible_ids(db, user)
     if not ids:
         return ok([], {"page": page, "pageSize": size, "total": 0})
-    total = (
-        db.scalar(select(func.count()).select_from(WorkflowRecord).where(WorkflowRecord.id.in_(ids))) or 0
-    )
-    recs = db.scalars(
-        select(WorkflowRecord)
-        .where(WorkflowRecord.id.in_(ids))
-        .order_by(WorkflowRecord.updated_at.desc())
-        .offset((page - 1) * size)
-        .limit(size)
-    ).all()
+    recs, total = WorkflowRepository(db).list_page(ids, page=page, page_size=size)
     perms = batch_permissions(db, {r.id for r in recs}, user)
     return ok(
         [_to_dict(r, perms.get(r.id, "view")) for r in recs],
@@ -466,8 +458,13 @@ def duplicate_workflow(
 def get_workflow_endpoint(
     workflow_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
-    rec = get_workflow(db, workflow_id, user)
-    return ok(_to_dict(rec, get_permission(db, workflow_id, user) or "view"))
+    permission = get_permission(db, workflow_id, user)
+    if permission is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
+    rec = WorkflowRepository(db).get(workflow_id)
+    if rec is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
+    return ok(_to_dict(rec, permission))
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -685,8 +682,6 @@ def upstream_fields(
 
 def _uf_impl(db: Session, workflow_data: dict, node_id: str) -> dict:
     """Shared implementation returning upstream ids + latest outputs."""
-    from app.models import Execution as ExecutionModel
-
     conns = (workflow_data or {}).get("connections", [])
     incoming: dict[str, list[str]] = {}
     for c in conns:
@@ -701,12 +696,9 @@ def _uf_impl(db: Session, workflow_data: dict, node_id: str) -> dict:
     upstream = list(reversed(seen))
 
     wf_id = workflow_data.get("id")
-    rows = db.execute(
-        select(ExecutionModel)
-        .where(ExecutionModel.workflow_id == wf_id, ExecutionModel.results.is_not(None))
-        .order_by(ExecutionModel.started_at.desc())
-        .limit(5)
-    ).scalars().all()
+    rows = (
+        ExecutionRepository(db).latest_with_results(wf_id) if wf_id else []
+    )
     outputs = {}
     for row in rows:
         if not isinstance(row.results, dict):
@@ -971,9 +963,7 @@ class ShareUpdateRequest(BaseModel):
 @router.get("/{workflow_id}/shares")
 def list_shares(workflow_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     get_workflow(db, workflow_id, user, require_edit=True)
-    shares = db.scalars(
-        select(WorkflowShare).where(WorkflowShare.workflow_id == workflow_id)
-    ).all()
+    shares = WorkflowRepository(db).list_shares(workflow_id)
     user_ids = {s.user_id for s in shares}
     users_map = {}
     if user_ids:
@@ -1076,10 +1066,7 @@ def list_versions(
     """List all workflow versions with metadata."""
     if not is_owner(db, workflow_id, user) and get_permission(db, workflow_id, user) != "edit":
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
-    records = db.scalars(
-        select(WorkflowVersionRecord).where(WorkflowVersionRecord.workflow_id == workflow_id)
-        .order_by(WorkflowVersionRecord.version.desc())
-    ).all()
+    records = WorkflowRepository(db).list_versions(workflow_id)
     user_ids = {rec.user_id for rec in records if rec.user_id}
     users_map = {}
     if user_ids:
@@ -1112,12 +1099,7 @@ def get_version(
     """Fetch full snapshot data for a specific workflow version."""
     if not is_owner(db, workflow_id, user) and get_permission(db, workflow_id, user) != "edit":
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
-    ver = db.scalar(
-        select(WorkflowVersionRecord).where(
-            WorkflowVersionRecord.workflow_id == workflow_id,
-            WorkflowVersionRecord.version == version_num,
-        )
-    )
+    ver = WorkflowRepository(db).get_version(workflow_id, version_num)
     if ver is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Workflow version {version_num} not found.")
 
@@ -1144,18 +1126,14 @@ def get_activation_history(
     db: Session = Depends(get_db),
 ) -> dict:
     """Retrieve activation and deactivation timeline events for this workflow."""
-    rec = get_workflow(db, workflow_id, user)
+    if get_permission(db, workflow_id, user) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
+    repo = WorkflowRepository(db)
+    rec = repo.get(workflow_id)
     if rec is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found.")
 
-    events = db.scalars(
-        select(AuditEvent)
-        .where(
-            AuditEvent.target_id == workflow_id,
-            AuditEvent.action.in_([WORKFLOW_ACTIVATE, WORKFLOW_DEACTIVATE]),
-        )
-        .order_by(AuditEvent.created_at.desc())
-    ).all()
+    events = repo.list_activation_events(workflow_id)
 
     user_ids = {e.user_id for e in events if e.user_id}
     users_map = {}
@@ -1163,11 +1141,7 @@ def get_activation_history(
         users = db.scalars(select(User).where(User.id.in_(user_ids))).all()
         users_map = {u.id: u.email for u in users}
 
-    versions = db.scalars(
-        select(WorkflowVersionRecord)
-        .where(WorkflowVersionRecord.workflow_id == workflow_id)
-        .order_by(WorkflowVersionRecord.version.desc())
-    ).all()
+    versions = repo.list_versions(workflow_id)
 
     timeline = []
     for ev in events:

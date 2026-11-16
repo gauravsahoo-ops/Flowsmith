@@ -12,13 +12,12 @@ import contextlib
 import copy
 import hashlib
 import json
-import math
 import logging
 import os
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
 import httpx
 
@@ -34,14 +33,21 @@ from app.engine.errors import (
 from app.engine.graph import build_graph, topological_sort, validate_graph
 from app.engine.node_base import NodeContext, NodeResult
 from app.nodes.registry import NODE_REGISTRY
+from app.orchestration.retry import (
+    MAX_RETRY_BACKOFF_S,
+    retry_budget,
+    retry_delay,
+)
+from app.orchestration.scheduler import (
+    DEFAULT_MAX_PARALLELISM,
+    _merge_mode,
+    schedule_graph,
+)
 from app.schemas.workflow import Workflow, WorkflowNode
 
 logger = logging.getLogger("engine")
 
 NodeResults = dict[str, dict[str, list[dict[str, Any]]]]
-
-DEFAULT_MAX_PARALLELISM = 8
-MAX_RETRY_BACKOFF_S = 60.0
 
 # Per-record trace rows are the execution-log contract: each processed item
 # gets its own row (inputs/outputs/status/searchable note). The upper bound
@@ -58,26 +64,14 @@ except (TypeError, ValueError):
 
 
 def _retry_delay(backoff: float, retries: int, retry_after: Any = None) -> float:
-    """Return a bounded, safe retry delay.
+    """Return a bounded, safe retry delay (thin wrapper over the policy module).
 
-    Provider ``Retry-After`` values are untrusted and can be negative,
-    non-finite, or absurdly large. They must never reach ``asyncio.sleep``
-    raw. The fallback is exponential backoff capped at 60 seconds.
+    Reads ``MAX_RETRY_BACKOFF_S`` from this module at call time so tests that
+    patch ``app.engine.executor.MAX_RETRY_BACKOFF_S`` still clamp the result.
     """
-    if retry_after is not None:
-        try:
-            candidate = float(retry_after)
-        except (TypeError, ValueError, OverflowError):
-            candidate = None
-        if candidate is not None and math.isfinite(candidate) and candidate >= 0:
-            return min(candidate, MAX_RETRY_BACKOFF_S)
-    try:
-        computed = float(backoff) * (2 ** max(retries - 1, 0))
-    except (TypeError, ValueError, OverflowError):
-        computed = 0.0
-    if not math.isfinite(computed):
-        computed = 0.0
-    return max(0.0, min(computed, MAX_RETRY_BACKOFF_S))
+    return retry_delay(backoff, retries, retry_after, max_delay=MAX_RETRY_BACKOFF_S)
+
+
 MERGE_MODES = ("wait_for_all", "wait_for_one", "combine")
 
 
@@ -93,6 +87,13 @@ class ExecutionResult:
     events: list[dict[str, Any]] = field(default_factory=list)
     inputs: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     error: NodeExecutionError | None = None
+    # Durable pause: a node asked the engine to stop before scheduling its
+    # children (human approval, mid-loop agent tool approval, etc.). The
+    # execution row owns the pause state; these fields let the runtime persist
+    # or recover it even if the node could not write the row itself.
+    paused: bool = False
+    paused_node_id: str | None = None
+    pause_info: dict[str, Any] | None = None
     # perf_counter has sub-millisecond resolution on Windows; monotonic can
     # return the same tick for very fast workflows, producing a misleading
     # 0.0ms duration. Only differences are used, so the epoch is arbitrary.
@@ -196,11 +197,6 @@ def _setting_float(settings: dict[str, Any], key: str) -> float | None:
     return value if value > 0 else None
 
 
-def _merge_mode(node: WorkflowNode) -> str:
-    mode = node.settings.get("merge_mode", "wait_for_all")
-    return mode if mode in MERGE_MODES else "wait_for_all"
-
-
 async def execute_workflow(
     workflow: Workflow,
     trigger_items: list[dict[str, Any]] | None = None,
@@ -216,6 +212,7 @@ async def execute_workflow(
     execution_depth: int = 0,
     workspace_id: str | None = None,
     user_id: int | None = None,
+    approval_owner: dict[str, Any] | None = None,
 ) -> ExecutionResult:
     """Run the workflow and return per-node results (spec 8.5).
 
@@ -279,6 +276,7 @@ async def execute_workflow(
         cancel_event=cancelled,
         workspace_id=workspace_id,
         user_id=user_id,
+        approval_owner=approval_owner,
     )
     owns_client = http_client is None
     if storage_seed:
@@ -301,9 +299,19 @@ async def execute_workflow(
         # Own task handle: shield()/bare awaits detach on cancellation and
 
         # leave the node graph running after the caller saw "cancelled".
-        run = asyncio.create_task(_run_nodes(
-            graph, trigger_items, ctx, result, emit_all, cancelled,
-            credential_resolver, max_parallelism, initial_results,
+        results_store: NodeResults = dict(initial_results or {})
+        run = asyncio.create_task(schedule_graph(
+            graph=graph,
+            trigger_items=trigger_items,
+            ctx=ctx,
+            result=result,
+            emit=emit_all,
+            cancelled=cancelled,
+            execute_node=_make_execute_node(
+                graph, ctx, result, emit_all, cancelled, credential_resolver, results_store,
+            ),
+            max_parallelism=max_parallelism,
+            initial_results=results_store,
         ))
         if workflow_timeout:
             await asyncio.wait_for(run, timeout=workflow_timeout)
@@ -361,40 +369,24 @@ async def _monitor_cancel(
             task.cancel()
 
 
-async def _run_nodes(
+def _make_execute_node(
     graph: dict,
-    trigger_items: list[dict[str, Any]],
     ctx: NodeContext,
     result: ExecutionResult,
     emit: Callable[..., Any],
     cancelled: asyncio.Event,
-    credential_resolver: Callable[[dict[str, str]], dict[str, Any]] | None = None,
-    max_parallelism: int = DEFAULT_MAX_PARALLELISM,
-    initial_results: NodeResults | None = None,
-) -> None:
-    """Ready-set scheduler (spec 8.2): independent branches run
-    concurrently; each node starts once its parents are done.
+    credential_resolver: Callable[[dict[str, str]], dict[str, Any]] | None,
+    results: NodeResults,
+) -> Callable[[str, list[dict[str, Any]] | None], Awaitable[None]]:
+    """Build the scheduler's node executor.
 
-    `initial_results` pre-seeds completed nodes (durable resume): they
-    are marked scheduled and their children's dependencies are satisfied
-    without re-execution."""
-    results: NodeResults = dict(initial_results or {})
-    sem = asyncio.Semaphore(max_parallelism)
-    active: set[asyncio.Task] = set()
-    scheduled: set[str] = set(results.keys())
-    pending: dict[str, set[str]] = {
-        nid: set(gnode.input_node_ids) for nid, gnode in graph.items()
-    }
+    The scheduler decides *when* a node runs; this callback owns *how*: it
+    scopes the trace span, tags the current node for telemetry and converts
+    every failure into a ``_fail`` record (never letting an exception escape
+    into the scheduler task).
+    """
 
-    # Children whose parents are all pre-seeded become ready immediately.
-    for nid in list(scheduled):
-        gnode = graph.get(nid)
-        if gnode is None:
-            continue
-        for child in gnode.output_node_ids:
-            pending[child].discard(nid)
-
-    async def run_one(nid: str) -> None:
+    async def execute_node(nid: str, seed_items: list[dict[str, Any]] | None) -> None:
         gnode = graph[nid]
         node = gnode.node
         from app.telemetry.context import current_node_id
@@ -402,20 +394,18 @@ async def _run_nodes(
         from app.telemetry.tracer import start_trace_span
         node_name = getattr(node, "name", "") or getattr(node, "type", nid)
         try:
-            async with sem:
-                seed = trigger_items if not gnode.input_connections else None
-                with start_trace_span(
-                    f"node.{node.type}",
-                    attributes={
-                        "node.id": str(node.id),
-                        "node.type": str(node.type),
-                        "node.name": str(node_name),
-                    },
-                ):
-                    await _run_one(
-                        graph, gnode.node, gnode, seed, results, ctx, result, emit, cancelled,
-                        credential_resolver,
-                    )
+            with start_trace_span(
+                f"node.{node.type}",
+                attributes={
+                    "node.id": str(node.id),
+                    "node.type": str(node.type),
+                    "node.name": str(node_name),
+                },
+            ):
+                await _run_one(
+                    graph, gnode.node, gnode, seed_items, results, ctx, result, emit, cancelled,
+                    credential_resolver,
+                )
         except (asyncio.CancelledError, NodeCancelledError):
             cancelled.set()
             ctx._cancelled = True
@@ -449,103 +439,41 @@ async def _run_nodes(
                 gnode.node, gnode, results, result,
                 NodeExecutionError(str(exc), code="NODE_ERROR", node_id=nid), emit, graph,
             )
-        if nid in result.node_errors:
-            return  # _fail already handled this branch's descendants
-        if cancelled.is_set() or ctx.is_cancelled():
-            return
-        for child in gnode.output_node_ids:
-            # Skip back-edge scheduling (visual loop connections)
-            if child in gnode.back_edges:
-                continue
-            gchild = graph[child]
-            if _merge_mode(gchild.node) == "wait_for_one":
-                _schedule(child)
-            else:
-                pending[child].discard(nid)
-                if not pending[child]:
-                    _schedule(child)
 
-    def _schedule(nid: str) -> None:
-        if nid in scheduled or cancelled.is_set() or ctx.is_cancelled():
-            return
-        scheduled.add(nid)
-        task = asyncio.create_task(run_one(nid))
-        active.add(task)
-        task.add_done_callback(active.discard)
+    return execute_node
 
-    for nid in graph:
-        if not graph[nid].input_connections:
-            _schedule(nid)
-        elif not pending[nid]:
-            # All parents were pre-seeded (durable resume): ready now.
-            _schedule(nid)
 
-    try:
-        while True:
-            if cancelled.is_set() or ctx.is_cancelled():
-                break
-            while active:
-                done, _ = await asyncio.wait(tuple(active), return_when=asyncio.FIRST_COMPLETED)
-                active.difference_update(done)
-                if cancelled.is_set() or ctx.is_cancelled():
-                    break
+async def _run_nodes(
+    graph: dict,
+    trigger_items: list[dict[str, Any]],
+    ctx: NodeContext,
+    result: ExecutionResult,
+    emit: Callable[..., Any],
+    cancelled: asyncio.Event,
+    credential_resolver: Callable[[dict[str, str]], dict[str, Any]] | None = None,
+    max_parallelism: int = DEFAULT_MAX_PARALLELISM,
+    initial_results: NodeResults | None = None,
+) -> None:
+    """Compatibility wrapper around :func:`schedule_graph`.
 
-            if cancelled.is_set() or ctx.is_cancelled():
-                break
-
-            # Cycle fallback: when all active tasks have drained, any nodes
-            # still unscheduled are part of a cycle (every parent is either
-            # unscheduled or stuck waiting for a child in the cycle).  We
-            # break the cycle by scheduling the node with the fewest
-            # remaining incomplete parents.  It receives empty input (its
-            # parent hasn't produced output yet) which is the correct
-            # cycle-breaking semantics.
-            unscheduled = [
-                nid for nid in graph
-                if nid not in scheduled
-                and nid not in result.skipped
-                and nid not in result.node_errors
-                and not cancelled.is_set()
-                and not ctx.is_cancelled()
-            ]
-            if not unscheduled:
-                break
-            unscheduled.sort(
-                key=lambda nid: sum(1 for p in graph[nid].input_node_ids if p not in results)
-            )
-            _schedule(unscheduled[0])
-    finally:
-        if cancelled.is_set() or ctx.is_cancelled():
-            for t in list(active):
-                if not t.done():
-                    t.cancel()
-            if active:
-                with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
-                    await asyncio.wait(tuple(active), timeout=2.0)
-
-    # Nodes that could never become ready (a wait_for_all parent died
-    # hard, or execution was cancelled) are recorded as skipped
-    for nid in graph:
-        if nid in scheduled or nid in result.skipped or nid in results or nid in result.node_errors:
-            continue
-        result.skipped.append(nid)
-        _add_step(
-            result, node_id=nid, node_type=graph[nid].node.type, status="skipped",
-            started_at=datetime.now(UTC).isoformat(), duration_ms=0,
-            note="Execution cancelled; step was not executed." if (cancelled.is_set() or ctx.is_cancelled()) else "Parent node failed; step was not executed.",
-        )
-
-    result.results = results
-    result.trace.sort(key=lambda s: s["started_at"])  # chronological across parallel branches
-    if result.status != "timeout" and (cancelled.is_set() or ctx.is_cancelled()):
-        result.status = "cancelled"
-        emit("execution.cancelled", status="cancelled")
-    elif result.error:
-        result.status = "failed"
-        emit("execution.failed", status="failed")
-    else:
-        result.status = "success"
-        emit("execution.completed", status="success")
+    ``initial_results`` pre-seeds completed nodes (durable resume): they are
+    marked scheduled and their children's dependencies are satisfied without
+    re-execution.
+    """
+    results: NodeResults = dict(initial_results or {})
+    await schedule_graph(
+        graph=graph,
+        trigger_items=trigger_items,
+        ctx=ctx,
+        result=result,
+        emit=emit,
+        cancelled=cancelled,
+        execute_node=_make_execute_node(
+            graph, ctx, result, emit, cancelled, credential_resolver, results,
+        ),
+        max_parallelism=max_parallelism,
+        initial_results=results,
+    )
 
 
 async def _run_via_connector(
@@ -776,11 +704,7 @@ async def _run_one(
     inputs_capped = _cap(input_items)
 
 
-    max_attempts = max(1, int(node.settings.get("retry_max_attempts", 0) or 0) + 1)
-    try:
-        backoff = max(0.0, float(node.settings.get("retry_backoff_seconds", 2) or 2))
-    except (TypeError, ValueError):
-        backoff = 2.0
+    budget = retry_budget(node.settings)
     retries: int = 0
     timeout = float(node.settings.get("timeout_seconds", 0)) or None
 
@@ -859,16 +783,16 @@ async def _run_one(
                         item_error = node_error
                         if getattr(ce, "retry_after", None) is not None:
                             node_error.retry_after = ce.retry_after
-                    if _retries + 1 >= max_attempts or not node_error.retryable:
+                    if _retries + 1 >= budget.max_attempts or not node_error.retryable:
                         if node.settings.get("continue_on_error"):
                             all_outputs.append({"$error": node_error.to_dict(), "success": False, "item": single_item})
                             raw_result = None
                             break
                         raise node_error
                     _retries += 1
-                    delay = _retry_delay(backoff, _retries, getattr(node_error, "retry_after", None))
+                    delay = _retry_delay(budget.backoff_s, _retries, getattr(node_error, "retry_after", None))
                     emit("node.retry", node_id=node.id, status="retry",
-                         attempt=_retries, max_attempts=max_attempts,
+                         attempt=_retries, max_attempts=budget.max_attempts,
                          retry_after_s=delay, error={"message": str(node_error), "code": node_error.code})
                     await asyncio.sleep(delay)
                     if cancelled.is_set() or ctx.is_cancelled():
@@ -951,7 +875,7 @@ async def _run_one(
             await _run_via_connector(
                 connector, node, gnode, results, ctx, result, emit,
                 input_items, inputs_capped, params, cancelled, timeout,
-                max_attempts, backoff, retries, started_wall, started_mono,
+                budget.max_attempts, budget.backoff_s, retries, started_wall, started_mono,
             )
         except (NodeCancelledError, asyncio.CancelledError):
             cancelled.set()
@@ -970,10 +894,10 @@ async def _run_one(
             _fail(
                 node, gnode, results, result, exc, emit, graph,
                 step_wall_started=started_wall, step_mono_started=started_mono, step_inputs=inputs_capped,
-                attempts=max_attempts if total_retries else 1,
+                attempts=budget.max_attempts if total_retries else 1,
                 retries=total_retries,
                 note=(
-                    f"Failed {max_attempts} attempt(s); {total_retries} failed"
+                    f"Failed {budget.max_attempts} attempt(s); {total_retries} failed"
                     f" retr{'y' if total_retries == 1 else 'ies'} before this error."
                     if total_retries else None
                 ),
@@ -1025,7 +949,7 @@ async def _run_one(
                 except (NodeCancelledError, asyncio.CancelledError):
                     raise
                 except NodeExecutionError as exc:
-                    if item_retries + 1 >= max_attempts or not exc.retryable:
+                    if item_retries + 1 >= budget.max_attempts or not exc.retryable:
                         if not node.settings.get("continue_on_error"):
                             raise
                         error_item = {
@@ -1037,13 +961,13 @@ async def _run_one(
                         per_error_message = str(exc)
                         break
                     item_retries += 1
-                    delay = _retry_delay(backoff, item_retries, getattr(exc, "retry_after", None))
+                    delay = _retry_delay(budget.backoff_s, item_retries, getattr(exc, "retry_after", None))
                     emit(
                         "node.retry",
                         node_id=node.id,
                         status="retry",
                         attempt=item_retries,
-                        max_attempts=max_attempts,
+                        max_attempts=budget.max_attempts,
                         retry_after_s=delay,
                         error={"message": str(exc), "code": exc.code},
                     )
@@ -1068,6 +992,29 @@ async def _run_one(
                     all_output_items.append(error_item)
                     per_error_message = str(wrapped)
                     break
+
+            if per_result is not None and per_result.metadata.get("waiting_approval"):
+                all_output_items.extend(per_result.output_items or [])
+                results[node.id] = {"main": all_output_items}
+                result.paused = True
+                result.paused_node_id = node.id
+                result.pause_info = dict(per_result.metadata)
+                emit("node.waiting_approval", node_id=node.id, status="waiting_approval")
+                _add_step(
+                    result, node_id=node.id, node_type=node.type,
+                    status="waiting_approval",
+                    started_at=datetime.now(UTC).isoformat(),
+                    duration_ms=(time.monotonic() - per_started) * 1000,
+                    inputs=_cap({"main": [single_item]}),
+                    outputs=_cap({"main": per_result.output_items or []}),
+                    note=(
+                        str(per_result.metadata.get("message") or "")
+                        or "Execution paused for approval."
+                    ),
+                    item_index=idx + 1,
+                    item_total=item_total,
+                )
+                return
 
             if per_result is not None and per_result.output_items:
                 all_output_items.extend(per_result.output_items)
@@ -1164,16 +1111,38 @@ async def _run_one(
                 )
                 break
             except NodeExecutionError as exc:
-                if retries + 1 >= max_attempts or not exc.retryable:
+                if retries + 1 >= budget.max_attempts or not exc.retryable:
                     raise
                 retries += 1
-                delay = _retry_delay(backoff, retries, getattr(exc, "retry_after", None))
+                delay = _retry_delay(budget.backoff_s, retries, getattr(exc, "retry_after", None))
                 emit("node.retry", node_id=node.id, status="retry",
-                     attempt=retries, max_attempts=max_attempts,
+                     attempt=retries, max_attempts=budget.max_attempts,
                      retry_after_s=delay, error=exc.to_dict())
                 await asyncio.sleep(delay)
                 if cancelled.is_set() or ctx.is_cancelled():
                     raise NodeCancelledError(node.id)
+
+        if node_result.metadata.get("waiting_approval"):
+            results[node.id] = {"main": node_result.output_items or []}
+            result.paused = True
+            result.paused_node_id = node.id
+            result.pause_info = dict(node_result.metadata)
+            emit("node.waiting_approval", node_id=node.id, status="waiting_approval")
+            _add_step(
+                result, node_id=node.id, node_type=node.type,
+                status="waiting_approval",
+                started_at=started_wall,
+                duration_ms=(time.monotonic() - started_mono) * 1000,
+                inputs=inputs_capped,
+                outputs=_cap(results[node.id]),
+                note=(
+                    str(node_result.metadata.get("message") or "")
+                    or "Execution paused for approval."
+                ),
+                attempts=retries + 1,
+                retries=retries,
+            )
+            return
 
         if node_result.output_by_handle is not None:
             results[node.id] = node_result.output_by_handle
@@ -1221,7 +1190,7 @@ async def _run_one(
             step_wall_started=started_wall, step_mono_started=started_mono, step_inputs=inputs_capped,
             attempts=retries + 1, retries=retries,
             note=(
-                f"Failed {max_attempts} attempt(s); {retries} failed"
+                f"Failed {budget.max_attempts} attempt(s); {retries} failed"
                 f" retr{'y' if retries == 1 else 'ies'} before this error."
                 if retries > 0 else None
             ),
@@ -1232,7 +1201,7 @@ async def _run_one(
             NodeExecutionError(str(exc), code="NODE_ERROR", node_id=node.id), emit, graph,
             step_wall_started=started_wall, step_mono_started=started_mono, step_inputs=inputs_capped,
             attempts=retries + 1, retries=retries,
-            note=(f"Failed {max_attempts} attempt(s); {retries} failed"
+            note=(f"Failed {budget.max_attempts} attempt(s); {retries} failed"
                   f" retr{'y' if retries == 1 else 'ies'} before this error."
                   if retries > 0 else None),
         )

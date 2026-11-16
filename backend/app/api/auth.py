@@ -1505,6 +1505,30 @@ def authenticate_token(token_str: str, db: Session) -> User:
         user_id = int(payload["sub"])
     except (pyjwt.InvalidTokenError, KeyError, ValueError):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token.")
+    jti = payload.get("jti")
+    if jti:
+        # AuthSession is the authoritative DB record for browser sessions.
+        # Checking it here makes logout/revocation work across workers even
+        # when Redis (the distributed jti blacklist) is unavailable.
+        from app.models.auth_session import AuthSession
+
+        auth_session = db.scalar(
+            select(AuthSession).where(AuthSession.token_jti == str(jti))
+        )
+        if auth_session is not None:
+            now = datetime.now(UTC)
+            expires_at = auth_session.expires_at
+            if expires_at is not None and expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=UTC)
+            if (
+                not auth_session.is_active
+                or auth_session.revoked_at is not None
+                or (expires_at is not None and expires_at <= now)
+            ):
+                raise HTTPException(
+                    status.HTTP_401_UNAUTHORIZED,
+                    "Session has been revoked or expired.",
+                )
     user = db.get(User, user_id)
     if user is None or not user.active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token.")

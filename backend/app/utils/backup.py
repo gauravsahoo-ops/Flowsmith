@@ -95,9 +95,14 @@ def _base_cmd(tool: str, dsn: str | None, *, stdin: bool = False) -> tuple[list[
     settings = get_settings()
     mode = getattr(settings, "pg_client_mode", "auto")
     parts = _dsn_parts(dsn)
+    # In docker mode the client runs inside the container, so use the
+    # container-side PostgreSQL port rather than a host-mapped port.
+    port = str(parts["port"])
+    if mode == "docker":
+        port = str(getattr(settings, "pg_docker_port", 5432) or 5432)
     pg_args = [
         "-h", parts["host"] if mode != "docker" else "localhost",
-        "-p", parts["port"],
+        "-p", port,
         "-U", parts["user"] or "postgres",
     ]
     env: dict[str, str] = {"PGPASSWORD": parts["password"]}

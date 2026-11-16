@@ -12,27 +12,22 @@ picks it up (spec 36).
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import and_, cast, func, or_, select, String
-from sqlalchemy.orm import Session, defer
+from sqlalchemy import cast, or_, select, String
+from sqlalchemy.orm import Session
 
 from app.api.access import accessible_ids, batch_permissions, get_permission, get_workflow
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params
 from app.audit import (
-    EXECUTION_CANCEL,
     EXECUTION_EXPORT,
-    EXECUTION_RESUME,
-    EXECUTION_RETRY,
     EXECUTION_RUN,
     log_event,
 )
-from app.credentials.validator import validate_workflow_credentials
 from app.db import get_db
 from app.engine.errors import WorkflowValidationError
 from app.engine.redact import (
@@ -42,26 +37,28 @@ from app.engine.redact import (
     redact_trace_steps,
     sanitize_csv_cell,
 )
-from app.metrics import execution_started
 from app.models import Execution, User
 from app.models.monitoring_telemetry import (
     ApiRequestTelemetry,
-    ExecutionRetryHistory,
-    ExecutionStep,
 )
 from app.models.workflow import WorkflowRecord
-from app.queue import get_queue
 from app.queue.worker import ensure_embedded_consumer
+from app.repositories import ExecutionFilters, ExecutionRepository
+from app.services.execution_service import ExecutionService, ExecutionServiceError
 
 router = APIRouter(tags=["executions"])
 logger = logging.getLogger("api.executions")
 
 IN_PROGRESS_STATUSES = frozenset({"queued", "running", "cancelling"})
 EXPORT_ROW_LIMIT = 10_000
-# Trace payloads are already bounded by the executor (one item per record
-# step). Keep a page-sized window so a HubSpot search/list result remains
-# searchable in the log stream without shipping an unbounded array.
-TRACE_PREVIEW_MAX_ITEMS = 500
+# Trace rows are already bounded by the executor (one row per record step),
+# and per-record steps keep their single input item. Each nested list inside
+# a row must stay small too: the same 200-300 record array is attached to the
+# loop/trigger/IF steps, so a 500-item window multiplied the detail payload to
+# ~12 MB for a 291-step run and locked the inspector UI while it rendered.
+# 50 mirrors the results preview (MAX_PREVIEW_ITEMS); the full data remains
+# available through the execution export.
+TRACE_PREVIEW_MAX_ITEMS = 50
 TRACE_PREVIEW_MAX_ROWS = 5000
 
 
@@ -113,6 +110,18 @@ class ResumeRequest(BaseModel):
     """Approve/reject decision for a paused execution (Phase 32)."""
 
     approved: bool = True
+
+
+def _public_pause_state(pause: Any) -> Any:
+    """Return pause metadata without encrypted resume blobs.
+
+    Tool-approval pauses carry an encrypted ReAct checkpoint in ``state``.
+    The worker reads it from PostgreSQL; API clients only need the display
+    metadata (tool, risk, message, approvers).
+    """
+    if not isinstance(pause, dict):
+        return pause
+    return {key: value for key, value in pause.items() if key != "state"}
 
 
 def _to_dict(
@@ -217,7 +226,7 @@ def _to_dict(
                     r_proc = max_batch
                     r_created = max_batch
         except Exception:
-            pass
+            logger.debug("flow metadata extraction failed for execution=%s", rec.id, exc_info=True)
     elif wf_data is None:
         # Fallback defaults for list queries when snapshot is deferred
         if not source_conn:
@@ -249,7 +258,9 @@ def _to_dict(
                 redact_values=redact_search_values,
             )
         except Exception:
-            pass
+            logger.warning(
+                "search match extraction failed for execution=%s", rec.id, exc_info=True
+            )
 
     return {
         "id": rec.id,
@@ -261,7 +272,7 @@ def _to_dict(
         "error": rec.error,
         "started_at": rec.started_at,
         "finished_at": rec.finished_at,
-        "pause_state": rec.pause_state,
+        "pause_state": _public_pause_state(rec.pause_state),
         "duration_ms": duration_ms,
         "queue_wait_ms": getattr(rec, "queue_wait_ms", None),
         "source_connector": source_conn or rec.trigger or "flowsmith_trigger",
@@ -308,108 +319,31 @@ def start_execution(
 ) -> str:
     """Create the execution row (queued) and enqueue the job (spec 25/13).
 
-    Shared by manual runs, webhooks and the scheduler; returns the new
-    execution id. A worker claims the job, flips it to ``running`` and
-    executes the exact workflow snapshot (spec 24.3). ``extra_payload``
-    carries debugger directives (e.g. ``_retry_from_node``, Phase 13).
-
-    Validation (spec 12.7): credential references are verified BEFORE
-    queueing — workflows with unimplemented or invalid providers never
-    enter the queue.
+    Shared by manual runs, webhooks, retries and the scheduler; returns the
+    new execution id. This wrapper keeps the historical import/patch target
+    (``app.api.executions.start_execution``) stable while the application
+    service owns validation, row creation, enqueue/compensation, metrics and
+    embedded-consumer startup.
     """
-    from app.services.telemetry_service import extract_execution_flow_metadata
-    wf_name = None
-    wf_rec = db.get(WorkflowRecord, workflow_id)
-    if wf_rec:
-        wf_name = wf_rec.name
-
-    flow_meta = extract_execution_flow_metadata(
-        workflow_data,
-        trigger=trigger,
-        workflow_name=wf_name,
-    )
-
-    # Validate credential references before queue — fail fast with clear error
-    try:
-        validate_workflow_credentials(workflow_data, db, user_id)
-    except WorkflowValidationError as ve:
-        # Create a failed execution record for audit, then raise for API to return 422
-        execution_id = f"exec_{uuid.uuid4().hex[:12]}"
-        db.add(Execution(
-            id=execution_id,
-            workflow_id=workflow_id,
-            user_id=user_id,
-            workflow_version=version,
-            workflow_data=workflow_data,
-            trigger=trigger,
-            trigger_data=trigger_items,
-            status="failed",
-            error=ve.to_dict(),
-            source_connector=flow_meta["source_connector"],
-            destination_connector=flow_meta["destination_connector"],
-            source_object=flow_meta["source_object"],
-            destination_object=flow_meta["destination_object"],
-            http_method=flow_meta["http_method"],
-            api_endpoint=flow_meta["api_endpoint"],
-            http_status_code=400,
-            started_at=datetime.now(UTC),
-            finished_at=datetime.now(UTC),
-            workspace_id=workspace_id,
-            parent_execution_id=parent_execution_id,
-            retry_count=retry_count,
-            correlation_id=correlation_id,
-            organization_id=organization_id,
-        ))
-        db.commit()
-        raise ve
-    execution_id = f"exec_{uuid.uuid4().hex[:12]}"
-    job_id = f"job_{uuid.uuid4().hex[:12]}"
-    db.add(Execution(
-        id=execution_id,
+    return ExecutionService(
+        db,
+        # Resolved at call time so tests can keep patching this module-level
+        # symbol to suppress the embedded consumer.
+        ensure_consumer=ensure_embedded_consumer,
+    ).start_execution(
         workflow_id=workflow_id,
         user_id=user_id,
-        workflow_version=version,
+        version=version,
         workflow_data=workflow_data,
         trigger=trigger,
-        trigger_data=trigger_items,
-        status="queued",
-        source_connector=flow_meta["source_connector"],
-        destination_connector=flow_meta["destination_connector"],
-        source_object=flow_meta["source_object"],
-        destination_object=flow_meta["destination_object"],
-        http_method=flow_meta["http_method"],
-        api_endpoint=flow_meta["api_endpoint"],
-        started_at=datetime.now(UTC),
+        trigger_items=trigger_items,
         workspace_id=workspace_id,
+        extra_payload=extra_payload,
         parent_execution_id=parent_execution_id,
         retry_count=retry_count,
         correlation_id=correlation_id,
         organization_id=organization_id,
-    ))
-    db.commit()
-    payload = {
-        "workflow_data": workflow_data,
-        "trigger_items": trigger_items,
-        "trigger": trigger,
-        "user_id": user_id,
-        "workflow_id": workflow_id,
-        "version": version,
-        "workspace_id": workspace_id,
-        **(extra_payload or {}),
-    }
-    from app.telemetry.tracer import inject_trace_context
-    inject_trace_context(payload)
-    if not get_queue().enqueue(job_id, execution_id, payload):
-        # Duplicate delivery guard: another execution for this id already
-        # queued (should not happen with fresh ids; keep the row accurate).
-        rec = db.get(Execution, execution_id)
-        if rec is not None:
-            rec.status = "failed"
-            rec.error = {"code": "DUPLICATE_QUEUE", "message": "Execution was already queued."}
-            db.commit()
-    execution_started(execution_id, trigger)
-    ensure_embedded_consumer()
-    return execution_id
+    )
 
 
 def has_running_execution(db: Session, workflow_id: str) -> bool:
@@ -418,6 +352,7 @@ def has_running_execution(db: Session, workflow_id: str) -> bool:
     return db.scalar(
         select(Execution.id).where(
             Execution.workflow_id == workflow_id,
+            Execution.trigger != "sub_workflow",
             Execution.status.in_(
                 ("queued", "running", "cancelling", "waiting_approval", "waiting_auth")
             ),
@@ -491,298 +426,48 @@ def _can_edit_execution(db: Session, rec: Execution, user: User) -> bool:
     return permission in ("owner", "edit")
 
 
-SORT_COLUMNS = {
-    "started_at": Execution.started_at,
-    "duration_ms": Execution.duration_ms,
-    "records_processed": Execution.records_processed,
-    "status": Execution.status,
-    "id": Execution.id,
-}
+def _parse_iso_timestamp(value: str | None, field: str) -> datetime | None:
+    """Parse an ISO-8601 query timestamp; keep the historical 422 shape."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(
+            422,
+            f"{field} must be a valid ISO-8601 timestamp.",
+        ) from exc
 
 
-def _build_execution_query(
-    db: Session,
-    ids: list[str],
+def _execution_filters(
     *,
-    workflow_id: str | None = None,
-    status: str | None = None,
-    connector: str | None = None,
-    source_object: str | None = None,
-    destination_object: str | None = None,
-    http_status: int | None = None,
-    error_type: str | None = None,
-    trigger: str | None = None,
-    search: str | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-):
-    stmt = (
-        select(Execution)
-        .options(
-            defer(Execution.trace),
-            defer(Execution.results),
-            defer(Execution.workflow_data),
-            defer(Execution.node_statuses),
-        )
-        .where(Execution.workflow_id.in_(ids))
+    workflow_id: str | None,
+    status: str | None,
+    connector: str | None,
+    source_object: str | None,
+    destination_object: str | None,
+    http_status: int | None,
+    error_type: str | None,
+    trigger: str | None,
+    search: str | None,
+    start_date: str | None,
+    end_date: str | None,
+    include_children: bool = False,
+) -> ExecutionFilters:
+    return ExecutionFilters(
+        workflow_id=workflow_id,
+        status=status,
+        connector=connector,
+        source_object=source_object,
+        destination_object=destination_object,
+        http_status=http_status,
+        error_type=error_type,
+        trigger=trigger,
+        search=search,
+        include_children=include_children,
+        started_after=_parse_iso_timestamp(start_date, "start_date"),
+        started_before=_parse_iso_timestamp(end_date, "end_date"),
     )
-    if workflow_id:
-        stmt = stmt.where(Execution.workflow_id == workflow_id)
-    if status:
-        st_lower = status.lower()
-        if st_lower == "failed":
-            stmt = stmt.where(Execution.status.in_(("failed", "error", "timeout")))
-        elif st_lower == "running":
-            stmt = stmt.where(Execution.status.in_(("running", "queued", "waiting_approval", "waiting_auth")))
-        elif st_lower == "cancelled":
-            stmt = stmt.where(Execution.status.in_(("cancelled", "cancelling")))
-        elif st_lower == "partial_success":
-            stmt = stmt.where(Execution.status == "partial_success")
-        elif st_lower == "retrying":
-            stmt = stmt.where(Execution.status == "retrying")
-        elif st_lower == "success":
-            stmt = stmt.where(Execution.status == "success")
-        else:
-            stmt = stmt.where(Execution.status == status)
-    if connector:
-        conn_term = connector.strip()
-        stmt = stmt.where(
-            (Execution.source_connector.icontains(conn_term, autoescape=True))
-            | (Execution.destination_connector.icontains(conn_term, autoescape=True))
-        )
-    if source_object:
-        stmt = stmt.where(
-            Execution.source_object.icontains(source_object.strip(), autoescape=True)
-        )
-    if destination_object:
-        stmt = stmt.where(
-            Execution.destination_object.icontains(destination_object.strip(), autoescape=True)
-        )
-    if http_status is not None:
-        stmt = stmt.where(Execution.http_status_code == http_status)
-    if error_type:
-        stmt = stmt.where(Execution.error_type == error_type)
-    if trigger:
-        stmt = stmt.where(Execution.trigger == trigger)
-    if start_date:
-        try:
-            dt_start = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
-            stmt = stmt.where(Execution.started_at >= dt_start)
-        except Exception:
-            pass
-    if end_date:
-        try:
-            dt_end = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
-            stmt = stmt.where(Execution.started_at <= dt_end)
-        except Exception:
-            pass
-    if search and search.strip():
-        term = search.strip()
-        from app.models.user import User
-        from app.models.workflow import WorkflowRecord
-        from app.models.monitoring_telemetry import ExecutionStep, ApiRequestTelemetry
-        from app.services.telemetry_service import parse_datetime_query
-        parsed_dt = parse_datetime_query(term)
-        date_win = parsed_dt.get("window") if parsed_dt else None
-        dt_start, dt_end = date_win if date_win else (None, None)
-
-        matching_wf_ids = [
-            wid for (wid,) in db.execute(
-                select(WorkflowRecord.id).where(
-                    WorkflowRecord.id.in_(ids),
-                    or_(
-                        WorkflowRecord.name.icontains(term, autoescape=True),
-                        WorkflowRecord.description.icontains(term, autoescape=True),
-                    ),
-                )
-            ).all()
-        ]
-
-        matching_user_ids = [
-            uid for (uid,) in db.execute(
-                select(User.id).where(
-                    User.id.in_(
-                        select(Execution.user_id).where(Execution.workflow_id.in_(ids))
-                    ),
-                    User.email.icontains(term, autoescape=True),
-                )
-            ).all()
-        ]
-
-        # ExecutionStep matches
-        step_preds = [
-            ExecutionStep.step_name.icontains(term, autoescape=True),
-            ExecutionStep.node_id.icontains(term, autoescape=True),
-            ExecutionStep.node_type.icontains(term, autoescape=True),
-            ExecutionStep.error_message.icontains(term, autoescape=True),
-            cast(ExecutionStep.inputs, String).icontains(term, autoescape=True),
-            cast(ExecutionStep.outputs, String).icontains(term, autoescape=True),
-        ]
-        if dt_start and dt_end:
-            step_preds.append(ExecutionStep.started_at.between(dt_start, dt_end))
-            step_preds.append(ExecutionStep.completed_at.between(dt_start, dt_end))
-
-        matching_step_exec_ids = [
-            eid for (eid,) in db.execute(
-                select(ExecutionStep.execution_id)
-                .join(Execution, ExecutionStep.execution_id == Execution.id)
-                .where(Execution.workflow_id.in_(ids), or_(*step_preds))
-                .distinct()
-                .limit(500)
-            ).all()
-        ]
-
-        # ApiRequestTelemetry matches
-        api_preds = [
-            ApiRequestTelemetry.endpoint_url.icontains(term, autoescape=True),
-            ApiRequestTelemetry.connector_name.icontains(term, autoescape=True),
-            ApiRequestTelemetry.http_method.icontains(term, autoescape=True),
-            ApiRequestTelemetry.error_message.icontains(term, autoescape=True),
-            cast(ApiRequestTelemetry.request_payload, String).icontains(term, autoescape=True),
-            cast(ApiRequestTelemetry.response_payload, String).icontains(term, autoescape=True),
-            cast(ApiRequestTelemetry.request_headers, String).icontains(term, autoescape=True),
-            cast(ApiRequestTelemetry.query_params, String).icontains(term, autoescape=True),
-        ]
-        if dt_start and dt_end:
-            api_preds.append(ApiRequestTelemetry.created_at.between(dt_start, dt_end))
-
-        matching_req_exec_ids = [
-            eid for (eid,) in db.execute(
-                select(ApiRequestTelemetry.execution_id)
-                .join(Execution, ApiRequestTelemetry.execution_id == Execution.id)
-                .where(Execution.workflow_id.in_(ids), or_(*api_preds))
-                .distinct()
-                .limit(500)
-            ).all()
-        ]
-
-        # StagedContactRecord matches (CSV, Data Load, Salesforce Bulk)
-        matching_staged_exec_ids = []
-        try:
-            from app.models.staged_record import StagedContactRecord
-            staged_preds = [
-                StagedContactRecord.first_name.icontains(term, autoescape=True),
-                StagedContactRecord.last_name.icontains(term, autoescape=True),
-                StagedContactRecord.email.icontains(term, autoescape=True),
-                StagedContactRecord.phone.icontains(term, autoescape=True),
-                StagedContactRecord.department.icontains(term, autoescape=True),
-                StagedContactRecord.title.icontains(term, autoescape=True),
-                StagedContactRecord.status.icontains(term, autoescape=True),
-                StagedContactRecord.mailing_street.icontains(term, autoescape=True),
-                StagedContactRecord.mailing_city.icontains(term, autoescape=True),
-                StagedContactRecord.mailing_state.icontains(term, autoescape=True),
-                StagedContactRecord.mailing_postal_code.icontains(term, autoescape=True),
-                StagedContactRecord.mailing_country.icontains(term, autoescape=True),
-                StagedContactRecord.description.icontains(term, autoescape=True),
-                StagedContactRecord.error_message.icontains(term, autoescape=True),
-                StagedContactRecord.salesforce_id.icontains(term, autoescape=True),
-                cast(StagedContactRecord.raw_data, String).icontains(term, autoescape=True),
-            ]
-            if dt_start and dt_end:
-                staged_preds.append(StagedContactRecord.created_at.between(dt_start, dt_end))
-
-            matching_staged_exec_ids = [
-                eid for (eid,) in db.execute(
-                    select(StagedContactRecord.execution_id)
-                    .join(Execution, StagedContactRecord.execution_id == Execution.id)
-                    .where(Execution.workflow_id.in_(ids), or_(*staged_preds))
-                    .distinct()
-                    .limit(500)
-                ).all()
-            ]
-        except Exception:
-            pass
-
-        # ErrorEvent matches
-        matching_err_exec_ids = []
-        try:
-            from app.models.error_event import ErrorEvent
-            err_preds = [
-                ErrorEvent.message.icontains(term, autoescape=True),
-                ErrorEvent.title.icontains(term, autoescape=True),
-                ErrorEvent.code.icontains(term, autoescape=True),
-                ErrorEvent.category.icontains(term, autoescape=True),
-                ErrorEvent.resolution.icontains(term, autoescape=True),
-            ]
-            if dt_start and dt_end:
-                err_preds.append(ErrorEvent.created_at.between(dt_start, dt_end))
-
-            matching_err_exec_ids = [
-                eid for (eid,) in db.execute(
-                    select(ErrorEvent.execution_id)
-                    .join(Execution, ErrorEvent.execution_id == Execution.id)
-                    .where(
-                        Execution.workflow_id.in_(ids),
-                        ErrorEvent.execution_id.isnot(None),
-                        or_(*err_preds),
-                    )
-                    .distinct()
-                    .limit(500)
-                ).all()
-            ]
-        except Exception:
-            pass
-
-        predicates: list[Any] = [
-            Execution.id.icontains(term, autoescape=True),
-            Execution.source_connector.icontains(term, autoescape=True),
-            Execution.destination_connector.icontains(term, autoescape=True),
-            Execution.source_object.icontains(term, autoescape=True),
-            Execution.destination_object.icontains(term, autoescape=True),
-            Execution.trigger.icontains(term, autoescape=True),
-            Execution.status.icontains(term, autoescape=True),
-            Execution.api_endpoint.icontains(term, autoescape=True),
-            Execution.http_method.icontains(term, autoescape=True),
-            Execution.error_summary.icontains(term, autoescape=True),
-            Execution.error_code.icontains(term, autoescape=True),
-            Execution.error_type.icontains(term, autoescape=True),
-            Execution.correlation_id.icontains(term, autoescape=True),
-            Execution.parent_execution_id.icontains(term, autoescape=True),
-            Execution.search_text.icontains(term, autoescape=True),
-            cast(Execution.error, String).icontains(term, autoescape=True),
-            cast(Execution.trigger_data, String).icontains(term, autoescape=True),
-            cast(Execution.results, String).icontains(term, autoescape=True),
-            cast(Execution.trace, String).icontains(term, autoescape=True),
-            cast(Execution.workflow_data, String).icontains(term, autoescape=True),
-        ]
-
-        if dt_start and dt_end:
-            predicates.append(Execution.started_at.between(dt_start, dt_end))
-            predicates.append(Execution.finished_at.between(dt_start, dt_end))
-
-        if term.isdigit() and len(term) == 3:
-            try:
-                predicates.append(Execution.http_status_code == int(term))
-            except Exception:
-                pass
-
-        # Individual words support for multi-word search queries
-        words = [w.strip() for w in term.split() if len(w.strip()) >= 2]
-        if len(words) > 1:
-            for word in words[:4]:
-                predicates.append(Execution.search_text.icontains(word, autoescape=True))
-                predicates.append(Execution.id.icontains(word, autoescape=True))
-                predicates.append(Execution.status.icontains(word, autoescape=True))
-                predicates.append(Execution.source_connector.icontains(word, autoescape=True))
-                predicates.append(Execution.destination_connector.icontains(word, autoescape=True))
-                predicates.append(Execution.error_summary.icontains(word, autoescape=True))
-
-        if matching_wf_ids:
-            predicates.append(Execution.workflow_id.in_(matching_wf_ids))
-        if matching_user_ids:
-            predicates.append(Execution.user_id.in_(matching_user_ids))
-        if matching_step_exec_ids:
-            predicates.append(Execution.id.in_(matching_step_exec_ids))
-        if matching_req_exec_ids:
-            predicates.append(Execution.id.in_(matching_req_exec_ids))
-        if matching_staged_exec_ids:
-            predicates.append(Execution.id.in_(matching_staged_exec_ids))
-        if matching_err_exec_ids:
-            predicates.append(Execution.id.in_(matching_err_exec_ids))
-
-        stmt = stmt.where(or_(*predicates))
-
-    return stmt
 
 
 @router.get("/api/executions/universal-search")
@@ -836,6 +521,7 @@ def list_executions(
     search: str | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    include_children: bool = False,
     sort_by: str = "started_at",
     sort_dir: str = "desc",
     page: int = 1,
@@ -848,9 +534,7 @@ def list_executions(
     if not ids:
         return ok([], {"page": page, "pageSize": size, "total": 0})
 
-    stmt = _build_execution_query(
-        db,
-        list(ids),
+    filters = _execution_filters(
         workflow_id=workflow_id,
         status=status,
         connector=connector,
@@ -862,16 +546,16 @@ def list_executions(
         search=search,
         start_date=start_date,
         end_date=end_date,
+        include_children=include_children or trigger == "sub_workflow",
     )
-
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total = db.scalar(count_stmt) or 0
-
-    col = SORT_COLUMNS.get(sort_by, Execution.started_at)
-    order_clause = col.asc() if sort_dir.lower() == "asc" else col.desc()
-    stmt = stmt.order_by(order_clause, Execution.id.desc()).offset((page - 1) * size).limit(size)
-
-    recs = db.scalars(stmt).all()
+    recs, total = ExecutionRepository(db).list_page(
+        list(ids),
+        filters=filters,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        page=page,
+        page_size=size,
+    )
     wf_ids = {r.workflow_id for r in recs if r.workflow_id}
     u_ids = {r.user_id for r in recs if r.user_id is not None}
     names = {
@@ -938,7 +622,9 @@ def list_executions(
                 if s.execution_id:
                     staged_by_exec[s.execution_id].append(s)
         except Exception:
-            pass
+            logger.warning(
+                "staged-record enrichment failed term=%r", term, exc_info=True
+            )
 
         try:
             api_filters = [
@@ -963,7 +649,9 @@ def list_executions(
                 if r.execution_id:
                     api_by_exec[r.execution_id].append(r)
         except Exception:
-            pass
+            logger.warning(
+                "API-telemetry enrichment failed term=%r", term, exc_info=True
+            )
 
         try:
             from app.models.error_event import ErrorEvent
@@ -984,7 +672,9 @@ def list_executions(
                 if e.execution_id:
                     err_by_exec[e.execution_id].append(e)
         except Exception:
-            pass
+            logger.warning(
+                "error-event enrichment failed term=%r", term, exc_info=True
+            )
 
     items = [
         _to_dict(
@@ -1019,19 +709,10 @@ def list_execution_error_types(
     if not ids:
         return ok([])
 
-    rows = db.execute(
-        select(Execution.error_type, func.count(Execution.id))
-        .where(
-            Execution.workflow_id.in_(ids),
-            Execution.error_type.is_not(None),
-        )
-        .group_by(Execution.error_type)
-        .order_by(func.count(Execution.id).desc(), Execution.error_type.asc())
-    ).all()
+    rows = ExecutionRepository(db).count_error_types(ids)
     return ok([
-        {"value": str(error_type), "count": int(count)}
+        {"value": error_type, "count": count}
         for error_type, count in rows
-        if error_type
     ])
 
 
@@ -1071,9 +752,7 @@ def export_executions_csv(
             },
         )
 
-    stmt = _build_execution_query(
-        db,
-        list(ids),
+    filters = _execution_filters(
         workflow_id=workflow_id,
         status=status,
         connector=connector,
@@ -1085,9 +764,12 @@ def export_executions_csv(
         search=search,
         start_date=start_date,
         end_date=end_date,
-    ).order_by(Execution.started_at.desc(), Execution.id.desc()).limit(EXPORT_ROW_LIMIT + 1)
-
-    recs = db.scalars(stmt).all()
+    )
+    recs = ExecutionRepository(db).list_for_export(
+        ids,
+        filters=filters,
+        limit=EXPORT_ROW_LIMIT + 1,
+    )
     truncated = len(recs) > EXPORT_ROW_LIMIT
     if truncated:
         recs = recs[:EXPORT_ROW_LIMIT]
@@ -1183,7 +865,7 @@ def get_execution_status(
     results. A canvas polling every run does not need those on every tick;
     this endpoint keeps terminal-state polling cheap under concurrency.
     """
-    rec = db.get(Execution, execution_id)
+    rec = ExecutionRepository(db).get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     return ok({
@@ -1203,7 +885,7 @@ def get_execution(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    rec = db.get(Execution, execution_id)
+    rec = ExecutionRepository(db).get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
@@ -1252,7 +934,7 @@ def export_execution(
     """Export execution trace and results as downloadable JSON or CSV audit file."""
     from fastapi.responses import Response
 
-    rec = db.get(Execution, execution_id)
+    rec = ExecutionRepository(db).get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
@@ -1326,7 +1008,7 @@ def get_execution_items(
     pageSize: int = 50,
 ) -> dict:
     """Paginated per-node snapshots (spec 9; polled by the canvas in M5)."""
-    rec = db.get(Execution, execution_id)
+    rec = ExecutionRepository(db).get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     outputs: dict = (rec.results or {}).get("outputs", {})
@@ -1357,7 +1039,7 @@ def get_execution_node_output(
     rendering.  This endpoint is the explicit, per-node escape hatch used by
     the output panel when the user asks to inspect the untruncated records.
     """
-    rec = db.get(Execution, execution_id)
+    rec = ExecutionRepository(db).get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     outputs = (rec.results or {}).get("outputs", {}) if isinstance(rec.results, dict) else {}
@@ -1379,7 +1061,7 @@ def get_execution_trace(
     """Step-by-step run log for the debugger (M8 + Phase 13): each step
     records the node's inputs, outputs, error, status, duration and the
     structured attempt/retry counts. Sensitive-looking keys are masked."""
-    rec = db.get(Execution, execution_id)
+    rec = ExecutionRepository(db).get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     results_outputs = (rec.results or {}).get("outputs") if isinstance(rec.results, dict) else {}
@@ -1406,7 +1088,7 @@ def get_execution_flamegraph_endpoint(
     """Return hierarchical waterfall/flamegraph data structure for the execution (Roadmap Initiative C)."""
     from app.telemetry.flamegraph import generate_execution_flamegraph
 
-    rec = db.get(Execution, execution_id)
+    rec = ExecutionRepository(db).get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     trace = [dict(s) for s in (rec.trace or [])]
@@ -1421,15 +1103,12 @@ def get_execution_steps(
     db: Session = Depends(get_db),
 ) -> dict:
     """Return structured DAG step telemetry for an execution."""
-    rec = db.get(Execution, execution_id)
+    repo = ExecutionRepository(db)
+    rec = repo.get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     can_edit = _can_edit_execution(db, rec, user)
-    step_rows = db.scalars(
-        select(ExecutionStep)
-        .where(ExecutionStep.execution_id == execution_id)
-        .order_by(ExecutionStep.sequence_number.asc())
-    ).all()
+    step_rows = repo.list_steps(execution_id)
 
     if step_rows:
         data = [
@@ -1473,7 +1152,8 @@ def get_execution_timeline(
     db: Session = Depends(get_db),
 ) -> dict:
     """Return chronological DAG timeline events for execution inspection."""
-    rec = db.get(Execution, execution_id)
+    repo = ExecutionRepository(db)
+    rec = repo.get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     can_edit = _can_edit_execution(db, rec, user)
@@ -1495,21 +1175,9 @@ def get_execution_timeline(
         })
 
     # 2. Step traces & API calls
-    steps = db.scalars(
-        select(ExecutionStep)
-        .where(ExecutionStep.execution_id == execution_id)
-        .order_by(ExecutionStep.sequence_number.asc())
-    ).all()
+    steps = repo.list_steps(execution_id)
 
-    api_calls = db.scalars(
-        select(ApiRequestTelemetry)
-        .options(
-            defer(ApiRequestTelemetry.request_payload),
-            defer(ApiRequestTelemetry.response_payload),
-        )
-        .where(ApiRequestTelemetry.execution_id == execution_id)
-        .order_by(ApiRequestTelemetry.created_at.asc())
-    ).all()
+    api_calls = repo.list_api_calls(execution_id)
     api_by_step: dict[str, list[ApiRequestTelemetry]] = {}
     for a in api_calls:
         if a.step_id:
@@ -1595,54 +1263,18 @@ def list_execution_requests(
     db: Session = Depends(get_db),
 ) -> dict:
     """Return a lightweight page of outbound API calls for API inspector."""
-    rec = db.get(Execution, execution_id)
+    repo = ExecutionRepository(db)
+    rec = repo.get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
     p, size = page_params(page=page, pageSize=pageSize)
-    total = (
-        db.scalar(
-            select(func.count(ApiRequestTelemetry.id)).where(
-                ApiRequestTelemetry.execution_id == execution_id
-            )
-        )
-        or 0
+    rows, total, p = repo.list_api_requests(
+        execution_id,
+        page=p,
+        page_size=size,
+        focus_request_id=request_id,
     )
-    if request_id:
-        target = db.scalar(
-            select(ApiRequestTelemetry).where(
-                ApiRequestTelemetry.execution_id == execution_id,
-                ApiRequestTelemetry.id == request_id,
-            )
-        )
-        if target is not None:
-            preceding = (
-                db.scalar(
-                    select(func.count(ApiRequestTelemetry.id)).where(
-                        ApiRequestTelemetry.execution_id == execution_id,
-                        or_(
-                            ApiRequestTelemetry.created_at < target.created_at,
-                            and_(
-                                ApiRequestTelemetry.created_at == target.created_at,
-                                ApiRequestTelemetry.id < target.id,
-                            ),
-                        ),
-                    )
-                )
-                or 0
-            )
-            p = (preceding // size) + 1
-    rows = db.scalars(
-        select(ApiRequestTelemetry)
-        .options(
-            defer(ApiRequestTelemetry.request_payload),
-            defer(ApiRequestTelemetry.response_payload),
-        )
-        .where(ApiRequestTelemetry.execution_id == execution_id)
-        .order_by(ApiRequestTelemetry.created_at.asc(), ApiRequestTelemetry.id.asc())
-        .offset((p - 1) * size)
-        .limit(size)
-    ).all()
 
     items = [
         {
@@ -1673,7 +1305,8 @@ def get_execution_request_detail(
     db: Session = Depends(get_db),
 ) -> dict:
     """Lazy-load full payload and headers for one specific API call."""
-    rec = db.get(Execution, execution_id)
+    repo = ExecutionRepository(db)
+    rec = repo.get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
     # Full payloads/query params can contain credentials or tokens echoed by
@@ -1682,12 +1315,7 @@ def get_execution_request_detail(
     if not _can_edit_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
-    req = db.scalar(
-        select(ApiRequestTelemetry).where(
-            ApiRequestTelemetry.execution_id == execution_id,
-            ApiRequestTelemetry.id == request_id,
-        )
-    )
+    req = repo.get_api_request(execution_id, request_id)
     if req is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "API request telemetry record not found.")
 
@@ -1721,16 +1349,12 @@ def get_execution_retries(
     db: Session = Depends(get_db),
 ) -> dict:
     """Return historical retry attempts linked to this execution."""
-    rec = db.get(Execution, execution_id)
+    repo = ExecutionRepository(db)
+    rec = repo.get(execution_id)
     if rec is None or not _can_view_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
-    rows = db.scalars(
-        select(ExecutionRetryHistory).where(
-            (ExecutionRetryHistory.original_execution_id == execution_id)
-            | (ExecutionRetryHistory.retry_execution_id == execution_id)
-        ).order_by(ExecutionRetryHistory.attempt_number.asc())
-    ).all()
+    rows = repo.list_retries(execution_id)
 
     items = [
         {
@@ -1765,91 +1389,30 @@ async def retry_execution(
     if rec is None or not _can_edit_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
 
-    # Idempotency check: prevent duplicate submissions
-    if body and body.idempotency_key:
-        recent_retry = db.scalar(
-            select(ExecutionRetryHistory)
-            .where(
-                ExecutionRetryHistory.original_execution_id == execution_id,
-                ExecutionRetryHistory.retry_policy == body.idempotency_key,
-            )
+    try:
+        outcome = ExecutionService(
+            db,
+            ensure_consumer=ensure_embedded_consumer,
+        ).retry_execution(
+            rec,
+            user_id=user.id,
+            workspace_id=workflow_workspace(db, rec.workflow_id),
+            node_id=(body.node_id if body is not None else None) or None,
+            reason=body.reason if body is not None else None,
+            idempotency_key=body.idempotency_key if body is not None else None,
         )
-        if recent_retry:
-            return ok({"execution_id": recent_retry.retry_execution_id, "idempotent_replay": True})
+    except ExecutionServiceError as exc:
+        raise HTTPException(exc.http_status, detail=exc.message) from exc
 
-    node_id = (body.node_id if body is not None else None) or None
-    extra_payload: dict[str, Any] | None = None
-    if node_id:
-        workflow_nodes = {n.get("id") for n in (rec.workflow_data or {}).get("nodes", [])}
-        if node_id not in workflow_nodes:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown node '{node_id}'.")
-        statuses = rec.node_statuses or {}
-        node_status = statuses.get(node_id)
-        if rec.status in IN_PROGRESS_STATUSES or rec.status == "waiting_approval":
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Cannot retry a node while the execution is still running.",
-            )
-        if node_status not in ("error", "failed"):
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                f"Node '{node_id}' did not fail (status: {node_status or 'unknown'}); "
-                "only failed nodes can be retried safely.",
-            )
-        extra_payload = {"_retry_from_node": node_id, "_retry_source": execution_id}
-
-    trigger_items = rec.trigger_data or [{}]
-    from app.billing.service import enforce_can_start_execution
-
-    workspace_id = workflow_workspace(db, rec.workflow_id)
-    enforce_can_start_execution(db, workspace_id)
-
-    next_attempt = (rec.retry_count or 0) + 1
-    new_id = start_execution(
-        db,
-        workflow_id=rec.workflow_id,
-        user_id=user.id,
-        version=rec.workflow_version,
-        workflow_data=rec.workflow_data,
-        trigger="node_retry" if node_id else "retry",
-        trigger_items=trigger_items,
-        workspace_id=workspace_id,
-        extra_payload=extra_payload,
-        parent_execution_id=execution_id,
-        retry_count=next_attempt,
-        correlation_id=rec.correlation_id or execution_id,
-        organization_id=rec.organization_id,
-    )
-
-    retry_row = ExecutionRetryHistory(
-        id=f"retry_{uuid.uuid4().hex[:12]}",
-        original_execution_id=execution_id,
-        retry_execution_id=new_id,
-        attempt_number=next_attempt,
-        retry_reason=body.reason if body and body.reason else ("node_retry" if node_id else "manual_retry"),
-        failed_step_id=node_id,
-        retry_trigger="manual",
-        initiated_by_user_id=user.id,
-        retry_policy=body.idempotency_key if body else None,
-        status="pending",
-        created_at=datetime.now(UTC),
-    )
-    db.add(retry_row)
-    db.commit()
-
-    log_event(
-        db,
-        EXECUTION_RETRY,
-        target_type="execution",
-        target_id=execution_id,
-        user_id=user.id,
-        detail={
-            "new_execution_id": new_id,
-            "attempt_number": next_attempt,
-            **({"node_id": node_id} if node_id else {}),
-        },
-    )
-    return ok({"execution_id": new_id, "attempt_number": next_attempt})
+    if outcome.idempotent_replay:
+        return ok({
+            "execution_id": outcome.execution_id,
+            "idempotent_replay": True,
+        })
+    return ok({
+        "execution_id": outcome.execution_id,
+        "attempt_number": outcome.attempt_number,
+    })
 
 
 
@@ -1858,109 +1421,19 @@ def cancel_execution(execution_id: str, user: User = Depends(get_current_user), 
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_edit_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
-    if rec.status not in IN_PROGRESS_STATUSES | {"waiting_approval", "waiting_auth"}:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not running.")
-
-    from app.eventbus import bus
-    from app.execution_runtime import signal_cancel
-
-    # 1. Waiting approval/auth: terminal immediately
-    if rec.status in ("waiting_approval", "waiting_auth"):
-        values: dict[Any, Any] = {
-            "status": "cancelled",
-            "finished_at": datetime.now(UTC),
-            "pause_state": None,
-            "error": rec.error or {"code": "CANCELLED_WHILE_WAITING", "message": "Cancelled while waiting for action."},
-        }
-        flipped = (
-            db.query(Execution)
-            .filter(Execution.id == execution_id, Execution.status.in_(("waiting_approval", "waiting_auth")))
-            .update(values)
+    if rec.trigger == "sub_workflow":
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Sub-execution must be cancelled through its parent execution.",
         )
-        if flipped == 0:
-            db.rollback()
-            raise HTTPException(status.HTTP_409_CONFLICT, "Execution is no longer waiting.")
-        db.commit()
-        bus.publish(execution_id, {
-            "event": "execution.cancelled",
-            "execution_id": execution_id,
-            "workflow_id": rec.workflow_id,
-            "status": "cancelled",
-        })
-        log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
-        return ok({"id": execution_id, "status": "cancelled"})
-
-    # 2. Queued execution: not claimed by a worker yet -> transition directly to cancelled
-    if rec.status == "queued":
-        values: dict[Any, Any] = {
-            "status": "cancelled",
-            "finished_at": datetime.now(UTC),
-            "error": rec.error or {"code": "CANCELLED_IN_QUEUE", "message": "Execution cancelled before starting."},
-        }
-        flipped = (
-            db.query(Execution)
-            .filter(Execution.id == execution_id, Execution.status == "queued")
-            .update(values)
-        )
-        if flipped == 0:
-            db.rollback()
-            raise HTTPException(status.HTTP_409_CONFLICT, "Execution is no longer queued.")
-        db.commit()
-        bus.publish(execution_id, {
-            "event": "execution.cancelled",
-            "execution_id": execution_id,
-            "workflow_id": rec.workflow_id,
-            "status": "cancelled",
-        })
-        log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
-        return ok({"id": execution_id, "status": "cancelled"})
-
-    # 3. Already cancelling -> FORCE CANCEL immediately
-    if rec.status == "cancelling":
-        values: dict[Any, Any] = {
-            "status": "cancelled",
-            "finished_at": datetime.now(UTC),
-            "error": rec.error or {"code": "FORCE_CANCELLED", "message": "Execution force-cancelled by user."},
-        }
-        flipped = (
-            db.query(Execution)
-            .filter(Execution.id == execution_id, Execution.status == "cancelling")
-            .update(values)
-        )
-        if flipped == 0:
-            db.rollback()
-            raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not cancelling.")
-        db.commit()
-        signal_cancel(execution_id)
-        bus.publish(execution_id, {
-            "event": "execution.cancelled",
-            "execution_id": execution_id,
-            "workflow_id": rec.workflow_id,
-            "status": "cancelled",
-        })
-        log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
-        return ok({"id": execution_id, "status": "cancelled"})
-
-    # 4. Running execution -> transition to cancelling, signal local runner instantly
-    flipped = (
-        db.query(Execution)
-        .filter(Execution.id == execution_id, Execution.status == "running")
-        .update({"status": "cancelling"})
-    )
-    if flipped == 0:
-        db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not running.")
-    db.commit()
-    # Instantly notify in-process runner if active locally
-    signal_cancel(execution_id)
-    bus.publish(execution_id, {
-        "event": "execution.cancelling",
-        "execution_id": execution_id,
-        "workflow_id": rec.workflow_id,
-        "status": "cancelling",
-    })
-    log_event(db, EXECUTION_CANCEL, target_type="execution", target_id=execution_id, user_id=user.id)
-    return ok({"id": execution_id, "status": "cancelling"})
+    try:
+        resulting_status = ExecutionService(db).cancel(rec, user_id=user.id)
+    except ExecutionServiceError as exc:
+        raise HTTPException(
+            exc.http_status,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    return ok({"id": execution_id, "status": resulting_status})
 
 
 @router.post("/api/executions/{execution_id}/resume")
@@ -1976,72 +1449,26 @@ def resume_execution(
     rec = db.get(Execution, execution_id)
     if rec is None or not _can_edit_execution(db, rec, user):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Execution not found.")
-    if rec.status not in ("waiting_approval", "waiting_auth"):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is not waiting for approval or authentication.")
+    if rec.trigger == "sub_workflow":
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Sub-execution must be resumed through its parent execution.",
+        )
 
-    pause = rec.pause_state or {}
-    is_auth_pause = rec.status == "waiting_auth"
-
-    if not is_auth_pause:
-        allowed = pause.get("approvers") or []
-        if allowed and user.id not in allowed:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "You are not a listed approver for this step.")
-
-    # Re-queue for the worker to pick up.
-    queue = get_queue()
-    if is_auth_pause:
-        # Re-run from the paused node seeding prior upstream results
-        paused_node = pause.get("node_id")
-        payload = {
-            "workflow_data": rec.workflow_data,
-            "trigger_items": rec.trigger_data or [{}],
-            "trigger": rec.trigger,
-            "user_id": rec.user_id,
-            "workflow_id": rec.workflow_id,
-            "version": rec.workflow_version,
-            "workspace_id": workflow_workspace(db, rec.workflow_id),
-            "_retry_from_node": paused_node,
-            "_retry_source": execution_id,
-        }
-    else:
-        payload = {
-            "workflow_data": rec.workflow_data,
-            "trigger_items": rec.trigger_data or [{}],
-            "trigger": rec.trigger,
-            "user_id": rec.user_id,
-            "workflow_id": rec.workflow_id,
-            "version": rec.workflow_version,
-            "workspace_id": workflow_workspace(db, rec.workflow_id),
-            "_approval_data": {
-                "approved": approved,
-                "approved_by": user.id,
-                "approved_at": datetime.now(UTC).isoformat(),
-                "node_id": pause.get("node_id"),
-            },
-        }
-
-    # CAS: claim the resume atomically
-    target_status = rec.status
-    flipped = (
-        db.query(Execution)
-        .filter(Execution.id == execution_id, Execution.status == target_status)
-        .update({"status": "queued"})
-    )
-    if flipped == 0:
-        db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Execution is no longer waiting.")
-    db.commit()
-    if not queue.requeue(execution_id, payload):
-        job_id = f"job_{uuid.uuid4().hex[:12]}"
-        if not queue.enqueue(job_id, execution_id, payload):
-            db.query(Execution).filter(
-                Execution.id == execution_id, Execution.status == "queued"
-            ).update({"status": target_status})
-            db.commit()
-            raise HTTPException(status.HTTP_409_CONFLICT, "Execution is already queued.")
-    log_event(db, EXECUTION_RESUME, target_type="execution", target_id=execution_id, user_id=user.id,
-              detail={"resumed_from": target_status, "approved": approved})
-    return ok({"id": execution_id, "status": "queued"})
+    workspace_id = workflow_workspace(db, rec.workflow_id)
+    try:
+        resulting_status = ExecutionService(db).resume(
+            rec,
+            user_id=user.id,
+            approved=approved,
+            workspace_id=workspace_id,
+        )
+    except ExecutionServiceError as exc:
+        raise HTTPException(
+            exc.http_status,
+            detail={"code": exc.code, "message": exc.message},
+        ) from exc
+    return ok({"id": execution_id, "status": resulting_status})
 
 
 class RunNodeRequest(BaseModel):

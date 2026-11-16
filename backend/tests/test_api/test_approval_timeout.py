@@ -12,7 +12,7 @@ import time
 from datetime import UTC, datetime, timedelta
 
 from app.db import get_session
-from app.models import Execution
+from app.models import ApprovalRequest, Execution
 from tests.test_api.conftest import auth_headers, register
 
 
@@ -79,6 +79,16 @@ def test_approval_timeout_auto_rejects(client):
     assert data["status"] == "failed"
     assert data["error"]["code"] == "APPROVAL_TIMEOUT"
     assert data["pause_state"] is None
+
+    db = get_session()
+    try:
+        request = db.query(ApprovalRequest).filter(
+            ApprovalRequest.run_id == eid
+        ).one()
+        assert request.status == "expired"
+        assert request.decision["reason"] in ("execution_timeout", "expired")
+    finally:
+        db.close()
 
 
 def test_zero_timeout_never_expires(client):

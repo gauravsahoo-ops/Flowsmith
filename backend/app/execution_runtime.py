@@ -7,6 +7,11 @@ the embedded consumer (inside the API process) and by external worker
 processes (`python -m app.queue.worker`) — workers are stateless, so
 any worker can run any job (spec 34).
 
+The lifecycle itself lives in ``app.orchestration.run_coordinator``; this
+module keeps the process-facing surface the queue worker and the API rely
+on: session ownership, control-plane injection (env resolution, error
+handlers, HTTP client) and the backward-compatible helper names.
+
 Cancellation is cooperative and durable (spec 36): the cancel endpoint
 marks the execution ``cancelling`` in the database; a monitor task polls
 that flag and flips an in-process event the engine checks between nodes.
@@ -23,32 +28,29 @@ from typing import Any, Callable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.credentials import service as credential_service
-from app.credentials.type_registry import get_credential_type_registry
 from app.db import get_session
-from app.engine.errors import NodeExecutionError, WorkflowValidationError
 from app.engine.executor import execute_workflow
-from app.metrics import execution_finished
-from app.models import Execution as ExecutionModel
+from app.orchestration import cancellation
+from app.orchestration.checkpoint import ancestor_ids
+from app.orchestration.finalizer import (
+    mark_deliveries,
+    node_statuses,
+)
+from app.orchestration.run_coordinator import (
+    RunCoordinator,
+    finish_test_run,
+    node_error_codes,
+)
 from app.queue import QueueJob
-from app.schemas.workflow import Workflow
 
 logger = logging.getLogger("runtime")
 
-CANCEL_POLL_S = 0.25
-
 EventSink = Callable[[dict[str, Any]], None]
-
-_ACTIVE_CANCEL_EVENTS: dict[str, asyncio.Event] = {}
 
 
 def signal_cancel(execution_id: str) -> bool:
     """Instantly flip the cancel event if this execution is running in the current process."""
-    evt = _ACTIVE_CANCEL_EVENTS.get(execution_id)
-    if evt is not None:
-        evt.set()
-        return True
-    return False
+    return cancellation.signal(execution_id)
 
 
 async def _commit(db: Session) -> None:
@@ -56,110 +58,36 @@ async def _commit(db: Session) -> None:
     await asyncio.to_thread(db.commit)
 
 
-def _node_statuses(events: list[dict[str, Any]]) -> dict[str, str]:
-    statuses: dict[str, str] = {}
-    for ev in events:
-        nid = ev.get("node_id")
-        if nid:
-            statuses[nid] = ev.get("status", "success")
-    return statuses
-
-
-def _mark_deliveries(db: Session, execution_id: str, status_value: str) -> None:
-    """Spec 32: link delivery records to their execution's final outcome."""
-    from app.models import WebhookDelivery
-
-    rows = db.scalars(
-        select(WebhookDelivery).where(WebhookDelivery.execution_id == execution_id)
-    ).all()
-    for row in rows:
-        row.status = status_value
-    if rows:
-        db.commit()
-
-
-async def _watch_cancel(execution_id: str, cancel_event: asyncio.Event) -> None:
-    """Poll the DB for the durable cancel flag; flip the local event.
-
-    Queries only Execution.status and releases the connection back to the pool
-    between polling ticks so concurrent executions never exhaust connection limits.
-    """
-    from sqlalchemy import select
-    from app.models import Execution
-
-    while not cancel_event.is_set():
-        try:
-            with get_session() as db:
-                status = db.scalar(
-                    select(Execution.status).where(Execution.id == execution_id)
-                )
-                if status in ("cancelling", "cancelled"):
-                    cancel_event.set()
-                    break
-        except Exception:
-            logger.exception("cancel watch failed for %s", execution_id)
-            break
-        try:
-            await asyncio.wait_for(cancel_event.wait(), timeout=CANCEL_POLL_S)
-        except asyncio.TimeoutError:
-            pass
-
-
 def _node_error_codes(trace: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """Per-node error payloads from the run's trace steps (Phase 14).
-
-    Lets `error_code` test assertions pin the typed error of a specific
-    node instead of guessing from the workflow-level error.
-    """
-    errors: dict[str, dict[str, Any]] = {}
-    for step in trace or []:
-        err = step.get("error")
-        if isinstance(err, dict) and step.get("node_id"):
-            errors[step["node_id"]] = err
-    return errors
+    """Back-compat alias for the coordinator's trace-error helper."""
+    return node_error_codes(trace)
 
 
 def _finish_test_run(
-    rec: ExecutionModel,
+    rec: Any,
     job: QueueJob,
     test_spec: dict[str, Any],
     result: Any,
 ) -> Any:
-    """Finalize a test-mode run (Phase 14).
-
-    The execution row keeps the WORKFLOW's own terminal status: a red
-    regression must not masquerade as a crashed execution and vice
-    versa — the PASS/FAIL verdict lives exclusively in the persisted
-    report under ``results["tests"]``. The report is stamped with the
-    workflow/test identity so listings can group mock runs.
-    """
-    report = getattr(result, "test_report", None)
-    if isinstance(report, dict):
-        report.setdefault("workflow_id", job.workflow_id)
-        report["test_mode"] = True
-        result.test_report = report
-    return result
+    """Back-compat alias for the coordinator's test-run finalizer."""
+    return finish_test_run(rec, job, test_spec, result)
 
 
 def _ancestor_ids(connections: list[dict], target_id: str) -> set[str]:
-    """Return all upstream ancestor node IDs of *target_id* (BFS)."""
-    from collections import deque
+    """Back-compat alias for the pure checkpoint seed planner."""
+    return ancestor_ids(connections, target_id)
 
-    parent_map: dict[str, set[str]] = {}
-    for conn in connections:
-        src = conn.get("source", "")
-        tgt = conn.get("target", "")
-        parent_map.setdefault(tgt, set()).add(src)
 
-    visited: set[str] = set()
-    queue = deque(parent_map.get(target_id, set()))
-    while queue:
-        nid = queue.popleft()
-        if nid in visited:
-            continue
-        visited.add(nid)
-        queue.extend(parent_map.get(nid, set()) - visited)
-    return visited
+def _mark_deliveries(db: Session, execution_id: str, status_value: str) -> None:
+    """Back-compat wrapper for the finalizer's delivery link helper."""
+    mark_deliveries(db, execution_id, status_value)
+
+
+def _node_statuses(
+    events: list[dict[str, Any]], *, execution_id: str | None = None
+) -> dict[str, str]:
+    """Back-compat wrapper for the finalizer's node-status collapse."""
+    return node_statuses(events, execution_id=execution_id)
 
 
 async def run_job(job: QueueJob, event_sink: EventSink) -> str:
@@ -169,577 +97,20 @@ async def run_job(job: QueueJob, event_sink: EventSink) -> str:
     mirrors the execution's final state (spec 25.3: the executions
     table stays authoritative).
     """
-    execution_id = job.execution_id
-    cancel_event = asyncio.Event()
-    _ACTIVE_CANCEL_EVENTS[execution_id] = cancel_event
     db = get_session()
-
-    # Execution-scoped cache: created fresh for this run_job call, so a
-    # rotated/deleted credential is re-resolved on the next execution. Do not
-    # move this to a function/module attribute (audit H-5 correction).
-    credential_cache: dict[str, dict] = {}
-
-    def resolve_credentials(refs: dict[str, str]) -> dict:
-        try:
-            from app.credentials.resolver import get_credential_resolver
-            out = {}
-            for ctype, cid in refs.items():
-                cache_key = f"{job.user_id}:{cid}"
-                if cache_key not in credential_cache:
-                    resolved_map = get_credential_resolver().resolve_map(db, job.user_id, {ctype: cid})
-                    if ctype in resolved_map and isinstance(resolved_map[ctype], dict):
-                        resolved_map[ctype]["_credential_id"] = cid
-                    credential_cache[cache_key] = resolved_map
-                out[ctype] = credential_cache[cache_key][ctype]
-            return out
-        except (credential_service.CredentialError, ValueError) as exc:
-            code = getattr(exc, "code", None) or ("CREDENTIAL_PROVIDER_NOT_IMPLEMENTED" if "not implemented" in str(exc).lower() else "CREDENTIALS_REQUIRED")
-            raise NodeExecutionError(str(exc), code=code, node_id="") from exc
-
     try:
-        rec = db.get(ExecutionModel, execution_id)
-        if rec is None:
-            return "failed"
-        if rec.status in ("cancelling", "cancelled"):
-            # Cancelled before a worker picked it up (spec 36). Publish
-            # the terminal event so live streams and the durable events
-            # table reflect the outcome (spec 37).
-            rec.status = "cancelled"
-            rec.finished_at = rec.finished_at or datetime.now(UTC)
-            await _commit(db)
-            event_sink({
-                "event": "execution.cancelled",
-                "execution_id": execution_id,
-                "workflow_id": job.workflow_data.get("id"),
-                "node_id": None,
-                "status": "cancelled",
-            })
-            return "cancelled"
-        # CAS into "running": a cancel landing between the check above and
-        # this write must win instead of being clobbered by an
-        # unconditional read-modify-write (same guard class as the API-side
-        now_utc = datetime.now(UTC)
-        q_wait_ms = None
-        if rec.started_at:
-            raw_wait = (now_utc - rec.started_at).total_seconds() * 1000.0
-            q_wait_ms = round(max(0.0, raw_wait), 2)
-
-        flipped = (
-            db.query(ExecutionModel)
-            .filter(
-                ExecutionModel.id == execution_id,
-                ExecutionModel.status.in_(("queued", "running")),
-            )
-            .update(
-                {
-                    "status": "running",
-                    "queue_wait_ms": q_wait_ms,
-                },
-                synchronize_session=False,
-            )
+        coordinator = RunCoordinator(
+            db,
+            job,
+            event_sink,
+            # Resolve the control-plane callables at call time so tests that
+            # patch ``app.execution_runtime.*`` keep controlling the run.
+            execute_workflow=execute_workflow,
+            resolve_env_vars=_resolve_env_vars,
+            start_error_workflow=_maybe_run_error_workflow,
+            http_client=_http_client,
         )
-        if flipped == 0:
-            db.rollback()
-            db.expire(rec)
-            if rec.status in ("cancelling", "cancelled"):
-                rec.status = "cancelled"
-                rec.finished_at = rec.finished_at or datetime.now(UTC)
-                await _commit(db)
-                event_sink({
-                    "event": "execution.cancelled",
-                    "execution_id": execution_id,
-                    "workflow_id": job.workflow_data.get("id"),
-                    "node_id": None,
-                    "status": "cancelled",
-                })
-                return "cancelled"
-            # Row moved to a terminal state between claim and start — there
-            # is nothing left to run; report its current status.
-            return rec.status
-        await _commit(db)
-
-        monitor = asyncio.create_task(_watch_cancel(execution_id, cancel_event))
-        try:
-            workflow = Workflow.model_validate(job.workflow_data)
-            env_vars = await asyncio.to_thread(_resolve_env_vars, db, job)
-            # Durable approval resume (Phase 32) + safe node retry
-            # (Phase 13): replay persisted node outputs so upstream side
-            # effects never re-run.
-            decision = (job.payload or {}).get("_approval_data")
-            retry_from_node = (job.payload or {}).get("_retry_from_node")
-            run_node = (job.payload or {}).get("_run_node")
-            run_to_node = (job.payload or {}).get("_run_to_node")
-            # Phase 14: first-class workflow tests — mocks installed for
-            # the whole execution; unmatched outbound calls are BLOCKED so
-            # a test can never touch production systems.
-            test_spec = (job.payload or {}).get("_test_run")
-            # Safe node retry runs in a NEW execution row: the persisted
-            # outputs to seed from live on the SOURCE execution.
-            retry_source_id = (job.payload or {}).get("_retry_source") or execution_id
-            retry_source_rec = (
-                db.get(ExecutionModel, retry_source_id)
-                if retry_from_node and retry_source_id != execution_id
-                else rec
-            )
-            run_source_id = (job.payload or {}).get("_source_execution")
-            run_source_rec = (
-                db.get(ExecutionModel, run_source_id)
-                if run_node and run_source_id and run_source_id != execution_id
-                else None
-            )
-            upstream: set[str] = set()
-            doomed: set[str] = set()
-            initial_results: dict[str, dict[str, list[dict[str, Any]]]] | None = None
-            storage_seed: dict[str, Any] | None = None
-            if decision is not None:
-                outputs = (rec.results or {}).get("outputs")
-                if isinstance(outputs, dict):
-                    # Replay everything EXCEPT the paused node itself:
-                    # it must run again to consume the recorded decision.
-                    paused_node = (decision or {}).get("node_id")
-                    initial_results = {
-                        nid: by_handle
-                        for nid, by_handle in outputs.items()
-                        if nid != paused_node
-                    }
-                storage_seed = {"_approval_data": decision}
-                db.expire(rec)
-                rec.status = "running"
-                rec.error = None
-                await _commit(db)
-            elif retry_from_node:
-                # Safe node retry: seed every upstream output EXCEPT the
-                # failed node and its descendants — they re-run on fresh
-                # data. The engine skips seeded nodes entirely, so no
-                # upstream side effect is ever repeated.
-                from app.engine.graph import descendant_ids
-
-                doomed = descendant_ids(
-                    (job.workflow_data or {}).get("connections", []), retry_from_node,
-                )
-                doomed.add(retry_from_node)
-                outputs = ((retry_source_rec.results if retry_source_rec else None) or {}).get("outputs")
-                if isinstance(outputs, dict):
-                    initial_results = {
-                        nid: by_handle
-                        for nid, by_handle in outputs.items()
-                        if nid not in doomed
-                    }
-                db.expire(rec)
-                rec.status = "running"
-                rec.error = None
-                await _commit(db)
-            elif run_node:
-                # Single-node execution:
-                # 1. If upstream nodes have cached outputs in run_source_rec,
-                #    seed those actual outputs so the target runs on real data.
-                # 2. If an upstream node has no cached output, provide a fallback
-                #    empty item so the target still has an input item to test with.
-                # 3. Downstream nodes are seeded with empty arrays (skipped).
-                from app.engine.graph import descendant_ids
-
-                all_nodes = {n.get("id") for n in (job.workflow_data or {}).get("nodes", [])}
-                connections = (job.workflow_data or {}).get("connections", [])
-                upstream = _ancestor_ids(connections, run_node)
-                source_outputs = (
-                    ((run_source_rec.results if run_source_rec else None) or {}).get("outputs") or {}
-                )
-
-                initial_results = {}
-                for nid in all_nodes:
-                    if nid == run_node:
-                        continue
-                    if nid in source_outputs:
-                        raw = source_outputs[nid]
-                        if isinstance(raw, dict):
-                            initial_results[nid] = raw
-                        elif isinstance(raw, list):
-                            initial_results[nid] = {"main": raw}
-                        else:
-                            initial_results[nid] = {"main": [raw]}
-                    elif nid in upstream:
-                        initial_results[nid] = {"main": [{}]}
-                    else:
-                        initial_results[nid] = {"main": []}
-
-                db.expire(rec)
-                rec.status = "running"
-                rec.error = None
-                await _commit(db)
-            elif run_to_node:
-                # Run-to-node: execute the chain up to (and including)
-                # the target; seed all downstream nodes as skipped.
-                from app.engine.graph import descendant_ids
-
-                downstream = descendant_ids(
-                    (job.workflow_data or {}).get("connections", []), run_to_node,
-                )
-                # Remove the target itself — it should run, not be seeded.
-                downstream.discard(run_to_node)
-                initial_results = {
-                    nid: {"main": []}
-                    for nid in downstream
-                }
-                db.expire(rec)
-                rec.status = "running"
-                rec.error = None
-                await _commit(db)
-            # The normal path was already CAS-flipped to "running" above;
-            # avoid a redundant second commit here.
-            # Pre-execution credential validation: catch unimplemented
-            # providers BEFORE the workflow runs so users get clear errors
-            # at queue time rather than opaque runtime failures.
-            for wf_node in (job.workflow_data or {}).get("nodes", []):
-                creds = wf_node.get("credentials") or {}
-                for cred_type, cred_id in creds.items():
-                    if not cred_id:
-                        continue
-                    type_reg = get_credential_type_registry()
-                    entry = type_reg.get(cred_type)
-                    if entry and not entry.get("implemented"):
-                        raise WorkflowValidationError([{
-                            "code": "CREDENTIAL_PROVIDER_NOT_IMPLEMENTED",
-                            "node_id": wf_node.get("id", "unknown"),
-                            "field": f"credentials.{cred_type}",
-                            "message": f"Authentication provider '{entry.get('provider')}' for credential type '{cred_type}' is not implemented yet.",
-                        }])
-                # Also check generic auth_type for http_request nodes
-                if wf_node.get("type") == "http_request":
-                    params = wf_node.get("parameters") or {}
-                    if params.get("authentication") == "generic":
-                        at = params.get("auth_type", "none")
-                        if at not in ("none", ""):
-                            from app.credentials.registry import CREDENTIAL_IMPLEMENTED
-                            m = {"bearer":"bearer_auth","basic":"basic_auth","header":"header_auth","query":"query_auth","digest":"digest_auth","custom":"custom_auth","oauth2":"oauth2","oauth1":"oauth1","api_key":"header_auth"}
-                            ct = m.get(at, at)
-                            if ct in CREDENTIAL_IMPLEMENTED and not CREDENTIAL_IMPLEMENTED.get(ct):
-                                raise WorkflowValidationError([{
-                                    "code": "CREDENTIAL_PROVIDER_NOT_IMPLEMENTED",
-                                    "node_id": wf_node.get("id", "unknown"),
-                                    "field": "parameters.auth_type",
-                                    "message": f"Authentication provider '{at}' for credential type '{ct}' is not implemented yet.",
-                                }])
-            mock_token = None
-            if test_spec is not None:
-                from app.security import http_mocks
-
-                mock_token = http_mocks.install(
-                    http_mocks.compile_rules(test_spec.get("mocks"))
-                )
-            from app.telemetry.tracer import extract_trace_context, start_trace_span
-
-            parent_trace_context = extract_trace_context(job.payload or {})
-            wf_title = (job.workflow_data or {}).get("name") or job.workflow_id
-            with start_trace_span(
-                f"workflow.execute {wf_title}",
-                attributes={
-                    "workflow.id": job.workflow_id,
-                    "execution.id": execution_id,
-                    "user.id": str(job.user_id),
-                    "trigger": job.trigger,
-                },
-                parent_context=parent_trace_context,
-            ) as exec_span:
-                try:
-                    result = await execute_workflow(
-                        workflow,
-                        job.trigger_items,
-                        execution_id=execution_id,
-                        cancel_event=cancel_event,
-                        http_client=_http_client(mocked=test_spec is not None),
-                        event_sink=event_sink,
-                        credential_resolver=resolve_credentials,
-                        env_vars=env_vars,
-                        initial_results=initial_results,
-                        storage_seed=storage_seed,
-                        workspace_id=job.workspace_id,
-                        user_id=job.user_id,
-                    )
-                    exec_span.set_attribute("execution.status", result.status)
-                finally:
-                    if mock_token is not None:
-                        from app.security import http_mocks
-
-                        http_mocks.reset(mock_token)
-            if test_spec is not None:
-                # Phase 14: PASS/FAIL/DIFF report from the test spec.
-                from app.testing.service import evaluate_test
-
-                result.test_report = evaluate_test(test_spec, {
-                    "status": result.status,
-                    "error": result.error.to_dict() if result.error else None,
-                    "node_statuses": _node_statuses(result.events),
-                    "node_errors": _node_error_codes(result.trace),
-                    "results": {"outputs": result.results},
-                })
-            if test_spec is not None:
-                result = _finish_test_run(rec, job, test_spec, result)
-            db.expire(rec)
-            rec = db.get(ExecutionModel, execution_id)
-            if rec is not None and rec.status == "waiting_approval":
-                # The run paused at an approval node: keep the execution
-                # open (spec 25.2). Persist progress, but no terminal
-                # status or finished_at — resume continues this row.
-                merged = dict(rec.node_statuses or {})
-                for nid, st in _node_statuses(result.events).items():
-                    if merged.get(nid) != "waiting_approval":
-                        merged[nid] = st
-                rec.node_statuses = merged
-                rec.trace = result.trace
-                if not rec.results:
-                    rec.results = {"outputs": result.results}
-                await _commit(db)
-                await asyncio.to_thread(_mark_deliveries, db, execution_id, "waiting_approval")
-                return "waiting_approval"
-            if rec is not None and result.status == "failed":
-                err_code = getattr(result.error, "code", None) if result.error else None
-                err_msg = str(getattr(result.error, "message", "")) if result.error else ""
-                auth_codes = {"AUTH_FAILED", "CONNECTOR_AUTH_FAILED", "REAUTHORIZATION_REQUIRED", "MANUAL_ACTION_REQUIRED", "CREDENTIALS_REQUIRED", "EXPIRED_TOKEN"}
-                is_auth_error = err_code in auth_codes or any(k in err_msg.lower() for k in ("token expired", "authentication", "unauthorized", "invalid_grant", "credentials required"))
-
-                failed_node_id = getattr(result.error, "node_id", None) if result.error else None
-                if not failed_node_id and result.trace:
-                    last_step = result.trace[-1]
-                    if last_step.get("status") == "error":
-                        failed_node_id = last_step.get("node_id")
-
-                failed_cred_id = None
-                failed_cred_name = "Integration"
-                if failed_node_id and job.workflow_data:
-                    for node_def in (job.workflow_data.get("nodes") or []):
-                        if node_def.get("id") == failed_node_id:
-                            creds = node_def.get("credentials") or {}
-                            if creds:
-                                failed_cred_id = next((cid for cid in creds.values() if cid), None)
-                            failed_cred_name = node_def.get("name") or node_def.get("label") or failed_node_id
-                            break
-
-                if is_auth_error and failed_cred_id:
-                    from app.models.connection_auth_policy import ConnectionAuthPolicy
-                    from app.services.recovery_notifications import RecoveryNotificationService
-
-                    policy = db.scalar(select(ConnectionAuthPolicy).where(ConnectionAuthPolicy.credential_id == failed_cred_id))
-                    logger.info("Pausing execution %s in waiting_auth for credential %s (node: %s)", execution_id, failed_cred_id, failed_node_id)
-                    rec.status = "waiting_auth"
-                    rec.pause_state = {
-                        "type": "auth_required",
-                        "credential_id": failed_cred_id,
-                        "node_id": failed_node_id,
-                        "node_name": failed_cred_name,
-                        "message": f"Execution paused: authentication required for connection '{failed_cred_name}'. Reconnect integration to resume.",
-                        "paused_at": datetime.now(UTC).isoformat(),
-                    }
-                    merged = dict(rec.node_statuses or {})
-                    for nid, st in _node_statuses(result.events).items():
-                        merged[nid] = "waiting_auth" if nid == failed_node_id else st
-                    rec.node_statuses = merged
-                    rec.trace = result.trace
-                    rec.results = {"outputs": result.results}
-                    await _commit(db)
-                    await asyncio.to_thread(_mark_deliveries, db, execution_id, "waiting_auth")
-
-                    event_sink({
-                        "event": "execution.waiting_auth",
-                        "execution_id": execution_id,
-                        "workflow_id": job.workflow_data.get("id"),
-                        "node_id": failed_node_id,
-                        "status": "waiting_auth",
-                        "credential_id": failed_cred_id,
-                    })
-
-                    if policy and (policy.notify_in_app or policy.notify_email):
-                        RecoveryNotificationService.notify_manual_action_required(
-                            db=db, policy=policy, credential_name=failed_cred_name
-                        )
-                    return "waiting_auth"
-
-            if rec is not None:
-                if result.status == "timeout":
-                    rec.status = "timeout"
-                elif rec.status in ("cancelling", "cancelled") or result.status == "cancelled":
-                    rec.status = "cancelled"
-                    if rec.error is None:
-                        rec.error = {"code": "CANCELLED", "message": "Execution cancelled by user."}
-                elif cancel_event.is_set():
-                    rec.status = "cancelled"
-                    if rec.error is None:
-                        rec.error = {"code": "CANCELLED", "message": "Execution cancelled by user."}
-                else:
-                    rec.status = result.status
-                rec.finished_at = datetime.now(UTC)
-                stored: dict[str, Any] = {
-                    "outputs": dict(result.results or {}),
-                    "inputs": dict(getattr(result, "inputs", {}) or {}),
-                }
-                # Surface the human decision with the run record (Phase 36).
-                if decision is not None:
-                    stored["approval"] = {
-                        "node_id": decision.get("node_id"),
-                        "approved": bool(decision.get("approved")),
-                        "approved_by": decision.get("approved_by"),
-                        "approved_at": decision.get("approved_at"),
-                    }
-                # Phase 14: PASS/FAIL/DIFF test report.
-                if getattr(result, "test_report", None) is not None:
-                    stored["tests"] = result.test_report
-
-                source_rec_for_merge = run_source_rec if run_node else (retry_source_rec if retry_from_node else None)
-                if source_rec_for_merge and source_rec_for_merge.id != rec.id:
-                    # Merge prior outputs & inputs
-                    prior_outputs = (source_rec_for_merge.results or {}).get("outputs", {})
-                    merged_outputs = dict(prior_outputs)
-                    merged_outputs.update(result.results or {})
-                    stored["outputs"] = merged_outputs
-
-                    prior_inputs = (source_rec_for_merge.results or {}).get("inputs", {})
-                    merged_inputs = dict(prior_inputs)
-                    merged_inputs.update(getattr(result, "inputs", {}) or {})
-                    stored["inputs"] = merged_inputs
-
-                    # Determine which upstream nodes to inherit traces and statuses from
-                    target_upstream = upstream if run_node else {
-                        n.get("id")
-                        for n in (job.workflow_data or {}).get("nodes", [])
-                        if n.get("id") not in (doomed if retry_from_node else set())
-                    }
-
-                    # Merge trace: only for run_node single-node runs; retry trace reflects only steps run in this execution
-                    if run_node:
-                        prior_trace = [
-                            s for s in (source_rec_for_merge.trace or [])
-                            if s.get("node_id") in target_upstream
-                        ]
-                        new_node_ids = {s.get("node_id") for s in result.trace}
-                        merged_trace = [s for s in prior_trace if s.get("node_id") not in new_node_ids] + result.trace
-                        merged_trace.sort(key=lambda s: s.get("started_at") or "")
-                        rec.trace = merged_trace
-                    else:
-                        rec.trace = result.trace
-
-                    # Merge node statuses
-                    prior_statuses = {
-                        nid: st for nid, st in (source_rec_for_merge.node_statuses or {}).items()
-                        if nid in target_upstream
-                    }
-                    merged_statuses = dict(prior_statuses)
-                    merged_statuses.update(_node_statuses(result.events))
-                    rec.node_statuses = merged_statuses
-                else:
-                    rec.node_statuses = _node_statuses(result.events)
-                    rec.trace = result.trace
-                if run_node:
-                    prior_outputs = (run_source_rec.results or {}).get("outputs", {}) if run_source_rec else {}
-                    prior_inputs = (run_source_rec.results or {}).get("inputs", {}) if run_source_rec else {}
-                    for uid in upstream:
-                        if uid not in prior_outputs and uid in stored.get("outputs", {}):
-                            del stored["outputs"][uid]
-                        if uid not in prior_inputs and uid in stored.get("inputs", {}):
-                            del stored["inputs"][uid]
-
-                rec.results = stored
-                rec.error = result.error.to_dict() if result.error else None
-                rec.pause_state = None
-                # Commit the delivery outcome in the same transaction as the
-                # terminal execution state so a client that observes
-                # "success" cannot still see a stale "queued" delivery.
-                await asyncio.to_thread(_mark_deliveries, db, execution_id, result.status)
-                await _commit(db)
-
-                try:
-                    from app.services.telemetry_service import finalize_execution_telemetry
-                    await asyncio.to_thread(finalize_execution_telemetry, db, rec, result, job)
-                except Exception:
-                    logger.exception("Failed to finalize telemetry for execution %s", execution_id)
-            final_status = "cancelled" if (rec and rec.status == "cancelled") else result.status
-            await asyncio.to_thread(_mark_deliveries, db, execution_id, final_status)
-            execution_finished(execution_id, final_status, job.trigger)
-            if final_status in ("failed", "timeout"):
-                err_dict = result.error.to_dict() if result.error else {"code": "EXECUTION_FAILED", "message": "Workflow execution failed."}
-                try:
-                    from app.services.error_monitoring import ErrorMonitoringService
-                    await asyncio.to_thread(ErrorMonitoringService.capture_execution_error, None, execution_id, job, err_dict, rec)
-                except Exception:
-                    logger.exception("Failed to capture error for execution %s", execution_id)
-                if result.error is not None:
-                    # Error-handler invocation is best-effort. During worker
-                    # shutdown the default executor can already be closed;
-                    # that must not overwrite the already-recorded failure
-                    # with an EXECUTION_CRASHED status.
-                    try:
-                        await asyncio.to_thread(
-                            _maybe_run_error_workflow,
-                            db,
-                            job,
-                            execution_id,
-                            result.error.to_dict(),
-                        )
-                    except Exception:
-                        logger.exception(
-                            "Failed to start error workflow for execution %s",
-                            execution_id,
-                        )
-            return final_status
-        finally:
-            _ACTIVE_CANCEL_EVENTS.pop(execution_id, None)
-            monitor.cancel()
-    except asyncio.CancelledError:
-        _ACTIVE_CANCEL_EVENTS.pop(execution_id, None)
-        # Worker-level cancellation (shutdown/stop) must still reach a
-        # terminal row — re-raising alone left executions "running" forever
-        # (spec 34.1: executions are authoritative).
-        logger.warning("execution %s cancelled at worker level", execution_id)
-        try:
-            execution_finished(execution_id, "cancelled", job.trigger)
-            rec = db.get(ExecutionModel, execution_id)
-            if rec is not None and rec.status not in ("success", "failed", "cancelled", "timeout"):
-                rec.status = "cancelled"
-                rec.finished_at = datetime.now(UTC)
-                rec.error = {"code": "WORKER_STOPPED", "message": "Worker stopped mid-execution."}
-                await _commit(db)
-            await asyncio.to_thread(_mark_deliveries, db, execution_id, "cancelled")
-        except Exception:
-            logger.exception("failed to record worker-level cancellation of %s", execution_id)
-        raise
-    except WorkflowValidationError as exc:
-        # The workflow snapshot is invalid (bad params, unknown nodes,
-        # cycles...). Not a crash: surface the issues so the user can
-        # fix the workflow instead of seeing an opaque EXECUTION_CRASHED.
-        logger.warning("execution %s rejected at validation: %s", execution_id, exc.message)
-        execution_finished(execution_id, "failed", job.trigger)
-        rec = db.get(ExecutionModel, execution_id)
-        if rec is not None:
-            rec.status = "failed"
-            rec.finished_at = datetime.now(UTC)
-            rec.error = exc.to_dict()
-            await _commit(db)
-        await asyncio.to_thread(_mark_deliveries, db, execution_id, "failed")
-        try:
-            from app.services.error_monitoring import ErrorMonitoringService
-            await asyncio.to_thread(ErrorMonitoringService.capture_execution_error, None, execution_id, job, exc.to_dict(), rec)
-        except Exception:
-            logger.exception("Failed to capture validation error for execution %s", execution_id)
-        return "failed"
-    except Exception as exc:  # never lose the record (spec 34.1)
-        logger.exception("execution %s crashed", execution_id)
-        execution_finished(execution_id, "failed", job.trigger)
-        rec = db.get(ExecutionModel, execution_id)
-        crash_error = {"code": "EXECUTION_CRASHED", "message": str(exc)}
-        if rec is not None:
-            rec.status = "failed"
-            rec.finished_at = datetime.now(UTC)
-            rec.error = crash_error
-            await _commit(db)
-        await asyncio.to_thread(_mark_deliveries, db, execution_id, "failed")
-        try:
-            from app.services.error_monitoring import ErrorMonitoringService
-            await asyncio.to_thread(ErrorMonitoringService.capture_execution_error, None, execution_id, job, crash_error, rec)
-        except Exception:
-            logger.exception("Failed to capture crash error for execution %s", execution_id)
-        try:
-            await asyncio.to_thread(_maybe_run_error_workflow, db, job, execution_id, crash_error)
-        except Exception:
-            logger.exception("Failed to start error workflow for crashed execution %s", execution_id)
-        return "failed"
+        return await coordinator.run()
     finally:
         db.close()
 

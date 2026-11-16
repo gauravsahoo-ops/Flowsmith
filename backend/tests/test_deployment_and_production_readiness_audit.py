@@ -66,7 +66,8 @@ def test_01_clean_installation_and_reproducible_environment_setup():
     assert "FROM python:3.12-slim" in content, "Runtime must use Python 3.12-slim base image"
     assert "useradd" in content and "appuser" in content, "Dockerfile must define unprivileged appuser"
     assert "USER appuser" in content, "Image must drop privileges and run as appuser"
-    assert "pip install --no-cache-dir -r requirements.txt" in content
+    assert "pip install --no-cache-dir -r requirements-lock.txt" in content
+    assert "requirements-lock.txt" in content, "Dockerfile must install the audited lock"
     assert "HEALTHCHECK" in content, "Dockerfile must declare native container health check"
 
     # 2. Dependency manifests and lockfiles

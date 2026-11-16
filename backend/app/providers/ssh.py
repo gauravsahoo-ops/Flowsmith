@@ -8,11 +8,31 @@ private key (+optional passphrase).
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import logging
+import os
+import tempfile
 from typing import Any
 
 from app.connectors import ConnectorErrorCode, make_connector_error
 
 DEFAULT_MAX_BYTES = 1024 * 1024
+logger = logging.getLogger(__name__)
+
+
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _normalize_fingerprint(value: str) -> str:
+    text = str(value or "").strip()
+    if text.lower().startswith("sha256:"):
+        text = text.split(":", 1)[1]
+    return text.rstrip("=")
 
 
 def _paramiko() -> Any:
@@ -25,6 +45,61 @@ def _paramiko() -> Any:
             retryable=False,
         ) from exc
     return paramiko
+
+
+def _load_known_hosts_text(client: Any, paramiko: Any, content: str) -> None:
+    """Load inline OpenSSH known_hosts content without leaving a temp file behind."""
+    handle = tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", suffix=".known_hosts", delete=False
+    )
+    path = handle.name
+    try:
+        with handle:
+            handle.write(content)
+        client.load_host_keys(path)
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+
+def _configure_host_key_policy(client: Any, paramiko: Any, params: dict[str, Any]) -> None:
+    """Use strict verification unless the credential explicitly opts out.
+
+    Order of precedence:
+    1. Pinned SHA-256 fingerprint (accept only that key).
+    2. known_hosts / system known_hosts (RejectPolicy for everything else).
+    3. Explicit ``allow_unknown_host_keys`` opt-in (AutoAddPolicy, logged).
+    """
+    expected = _normalize_fingerprint(params["host_key_fingerprint"])
+    if expected:
+        class _FingerprintPolicy(paramiko.MissingHostKeyPolicy):
+            def missing_host_key(self, ssh_client: Any, hostname: str, key: Any) -> None:
+                actual = base64.b64encode(
+                    hashlib.sha256(key.asbytes()).digest()
+                ).decode("ascii").rstrip("=")
+                if hmac.compare_digest(actual, expected):
+                    ssh_client.get_host_keys().add(hostname, key.get_name(), key)
+                    return
+                raise paramiko.SSHException(
+                    "SSH host key fingerprint mismatch for "
+                    f"{hostname}: expected SHA256:{expected}, got SHA256:{actual}"
+                )
+
+        client.set_missing_host_key_policy(_FingerprintPolicy())
+        return
+
+    if params["allow_unknown_host_keys"]:
+        logger.warning(
+            "SSH host key verification is disabled by credential opt-in host=%s. "
+            "This connection is vulnerable to man-in-the-middle attacks.",
+            params["host"],
+        )
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        return
+
+    client.set_missing_host_key_policy(paramiko.RejectPolicy())
 
 
 def _conn_params(creds: dict) -> dict[str, Any]:
@@ -53,6 +128,10 @@ def _conn_params(creds: dict) -> dict[str, Any]:
         "password": password or None, "private_key": private_key,
         "passphrase": str((creds or {}).get("passphrase") or "") or None,
         "timeout": float((creds or {}).get("timeout_seconds") or 30.0),
+        "known_hosts": str((creds or {}).get("known_hosts") or ""),
+        "known_hosts_path": str((creds or {}).get("known_hosts_path") or ""),
+        "host_key_fingerprint": str((creds or {}).get("host_key_fingerprint") or ""),
+        "allow_unknown_host_keys": _as_bool((creds or {}).get("allow_unknown_host_keys")),
     }
 
 
@@ -63,7 +142,19 @@ class SshSession:
         paramiko = _paramiko()
         params = _conn_params(creds)
         self._client = paramiko.SSHClient()
-        self._client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            self._client.load_system_host_keys()
+            if params["known_hosts_path"]:
+                self._client.load_host_keys(params["known_hosts_path"])
+            if params["known_hosts"]:
+                _load_known_hosts_text(self._client, paramiko, params["known_hosts"])
+        except (OSError, paramiko.SSHException) as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.NOT_CONFIGURED,
+                f"SSH known_hosts could not be loaded: {exc}",
+                retryable=False,
+            ) from exc
+        _configure_host_key_policy(self._client, paramiko, params)
         kwargs: dict[str, Any] = {
             "hostname": params["host"], "port": params["port"],
             "username": params["username"], "timeout": params["timeout"],
@@ -96,6 +187,21 @@ class SshSession:
             self._client.connect(**kwargs)
         except Exception as exc:
             name = type(exc).__name__
+            message = str(exc)
+            lower = message.lower()
+            if (
+                "known_hosts" in lower
+                or "host key" in lower
+                or "fingerprint" in lower
+                or "BadHostKey" in name
+            ):
+                raise make_connector_error(
+                    ConnectorErrorCode.AUTH_FAILED,
+                    "SSH host key verification failed: "
+                    f"{message}. Add the server key to known_hosts or set "
+                    "host_key_fingerprint (SHA256:...).",
+                    retryable=False,
+                ) from exc
             if "Authentication" in name:
                 raise make_connector_error(
                     ConnectorErrorCode.AUTH_FAILED, f"SSH authentication failed: {exc}", retryable=False,

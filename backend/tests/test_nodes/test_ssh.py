@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import io
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import httpx
+import paramiko
 import pytest
 
 from app.connectors import ConnectorError, ConnectorErrorCode
@@ -77,16 +80,38 @@ class AuthenticationExceptionFake(Exception):
 class FakeSSHClient:
     last: "FakeSSHClient | None" = None
     files = {"/remote/note.txt": b"hello"}
+    fail_with: Exception | None = None
 
     def __init__(self):
         self.connect_kwargs = None
+        self.policy = None
+        self.loaded_system_host_keys = False
+        self.loaded_host_keys = False
+        self.added_host_keys: list[tuple[str, str, object]] = []
         FakeSSHClient.last = self
 
+    def load_system_host_keys(self):
+        self.loaded_system_host_keys = True
+
+    def load_host_keys(self, path):
+        self.loaded_host_keys = True
+
+    def get_host_keys(self):
+        client = self
+
+        class _HostKeys:
+            def add(self, hostname, keytype, key):
+                client.added_host_keys.append((hostname, keytype, key))
+
+        return _HostKeys()
+
     def set_missing_host_key_policy(self, policy):
-        pass
+        self.policy = policy
 
     def connect(self, **kwargs):
         self.connect_kwargs = kwargs
+        if FakeSSHClient.fail_with is not None:
+            raise FakeSSHClient.fail_with
         if kwargs.get("password") == "WRONG":
             raise AuthenticationExceptionFake("Authentication failed.")
 
@@ -106,6 +131,7 @@ class FakeSSHClient:
 def _fake_ssh():
     FakeSSHClient.last = None
     FakeSSHClient.files = {"/remote/note.txt": b"hello"}
+    FakeSSHClient.fail_with = None
     with patch("paramiko.SSHClient", FakeSSHClient):
         yield
 
@@ -124,6 +150,84 @@ def test_exec_returns_output():
         out = session.exec("echo hi")
     assert out == {"ok": True, "exit_code": 0, "stdout": "hi\n", "stderr": ""}
     assert FakeSSHClient.last.connect_kwargs["hostname"] == "ssh.example.com"
+
+
+def test_host_key_policy_is_strict_by_default():
+    from app.providers.ssh import SshSession
+
+    with SshSession(CREDS):
+        pass
+    assert isinstance(FakeSSHClient.last.policy, paramiko.RejectPolicy)
+    assert FakeSSHClient.last.loaded_system_host_keys is True
+    assert FakeSSHClient.last.loaded_host_keys is False
+
+
+def test_inline_known_hosts_is_loaded():
+    from app.providers.ssh import SshSession
+
+    creds = {**CREDS, "known_hosts": "ssh.example.com ssh-ed25519 AAAA"}
+    with SshSession(creds):
+        pass
+    assert FakeSSHClient.last.loaded_host_keys is True
+
+
+def test_unknown_host_keys_requires_explicit_opt_in():
+    from app.providers.ssh import SshSession
+
+    with SshSession({**CREDS, "allow_unknown_host_keys": True}):
+        pass
+    assert isinstance(FakeSSHClient.last.policy, paramiko.AutoAddPolicy)
+
+
+def test_host_key_failure_is_not_retryable():
+    from app.providers.ssh import SshSession
+
+    FakeSSHClient.fail_with = paramiko.SSHException(
+        "Server 'ssh.example.com' not found in known_hosts"
+    )
+    with pytest.raises(ConnectorError) as exc_info:
+        SshSession(CREDS)
+    assert exc_info.value.code in (
+        ConnectorErrorCode.AUTH_FAILED,
+        ConnectorErrorCode.AUTH_FAILED.value,
+    )
+    assert exc_info.value.retryable is False
+    assert "host key verification failed" in str(exc_info.value).lower()
+
+
+def test_fingerprint_policy_accepts_matching_key():
+    from app.providers.ssh import SshSession
+
+    class FakeKey:
+        def asbytes(self):
+            return b"host-key"
+
+        def get_name(self):
+            return "ssh-ed25519"
+
+    expected = base64.b64encode(hashlib.sha256(b"host-key").digest()).decode().rstrip("=")
+    with SshSession({**CREDS, "host_key_fingerprint": f"SHA256:{expected}"}):
+        pass
+    policy = FakeSSHClient.last.policy
+    policy.missing_host_key(FakeSSHClient.last, "ssh.example.com", FakeKey())
+    assert FakeSSHClient.last.added_host_keys[0][0] == "ssh.example.com"
+
+
+def test_fingerprint_policy_rejects_mismatch():
+    from app.providers.ssh import SshSession
+
+    class FakeKey:
+        def asbytes(self):
+            return b"host-key"
+
+        def get_name(self):
+            return "ssh-ed25519"
+
+    with SshSession({**CREDS, "host_key_fingerprint": "SHA256:not-the-key"}):
+        pass
+    policy = FakeSSHClient.last.policy
+    with pytest.raises(paramiko.SSHException):
+        policy.missing_host_key(FakeSSHClient.last, "ssh.example.com", FakeKey())
 
 
 def test_auth_failure_maps():
@@ -189,7 +293,11 @@ def test_ssh_registered():
 def test_ssh_credential_validation():
     from app.credentials.registry import validate_data
 
-    assert validate_data("ssh", {"host": "h", "username": "u", "password": "p"})["host"] == "h"
+    validated = validate_data("ssh", {"host": "h", "username": "u", "password": "p"})
+    assert validated["host"] == "h"
+    assert validated["allow_unknown_host_keys"] is False
+    assert validated["known_hosts"] == ""
+    assert validated["host_key_fingerprint"] == ""
     with pytest.raises(ValueError):
         validate_data("ssh", {"host": "h", "username": "u"})
     assert validate_data("ftp", {"host": "h"})["port"] == 21

@@ -37,6 +37,10 @@ def _register_template():
     register_builtin_connectors()  # base set first; template must not clash
     registry.register(MyConnectorConnector(), build_my_connector_definition())
     yield
+    # The manifest completeness gate compares the global registry against a
+    # fixed manifest. Keep this test-only connector from leaking into later
+    # tests in the same worker.
+    registry.unregister(TEMPLATE_KEY)
 
 
 def test_discovery_includes_template(client):

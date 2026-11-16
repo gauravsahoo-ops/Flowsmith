@@ -108,6 +108,34 @@ class MCPClient:
             logger.warning("Failed to list tools from MCP server %s: %s", _log_url(self.server_url), exc)
             return []
 
+    async def list_tools_strict(self, timeout_s: float = 10.0) -> list[dict[str, Any]]:
+        """Like ``list_tools`` but raises on transport/HTTP failure.
+
+        Discovery uses this so a transient outage cannot be mistaken for an
+        empty tool list and disable every cached tool.
+        """
+        await self._validate_security(self.server_url)
+        payload = {
+            "jsonrpc": "2.0",
+            "id": self._next_id(),
+            "method": "tools/list",
+            "params": {},
+        }
+        async with httpx.AsyncClient(timeout=httpx.Timeout(timeout_s)) as client:
+            resp = await client.post(self.server_url, headers=self.headers, json=payload)
+        if resp.status_code >= 400:
+            raise RuntimeError(
+                f"MCP tools/list failed ({resp.status_code}): {resp.text[:200]}"
+            )
+        body = resp.json()
+        result = body.get("result") or {}
+        tools = result.get("tools")
+        if tools is None:
+            return []
+        if not isinstance(tools, list):
+            raise RuntimeError("MCP tools/list returned a non-list result.")
+        return tools
+
     async def list_resources(self, timeout_s: float = 10.0) -> list[dict[str, Any]]:
         """Query the MCP server for available resources (`resources/list`)."""
         await self._validate_security(self.server_url)

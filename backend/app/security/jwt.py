@@ -271,8 +271,12 @@ def revoke_token(jti: str, exp: datetime | None = None) -> None:
         for k in expired_keys:
             _token_blacklist.pop(k, None)
         if len(_token_blacklist) >= _MAX_BLACKLIST_SIZE:
-            for k in list(_token_blacklist.keys())[:1000]:
-                _token_blacklist.pop(k, None)
+            logger.error(
+                "JWT revocation in-memory fallback reached its %d-entry soft cap. "
+                "Unexpired revocations are retained rather than evicted; restore "
+                "Redis or investigate revocation volume.",
+                _MAX_BLACKLIST_SIZE,
+            )
     _token_blacklist[jti] = expire_at
 
 

@@ -737,7 +737,7 @@ class TestCancellationAndCheckpointing:
         db.commit()
 
         # Resume execution with approval
-        with patch("app.api.executions.get_queue") as mock_get_q:
+        with patch("app.services.execution_service.get_queue") as mock_get_q:
             mock_queue = MagicMock()
             mock_get_q.return_value = mock_queue
 

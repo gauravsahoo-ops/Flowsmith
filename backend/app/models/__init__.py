@@ -33,6 +33,10 @@ from app.models.workflow_auth import WorkflowAuthState
 from app.models.workflow_test import WorkflowTest
 from app.models.error_event import ErrorEvent, NotificationPreference, NotificationRecord
 from app.models.auth_session import AuthSession
+from app.models.approval_request import ApprovalRequest
+from app.models.mcp_server import MCPServer
+from app.models.mcp_tool_cache import MCPToolCache
+from app.models.outbox_event import OutboxEvent
 from app.models.connection_auth_policy import (
     ConnectionAuthPolicy,
     CredentialRecoveryJob,
@@ -92,6 +96,10 @@ __all__ = [
     "NotificationRecord",
     "NotificationPreference",
     "AuthSession",
+    "ApprovalRequest",
+    "MCPServer",
+    "MCPToolCache",
+    "OutboxEvent",
     "ConnectionAuthPolicy",
     "CredentialRecoveryJob",
     "CredentialAuditEvent",

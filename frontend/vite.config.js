@@ -63,5 +63,14 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
     exclude: ['tests/**', 'node_modules/**'],
     environment: 'node',
+    coverage: {
+      provider: 'v8',
+      // Ratchet: raise these as tests are added. They are a floor, not a target.
+      thresholds: {
+        statements: 33,
+        lines: 34,
+        functions: 24,
+      },
+    },
   },
 })

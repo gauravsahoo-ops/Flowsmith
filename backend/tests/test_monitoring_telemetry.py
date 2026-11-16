@@ -150,6 +150,19 @@ def test_error_taxonomy_categorization():
     cat, code, summary = sanitize_error({"code": "VALIDATION_ERROR", "message": "Schema validation failed"})
     assert cat == "VALIDATION_ERROR"
 
+    # CONNECTOR_* must not be swallowed by the CONNECT substring check.
+    cat, _, _ = sanitize_error({"code": "CONNECTOR_BAD_REQUEST", "message": "storage limit exceeded"})
+    assert cat == "VALIDATION_ERROR"
+
+    cat, _, _ = sanitize_error({"code": "CONNECTOR_TIMEOUT", "message": "upstream timed out"})
+    assert cat == "TIMEOUT"
+
+    cat, _, _ = sanitize_error({"code": "CONNECTOR_AUTH_FAILED", "message": "bad token"})
+    assert cat == "AUTHENTICATION_ERROR"
+
+    cat, _, _ = sanitize_error({"code": "NETWORK_ERROR", "message": "connection reset"})
+    assert cat == "NETWORK_ERROR"
+
 
 def test_execution_telemetry_persistence_and_api(client):
     """Test full telemetry persistence: steps, API calls, record counts, and API inspection endpoints."""

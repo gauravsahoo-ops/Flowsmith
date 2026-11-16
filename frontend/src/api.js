@@ -384,6 +384,20 @@ export const api = {
   deleteTemplate: (id) => request('DELETE', `/templates/${id}`),
   // Workspace environment variables (Phase 31/32)
   listWorkspaces: () => request('GET', '/workspaces?pageSize=100'),
+  // MCP server registry
+  listMCPServers: (workspaceId) =>
+    request('GET', `/mcp/servers?workspace_id=${encodeURIComponent(workspaceId)}`),
+  createMCPServer: (payload) => request('POST', '/mcp/servers', payload),
+  updateMCPServer: (id, payload) => request('PATCH', `/mcp/servers/${encodeURIComponent(id)}`, payload),
+  deleteMCPServer: (id) => request('DELETE', `/mcp/servers/${encodeURIComponent(id)}`),
+  discoverMCPServerTools: (id) =>
+    request('POST', `/mcp/servers/${encodeURIComponent(id)}/discover`, {}),
+  updateMCPTool: (serverId, toolId, payload) =>
+    request(
+      'PATCH',
+      `/mcp/servers/${encodeURIComponent(serverId)}/tools/${encodeURIComponent(toolId)}`,
+      payload,
+    ),
   // Billing & subscription (backend-enforced quotas; Stripe optional).
   listBillingPlans: () => request('GET', '/billing/plans'),
   getBillingUsage: (workspaceId) => request('GET', `/billing/usage/${encodeURIComponent(workspaceId)}`),

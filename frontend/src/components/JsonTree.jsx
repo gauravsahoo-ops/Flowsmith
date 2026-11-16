@@ -1,7 +1,7 @@
 // JsonTree: collapsible, high-performance viewer for node inputs/outputs with
 // progressive chunking, search highlighting, copy path/value, and expandable long strings.
 
-import { memo, useState, useCallback, useMemo } from 'react'
+import { memo, useEffect, useState, useCallback, useMemo } from 'react'
 
 function Highlight({ text, search }) {
   if (!search || !text) return <>{text}</>
@@ -112,6 +112,28 @@ function Scalar({ value, search }) {
 
 const CHUNK_SIZE = 50
 
+// A 284-record Salesforce payload has >10k scalar fields. Rendering all of
+// them (even behind <details>) blocks the main thread long enough for Chrome
+// to show "This page isn't responding". Above this many entries we open only
+// the outer container(s); the user can expand a record or use Expand all.
+const AUTO_EXPAND_BUDGET = 800
+
+function isLargePayload(value) {
+  if (value == null || typeof value !== 'object') return false
+  let remaining = AUTO_EXPAND_BUDGET
+  const stack = [value]
+  while (stack.length && remaining > 0) {
+    const node = stack.pop()
+    if (!node || typeof node !== 'object') continue
+    const children = Array.isArray(node) ? node : Object.values(node)
+    remaining -= children.length
+    for (const child of children) {
+      if (child && typeof child === 'object') stack.push(child)
+    }
+  }
+  return remaining <= 0
+}
+
 function Node({ label, value, depth, search, path = '', forceOpen = null, defaultExpandDepth = 3 }) {
   const [chunkLimit, setChunkLimit] = useState(CHUNK_SIZE)
   const [copiedPath, setCopiedPath] = useState(false)
@@ -136,6 +158,24 @@ function Node({ label, value, depth, search, path = '', forceOpen = null, defaul
     setTimeout(() => setCopiedPath(false), 1500)
   }
 
+  // Hooks must run before the scalar early return so every Node keeps the
+  // same hook order regardless of the value type.
+  const matchesSearch = Boolean(
+    search &&
+      (String(label).toLowerCase().includes(search.toLowerCase()) ||
+        JSON.stringify(value).toLowerCase().includes(search.toLowerCase()))
+  )
+
+  // Smart initial openness: auto-open top levels unless forced or matched
+  const defaultOpen = forceOpen !== null ? forceOpen : depth < defaultExpandDepth || Boolean(matchesSearch)
+  // Closed native <details> still keeps its children mounted. For a 284-record
+  // payload that meant thousands of hidden DOM nodes and a frozen main thread.
+  // Track the real open state and only mount children while expanded.
+  const [open, setOpen] = useState(defaultOpen)
+  useEffect(() => {
+    setOpen(forceOpen !== null ? forceOpen : defaultOpen)
+  }, [defaultOpen, forceOpen])
+
   if (!isObj) {
     return (
       <div className="jt-row" style={{ paddingLeft: depth * 14 }}>
@@ -150,20 +190,15 @@ function Node({ label, value, depth, search, path = '', forceOpen = null, defaul
     )
   }
 
-  const matchesSearch = Boolean(
-    search &&
-      (String(label).toLowerCase().includes(search.toLowerCase()) ||
-        JSON.stringify(value).toLowerCase().includes(search.toLowerCase()))
-  )
-
-  // Smart initial openness: auto-open top levels unless forced or matched
-  const defaultOpen = forceOpen !== null ? forceOpen : depth < defaultExpandDepth || Boolean(matchesSearch)
-
   const visibleEntries = entries.slice(0, chunkLimit)
   const hasMore = entries.length > chunkLimit
 
   return (
-    <details className={`jt-node ${matchesSearch ? 'jt-match' : ''}`} open={defaultOpen}>
+    <details
+      className={`jt-node ${matchesSearch ? 'jt-match' : ''}`}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
       <summary style={{ paddingLeft: depth * 14 }}>
         {label != null && (
           <span
@@ -179,47 +214,49 @@ function Node({ label, value, depth, search, path = '', forceOpen = null, defaul
           {isArr ? `[${entries.length}]` : `{${entries.length}}`}
         </span>
       </summary>
-      <div className="jt-children">
-        {visibleEntries.map(([k, v]) => (
-          <Node
-            key={k}
-            label={k}
-            value={v}
-            depth={depth + 1}
-            search={search}
-            path={currentPath}
-            forceOpen={forceOpen}
-            defaultExpandDepth={defaultExpandDepth}
-          />
-        ))}
-        {hasMore && (
-          <div className="jt-chunk-more" style={{ paddingLeft: (depth + 1) * 14 }}>
-            <span>
-              Showing {chunkLimit} of {entries.length} items —{' '}
-            </span>
-            <button
-              type="button"
-              className="jt-chunk-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                setChunkLimit((prev) => Math.min(prev + CHUNK_SIZE, entries.length))
-              }}
-            >
-              + Show {Math.min(CHUNK_SIZE, entries.length - chunkLimit)} more
-            </button>
-            <button
-              type="button"
-              className="jt-chunk-btn text-accent"
-              onClick={(e) => {
-                e.stopPropagation()
-                setChunkLimit(entries.length)
-              }}
-            >
-              Show all ({entries.length})
-            </button>
-          </div>
-        )}
-      </div>
+      {open && (
+        <div className="jt-children">
+          {visibleEntries.map(([k, v]) => (
+            <Node
+              key={k}
+              label={k}
+              value={v}
+              depth={depth + 1}
+              search={search}
+              path={currentPath}
+              forceOpen={forceOpen}
+              defaultExpandDepth={defaultExpandDepth}
+            />
+          ))}
+          {hasMore && (
+            <div className="jt-chunk-more" style={{ paddingLeft: (depth + 1) * 14 }}>
+              <span>
+                Showing {chunkLimit} of {entries.length} items —{' '}
+              </span>
+              <button
+                type="button"
+                className="jt-chunk-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setChunkLimit((prev) => Math.min(prev + CHUNK_SIZE, entries.length))
+                }}
+              >
+                + Show {Math.min(CHUNK_SIZE, entries.length - chunkLimit)} more
+              </button>
+              <button
+                type="button"
+                className="jt-chunk-btn text-accent"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setChunkLimit(entries.length)
+                }}
+              >
+                Show all ({entries.length})
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </details>
   )
 }
@@ -246,6 +283,13 @@ function JsonTree({ value, search, showToolbar = true, defaultExpandDepth = 3 })
     return 1
   }, [value])
 
+  const largePayload = useMemo(() => isLargePayload(value), [value])
+  // Arrays: open the array itself only. Objects: open the object and its
+  // immediate children (usually {main: [...]}) but stop before the records.
+  const effectiveDepth = largePayload
+    ? Math.min(defaultExpandDepth, Array.isArray(value) ? 1 : 2)
+    : defaultExpandDepth
+
   if (value == null || (typeof value === 'object' && !Object.keys(value).length)) {
     return <p className="hint jt-empty">empty</p>
   }
@@ -254,8 +298,12 @@ function JsonTree({ value, search, showToolbar = true, defaultExpandDepth = 3 })
     <div className="json-tree-container">
       {showToolbar && (
         <div className="jt-toolbar">
-          <span className="jt-count-badge">
+          <span
+            className="jt-count-badge"
+            title={largePayload ? 'Large payload auto-collapsed so the page stays responsive. Expand a record or use Expand all.' : undefined}
+          >
             {totalCount} {Array.isArray(value) ? (totalCount === 1 ? 'item' : 'items') : (totalCount === 1 ? 'key' : 'keys')}
+            {largePayload && <span style={{ color: 'var(--muted)', fontWeight: 400 }}> · auto-collapsed</span>}
           </span>
           <div className="jt-toolbar-actions">
             <button
@@ -293,7 +341,7 @@ function JsonTree({ value, search, showToolbar = true, defaultExpandDepth = 3 })
           search={search}
           path="$json"
           forceOpen={expandAll}
-          defaultExpandDepth={defaultExpandDepth}
+          defaultExpandDepth={effectiveDepth}
         />
       </div>
     </div>

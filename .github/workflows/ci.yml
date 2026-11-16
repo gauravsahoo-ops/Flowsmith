@@ -48,9 +48,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: requirements-lock.txt
+      - name: Version consistency
+        working-directory: .
+        run: python scripts/check_version_consistency.py
       - name: Install
-        run: pip install -r requirements.txt pyright ruff pip-audit
+        run: pip install -r ../requirements-lock.txt
       - name: Lint (ruff)
         run: ruff check app
       - name: Security audit (pip-audit)
@@ -60,8 +63,13 @@ jobs:
           pip-audit -r "$RUNNER_TEMP/requirements-audit.txt" --no-deps --disable-pip
       - name: Typecheck
         run: pyright
+      - name: Architecture boundaries
+        working-directory: .
+        run: python scripts/check_architecture.py
+      - name: Phase 3 contract tests
+        run: pytest -q tests/test_phase3_foundation.py tests/test_approvals.py tests/test_approval_integration.py tests/test_mcp_registry.py tests/test_mcp_discovery.py tests/test_mcp_stdio.py tests/test_outbox.py tests/test_outbox_relay.py tests/test_architecture_boundaries.py
       - name: Tests (fast pass)
-        run: pytest -q -m "not timing" --cov=app --cov-report=term --cov-report=xml:coverage.xml
+        run: pytest -q -m "not timing" --cov=app --cov-report=term --cov-report=xml:coverage.xml --cov-fail-under=14
       - name: Tests (timing pass)
         run: pytest -q -m timing
       - name: Upload coverage report
@@ -151,7 +159,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install backend deps
         working-directory: backend
-        run: pip install -r requirements.txt
+        run: pip install -r ../requirements-lock.txt
       - name: Install frontend deps
         working-directory: frontend
         run: npm ci

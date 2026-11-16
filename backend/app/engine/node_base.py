@@ -444,6 +444,7 @@ class NodeContext:
         cancel_event: asyncio.Event | None = None,
         workspace_id: str | None = None,
         user_id: int | None = None,
+        approval_owner: dict[str, Any] | None = None,
     ):
         self.execution_id = execution_id
         self.workflow_id = workflow_id
@@ -466,6 +467,11 @@ class NodeContext:
         # collections resolve against the run's workspace/owner).
         self.workspace_id: str | None = workspace_id
         self.user_id: int | None = user_id
+        # Durable nested approvals: a sub-workflow runs on its own
+        # checkpoint row, but the root ApprovalRequest (and therefore the
+        # resume authority) belongs to the top-level execution. Nodes read
+        # this scope instead of ctx.execution_id/ctx.node_id when present.
+        self.approval_owner: dict[str, Any] | None = approval_owner
         # Phase 8: the executor stores the credential resolver on the
         # context so sub-workflow nodes can propagate it to child runs.
         self._credential_resolver: Callable[[dict[str, str]], dict[str, Any]] | None = None

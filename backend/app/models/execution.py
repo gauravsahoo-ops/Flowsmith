@@ -48,7 +48,9 @@ class Execution(Base):
     trace: Mapped[list | None] = mapped_column(JSON, nullable=True)
     error: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # Pause metadata for executions waiting on external input (Phase 32):
-    # {"node_id": ..., "message": ...} while status == waiting_approval.
+    # human approvals use {"node_id", "message", ...}; mid-loop tool approvals
+    # add {"type": "tool_approval", "tool_name", "state"} where "state" is an
+    # encrypted ReAct checkpoint. Public API serializers strip "state".
     pause_state: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

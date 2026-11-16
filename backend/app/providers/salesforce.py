@@ -27,6 +27,7 @@ import asyncio
 import csv
 import io
 import logging
+import re
 import time
 from typing import Any
 from urllib.parse import urlencode
@@ -42,6 +43,21 @@ from app.config import get_settings
 from app.security.safe_http_client import get_safe_http_client
 
 logger = logging.getLogger(__name__)
+
+_SOQL_IDENTIFIER_RE = re.compile(
+    r"^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)*$"
+)
+
+
+def _validated_identifier(value: str, label: str) -> str:
+    text = str(value or "").strip()
+    if not _SOQL_IDENTIFIER_RE.fullmatch(text):
+        raise make_connector_error(
+            ConnectorErrorCode.BAD_REQUEST,
+            f"Invalid Salesforce {label}: {value!r}",
+            retryable=False,
+        )
+    return text
 
 DEFAULT_LOGIN_URL = "https://login.salesforce.com"
 DEFAULT_API_VERSION = "v63.0"
@@ -443,12 +459,21 @@ class SalesforceProviderClient:
             return
         # Salesforce error body: [{"errorCode": "...", "message": "..."}]
         message = "Salesforce API error."
+        error_code = ""
         try:
             body = response.json()
-            if isinstance(body, list) and body:
+            if isinstance(body, list) and body and isinstance(body[0], dict):
                 message = body[0].get("message", message)
+                error_code = str(body[0].get("errorCode") or "")
         except ValueError:
             pass
+
+        if error_code == "STORAGE_LIMIT_EXCEEDED":
+            message = (
+                "Salesforce data storage limit exceeded (STORAGE_LIMIT_EXCEEDED). "
+                "Delete records and empty the Recycle Bin in the Salesforce org, "
+                "or reduce the amount of data this workflow creates, then retry."
+            )
 
         code = ConnectorErrorCode.BAD_REQUEST
         retryable = False
@@ -543,6 +568,7 @@ class SalesforceProviderClient:
         *,
         timeout: float = 30.0,
     ) -> dict[str, Any]:
+        object_name = _validated_identifier(object_name, "object name")
         response = await self.request(
             creds, "GET", f"/sobjects/{object_name}/{record_id}", timeout=timeout
         )
@@ -569,6 +595,8 @@ class SalesforceProviderClient:
         LIMIT 1`` (value SOQL-escaped), then fetches the full record by
         id. Returns a normalized result: ``{"found": bool, "record": dict|None}``.
         """
+        object_name = _validated_identifier(object_name, "object name")
+        search_field = _validated_identifier(search_field, "search field")
         soql = (
             f"SELECT Id FROM {object_name} "
             f"WHERE {search_field} = '{self.escape_soql_string(search_value)}' LIMIT 1"
@@ -588,6 +616,7 @@ class SalesforceProviderClient:
         *,
         timeout: float = 30.0,
     ) -> dict[str, Any]:
+        object_name = _validated_identifier(object_name, "object name")
         response = await self.request(
             creds, "POST", f"/sobjects/{object_name}", json=record, timeout=timeout
         )
@@ -629,6 +658,7 @@ class SalesforceProviderClient:
         """Confirm whether a duplicate-rejection error actually created the
         record (alert mode) by re-querying its unique key. Returns the new
         record id when created, or None when it truly failed (block mode)."""
+        object_name = _validated_identifier(object_name, "object name")
         try:
             body = response.json()
         except ValueError:
@@ -692,6 +722,7 @@ class SalesforceProviderClient:
         *,
         timeout: float = 30.0,
     ) -> dict[str, Any]:
+        object_name = _validated_identifier(object_name, "object name")
         response = await self.request(
             creds, "PATCH", f"/sobjects/{object_name}/{record_id}", json=record, timeout=timeout
         )
@@ -715,6 +746,8 @@ class SalesforceProviderClient:
         known, which makes retries safe (idempotent write).
         Returns {"id": ..., "created": bool} per Salesforce response.
         """
+        object_name = _validated_identifier(object_name, "object name")
+        external_id_field = _validated_identifier(external_id_field, "external id field")
         response = await self.request(
             creds,
             "PATCH",
@@ -753,6 +786,7 @@ class SalesforceProviderClient:
         ``external_id_field``). Rows are keyed to results by their
         original position via the returned ``row_results`` list.
         """
+        object_name = _validated_identifier(object_name, "object name")
         if bulk_operation not in BULK_OPERATIONS:
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
@@ -786,6 +820,7 @@ class SalesforceProviderClient:
                     "Bulk upsert requires external_id_field (e.g. 'Email', 'Id', or a custom External ID API name). Specify external_id_field in the Salesforce node parameters.",
                     retryable=False,
                 )
+            ext_field = _validated_identifier(ext_field, "external id field")
             job_body["externalIdFieldName"] = ext_field
 
         create_resp = await self.request(
@@ -883,6 +918,7 @@ class SalesforceProviderClient:
         *,
         timeout: float = 30.0,
     ) -> dict[str, Any]:
+        object_name = _validated_identifier(object_name, "object name")
         response = await self.request(
             creds, "DELETE", f"/sobjects/{object_name}/{record_id}", timeout=timeout
         )
@@ -896,6 +932,7 @@ class SalesforceProviderClient:
         *,
         timeout: float = 30.0,
     ) -> dict[str, Any]:
+        object_name = _validated_identifier(object_name, "object name")
         cache_key = f"describe:{self._instance_url or creds.get('instance_url', '')}:{object_name}"
         now = time.monotonic()
         if cache_key in self._metadata_cache:

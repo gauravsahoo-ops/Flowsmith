@@ -8,7 +8,9 @@ module import restrictions, and timeout behaviour.
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
+from unittest.mock import patch
 
 import pytest
 
@@ -72,6 +74,15 @@ class TestJavaScriptRunOnceForAllItems:
         )
         assert len(result) == 2
         assert result[0]["val"] == 1
+
+    def test_python_fallback_runs_in_child_sandbox(self):
+        with patch.dict(sys.modules, {"dukpy": None, "js2py": None}):
+            result = _exec_javascript(
+                "return $input.all();",
+                [{"json": {"x": 1}}],
+                "runOnceForAllItems",
+            )
+        assert result == [{"x": 1}]
 
     def test_empty_input_gets_placeholder(self):
         node = _make_node()

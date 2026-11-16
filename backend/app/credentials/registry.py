@@ -502,6 +502,22 @@ class SshCredential(BaseModel):
     password: str = Field(default="", description="Password (or leave empty for key auth).")
     private_key: str = Field(default="", description="PEM private key (or leave empty for password auth).")
     passphrase: str = Field(default="", description="Private key passphrase (optional).")
+    known_hosts: str = Field(
+        default="",
+        description="OpenSSH known_hosts lines for this server. Recommended for host-key verification.",
+    )
+    known_hosts_path: str = Field(
+        default="",
+        description="Path to an OpenSSH known_hosts file readable by the worker.",
+    )
+    host_key_fingerprint: str = Field(
+        default="",
+        description="Expected SHA-256 host-key fingerprint, for example SHA256:abc123...",
+    )
+    allow_unknown_host_keys: bool = Field(
+        default=False,
+        description="Insecure: accept any host key. Use only for trusted networks.",
+    )
 
     @model_validator(mode="after")
     def _require_auth(self) -> "SshCredential":
@@ -1126,7 +1142,7 @@ TYPE_META: dict[str, dict[str, str]] = {
     "sharepoint": {"name": "Microsoft SharePoint", "description": "Microsoft Graph SharePoint document library credentials."},
     "onedrive": {"name": "Microsoft OneDrive", "description": "Microsoft Graph OneDrive cloud storage credentials."},
     "ftp": {"name": "FTP", "description": "FTP/FTPS server connection for the FTP node."},
-    "ssh": {"name": "SSH", "description": "SSH server connection (password or key) for the SSH node."},
+    "ssh": {"name": "SSH", "description": "SSH server connection (password or key) with strict host-key verification by default."},
     "basic_auth": {"name": "Basic Auth", "description": "Username and password for Basic authentication."},
     "bearer_auth": {"name": "Bearer Auth", "description": "Bearer token for Authorization header."},
     "header_auth": {"name": "Header Auth", "description": "Custom header (e.g. X-API-Key) authentication."},

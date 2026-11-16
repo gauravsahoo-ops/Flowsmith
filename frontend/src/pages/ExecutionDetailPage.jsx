@@ -712,9 +712,11 @@ export default function ExecutionDetailPage() {
           <div className="execution-steps-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 16 }}>
             <div className="steps-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {steps.length === 0 && <p className="hint">No steps recorded in this run.</p>}
-              {steps.map((s) => (
+              {steps.map((s, index) => (
                 <button
-                  key={s.node_id}
+                  // Loop iterations emit one step per record with the same
+                  // node_id; index keeps React keys unique.
+                  key={`${s.node_id}-${s.item_index ?? index}`}
                   className={`step-row ${selected === s.node_id ? 'selected' : ''}`}
                   onClick={() => setSelected(s.node_id)}
                   style={{
@@ -730,13 +732,16 @@ export default function ExecutionDetailPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="step-icon" style={{ display: 'inline-flex' }}>
+                    <span
+                      className="step-icon"
+                      style={{ display: 'grid', placeItems: 'center', lineHeight: 0 }}
+                    >
                       {s.status === 'success' ? (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" aria-hidden="true">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       ) : s.status === 'error' || s.status === 'failed' ? (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" aria-hidden="true">
                           <line x1="18" y1="6" x2="6" y2="18" />
                           <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>

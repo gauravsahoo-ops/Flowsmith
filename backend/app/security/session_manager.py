@@ -185,7 +185,9 @@ class SessionManager:
         new_expires_at = datetime.fromtimestamp(new_exp_ts, tz=UTC) if new_exp_ts else now + timedelta(hours=24)
 
         # Revoke old JTI and update session record
-        revoke_token(session.token_jti, session.expires_at)
+        old_jti = session.token_jti
+        old_expires_at = session.expires_at
+        revoke_token(old_jti, old_expires_at)
         session.token_jti = new_jti
         session.last_active_at = now
         session.expires_at = new_expires_at
@@ -194,6 +196,31 @@ class SessionManager:
         if user_agent:
             session.user_agent = user_agent[:500]
             session.device_name = cls._parse_device_name(user_agent)
+
+        # Keep a DB tombstone for the rotated JTI. Redis is the fast path,
+        # but the tombstone makes the old token fail closed on another
+        # worker even when Redis is unavailable.
+        db.flush()
+        if old_jti:
+            db.add(
+                AuthSession(
+                    id=str(uuid.uuid4()),
+                    user_id=user.id,
+                    token_jti=old_jti,
+                    ip_address=session.ip_address,
+                    user_agent=session.user_agent,
+                    device_name=session.device_name,
+                    is_active=False,
+                    auto_renew=False,
+                    remember_device=session.remember_device,
+                    idle_timeout_minutes=session.idle_timeout_minutes,
+                    max_lifetime_minutes=session.max_lifetime_minutes,
+                    created_at=session.created_at,
+                    last_active_at=session.last_active_at,
+                    expires_at=old_expires_at,
+                    revoked_at=now,
+                )
+            )
 
         db.commit()
         logger.info("Renewed session %s for user %s", session.id, user.email)

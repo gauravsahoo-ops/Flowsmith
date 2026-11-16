@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, select, or_
+from sqlalchemy import delete, func, select, or_
 from sqlalchemy.orm import Session
 
 from app.api.access import workspace_can_edit
@@ -593,7 +593,7 @@ def list_rows(
                 filter_list = [filter_list]
             else:
                 filter_list = [filter_list]
-        except:
+        except (ValueError, TypeError):
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "filters must be valid JSON")
 
     page = max(1, page)
@@ -674,22 +674,22 @@ def list_rows(
             elif op == "gt":
                 try:
                     return cell is not None and val is not None and cell > val
-                except:
+                except (TypeError, ValueError):
                     return False
             elif op == "lt":
                 try:
                     return cell is not None and val is not None and cell < val
-                except:
+                except (TypeError, ValueError):
                     return False
             elif op == "gte":
                 try:
                     return cell is not None and val is not None and cell >= val
-                except:
+                except (TypeError, ValueError):
                     return False
             elif op == "lte":
                 try:
                     return cell is not None and val is not None and cell <= val
-                except:
+                except (TypeError, ValueError):
                     return False
             elif op == "in":
                 return cell in (val if isinstance(val, list) else [val])
@@ -824,11 +824,21 @@ def bulk_update_rows(table_id: str, payload: BulkRowsUpdate, user: User = Depend
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Bulk limit 500.")
     updated = []
     try:
+        row_ids = [str(item.get("id")) for item in payload.rows if item.get("id")]
+        rows_by_id = {
+            row.id: row
+            for row in db.scalars(
+                select(DataTableRow).where(
+                    DataTableRow.table_id == table_id,
+                    DataTableRow.id.in_(row_ids),
+                )
+            ).all()
+        }
         for item in payload.rows:
             rid = item.get("id")
             if not rid:
                 raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Each row must have id.")
-            row = db.get(DataTableRow, rid)
+            row = rows_by_id.get(str(rid))
             if row is None or row.table_id != table_id:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, f"Row {rid} not found.")
             # remove id from data
@@ -839,15 +849,14 @@ def bulk_update_rows(table_id: str, payload: BulkRowsUpdate, user: User = Depend
             from sqlalchemy.orm.attributes import flag_modified
             flag_modified(row, "data")
             updated.append(row)
+        result = [{"id": r.id, "data": r.data} for r in updated]
         tbl.updated_at = datetime.now(timezone.utc)
         db.commit()
-        for r in updated:
-            db.refresh(r)
     except HTTPException:
         db.rollback()
         raise
     log_event(db, DT_ROW_UPDATED, target_type="data_table", target_id=table_id, user_id=user.id, detail={"bulk_count": len(updated)})
-    return ok([{"id": r.id, "data": r.data} for r in updated])
+    return ok(result)
 
 
 @router.post("/{table_id}/rows/bulk-delete")
@@ -855,13 +864,27 @@ def bulk_delete_rows(table_id: str, payload: BulkRowsDelete, user: User = Depend
     tbl = _require_table_access(db, table_id, user, need_edit=True)
     if len(payload.ids) > 500:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Bulk limit 500.")
-    for rid in payload.ids:
-        row = db.get(DataTableRow, rid)
-        if row is None or row.table_id != table_id:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Row {rid} not found.")
-        db.delete(row)
+    ids = [str(rid) for rid in payload.ids]
+    existing = set(
+        db.scalars(
+            select(DataTableRow.id).where(
+                DataTableRow.table_id == table_id,
+                DataTableRow.id.in_(ids),
+            )
+        ).all()
+    )
+    missing = [rid for rid in ids if rid not in existing]
+    if missing:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Row {missing[0]} not found.")
+    if ids:
+        db.execute(
+            delete(DataTableRow).where(
+                DataTableRow.table_id == table_id,
+                DataTableRow.id.in_(ids),
+            )
+        )
     tbl.updated_at = datetime.now(timezone.utc)
     db.commit()
-    log_event(db, DT_ROW_DELETED, target_type="data_table", target_id=table_id, user_id=user.id, detail={"bulk_count": len(payload.ids)})
-    return ok({"deleted": len(payload.ids)})
+    log_event(db, DT_ROW_DELETED, target_type="data_table", target_id=table_id, user_id=user.id, detail={"bulk_count": len(ids)})
+    return ok({"deleted": len(ids)})
 

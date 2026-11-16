@@ -4,11 +4,11 @@ import { api } from '../api'
 import PageHeader from '../components/shared/PageHeader'
 import EmptyState from '../components/shared/EmptyState'
 import LoadingSkeleton from '../components/shared/LoadingSkeleton'
+import ToolApprovalInbox from '../features/approvals/ToolApprovalInbox'
 
 function fmt(iso) { return iso ? new Date(iso).toLocaleString() : '—' }
 
-export default function ApprovalsPage() {
-  const navigate = useNavigate()
+function RunPauseInbox({ navigate }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -28,12 +28,21 @@ export default function ApprovalsPage() {
   }
 
   return (
-    <div className="page approvals-page">
-      <PageHeader
-        title="Approvals"
-        description="Workflows paused at an approval step awaiting human review. Approve or reject to resume execution."
-        actions={<button className="ghost" onClick={refresh} disabled={loading}>↻ Refresh</button>}
-      />
+    <>
+      <div className="exec-filter-bar" style={{ marginBottom: 12 }}>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          Workflow runs paused at a human-approval node or a gated agent tool call.
+        </span>
+        <button
+          type="button"
+          className="ghost small"
+          onClick={refresh}
+          disabled={loading}
+          style={{ marginLeft: 'auto' }}
+        >
+          ↻ Refresh run pauses
+        </button>
+      </div>
 
       {error && <div className="banner-inline err">{error}</div>}
       {notice && <div className="banner-inline ok">{notice}</div>}
@@ -95,6 +104,43 @@ export default function ApprovalsPage() {
           ))}
         </div>
       )}
+    </>
+  )
+}
+
+export default function ApprovalsPage() {
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState('run-pauses')
+
+  return (
+    <div className="page approvals-page">
+      <PageHeader
+        title="Approvals"
+        description="Review workflow runs paused at an approval node and durable tool-level requests from the approval broker."
+      />
+
+      <div className="tabs" role="tablist" aria-label="Approval inbox" style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'run-pauses'}
+          className={activeTab === 'run-pauses' ? 'active' : ''}
+          onClick={() => setActiveTab('run-pauses')}
+        >
+          Run pauses
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'tool-approvals'}
+          className={activeTab === 'tool-approvals' ? 'active' : ''}
+          onClick={() => setActiveTab('tool-approvals')}
+        >
+          Tool approvals
+        </button>
+      </div>
+
+      {activeTab === 'run-pauses' ? <RunPauseInbox navigate={navigate} /> : <ToolApprovalInbox />}
     </div>
   )
 }

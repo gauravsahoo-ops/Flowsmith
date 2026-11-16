@@ -39,12 +39,14 @@ export default function ExecutionTimeline({ steps, selectedId, onSelect }) {
         <span>0</span>
         <span className="tl-total">{fmt(total)} total</span>
       </div>
-      {spans.map(({ step, leftPct, widthPct }) => {
+      {spans.map(({ step, leftPct, widthPct }, index) => {
         const cls = STATUS_CLASS[step.status] || 'idle'
         const selected = selectedId != null && step.node_id === selectedId
         return (
           <button
-            key={`${step.node_id}`}
+            // Per-record loop steps share node_id; include the position so
+            // React does not warn about (and mis-reconcile) duplicate keys.
+            key={`${step.node_id}-${step.item_index ?? index}`}
             type="button"
             className={`tl-row ${selected ? 'selected' : ''}`}
             title={`${step.node_id} · ${step.status} · ${fmt(step.duration_ms)}${step.retries ? ` · ${step.retries} retries` : ''}`}

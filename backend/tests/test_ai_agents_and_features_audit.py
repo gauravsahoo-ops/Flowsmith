@@ -17,39 +17,30 @@ from __future__ import annotations
 
 import asyncio
 import json
-import math
-import time
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
 
-from app.ai.catalog import build_connector_entries, build_node_entries, render_system_prompt
+from app.ai.catalog import render_system_prompt
 from app.ai.client import chat_completion
-from app.ai.generation import GenerationError, generate_workflow_spec
+from app.ai.generation import generate_workflow_spec
 from app.ai.governance import (
     AgentGovernanceGuard,
     AgentGovernancePolicy,
     GovernanceViolation,
 )
 from app.ai.llm_registry import (
-    LLMModel,
-    LLMProviderDefinition,
     get_llm_registry,
 )
 from app.ai.llm_router import ModelRouter, TASK_MODEL_PREFERENCES
 from app.ai.memory import (
-    CompleteMemory,
-    EntityMemory,
     EpisodicVectorMemory,
     SummaryBufferMemory,
     WorkingMemory,
-    get_memory_manager,
 )
 from app.ai.rag import (
     DocumentChunk,
-    EmbeddingService,
     MarkdownTextSplitter,
     RecursiveTextSplitter,
     reciprocal_rank_fusion,
@@ -66,7 +57,7 @@ from app.ai.tools import (
 from app.ai.validation import validate_candidate
 from app.db import get_session
 from app.engine.errors import NodeExecutionError
-from app.engine.node_base import NodeContext
+from app.engine.node_base import MemoryKVStore, NodeContext
 from app.nodes.ai_agent import AIAgentNode, AgentParams
 from tests.test_api.conftest import auth_headers, register
 
@@ -553,6 +544,7 @@ async def test_human_approval_cancellation_and_bounded_agent_execution():
 
     # 3. AIAgentNode Max Iterations Bounded Execution
     agent_node = AIAgentNode()
+    ctx.storage = MemoryKVStore()
     ctx.credentials = {"llm": {"provider": "builtin", "model": "builtin"}}
     ctx.workflow_id = "wf_test_bounds"
 
