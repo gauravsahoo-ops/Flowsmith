@@ -107,12 +107,22 @@ class ProviderWebhookReaper:
     async def stop(self) -> None:
         task = self._task
         self._task = None
-        if task is not None:
+        if task is None:
+            return
+        try:
             task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
+        except RuntimeError:
+            # The task belongs to a loop that is already closed (uvicorn reload
+            # or a lifespan run on a different loop). Nothing left to await.
+            return
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except RuntimeError:
+            # "Task ... attached to a different loop": shutdown must not turn
+            # a clean container restart into an error.
+            pass
 
 
 provider_webhook_reaper = ProviderWebhookReaper()

@@ -79,12 +79,22 @@ async function getTrace(page: any, token: string) {
 function httpSteps(steps: any[]) { return steps.filter((s: any) => s.node_type === 'http_request' && s.status === 'success'); }
 function lastOutput(steps: any[]) { return httpSteps(steps).pop()?.outputs.main[0]; }
 
+let cachedToken: string | null = null;
+
 async function registerAndLogin(page: any) {
+  // Reuse one account per worker. A fresh register+login per test trips the
+  // login throttle (429) partway through the suite.
+  if (cachedToken) return cachedToken;
   const email = `sf_${Date.now()}_${Math.random().toString(36).slice(2,6)}@example.com`;
-  await page.request.post(`${API}/api/auth/register`, { data: { email, password: 'P@ssword1' } });
+  const reg = await page.request.post(`${API}/api/auth/register`, { data: { email, password: 'P@ssword1' } });
+  if (!reg.ok()) throw new Error(`register failed ${reg.status()}: ${await reg.text()}`);
   const lr = await page.request.post(`${API}/api/auth/login`, { data: { email, password: 'P@ssword1' } });
-  const { data } = await lr.json();
-  return data.token as string;
+  const payload = await lr.json();
+  if (!lr.ok() || !payload?.data?.token) {
+    throw new Error(`login failed ${lr.status()}: ${JSON.stringify(payload)}`);
+  }
+  cachedToken = payload.data.token as string;
+  return cachedToken;
 }
 
 async function runOneHttp(page: any, token: string, url: string, method = 'GET', extra: Record<string, any> = {}) {

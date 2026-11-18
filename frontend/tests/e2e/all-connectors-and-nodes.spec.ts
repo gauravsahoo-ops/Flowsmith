@@ -249,7 +249,32 @@ test.describe('Exhaustive Connectors & Nodes Audit', () => {
 
     await page.locator('button.primary--run, button[aria-label="Run workflow"]').first().click();
 
-    // Verify successful node status rings appear on canvas
-    await expect(page.locator('.rf-node.status-success')).toHaveCount(4, { timeout: 30000 });
+    // The execution record is authoritative. Canvas node status rings are
+    // virtualized (off-screen nodes are not in the DOM), so poll the API
+    // instead of relying on a visible count.
+    const wfId = await page.evaluate(() => window.__wfStore.getState().workflow.id);
+    const token = await page.evaluate(() => localStorage.getItem('mat_token'));
+    const headers = { Authorization: `Bearer ${token}` };
+    let execution: any = null;
+    for (let i = 0; i < 60; i += 1) {
+      const res = await page.request.get(
+        `http://localhost:8000/api/executions?workflow_id=${wfId}&pageSize=5`,
+        { headers },
+      );
+      const list = (await res.json()).data || [];
+      execution = list.find((e: any) => e.workflow_id === wfId) || null;
+      if (execution && !['queued', 'running', 'pending'].includes(execution.status)) break;
+      await page.waitForTimeout(1000);
+    }
+    expect(execution, 'an execution was created').toBeTruthy();
+    expect(execution.status).toBe('success');
+
+    const detailRes = await page.request.get(
+      `http://localhost:8000/api/executions/${execution.id}`,
+      { headers },
+    );
+    const detail = (await detailRes.json()).data;
+    const statuses = Object.values(detail.node_statuses || {});
+    expect(statuses.filter((s) => s === 'success')).toHaveLength(4);
   });
 });

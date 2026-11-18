@@ -1,7 +1,9 @@
 /// <reference path="./global.d.ts" />
 import { test, expect } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
 
-const ARTIFACT_DIR = 'C:/Users/ASUS/.gemini/antigravity-ide/brain/46dbcdd7-1a7d-47df-82eb-190615f2480b';
+const ARTIFACT_DIR = 'test-results/system-audit';
+mkdirSync(ARTIFACT_DIR, { recursive: true });
 
 test('system browser audit: login, overview, integrations marketplace, ai copilot, workflows', async ({ page }) => {
   test.setTimeout(90000);
@@ -13,15 +15,16 @@ test('system browser audit: login, overview, integrations marketplace, ai copilo
   // Take screenshot of Login page
   await page.screenshot({ path: `${ARTIFACT_DIR}/login_page_audit.png`, fullPage: true });
 
-  // 2. Log in using admin credentials
-  const emailInput = page.locator('input[type="email"]');
-  const passwordInput = page.locator('input[type="password"]');
+  // 2. Log in using admin credentials.
+  // The login field accepts a username or an email, so it renders as
+  // type="text" in login mode; target its placeholder instead.
+  const emailInput = page.getByPlaceholder('name@company.com or username');
+  const passwordInput = page.locator('input[autocomplete="current-password"]');
 
-  if (await emailInput.isVisible()) {
-    await emailInput.fill('admin@flowsmith.io');
-    await passwordInput.fill('Admin123!');
-    await page.locator('button[type="submit"]').click();
-  }
+  await expect(emailInput).toBeVisible();
+  await emailInput.fill('admin@flowsmith.io');
+  await passwordInput.fill('Admin123!');
+  await page.locator('button[type="submit"]').click();
 
   // Wait for redirect to overview
   await page.waitForURL('**/overview', { timeout: 15000 });

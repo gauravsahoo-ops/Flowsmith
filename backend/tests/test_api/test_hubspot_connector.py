@@ -597,3 +597,25 @@ def test_private_token_wins_over_stale_oauth_flag():
         })
     )
     assert token == "pat-current"
+
+
+def test_unresolved_properties_expression_has_clear_error():
+    """A child workflow run without upstream data must explain the mistake.
+
+    The expression engine leaves ``{{ ... }}`` as a literal string; the
+    connector should say how to fix it instead of emitting a bare dict_type
+    validation error.
+    """
+    from pydantic import ValidationError
+
+    from app.connectors.hubspot_connector import HubSpotConnectorParams
+
+    with pytest.raises(ValidationError) as excinfo:
+        HubSpotConnectorParams(
+            operation="create",
+            object_type="companies",
+            properties="{{ $node.start.json.company_properties }}",
+        )
+    message = str(excinfo.value)
+    assert "not resolved" in message
+    assert "Run this workflow from its parent" in message

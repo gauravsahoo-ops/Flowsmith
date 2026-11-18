@@ -65,6 +65,23 @@ class HubSpotConnectorParams(BaseModel):
     to_record_id: str = Field(default="", description="Target record id.")
     association_type_id: str = Field(default="1", description="Association type id / label.")
 
+    @field_validator("properties", mode="before")
+    @classmethod
+    def _properties_must_be_object(cls, value: Any) -> Any:
+        """Turn an unresolved expression into an actionable error.
+
+        When a child workflow is run on its own, ``{{ ... }}`` templates have
+        no upstream value and arrive as literal strings. Pydantic's default
+        dict_type error does not tell the operator why.
+        """
+        if isinstance(value, str) and "{{" in value:
+            raise ValueError(
+                "properties must be an object, but the expression was not resolved. "
+                "Run this workflow from its parent (which supplies company_properties/"
+                "contact_properties/deal_properties), or provide a literal property object."
+            )
+        return value
+
     @field_validator(
         "owner_id",
         "record_id",

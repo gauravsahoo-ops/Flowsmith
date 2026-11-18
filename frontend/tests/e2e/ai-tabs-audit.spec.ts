@@ -334,8 +334,9 @@ test.describe('AI Copilot & Autonomous Agent E2E Audit', () => {
     // Verify only 2 tabs exist
     await expect(page.getByRole('button', { name: /Autonomous Agent Console/i })).toHaveCount(0);
 
-    // Switch to AI Architecture & MCP tab
-    const archTabBtn = page.getByRole('button', { name: /AI Architecture & MCP/i });
+    // Switch to AI Architecture & MCP tab. The shared Tabs component renders
+    // semantic role="tab" elements, not buttons.
+    const archTabBtn = page.getByRole('tab', { name: /AI Architecture & MCP/i });
     await expect(archTabBtn).toBeVisible();
     await archTabBtn.click();
     await page.waitForTimeout(600);
