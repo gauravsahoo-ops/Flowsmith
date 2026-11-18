@@ -519,3 +519,62 @@ def test_connector_params_coerce_numeric_hubspot_ids():
     assert params.association_type_id == "5"
     assert params.record_id == "123"
     assert params.owner_id == "456"
+
+def test_hubspot_oauth_app_config_resolves_from_database(client, monkeypatch):
+    """HubSpot OAuth app credentials can live encrypted in PostgreSQL.
+
+    The OAuth connect flow stores a ``hubspot_oauth_config`` credential, while
+    runtime refresh receives only the connection credential. The provider must
+    resolve the app config from the database when process env vars are absent.
+    """
+    import json
+
+    from sqlalchemy import select
+
+    from app.db import get_session
+    from app.models import Credential, User
+    from app.security.crypto import encrypt_text
+    from tests.test_api.conftest import register
+
+    data = register(client, email="hubspot-db-config@test.com")
+    db = get_session()
+    try:
+        user = db.scalar(select(User).where(User.email == "hubspot-db-config@test.com"))
+        assert user is not None
+        db.add(Credential(
+            id="cfg_hubspot_test",
+            user_id=user.id,
+            name="HubSpot Connected App (Database Config)",
+            type="hubspot_oauth_config",
+            data=encrypt_text(json.dumps({
+                "client_id": "db-client-id",
+                "client_secret": "db-client-secret",
+                "redirect_uri": "https://example.test/api/auth/hubspot/callback",
+            })),
+        ))
+        db.add(Credential(
+            id="cred_hubspot_oauth_test",
+            user_id=user.id,
+            name="HubSpot OAuth",
+            type="hubspot",
+            data=encrypt_text(json.dumps({"oauth": True, "refresh_token": "rt-test"})),
+        ))
+        db.commit()
+    finally:
+        db.close()
+
+    monkeypatch.setattr(
+        "app.providers.hubspot.get_settings",
+        lambda: _settings(hubspot_client_id="", hubspot_client_secret=""),
+    )
+    from app.providers.hubspot import HubSpotProviderClient
+
+    merged = HubSpotProviderClient()._apply_server_oauth_config({
+        "oauth": True,
+        "refresh_token": "rt-test",
+        "_credential_id": "cred_hubspot_oauth_test",
+    })
+    assert merged["client_id"] == "db-client-id"
+    assert merged["client_secret"] == "db-client-secret"
+    assert data.get("token")
+

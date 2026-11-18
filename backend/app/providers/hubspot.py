@@ -64,6 +64,44 @@ class HubSpotProviderClient:
     def reset(self) -> None:
         self._access_tokens.clear()
 
+    def _apply_server_oauth_config(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Inject OAuth app credentials for a HubSpot connection.
+
+        HubSpot credentials created by the OAuth connect flow intentionally do
+        not carry the app's client id/secret (they are server configuration).
+        Resolve them from Settings first, then from the tenant-scoped encrypted
+        ``hubspot_oauth_config`` credential in the database. This mirrors the
+        Salesforce provider so both connectors work without process env vars.
+        """
+        if not (creds.get("oauth") or creds.get("refresh_token")):
+            return creds
+        settings = get_settings()
+        client_id = (creds.get("client_id") or "").strip() or settings.hubspot_client_id
+        client_secret = (creds.get("client_secret") or "").strip() or settings.hubspot_client_secret
+        if not client_id or not client_secret:
+            try:
+                from app.db import get_session
+                from app.models.credential import Credential
+                from app.oauth_providers import HUBSPOT
+
+                with get_session() as db:
+                    owner_id = None
+                    credential_id = str(creds.get("_credential_id") or "").strip()
+                    if credential_id:
+                        owner = db.get(Credential, credential_id)
+                        owner_id = owner.user_id if owner is not None else None
+                    if owner_id is not None:
+                        cid, sec, _ = HUBSPOT.server_config(settings, db=db, user_id=owner_id)
+                        client_id = client_id or cid
+                        client_secret = client_secret or sec
+            except Exception:
+                pass
+        return {
+            **creds,
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+
     # ------------------------------------------------------------------
     # Auth
     # ------------------------------------------------------------------
@@ -147,6 +185,7 @@ class HubSpotProviderClient:
         return token, time.monotonic() + max(expires_in - 60.0, 30.0)
 
     async def _access_token(self, creds: dict[str, Any]) -> str:
+        creds = self._apply_server_oauth_config(creds)
         private = str(creds.get("private_token") or "").strip()
         if private and not creds.get("oauth"):
             return private
