@@ -895,6 +895,49 @@ def test_update_credential_config_patch(client, monkeypatch):
         db.close()
 
 
+def test_update_credential_config_private_token_disables_oauth(client):
+    """Replacing OAuth with a private token must disable the OAuth path.
+
+    Otherwise the stored ``oauth`` flag keeps the connector refreshing an
+    unusable refresh_token and the newly saved private token is ignored.
+    """
+    headers = _setup(client)
+    create_res = client.post(
+        "/api/credentials",
+        json={
+            "name": "HubSpot OAuth to replace",
+            "type": "hubspot",
+            "data": {
+                "oauth": True,
+                "refresh_token": "rt-old",
+                "client_id": "old-client",
+                "client_secret": "old-secret",
+            },
+        },
+        headers=headers,
+    )
+    assert create_res.status_code == 201, create_res.text
+    cred_id = create_res.json()["data"]["id"]
+
+    patch_res = client.patch(
+        f"/api/credentials/{cred_id}/config",
+        json={"private_token": "pat-new-static-token"},
+        headers=headers,
+    )
+    assert patch_res.status_code == 200, patch_res.text
+
+    db = get_session()
+    try:
+        rec = db.get(Credential, cred_id)
+        assert rec is not None
+        plain = json.loads(decrypt_text(rec.data))
+        assert plain["private_token"] == "pat-new-static-token"
+        assert plain["oauth"] is False
+        assert "refresh_token" not in plain
+    finally:
+        db.close()
+
+
 def test_connect_and_callback_with_custom_client_credentials(client):
     """Connecting with custom client_id/secret preserves them in credential data."""
     headers = _setup(client)

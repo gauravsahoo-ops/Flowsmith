@@ -578,3 +578,22 @@ def test_hubspot_oauth_app_config_resolves_from_database(client, monkeypatch):
     assert merged["client_secret"] == "db-client-secret"
     assert data.get("token")
 
+
+
+def test_private_token_wins_over_stale_oauth_flag():
+    """A credential edited from OAuth to a private token must use the token.
+
+    UI edits previously left ``oauth: True`` next to the new private token,
+    which made the provider try an unusable refresh_token instead.
+    """
+    from app.providers.hubspot import HubSpotProviderClient
+
+    client = HubSpotProviderClient()
+    token = __import__("asyncio").run(
+        client._access_token({
+            "oauth": True,
+            "refresh_token": "rt-stale",
+            "private_token": "pat-current",
+        })
+    )
+    assert token == "pat-current"

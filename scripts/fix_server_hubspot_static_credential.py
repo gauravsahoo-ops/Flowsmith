@@ -1,11 +1,11 @@
-"""Switch deployed workflows to a HubSpot static-token credential.
+"""Switch a deployed workflow's HubSpot credential to a static private token.
 
-Run this INSIDE the server's app container, where the database URL and the
-credential encryption key are available. It creates (or updates) a HubSpot
-private-token credential and rebinds every HubSpot node in the target user's
-workflows to it, so the old OAuth credential/error is no longer used.
+Run this INSIDE the server's app container, where DATABASE_URL and the
+credential encryption key are available. By default it converts the HubSpot
+credentials already referenced by the workflow in place, so every HubSpot node
+keeps working without editing or re-versioning the workflow.
 
-This script does not print the token. It is safe to run more than once.
+The token is never printed. The script is safe to run more than once.
 
 Examples (on the server host):
 
@@ -14,12 +14,17 @@ Examples (on the server host):
 
 Optional environment variables:
 
-    USER_ID            owner id (defaults to the owner of the target workflow)
-    WORKFLOW_ID        only rebind this workflow (default: all of the owner's
-                       workflows that contain HubSpot nodes)
-    CREDENTIAL_NAME    credential display name
-    HUBSPOT_STATIC_TOKEN  required unless --token-file is used
-    --token-file PATH  read the token from a file instead of the environment
+    USER_ID              owner id (defaults to the owner of the target workflow)
+    WORKFLOW_ID          only touch this workflow (default: all of the owner's
+                         workflows that contain HubSpot nodes)
+    CREDENTIAL_NAME      credential used by --rebind
+    HUBSPOT_STATIC_TOKEN required unless --token-file is used
+
+Modes:
+
+    (default)  convert the credentials the workflow already uses to the static
+               token; no workflow version change
+    --rebind   create/update CREDENTIAL_NAME and point every HubSpot node at it
 """
 
 from __future__ import annotations
@@ -31,10 +36,10 @@ import sys
 import uuid
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-BACKEND = ROOT / "backend"
-if str(BACKEND) not in sys.path:
-    sys.path.insert(0, str(BACKEND))
+_HERE = Path(__file__).resolve()
+for candidate in (_HERE.parents[1] / "backend", _HERE.parents[1], Path("/app"), Path("/app/backend")):
+    if (candidate / "app").is_dir() and str(candidate) not in sys.path:
+        sys.path.insert(0, str(candidate))
 
 from app.credentials.service import create_for_user, update_for_user
 from app.db import get_session
@@ -49,6 +54,17 @@ def _token_from_args(args: argparse.Namespace) -> str:
     if args.token_file:
         return Path(args.token_file).read_text(encoding="utf-8").strip()
     return (os.environ.get("HUBSPOT_STATIC_TOKEN") or "").strip()
+
+
+def _hubspot_credential_ids(data: dict) -> set[str]:
+    ids: set[str] = set()
+    for node in data.get("nodes") or []:
+        if node.get("type") != "hubspot":
+            continue
+        credential_id = str((node.get("credentials") or {}).get("hubspot") or "").strip()
+        if credential_id:
+            ids.add(credential_id)
+    return ids
 
 
 def _rewrite_workflow(data: dict, credential_id: str) -> tuple[dict, int]:
@@ -68,6 +84,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true", help="persist the changes")
     parser.add_argument("--token-file", default="", help="read the static token from this path")
+    parser.add_argument("--rebind", action="store_true", help="point every HubSpot node at CREDENTIAL_NAME")
     args = parser.parse_args()
 
     token = _token_from_args(args)
@@ -106,6 +123,45 @@ def main() -> int:
         if not user_id:
             user_id = workflows[0].user_id
 
+        referenced = sorted({cid for w in workflows for cid in _hubspot_credential_ids(w.data or {})})
+        if not referenced:
+            print("HubSpot nodes have no credential id.", file=sys.stderr)
+            return 1
+
+        print(f"owner={user_id} workflows={len(workflows)} credentials={len(referenced)}")
+
+        if not args.rebind:
+            credentials = list(
+                db.scalars(
+                    select(Credential).where(
+                        Credential.user_id == user_id,
+                        Credential.id.in_(referenced),
+                    )
+                ).all()
+            )
+            found = {c.id for c in credentials}
+            missing = [cid for cid in referenced if cid not in found]
+            if missing:
+                print(f"credentials not found for owner: {', '.join(missing)}", file=sys.stderr)
+                return 1
+            for credential in credentials:
+                if credential.type != "hubspot":
+                    print(f"{credential.id} is type {credential.type!r}, refusing to convert", file=sys.stderr)
+                    return 1
+                print(f"  convert {credential.id} ({credential.name}) to a private token")
+            if not args.apply:
+                print("dry run only; pass --apply to persist")
+                return 0
+            for credential in credentials:
+                update_for_user(
+                    db,
+                    user_id,
+                    credential.id,
+                    data={"private_token": token, "oauth": False},
+                )
+            print("done; workflows were not modified")
+            return 0
+
         name = (os.environ.get("CREDENTIAL_NAME") or DEFAULT_NAME).strip()
         existing = db.scalar(
             select(Credential).where(
@@ -114,18 +170,15 @@ def main() -> int:
                 Credential.name == name,
             )
         )
-        print(f"owner={user_id} credential={name} workflows={len(workflows)}")
         if not args.apply:
-            print("dry run only; pass --apply to persist")
+            print(f"dry run only; would create/update {name!r} and rebind")
             for w in workflows:
                 count = sum(1 for n in (w.data or {}).get("nodes", []) if n.get("type") == "hubspot")
                 print(f"  would update {w.id} ({w.name}) v{w.version}: {count} HubSpot nodes")
             return 0
 
         if existing is None:
-            meta = create_for_user(
-                db, user_id, name, "hubspot", {"private_token": token}
-            )
+            meta = create_for_user(db, user_id, name, "hubspot", {"private_token": token})
         else:
             meta = update_for_user(
                 db, user_id, existing.id, data={"private_token": token, "oauth": False}

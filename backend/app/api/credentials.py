@@ -447,7 +447,12 @@ def update_credential_config(
         data["instance_url"] = body.instance_url.strip()
     private_token = (body.private_token or "").strip()
     if private_token and "••••" not in private_token and private_token != "********":
+        # Replacing an OAuth connection with a private token must disable the
+        # OAuth path; otherwise the stored ``oauth`` flag keeps the connector
+        # refreshing an unusable refresh_token and the new token is ignored.
         data["private_token"] = private_token
+        data["oauth"] = False
+        data.pop("refresh_token", None)
 
     rec.data = encrypt_text(json.dumps(data, ensure_ascii=False))
     db.commit()

@@ -187,7 +187,9 @@ class HubSpotProviderClient:
     async def _access_token(self, creds: dict[str, Any]) -> str:
         creds = self._apply_server_oauth_config(creds)
         private = str(creds.get("private_token") or "").strip()
-        if private and not creds.get("oauth"):
+        # An explicitly supplied private token wins over a stale ``oauth``
+        # flag left behind by an edited/replaced OAuth credential.
+        if private:
             return private
         refresh_token = str(creds.get("refresh_token") or "").strip()
         if not refresh_token:
