@@ -1,0 +1,15 @@
+# Copy this file to hubspot.config.local.yml for local HubSpot CLI work.
+# Never commit real tokens. hubspot.config.yml is intentionally kept as a
+# credential-free placeholder in version control.
+defaultPortal: your-portal
+portals:
+  - name: your-portal
+    env: sandbox
+    authType: personalaccesskey
+    accountType: STANDARD
+    personalAccessKey: REPLACE_WITH_PERSONAL_ACCESS_KEY
+    auth:
+      tokenInfo:
+        accessToken: REPLACE_WITH_ACCESS_TOKEN
+        expiresAt: "1970-01-01T00:00:00.000Z"
+    portalId: 0

@@ -1,1 +1,3 @@
+# Local HubSpot CLI configuration. Live credentials must not be committed.
+# Keep real values in hubspot.config.local.yml (ignored) or a secret manager.
 portals: []

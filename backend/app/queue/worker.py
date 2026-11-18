@@ -204,10 +204,20 @@ class QueueWorker:
 
         # A waiting_approval execution's job is done: the row stays open
         # until resume/cancel (spec 25.3: executions are authoritative).
-        self.queue.complete(
-            job.id,
-            DONE if status in ("success", "cancelled", "timeout", "waiting_approval", "waiting_auth") else FAILED,
-        )
+        done_statuses = ("success", "cancelled", "timeout", "waiting_approval", "waiting_auth")
+        known_statuses = done_statuses + ("failed",)
+        if status not in known_statuses:
+            # run_job could not advance the execution row (e.g. the job was
+            # claimed by a worker pointed at a different database). Surface it
+            # instead of silently completing the transport job.
+            logger.warning(
+                "job %s returned unexpected status %r for execution %s; "
+                "the execution row may not have been updated",
+                job.id,
+                status,
+                job.execution_id,
+            )
+        self.queue.complete(job.id, DONE if status in done_statuses else FAILED)
         return True
 
     async def _heartbeat(self, job_id: str) -> None:

@@ -43,6 +43,18 @@ from app.orchestration.finalizer import (
     mark_deliveries as _mark_deliveries,
     node_statuses as _node_statuses,
 )
+
+
+def _queue_wait_ms(started_at: datetime, now_utc: datetime) -> float:
+    """Milliseconds between queue start and execution start.
+
+    SQLite (used by the live acceptance harness) returns naive datetimes,
+    while Postgres returns timezone-aware ones. Normalize before subtracting
+    so both backends produce a duration instead of raising TypeError.
+    """
+    if started_at.tzinfo is None:
+        started_at = started_at.replace(tzinfo=UTC)
+    return round(max(0.0, (now_utc - started_at).total_seconds() * 1000.0), 2)
 from app.queue import QueueJob
 from app.schemas.workflow import Workflow
 
@@ -213,6 +225,16 @@ class RunCoordinator:
         try:
             rec = db.get(ExecutionModel, execution_id)
             if rec is None:
+                # A consumer connected to a different database can claim a job
+                # from the shared queue and then never find the execution row.
+                # Without this log the job silently fails and the real
+                # execution sits "queued" until the orphan sweep repeats it.
+                logger.error(
+                    "job %s references execution %s, which does not exist in this "
+                    "worker's database; check DATABASE_URL and queue isolation",
+                    job.id,
+                    execution_id,
+                )
                 return "failed"
             if rec.status in ("cancelling", "cancelled"):
                 # Cancelled before a worker picked it up (spec 36). Publish
@@ -235,8 +257,7 @@ class RunCoordinator:
             now_utc = datetime.now(UTC)
             q_wait_ms = None
             if rec.started_at:
-                raw_wait = (now_utc - rec.started_at).total_seconds() * 1000.0
-                q_wait_ms = round(max(0.0, raw_wait), 2)
+                q_wait_ms = _queue_wait_ms(rec.started_at, now_utc)
 
             flipped = (
                 db.query(ExecutionModel)

@@ -91,6 +91,7 @@ restart.bat
 
 # User archive / backups
 files.zip
+varg/
 
 tmp/
 1/
@@ -98,3 +99,8 @@ tmp/
 # Private keys / certificates (never commit)
 *.pem
 *.key
+
+# Local vendor CLI credentials (never commit)
+hubspot.config.yml
+hubspot.config.local.yml
+*.config.local.yml

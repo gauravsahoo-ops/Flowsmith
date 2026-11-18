@@ -1,0 +1,800 @@
+{
+  "id": "wf_salesforce_hubspot_contact_upsert",
+  "name": "HubSpot Contact Upsert (Salesforce Contact)",
+  "status": "draft",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "manual_trigger",
+      "name": "Contact Input",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "parameters": {},
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "search_company",
+      "type": "hubspot",
+      "name": "Find Company by Domain",
+      "position": {
+        "x": 220,
+        "y": 0
+      },
+      "parameters": {
+        "operation": "search",
+        "object_type": "companies",
+        "search_field": "domain",
+        "search_value": "{{ $node.start.json.company_domain }}",
+        "limit": 1
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "company_found",
+      "type": "if_condition",
+      "name": "Company Exists?",
+      "position": {
+        "x": 440,
+        "y": 0
+      },
+      "parameters": {
+        "conditions": [
+          {
+            "id": "company_found",
+            "left": "{{ $json.found }}",
+            "operator": "is true",
+            "right": "",
+            "combinator": "AND"
+          }
+        ],
+        "combinator": "AND"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "update_company",
+      "type": "hubspot",
+      "name": "Update Company",
+      "position": {
+        "x": 660,
+        "y": -80
+      },
+      "parameters": {
+        "operation": "update",
+        "object_type": "companies",
+        "record_id": "{{ $node.search_company.json.record.id }}",
+        "properties": "{{ $node.start.json.company_properties }}"
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "create_company",
+      "type": "hubspot",
+      "name": "Create Company",
+      "position": {
+        "x": 660,
+        "y": 80
+      },
+      "parameters": {
+        "operation": "create",
+        "object_type": "companies",
+        "properties": "{{ $node.start.json.company_properties }}"
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 0,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "company_done",
+      "type": "merge",
+      "name": "Company Upserted",
+      "position": {
+        "x": 880,
+        "y": 0
+      },
+      "parameters": {
+        "strategy": "concat"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "company_context",
+      "type": "set_data",
+      "name": "Carry Company Context",
+      "position": {
+        "x": 1100,
+        "y": 0
+      },
+      "parameters": {
+        "mode": "merge",
+        "fields": {
+          "company_id": "{{ $json.id }}",
+          "company_action": "{{ $node.search_company.json.found ? 'updated' : 'created' }}",
+          "company_domain": "{{ $node.start.json.company_domain }}",
+          "sf_contact_id": "{{ $node.start.json.sf_contact_id }}",
+          "sf_account_id": "{{ $node.start.json.sf_account_id }}",
+          "contact_email": "{{ $node.start.json.contact_email }}",
+          "contact_properties": "{{ $node.start.json.contact_properties }}",
+          "account_name": "{{ $node.start.json.account_name }}",
+          "lead_score": "{{ $node.start.json.lead_score }}",
+          "lead_tier": "{{ $node.start.json.lead_tier }}",
+          "is_high_value": "{{ $node.start.json.is_high_value }}",
+          "deal_name": "{{ $node.start.json.deal_name }}",
+          "deal_properties": "{{ $node.start.json.deal_properties }}",
+          "batch_fetched": "{{ $node.start.json.batch_fetched }}",
+          "batch_eligible": "{{ $node.start.json.batch_eligible }}"
+        }
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "search_contact",
+      "type": "hubspot",
+      "name": "Find Contact by Email",
+      "position": {
+        "x": 1320,
+        "y": 0
+      },
+      "parameters": {
+        "operation": "search",
+        "object_type": "contacts",
+        "search_field": "email",
+        "search_value": "{{ $node.start.json.contact_email }}",
+        "limit": 1
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "contact_found",
+      "type": "if_condition",
+      "name": "Contact Exists?",
+      "position": {
+        "x": 1540,
+        "y": 0
+      },
+      "parameters": {
+        "conditions": [
+          {
+            "id": "contact_found",
+            "left": "{{ $json.found }}",
+            "operator": "is true",
+            "right": "",
+            "combinator": "AND"
+          }
+        ],
+        "combinator": "AND"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "update_contact",
+      "type": "hubspot",
+      "name": "Update Contact",
+      "position": {
+        "x": 1760,
+        "y": -80
+      },
+      "parameters": {
+        "operation": "update",
+        "object_type": "contacts",
+        "record_id": "{{ $node.search_contact.json.record.id }}",
+        "properties": "{{ $node.start.json.contact_properties }}"
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "create_contact",
+      "type": "hubspot",
+      "name": "Create Contact",
+      "position": {
+        "x": 1760,
+        "y": 80
+      },
+      "parameters": {
+        "operation": "create",
+        "object_type": "contacts",
+        "properties": "{{ $node.start.json.contact_properties }}"
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 0,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "contact_done",
+      "type": "merge",
+      "name": "Contact Upserted",
+      "position": {
+        "x": 1980,
+        "y": 0
+      },
+      "parameters": {
+        "strategy": "concat"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "contact_context",
+      "type": "set_data",
+      "name": "Carry Contact Context",
+      "position": {
+        "x": 2200,
+        "y": 0
+      },
+      "parameters": {
+        "mode": "merge",
+        "fields": {
+          "contact_id": "{{ $json.id }}",
+          "contact_action": "{{ $node.search_contact.json.found ? 'updated' : 'created' }}",
+          "sf_contact_id": "{{ $node.company_context.json.sf_contact_id }}",
+          "sf_account_id": "{{ $node.company_context.json.sf_account_id }}",
+          "contact_email": "{{ $node.company_context.json.contact_email }}",
+          "account_name": "{{ $node.company_context.json.account_name }}",
+          "lead_score": "{{ $node.company_context.json.lead_score }}",
+          "lead_tier": "{{ $node.company_context.json.lead_tier }}",
+          "is_high_value": "{{ $node.company_context.json.is_high_value }}",
+          "company_id": "{{ $node.company_context.json.company_id }}",
+          "company_action": "{{ $node.company_context.json.company_action }}",
+          "company_domain": "{{ $node.company_context.json.company_domain }}",
+          "deal_name": "{{ $node.company_context.json.deal_name }}",
+          "deal_properties": "{{ $node.company_context.json.deal_properties }}",
+          "batch_fetched": "{{ $node.company_context.json.batch_fetched }}",
+          "batch_eligible": "{{ $node.company_context.json.batch_eligible }}"
+        }
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "associate_contact_company",
+      "type": "hubspot",
+      "name": "Associate Contact to Company",
+      "position": {
+        "x": 2420,
+        "y": 0
+      },
+      "parameters": {
+        "operation": "associate_records",
+        "from_object_type": "contacts",
+        "from_record_id": "{{ $node.contact_context.json.contact_id }}",
+        "to_object_type": "companies",
+        "to_record_id": "{{ $node.contact_context.json.company_id }}",
+        "association_type_id": "1"
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "association_context",
+      "type": "set_data",
+      "name": "Carry Association Context",
+      "position": {
+        "x": 2640,
+        "y": 0
+      },
+      "parameters": {
+        "mode": "merge",
+        "fields": {
+          "association_ok": "{{ $json.success }}",
+          "contact_id": "{{ $node.contact_context.json.contact_id }}",
+          "contact_action": "{{ $node.contact_context.json.contact_action }}",
+          "company_id": "{{ $node.contact_context.json.company_id }}",
+          "company_action": "{{ $node.contact_context.json.company_action }}",
+          "company_domain": "{{ $node.contact_context.json.company_domain }}",
+          "sf_contact_id": "{{ $node.contact_context.json.sf_contact_id }}",
+          "sf_account_id": "{{ $node.contact_context.json.sf_account_id }}",
+          "contact_email": "{{ $node.contact_context.json.contact_email }}",
+          "account_name": "{{ $node.contact_context.json.account_name }}",
+          "lead_score": "{{ $node.contact_context.json.lead_score }}",
+          "lead_tier": "{{ $node.contact_context.json.lead_tier }}",
+          "is_high_value": "{{ $node.contact_context.json.is_high_value }}",
+          "deal_name": "{{ $node.contact_context.json.deal_name }}",
+          "deal_properties": "{{ $node.contact_context.json.deal_properties }}",
+          "batch_fetched": "{{ $node.contact_context.json.batch_fetched }}",
+          "batch_eligible": "{{ $node.contact_context.json.batch_eligible }}"
+        }
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "high_value",
+      "type": "if_condition",
+      "name": "High-Value Account?",
+      "position": {
+        "x": 2860,
+        "y": 0
+      },
+      "parameters": {
+        "conditions": [
+          {
+            "id": "high_value",
+            "left": "{{ $json.is_high_value }}",
+            "operator": "is true",
+            "right": "",
+            "combinator": "AND"
+          }
+        ],
+        "combinator": "AND"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "search_deal",
+      "type": "hubspot",
+      "name": "Find Deal by Name",
+      "position": {
+        "x": 3080,
+        "y": -120
+      },
+      "parameters": {
+        "operation": "search",
+        "object_type": "deals",
+        "search_field": "dealname",
+        "search_value": "{{ $node.association_context.json.deal_name }}",
+        "limit": 1
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "deal_found",
+      "type": "if_condition",
+      "name": "Deal Exists?",
+      "position": {
+        "x": 3300,
+        "y": -120
+      },
+      "parameters": {
+        "conditions": [
+          {
+            "id": "deal_found",
+            "left": "{{ $json.found }}",
+            "operator": "is true",
+            "right": "",
+            "combinator": "AND"
+          }
+        ],
+        "combinator": "AND"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "update_deal",
+      "type": "hubspot",
+      "name": "Update Deal",
+      "position": {
+        "x": 3520,
+        "y": -200
+      },
+      "parameters": {
+        "operation": "update",
+        "object_type": "deals",
+        "record_id": "{{ $node.search_deal.json.record.id }}",
+        "properties": "{{ $node.association_context.json.deal_properties }}"
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "create_deal",
+      "type": "hubspot",
+      "name": "Create Deal",
+      "position": {
+        "x": 3520,
+        "y": -40
+      },
+      "parameters": {
+        "operation": "create",
+        "object_type": "deals",
+        "properties": "{{ $node.association_context.json.deal_properties }}"
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 0,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "deal_done",
+      "type": "merge",
+      "name": "Deal Upserted",
+      "position": {
+        "x": 3740,
+        "y": -120
+      },
+      "parameters": {
+        "strategy": "concat"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "associate_deal_company",
+      "type": "hubspot",
+      "name": "Associate Deal to Company",
+      "position": {
+        "x": 3960,
+        "y": -120
+      },
+      "parameters": {
+        "operation": "associate_records",
+        "from_object_type": "deals",
+        "from_record_id": "{{ $json.id }}",
+        "to_object_type": "companies",
+        "to_record_id": "{{ $node.association_context.json.company_id }}",
+        "association_type_id": "5"
+      },
+      "credentials": {
+        "hubspot": "REPLACE_WITH_HUBSPOT_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 1
+      }
+    },
+    {
+      "id": "deal_context",
+      "type": "set_data",
+      "name": "Carry Deal Context",
+      "position": {
+        "x": 4180,
+        "y": -120
+      },
+      "parameters": {
+        "mode": "merge",
+        "fields": {
+          "deal_id": "{{ $json.from_record_id }}",
+          "deal_action": "{{ $node.deal_found.json.found ? 'updated' : 'created' }}",
+          "deal_association_ok": "{{ $json.success }}",
+          "status": "synced",
+          "contact_id": "{{ $node.association_context.json.contact_id }}",
+          "contact_action": "{{ $node.association_context.json.contact_action }}",
+          "company_id": "{{ $node.association_context.json.company_id }}",
+          "company_action": "{{ $node.association_context.json.company_action }}",
+          "company_domain": "{{ $node.association_context.json.company_domain }}",
+          "sf_contact_id": "{{ $node.association_context.json.sf_contact_id }}",
+          "sf_account_id": "{{ $node.association_context.json.sf_account_id }}",
+          "contact_email": "{{ $node.association_context.json.contact_email }}",
+          "account_name": "{{ $node.association_context.json.account_name }}",
+          "lead_score": "{{ $node.association_context.json.lead_score }}",
+          "lead_tier": "{{ $node.association_context.json.lead_tier }}",
+          "is_high_value": "{{ $node.association_context.json.is_high_value }}",
+          "deal_name": "{{ $node.association_context.json.deal_name }}",
+          "deal_properties": "{{ $node.association_context.json.deal_properties }}",
+          "batch_fetched": "{{ $node.association_context.json.batch_fetched }}",
+          "batch_eligible": "{{ $node.association_context.json.batch_eligible }}",
+          "association_ok": "{{ $node.association_context.json.association_ok }}"
+        }
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "deal_skipped",
+      "type": "set_data",
+      "name": "No Deal Required",
+      "position": {
+        "x": 3080,
+        "y": 120
+      },
+      "parameters": {
+        "mode": "merge",
+        "fields": {
+          "deal_id": "",
+          "deal_action": "not_applicable",
+          "deal_association_ok": false,
+          "status": "synced",
+          "contact_id": "{{ $node.association_context.json.contact_id }}",
+          "contact_action": "{{ $node.association_context.json.contact_action }}",
+          "company_id": "{{ $node.association_context.json.company_id }}",
+          "company_action": "{{ $node.association_context.json.company_action }}",
+          "company_domain": "{{ $node.association_context.json.company_domain }}",
+          "sf_contact_id": "{{ $node.association_context.json.sf_contact_id }}",
+          "sf_account_id": "{{ $node.association_context.json.sf_account_id }}",
+          "contact_email": "{{ $node.association_context.json.contact_email }}",
+          "account_name": "{{ $node.association_context.json.account_name }}",
+          "lead_score": "{{ $node.association_context.json.lead_score }}",
+          "lead_tier": "{{ $node.association_context.json.lead_tier }}",
+          "is_high_value": "{{ $node.association_context.json.is_high_value }}",
+          "deal_name": "{{ $node.association_context.json.deal_name }}",
+          "deal_properties": "{{ $node.association_context.json.deal_properties }}",
+          "batch_fetched": "{{ $node.association_context.json.batch_fetched }}",
+          "batch_eligible": "{{ $node.association_context.json.batch_eligible }}",
+          "association_ok": "{{ $node.association_context.json.association_ok }}"
+        }
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "deal_paths",
+      "type": "merge",
+      "name": "Collect Deal Path",
+      "position": {
+        "x": 4400,
+        "y": 0
+      },
+      "parameters": {
+        "strategy": "concat"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "result",
+      "type": "set_data",
+      "name": "Contact Sync Result",
+      "position": {
+        "x": 4620,
+        "y": 0
+      },
+      "parameters": {
+        "mode": "merge",
+        "fields": {
+          "status": "synced",
+          "deal_id": "{{ $json.deal_id }}",
+          "deal_action": "{{ $json.deal_action }}",
+          "deal_association_ok": "{{ $json.deal_association_ok }}",
+          "contact_id": "{{ $node.association_context.json.contact_id }}",
+          "contact_action": "{{ $node.association_context.json.contact_action }}",
+          "company_id": "{{ $node.association_context.json.company_id }}",
+          "company_action": "{{ $node.association_context.json.company_action }}",
+          "company_domain": "{{ $node.association_context.json.company_domain }}",
+          "sf_contact_id": "{{ $node.association_context.json.sf_contact_id }}",
+          "sf_account_id": "{{ $node.association_context.json.sf_account_id }}",
+          "contact_email": "{{ $node.association_context.json.contact_email }}",
+          "account_name": "{{ $node.association_context.json.account_name }}",
+          "lead_score": "{{ $node.association_context.json.lead_score }}",
+          "lead_tier": "{{ $node.association_context.json.lead_tier }}",
+          "is_high_value": "{{ $node.association_context.json.is_high_value }}",
+          "deal_name": "{{ $node.association_context.json.deal_name }}",
+          "deal_properties": "{{ $node.association_context.json.deal_properties }}",
+          "batch_fetched": "{{ $node.association_context.json.batch_fetched }}",
+          "batch_eligible": "{{ $node.association_context.json.batch_eligible }}",
+          "association_ok": "{{ $node.association_context.json.association_ok }}"
+        }
+      },
+      "credentials": {},
+      "settings": {}
+    }
+  ],
+  "connections": [
+    {
+      "source": "start",
+      "sourceHandle": "main",
+      "target": "search_company",
+      "targetHandle": "main"
+    },
+    {
+      "source": "search_company",
+      "sourceHandle": "main",
+      "target": "company_found",
+      "targetHandle": "main"
+    },
+    {
+      "source": "company_found",
+      "sourceHandle": "true",
+      "target": "update_company",
+      "targetHandle": "main"
+    },
+    {
+      "source": "company_found",
+      "sourceHandle": "false",
+      "target": "create_company",
+      "targetHandle": "main"
+    },
+    {
+      "source": "update_company",
+      "sourceHandle": "main",
+      "target": "company_done",
+      "targetHandle": "main"
+    },
+    {
+      "source": "create_company",
+      "sourceHandle": "main",
+      "target": "company_done",
+      "targetHandle": "main"
+    },
+    {
+      "source": "company_done",
+      "sourceHandle": "main",
+      "target": "company_context",
+      "targetHandle": "main"
+    },
+    {
+      "source": "company_context",
+      "sourceHandle": "main",
+      "target": "search_contact",
+      "targetHandle": "main"
+    },
+    {
+      "source": "search_contact",
+      "sourceHandle": "main",
+      "target": "contact_found",
+      "targetHandle": "main"
+    },
+    {
+      "source": "contact_found",
+      "sourceHandle": "true",
+      "target": "update_contact",
+      "targetHandle": "main"
+    },
+    {
+      "source": "contact_found",
+      "sourceHandle": "false",
+      "target": "create_contact",
+      "targetHandle": "main"
+    },
+    {
+      "source": "update_contact",
+      "sourceHandle": "main",
+      "target": "contact_done",
+      "targetHandle": "main"
+    },
+    {
+      "source": "create_contact",
+      "sourceHandle": "main",
+      "target": "contact_done",
+      "targetHandle": "main"
+    },
+    {
+      "source": "contact_done",
+      "sourceHandle": "main",
+      "target": "contact_context",
+      "targetHandle": "main"
+    },
+    {
+      "source": "contact_context",
+      "sourceHandle": "main",
+      "target": "associate_contact_company",
+      "targetHandle": "main"
+    },
+    {
+      "source": "associate_contact_company",
+      "sourceHandle": "main",
+      "target": "association_context",
+      "targetHandle": "main"
+    },
+    {
+      "source": "association_context",
+      "sourceHandle": "main",
+      "target": "high_value",
+      "targetHandle": "main"
+    },
+    {
+      "source": "high_value",
+      "sourceHandle": "true",
+      "target": "search_deal",
+      "targetHandle": "main"
+    },
+    {
+      "source": "high_value",
+      "sourceHandle": "false",
+      "target": "deal_skipped",
+      "targetHandle": "main"
+    },
+    {
+      "source": "search_deal",
+      "sourceHandle": "main",
+      "target": "deal_found",
+      "targetHandle": "main"
+    },
+    {
+      "source": "deal_found",
+      "sourceHandle": "true",
+      "target": "update_deal",
+      "targetHandle": "main"
+    },
+    {
+      "source": "deal_found",
+      "sourceHandle": "false",
+      "target": "create_deal",
+      "targetHandle": "main"
+    },
+    {
+      "source": "update_deal",
+      "sourceHandle": "main",
+      "target": "deal_done",
+      "targetHandle": "main"
+    },
+    {
+      "source": "create_deal",
+      "sourceHandle": "main",
+      "target": "deal_done",
+      "targetHandle": "main"
+    },
+    {
+      "source": "deal_done",
+      "sourceHandle": "main",
+      "target": "associate_deal_company",
+      "targetHandle": "main"
+    },
+    {
+      "source": "associate_deal_company",
+      "sourceHandle": "main",
+      "target": "deal_context",
+      "targetHandle": "main"
+    },
+    {
+      "source": "deal_context",
+      "sourceHandle": "main",
+      "target": "deal_paths",
+      "targetHandle": "main"
+    },
+    {
+      "source": "deal_skipped",
+      "sourceHandle": "main",
+      "target": "deal_paths",
+      "targetHandle": "main"
+    },
+    {
+      "source": "deal_paths",
+      "sourceHandle": "main",
+      "target": "result",
+      "targetHandle": "main"
+    }
+  ],
+  "settings": {
+    "max_parallelism": 1,
+    "timeout_seconds": 300
+  }
+}

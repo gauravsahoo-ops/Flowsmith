@@ -22,6 +22,17 @@ SLOW_TYPE = "queue_slow_test_node"
 pytestmark = [pytest.mark.timing, pytest.mark.usefixtures("slow_queue_node")]
 
 
+def test_queue_wait_ms_normalizes_naive_datetimes():
+    """The live acceptance harness uses SQLite, which returns naive datetimes."""
+    from datetime import UTC, datetime
+
+    from app.orchestration.run_coordinator import _queue_wait_ms
+
+    now = datetime(2026, 1, 1, 0, 0, 1, tzinfo=UTC)
+    assert _queue_wait_ms(datetime(2026, 1, 1, 0, 0, 0), now) == 1000.0
+    assert _queue_wait_ms(datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC), now) == 1000.0
+
+
 @pytest.fixture
 def slow_queue_node():
     """A node that sleeps until cancelled (cancel test)."""

@@ -1,0 +1,350 @@
+{
+  "id": "wf_salesforce_to_hubspot_contact_sync",
+  "name": "Salesforce to HubSpot Contact Sync",
+  "status": "draft",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "manual_trigger",
+      "name": "Manual Trigger",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "parameters": {},
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "fetch_contacts",
+      "type": "salesforce",
+      "name": "Fetch Salesforce Contacts",
+      "position": {
+        "x": 220,
+        "y": 0
+      },
+      "parameters": {
+        "operation": "query",
+        "soql": "SELECT Id, FirstName, LastName, Name, Email, Title, Phone, Department,\n       LeadSource, AccountId, Account.Name, Account.Website, Account.Industry,\n       Account.BillingCountry, Account.BillingCity, Account.AnnualRevenue,\n       Account.NumberOfEmployees, Account.Type, Account.Owner.Name,\n       Account.Owner.Email\nFROM Contact\nWHERE Email != null AND AccountId != null\nORDER BY LastModifiedDate DESC\nLIMIT 200",
+        "max_pages": 5
+      },
+      "credentials": {
+        "salesforce": "REPLACE_WITH_SALESFORCE_CREDENTIAL_ID"
+      },
+      "settings": {
+        "retry_max_attempts": 2,
+        "retry_backoff_seconds": 2
+      }
+    },
+    {
+      "id": "normalize",
+      "type": "code",
+      "name": "Normalize and Score",
+      "position": {
+        "x": 440,
+        "y": 0
+      },
+      "parameters": {
+        "language": "python",
+        "mode": "runOnceForAllItems",
+        "code": "query_items = items or []\nraw_records = []\nfor entry in query_items:\n    records = entry.get(\"records\") if entry else None\n    if records:\n        for record in records:\n            if record:\n                raw_records.append(record)\n\nindustry_map = {\n    \"technology\": \"COMPUTER_SOFTWARE\",\n    \"software\": \"COMPUTER_SOFTWARE\",\n    \"computer software\": \"COMPUTER_SOFTWARE\",\n    \"information technology\": \"INFORMATION_TECHNOLOGY_AND_SERVICES\",\n    \"it services\": \"INFORMATION_TECHNOLOGY_AND_SERVICES\",\n    \"internet\": \"INTERNET\",\n    \"telecommunications\": \"TELECOMMUNICATIONS\",\n    \"telecom\": \"TELECOMMUNICATIONS\",\n    \"financial services\": \"FINANCIAL_SERVICES\",\n    \"finance\": \"FINANCIAL_SERVICES\",\n    \"banking\": \"FINANCIAL_SERVICES\",\n    \"insurance\": \"FINANCIAL_SERVICES\",\n    \"healthcare\": \"HOSPITAL_HEALTH_CARE\",\n    \"health care\": \"HOSPITAL_HEALTH_CARE\",\n    \"hospital\": \"HOSPITAL_HEALTH_CARE\",\n    \"retail\": \"RETAIL\",\n    \"e-commerce\": \"RETAIL\",\n    \"ecommerce\": \"RETAIL\",\n    \"education\": \"EDUCATION_MANAGEMENT\",\n    \"higher education\": \"EDUCATION_MANAGEMENT\",\n    \"marketing\": \"MARKETING_AND_ADVERTISING\",\n    \"advertising\": \"MARKETING_AND_ADVERTISING\",\n    \"construction\": \"CONSTRUCTION\",\n    \"real estate\": \"REAL_ESTATE\",\n    \"nonprofit\": \"NON_PROFIT_ORGANIZATION_MANAGEMENT\",\n    \"non-profit\": \"NON_PROFIT_ORGANIZATION_MANAGEMENT\",\n    \"government\": \"GOVERNMENT_ADMINISTRATION\",\n    \"public sector\": \"GOVERNMENT_ADMINISTRATION\",\n    \"legal\": \"LEGAL_SERVICES\",\n    \"accounting\": \"ACCOUNTING\",\n    \"staffing\": \"STAFFING_AND_RECRUITING\",\n    \"recruiting\": \"STAFFING_AND_RECRUITING\",\n    \"transportation\": \"TRANSPORTATION_TRUCKING_RAILROAD\",\n    \"logistics\": \"LOGISTICS_AND_SUPPLY_CHAIN\",\n    \"food\": \"FOOD_BEVERAGES\",\n    \"beverage\": \"FOOD_BEVERAGES\",\n    \"consumer goods\": \"CONSUMER_GOODS\",\n    \"entertainment\": \"ENTERTAINMENT\",\n    \"utilities\": \"UTILITIES\",\n    \"semiconductors\": \"SEMICONDUCTORS\",\n    \"research\": \"RESEARCH\",\n    \"design\": \"DESIGN\",\n}\ncountry_map = {\n    \"usa\": \"United States\",\n    \"us\": \"United States\",\n    \"u.s.\": \"United States\",\n    \"united states\": \"United States\",\n    \"united states of america\": \"United States\",\n    \"uk\": \"United Kingdom\",\n    \"united kingdom\": \"United Kingdom\",\n    \"great britain\": \"United Kingdom\",\n    \"canada\": \"Canada\",\n    \"germany\": \"Germany\",\n    \"de\": \"Germany\",\n    \"france\": \"France\",\n    \"australia\": \"Australia\",\n    \"netherlands\": \"Netherlands\",\n    \"sweden\": \"Sweden\",\n    \"india\": \"India\",\n    \"japan\": \"Japan\",\n    \"singapore\": \"Singapore\",\n    \"brazil\": \"Brazil\",\n    \"mexico\": \"Mexico\",\n}\nindustry_targets = (\n    \"COMPUTER_SOFTWARE\",\n    \"INFORMATION_TECHNOLOGY_AND_SERVICES\",\n    \"INTERNET\",\n    \"TELECOMMUNICATIONS\",\n    \"SEMICONDUCTORS\",\n)\ncountry_targets = (\n    \"United States\",\n    \"Canada\",\n    \"United Kingdom\",\n    \"Germany\",\n    \"France\",\n    \"Australia\",\n    \"Netherlands\",\n    \"Sweden\",\n)\n\ncontacts = []\nfor record in raw_records:\n    account = record.get(\"Account\") or {}\n    email = str(record.get(\"Email\") or \"\").strip().lower()\n    first_name = str(record.get(\"FirstName\") or \"\").strip()\n    last_name = str(record.get(\"LastName\") or \"\").strip()\n    full_name = str(record.get(\"Name\") or \"\").strip()\n    if not full_name:\n        full_name = (first_name + \" \" + last_name).strip()\n    title = str(record.get(\"Title\") or \"\").strip()\n    phone = str(record.get(\"Phone\") or \"\").strip()\n    lead_source = str(record.get(\"LeadSource\") or \"\").strip()\n\n    account_name = str(account.get(\"Name\") or \"\").strip()\n    website = str(account.get(\"Website\") or \"\").strip().lower()\n    domain = website\n    if \"://\" in domain:\n        domain = domain.split(\"://\", 1)[1]\n    if domain.startswith(\"www.\"):\n        domain = domain[4:]\n    if \"/\" in domain:\n        domain = domain.split(\"/\", 1)[0]\n    if \"?\" in domain:\n        domain = domain.split(\"?\", 1)[0]\n    if \"#\" in domain:\n        domain = domain.split(\"#\", 1)[0]\n    if \":\" in domain:\n        domain = domain.split(\":\", 1)[0]\n    domain = domain.strip().strip(\".\")\n    if \" \" in domain or \".\" not in domain:\n        domain = \"\"\n\n    revenue = 0.0\n    revenue_raw = account.get(\"AnnualRevenue\")\n    if revenue_raw:\n        try:\n            revenue = float(str(revenue_raw).replace(\",\", \"\").replace(\"$\", \"\"))\n        except:\n            revenue = 0.0\n\n    employees = 0\n    employees_raw = account.get(\"NumberOfEmployees\")\n    if employees_raw:\n        try:\n            employees = int(float(str(employees_raw).replace(\",\", \"\")))\n        except:\n            employees = 0\n\n    industry_raw = str(account.get(\"Industry\") or \"\").strip()\n    hubspot_industry = industry_map.get(industry_raw.lower(), \"\")\n    country_raw = str(account.get(\"BillingCountry\") or \"\").strip()\n    country = country_map.get(country_raw.lower(), country_raw)\n    city = str(account.get(\"BillingCity\") or \"\").strip()\n    account_type = str(account.get(\"Type\") or \"\").strip()\n    owner = account.get(\"Owner\") or {}\n    owner_name = str(owner.get(\"Name\") or \"\").strip()\n\n    score = 0\n    if email:\n        score += 10\n    if title:\n        score += 10\n    if phone:\n        score += 5\n    if revenue >= 1000000:\n        score += 30\n    elif revenue >= 250000:\n        score += 20\n    elif revenue > 0:\n        score += 10\n    if employees >= 500:\n        score += 20\n    elif employees >= 50:\n        score += 10\n    if hubspot_industry in industry_targets:\n        score += 15\n    if country in country_targets:\n        score += 10\n    if account_type.lower() == \"customer\":\n        score += 20\n    if lead_source.lower() in (\"web\", \"partner\", \"referral\", \"referral program\"):\n        score += 10\n    if score > 100:\n        score = 100\n\n    if score >= 75:\n        tier = \"A\"\n    elif score >= 45:\n        tier = \"B\"\n    else:\n        tier = \"C\"\n    is_high_value = score >= 75 or revenue >= 1000000\n\n    if account_type.lower() == \"customer\":\n        lifecycle = \"customer\"\n    elif score >= 80:\n        lifecycle = \"salesqualifiedlead\"\n    elif score >= 50:\n        lifecycle = \"marketingqualifiedlead\"\n    else:\n        lifecycle = \"lead\"\n\n    if score >= 75:\n        lead_status = \"OPEN\"\n    elif score >= 45:\n        lead_status = \"IN_PROGRESS\"\n    else:\n        lead_status = \"NEW\"\n\n    skip_reasons = []\n    if not email:\n        skip_reasons.append(\"missing_email\")\n    if not domain:\n        skip_reasons.append(\"missing_company_domain\")\n    eligible = len(skip_reasons) == 0\n\n    company_properties = {\n        \"name\": account_name or domain,\n        \"domain\": domain,\n        \"lifecyclestage\": lifecycle,\n        \"description\": (\n            \"Salesforce Account \" + str(account.get(\"Id\") or \"\")\n            + \" | Owner: \" + owner_name\n            + \" | Lead score: \" + str(score)\n            + \" | Tier: \" + tier\n        ),\n    }\n    if hubspot_industry:\n        company_properties[\"industry\"] = hubspot_industry\n    if city:\n        company_properties[\"city\"] = city\n    if country:\n        company_properties[\"country\"] = country\n    if revenue:\n        company_properties[\"annualrevenue\"] = str(int(revenue))\n    if employees:\n        company_properties[\"numberofemployees\"] = str(employees)\n\n    contact_properties = {\n        \"email\": email,\n        \"lifecyclestage\": lifecycle,\n        \"hs_lead_status\": lead_status,\n    }\n    if first_name:\n        contact_properties[\"firstname\"] = first_name\n    if last_name:\n        contact_properties[\"lastname\"] = last_name\n    if title:\n        contact_properties[\"jobtitle\"] = title\n    if phone:\n        contact_properties[\"phone\"] = phone\n    if account_name or domain:\n        contact_properties[\"company\"] = account_name or domain\n    if city:\n        contact_properties[\"city\"] = city\n\n    deal_name = (\n        \"Flowsmith Sync | \" + (account_name or domain)\n        + \" | \" + str(record.get(\"Id\") or \"\")\n    )\n    deal_properties = {\n        \"dealname\": deal_name,\n        \"dealstage\": \"appointmentscheduled\",\n        \"pipeline\": \"default\",\n        \"dealtype\": \"newbusiness\",\n        \"description\": (\n            \"High-value contact sync from Salesforce.\"\n            \" Contact: \" + full_name + \" <\" + email + \">\"\n            + \" | Lead score: \" + str(score)\n            + \" | Account: \" + (account_name or domain)\n        ),\n    }\n    if revenue:\n        deal_properties[\"amount\"] = str(int(revenue))\n\n    contacts.append({\n        \"sf_contact_id\": str(record.get(\"Id\") or \"\"),\n        \"sf_account_id\": str(account.get(\"Id\") or \"\"),\n        \"sf_contact_name\": full_name,\n        \"contact_email\": email,\n        \"contact_first_name\": first_name,\n        \"contact_last_name\": last_name,\n        \"account_name\": account_name or domain,\n        \"company_domain\": domain,\n        \"industry\": industry_raw,\n        \"hubspot_industry\": hubspot_industry,\n        \"country\": country,\n        \"city\": city,\n        \"annual_revenue\": revenue,\n        \"employees\": employees,\n        \"lead_score\": score,\n        \"lead_tier\": tier,\n        \"is_high_value\": is_high_value,\n        \"eligible_for_sync\": eligible,\n        \"skip_reason\": \"; \".join(skip_reasons),\n        \"company_properties\": company_properties,\n        \"contact_properties\": contact_properties,\n        \"deal_name\": deal_name,\n        \"deal_properties\": deal_properties,\n    })\n\neligible_count = 0\nfor contact in contacts:\n    if contact.get(\"eligible_for_sync\"):\n        eligible_count += 1\nfor contact in contacts:\n    contact[\"batch_fetched\"] = len(contacts)\n    contact[\"batch_eligible\"] = eligible_count\n    contact[\"batch_skipped\"] = len(contacts) - eligible_count\n\nreturn [{\n    \"contacts\": contacts,\n    \"fetched_count\": len(contacts),\n    \"eligible_count\": eligible_count,\n    \"skipped_count\": len(contacts) - eligible_count,\n}]"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "fan_out",
+      "type": "split",
+      "name": "One Item Per Contact",
+      "position": {
+        "x": 660,
+        "y": 0
+      },
+      "parameters": {
+        "field": "contacts",
+        "include": "allOtherFields",
+        "batch_size": 0
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "eligible",
+      "type": "if_condition",
+      "name": "Eligible for Sync?",
+      "position": {
+        "x": 880,
+        "y": 0
+      },
+      "parameters": {
+        "conditions": [
+          {
+            "id": "eligible",
+            "left": "{{ $json.eligible_for_sync }}",
+            "operator": "is true",
+            "right": "",
+            "combinator": "AND"
+          }
+        ],
+        "combinator": "AND"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "sync_contact",
+      "type": "sub_workflow",
+      "name": "Sync Contact to HubSpot",
+      "position": {
+        "x": 1100,
+        "y": -120
+      },
+      "parameters": {
+        "source": "database",
+        "workflow_selector": "id",
+        "workflow_id": "wf_salesforce_hubspot_contact_upsert",
+        "mode": "onceForEach",
+        "options": {
+          "waitForSubWorkflowCompletion": true
+        }
+      },
+      "credentials": {},
+      "settings": {
+        "continue_on_error": true,
+        "timeout_seconds": 120
+      }
+    },
+    {
+      "id": "skip_contact",
+      "type": "set_data",
+      "name": "Record Skipped Contact",
+      "position": {
+        "x": 1100,
+        "y": 120
+      },
+      "parameters": {
+        "mode": "merge",
+        "fields": {
+          "status": "skipped",
+          "skip_reason": "{{ $json.skip_reason }}",
+          "sf_contact_id": "{{ $json.sf_contact_id }}",
+          "contact_email": "{{ $json.contact_email }}",
+          "account_name": "{{ $json.account_name }}",
+          "batch_fetched": "{{ $json.batch_fetched }}",
+          "batch_eligible": "{{ $json.batch_eligible }}"
+        }
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "collect",
+      "type": "merge",
+      "name": "Collect Sync Results",
+      "position": {
+        "x": 1320,
+        "y": 0
+      },
+      "parameters": {
+        "strategy": "concat"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "batch_meta",
+      "type": "set_data",
+      "name": "Batch Metadata",
+      "position": {
+        "x": 1320,
+        "y": 160
+      },
+      "parameters": {
+        "mode": "replace",
+        "fields": {
+          "batch_fetched": "{{ $json.fetched_count }}",
+          "batch_eligible": "{{ $json.eligible_count }}",
+          "batch_skipped": "{{ $json.skipped_count }}"
+        }
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "aggregate_results",
+      "type": "aggregate",
+      "name": "Aggregate Results",
+      "position": {
+        "x": 1540,
+        "y": 60
+      },
+      "parameters": {
+        "field": "items"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "summarize",
+      "type": "code",
+      "name": "Summarize Sync",
+      "position": {
+        "x": 1760,
+        "y": 60
+      },
+      "parameters": {
+        "language": "python",
+        "mode": "runOnceForAllItems",
+        "code": "items = items or []\nrows = items\nif len(rows) == 1 and rows[0] and \"items\" in rows[0]:\n    rows = rows[0].get(\"items\") or []\nsummary = {\n    \"fetched\": 0,\n    \"eligible\": 0,\n    \"skipped\": 0,\n    \"synced\": 0,\n    \"failed\": 0,\n    \"companies_created\": 0,\n    \"companies_updated\": 0,\n    \"contacts_created\": 0,\n    \"contacts_updated\": 0,\n    \"deals_created\": 0,\n    \"deals_updated\": 0,\n    \"deals_not_applicable\": 0,\n    \"contact_company_associations\": 0,\n    \"deal_company_associations\": 0,\n}\nresults = []\nfor item in rows:\n    if not item:\n        continue\n    if \"batch_fetched\" in item and \"status\" not in item:\n        summary[\"fetched\"] = int(item.get(\"batch_fetched\") or 0)\n        summary[\"eligible\"] = int(item.get(\"batch_eligible\") or 0)\n        continue\n    if \"$error\" in item:\n        summary[\"failed\"] += 1\n        error = item.get(\"$error\") or {}\n        results.append({\n            \"status\": \"failed\",\n            \"error\": str(error.get(\"message\") or \"unknown error\"),\n        })\n        continue\n    status = str(item.get(\"status\") or \"\")\n    if status == \"skipped\":\n        summary[\"skipped\"] += 1\n        results.append({\n            \"status\": \"skipped\",\n            \"sf_contact_id\": item.get(\"sf_contact_id\", \"\"),\n            \"contact_email\": item.get(\"contact_email\", \"\"),\n            \"account_name\": item.get(\"account_name\", \"\"),\n            \"reason\": item.get(\"skip_reason\", \"\"),\n        })\n        continue\n\n    summary[\"synced\"] += 1\n    if item.get(\"company_action\") == \"created\":\n        summary[\"companies_created\"] += 1\n    if item.get(\"company_action\") == \"updated\":\n        summary[\"companies_updated\"] += 1\n    if item.get(\"contact_action\") == \"created\":\n        summary[\"contacts_created\"] += 1\n    if item.get(\"contact_action\") == \"updated\":\n        summary[\"contacts_updated\"] += 1\n    if item.get(\"deal_action\") == \"created\":\n        summary[\"deals_created\"] += 1\n    if item.get(\"deal_action\") == \"updated\":\n        summary[\"deals_updated\"] += 1\n    if item.get(\"deal_action\") == \"not_applicable\":\n        summary[\"deals_not_applicable\"] += 1\n    if item.get(\"association_ok\"):\n        summary[\"contact_company_associations\"] += 1\n    if item.get(\"deal_association_ok\"):\n        summary[\"deal_company_associations\"] += 1\n\n    results.append({\n        \"status\": \"synced\",\n        \"sf_contact_id\": item.get(\"sf_contact_id\", \"\"),\n        \"contact_email\": item.get(\"contact_email\", \"\"),\n        \"account_name\": item.get(\"account_name\", \"\"),\n        \"lead_score\": item.get(\"lead_score\", 0),\n        \"lead_tier\": item.get(\"lead_tier\", \"\"),\n        \"company_id\": item.get(\"company_id\", \"\"),\n        \"company_action\": item.get(\"company_action\", \"\"),\n        \"contact_id\": item.get(\"contact_id\", \"\"),\n        \"contact_action\": item.get(\"contact_action\", \"\"),\n        \"deal_id\": item.get(\"deal_id\", \"\"),\n        \"deal_action\": item.get(\"deal_action\", \"\"),\n    })\n\nreturn [{\n    \"status\": \"error\" if summary[\"failed\"] else \"success\",\n    \"summary\": summary,\n    \"results\": results,\n}]"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "failed",
+      "type": "if_condition",
+      "name": "Any Failures?",
+      "position": {
+        "x": 1760,
+        "y": 0
+      },
+      "parameters": {
+        "conditions": [
+          {
+            "id": "failed",
+            "left": "{{ $json.summary.failed }}",
+            "operator": "is greater than",
+            "right": 0,
+            "combinator": "AND"
+          }
+        ],
+        "combinator": "AND"
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "stop",
+      "type": "stop_and_error",
+      "name": "Stop on Sync Failures",
+      "position": {
+        "x": 1980,
+        "y": -120
+      },
+      "parameters": {
+        "error_type": "errorMessage",
+        "error_message": "Salesforce to HubSpot sync finished with {{ $json.summary.failed }} failed contact(s). Inspect the execution trace for details."
+      },
+      "credentials": {},
+      "settings": {}
+    },
+    {
+      "id": "complete",
+      "type": "noop",
+      "name": "Sync Complete",
+      "position": {
+        "x": 1980,
+        "y": 120
+      },
+      "parameters": {},
+      "credentials": {},
+      "settings": {}
+    }
+  ],
+  "connections": [
+    {
+      "source": "start",
+      "sourceHandle": "main",
+      "target": "fetch_contacts",
+      "targetHandle": "main"
+    },
+    {
+      "source": "fetch_contacts",
+      "sourceHandle": "main",
+      "target": "normalize",
+      "targetHandle": "main"
+    },
+    {
+      "source": "normalize",
+      "sourceHandle": "main",
+      "target": "fan_out",
+      "targetHandle": "main"
+    },
+    {
+      "source": "fan_out",
+      "sourceHandle": "main",
+      "target": "eligible",
+      "targetHandle": "main"
+    },
+    {
+      "source": "eligible",
+      "sourceHandle": "true",
+      "target": "sync_contact",
+      "targetHandle": "main"
+    },
+    {
+      "source": "eligible",
+      "sourceHandle": "false",
+      "target": "skip_contact",
+      "targetHandle": "main"
+    },
+    {
+      "source": "sync_contact",
+      "sourceHandle": "main",
+      "target": "collect",
+      "targetHandle": "main"
+    },
+    {
+      "source": "skip_contact",
+      "sourceHandle": "main",
+      "target": "collect",
+      "targetHandle": "main"
+    },
+    {
+      "source": "normalize",
+      "sourceHandle": "main",
+      "target": "batch_meta",
+      "targetHandle": "main"
+    },
+    {
+      "source": "collect",
+      "sourceHandle": "main",
+      "target": "aggregate_results",
+      "targetHandle": "main"
+    },
+    {
+      "source": "batch_meta",
+      "sourceHandle": "main",
+      "target": "aggregate_results",
+      "targetHandle": "main"
+    },
+    {
+      "source": "aggregate_results",
+      "sourceHandle": "main",
+      "target": "summarize",
+      "targetHandle": "main"
+    },
+    {
+      "source": "summarize",
+      "sourceHandle": "main",
+      "target": "failed",
+      "targetHandle": "main"
+    },
+    {
+      "source": "failed",
+      "sourceHandle": "true",
+      "target": "stop",
+      "targetHandle": "main"
+    },
+    {
+      "source": "failed",
+      "sourceHandle": "false",
+      "target": "complete",
+      "targetHandle": "main"
+    }
+  ],
+  "settings": {
+    "max_parallelism": 1,
+    "timeout_seconds": 600
+  }
+}

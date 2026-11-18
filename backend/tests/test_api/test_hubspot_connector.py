@@ -494,3 +494,28 @@ def test_hubspot_object_discovery_endpoint_returns_custom_objects(client):
     assert payload["custom_count"] == 1
     assert payload["cached"] is False
     assert fake.calls[0][1].endswith("/crm/v3/schemas")
+
+
+def test_connector_params_coerce_numeric_hubspot_ids():
+    """Live HubSpot ids are numeric in several v3 responses.
+
+    Node expressions can resolve them as ints; the connector must normalize
+    them to strings instead of failing payload validation before the request.
+    """
+    from app.connectors.hubspot_connector import HubSpotConnectorParams
+
+    params = HubSpotConnectorParams.model_validate(
+        {
+            "operation": "associate_records",
+            "from_record_id": 598729012932,
+            "to_record_id": 368344818409,
+            "association_type_id": 5,
+            "record_id": 123,
+            "owner_id": 456,
+        }
+    )
+    assert params.from_record_id == "598729012932"
+    assert params.to_record_id == "368344818409"
+    assert params.association_type_id == "5"
+    assert params.record_id == "123"
+    assert params.owner_id == "456"

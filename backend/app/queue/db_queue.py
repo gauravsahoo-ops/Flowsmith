@@ -17,7 +17,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import text, update
+from sqlalchemy import or_, text, update
 
 from app.db import get_session
 from app.models import Job
@@ -46,15 +46,6 @@ CLAIM_SQL = text(
     """
 )
 
-REQUEUE_SQL = text(
-    """
-    UPDATE jobs
-    SET status = :queued, claimed_by = NULL, claimed_at = NULL,
-        heartbeat_at = NULL, next_retry_at = :next_retry_at
-    WHERE id = ANY(:job_ids) AND status = :claimed
-    """
-)
-
 # Poison-job guard: once a job exhausts its attempts (claims without a
 # completing run — i.e. repeated worker crashes / stalled nodes), stop
 # recycling it: fail the job AND its authoritative execution row.
@@ -65,11 +56,6 @@ SELECT_STALE_SQL = text(
     ORDER BY created_at, id
     LIMIT 500
     """
-)
-
-FAIL_JOB_SQL = text(
-    "UPDATE jobs SET status = :failed, finished_at = :now, error = :error "
-    "WHERE id = ANY(:job_ids)"
 )
 
 
@@ -125,13 +111,69 @@ class DbJobQueue(QueueBackend):
         finally:
             db.close()
 
+    @staticmethod
+    def _to_queue_job(row: Job) -> QueueJob:
+        return QueueJob(
+            id=row.id,
+            execution_id=row.execution_id,
+            payload=row.payload,
+            status=row.status,
+            attempts=row.attempts,
+            claimed_by=row.claimed_by,
+            claimed_at=row.claimed_at.isoformat() if row.claimed_at else None,
+        )
+
+    def _claim_sqlite(self, db, now: datetime) -> QueueJob | None:
+        """Portable claim path for SQLite.
+
+        SQLite does not support ``FOR UPDATE SKIP LOCKED`` or
+        ``UPDATE ... FROM ... RETURNING``. Select the oldest eligible row,
+        then perform a conditional update on its status. If another writer
+        wins the race, the update affects zero rows and this caller simply
+        retries on the next poll.
+        """
+        row = (
+            db.query(Job)
+            .filter(
+                Job.status == QUEUED,
+                or_(Job.next_retry_at.is_(None), Job.next_retry_at <= now),
+            )
+            .order_by(Job.created_at, Job.id)
+            .first()
+        )
+        if row is None:
+            db.rollback()
+            return None
+        updated = (
+            db.query(Job)
+            .filter(Job.id == row.id, Job.status == QUEUED)
+            .update(
+                {
+                    Job.status: CLAIMED,
+                    Job.claimed_by: get_worker_id(),
+                    Job.claimed_at: now,
+                    Job.attempts: Job.attempts + 1,
+                },
+                synchronize_session=False,
+            )
+        )
+        if not updated:
+            db.rollback()
+            return None
+        db.commit()
+        db.refresh(row)
+        return self._to_queue_job(row)
+
     def claim(self) -> QueueJob | None:
         db = get_session()
         try:
+            now = datetime.now(UTC)
+            if db.get_bind().dialect.name == "sqlite":
+                return self._claim_sqlite(db, now)
             claimed_id = db.execute(
                 CLAIM_SQL,
                 {"claimed": CLAIMED, "worker": get_worker_id(),
-                 "now": datetime.now(UTC), "queued": QUEUED},
+                 "now": now, "queued": QUEUED},
             ).scalar_one_or_none()
             if claimed_id is None:
                 db.rollback()
@@ -140,12 +182,7 @@ class DbJobQueue(QueueBackend):
             db.commit()
             if row is None:
                 return None
-            return QueueJob(
-                id=row.id, execution_id=row.execution_id, payload=row.payload,
-                status=row.status, attempts=row.attempts,
-                claimed_by=row.claimed_by,
-                claimed_at=row.claimed_at.isoformat() if row.claimed_at else None,
-            )
+            return self._to_queue_job(row)
         except Exception as exc:
             logger.exception("DbJobQueue.claim failed: %s", exc)
             db.rollback()
@@ -228,15 +265,10 @@ class DbJobQueue(QueueBackend):
                         "without completing (worker crashes or stalled execution)."
                     ),
                 }
-                try:
-                    from psycopg.types.json import Json as _pg_json_wrapper
-                except ImportError:
-                    from psycopg2.extras import Json as _pg_json_wrapper
                 with db.begin_nested():
-                    db.execute(
-                        FAIL_JOB_SQL,
-                        {"failed": FAILED, "now": now, "error": _pg_json_wrapper(error),
-                         "job_ids": exhausted_ids},
+                    db.query(Job).filter(Job.id.in_(exhausted_ids)).update(
+                        {Job.status: FAILED, Job.finished_at: now, Job.error: error},
+                        synchronize_session=False,
                     )
                     from app.models import Execution
 
@@ -256,15 +288,19 @@ class DbJobQueue(QueueBackend):
                 )
             requeued_count = 0
             if requeue_updates:
-                ids = list(requeue_updates)
-                next_at = [requeue_updates[i] for i in ids]
-                # Row-wise next_retry_at via executemany-style binding.
-                db.execute(
-                    REQUEUE_SQL,
-                    [{"queued": QUEUED, "claimed": CLAIMED, "job_ids": [jid], "next_retry_at": at} for jid, at in zip(ids, next_at)],
-                )
+                for job_id, next_retry_at in requeue_updates.items():
+                    db.query(Job).filter(Job.id == job_id, Job.status == CLAIMED).update(
+                        {
+                            Job.status: QUEUED,
+                            Job.claimed_by: None,
+                            Job.claimed_at: None,
+                            Job.heartbeat_at: None,
+                            Job.next_retry_at: next_retry_at,
+                        },
+                        synchronize_session=False,
+                    )
                 db.commit()
-                requeued_count = len(ids)
+                requeued_count = len(requeue_updates)
             return requeued_count
         finally:
             db.close()

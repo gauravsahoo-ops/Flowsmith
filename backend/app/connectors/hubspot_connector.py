@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.connectors import (
     ConnectorSDK,
@@ -64,6 +64,27 @@ class HubSpotConnectorParams(BaseModel):
     to_object_type: str = Field(default="companies", description="Target object type.")
     to_record_id: str = Field(default="", description="Target record id.")
     association_type_id: str = Field(default="1", description="Association type id / label.")
+
+    @field_validator(
+        "owner_id",
+        "record_id",
+        "from_record_id",
+        "to_record_id",
+        "association_type_id",
+        mode="before",
+    )
+    @classmethod
+    def _coerce_hubspot_ids(cls, value: Any) -> str:
+        """HubSpot returns numeric ids in several v3 responses.
+
+        Node expressions can therefore resolve ``record_id`` /
+        ``from_record_id`` / ``to_record_id`` as ints. Pydantic v2 does not
+        coerce int to str for these fields by default, so normalize before
+        validation instead of failing a live write with a 400 payload error.
+        """
+        if value is None:
+            return ""
+        return str(value)
 
     # Pagination (operations=search/list)
     limit: int = Field(default=100, ge=1, le=250, description="Records per page.")
