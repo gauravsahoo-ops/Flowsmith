@@ -79,6 +79,11 @@ class RedisJobQueue(QueueBackend):
         kwargs: dict[str, Any] = {"decode_responses": True}
         if settings.redis_password:
             kwargs["password"] = settings.redis_password
+        kwargs.update({
+            "socket_timeout": settings.redis_socket_timeout_s,
+            "socket_connect_timeout": settings.redis_connect_timeout_s,
+            "health_check_interval": 30,
+        })
         self._conn = redis.Redis.from_url(settings.redis_url, **kwargs)
         self.verify_eviction_policy()
 

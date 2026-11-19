@@ -1,6 +1,6 @@
 {
   "manifest_version": "4.0.0",
-  "generated_at": "2026-11-19T11:20:11.927482+00:00",
+  "generated_at": "2026-11-19T12:27:03.524491+00:00",
   "platform": "Flowsmith Integration Engine",
   "phase": "PHASE 4 \u2014 COMPLETE NODE AND CONNECTOR CERTIFICATION",
   "summary": {
@@ -13,14 +13,14 @@
     "total_canonical_nodes": 78,
     "certification_tiers": {
       "PRODUCTION_CERTIFIED": 0,
-      "LIVE_API_VALIDATED": 2,
-      "CONTRACT_VALIDATED": 33,
-      "MOCK_VALIDATED": 494,
+      "LIVE_API_VALIDATED": 8,
+      "CONTRACT_VALIDATED": 63,
+      "MOCK_VALIDATED": 458,
       "STATIC_VALIDATED": 0
     },
     "availability_status": {
       "PASSED": 1,
-      "LIVE_TEST_UNAVAILABLE": 527,
+      "LIVE_TEST_UNAVAILABLE": 521,
       "FAILED": 0,
       "BLOCKED": 0
     },
@@ -439,7 +439,7 @@
         "activecampaign"
       ],
       "schema_hash": "sha256:7e8a422a5a1a0f03",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -554,8 +554,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round7.py",
+        "backend/tests/test_phase40_backlog_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -1831,7 +1831,7 @@
         "asana"
       ],
       "schema_hash": "sha256:d1047127ff2878d3",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -1942,8 +1942,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round4.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -4159,7 +4158,7 @@
         "bigquery"
       ],
       "schema_hash": "sha256:f1d2ec498c198fe0",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -4273,8 +4272,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round7.py",
+        "backend/tests/test_phase40_backlog_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -4297,7 +4296,7 @@
         "bitbucket"
       ],
       "schema_hash": "sha256:2b1482f2c81378e2",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -4414,8 +4413,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round7.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -4740,7 +4738,7 @@
         "box"
       ],
       "schema_hash": "sha256:1058a728b0bcb054",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 8,
       "operations": {
@@ -4875,8 +4873,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_box_and_typeform_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -5492,7 +5489,7 @@
         "calendly"
       ],
       "schema_hash": "sha256:71cbb8a4c4c348ea",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -5587,8 +5584,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -7172,7 +7168,7 @@
         "coda"
       ],
       "schema_hash": "sha256:4323185ecd880d7c",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -7288,8 +7284,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round7.py",
+        "backend/tests/test_phase40_backlog_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -10697,7 +10693,7 @@
         "docusign"
       ],
       "schema_hash": "sha256:4ca15f5b75cbffd1",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -10803,8 +10799,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round8.py",
+        "backend/tests/test_phase40_backlog_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -14485,7 +14481,7 @@
         "freshsales"
       ],
       "schema_hash": "sha256:46c41ea6097032ac",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -14600,8 +14596,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round6.py",
+        "backend/tests/test_phase40_backlog_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -15912,7 +15908,7 @@
         "gitlab"
       ],
       "schema_hash": "sha256:91fc1f51a448eeed",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -16025,8 +16021,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -16169,7 +16164,7 @@
         "gmail"
       ],
       "schema_hash": "sha256:845e104226120545",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -16254,8 +16249,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_gmail.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -16938,7 +16932,7 @@
         "google_calendar"
       ],
       "schema_hash": "sha256:6f8b2a61803354b9",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -17043,8 +17037,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_google_connector.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -17427,7 +17420,7 @@
         "google_docs"
       ],
       "schema_hash": "sha256:90740d81901173f0",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -17524,8 +17517,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_google_docs_connector.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -17548,7 +17540,7 @@
         "google_drive"
       ],
       "schema_hash": "sha256:c3754ab84909ba70",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -17641,8 +17633,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_google_drive_connector.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -18030,7 +18021,7 @@
         "google_sheets"
       ],
       "schema_hash": "sha256:30a3eb1d577d742d",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -18134,8 +18125,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_google_sheets.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -21347,7 +21337,7 @@
         "intercom"
       ],
       "schema_hash": "sha256:5e572669c36ff7cf",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 8,
       "operations": {
@@ -21483,8 +21473,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round8.py",
+        "backend/tests/test_phase40_backlog_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -23150,8 +23140,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_kafka_oracle_mqtt_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -24086,7 +24075,7 @@
         "linear"
       ],
       "schema_hash": "sha256:bb7745e46dd051d2",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -24194,8 +24183,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -30639,8 +30627,8 @@
         "mqtt"
       ],
       "schema_hash": "sha256:2319b3c1301295b2",
-      "certification_tier": "MOCK_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 2,
       "operations": {
         "publish": {
@@ -30688,12 +30676,11 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_kafka_oracle_mqtt_connectors.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-19T12:26:22.910441+00:00",
+        "expires_at": "2027-02-17T12:26:22.910441+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -30923,8 +30910,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_new_connectors_suite.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -30947,7 +30933,7 @@
         "msteams"
       ],
       "schema_hash": "sha256:4eefe4d694d3950f",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -31059,8 +31045,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_microsoft_graph_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -31900,7 +31885,7 @@
         "netsuite"
       ],
       "schema_hash": "sha256:b51f7da5ef3db54f",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -32024,8 +32009,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_enterprise_erp_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -34325,8 +34309,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_kafka_oracle_mqtt_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -34684,7 +34667,7 @@
         "outlook"
       ],
       "schema_hash": "sha256:f619ad53f0a457d5",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -34793,8 +34776,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_microsoft_graph_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -35737,7 +35719,7 @@
         "pinecone"
       ],
       "schema_hash": "sha256:c742a86ed2805808",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -35824,8 +35806,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round10.py",
+        "backend/tests/test_new_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -36567,8 +36549,8 @@
         "postgres"
       ],
       "schema_hash": "sha256:ed27bd122839193b",
-      "certification_tier": "CONTRACT_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 5,
       "operations": {
         "query": {
@@ -36653,8 +36635,8 @@
         "backend/tests/test_api/test_postgres_connector.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-19T12:04:53.659316+00:00",
+        "expires_at": "2027-02-17T12:04:53.659316+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -37871,8 +37853,8 @@
         "rabbitmq"
       ],
       "schema_hash": "sha256:b41dcca42a84988d",
-      "certification_tier": "MOCK_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 3,
       "operations": {
         "publish": {
@@ -37933,12 +37915,11 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_new_connectors_suite.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-19T12:26:22.910441+00:00",
+        "expires_at": "2027-02-17T12:26:22.910441+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -38390,8 +38371,8 @@
         "redis"
       ],
       "schema_hash": "sha256:efcced4b8d3f4c6c",
-      "certification_tier": "CONTRACT_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 5,
       "operations": {
         "get": {
@@ -38477,8 +38458,8 @@
         "backend/tests/test_api/test_redis_connector.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-19T12:04:53.659316+00:00",
+        "expires_at": "2027-02-17T12:04:53.659316+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -38823,7 +38804,7 @@
         "resend"
       ],
       "schema_hash": "sha256:d90f3d5be2910b69",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -38904,8 +38885,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py",
+        "backend/tests/test_new_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -39523,8 +39504,8 @@
         "aws_s3"
       ],
       "schema_hash": "sha256:e6724a3c7fae668c",
-      "certification_tier": "MOCK_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 5,
       "operations": {
         "upload_file": {
@@ -39610,12 +39591,12 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round3.py",
+        "backend/tests/test_new_connectors.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-19T12:04:53.659316+00:00",
+        "expires_at": "2027-02-17T12:04:53.659316+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -40153,7 +40134,7 @@
         "sap"
       ],
       "schema_hash": "sha256:01e3183295575e60",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -40273,8 +40254,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_enterprise_erp_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -41373,7 +41353,7 @@
         "sentry"
       ],
       "schema_hash": "sha256:320e67e90f886939",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -41456,8 +41436,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round10.py",
+        "backend/tests/test_new_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -44008,8 +43988,8 @@
         "sqlite"
       ],
       "schema_hash": "sha256:a6258f968ac050d1",
-      "certification_tier": "MOCK_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 5,
       "operations": {
         "query": {
@@ -44092,12 +44072,11 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_new_connectors_suite.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-19T12:04:53.659316+00:00",
+        "expires_at": "2027-02-17T12:04:53.659316+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -45272,7 +45251,7 @@
         "supabase"
       ],
       "schema_hash": "sha256:7102e7f4c7c74f3f",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -45390,8 +45369,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round9.py",
+        "backend/tests/test_new_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -47876,7 +47855,7 @@
         "trello"
       ],
       "schema_hash": "sha256:f757ff83bc4ba30f",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -47977,8 +47956,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round4.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -48178,7 +48156,7 @@
         "twilio"
       ],
       "schema_hash": "sha256:215f1490cce67a80",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -48259,8 +48237,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round10.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -48497,7 +48474,7 @@
         "typeform"
       ],
       "schema_hash": "sha256:434b019b06ef2bb4",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -48621,8 +48598,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_box_and_typeform_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -50970,7 +50946,7 @@
         "workday"
       ],
       "schema_hash": "sha256:969ab17dcd32f982",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -51077,8 +51053,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_enterprise_erp_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -51310,7 +51285,7 @@
         "xero"
       ],
       "schema_hash": "sha256:67059e5ef59b6b70",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -51417,8 +51392,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round6.py",
+        "backend/tests/test_phase40_backlog_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -52040,7 +52015,7 @@
         "zoho_crm"
       ],
       "schema_hash": "sha256:412d149159f94916",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -52153,8 +52128,8 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round8.py",
+        "backend/tests/test_phase40_backlog_connectors.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -52177,7 +52152,7 @@
         "zoom"
       ],
       "schema_hash": "sha256:a1cb80d062f5b14f",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -52277,8 +52252,7 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_api/test_connector_depth_round5.py"
       ],
       "evidence": {
         "timestamp": null,

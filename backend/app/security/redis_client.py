@@ -40,6 +40,11 @@ def get_shared_redis() -> Any | None:
             kwargs: dict[str, Any] = {"decode_responses": True}
             if settings.redis_password:
                 kwargs["password"] = settings.redis_password
+            kwargs.update({
+                "socket_timeout": settings.redis_socket_timeout_s,
+                "socket_connect_timeout": settings.redis_connect_timeout_s,
+                "health_check_interval": 30,
+            })
             _client = redis.Redis.from_url(url, **kwargs)
             _checked_url = url
             logger.info("shared Redis client ready")

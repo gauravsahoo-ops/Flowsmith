@@ -64,6 +64,108 @@ KNOWN_TEST_MAPPINGS = {
     "csv": [
         "backend/tests/test_csv_connector_and_10k_perf.py",
     ],
+    "gmail": [
+        "backend/tests/test_api/test_gmail.py",
+    ],
+    "google_sheets": [
+        "backend/tests/test_api/test_google_sheets.py",
+    ],
+    "google_calendar": [
+        "backend/tests/test_api/test_google_connector.py",
+    ],
+    "google_docs": [
+        "backend/tests/test_api/test_google_docs_connector.py",
+    ],
+    "google_drive": [
+        "backend/tests/test_api/test_google_drive_connector.py",
+    ],
+    "outlook": [
+        "backend/tests/test_api/test_microsoft_graph_connectors.py",
+    ],
+    "msteams": [
+        "backend/tests/test_api/test_microsoft_graph_connectors.py",
+    ],
+    "box": [
+        "backend/tests/test_box_and_typeform_connectors.py",
+    ],
+    "typeform": [
+        "backend/tests/test_box_and_typeform_connectors.py",
+    ],
+    "sap": [
+        "backend/tests/test_enterprise_erp_connectors.py",
+    ],
+    "workday": [
+        "backend/tests/test_enterprise_erp_connectors.py",
+    ],
+    "netsuite": [
+        "backend/tests/test_enterprise_erp_connectors.py",
+    ],
+    "s3": [
+        "backend/tests/test_api/test_connector_depth_round3.py",
+        "backend/tests/test_new_connectors.py",
+    ],
+    "asana": ["backend/tests/test_api/test_connector_depth_round4.py"],
+    "trello": ["backend/tests/test_api/test_connector_depth_round4.py"],
+    "calendly": ["backend/tests/test_api/test_connector_depth_round5.py"],
+    "zoom": ["backend/tests/test_api/test_connector_depth_round5.py"],
+    "freshsales": [
+        "backend/tests/test_api/test_connector_depth_round6.py",
+        "backend/tests/test_phase40_backlog_connectors.py",
+    ],
+    "xero": [
+        "backend/tests/test_api/test_connector_depth_round6.py",
+        "backend/tests/test_phase40_backlog_connectors.py",
+    ],
+    "activecampaign": [
+        "backend/tests/test_api/test_connector_depth_round7.py",
+        "backend/tests/test_phase40_backlog_connectors.py",
+    ],
+    "bigquery": [
+        "backend/tests/test_api/test_connector_depth_round7.py",
+        "backend/tests/test_phase40_backlog_connectors.py",
+    ],
+    "bitbucket": ["backend/tests/test_api/test_connector_depth_round7.py"],
+    "coda": [
+        "backend/tests/test_api/test_connector_depth_round7.py",
+        "backend/tests/test_phase40_backlog_connectors.py",
+    ],
+    "docusign": [
+        "backend/tests/test_api/test_connector_depth_round8.py",
+        "backend/tests/test_phase40_backlog_connectors.py",
+    ],
+    "intercom": [
+        "backend/tests/test_api/test_connector_depth_round8.py",
+        "backend/tests/test_phase40_backlog_connectors.py",
+    ],
+    "zoho_crm": [
+        "backend/tests/test_api/test_connector_depth_round8.py",
+        "backend/tests/test_phase40_backlog_connectors.py",
+    ],
+    "gitlab": ["backend/tests/test_api/test_connector_depth_round9.py"],
+    "linear": ["backend/tests/test_api/test_connector_depth_round9.py"],
+    "supabase": [
+        "backend/tests/test_api/test_connector_depth_round9.py",
+        "backend/tests/test_new_connectors.py",
+    ],
+    "resend": [
+        "backend/tests/test_api/test_connector_depth_round9.py",
+        "backend/tests/test_new_connectors.py",
+    ],
+    "pinecone": [
+        "backend/tests/test_api/test_connector_depth_round10.py",
+        "backend/tests/test_new_connectors.py",
+    ],
+    "twilio": ["backend/tests/test_api/test_connector_depth_round10.py"],
+    "sentry": [
+        "backend/tests/test_api/test_connector_depth_round10.py",
+        "backend/tests/test_new_connectors.py",
+    ],
+    "mssql": ["backend/tests/test_new_connectors_suite.py"],
+    "sqlite": ["backend/tests/test_new_connectors_suite.py"],
+    "rabbitmq": ["backend/tests/test_new_connectors_suite.py"],
+    "kafka": ["backend/tests/test_kafka_oracle_mqtt_connectors.py"],
+    "oracle": ["backend/tests/test_kafka_oracle_mqtt_connectors.py"],
+    "mqtt": ["backend/tests/test_kafka_oracle_mqtt_connectors.py"],
     "postgres": [
         "backend/tests/test_api/test_postgres_connector.py",
     ],

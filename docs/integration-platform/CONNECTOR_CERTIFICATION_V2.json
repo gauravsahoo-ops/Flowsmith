@@ -4,11 +4,11 @@
   "summary": {
     "total_connectors": 529,
     "production_certified": 0,
-    "live_api_validated": 2,
-    "contract_validated": 33,
-    "mock_validated": 494,
+    "live_api_validated": 8,
+    "contract_validated": 63,
+    "mock_validated": 458,
     "static_validated": 0,
-    "live_test_unavailable": 527,
+    "live_test_unavailable": 521,
     "blocked": 0,
     "stale_certifications": 0,
     "expired_certifications": 0
@@ -164,7 +164,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:7e8a422a5a1a0f03",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -176,7 +176,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -980,7 +980,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:d1047127ff2878d3",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -992,7 +992,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -2276,7 +2276,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:f1d2ec498c198fe0",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -2288,7 +2288,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -2324,7 +2324,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:2b1482f2c81378e2",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -2336,7 +2336,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -2516,7 +2516,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:1058a728b0bcb054",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -2528,7 +2528,7 @@
       },
       "operations": {
         "implemented": 8,
-        "contract_validated": 0,
+        "contract_validated": 8,
         "live_validated": 0
       },
       "search": {
@@ -2852,7 +2852,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:71cbb8a4c4c348ea",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -2864,7 +2864,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {
@@ -3620,7 +3620,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:4323185ecd880d7c",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -3632,7 +3632,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -5204,7 +5204,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:4ca15f5b75cbffd1",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -5216,7 +5216,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {
@@ -7220,7 +7220,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:46c41ea6097032ac",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -7232,7 +7232,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -7892,7 +7892,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:91fc1f51a448eeed",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -7904,7 +7904,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -7988,7 +7988,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:845e104226120545",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -8000,7 +8000,7 @@
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
+        "contract_validated": 5,
         "live_validated": 0
       },
       "search": {
@@ -8468,7 +8468,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:6f8b2a61803354b9",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -8480,7 +8480,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {
@@ -8756,7 +8756,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:90740d81901173f0",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -8768,7 +8768,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {
@@ -8804,7 +8804,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:c3754ab84909ba70",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -8816,7 +8816,7 @@
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
+        "contract_validated": 5,
         "live_validated": 0
       },
       "search": {
@@ -9044,7 +9044,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:30a3eb1d577d742d",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -9056,7 +9056,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {
@@ -10532,7 +10532,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:5e572669c36ff7cf",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -10544,7 +10544,7 @@
       },
       "operations": {
         "implemented": 8,
-        "contract_validated": 0,
+        "contract_validated": 8,
         "live_validated": 0
       },
       "search": {
@@ -11684,7 +11684,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:bb7745e46dd051d2",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -11696,7 +11696,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -14564,20 +14564,20 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:2319b3c1301295b2",
-      "certification": "MOCK_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-19T12:26:22.910441+00:00",
+      "expires_at": "2027-02-17T12:26:22.910441+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 2,
-        "contract_validated": 0,
-        "live_validated": 0
+        "contract_validated": 2,
+        "live_validated": 2
       },
       "search": {
         "implemented": false,
@@ -14594,7 +14594,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -14756,7 +14756,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:4eefe4d694d3950f",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -14768,7 +14768,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -15188,7 +15188,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:b51f7da5ef3db54f",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -15200,7 +15200,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -16676,7 +16676,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:f619ad53f0a457d5",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -16688,7 +16688,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -17252,7 +17252,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:c742a86ed2805808",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -17264,7 +17264,7 @@
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
+        "contract_validated": 5,
         "live_validated": 0
       },
       "search": {
@@ -17588,24 +17588,24 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:ed27bd122839193b",
-      "certification": "CONTRACT_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 5,
         "contract_validated": 5,
-        "live_validated": 0
+        "live_validated": 5
       },
       "search": {
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "triggers": {
         "registered": 0,
@@ -17618,7 +17618,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "LIVE_METADATA_SCHEMA",
@@ -18308,20 +18308,20 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:b41dcca42a84988d",
-      "certification": "MOCK_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-19T12:26:22.910441+00:00",
+      "expires_at": "2027-02-17T12:26:22.910441+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 3,
-        "contract_validated": 0,
-        "live_validated": 0
+        "contract_validated": 3,
+        "live_validated": 3
       },
       "search": {
         "implemented": false,
@@ -18338,7 +18338,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -18692,20 +18692,20 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:efcced4b8d3f4c6c",
-      "certification": "CONTRACT_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 5,
         "contract_validated": 5,
-        "live_validated": 0
+        "live_validated": 5
       },
       "search": {
         "implemented": false,
@@ -18722,7 +18722,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -18932,7 +18932,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:d90f3d5be2910b69",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -18944,7 +18944,7 @@
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
+        "contract_validated": 5,
         "live_validated": 0
       },
       "search": {
@@ -19316,20 +19316,20 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:e6724a3c7fae668c",
-      "certification": "MOCK_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
-        "live_validated": 0
+        "contract_validated": 5,
+        "live_validated": 5
       },
       "search": {
         "implemented": false,
@@ -19346,7 +19346,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -19508,7 +19508,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:01e3183295575e60",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -19520,7 +19520,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {
@@ -20036,7 +20036,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:320e67e90f886939",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -20048,7 +20048,7 @@
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
+        "contract_validated": 5,
         "live_validated": 0
       },
       "search": {
@@ -21236,24 +21236,24 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:a6258f968ac050d1",
-      "certification": "MOCK_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
-        "live_validated": 0
+        "contract_validated": 5,
+        "live_validated": 5
       },
       "search": {
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "triggers": {
         "registered": 0,
@@ -21266,7 +21266,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -21956,7 +21956,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:7102e7f4c7c74f3f",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -21968,7 +21968,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -23060,7 +23060,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:f757ff83bc4ba30f",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -23072,7 +23072,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {
@@ -23204,7 +23204,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:215f1490cce67a80",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -23216,7 +23216,7 @@
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
+        "contract_validated": 5,
         "live_validated": 0
       },
       "search": {
@@ -23396,7 +23396,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:434b019b06ef2bb4",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -23408,7 +23408,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -24692,7 +24692,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:969ab17dcd32f982",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -24704,7 +24704,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {
@@ -24884,7 +24884,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:67059e5ef59b6b70",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -24896,7 +24896,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -25268,7 +25268,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:412d149159f94916",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -25280,7 +25280,7 @@
       },
       "operations": {
         "implemented": 7,
-        "contract_validated": 0,
+        "contract_validated": 7,
         "live_validated": 0
       },
       "search": {
@@ -25316,7 +25316,7 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:a1cb80d062f5b14f",
-      "certification": "MOCK_VALIDATED",
+      "certification": "CONTRACT_VALIDATED",
       "availability": "LIVE_TEST_UNAVAILABLE",
       "evidence_timestamp": null,
       "expires_at": null,
@@ -25328,7 +25328,7 @@
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
+        "contract_validated": 6,
         "live_validated": 0
       },
       "search": {

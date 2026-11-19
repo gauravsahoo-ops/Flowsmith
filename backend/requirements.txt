@@ -34,6 +34,15 @@ pymysql>=1.1
 # MongoDB connector (Phase 11 business connectors)
 pymongo>=4.6
 
+# RabbitMQ connector (AMQP)
+aio-pika>=10.2
+
+# MQTT connector
+aiomqtt>=2.5
+
+# Microsoft SQL Server connector
+pymssql>=2.4
+
 # Safe XML parsing for Salesforce Outbound Message SOAP triggers (Phase 10)
 defusedxml>=0.7
 

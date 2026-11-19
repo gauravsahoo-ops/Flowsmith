@@ -73,7 +73,7 @@ async def test_oracle_connector_lifecycle_and_operations():
 
 
 @pytest.mark.asyncio
-async def test_mqtt_connector_lifecycle_and_operations():
+async def test_mqtt_connector_lifecycle_and_operations(monkeypatch):
     connector = MQTTConnector()
     definition = build_mqtt_definition()
 
@@ -83,18 +83,27 @@ async def test_mqtt_connector_lifecycle_and_operations():
 
     # Test connect
     assert not await connector.connect({})
-    assert await connector.connect({"broker_url": "broker.emqx.io"})
+    assert await connector.connect({"broker_url": "mqtt://localhost:1883"})
 
-    # Test publish
+    # The real broker round-trip is covered by tests/test_mqtt_live.py.
+    # Here we verify operation routing without opening a network connection.
+    def fake_publish(creds, params):
+        return {"output": [{"status": "published", "topic": params.topic, "qos": params.qos}]}
+
+    def fake_consume(creds, params):
+        return {"output": [{"topic": params.topic, "payload": {"ok": True}}]}
+
+    monkeypatch.setattr(connector, "_publish_sync", fake_publish)
+    monkeypatch.setattr(connector, "_consume_sync", fake_consume)
+
     pub_res = await connector.op_execute("publish", {
         "topic": "sensors/ambient",
         "payload": {"temp": 24.5},
         "qos": 1,
     })
-    assert pub_res["status"] == "published"
-    assert pub_res["topic"] == "sensors/ambient"
+    assert pub_res["output"][0]["status"] == "published"
+    assert pub_res["output"][0]["topic"] == "sensors/ambient"
 
-    # Test consume
     cons_res = await connector.op_execute("consume", {"topic": "sensors/ambient"})
     assert "output" in cons_res
 

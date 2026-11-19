@@ -329,11 +329,11 @@ services:
     cap_drop:
       - ALL
     healthcheck:
-      test: [ "CMD-SHELL", "python -c \"import os; exit(0 if os.path.exists('/app/backend/tmp/worker_alive') else 1)\"" ]
+      test: [ "CMD-SHELL", "python -c \"import os,time; p='/app/backend/tmp/worker_alive'; exit(0 if os.path.exists(p) and time.time()-os.path.getmtime(p) < 90 else 1)\"" ]
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 60s
     networks:
       - backend
     deploy:

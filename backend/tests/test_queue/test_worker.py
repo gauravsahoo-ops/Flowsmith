@@ -338,3 +338,28 @@ def test_worker_heartbeat_refreshes_claim(db_and_queue):
         assert row.heartbeat_at is not None
     finally:
         db.close()
+
+
+def test_alive_marker_refreshes_only_when_worker_created_it(tmp_path, monkeypatch):
+    """The liveness probe must not be fooled by a stale marker file.
+
+    The marker is created by the standalone worker and refreshed by the job
+    heartbeat task. Embedded consumers and tests must never create it.
+    """
+    import os
+
+    import app.queue.worker as worker_mod
+
+    marker = tmp_path / "worker_alive"
+    monkeypatch.setattr(worker_mod, "_alive_marker_path", lambda: marker)
+
+    # No marker (embedded consumer / test): refresh is a no-op.
+    worker_mod._touch_alive_marker()
+    assert not marker.exists()
+
+    # Standalone worker marker exists: content and mtime are refreshed.
+    marker.write_text("old-pid")
+    os.utime(marker, (1, 1))
+    worker_mod._touch_alive_marker()
+    assert marker.read_text() == str(os.getpid())
+    assert marker.stat().st_mtime > 1

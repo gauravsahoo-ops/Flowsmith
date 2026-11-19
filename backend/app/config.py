@@ -258,6 +258,10 @@ class Settings(BaseSettings):
     redis_url: str = ""
     redis_password: str = ""
     require_redis_auth: bool = False
+    # Bounded Redis I/O: a stalled connection must fail fast instead of
+    # freezing the worker loop or an API request indefinitely.
+    redis_socket_timeout_s: float = 5.0
+    redis_connect_timeout_s: float = 5.0
     queue_embedded_consumer: bool = True
     worker_poll_interval_s: float = 0.5
     worker_heartbeat_s: float = 10.0

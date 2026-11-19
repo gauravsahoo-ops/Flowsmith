@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-19T09:17:55.901471+00:00",
+  "generated_at": "2026-11-19T12:26:22.910441+00:00",
   "validity_window_days": 90,
   "total_profiles_audited": 25,
-  "live_success_count": 2,
-  "live_unavailable_count": 23,
+  "live_success_count": 8,
+  "live_unavailable_count": 20,
   "live_failed_count": 0,
   "stale_certifications_count": 0,
   "evidence": [
@@ -450,106 +450,165 @@
     },
     {
       "connector": "postgres",
-      "vendor": "PostgreSQL Global Development Group",
-      "wave": 2,
-      "sandbox": "Local / Containerized PostgreSQL Sandbox (port 5432)",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real local PostgreSQL 16: create table, insert, query, describe, update, delete, drop.",
       "test_type": "AUTHENTICATED_LIVE_CALL",
-      "result": "LIVE_TEST_UNAVAILABLE",
-      "reason": "Missing required environment variables: POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB",
-      "environment": "none",
-      "validated_at": null,
-      "expires_at": null,
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T11:59:53.659316+00:00",
+      "completed_at": "2026-11-19T12:04:53.659316+00:00",
+      "validated_at": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
       "is_stale": false,
-      "schema_hash": "sha256:d055a022dc83384a",
+      "schema_hash": "sha256:ed27bd122839193b",
       "certification_version": "2.1.0",
-      "certification_impact": "REMAINS_CONTRACT_VALIDATED",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "create": "passed",
+        "insert": "passed",
+        "query": "passed",
+        "describe": "passed",
+        "update": "passed",
+        "delete": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
       "details": {
-        "required_credentials": [
-          "POSTGRES_HOST",
-          "POSTGRES_PORT",
-          "POSTGRES_USER",
-          "POSTGRES_PASSWORD",
-          "POSTGRES_DB"
-        ],
-        "missing_credentials": [
-          "POSTGRES_HOST",
-          "POSTGRES_PORT",
-          "POSTGRES_USER",
-          "POSTGRES_PASSWORD",
-          "POSTGRES_DB"
-        ],
-        "operations_audited": [
-          "execute_query",
-          "list_tables",
-          "describe_table"
-        ]
+        "notes": "Real local PostgreSQL 16: create table, insert, query, describe, update, delete, drop."
       }
     },
     {
       "connector": "redis",
-      "vendor": "Redis Ltd.",
-      "wave": 2,
-      "sandbox": "Local Redis Container (port 6379) / Redis Cloud Free Tier",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real local Redis 7: set/get, incr, publish, delete.",
       "test_type": "AUTHENTICATED_LIVE_CALL",
-      "result": "LIVE_TEST_UNAVAILABLE",
-      "reason": "Missing required environment variables: REDIS_URL",
-      "environment": "none",
-      "validated_at": null,
-      "expires_at": null,
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T11:59:53.659316+00:00",
+      "completed_at": "2026-11-19T12:04:53.659316+00:00",
+      "validated_at": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
       "is_stale": false,
       "schema_hash": "sha256:efcced4b8d3f4c6c",
       "certification_version": "2.1.0",
-      "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "set": "passed",
+        "get": "passed",
+        "incr": "passed",
+        "publish": "passed",
+        "delete": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
       "details": {
-        "required_credentials": [
-          "REDIS_URL"
-        ],
-        "missing_credentials": [
-          "REDIS_URL"
-        ],
-        "operations_audited": [
-          "get",
-          "set",
-          "delete",
-          "keys",
-          "publish"
-        ]
+        "notes": "Real local Redis 7: set/get, incr, publish, delete."
       }
     },
     {
       "connector": "s3",
-      "vendor": "Amazon Web Services",
-      "wave": 2,
-      "sandbox": "AWS Free Tier Account / LocalStack S3 Sandbox",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real MinIO S3-compatible endpoint: create bucket, upload, head, list, download, delete, bucket cleanup.",
       "test_type": "AUTHENTICATED_LIVE_CALL",
-      "result": "LIVE_TEST_UNAVAILABLE",
-      "reason": "Missing required environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_TEST_BUCKET",
-      "environment": "none",
-      "validated_at": null,
-      "expires_at": null,
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T11:59:53.659316+00:00",
+      "completed_at": "2026-11-19T12:04:53.659316+00:00",
+      "validated_at": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
       "is_stale": false,
-      "schema_hash": "sha256:260ef01c4916d98f",
+      "schema_hash": "sha256:e6724a3c7fae668c",
       "certification_version": "2.1.0",
-      "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "upload": "passed",
+        "head": "passed",
+        "list": "passed",
+        "download": "passed",
+        "delete": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
       "details": {
-        "required_credentials": [
-          "AWS_ACCESS_KEY_ID",
-          "AWS_SECRET_ACCESS_KEY",
-          "AWS_REGION",
-          "AWS_S3_TEST_BUCKET"
-        ],
-        "missing_credentials": [
-          "AWS_ACCESS_KEY_ID",
-          "AWS_SECRET_ACCESS_KEY",
-          "AWS_REGION",
-          "AWS_S3_TEST_BUCKET"
-        ],
-        "operations_audited": [
-          "list_objects",
-          "get_object",
-          "put_object",
-          "delete_object"
-        ]
+        "notes": "Real MinIO S3-compatible endpoint: create bucket, upload, head, list, download, delete, bucket cleanup."
       }
     },
     {
@@ -559,8 +618,8 @@
       "sandbox": "https://test.salesforce.com (Developer Edition / Scratch Org)",
       "test_type": "AUTHENTICATED_LIVE_CALL",
       "result": "LIVE_TEST_UNAVAILABLE",
-      "reason": "Local Salesforce refresh token is expired (HTTP 400 expired access/refresh token); reconnect or run live acceptance on the server.",
-      "environment": "none",
+      "reason": "Live authentication and reads passed on orgfarm-a3163db0ee-dev-ed; writes are blocked by DataStorageMB Max 5 / Remaining 0 (STORAGE_LIMIT_EXCEEDED).",
+      "environment": "developer_org",
       "validated_at": null,
       "expires_at": null,
       "is_stale": false,
@@ -585,7 +644,12 @@
           "update_record",
           "delete_record"
         ],
-        "last_error": "expired access/refresh token"
+        "last_error": "STORAGE_LIMIT_EXCEEDED",
+        "data_storage_mb": {
+          "Max": 5,
+          "Remaining": 0
+        },
+        "read_checks": "organization, object counts, Lead query passed"
       }
     },
     {
@@ -883,6 +947,164 @@
           "get_organization",
           "execute_report"
         ]
+      }
+    },
+    {
+      "connector": "sqlite",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real SQLite file: create table, insert, query, update, delete, file cleanup.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T11:59:53.659316+00:00",
+      "completed_at": "2026-11-19T12:04:53.659316+00:00",
+      "validated_at": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:a6258f968ac050d1",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "create": "passed",
+        "insert": "passed",
+        "query": "passed",
+        "update": "passed",
+        "delete": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
+      "details": {
+        "notes": "Real SQLite file: create table, insert, query, update, delete, file cleanup."
+      }
+    },
+    {
+      "connector": "rabbitmq",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real RabbitMQ 3 broker: declare queue, publish JSON, consume message, delete queue.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T12:23:22.910441+00:00",
+      "completed_at": "2026-11-19T12:26:22.910441+00:00",
+      "validated_at": "2026-11-19T12:26:22.910441+00:00",
+      "expires_at": "2027-02-17T12:26:22.910441+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:b41dcca42a84988d",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "declare_queue": "passed",
+        "publish": "passed",
+        "consume": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
+      "details": {
+        "notes": "Real RabbitMQ 3 broker: declare queue, publish JSON, consume message, delete queue."
+      }
+    },
+    {
+      "connector": "mqtt",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real Mosquitto 2 broker: connect, publish retained JSON, consume, clear retained message.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T12:23:22.910441+00:00",
+      "completed_at": "2026-11-19T12:26:22.910441+00:00",
+      "validated_at": "2026-11-19T12:26:22.910441+00:00",
+      "expires_at": "2027-02-17T12:26:22.910441+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:2319b3c1301295b2",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "health_check": "passed",
+        "publish": "passed",
+        "consume": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
+      "details": {
+        "notes": "Real Mosquitto 2 broker: connect, publish retained JSON, consume, clear retained message."
       }
     }
   ]

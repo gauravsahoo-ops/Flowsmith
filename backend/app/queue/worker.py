@@ -36,6 +36,35 @@ _consumer_started = False
 _consumer_task: Any = None
 
 
+def _alive_marker_path() -> Any:
+    """Path to the worker liveness marker shared with the container probe."""
+    import os
+    import pathlib
+
+    return pathlib.Path(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tmp")
+    ) / "worker_alive"
+
+
+def _touch_alive_marker() -> None:
+    """Refresh the liveness marker if the standalone worker created it.
+
+    The standalone worker writes the marker at startup. During long-running
+    jobs the main loop is blocked inside ``run_job``, so the job heartbeat
+    task refreshes the marker as well; otherwise a healthy worker executing a
+    long job would look stale to the healthcheck. Embedded consumers and unit
+    tests never create the file, so this is a no-op for them.
+    """
+    import os
+
+    path = _alive_marker_path()
+    try:
+        if path.exists():
+            path.write_text(str(os.getpid()))
+    except Exception:
+        pass
+
+
 class _DbEventSink:
     """Durable event sink that reuses one session for an execution.
 
@@ -222,6 +251,7 @@ class QueueWorker:
 
     async def _heartbeat(self, job_id: str) -> None:
         while not self._stop.is_set():
+            _touch_alive_marker()
             try:
                 self.queue.heartbeat(job_id)
             except Exception:
@@ -234,10 +264,9 @@ class QueueWorker:
     async def run_forever(self) -> None:
         """Main loop for a standalone worker process."""
         import os
-        import pathlib
-        hb = pathlib.Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tmp"))
-        hb.mkdir(parents=True, exist_ok=True)
-        hb = hb / "worker_alive"
+
+        hb = _alive_marker_path()
+        hb.parent.mkdir(parents=True, exist_ok=True)
         try:
             hb.write_text(str(os.getpid()))
         except Exception:
