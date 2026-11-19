@@ -85,6 +85,28 @@ CONTRACT_TESTED_CONNECTORS = {
     "openai",
     "anthropic",
     "gemini",
+    "csv",
+    # Contract-style offline suites (115 tests, all passing):
+    "airtable",
+    "brevo",
+    "clickup",
+    "discord",
+    "dropbox",
+    "freshdesk",
+    "mailchimp",
+    "monday",
+    "mongodb",
+    "mysql",
+    "notion",
+    "pagerduty",
+    "pipedrive",
+    "quickbooks",
+    "redis",
+    "servicenow",
+    "shopify",
+    "todoist",
+    "whatsapp",
+    "zendesk",
 }
 
 

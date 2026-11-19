@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import datetime
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -15,11 +14,10 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR / "backend"))
 
-from app.connectors import get_registry, ensure_builtin_connectors
+from app.connectors import ensure_builtin_connectors, get_registry
 from app.connectors.naming import alias_target, is_hidden_in_catalog, is_internal
-from app.nodes.registry import NODE_REGISTRY, _ALIASES, list_nodes
 from app.integrations.catalog import certification_state_machine as csm
-
+from app.nodes.registry import _ALIASES, NODE_REGISTRY
 
 KNOWN_TEST_MAPPINGS = {
     "salesforce": [
@@ -59,6 +57,12 @@ KNOWN_TEST_MAPPINGS = {
     ],
     "hubspot": [
         "backend/tests/test_api/test_hubspot_connector.py",
+        "backend/tests/test_hubspot_pagination.py",
+        "backend/tests/test_api/test_hubspot_oauth.py",
+        "backend/tests/test_api/test_salesforce_hubspot_sync_workflow.py",
+    ],
+    "csv": [
+        "backend/tests/test_csv_connector_and_10k_perf.py",
     ],
     "postgres": [
         "backend/tests/test_api/test_postgres_connector.py",
@@ -166,7 +170,7 @@ def build_manifest() -> dict:
             schema_fields = []
             if hasattr(op, "input_schema") and isinstance(op.input_schema, dict):
                 props = op.input_schema.get("properties", {})
-                schema_fields = sorted(list(props.keys()))
+                schema_fields = sorted(props)
 
             ops_dict[op_key] = {
                 "operation_key": op.operation_key,
@@ -185,7 +189,7 @@ def build_manifest() -> dict:
             config_schema = getattr(tr, "config_schema", None)
             if isinstance(config_schema, dict):
                 props = config_schema.get("properties", {})
-                config_fields = sorted(list(props.keys()))
+                config_fields = sorted(props)
 
             trigs_dict[tr_key] = {
                 "trigger_key": tr.trigger_key,
@@ -261,7 +265,7 @@ def build_manifest() -> dict:
 
     total_ops = sum(c["operations_count"] for c in connectors_list)
     total_trigs = sum(c["triggers_count"] for c in connectors_list)
-    distinct_creds = len(set(ct for c in connectors_list for ct in c["credential_types"].keys()))
+    distinct_creds = len({ct for c in connectors_list for ct in c["credential_types"]})
 
     manifest = {
         "manifest_version": "4.0.0",

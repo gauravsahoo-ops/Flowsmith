@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-29T13:15:22.252508+00:00",
+  "generated_at": "2026-11-19T09:17:55.901471+00:00",
   "validity_window_days": 90,
   "total_profiles_audited": 25,
-  "live_success_count": 1,
-  "live_unavailable_count": 24,
+  "live_success_count": 2,
+  "live_unavailable_count": 23,
   "live_failed_count": 0,
   "stale_certifications_count": 0,
   "evidence": [
@@ -241,34 +241,75 @@
     },
     {
       "connector": "hubspot",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
       "vendor": "HubSpot, Inc.",
       "wave": 1,
-      "sandbox": "HubSpot Developer Account / App Test Portal",
+      "sandbox": "Production portal 248020517 (private app token)",
       "test_type": "AUTHENTICATED_LIVE_CALL",
-      "result": "LIVE_TEST_UNAVAILABLE",
-      "reason": "Missing required environment variables: HUBSPOT_ACCESS_TOKEN, HUBSPOT_CLIENT_SECRET",
-      "environment": "none",
-      "validated_at": null,
-      "expires_at": null,
+      "result": "LIVE_SUCCESS",
+      "environment": "production_portal",
+      "started_at": "2026-11-19T09:11:55.901471+00:00",
+      "completed_at": "2026-11-19T09:17:55.901471+00:00",
+      "validated_at": "2026-11-19T09:17:55.901471+00:00",
+      "expires_at": "2027-02-17T09:17:55.901471+00:00",
       "is_stale": false,
-      "schema_hash": "sha256:c26ae87107514027",
+      "schema_hash": "sha256:c432354aa238aa5f",
       "certification_version": "2.1.0",
-      "certification_impact": "REMAINS_CONTRACT_VALIDATED",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "create": "passed",
+        "update": "passed",
+        "read": "passed",
+        "search": "passed",
+        "associate_records": "passed",
+        "delete": "passed",
+        "get_properties": "passed",
+        "list_object_types": "passed"
+      },
+      "search": {
+        "status": "passed",
+        "detail": "company/contact/deal each returned 1 match"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "passed",
+        "detail": "standard object discovery returned 6 objects"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith-cert-",
       "details": {
-        "required_credentials": [
-          "HUBSPOT_ACCESS_TOKEN",
-          "HUBSPOT_CLIENT_SECRET"
-        ],
-        "missing_credentials": [
-          "HUBSPOT_ACCESS_TOKEN",
-          "HUBSPOT_CLIENT_SECRET"
-        ],
         "operations_audited": [
-          "get_contacts",
+          "create_company",
           "create_contact",
-          "search_contacts",
-          "update_contact"
-        ]
+          "create_deal",
+          "update_company",
+          "update_contact",
+          "update_deal",
+          "read_back",
+          "search",
+          "associate_contact_company",
+          "associate_deal_company",
+          "delete",
+          "verify_404"
+        ],
+        "notes": "Live CRUD, associations, and cleanup verified against the production HubSpot portal."
       }
     },
     {
@@ -518,7 +559,7 @@
       "sandbox": "https://test.salesforce.com (Developer Edition / Scratch Org)",
       "test_type": "AUTHENTICATED_LIVE_CALL",
       "result": "LIVE_TEST_UNAVAILABLE",
-      "reason": "Missing required environment variables: SALESFORCE_INSTANCE_URL, SALESFORCE_ACCESS_TOKEN, SALESFORCE_REFRESH_TOKEN",
+      "reason": "Local Salesforce refresh token is expired (HTTP 400 expired access/refresh token); reconnect or run live acceptance on the server.",
       "environment": "none",
       "validated_at": null,
       "expires_at": null,
@@ -543,7 +584,8 @@
           "get_record",
           "update_record",
           "delete_record"
-        ]
+        ],
+        "last_error": "expired access/refresh token"
       }
     },
     {

@@ -1,6 +1,6 @@
 {
   "manifest_version": "4.0.0",
-  "generated_at": "2026-11-12T08:32:11.621968+00:00",
+  "generated_at": "2026-11-19T11:20:11.927482+00:00",
   "platform": "Flowsmith Integration Engine",
   "phase": "PHASE 4 \u2014 COMPLETE NODE AND CONNECTOR CERTIFICATION",
   "summary": {
@@ -13,14 +13,14 @@
     "total_canonical_nodes": 78,
     "certification_tiers": {
       "PRODUCTION_CERTIFIED": 0,
-      "LIVE_API_VALIDATED": 1,
-      "CONTRACT_VALIDATED": 13,
-      "MOCK_VALIDATED": 515,
+      "LIVE_API_VALIDATED": 2,
+      "CONTRACT_VALIDATED": 33,
+      "MOCK_VALIDATED": 494,
       "STATIC_VALIDATED": 0
     },
     "availability_status": {
       "PASSED": 1,
-      "LIVE_TEST_UNAVAILABLE": 528,
+      "LIVE_TEST_UNAVAILABLE": 527,
       "FAILED": 0,
       "BLOCKED": 0
     },
@@ -1204,7 +1204,7 @@
         "airtable"
       ],
       "schema_hash": "sha256:46c34f427ff2ea0d",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -5102,7 +5102,7 @@
         "brevo"
       ],
       "schema_hash": "sha256:62b48ced60f9ede1",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -6590,7 +6590,7 @@
         "clickup"
       ],
       "schema_hash": "sha256:40b71cd2b1569a1a",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -9462,7 +9462,7 @@
         "data_load"
       ],
       "schema_hash": "sha256:65a0df6e933a32c6",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 4,
       "operations": {
@@ -9537,8 +9537,7 @@
       "credential_types_count": 0,
       "credential_types": {},
       "test_suite_coverage": [
-        "backend/tests/test_all_connectors_and_nodes_operational.py",
-        "backend/tests/test_no_fake_success.py"
+        "backend/tests/test_csv_connector_and_10k_perf.py"
       ],
       "evidence": {
         "timestamp": null,
@@ -10444,7 +10443,7 @@
         "discord"
       ],
       "schema_hash": "sha256:59091dbf30918359",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 4,
       "operations": {
@@ -10898,7 +10897,7 @@
         "dropbox"
       ],
       "schema_hash": "sha256:39ff46738b4f9364",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -14353,7 +14352,7 @@
         "freshdesk"
       ],
       "schema_hash": "sha256:78b1ee9eb13767cc",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -20593,8 +20592,8 @@
         "hubspot"
       ],
       "schema_hash": "sha256:c432354aa238aa5f",
-      "certification_tier": "CONTRACT_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 11,
       "operations": {
         "search": {
@@ -20777,11 +20776,14 @@
         }
       },
       "test_suite_coverage": [
-        "backend/tests/test_api/test_hubspot_connector.py"
+        "backend/tests/test_api/test_hubspot_connector.py",
+        "backend/tests/test_hubspot_pagination.py",
+        "backend/tests/test_api/test_hubspot_oauth.py",
+        "backend/tests/test_api/test_salesforce_hubspot_sync_workflow.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-19T09:17:55.901471+00:00",
+        "expires_at": "2027-02-17T09:17:55.901471+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -25278,7 +25280,7 @@
         "mailchimp"
       ],
       "schema_hash": "sha256:b05dfa0da37678fc",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -30084,7 +30086,7 @@
         "monday"
       ],
       "schema_hash": "sha256:fb19bdf962960f3e",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -30337,7 +30339,7 @@
         "mongodb"
       ],
       "schema_hash": "sha256:6bc1f74852231153",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 8,
       "operations": {
@@ -31141,7 +31143,7 @@
         "mysql"
       ],
       "schema_hash": "sha256:875d270e9241b9c7",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -32478,7 +32480,7 @@
         "notion"
       ],
       "schema_hash": "sha256:a0b9cbd0571dc237",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -35067,7 +35069,7 @@
         "pagerduty"
       ],
       "schema_hash": "sha256:1e6cfd7b21f2866d",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 8,
       "operations": {
@@ -35846,7 +35848,7 @@
         "pipedrive"
       ],
       "schema_hash": "sha256:6f9afe8dc223447e",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -37549,7 +37551,7 @@
         "quickbooks"
       ],
       "schema_hash": "sha256:cefbfeb3714e2aec",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 8,
       "operations": {
@@ -38388,7 +38390,7 @@
         "redis"
       ],
       "schema_hash": "sha256:efcced4b8d3f4c6c",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -42022,7 +42024,7 @@
         "servicenow"
       ],
       "schema_hash": "sha256:715a2e005a66053b",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -42419,7 +42421,7 @@
         "shopify"
       ],
       "schema_hash": "sha256:81836e7bd42c2ea8",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -47377,7 +47379,7 @@
         "todoist"
       ],
       "schema_hash": "sha256:fcacba6fff81661f",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 6,
       "operations": {
@@ -50065,7 +50067,7 @@
         "whatsapp"
       ],
       "schema_hash": "sha256:d440aad417bd35f8",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 5,
       "operations": {
@@ -51785,7 +51787,7 @@
         "zendesk"
       ],
       "schema_hash": "sha256:79a54aaf900d3c96",
-      "certification_tier": "MOCK_VALIDATED",
+      "certification_tier": "CONTRACT_VALIDATED",
       "availability_status": "LIVE_TEST_UNAVAILABLE",
       "operations_count": 7,
       "operations": {
@@ -52475,7 +52477,10 @@
         "session_id",
         "max_iterations",
         "temperature",
-        "response_format"
+        "response_format",
+        "tool_approval_approvers",
+        "tool_approval_timeout_hours",
+        "tool_approval_separation_of_duties"
       ],
       "is_alias": false,
       "alias_target": null
