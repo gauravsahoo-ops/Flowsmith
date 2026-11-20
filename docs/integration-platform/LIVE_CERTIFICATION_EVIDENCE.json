@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-19T12:26:22.910441+00:00",
+  "generated_at": "2026-11-20T06:02:43.333898+00:00",
   "validity_window_days": 90,
-  "total_profiles_audited": 25,
-  "live_success_count": 8,
-  "live_unavailable_count": 20,
+  "total_profiles_audited": 32,
+  "live_success_count": 13,
+  "live_unavailable_count": 19,
   "live_failed_count": 0,
   "stale_certifications_count": 0,
   "evidence": [
@@ -347,34 +347,237 @@
       }
     },
     {
-      "connector": "mongodb",
-      "vendor": "MongoDB, Inc.",
-      "wave": 2,
-      "sandbox": "MongoDB Atlas Free Shared Cluster (M0 Sandbox)",
+      "connector": "kafka",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real Apache Kafka 3.9 KRaft broker: produce keyed/unkeyed, consume both, list topics, delete topic.",
       "test_type": "AUTHENTICATED_LIVE_CALL",
-      "result": "LIVE_TEST_UNAVAILABLE",
-      "reason": "Missing required environment variables: MONGODB_URI, MONGODB_DATABASE",
-      "environment": "none",
-      "validated_at": null,
-      "expires_at": null,
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-20T06:00:43.333898+00:00",
+      "completed_at": "2026-11-20T06:02:43.333898+00:00",
+      "validated_at": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
       "is_stale": false,
-      "schema_hash": "sha256:019ba619f6c0897b",
+      "schema_hash": "sha256:4df11a50c14dc40d",
       "certification_version": "2.1.0",
-      "certification_impact": "REMAINS_VALIDATED_FUNCTIONAL",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "produce": "passed",
+        "consume": "passed",
+        "list_topics": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert",
       "details": {
-        "required_credentials": [
-          "MONGODB_URI",
-          "MONGODB_DATABASE"
-        ],
-        "missing_credentials": [
-          "MONGODB_URI",
-          "MONGODB_DATABASE"
-        ],
+        "notes": "Real Apache Kafka 3.9 KRaft broker: produce keyed/unkeyed, consume both, list topics, delete topic.",
         "operations_audited": [
-          "find_documents",
-          "insert_document",
-          "update_document",
-          "delete_document"
+          "produce",
+          "consume",
+          "list_topics"
+        ]
+      }
+    },
+    {
+      "connector": "mongodb",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real MongoDB 7 server: ping, insert, find, update, aggregate, count, list, delete, drop.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-20T06:00:43.333898+00:00",
+      "completed_at": "2026-11-20T06:02:43.333898+00:00",
+      "validated_at": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:6bc1f74852231153",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "find": "passed",
+        "insert_one": "passed",
+        "update_one": "passed",
+        "delete_one": "passed",
+        "aggregate": "passed",
+        "count_documents": "passed",
+        "list_collections": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert",
+      "details": {
+        "notes": "Real MongoDB 7 server: ping, insert, find, update, aggregate, count, list, delete, drop.",
+        "operations_audited": [
+          "find",
+          "insert_one",
+          "update_one",
+          "delete_one",
+          "aggregate",
+          "count_documents",
+          "list_collections"
+        ]
+      }
+    },
+    {
+      "connector": "mqtt",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real Mosquitto 2 broker: connect, publish retained JSON, consume, clear retained message.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T12:23:22.910441+00:00",
+      "completed_at": "2026-11-19T12:26:22.910441+00:00",
+      "validated_at": "2026-11-19T12:26:22.910441+00:00",
+      "expires_at": "2027-02-17T12:26:22.910441+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:2319b3c1301295b2",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "health_check": "passed",
+        "publish": "passed",
+        "consume": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
+      "details": {
+        "notes": "Real Mosquitto 2 broker: connect, publish retained JSON, consume, clear retained message."
+      }
+    },
+    {
+      "connector": "mssql",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real SQL Server 2022: create table, insert, select, update, describe, delete, drop.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-20T06:00:43.333898+00:00",
+      "completed_at": "2026-11-20T06:02:43.333898+00:00",
+      "validated_at": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:e52d14b1dc15fcc0",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "query": "passed",
+        "insert": "passed",
+        "update": "passed",
+        "delete": "passed",
+        "describe": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert",
+      "details": {
+        "notes": "Real SQL Server 2022: create table, insert, select, update, describe, delete, drop.",
+        "operations_audited": [
+          "query",
+          "insert",
+          "update",
+          "delete",
+          "describe"
         ]
       }
     },
@@ -412,6 +615,69 @@
       }
     },
     {
+      "connector": "mysql",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real MySQL 8.4 server: create table, insert, select, update, describe, list, delete, drop.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-20T06:00:43.333898+00:00",
+      "completed_at": "2026-11-20T06:02:43.333898+00:00",
+      "validated_at": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:875d270e9241b9c7",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "query": "passed",
+        "insert_rows": "passed",
+        "update": "passed",
+        "delete": "passed",
+        "describe_table": "passed",
+        "list_tables": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert",
+      "details": {
+        "notes": "Real MySQL 8.4 server: create table, insert, select, update, describe, list, delete, drop.",
+        "operations_audited": [
+          "query",
+          "insert_rows",
+          "update",
+          "delete",
+          "describe_table",
+          "list_tables"
+        ]
+      }
+    },
+    {
       "connector": "netsuite",
       "vendor": "Oracle Corporation",
       "wave": 1,
@@ -445,6 +711,69 @@
           "execute_suiteql",
           "get_customer",
           "create_sales_order"
+        ]
+      }
+    },
+    {
+      "connector": "oracle",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real Oracle Database Free 23ai: create table, insert, select, update, bind insert, table list, delete, drop.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-20T06:00:43.333898+00:00",
+      "completed_at": "2026-11-20T06:02:43.333898+00:00",
+      "validated_at": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:334df203e5e3e83b",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "query": "passed",
+        "execute": "passed",
+        "insert": "passed",
+        "update": "passed",
+        "delete": "passed",
+        "table_list": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert",
+      "details": {
+        "notes": "Real Oracle Database Free 23ai: create table, insert, select, update, bind insert, table list, delete, drop.",
+        "operations_audited": [
+          "query",
+          "execute",
+          "insert",
+          "update",
+          "delete",
+          "table_list"
         ]
       }
     },
@@ -501,6 +830,58 @@
       "disposable_data_prefix": "flowsmith_cert_",
       "details": {
         "notes": "Real local PostgreSQL 16: create table, insert, query, describe, update, delete, drop."
+      }
+    },
+    {
+      "connector": "rabbitmq",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real RabbitMQ 3 broker: declare queue, publish JSON, consume message, delete queue.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T12:23:22.910441+00:00",
+      "completed_at": "2026-11-19T12:26:22.910441+00:00",
+      "validated_at": "2026-11-19T12:26:22.910441+00:00",
+      "expires_at": "2027-02-17T12:26:22.910441+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:b41dcca42a84988d",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "declare_queue": "passed",
+        "publish": "passed",
+        "consume": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
+      "details": {
+        "notes": "Real RabbitMQ 3 broker: declare queue, publish JSON, consume message, delete queue."
       }
     },
     {
@@ -856,6 +1237,60 @@
       }
     },
     {
+      "connector": "sqlite",
+      "connector_version": "1.0.0",
+      "runner_version": "2.1.0",
+      "vendor": "local service",
+      "wave": 1,
+      "sandbox": "Real SQLite file: create table, insert, query, update, delete, file cleanup.",
+      "test_type": "AUTHENTICATED_LIVE_CALL",
+      "result": "LIVE_SUCCESS",
+      "environment": "local_service",
+      "started_at": "2026-11-19T11:59:53.659316+00:00",
+      "completed_at": "2026-11-19T12:04:53.659316+00:00",
+      "validated_at": "2026-11-19T12:04:53.659316+00:00",
+      "expires_at": "2027-02-17T12:04:53.659316+00:00",
+      "is_stale": false,
+      "schema_hash": "sha256:a6258f968ac050d1",
+      "certification_version": "2.1.0",
+      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
+      "authentication": {
+        "status": "passed",
+        "is_mock": false
+      },
+      "operations": {
+        "create": "passed",
+        "insert": "passed",
+        "query": "passed",
+        "update": "passed",
+        "delete": "passed"
+      },
+      "search": {
+        "status": "not_tested"
+      },
+      "pagination": {
+        "status": "not_tested"
+      },
+      "dynamic_schema": {
+        "status": "not_tested"
+      },
+      "webhook": {
+        "status": "not_applicable"
+      },
+      "cleanup": {
+        "status": "passed",
+        "disposable_record_deleted": true
+      },
+      "security": {
+        "credential_redaction": "passed",
+        "no_secret_in_evidence": true
+      },
+      "disposable_data_prefix": "flowsmith_cert_",
+      "details": {
+        "notes": "Real SQLite file: create table, insert, query, update, delete, file cleanup."
+      }
+    },
+    {
       "connector": "stripe",
       "vendor": "Stripe, Inc.",
       "wave": 3,
@@ -947,164 +1382,6 @@
           "get_organization",
           "execute_report"
         ]
-      }
-    },
-    {
-      "connector": "sqlite",
-      "connector_version": "1.0.0",
-      "runner_version": "2.1.0",
-      "vendor": "local service",
-      "wave": 1,
-      "sandbox": "Real SQLite file: create table, insert, query, update, delete, file cleanup.",
-      "test_type": "AUTHENTICATED_LIVE_CALL",
-      "result": "LIVE_SUCCESS",
-      "environment": "local_service",
-      "started_at": "2026-11-19T11:59:53.659316+00:00",
-      "completed_at": "2026-11-19T12:04:53.659316+00:00",
-      "validated_at": "2026-11-19T12:04:53.659316+00:00",
-      "expires_at": "2027-02-17T12:04:53.659316+00:00",
-      "is_stale": false,
-      "schema_hash": "sha256:a6258f968ac050d1",
-      "certification_version": "2.1.0",
-      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
-      "authentication": {
-        "status": "passed",
-        "is_mock": false
-      },
-      "operations": {
-        "create": "passed",
-        "insert": "passed",
-        "query": "passed",
-        "update": "passed",
-        "delete": "passed"
-      },
-      "search": {
-        "status": "not_tested"
-      },
-      "pagination": {
-        "status": "not_tested"
-      },
-      "dynamic_schema": {
-        "status": "not_tested"
-      },
-      "webhook": {
-        "status": "not_applicable"
-      },
-      "cleanup": {
-        "status": "passed",
-        "disposable_record_deleted": true
-      },
-      "security": {
-        "credential_redaction": "passed",
-        "no_secret_in_evidence": true
-      },
-      "disposable_data_prefix": "flowsmith_cert_",
-      "details": {
-        "notes": "Real SQLite file: create table, insert, query, update, delete, file cleanup."
-      }
-    },
-    {
-      "connector": "rabbitmq",
-      "connector_version": "1.0.0",
-      "runner_version": "2.1.0",
-      "vendor": "local service",
-      "wave": 1,
-      "sandbox": "Real RabbitMQ 3 broker: declare queue, publish JSON, consume message, delete queue.",
-      "test_type": "AUTHENTICATED_LIVE_CALL",
-      "result": "LIVE_SUCCESS",
-      "environment": "local_service",
-      "started_at": "2026-11-19T12:23:22.910441+00:00",
-      "completed_at": "2026-11-19T12:26:22.910441+00:00",
-      "validated_at": "2026-11-19T12:26:22.910441+00:00",
-      "expires_at": "2027-02-17T12:26:22.910441+00:00",
-      "is_stale": false,
-      "schema_hash": "sha256:b41dcca42a84988d",
-      "certification_version": "2.1.0",
-      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
-      "authentication": {
-        "status": "passed",
-        "is_mock": false
-      },
-      "operations": {
-        "declare_queue": "passed",
-        "publish": "passed",
-        "consume": "passed"
-      },
-      "search": {
-        "status": "not_tested"
-      },
-      "pagination": {
-        "status": "not_tested"
-      },
-      "dynamic_schema": {
-        "status": "not_tested"
-      },
-      "webhook": {
-        "status": "not_applicable"
-      },
-      "cleanup": {
-        "status": "passed",
-        "disposable_record_deleted": true
-      },
-      "security": {
-        "credential_redaction": "passed",
-        "no_secret_in_evidence": true
-      },
-      "disposable_data_prefix": "flowsmith_cert_",
-      "details": {
-        "notes": "Real RabbitMQ 3 broker: declare queue, publish JSON, consume message, delete queue."
-      }
-    },
-    {
-      "connector": "mqtt",
-      "connector_version": "1.0.0",
-      "runner_version": "2.1.0",
-      "vendor": "local service",
-      "wave": 1,
-      "sandbox": "Real Mosquitto 2 broker: connect, publish retained JSON, consume, clear retained message.",
-      "test_type": "AUTHENTICATED_LIVE_CALL",
-      "result": "LIVE_SUCCESS",
-      "environment": "local_service",
-      "started_at": "2026-11-19T12:23:22.910441+00:00",
-      "completed_at": "2026-11-19T12:26:22.910441+00:00",
-      "validated_at": "2026-11-19T12:26:22.910441+00:00",
-      "expires_at": "2027-02-17T12:26:22.910441+00:00",
-      "is_stale": false,
-      "schema_hash": "sha256:2319b3c1301295b2",
-      "certification_version": "2.1.0",
-      "certification_impact": "PROMOTED_TO_LIVE_API_VALIDATED",
-      "authentication": {
-        "status": "passed",
-        "is_mock": false
-      },
-      "operations": {
-        "health_check": "passed",
-        "publish": "passed",
-        "consume": "passed"
-      },
-      "search": {
-        "status": "not_tested"
-      },
-      "pagination": {
-        "status": "not_tested"
-      },
-      "dynamic_schema": {
-        "status": "not_tested"
-      },
-      "webhook": {
-        "status": "not_applicable"
-      },
-      "cleanup": {
-        "status": "passed",
-        "disposable_record_deleted": true
-      },
-      "security": {
-        "credential_redaction": "passed",
-        "no_secret_in_evidence": true
-      },
-      "disposable_data_prefix": "flowsmith_cert_",
-      "details": {
-        "notes": "Real Mosquitto 2 broker: connect, publish retained JSON, consume, clear retained message."
       }
     }
   ]

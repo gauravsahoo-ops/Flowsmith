@@ -1,6 +1,6 @@
 {
   "manifest_version": "4.0.0",
-  "generated_at": "2026-11-19T12:27:03.524491+00:00",
+  "generated_at": "2026-11-20T06:03:57.062752+00:00",
   "platform": "Flowsmith Integration Engine",
   "phase": "PHASE 4 \u2014 COMPLETE NODE AND CONNECTOR CERTIFICATION",
   "summary": {
@@ -13,14 +13,14 @@
     "total_canonical_nodes": 78,
     "certification_tiers": {
       "PRODUCTION_CERTIFIED": 0,
-      "LIVE_API_VALIDATED": 8,
-      "CONTRACT_VALIDATED": 63,
-      "MOCK_VALIDATED": 458,
+      "LIVE_API_VALIDATED": 13,
+      "CONTRACT_VALIDATED": 61,
+      "MOCK_VALIDATED": 455,
       "STATIC_VALIDATED": 0
     },
     "availability_status": {
       "PASSED": 1,
-      "LIVE_TEST_UNAVAILABLE": 521,
+      "LIVE_TEST_UNAVAILABLE": 516,
       "FAILED": 0,
       "BLOCKED": 0
     },
@@ -23076,8 +23076,8 @@
         "kafka"
       ],
       "schema_hash": "sha256:4df11a50c14dc40d",
-      "certification_tier": "MOCK_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 3,
       "operations": {
         "produce": {
@@ -23143,8 +23143,8 @@
         "backend/tests/test_kafka_oracle_mqtt_connectors.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-20T06:02:43.333898+00:00",
+        "expires_at": "2027-02-18T06:02:43.333898+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -30327,8 +30327,8 @@
         "mongodb"
       ],
       "schema_hash": "sha256:6bc1f74852231153",
-      "certification_tier": "CONTRACT_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 8,
       "operations": {
         "find": {
@@ -30464,8 +30464,8 @@
         "backend/tests/test_api/test_mongodb_connector.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-20T06:02:43.333898+00:00",
+        "expires_at": "2027-02-18T06:02:43.333898+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -30824,8 +30824,8 @@
         "mssql"
       ],
       "schema_hash": "sha256:e52d14b1dc15fcc0",
-      "certification_tier": "MOCK_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 5,
       "operations": {
         "query": {
@@ -30913,8 +30913,8 @@
         "backend/tests/test_new_connectors_suite.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-20T06:02:43.333898+00:00",
+        "expires_at": "2027-02-18T06:02:43.333898+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -31128,8 +31128,8 @@
         "mysql"
       ],
       "schema_hash": "sha256:875d270e9241b9c7",
-      "certification_tier": "CONTRACT_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 5,
       "operations": {
         "query": {
@@ -31214,8 +31214,8 @@
         "backend/tests/test_api/test_mysql_connector.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-20T06:02:43.333898+00:00",
+        "expires_at": "2027-02-18T06:02:43.333898+00:00",
         "is_stale": false,
         "is_expired": false
       }
@@ -34211,8 +34211,8 @@
         "oracle"
       ],
       "schema_hash": "sha256:334df203e5e3e83b",
-      "certification_tier": "MOCK_VALIDATED",
-      "availability_status": "LIVE_TEST_UNAVAILABLE",
+      "certification_tier": "LIVE_API_VALIDATED",
+      "availability_status": "PASSED",
       "operations_count": 6,
       "operations": {
         "query": {
@@ -34312,8 +34312,8 @@
         "backend/tests/test_kafka_oracle_mqtt_connectors.py"
       ],
       "evidence": {
-        "timestamp": null,
-        "expires_at": null,
+        "timestamp": "2026-11-20T06:02:43.333898+00:00",
+        "expires_at": "2027-02-18T06:02:43.333898+00:00",
         "is_stale": false,
         "is_expired": false
       }

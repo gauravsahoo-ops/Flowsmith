@@ -1,15 +1,20 @@
 """Apache Kafka connector implementation.
 
-Implements the ConnectorSDK interface for Apache Kafka distributed streaming.
-Provides produce, consume, and list_topics operations with mock/fallback support.
+Real produce/consume/topic-list operations backed by ``aiokafka``. There is
+no simulated success path: every operation either performs a broker
+round-trip or raises a typed ConnectorError. Credentials arrive through
+``context["credentials"]["kafka"]`` (or ``connect()`` for direct use).
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import ssl
 import time
 from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, Field
 
 from app.connectors import (
@@ -37,28 +42,80 @@ class KafkaConnectorParams(BaseModel):
     consumer_group: str = Field(default="flowsmith-consumer", description="Consumer group name.")
     max_messages: int = Field(default=10, ge=1, le=500, description="Max messages to fetch.")
     auto_commit: bool = Field(default=True, description="Auto commit consumer offsets.")
+    auto_offset_reset: str = Field(
+        default="earliest",
+        description="Where a new consumer group starts: earliest or latest.",
+    )
     timeout_seconds: float = Field(default=10.0, ge=1, le=60)
 
 
+def _require_aiokafka():
+    try:
+        from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+        from aiokafka.admin import AIOKafkaAdminClient
+    except ImportError as exc:  # pragma: no cover - dependency guard
+        raise make_connector_error(
+            ConnectorErrorCode.NOT_CONFIGURED,
+            "Kafka support needs the 'aiokafka' package (pip install aiokafka).",
+            retryable=False,
+        ) from exc
+    return AIOKafkaProducer, AIOKafkaConsumer, AIOKafkaAdminClient
+
+
+def _serialize(payload: Any) -> bytes:
+    if isinstance(payload, bytes):
+        return payload
+    if isinstance(payload, str):
+        return payload.encode("utf-8")
+    try:
+        return json.dumps(payload, default=str).encode("utf-8")
+    except Exception as exc:
+        raise make_connector_error(
+            ConnectorErrorCode.BAD_REQUEST,
+            f"Kafka payload is not JSON-serializable: {exc}",
+            retryable=False,
+        ) from exc
+
+
+def _deserialize(value: bytes | None) -> Any:
+    if value is None:
+        return None
+    try:
+        return json.loads(value.decode("utf-8"))
+    except Exception:
+        return value.decode("utf-8", errors="replace")
+
+
+def _headers_to_dict(headers: Any) -> Dict[str, Any]:
+    result: Dict[str, Any] = {}
+    for key, value in headers or []:
+        result[str(key)] = (
+            value.decode("utf-8", errors="replace") if isinstance(value, (bytes, bytearray)) else value
+        )
+    return result
+
+
 class KafkaConnector(ConnectorSDK, ConnectorOperations):
-    """Apache Kafka connector."""
+    """Apache Kafka connector backed by a real aiokafka client."""
 
     connector_id = "kafka"
     display_name = "Apache Kafka"
     description = "Publish, consume, and manage messages with Apache Kafka clusters."
     category = ConnectorCategory.API
-    version = "1.0.0"
+    version = "1.1.0"
 
     def __init__(self) -> None:
         super().__init__(self.connector_id, self.display_name, self.description)
+        self.credentials: Dict[str, Any] = {}
 
     @property
     def node_types(self) -> list[str]:
         return ["kafka"]
 
     async def connect(self, config: Dict[str, Any]) -> bool:
-        if not config.get("bootstrap_servers"):
+        if not str((config or {}).get("bootstrap_servers") or "").strip():
             return False
+        self.credentials = dict(config or {})
         self.status = ConnectorStatus.CONNECTED
         return True
 
@@ -66,11 +123,20 @@ class KafkaConnector(ConnectorSDK, ConnectorOperations):
         self.status = ConnectorStatus.DISCONNECTED
 
     async def health_check(self) -> ConnectorHealthCheck:
-        return ConnectorHealthCheck(
-            healthy=True,
-            message="Kafka broker connectivity verified.",
-            latency_ms=3.5,
-        )
+        started = time.perf_counter()
+        try:
+            topics = await self._list_topics(self.credentials or {}, timeout=5.0)
+            return ConnectorHealthCheck(
+                healthy=True,
+                message=f"Kafka broker reachable ({len(topics)} topic(s)).",
+                latency_ms=round((time.perf_counter() - started) * 1000, 2),
+            )
+        except Exception as exc:  # noqa: BLE001 - surface broker failure
+            return ConnectorHealthCheck(healthy=False, message=f"Kafka connection failed: {exc}")
+
+    # ------------------------------------------------------------------
+    # Operations
+    # ------------------------------------------------------------------
 
     async def op_execute(
         self,
@@ -79,87 +145,208 @@ class KafkaConnector(ConnectorSDK, ConnectorOperations):
         context: Dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
-        """Route operations dynamically to handler methods."""
-        params = payload or kwargs.get("params") or {}
-        op_map = {
-            "produce": self.op_produce,
-            "consume": self.op_consume,
-            "list_topics": self.op_list_topics,
-        }
-        handler = op_map.get(operation)
-        if not handler:
+        raw = payload or kwargs.get("params") or {}
+        try:
+            params = KafkaConnectorParams.model_validate(raw)
+        except Exception as exc:  # noqa: BLE001
             raise make_connector_error(
-                ConnectorErrorCode.INVALID_OPERATION,
-                f"Unsupported operation '{operation}'. Supported: {', '.join(op_map.keys())}",
-            )
-        return await handler(params)
+                ConnectorErrorCode.BAD_REQUEST,
+                f"Invalid Kafka payload: {exc}",
+                retryable=False,
+            ) from exc
 
-    async def op_produce(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Publish a message to Kafka."""
-        topic = params.get("topic", "").strip()
-        if not topic:
+        creds = (
+            ((context or {}).get("credentials") or {}).get("kafka")
+            or self.credentials
+            or {}
+        )
+        op = (raw.get("operation") if isinstance(raw, dict) else None) or operation or params.operation
+        op_name = str(op).lower().strip()
+
+        if op_name == "produce":
+            return await self._produce(creds, params)
+        if op_name == "consume":
+            return await self._consume(creds, params)
+        if op_name == "list_topics":
+            topics = await self._list_topics(creds, timeout=params.timeout_seconds)
+            return {"topics": topics, "count": len(topics)}
+        raise make_connector_error(
+            ConnectorErrorCode.INVALID_OPERATION,
+            f"Unsupported Kafka operation '{op_name}'. Supported: produce, consume, list_topics.",
+        )
+
+    # Back-compat wrappers for callers of the previous handler names.
+    async def op_produce(self, params: Dict[str, Any], context: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        parsed = KafkaConnectorParams.model_validate(params)
+        creds = ((context or {}).get("credentials") or {}).get("kafka") or self.credentials or {}
+        return await self._produce(creds, parsed)
+
+    async def op_consume(self, params: Dict[str, Any], context: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        parsed = KafkaConnectorParams.model_validate(params)
+        creds = ((context or {}).get("credentials") or {}).get("kafka") or self.credentials or {}
+        return await self._consume(creds, parsed)
+
+    async def op_list_topics(self, params: Dict[str, Any], context: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        parsed = KafkaConnectorParams.model_validate(params)
+        creds = ((context or {}).get("credentials") or {}).get("kafka") or self.credentials or {}
+        topics = await self._list_topics(creds, timeout=parsed.timeout_seconds)
+        return {"topics": topics, "count": len(topics)}
+
+    # ------------------------------------------------------------------
+    # aiokafka client helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _client_kwargs(creds: Dict[str, Any]) -> Dict[str, Any]:
+        bootstrap = str((creds or {}).get("bootstrap_servers") or "").strip()
+        if not bootstrap:
+            raise make_connector_error(
+                ConnectorErrorCode.NOT_CONFIGURED,
+                "Kafka credential is missing 'bootstrap_servers'.",
+                retryable=False,
+            )
+        protocol = str((creds or {}).get("security_protocol") or "PLAINTEXT").upper()
+        kwargs: Dict[str, Any] = {
+            "bootstrap_servers": bootstrap,
+            "client_id": str((creds or {}).get("client_id") or "flowsmith"),
+            "security_protocol": protocol,
+            "request_timeout_ms": 15000,
+        }
+        if protocol.startswith("SASL"):
+            kwargs["sasl_mechanism"] = str((creds or {}).get("sasl_mechanism") or "PLAIN")
+            kwargs["sasl_plain_username"] = str((creds or {}).get("sasl_username") or "") or None
+            kwargs["sasl_plain_password"] = str((creds or {}).get("sasl_password") or "") or None
+        if protocol in ("SSL", "SASL_SSL"):
+            pem = str((creds or {}).get("ssl_ca_pem") or "").strip()
+            if pem:
+                kwargs["ssl_context"] = ssl.create_default_context(cadata=pem)
+        return kwargs
+
+    async def _produce(self, creds: Dict[str, Any], params: KafkaConnectorParams) -> Dict[str, Any]:
+        if not params.topic.strip():
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
                 "Topic is required for Kafka produce operation.",
+                retryable=False,
             )
-
-        payload = params.get("payload", {})
-        key = params.get("message_key", "")
-        headers = params.get("headers", {})
-        partition = params.get("partition", 0)
-
-        # Normalize payload for serialization check
+        Producer, _, _ = _require_aiokafka()
+        producer = Producer(**self._client_kwargs(creds))
         try:
-            if isinstance(payload, str):
-                _ = payload.encode("utf-8")
-            else:
-                _ = json.dumps(payload).encode("utf-8")
+            await asyncio.wait_for(producer.start(), timeout=params.timeout_seconds)
+            meta = await asyncio.wait_for(
+                producer.send_and_wait(
+                    params.topic,
+                    value=_serialize(params.payload),
+                    key=params.message_key.encode("utf-8") if params.message_key else None,
+                    headers=[(str(k), str(v).encode("utf-8")) for k, v in (params.headers or {}).items()] or None,
+                    partition=params.partition,
+                ),
+                timeout=params.timeout_seconds,
+            )
+            return {
+                "status": "published",
+                "topic": meta.topic,
+                "partition": meta.partition,
+                "offset": meta.offset,
+                "timestamp": meta.timestamp,
+                "key": params.message_key,
+                "headers": params.headers,
+            }
+        except asyncio.TimeoutError as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.PROVIDER_ERROR,
+                f"Kafka produce timed out after {params.timeout_seconds:.0f}s.",
+                retryable=True,
+            ) from exc
         except Exception as exc:
             raise make_connector_error(
                 ConnectorErrorCode.PROVIDER_ERROR,
-                f"Failed to serialize message payload: {exc}",
-            )
+                f"Kafka produce failed: {exc}",
+                retryable=True,
+            ) from exc
+        finally:
+            try:
+                await producer.stop()
+            except Exception:
+                logger.debug("Kafka producer stop failed", exc_info=True)
 
-        # In production this delegates to aiokafka / confluent-kafka;
-        # clean-room fallback returns standard delivery receipt
-        now_ts = int(time.time() * 1000)
-        return {
-            "status": "published",
-            "topic": topic,
-            "partition": partition if partition is not None else 0,
-            "offset": int(time.time() % 100000),
-            "key": key,
-            "timestamp": now_ts,
-            "headers": headers,
-        }
-
-    async def op_consume(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Consume messages from Kafka topic."""
-        topic = params.get("topic", "").strip()
-        if not topic:
+    async def _consume(self, creds: Dict[str, Any], params: KafkaConnectorParams) -> Dict[str, Any]:
+        if not params.topic.strip():
             raise make_connector_error(
                 ConnectorErrorCode.BAD_REQUEST,
                 "Topic is required for Kafka consume operation.",
+                retryable=False,
             )
+        _, Consumer, _ = _require_aiokafka()
+        kwargs = self._client_kwargs(creds)
+        consumer = Consumer(
+            params.topic,
+            group_id=params.consumer_group,
+            auto_offset_reset=params.auto_offset_reset if params.auto_offset_reset in ("earliest", "latest") else "earliest",
+            enable_auto_commit=params.auto_commit,
+            **kwargs,
+        )
+        try:
+            await asyncio.wait_for(consumer.start(), timeout=params.timeout_seconds)
+            batches = await asyncio.wait_for(
+                consumer.getmany(
+                    timeout_ms=int(params.timeout_seconds * 1000),
+                    max_records=params.max_messages,
+                ),
+                timeout=params.timeout_seconds + 5,
+            )
+            output = []
+            for records in batches.values():
+                for record in records:
+                    output.append({
+                        "topic": record.topic,
+                        "partition": record.partition,
+                        "offset": record.offset,
+                        "key": record.key.decode("utf-8", errors="replace") if record.key else "",
+                        "value": _deserialize(record.value),
+                        "headers": _headers_to_dict(record.headers),
+                        "timestamp": record.timestamp,
+                    })
+            return {"output": output, "count": len(output)}
+        except asyncio.TimeoutError as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.PROVIDER_ERROR,
+                f"Kafka consume timed out after {params.timeout_seconds:.0f}s.",
+                retryable=True,
+            ) from exc
+        except Exception as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.PROVIDER_ERROR,
+                f"Kafka consume failed: {exc}",
+                retryable=True,
+            ) from exc
+        finally:
+            try:
+                await consumer.stop()
+            except Exception:
+                logger.debug("Kafka consumer stop failed", exc_info=True)
 
-        max_msgs = min(int(params.get("max_messages", 10)), 500)
-        # Returns empty batch or mock message for inspection
-        return {
-            "output": [
-                {
-                    "topic": topic,
-                    "partition": 0,
-                    "offset": 1001,
-                    "key": "sample-key",
-                    "value": {"status": "ok", "message": f"Sample message from {topic}"},
-                    "headers": {"source": "flowsmith"},
-                    "timestamp": int(time.time() * 1000),
-                }
-            ][:max_msgs]
-        }
-
-    async def op_list_topics(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """List topics from the Kafka cluster."""
-        return {
-            "topics": ["events", "metrics", "notifications", "orders", "audit_log"]
-        }
+    async def _list_topics(self, creds: Dict[str, Any], timeout: float) -> list[str]:
+        _, _, Admin = _require_aiokafka()
+        admin = Admin(**self._client_kwargs(creds))
+        try:
+            await asyncio.wait_for(admin.start(), timeout=timeout)
+            topics = await asyncio.wait_for(admin.list_topics(), timeout=timeout)
+            return sorted(str(topic) for topic in topics)
+        except asyncio.TimeoutError as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.PROVIDER_ERROR,
+                f"Kafka topic listing timed out after {timeout:.0f}s.",
+                retryable=True,
+            ) from exc
+        except Exception as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.PROVIDER_ERROR,
+                f"Kafka topic listing failed: {exc}",
+                retryable=True,
+            ) from exc
+        finally:
+            try:
+                await admin.close()
+            except Exception:
+                logger.debug("Kafka admin close failed", exc_info=True)

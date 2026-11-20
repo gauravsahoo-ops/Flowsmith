@@ -4,11 +4,11 @@
   "summary": {
     "total_connectors": 529,
     "production_certified": 0,
-    "live_api_validated": 8,
-    "contract_validated": 63,
-    "mock_validated": 458,
+    "live_api_validated": 13,
+    "contract_validated": 61,
+    "mock_validated": 455,
     "static_validated": 0,
-    "live_test_unavailable": 521,
+    "live_test_unavailable": 516,
     "blocked": 0,
     "stale_certifications": 0,
     "expired_certifications": 0
@@ -11156,20 +11156,20 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:4df11a50c14dc40d",
-      "certification": "MOCK_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 3,
-        "contract_validated": 0,
-        "live_validated": 0
+        "contract_validated": 3,
+        "live_validated": 3
       },
       "search": {
         "implemented": false,
@@ -11186,7 +11186,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -14420,20 +14420,20 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:6bc1f74852231153",
-      "certification": "CONTRACT_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 8,
         "contract_validated": 8,
-        "live_validated": 0
+        "live_validated": 8
       },
       "search": {
         "implemented": false,
@@ -14450,7 +14450,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -14708,24 +14708,24 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:e52d14b1dc15fcc0",
-      "certification": "MOCK_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 5,
-        "contract_validated": 0,
-        "live_validated": 0
+        "contract_validated": 5,
+        "live_validated": 5
       },
       "search": {
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "triggers": {
         "registered": 0,
@@ -14738,7 +14738,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -14852,24 +14852,24 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:875d270e9241b9c7",
-      "certification": "CONTRACT_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 5,
         "contract_validated": 5,
-        "live_validated": 0
+        "live_validated": 5
       },
       "search": {
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "triggers": {
         "registered": 0,
@@ -14882,7 +14882,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",
@@ -16532,24 +16532,24 @@
       "implementation_type": "NATIVE",
       "version": "1.0.0",
       "schema_hash": "sha256:334df203e5e3e83b",
-      "certification": "MOCK_VALIDATED",
-      "availability": "LIVE_TEST_UNAVAILABLE",
-      "evidence_timestamp": null,
-      "expires_at": null,
+      "certification": "LIVE_API_VALIDATED",
+      "availability": "PASSED",
+      "evidence_timestamp": "2026-11-20T06:02:43.333898+00:00",
+      "expires_at": "2027-02-18T06:02:43.333898+00:00",
       "is_stale": false,
       "is_expired": false,
       "authentication": {
         "schema": "AUTH_SCHEMA_PRESENT",
-        "live": "AUTH_LIVE_UNAVAILABLE"
+        "live": "AUTH_LIVE_VALIDATED"
       },
       "operations": {
         "implemented": 6,
-        "contract_validated": 0,
-        "live_validated": 0
+        "contract_validated": 6,
+        "live_validated": 6
       },
       "search": {
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "triggers": {
         "registered": 0,
@@ -16562,7 +16562,7 @@
       "pagination": {
         "mechanism": "OFFSET",
         "implemented": true,
-        "live_tested": false
+        "live_tested": true
       },
       "dynamic_schema": {
         "type": "STATIC_SCHEMA",

@@ -174,6 +174,10 @@ CONTRACT_TESTED_CONNECTORS: Set[str] = {
     "sqlite",
     "rabbitmq",
     "mqtt",
+    # Real clients implemented and live-tested on 2026-11-20.
+    "kafka",
+    "oracle",
+    "mssql",
 }
 
 

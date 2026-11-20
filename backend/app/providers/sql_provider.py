@@ -139,6 +139,17 @@ def _describe_table(engine: Engine, table: str, schema: str | None = None) -> di
     }
 
 
+def _quote_identifier(engine: Engine, name: str) -> str:
+    """Quote a validated SQL identifier for the engine's dialect.
+
+    MySQL/MariaDB treat double quotes as string literals unless ANSI_QUOTES
+    is enabled, so they need backticks; PostgreSQL/SQLite use double quotes.
+    """
+    if engine.dialect.name in ("mysql", "mariadb"):
+        return f"`{name}`"
+    return f'"{name}"'
+
+
 def _insert_rows(
     engine: Engine, table: str, rows: list[dict[str, Any]]
 ) -> dict[str, Any]:
@@ -151,8 +162,9 @@ def _insert_rows(
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", k):
             raise ValueError(f"Invalid column identifier: {k!r}")
     placeholders = ", ".join(f":{k}" for k in keys)
-    columns = ", ".join(f'"{k}"' for k in keys)
-    sql = text(f'INSERT INTO "{table}" ({columns}) VALUES ({placeholders})')  # noqa: S608 - identifiers quoted
+    columns = ", ".join(_quote_identifier(engine, k) for k in keys)
+    quoted_table = _quote_identifier(engine, table)
+    sql = text(f"INSERT INTO {quoted_table} ({columns}) VALUES ({placeholders})")  # noqa: S608 - identifiers quoted
     inserted = 0
     with engine.connect() as conn:
         for row in rows:

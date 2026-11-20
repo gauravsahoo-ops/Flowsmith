@@ -1,7 +1,7 @@
-"""Offline certification targets for Salesforce, HubSpot, and CSV Parser.
+"""Connector certification targets and live-evidence expectations.
 
-These connectors can reach the highest certification tier that does not
-require live vendor credentials: Stable native + CONTRACT_VALIDATED.
+Contract-tier connectors must keep full offline suites; live-tier connectors
+must have fresh evidence from a real service (local or vendor).
 """
 
 from __future__ import annotations
@@ -76,21 +76,28 @@ TARGETS = {
     "sqlite": "SQLite",
     "rabbitmq": "RabbitMQ",
     "mqtt": "MQTT",
+    "kafka": "Apache Kafka",
+    "oracle": "Oracle Database",
+    "mssql": "Microsoft SQL Server",
 }
 
 
-LIVE_TARGETS = {"hubspot", "postgres", "redis", "sqlite", "s3", "rabbitmq", "mqtt"}
+LIVE_TARGETS = {
+    "hubspot", "postgres", "redis", "sqlite", "s3", "rabbitmq", "mqtt",
+    "mysql", "mongodb", "mssql", "kafka", "oracle",
+}
 
 EXPECTED_TIERS = {
     key: ("LIVE_API_VALIDATED" if key in LIVE_TARGETS else "CONTRACT_VALIDATED")
     for key in TARGETS
 }
 
-# Promotions withdrawn after the live/runtime audit on 2026-11-19.
-DEMOTED = {
-    "kafka": ("Apache Kafka", "hardcoded sample produce/consume; no Kafka client"),
-    "oracle": ("Oracle Database", "hardcoded sample rows; no Oracle driver"),
-    "mssql": ("Microsoft SQL Server", "pymssql is not installed in the runtime image"),
+# Previously demoted after the 2026-11-19 audit. Each now has a real client
+# and live evidence from a local service.
+RESOLVED_DEMOTIONS = {
+    "kafka": "aiokafka producer/consumer against Apache Kafka 3.9",
+    "oracle": "oracledb thin driver against Oracle Database Free 23ai",
+    "mssql": "pymssql against SQL Server 2022",
 }
 
 
@@ -106,16 +113,16 @@ def test_target_connectors_meet_expected_tier():
         )
 
 
-def test_demoted_connectors_are_mock():
-    """Connectors with no real client/driver must not claim contract validation."""
+def test_previously_demoted_connectors_are_now_live():
+    """Real clients and live evidence replace the old mock implementations."""
     summary = get_certification_summary()
     tiers = {
         row["connector"]: row["certification"]
         for row in summary.get("connectors", [])
     }
-    for key, (_name, reason) in DEMOTED.items():
-        assert tiers.get(key) == "MOCK_VALIDATED", (
-            f"{key} must remain MOCK_VALIDATED: {reason}; got {tiers.get(key)!r}"
+    for key, reason in RESOLVED_DEMOTIONS.items():
+        assert tiers.get(key) == "LIVE_API_VALIDATED", (
+            f"{key} must be LIVE_API_VALIDATED after {reason}; got {tiers.get(key)!r}"
         )
 
 
@@ -130,7 +137,11 @@ def test_status_csv_reflects_offline_certification():
     # These three are production-grade native connectors; the expanded set
     # includes beta connectors that still have full contract-style suites.
     stable_required = {"Salesforce", "HubSpot", "CSV Parser"}
-    live_names = {"HubSpot", "PostgreSQL", "Redis", "SQLite", "AWS S3 / Object Storage", "RabbitMQ", "MQTT"}
+    live_names = {
+        "HubSpot", "PostgreSQL", "Redis", "SQLite", "AWS S3 / Object Storage",
+        "RabbitMQ", "MQTT", "MySQL", "MongoDB", "Microsoft SQL Server",
+        "Apache Kafka", "Oracle Database",
+    }
 
     for name in TARGETS.values():
         expected_status = "Live API validated" if name in live_names else "Contract validated"

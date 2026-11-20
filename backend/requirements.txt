@@ -37,11 +37,17 @@ pymongo>=4.6
 # RabbitMQ connector (AMQP)
 aio-pika>=10.2
 
+# Apache Kafka connector
+aiokafka>=0.15
+
 # MQTT connector
 aiomqtt>=2.5
 
 # Microsoft SQL Server connector
 pymssql>=2.4
+
+# Oracle Database connector
+oracledb>=2.0
 
 # Safe XML parsing for Salesforce Outbound Message SOAP triggers (Phase 10)
 defusedxml>=0.7

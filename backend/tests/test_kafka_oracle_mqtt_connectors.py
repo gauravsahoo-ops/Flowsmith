@@ -1,6 +1,7 @@
 """Unit tests for Kafka, Oracle, and MQTT connectors."""
 
 import pytest
+from app.connectors import ConnectorError
 from app.connectors.kafka_connector import KafkaConnector
 from app.connectors.oracle_connector import OracleConnector
 from app.connectors.mqtt_connector import MQTTConnector
@@ -11,7 +12,7 @@ from app.credentials.registry import is_known_type, is_implemented, validate_dat
 
 
 @pytest.mark.asyncio
-async def test_kafka_connector_lifecycle_and_operations():
+async def test_kafka_connector_lifecycle_and_operations(monkeypatch):
     connector = KafkaConnector()
     definition = build_kafka_definition()
 
@@ -24,28 +25,64 @@ async def test_kafka_connector_lifecycle_and_operations():
     assert not await connector.connect({})
     assert await connector.connect({"bootstrap_servers": "localhost:9092"})
 
-    # Test produce
-    prod_res = await connector.op_execute("produce", {
-        "topic": "test-events",
-        "message_key": "k1",
-        "payload": {"event": "user_signup", "id": 123},
-    })
+    # Unconfigured operations fail typed instead of fabricating data.
+    fresh = KafkaConnector()
+    with pytest.raises(ConnectorError):
+        await fresh.op_execute("produce", {"topic": "test-events", "payload": {}})
+
+    # Routing is covered without opening a broker connection; the real
+    # round-trip lives in scripts/live_kafka_certify.py.
+    async def fake_produce(creds, params):
+        return {
+            "status": "published",
+            "topic": params.topic,
+            "partition": params.partition or 0,
+            "offset": 1,
+            "timestamp": 0,
+            "key": params.message_key,
+            "headers": params.headers,
+        }
+
+    async def fake_consume(creds, params):
+        return {
+            "output": [{
+                "topic": params.topic,
+                "partition": 0,
+                "offset": 1,
+                "key": "k1",
+                "value": {"ok": True},
+                "headers": {},
+                "timestamp": 0,
+            }],
+            "count": 1,
+        }
+
+    async def fake_list(creds, timeout):
+        return ["events", "orders"]
+
+    monkeypatch.setattr(connector, "_produce", fake_produce)
+    monkeypatch.setattr(connector, "_consume", fake_consume)
+    monkeypatch.setattr(connector, "_list_topics", fake_list)
+
+    ctx = {"credentials": {"kafka": {"bootstrap_servers": "localhost:9092"}}}
+    prod_res = await connector.op_execute(
+        "produce",
+        {"topic": "test-events", "message_key": "k1", "payload": {"event": "user_signup", "id": 123}},
+        context=ctx,
+    )
     assert prod_res["status"] == "published"
     assert prod_res["topic"] == "test-events"
 
-    # Test consume
-    cons_res = await connector.op_execute("consume", {"topic": "test-events", "max_messages": 5})
-    assert "output" in cons_res
-    assert len(cons_res["output"]) <= 5
+    cons_res = await connector.op_execute("consume", {"topic": "test-events", "max_messages": 5}, context=ctx)
+    assert len(cons_res["output"]) == 1
+    assert cons_res["output"][0]["key"] == "k1"
 
-    # Test list_topics
-    top_res = await connector.op_execute("list_topics", {})
-    assert "topics" in top_res
-    assert len(top_res["topics"]) > 0
+    top_res = await connector.op_execute("list_topics", {}, context=ctx)
+    assert top_res["topics"] == ["events", "orders"]
 
 
 @pytest.mark.asyncio
-async def test_oracle_connector_lifecycle_and_operations():
+async def test_oracle_connector_lifecycle_and_operations(monkeypatch):
     connector = OracleConnector()
     definition = build_oracle_definition()
 
@@ -58,18 +95,39 @@ async def test_oracle_connector_lifecycle_and_operations():
     assert not await connector.connect({})
     assert await connector.connect({"host": "oracle.local", "username": "admin", "password": "pwd"})
 
-    # Test query
-    q_res = await connector.op_execute("query", {"query": "SELECT * FROM EMPLOYEES"})
-    assert "rows" in q_res
-    assert q_res["row_count"] >= 1
+    # Unconfigured operations fail typed instead of returning sample rows.
+    fresh = OracleConnector()
+    with pytest.raises(ConnectorError):
+        await fresh.op_execute("query", {"query": "SELECT * FROM EMPLOYEES"})
 
-    # Test insert
-    ins_res = await connector.op_execute("insert", {"table": "CUSTOMERS", "data": {"NAME": "ACME"}})
+    # Routing is covered without opening a database connection; the real
+    # round-trip lives in scripts/live_oracle_certify.py.
+    async def fake_query(creds, sql, binds, max_rows, timeout):
+        return {"rows": [{"id": 101, "name": "Enterprise Account"}], "row_count": 1}
+
+    async def fake_execute(creds, sql, binds, timeout):
+        return {"status": "success", "affected_rows": 1}
+
+    async def fake_table_list(creds, timeout):
+        return {"tables": ["EMPLOYEES", "CUSTOMERS"], "count": 2}
+
+    monkeypatch.setattr(connector, "_query", fake_query)
+    monkeypatch.setattr(connector, "_execute", fake_execute)
+    monkeypatch.setattr(connector, "_table_list", fake_table_list)
+
+    ctx = {"credentials": {"oracle": {
+        "host": "oracle.local", "username": "admin", "password": "pwd", "service_name": "FREEPDB1",
+    }}}
+    q_res = await connector.op_execute("query", {"query": "SELECT * FROM EMPLOYEES"}, context=ctx)
+    assert q_res["row_count"] == 1
+
+    ins_res = await connector.op_execute(
+        "insert", {"table": "CUSTOMERS", "data": {"NAME": "ACME"}}, context=ctx,
+    )
     assert ins_res["status"] == "success"
 
-    # Test table_list
-    t_res = await connector.op_execute("table_list", {})
-    assert "tables" in t_res
+    t_res = await connector.op_execute("table_list", {}, context=ctx)
+    assert "EMPLOYEES" in t_res["tables"]
 
 
 @pytest.mark.asyncio
