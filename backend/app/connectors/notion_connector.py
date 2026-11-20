@@ -64,6 +64,16 @@ class NotionConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify the Notion integration token with /v1/users/me."""
+        try:
+            await self._provider.request_notion(
+                creds, "GET", "/users/me", timeout=15.0, what="test connection",
+            )
+            return {"ok": True, "message": "Successfully connected to Notion."}
+        except Exception as exc:
+            return {"ok": False, "message": f"Notion connection test failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,

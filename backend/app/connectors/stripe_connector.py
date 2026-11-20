@@ -68,6 +68,16 @@ class StripeConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify the Stripe secret key with a read-only balance call."""
+        try:
+            await self._provider.request_stripe(
+                creds, "GET", "/balance", timeout=15.0, what="test connection",
+            )
+            return {"ok": True, "message": "Successfully connected to Stripe."}
+        except Exception as exc:
+            return {"ok": False, "message": f"Stripe connection test failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,

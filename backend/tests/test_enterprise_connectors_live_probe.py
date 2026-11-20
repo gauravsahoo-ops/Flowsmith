@@ -1,10 +1,49 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+from app.connectors import ConnectorError
+from app.connectors.airtable_connector import AirtableConnector
+from app.connectors.github_connector import GitHubConnector
 from app.connectors.hubspot_connector import HubSpotConnector
+from app.connectors.notion_connector import NotionConnector
 from app.connectors.postgres_connector import PostgresConnector
 from app.connectors.redis_connector import RedisConnector
 from app.connectors.mysql_connector import MySQLConnector
 from app.connectors.mongodb_connector import MongoDBConnector
+from app.connectors.slack_connector import SlackConnector
+from app.connectors.stripe_connector import StripeConnector
+
+
+ACTION_PROBES = [
+    (StripeConnector, "request_stripe", {"secret_key": "sk_test_x"}),
+    (GitHubConnector, "request_github", {"access_token": "ghp_x"}),
+    (SlackConnector, "request_slack", {"bot_token": "xoxb-x"}),
+    (NotionConnector, "request_notion", {"integration_token": "secret_x"}),
+    (AirtableConnector, "request_airtable", {"personal_access_token": "pat_x"}),
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("connector_cls, method, creds", ACTION_PROBES)
+async def test_action_connector_live_probe_success(connector_cls, method, creds):
+    conn = connector_cls()
+    setattr(conn._provider, method, AsyncMock(return_value=MagicMock(status_code=200)))
+    res = await conn.test_connection(creds)
+    assert res["ok"] is True
+    assert "Successfully connected" in res["message"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("connector_cls, method, creds", ACTION_PROBES)
+async def test_action_connector_live_probe_auth_failure(connector_cls, method, creds):
+    conn = connector_cls()
+    setattr(
+        conn._provider,
+        method,
+        AsyncMock(side_effect=ConnectorError("auth failed", code="CONNECTOR_AUTH_FAILED")),
+    )
+    res = await conn.test_connection(creds)
+    assert res["ok"] is False
+    assert "connection test failed" in res["message"].lower()
 
 
 @pytest.mark.asyncio

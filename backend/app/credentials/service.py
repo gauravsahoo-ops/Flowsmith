@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 import uuid
 from typing import Any
 
@@ -50,6 +51,64 @@ def to_meta(rec: Credential, policy: Any = None) -> dict[str, Any]:
     return meta
 
 
+def _auth_metadata(rec: Credential) -> dict[str, Any]:
+    """Per-credential auth shape without exposing secrets.
+
+    The credential *type* metadata says a connector supports OAuth, but an
+    individual credential may be a private app token or an API key. The UI
+    needs the per-credential truth to label the row and choose the correct
+    reconnect action.
+    """
+    try:
+        data = json.loads(decrypt_text(rec.data))
+    except Exception:
+        return {
+            "auth_method": None,
+            "credential_mode": "unknown",
+            "can_reconnect": False,
+            "supports_refresh": False,
+        }
+
+    private = bool(str(data.get("private_token") or "").strip())
+    refresh = bool(str(data.get("refresh_token") or "").strip())
+    access = bool(str(data.get("access_token") or "").strip())
+    oauth = bool(data.get("oauth")) or refresh or access
+
+    if private:
+        # The HubSpot provider gives an explicit private token precedence
+        # over a stale OAuth refresh token.
+        mode, method = "private_token", "Private app token"
+    elif refresh:
+        mode, method = "oauth_refresh", "OAuth 2.0 + Refresh Token"
+    elif oauth:
+        mode, method = "oauth", "OAuth 2.0"
+    elif any(data.get(key) for key in ("api_key", "token", "secret", "password")):
+        mode, method = "api_key", "API Key"
+    else:
+        mode, method = "unknown", None
+
+    can_reconnect = bool(refresh) or (
+        rec.type == "salesforce" and bool(data.get("username") and data.get("password"))
+    )
+    refresh_expired = bool(data.get("refresh_token_expired"))
+    token_expired = False
+    raw_expires = data.get("expires_at")
+    if raw_expires:
+        try:
+            token_expired = float(raw_expires) <= time.time()
+        except (TypeError, ValueError):
+            token_expired = False
+    reauth_required = refresh_expired or (token_expired and not refresh and not private)
+    return {
+        "auth_method": method,
+        "credential_mode": mode,
+        "can_reconnect": can_reconnect and not private and not refresh_expired,
+        "supports_refresh": bool(refresh) and not private and not refresh_expired,
+        "token_expired": token_expired,
+        "reauth_required": reauth_required,
+    }
+
+
 def list_for_user(db: Session, user_id: int) -> list[dict[str, Any]]:
     recs = db.scalars(
         select(Credential).where(
@@ -69,10 +128,16 @@ def list_for_user(db: Session, user_id: int) -> list[dict[str, Any]]:
             select(ConnectionAuthPolicy).where(ConnectionAuthPolicy.credential_id.in_(cred_ids))
         ).all()
     }
-    return [to_meta(r, policies.get(r.id)) for r in recs]
+    result = []
+    for rec in recs:
+        meta = {**to_meta(rec, policies.get(rec.id)), **_auth_metadata(rec)}
+        if meta.get("reauth_required"):
+            meta["expired"] = True
+        result.append(meta)
+    return result
 
 
-def create_for_user(db: Session, user_id: int, name: str, cred_type: str, data: dict[str, Any]) -> dict[str, str]:
+def create_for_user(db: Session, user_id: int, name: str, cred_type: str, data: dict[str, Any]) -> dict[str, Any]:
     """Validate -> encrypt -> store. Returns metadata only."""
     normalized = validate_data(cred_type, data)
     blob = encrypt_text(json.dumps(normalized, ensure_ascii=False))
@@ -80,10 +145,10 @@ def create_for_user(db: Session, user_id: int, name: str, cred_type: str, data: 
     db.add(rec)
     db.commit()
     db.refresh(rec)
-    return to_meta(rec)
+    return {**to_meta(rec), **_auth_metadata(rec)}
 
 
-def update_for_user(db: Session, user_id: int, credential_id: str, name: str | None = None, data: dict[str, Any] | None = None) -> dict[str, str]:
+def update_for_user(db: Session, user_id: int, credential_id: str, name: str | None = None, data: dict[str, Any] | None = None) -> dict[str, Any]:
     """Rotate/update credential name or secrets without changing its credential ID, preserving workflows."""
     rec = db.get(Credential, credential_id)
     if rec is None or rec.user_id != user_id:
@@ -105,7 +170,7 @@ def update_for_user(db: Session, user_id: int, credential_id: str, name: str | N
         rec.data = encrypt_text(json.dumps(normalized, ensure_ascii=False))
     db.commit()
     db.refresh(rec)
-    return to_meta(rec)
+    return {**to_meta(rec), **_auth_metadata(rec)}
 
 
 

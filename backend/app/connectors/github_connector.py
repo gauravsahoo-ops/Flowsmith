@@ -67,6 +67,16 @@ class GitHubConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify the GitHub token with a read-only /user call."""
+        try:
+            await self._provider.request_github(
+                creds, "GET", "/user", timeout=15.0, what="test connection",
+            )
+            return {"ok": True, "message": "Successfully connected to GitHub."}
+        except Exception as exc:
+            return {"ok": False, "message": f"GitHub connection test failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,

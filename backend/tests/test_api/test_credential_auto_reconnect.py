@@ -203,7 +203,116 @@ def test_reconnect_credential_static_fails_cleanly(client):
         assert resp.status_code == 200
         payload = resp.json()["data"]
         assert payload["ok"] is False
-        assert payload["interactive_required"] is True
+        assert payload["interactive_required"] is False
+        assert payload["action"] == "edit"
+    finally:
+        db.close()
+
+
+def test_reconnect_credential_private_token_is_noop(client):
+    user_info = register(client, email="reconnect_private@example.com")
+    headers = auth_headers(user_info["token"])
+    db = get_session()
+    cred_id = f"cred-private-{uuid.uuid4().hex[:8]}"
+    try:
+        c = Credential(
+            id=cred_id,
+            user_id=user_info["user"]["id"],
+            name="HubSpot account static",
+            type="hubspot",
+            data=encrypt_text(json.dumps({
+                "private_token": "pat-na1-static",
+            })),
+        )
+        db.add(c)
+        db.commit()
+
+        resp = client.post(f"/api/credentials/{cred_id}/reconnect", headers=headers)
+        assert resp.status_code == 200, resp.text
+        payload = resp.json()["data"]
+        assert payload["ok"] is True
+        assert payload["refreshed"] is False
+        assert payload["action"] == "none"
+        assert "private app token" in payload["message"].lower()
+    finally:
+        db.close()
+
+
+def test_test_credential_prefers_connector_live_probe(client):
+    user_info = register(client, email="credential_connector_probe@example.com")
+    headers = auth_headers(user_info["token"])
+    db = get_session()
+    cred_id = f"cred-hubspot-probe-{uuid.uuid4().hex[:8]}"
+    try:
+        c = Credential(
+            id=cred_id,
+            user_id=user_info["user"]["id"],
+            name="HubSpot private",
+            type="hubspot",
+            data=encrypt_text(json.dumps({"private_token": "pat-na1-static"})),
+        )
+        db.add(c)
+        db.commit()
+
+        with patch("app.api.credentials._connector_live_test", new_callable=AsyncMock) as mock_live:
+            mock_live.return_value = {"ok": True, "message": "live connector probe"}
+            resp = client.post(f"/api/credentials/{cred_id}/test", headers=headers)
+            assert resp.status_code == 200, resp.text
+            data = resp.json()["data"]
+            assert data["ok"] is True
+            assert "live connector probe" in data["message"]
+            mock_live.assert_awaited_once()
+    finally:
+        db.close()
+
+
+def test_credential_list_reports_per_credential_auth_shape(client):
+    user_info = register(client, email="credential_auth_meta@example.com")
+    headers = auth_headers(user_info["token"])
+    db = get_session()
+    try:
+        private_id = f"cred-private-{uuid.uuid4().hex[:8]}"
+        oauth_id = f"cred-oauth-{uuid.uuid4().hex[:8]}"
+        db.add_all([
+            Credential(
+                id=private_id,
+                user_id=user_info["user"]["id"],
+                name="HubSpot private",
+                type="hubspot",
+                data=encrypt_text(json.dumps({"private_token": "pat-na1-static"})),
+            ),
+            Credential(
+                id=oauth_id,
+                user_id=user_info["user"]["id"],
+                name="HubSpot oauth",
+                type="hubspot",
+                data=encrypt_text(json.dumps({
+                    "refresh_token": "hs_rt",
+                    "access_token": "hs_at",
+                })),
+            ),
+        ])
+        db.commit()
+
+        resp = client.get("/api/credentials", headers=headers)
+        assert resp.status_code == 200, resp.text
+        rows = {row["id"]: row for row in resp.json()["data"]}
+
+        private = rows[private_id]
+        assert private["credential_mode"] == "private_token"
+        assert private["auth_method"] == "Private app token"
+        assert private["can_reconnect"] is False
+        assert private["supports_refresh"] is False
+
+        oauth = rows[oauth_id]
+        assert oauth["credential_mode"] == "oauth_refresh"
+        assert oauth["auth_method"] == "OAuth 2.0 + Refresh Token"
+        assert oauth["can_reconnect"] is True
+        assert oauth["supports_refresh"] is True
+
+        # Secrets are never returned.
+        assert "private_token" not in private
+        assert "refresh_token" not in oauth
     finally:
         db.close()
 
@@ -231,8 +340,8 @@ def test_test_credential_auto_reconnects_when_expired(client):
 
         with patch("app.providers.salesforce.SalesforceProviderClient.authenticate", new_callable=AsyncMock) as mock_auth:
             mock_auth.return_value = "new_live_sf_token"
-            with patch("app.credentials.providers.salesforce.SalesforceAuthProvider.testConnection") as mock_conn:
-                mock_conn.return_value = {"ok": True, "message": "Salesforce connection successful."}
+            with patch("app.api.credentials._connector_live_test", new_callable=AsyncMock) as mock_live:
+                mock_live.return_value = {"ok": True, "message": "Salesforce connection successful."}
                 resp = client.post(f"/api/credentials/{cred_id}/test", headers=headers)
                 assert resp.status_code == 200, resp.text
                 data = resp.json()["data"]

@@ -60,6 +60,10 @@ async def _connector_live_test(cred_type: str, data: dict[str, Any]) -> dict[str
 
     registry = get_registry()
     for info in registry.list_all():
+        # Trigger connectors often expose a schema-only probe that would
+        # falsely accept a fake token. Prefer the real action connector.
+        if str(info.connector_id).endswith("_trigger"):
+            continue
         definition = registry.get_definition(info.connector_id)
         if definition is None or cred_type not in (definition.credential_types or {}):
             continue
@@ -532,15 +536,17 @@ async def test_credential(
             live_res = await adapter.test_connection(target_data, variant=target_data.get("variant", ""))
             return {**live_res, "provider": prov_id}
 
+        # Prefer a connector-owned live probe: it exercises the real API
+        # instead of only checking that token fields exist. This matters for
+        # HubSpot private-app tokens and for connector-specific auth shapes.
+        live = await _connector_live_test(rec.type, target_data)
+        if live is not None:
+            return {**live, "provider": rec.type}
+
         provider_id = CREDENTIAL_PROVIDER.get(rec.type) or get_provider_for_type(rec.type) or rec.type
         reg = get_provider_registry()
         provider = reg.get(provider_id) or reg.get_by_auth_type(provider_id)
         if provider is None:
-            # Product connectors (Batch B+): live probe through the connector
-            # owning this credential type, when it implements test_connection.
-            live = await _connector_live_test(rec.type, target_data)
-            if live is not None:
-                return {**live, "provider": rec.type}
             # Fallback: try authType from credential type registry
             # Generic test: just validate via schema
             try:

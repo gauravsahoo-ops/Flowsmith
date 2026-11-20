@@ -19,7 +19,7 @@ import LLMCredentialModal from '../components/LLMCredentialModal'
 import ConnectionAuthSettingsModal from '../components/ConnectionAuthSettingsModal'
 
 function renderConnectionStatusPill(c) {
-  const state = (c.state || (c.expired ? 'REAUTHORIZATION_REQUIRED' : 'CONNECTED')).toUpperCase()
+  const state = (c.expired ? 'REAUTHORIZATION_REQUIRED' : (c.state || 'CONNECTED')).toUpperCase()
   switch (state) {
     case 'CONNECTED':
       return (
@@ -384,6 +384,42 @@ export default function CredentialsPage() {
         await load()
         return
       }
+      if (res && res.ok && res.action === 'none') {
+        if (popup && !popup.closed) {
+          try { popup.close() } catch {}
+        }
+        setNotice(res.message || `${c.name} uses a private token and does not need reconnection.`)
+        await load()
+        return
+      }
+      if (res && res.action === 'edit') {
+        if (popup && !popup.closed) {
+          try { popup.close() } catch {}
+        }
+        setError(res.message || 'Update this credential instead of reconnecting.')
+        setEditTarget(c)
+        setEditName(c.name)
+        setEditData({})
+        setEditModalOpen(true)
+        return
+      }
+      if (res && res.action === 'configure') {
+        if (popup && !popup.closed) {
+          try { popup.close() } catch {}
+        }
+        setError(res.message || 'OAuth app credentials are not configured. Open Provider Settings.')
+        if (c.type === 'hubspot') {
+          setHsModalData(c)
+          setHsModalOpen(true)
+        } else if (c.type === 'salesforce') {
+          setSfModalData(c)
+          setSfModalOpen(true)
+        } else if (c.type === 'dynamics_crm') {
+          setDynModalData(c)
+          setDynModalOpen(true)
+        }
+        return
+      }
       if (res && res.ok === false && res.code === 'NOT_FOUND') {
         if (popup && !popup.closed) {
           try { popup.close() } catch {}
@@ -413,13 +449,13 @@ export default function CredentialsPage() {
 
   async function handleOAuth(provider, loginUrl, prompt, extra = {}, popupWindow = null) {
     setOauthBusy(provider); setError(null); setNotice(null); setFallbackUrl('')
+    let w = popupWindow
     try {
       const { authorizeUrl } = await connectOAuth(provider, loginUrl, prompt, extra)
       if (!authorizeUrl) throw new Error('Failed to get authorization URL')
       if (!/^https?:\/\//i.test(authorizeUrl)) throw new Error('Server returned an invalid authorization URL.')
       setFallbackUrl(authorizeUrl)
 
-      let w = popupWindow
       if (w && !w.closed) {
         try {
           w.location.href = authorizeUrl
@@ -563,10 +599,20 @@ export default function CredentialsPage() {
         }
       }, 500)
       timeoutTimer = setTimeout(() => {
-        if (mountedRef.current) setOauthBusy('')
+        if (mountedRef.current) {
+          setError('Authorization timed out. Close the popup and try again.')
+          setOauthBusy('')
+          setFallbackUrl('')
+        }
         cleanupListeners()
+        if (w && !w.closed) {
+          try { w.close() } catch {}
+        }
       }, 120000)
     } catch (e) {
+      if (w && !w.closed) {
+        try { w.close() } catch {}
+      }
       if (mountedRef.current) {
         const msg = e.message || ''
         setError(msg || 'Authorization failed.')
@@ -843,12 +889,14 @@ export default function CredentialsPage() {
                   </td>
                   <td>
                     <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span>{types.find(t => t.type === c.type)?.auth_method || 'API Key'}</span>
-                      {c.mode === 'manual' ? (
+                      <span>{c.auth_method || types.find(t => t.type === c.type)?.auth_method || 'API Key'}</span>
+                      {c.credential_mode === 'private_token' ? (
+                        <span className="badge" style={{ fontSize: 10, background: 'rgba(251, 146, 60, 0.12)', color: '#fb923c' }}>Private token</span>
+                      ) : c.mode === 'manual' ? (
                         <span className="badge" style={{ fontSize: 10, background: 'rgba(249, 115, 22, 0.12)', color: '#f97316' }}>Manual</span>
-                      ) : (
+                      ) : c.supports_refresh === true ? (
                         <span className="badge" style={{ fontSize: 10, background: 'rgba(16, 185, 129, 0.12)', color: '#34d399' }}>Auto-renew</span>
-                      )}
+                      ) : null}
                     </span>
                   </td>
                   <td>
@@ -960,7 +1008,7 @@ export default function CredentialsPage() {
                               <span>Recovery &amp; Alerts</span>
                             </button>
 
-                            {!['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs', 'llm'].includes(c.type) && !c.type.startsWith('google_') && (
+                            {(!['salesforce','hubspot','dynamics_crm','google_calendar','google_sheets','gmail','google_drive','google_docs', 'llm'].includes(c.type) || c.credential_mode === 'private_token') && !c.type.startsWith('google_') && (
                               <button
                                 type="button"
                                 className="ghost small cred-menu-item"
@@ -1014,17 +1062,26 @@ export default function CredentialsPage() {
                                 role="menuitem"
                                 onClick={() => {
                                   setOpenMenuId(null)
-                                  handleReconnect(c)
+                                  if (c.credential_mode === 'private_token') {
+                                    setEditTarget(c)
+                                    setEditName(c.name)
+                                    setEditData({})
+                                    setEditModalOpen(true)
+                                  } else {
+                                    handleReconnect(c)
+                                  }
                                 }}
                                 disabled={reconnectingId === c.id}
-                                title={c.expired ? 'Session expired — click Reconnect to re-authenticate or refresh token' : 'Auto-reconnect or renew token'}
+                                title={c.credential_mode === 'private_token'
+                                  ? 'Update the private app token'
+                                  : (c.expired ? 'Session expired — click Reconnect to re-authenticate or refresh token' : 'Auto-reconnect or renew token')}
                               >
                                 <span className="cred-menu-item-icon" style={{ color: c.expired ? '#f59e0b' : '#34d399' }}>
                                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
                                   </svg>
                                 </span>
-                                <span>{reconnectingId === c.id ? 'Reconnecting…' : (c.expired ? 'Renew Session (Reconnect)' : 'Reconnect')}</span>
+                                <span>{c.credential_mode === 'private_token' ? 'Update Token' : (reconnectingId === c.id ? 'Reconnecting…' : (c.expired ? 'Renew Session (Reconnect)' : 'Reconnect'))}</span>
                               </button>
                             )}
 

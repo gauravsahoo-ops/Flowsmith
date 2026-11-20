@@ -156,7 +156,11 @@ def test_valid_salesforce_credential_created(client):
     headers = _setup(client)
     meta = _create_sf_credential(client, headers)
     assert {"id", "name", "type"}.issubset(set(meta))
-    assert set(meta).issubset({"id", "name", "type", "expired", "state", "mode"})
+    assert set(meta).issubset({
+        "id", "name", "type", "expired", "state", "mode",
+        "auth_method", "credential_mode", "can_reconnect", "supports_refresh",
+        "token_expired", "reauth_required",
+    })
     assert "data" not in meta
     assert meta["type"] == "salesforce"
 

@@ -66,6 +66,16 @@ class SlackConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify the Slack bot token with auth.test."""
+        try:
+            await self._provider.request_slack(
+                creds, "POST", "/auth.test", timeout=15.0, what="test connection",
+            )
+            return {"ok": True, "message": "Successfully connected to Slack."}
+        except Exception as exc:
+            return {"ok": False, "message": f"Slack connection test failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,

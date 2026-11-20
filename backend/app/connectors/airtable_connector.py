@@ -62,6 +62,16 @@ class AirtableConnector(ConnectorSDK):
         self.status = ConnectorStatus.DISCONNECTED
         self._metadata.clear()
 
+    async def test_connection(self, creds: dict[str, Any]) -> dict[str, Any]:
+        """Verify the Airtable PAT with the whoami endpoint."""
+        try:
+            await self._provider.request_airtable(
+                creds, "GET", "/meta/whoami", timeout=15.0, what="test connection",
+            )
+            return {"ok": True, "message": "Successfully connected to Airtable."}
+        except Exception as exc:
+            return {"ok": False, "message": f"Airtable connection test failed: {exc}"}
+
     async def op_execute(
         self,
         operation: str,

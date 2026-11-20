@@ -170,11 +170,31 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
         logger.warning("Cannot decrypt credential %s for auto-reconnect", credential_id)
         return {"ok": False, "code": "DECRYPT_FAILED", "message": "Cannot decrypt credential."}
 
+    if str(data.get("private_token") or "").strip():
+        return {
+            "ok": True,
+            "refreshed": False,
+            "action": "none",
+            "id": rec.id,
+            "type": rec.type,
+            "message": (
+                f"Credential '{rec.name}' uses a private app token; it does not "
+                "need reconnection. Use Test Connection to verify it."
+            ),
+        }
+
     if not can_auto_reconnect(rec.type, data):
+        canon = canonical_provider(rec.type)
+        oauth_provider = canon in PROVIDER_REFRESH or canon == "salesforce"
         return {
             "ok": False,
-            "message": f"Credential '{rec.name}' ({rec.type}) requires re-authorization.",
-            "interactive_required": True,
+            "message": (
+                f"Credential '{rec.name}' ({rec.type}) requires re-authorization."
+                if oauth_provider
+                else f"Credential '{rec.name}' ({rec.type}) uses a static secret; update it instead."
+            ),
+            "interactive_required": oauth_provider,
+            "action": "oauth" if oauth_provider else "edit",
             "login_url": data.get("login_url") or data.get("instance_url") or "",
         }
 
@@ -189,23 +209,30 @@ async def reconnect_credential(db: Session, user_id: int, credential_id: str) ->
             "ok": True,
             "message": f"Credential '{rec.name}' reconnected successfully.",
             "refreshed": True,
+            "action": "refreshed",
             "id": rec.id,
             "type": rec.type,
         }
     except Exception as exc:
         err_str = str(exc).lower()
         if "invalid_grant" in err_str or "expired access/refresh token" in err_str:
+            action = "oauth"
             try:
                 data["refresh_token_expired"] = True
                 rec.data = encrypt_text(json.dumps(data))
                 await asyncio.to_thread(db.commit)
             except Exception:
                 await asyncio.to_thread(db.rollback)
+        elif "not configured" in err_str or "client_id" in err_str or "client_secret" in err_str:
+            action = "configure"
+        else:
+            action = "oauth"
         logger.warning("Background auto-reconnect failed for %s (%s): %s", rec.id, rec.type, exc)
         return {
             "ok": False,
             "message": f"Automatic reconnection failed: {exc}",
-            "interactive_required": True,
+            "interactive_required": action == "oauth",
+            "action": action,
             "login_url": data.get("login_url") or data.get("instance_url") or "",
         }
 
