@@ -106,6 +106,45 @@
       "fieldConfig": {
         "defaults": { "unit": "reqps" }
       }
+    },
+    {
+      "title": "Queue Depth",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "queue_jobs_queued",
+          "legendFormat": "queued",
+          "refId": "A"
+        },
+        {
+          "expr": "queue_jobs_claimed",
+          "legendFormat": "claimed",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10
+          }
+        }
+      }
+    },
+    {
+      "title": "Executions Running",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "executions_running",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "schemaVersion": 38,

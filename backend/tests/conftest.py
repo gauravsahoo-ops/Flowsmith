@@ -20,6 +20,7 @@ from sqlalchemy import text
 from app.config import get_settings
 get_settings.cache_clear()
 from app.db import Base, init_db
+import app.models  # noqa: F401  (register every table before cleanup/init)
 from app.engine.errors import NodeCancelledError
 from app.engine.node_base import BaseNode, EmptyParams, NodeContext, NodeResult
 from app.nodes.registry import NODE_REGISTRY, register

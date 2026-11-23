@@ -712,7 +712,7 @@ def test_database_oauth_config_save_and_connect(client, monkeypatch):
     # 1. Check initially unconfigured
     get_res = client.get("/api/credentials/oauth-config/salesforce", headers=headers)
     assert get_res.status_code == 200
-    assert get_res.json()["data"]["configured"] is False
+    assert get_res.json()["data"]["configured"] is False, get_res.text
 
     # 2. Save Connected App credentials in database
     save_res = client.post(

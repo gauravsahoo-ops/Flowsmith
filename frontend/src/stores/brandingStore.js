@@ -54,10 +54,11 @@ function applyToDom(branding) {
     `0 4px 14px rgba(${hexToRgb(color)}, 0.4)`
   )
 
-  // Update document title if applicable
-  if (document.title.includes('Flowsmith') || document.title.includes(appName)) {
-    document.title = document.title.replace(/Flowsmith|.*?(?= —|$)/, appName)
-  }
+  // Update the document title prefix while preserving the page suffix.
+  const titleSuffix = document.title.includes(' | ')
+    ? document.title.slice(document.title.indexOf(' | '))
+    : ''
+  document.title = `${appName}${titleSuffix}`
 
   // Update favicon if custom logo available, or revert to default
   const logo = branding.logoData || branding.logoUrl || branding.faviconUrl

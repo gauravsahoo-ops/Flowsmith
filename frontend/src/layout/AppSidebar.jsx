@@ -189,7 +189,7 @@ function SidebarItem({ item, collapsed, mobileClose }) {
   )
 }
 
-export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, onMobileClose }) {
+export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, onMobileClose, onLogout }) {
   const sidebarClass = `app-sidebar ${collapsed ? 'is-collapsed' : 'is-expanded'} ${isMobile ? 'is-mobile' : ''} ${mobileOpen ? 'mobile-open' : ''}`
   const appName = useBrandingStore((s) => s.appName) || 'Flowsmith'
   const logoUrl = useBrandingStore((s) => s.logoUrl)
@@ -203,19 +203,21 @@ export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, 
     return () => window.removeEventListener('flowsmith_user_updated', onUserUpdate)
   }, [])
 
+  const handleLogout = () => {
+    try { localStorage.removeItem('flowsmith_user') } catch {}
+    onLogout?.()
+  }
+
   const content = (
     <>
       <div className="app-sidebar-brand">
         <div
-          className="app-sidebar-brand-mark"
+          className={`app-sidebar-brand-mark ${logoSrc ? 'has-custom-logo' : ''}`}
           title={collapsed ? 'Click to open full tab' : appName}
           onClick={collapsed ? onToggle : undefined}
           style={{
             cursor: collapsed ? 'pointer' : undefined,
-            background: logoSrc ? 'transparent' : 'var(--brand-gradient, linear-gradient(135deg, #6366f1 0%, #3b82f6 100%))',
-            boxShadow: logoSrc ? 'none' : 'var(--brand-shadow, 0 4px 14px rgba(99, 102, 241, 0.4))',
             padding: logoSrc ? 2 : 0,
-            overflow: 'hidden',
           }}
           role={collapsed ? 'button' : undefined}
           aria-label={collapsed ? 'Open full tab' : appName}
@@ -279,6 +281,20 @@ export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, 
               <span className="sidebar-user-email">{user.email}</span>
             </div>
           )}
+          <button
+            type="button"
+            className="sidebar-user-logout"
+            onClick={handleLogout}
+            title="Log out"
+            aria-label="Log out"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>Log out</span>
+          </button>
         </div>
       </div>
     </>

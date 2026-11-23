@@ -175,7 +175,7 @@ def test_scenario_01_sf_lead_automation(client):
     finally:
         patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert data["results"]["outputs"]["sf"]["main"][0]["found"] is False
     assert data["results"]["outputs"]["create_check"]["main"][0]["found"] is False
     history = client.get(f"/api/executions?workflow_id={wf_id}", headers=headers).json()
@@ -223,7 +223,7 @@ def test_scenario_02_sf_enrichment(client):
     finally:
         patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     enriched = data["results"]["outputs"]["enrich"]["main"][0]
     assert enriched["full_name"] == "Jane Doe"
     assert enriched["company"] == "Acme"
@@ -286,7 +286,7 @@ def test_scenario_03_sf_ai_notify(client):
         patcher.stop()
         ai_patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert data["results"]["outputs"]["ai"]["main"][0]["response"] == "Lead: Jane Doe from Acme. High value."
     assert data["node_statuses"]["notify"] == "success"
 
@@ -330,7 +330,7 @@ def test_scenario_04_webhook_to_sf_create(client):
     finally:
         patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert data["node_statuses"]["sf"] == "success"
     sf_out = data["results"]["outputs"]["sf"]["main"][0]
     assert sf_out["id"] == "00Qabc123"
@@ -367,7 +367,7 @@ def test_scenario_05_schedule_to_sf(client):
     finally:
         patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert data["results"]["outputs"]["sf"]["main"][0]["found"] is True
 
     assert data["node_statuses"]["trig"] == "success"
@@ -417,7 +417,7 @@ def test_scenario_06_mcp_api_to_sf(client):
     finally:
         patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert data["node_statuses"]["sf"] == "success"
 
 
@@ -475,7 +475,7 @@ def test_scenario_07_sf_to_postgres(client):
         sf_patcher.stop()
         pg_patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert data["node_statuses"]["pg"] == "success"
     assert len(fake_engine.statements) == 1
     assert "leads" in fake_engine.statements[0][0].lower()
@@ -564,7 +564,7 @@ def test_scenario_09_ai_rag(client):
         fake_chat_patcher.stop()
         fake_embed_patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert data["results"]["outputs"]["rag"]["main"][0]["answer"]
 
 
@@ -704,7 +704,7 @@ def test_scenario_11_multi_step(client):
         patcher.stop()
         pg_patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert set(data["node_statuses"].keys()) == {"trig", "map1", "sf", "map2", "teams", "pg"}
     assert all(v == "success" for v in data["node_statuses"].values())
     assert data["results"]["outputs"]["map2"]["main"][0]["lead_name"] == "Jane Doe"
@@ -748,7 +748,7 @@ def test_scenario_12_failure_retry(client):
     finally:
         patcher.stop()
 
-    assert data["status"] == "success"
+    assert data["status"] == "success", data.get("error")
     assert data["node_statuses"]["sf"] == "success"
     trace = client.get(f"/api/executions/{execution_id}/trace", headers=headers).json()
     assert trace["data"]["steps"][1]["node_id"] == "sf"

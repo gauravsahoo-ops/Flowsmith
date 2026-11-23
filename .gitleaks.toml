@@ -1,0 +1,17 @@
+# Gitleaks configuration for Flowsmith.
+#
+# Extend the maintained default rules instead of replacing them. The
+# allowlist is intentionally narrow: only synthetic test fixtures and
+# documented example files may contain credential-shaped values.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic credentials in automated tests and example config"
+paths = [
+  '''backend/tests/.*''',
+  '''.*\.example\.ya?ml''',
+  '''.*\.env\.example''',
+  '''docs/audit/.*''',
+]

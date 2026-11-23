@@ -57,11 +57,15 @@ class FakeConnection:
 
 
 class FakeEngine:
+    class _Dialect:
+        name = "postgresql"
+
     def __init__(self, result: FakeSQLResult) -> None:
         self.result = result
         self.statements: list[tuple[str, dict]] = []
         self.commits = 0
         self.disposed = False
+        self.dialect = self._Dialect()
 
     def connect(self) -> FakeConnection:
         return FakeConnection(self)

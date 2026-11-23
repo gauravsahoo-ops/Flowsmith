@@ -57,6 +57,10 @@ class TestProductionConfigurationHardening:
             with pytest.raises(ConfigError, match="JWT_SECRET"):
                 validate_production_settings(_valid_prod_settings(jwt_secret=weak))
 
+    def test_rejects_short_metrics_token(self):
+        with pytest.raises(ConfigError, match="METRICS_TOKEN"):
+            validate_production_settings(_valid_prod_settings(metrics_token="short-token"))
+
     def test_rejects_sqlite_in_production(self):
         with pytest.raises(ConfigError, match="DATABASE_URL"):
             validate_production_settings(_valid_prod_settings(database_url="sqlite:///data.db"))
@@ -105,18 +109,6 @@ class TestProductionConfigurationHardening:
                 _valid_prod_settings(
                     queue_backend="redis",
                     redis_url="redis://:changeme@redis:6379/0",
-                )
-            )
-
-    def test_rejects_missing_stripe_secrets_when_billing_enforced(self):
-        with pytest.raises(ConfigError, match="STRIPE_SECRET_KEY"):
-            validate_production_settings(_valid_prod_settings(billing_enforcement=True, stripe_secret_key=""))
-        with pytest.raises(ConfigError, match="STRIPE_WEBHOOK_SECRET"):
-            validate_production_settings(
-                _valid_prod_settings(
-                    billing_enforcement=True,
-                    stripe_secret_key="sk_live_prod_test_key",
-                    stripe_webhook_secret="",
                 )
             )
 

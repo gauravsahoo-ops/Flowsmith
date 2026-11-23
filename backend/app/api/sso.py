@@ -8,17 +8,20 @@ Provides native SSO authentication without enterprise paywalls:
 
 from __future__ import annotations
 
+import hashlib
 import hmac
+import json
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import httpx
 import jwt as pyjwt
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -29,14 +32,143 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import User
 from app.security.jwt import _get_jwt_secret, create_token, hash_password
+from app.security.redis_client import get_shared_redis
 
 logger = logging.getLogger("sso")
 
 router = APIRouter(prefix="/api/auth/sso", tags=["sso"])
 
 _SSO_STATE_COOKIE = "flowsmith_sso_state"
+_SSO_EXCHANGE_COOKIE = "flowsmith_sso_exchange"
+_SSO_EXCHANGE_PATH = "/api/auth/sso/exchange"
+_SSO_EXCHANGE_TTL = 60
 _SSO_STATE_TTL = 600
 _SSO_STATE_ALGORITHM = "HS256"
+
+
+def _exchange_hash(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+class SsoExchangeRequest(BaseModel):
+    code: str = Field(min_length=16, max_length=256)
+
+
+def _sso_exchange_redirect(user: User, request: Request) -> RedirectResponse:
+    """Redirect with a single-use, browser-bound code instead of a JWT.
+
+    The JWT never appears in the URL, browser history, or Referer. The
+    HttpOnly binding cookie is required to redeem the short-lived code.
+    """
+    redis = get_shared_redis()
+    if redis is None:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "SSO exchange storage is unavailable.",
+        )
+
+    code = secrets.token_urlsafe(32)
+    binding = secrets.token_urlsafe(32)
+    payload = json.dumps({
+        "user_id": user.id,
+        "email": user.email,
+        "binding": _exchange_hash(binding),
+    })
+    try:
+        stored = redis.set(
+            f"sso:exchange:{_exchange_hash(code)}",
+            payload,
+            ex=_SSO_EXCHANGE_TTL,
+            nx=True,
+        )
+    except Exception as exc:
+        logger.error("SSO exchange storage failed: %s", exc)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "SSO exchange storage is unavailable.",
+        ) from exc
+    if not stored:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "SSO exchange could not be created.",
+        )
+
+    response = RedirectResponse(
+        url=f"/?sso_code={quote(code)}",
+        status_code=status.HTTP_302_FOUND,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    response.set_cookie(
+        _SSO_EXCHANGE_COOKIE,
+        binding,
+        max_age=_SSO_EXCHANGE_TTL,
+        httponly=True,
+        secure=_cookie_secure(request),
+        samesite="lax",
+        path=_SSO_EXCHANGE_PATH,
+    )
+    return response
+
+
+@router.post("/exchange")
+def exchange_sso_code(
+    body: SsoExchangeRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Redeem a one-time SSO code bound to this browser's HttpOnly cookie."""
+    binding = request.cookies.get(_SSO_EXCHANGE_COOKIE) or ""
+    redis = get_shared_redis()
+    if not binding or redis is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "SSO exchange is invalid or expired.")
+
+    key = f"sso:exchange:{_exchange_hash(body.code)}"
+    try:
+        raw = redis.getdel(key)
+    except Exception:
+        try:
+            pipe = redis.pipeline()
+            pipe.get(key)
+            pipe.delete(key)
+            raw, _ = pipe.execute()
+        except Exception:
+            raw = None
+    if not raw:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "SSO exchange is invalid or expired.")
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError):
+        payload = {}
+    if not hmac.compare_digest(
+        str(payload.get("binding") or ""), _exchange_hash(binding)
+    ):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "SSO exchange is invalid or expired.")
+
+    user = db.get(User, payload.get("user_id"))
+    if user is None or not user.active:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "SSO account is inactive.")
+
+    token = create_token(user.id, email=user.email)
+    log_event(
+        db,
+        LOGIN,
+        target_type="user",
+        target_id=str(user.id),
+        user_id=user.id,
+        detail={"source": "sso_exchange"},
+    )
+    response.delete_cookie(_SSO_EXCHANGE_COOKIE, path=_SSO_EXCHANGE_PATH)
+    return ok({
+        "token": token,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "active": user.active,
+        },
+    })
 
 
 def _get_provider_config(provider: str) -> dict[str, Any] | None:
@@ -358,6 +490,9 @@ async def sso_callback(
                     db.add(user)
                     db.commit()
                     db.refresh(user)
+                    from app.api.workspaces import ensure_personal_workspace
+
+                    ensure_personal_workspace(db, user)
                     log_event(db, REGISTER, target_type="user", target_id=str(user.id), user_id=user.id)
             except IntegrityError as exc:
                 db.rollback()
@@ -372,13 +507,8 @@ async def sso_callback(
 
     log_event(db, LOGIN, target_type="user", target_id=str(user.id), user_id=user.id)
 
-    # Issue Flowsmith JWT
-    jwt_token = create_token(user.id, email=user.email)
-
-    # Redirect to frontend root with the token in the URL *fragment* so it
-    # never reaches server/proxy logs, browser history queries, or Referer.
-    redirect_url = f"/#sso_token={jwt_token}"
-    response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+    # Browser-bound one-time exchange; the session JWT stays out of the URL.
+    response = _sso_exchange_redirect(user, request)
     response.delete_cookie(
         _SSO_STATE_COOKIE,
         path="/api/auth/sso",

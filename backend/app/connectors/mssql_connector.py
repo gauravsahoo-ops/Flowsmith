@@ -196,7 +196,7 @@ class MSSQLConnector(ConnectorSDK, ConnectorOperations):
                 port=creds.get("port", 1433),
                 user=creds.get("username"),
                 password=creds.get("password"),
-                database=creds.get("database"),
+                database=str(creds.get("database") or ""),
                 timeout=int(timeout),
             )
             try:

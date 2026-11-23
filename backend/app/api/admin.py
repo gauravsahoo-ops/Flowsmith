@@ -1,8 +1,8 @@
-"""Admin maintenance endpoints (M9 hardening): manual retention prune.
+"""Maintenance endpoints (M9 hardening): manual retention prune.
 
 The maintenance daemon prunes automatically on its interval; this
-endpoint lets admins run a prune now (optionally with a custom window)
-or preview what a prune would remove without deleting anything.
+endpoint lets signed-in users run a prune now (optionally with a custom
+window) or preview what a prune would remove without deleting anything.
 """
 
 from __future__ import annotations
@@ -17,8 +17,8 @@ from app.audit import ADMIN_PRUNE, log_event
 from app.config import get_settings
 from app.db import get_db
 from app.maintenance import prune
+from app.api.auth import get_current_user
 from app.api.common import ok
-from app.api.users import get_current_admin
 from app.models import User
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -32,7 +32,7 @@ class PruneRequest(BaseModel):
 @router.post("/maintenance/prune")
 def prune_endpoint(
     body: PruneRequest,
-    admin: User = Depends(get_current_admin),
+    actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     days = body.days or get_settings().execution_retention_days
@@ -40,7 +40,7 @@ def prune_endpoint(
     counts = prune(db, before, dry_run=body.dry_run)
     if not body.dry_run:
         log_event(db, ADMIN_PRUNE, target_type="system", target_id="executions",
-                  user_id=admin.id, detail={"days": days, **counts})
+                  user_id=actor.id, detail={"days": days, **counts})
     return ok({
         "retention_days": days,
         "before": before.isoformat(),

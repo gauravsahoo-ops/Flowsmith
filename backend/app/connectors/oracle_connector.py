@@ -202,13 +202,13 @@ class OracleConnector(ConnectorSDK, ConnectorOperations):
         creds = ((context or {}).get("credentials") or {}).get("oracle") or self.credentials or {}
         return await self._insert(creds, parsed.table, parsed.data, parsed.timeout_seconds)
 
-    async def op_update(self, params: Dict[str, Any], context: Dict[str, Any] | None = None) -> Dict[str, Any]:
-        parsed = OracleConnectorParams.model_validate(params)
+    async def op_update(self, payload: Dict[str, Any], context: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        parsed = OracleConnectorParams.model_validate(payload)
         creds = ((context or {}).get("credentials") or {}).get("oracle") or self.credentials or {}
         return await self._update(creds, parsed.table, parsed.data, parsed.where, parsed.timeout_seconds)
 
-    async def op_delete(self, params: Dict[str, Any], context: Dict[str, Any] | None = None) -> Dict[str, Any]:
-        parsed = OracleConnectorParams.model_validate(params)
+    async def op_delete(self, payload: Dict[str, Any], context: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        parsed = OracleConnectorParams.model_validate(payload)
         creds = ((context or {}).get("credentials") or {}).get("oracle") or self.credentials or {}
         return await self._delete(creds, parsed.table, parsed.where, parsed.timeout_seconds)
 

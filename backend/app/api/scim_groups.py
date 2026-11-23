@@ -155,19 +155,19 @@ def _group_owner(db: Session) -> User:
     email = (settings.scim_group_owner_email or "").strip().lower()
     if email:
         owner = db.scalar(select(User).where(func.lower(User.email) == email))
-        if owner is None or not owner.active or owner.role != "admin":
+        if owner is None or not owner.active:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "SCIM_GROUP_OWNER_EMAIL must identify an active administrator.",
+                "SCIM_GROUP_OWNER_EMAIL must identify an active user.",
             )
         return owner
     owner = db.scalar(
-        select(User).where(User.active.is_(True), User.role == "admin").order_by(User.id)
+        select(User).where(User.active.is_(True)).order_by(User.id)
     )
     if owner is None:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "SCIM group provisioning requires an active administrator.",
+            "SCIM group provisioning requires an active user.",
         )
     return owner
 

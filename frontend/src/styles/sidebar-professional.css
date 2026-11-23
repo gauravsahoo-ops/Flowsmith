@@ -1,0 +1,370 @@
+/* ==========================================================================
+   FLOWSMITH SIDEBAR — professional edition
+   Restrained navigation surface: neutral tones, one brand accent, precise
+   spacing, plain iconography, and quiet interaction states.
+   Loaded last so it refines the Foundry shell without changing behavior.
+   ========================================================================== */
+
+.app-sidebar {
+  --sidebar-accent: var(--brand-primary, #6366f1);
+  --sidebar-accent-rgb: var(--brand-primary-rgb, 99, 102, 241);
+  background: linear-gradient(180deg, #0b0c10 0%, #090a0e 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+/* ---------- Brand ---------- */
+
+.app-sidebar-brand {
+  min-height: 56px;
+  padding: 0 14px;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+.app-sidebar-brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--brand-gradient, var(--sidebar-accent));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.app-sidebar-brand-mark.has-custom-logo {
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.app-sidebar-brand-name {
+  color: #e9ebf0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-brand {
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-brand-mark:hover {
+  transform: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+/* ---------- Navigation ---------- */
+
+.app-sidebar-nav {
+  padding: 12px 8px 10px;
+  scrollbar-width: none;
+}
+
+.app-sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.app-sidebar-group {
+  margin-bottom: 14px;
+}
+
+.app-sidebar-group-label {
+  padding: 0 9px 6px;
+  color: #5f646e;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+}
+
+.app-sidebar-group-label::after {
+  display: none;
+}
+
+.app-sidebar-group-sep {
+  display: none;
+}
+
+.app-sidebar-group-items {
+  gap: 1px;
+}
+
+.app-sidebar-item {
+  position: relative;
+  min-height: 36px;
+  padding: 0 9px;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #868b96;
+  font-size: 12.5px;
+  font-weight: 500;
+  overflow: hidden;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.app-sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: transparent;
+  color: #e8eaf0;
+  transform: none;
+  box-shadow: none;
+}
+
+.app-sidebar-item.active {
+  background: rgba(var(--sidebar-accent-rgb), 0.10);
+  border-color: rgba(var(--sidebar-accent-rgb), 0.16);
+  color: #f4f5f8;
+  font-weight: 550;
+  box-shadow: none;
+}
+
+.app-sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--sidebar-accent);
+  box-shadow: none;
+  animation: none;
+}
+
+.app-sidebar-item.active::after {
+  display: none;
+}
+
+.app-sidebar-icon {
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: 0;
+  color: #737985;
+  box-shadow: none;
+  transition: color 0.14s ease;
+}
+
+.app-sidebar-item:hover .app-sidebar-icon {
+  background: transparent;
+  border-color: transparent;
+  color: #aeb4c0;
+  transform: none;
+  box-shadow: none;
+}
+
+.app-sidebar-item.active .app-sidebar-icon {
+  background: transparent;
+  border-color: transparent;
+  color: #c7d2fe;
+  color: color-mix(in srgb, var(--sidebar-accent) 58%, white);
+  box-shadow: none;
+}
+
+.app-sidebar-label-text {
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.app-sidebar-item.active .app-sidebar-label-text {
+  color: #f4f5f8;
+}
+
+.app-sidebar-active-indicator {
+  display: none;
+}
+
+/* Collapsed rail */
+.app-sidebar.is-collapsed .app-sidebar-nav {
+  padding: 10px 8px 8px;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-group {
+  margin-bottom: 6px;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-group-sep {
+  display: block;
+  height: 1px;
+  max-height: 1px;
+  margin: 4px 12px 6px;
+  background: rgba(255, 255, 255, 0.055);
+  opacity: 1;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-item {
+  justify-content: center;
+  min-height: 38px;
+  padding: 0;
+  gap: 0;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.app-sidebar.is-collapsed .app-sidebar-item.active {
+  background: rgba(var(--sidebar-accent-rgb), 0.12);
+  border-color: rgba(var(--sidebar-accent-rgb), 0.16);
+}
+
+/* Canvas mode keeps the compact rail behavior aligned */
+.app-shell.is-canvas .app-sidebar.is-expanded .app-sidebar-brand {
+  padding: 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.app-shell.is-canvas .app-sidebar.is-expanded .app-sidebar-item {
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+.app-shell.is-canvas .app-sidebar.is-expanded .app-sidebar-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- Account card ---------- */
+
+.app-sidebar-user-footer {
+  padding: 10px 10px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+  background: transparent;
+}
+
+.app-sidebar-user-footer.is-collapsed {
+  padding: 10px 8px;
+}
+
+.sidebar-user-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'avatar info'
+    'action action';
+  align-items: center;
+  column-gap: 9px;
+  row-gap: 0;
+  padding: 7px 8px 6px;
+  border-radius: 8px;
+  background: #0f1014;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.sidebar-user-card::before {
+  display: none;
+}
+
+.sidebar-user-avatar {
+  grid-area: avatar;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--brand-gradient, var(--sidebar-accent));
+  box-shadow: none;
+}
+
+.sidebar-avatar-beacon {
+  display: block;
+  bottom: -1px;
+  right: -1px;
+  width: 5px;
+  height: 5px;
+  background: #22c55e;
+  border: 1.5px solid #0f1014;
+  box-shadow: none;
+  animation: none;
+}
+
+.sidebar-user-info {
+  grid-area: info;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.25;
+}
+
+.sidebar-user-name {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #eceef3;
+}
+
+.sidebar-user-email {
+  font-size: 9.5px;
+  color: #686e79;
+}
+
+.sidebar-user-logout {
+  grid-area: action;
+  width: 100%;
+  margin: 6px 0 0;
+  padding: 5px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  justify-self: stretch;
+  justify-content: flex-start;
+  gap: 6px;
+  background: transparent;
+  color: #7d838e;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.14s ease;
+}
+
+.sidebar-user-logout:hover {
+  color: #f87171;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.06);
+  border-top-color: rgba(255, 255, 255, 0.09);
+}
+
+.app-sidebar-user-footer.is-collapsed .sidebar-user-card {
+  grid-template-columns: auto;
+  grid-template-areas:
+    'avatar'
+    'action';
+  justify-items: center;
+  row-gap: 6px;
+  padding: 7px 5px 6px;
+}
+
+.app-sidebar-user-footer.is-collapsed .sidebar-user-info {
+  display: none;
+}
+
+.app-sidebar-user-footer.is-collapsed .sidebar-user-logout {
+  width: auto;
+  margin: 0;
+  padding: 4px;
+  border-top: 0;
+  justify-self: center;
+  justify-content: center;
+}
+
+.app-sidebar-user-footer.is-collapsed .sidebar-user-logout span {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar-item,
+  .app-sidebar-icon,
+  .sidebar-user-logout {
+    transition: none;
+  }
+}

@@ -50,6 +50,38 @@ def test_path_traversal_blocked(client, frontend):
     assert client.get("/..%2F..%2Fapp.py").status_code == 404
 
 
+def test_source_repo_and_docs_paths_are_not_served(client, frontend):
+    """Repository/source probes must never receive the SPA shell."""
+    # Even a stray source map inside the built frontend must not be served.
+    (frontend / "assets" / "app.js.map").write_text(
+        '{"version":3,"sources":["../src/App.jsx"]}', encoding="utf-8"
+    )
+    paths = (
+        "/backend/app/main.py",
+        "/frontend/src/App.jsx",
+        "/.git/config",
+        "/.env",
+        "/Dockerfile",
+        "/docker-compose.yml",
+        "/package.json",
+        "/requirements.txt",
+        "/openapi.json",
+        "/docs",
+        "/redoc",
+        "/assets/app.js.map",
+    )
+    for path in paths:
+        resp = client.get(path)
+        assert resp.status_code == 404, path
+        assert "id=\"root\"" not in resp.text, path
+
+
+def test_encoded_source_probe_is_not_served(client, frontend):
+    resp = client.get("/assets/%2e%2e/backend/app/main.py")
+    assert resp.status_code == 404
+    assert "id=\"root\"" not in resp.text
+
+
 def test_frontend_disabled_404s(client, monkeypatch):
     monkeypatch.setattr(main_module, "FRONTEND_DIST", None)
     assert client.get("/").status_code == 404

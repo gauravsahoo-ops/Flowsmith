@@ -1,0 +1,60 @@
+groups:
+  - name: flowsmith-availability
+    rules:
+      - alert: FlowsmithMetricsDown
+        expr: up{job="flowsmith"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Flowsmith metrics scrape is failing"
+          description: "Prometheus has been unable to scrape /api/metrics for 5 minutes. Check the app health endpoint, the METRICS_TOKEN secret, and network reachability."
+
+      - alert: FlowsmithExecutionFailureRateHigh
+        expr: |
+          (
+            sum(rate(executions_finished_total{status="failed"}[10m]))
+            /
+            clamp_min(sum(rate(executions_finished_total[10m])), 0.001)
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Workflow execution failure rate above 10%"
+          description: "More than 10% of completed executions have failed over the last 10 minutes. Inspect recent execution traces and connector health."
+
+      - alert: FlowsmithQueueBacklogHigh
+        expr: queue_jobs_queued > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Workflow queue backlog above 100 jobs"
+          description: "Queued jobs have stayed above 100 for 10 minutes. Check worker health and capacity before the backlog grows."
+
+      - alert: FlowsmithQueueWorkersStalled
+        expr: |
+          queue_jobs_queued > 0
+          unless on()
+          sum(rate(executions_finished_total[10m])) > 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Queued work is not draining"
+          description: "Jobs are queued but no execution has completed in 10 minutes. Check worker logs, Redis, and the database queue claim path."
+
+      - alert: FlowsmithWebhookDeliveryFailures
+        expr: |
+          (
+            sum(rate(webhook_deliveries_total{status!="queued"}[10m]))
+            /
+            clamp_min(sum(rate(webhook_deliveries_total[10m])), 0.001)
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhook deliveries are being skipped or rejected"
+          description: "More than 10% of webhook deliveries were not queued over the last 10 minutes. Check provider signatures, filters, and rate limits."

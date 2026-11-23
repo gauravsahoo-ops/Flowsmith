@@ -27,7 +27,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
 
-from app.api import admin, ai, approvals, audit, auth, billing, branding, code, connector_packs, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, mcp_servers, monitoring, nodes, notifications, oauth, organizations, provider_webhooks, rag, salesforce_events, saml, scim, scim_groups, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
+from app.api import admin, ai, approvals, audit, auth, branding, code, connector_packs, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, mcp_servers, monitoring, nodes, notifications, oauth, organizations, provider_webhooks, rag, salesforce_events, saml, scim, scim_groups, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
 from app.api.auth import get_metrics_user
 from app.api.common import ok
 from app.config import get_settings
@@ -223,6 +223,44 @@ app = FastAPI(title="Flowsmith API", version="1.6.0", lifespan=lifespan,
 
 FRONTEND_DIST: Path | None = Path(settings.frontend_dist) if settings.serve_frontend else None
 
+# These are repository/source-code probes, not SPA routes. Returning 404
+# keeps the built UI usable without ever echoing index.html for a path that
+# looks like application source or a hosted API reference.
+_SOURCE_PROBE_PREFIXES = (
+    "/.",
+    "/app",
+    "/backend",
+    "/coverage.xml",
+    "/deploy",
+    "/docker-compose",
+    "/dockerfile",
+    "/docs",
+    "/frontend",
+    "/node_modules",
+    "/openapi.json",
+    "/package-lock.json",
+    "/package.json",
+    "/pyproject.toml",
+    "/pytest.ini",
+    "/redoc",
+    "/requirements",
+    "/ruff.toml",
+    "/scripts",
+)
+_SOURCE_PROBE_SUFFIXES = (".py", ".pyc", ".map", ".env")
+
+
+def _is_source_probe(path: str) -> bool:
+    lower = path.lower()
+    return (
+        ".." in path
+        or "%2e" in lower
+        or "%2f" in lower
+        or "%5c" in lower
+        or lower.startswith(_SOURCE_PROBE_PREFIXES)
+        or lower.endswith(_SOURCE_PROBE_SUFFIXES)
+    )
+
 
 class SPAFallbackMiddleware(BaseHTTPMiddleware):
     """M9: serve the built UI from the same port.
@@ -265,7 +303,11 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
         if FRONTEND_DIST is not None:
             root = FRONTEND_DIST.resolve()
             candidate = (root / path.lstrip("/")).resolve()
-            if candidate.is_relative_to(root) and candidate.is_file():
+            if (
+                candidate.is_relative_to(root)
+                and candidate.is_file()
+                and not _is_source_probe(path)
+            ):
                 if candidate.name == "index.html":
                     return self._index_response(request)
                 headers: dict[str, str] = {}
@@ -275,7 +317,7 @@ class SPAFallbackMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         if (
             response.status_code == 404
-            and ".." not in path
+            and not _is_source_probe(path)
             and FRONTEND_DIST is not None
             and (FRONTEND_DIST / "index.html").is_file()
         ):
@@ -522,7 +564,6 @@ app.include_router(users.router)
 app.include_router(admin.router)
 app.include_router(ai.router)
 app.include_router(llm.router)
-app.include_router(billing.router)
 app.include_router(credentials.router)
 app.include_router(environments.router)
 app.include_router(mcp.router)
@@ -667,14 +708,24 @@ def metrics_endpoint(user: Any = Depends(get_metrics_user)) -> str:
     see docs/monitoring.md."""
     from app.db import get_session
     from app.metrics import render_metrics
-    from app.models import WorkflowRecord
+    from app.models import Job, WorkflowRecord
 
     db = get_session()
     try:
         workflows_total = db.scalar(select(func.count()).select_from(WorkflowRecord)) or 0
+        queue_queued = db.scalar(
+            select(func.count()).select_from(Job).where(Job.status == "queued")
+        ) or 0
+        queue_claimed = db.scalar(
+            select(func.count()).select_from(Job).where(Job.status == "claimed")
+        ) or 0
     finally:
         db.close()
-    return render_metrics([("workflows_total", workflows_total)])
+    return render_metrics([
+        ("workflows_total", workflows_total),
+        ("queue_jobs_queued", queue_queued),
+        ("queue_jobs_claimed", queue_claimed),
+    ])
 
 
 _PROCESS_START = time.monotonic()

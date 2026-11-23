@@ -1,5 +1,7 @@
 """Tests for SSO endpoints."""
 
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -165,7 +167,12 @@ class TestSsoVerifiedEmail:
             follow_redirects=False,
         )
         assert resp.status_code == 302
-        assert "sso_token=" in resp.headers["location"]
+        location = resp.headers["location"]
+        assert "sso_code=" in location
+        code = parse_qs(urlparse(location).query)["sso_code"][0]
+        exchange = client.post("/api/auth/sso/exchange", json={"code": code})
+        assert exchange.status_code == 200, exchange.text
+        assert exchange.json()["data"]["token"]
 
     def test_oidc_unverified_email_rejected(self, client, monkeypatch):
         from app.config import get_settings
@@ -189,3 +196,40 @@ class TestSsoVerifiedEmail:
         )
         assert resp.status_code == 400
         assert "verified email" in resp.json()["detail"]
+
+    def test_sso_exchange_is_single_use_and_cookie_bound(self, client, monkeypatch):
+        from app.config import get_settings
+
+        monkeypatch.setattr(get_settings(), "sso_github_client_id", "gh-id")
+        monkeypatch.setattr(get_settings(), "sso_github_client_secret", "gh-secret")
+        monkeypatch.setattr(
+            "app.api.sso.httpx.AsyncClient",
+            _fake_async_client(
+                {"login": "devuser", "name": "Dev User"},
+                [{"email": "devuser@example.com", "primary": True, "verified": True}],
+            ),
+        )
+
+        def _callback_code() -> str:
+            state = self._start_login(client, "github")
+            response = client.get(
+                "/api/auth/sso/github/callback",
+                params={"code": "fake-code", "state": state},
+                follow_redirects=False,
+            )
+            assert response.status_code == 302
+            return parse_qs(urlparse(response.headers["location"]).query)["sso_code"][0]
+
+        code = _callback_code()
+        first = client.post("/api/auth/sso/exchange", json={"code": code})
+        assert first.status_code == 200, first.text
+        assert first.json()["data"]["token"]
+
+        replay = client.post("/api/auth/sso/exchange", json={"code": code})
+        assert replay.status_code == 401
+
+        code_without_cookie = _callback_code()
+        unbound = TestClient(app).post(
+            "/api/auth/sso/exchange", json={"code": code_without_cookie}
+        )
+        assert unbound.status_code == 401

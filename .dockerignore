@@ -2,7 +2,9 @@
 .github
 .gitignore
 README.md
-docs
+docs/*
+!docs/integration-platform/
+!docs/integration-platform/LIVE_CERTIFICATION_EVIDENCE.json
 opencode.json
 pyrightconfig.json
 
@@ -15,11 +17,19 @@ pyrightconfig.json
 **/*.pyc
 **/.pytest_cache
 **/.venv
+**/.ruff_cache
+**/.runtime
 backend/data
 backend/tests
+backend/backups
+backend/chroma_db
+backend/logs
+backend/tmp
+backend/coverage.xml
 frontend/node_modules
 frontend/dist
 **/*.test.js
+**/*.map
 
 # Local state and scratch artifacts
 backups

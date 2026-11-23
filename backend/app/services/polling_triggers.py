@@ -84,13 +84,6 @@ def _queue_items(db: Session, trigger: PollingTrigger, items: list[Any]) -> bool
     if has_running_execution(db, trigger.workflow_id):
         return False
     workspace_id = workflow_workspace(db, trigger.workflow_id)
-    from app.billing.service import enforce_can_start_execution
-    from fastapi import HTTPException
-
-    try:
-        enforce_can_start_execution(db, workspace_id)
-    except HTTPException:
-        return False
     start_execution(
         db,
         workflow_id=trigger.workflow_id,
@@ -146,7 +139,7 @@ async def poll_due(now: datetime | None = None) -> int:
                     trigger.last_error = None
                     started += 1
                 elif new_items:
-                    trigger.last_error = "workflow already running or quota blocked"
+                    trigger.last_error = "workflow already running"
                 db.commit()
             except Exception as exc:
                 db.rollback()

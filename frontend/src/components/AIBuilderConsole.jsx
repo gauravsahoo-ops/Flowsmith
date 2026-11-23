@@ -433,10 +433,14 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
                     fontSize: '12px',
                     borderRadius: '6px',
                     background: 'rgba(255,255,255,0.03)',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    display: 'block',
+                    minWidth: 0,
                   }}
                 >
-                  <div style={{ fontWeight: 500, color: '#f8fafc' }}>{s.label}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontWeight: 500, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                     {s.prompt}
                   </div>
                 </button>

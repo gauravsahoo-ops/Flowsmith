@@ -24,7 +24,6 @@ from app.models import (
     Organization,
     OrganizationMember,
     RagCollection,
-    Subscription,
     User,
     WebAuthnCredential,
     WorkflowRecord,
@@ -202,7 +201,7 @@ def delete_organization(org_id: str, user: User = Depends(get_current_user), db:
 
     Refuses to delete while its workspaces still contain workflows: those
     rows own credentials, versions, and execution history that must not be
-    destroyed implicitly. Empty workspaces, subscriptions, and memberships
+    destroyed implicitly. Empty workspaces and memberships
     are cleaned up with the organization.
     """
     org = _require_org_owner(db, org_id, user)
@@ -240,7 +239,6 @@ def delete_organization(org_id: str, user: User = Depends(get_current_user), db:
     db.execute(update(User).where(User.organization_id == org_id).values(organization_id=None))
     db.execute(delete(WorkspaceMember).where(WorkspaceMember.workspace_id.in_(ws_ids)))
     db.execute(delete(Workspace).where(Workspace.organization_id == org_id))
-    db.execute(delete(Subscription).where(Subscription.organization_id == org_id))
     db.query(OrganizationMember).where(OrganizationMember.organization_id == org_id).delete()
     db.delete(org)
     db.commit()

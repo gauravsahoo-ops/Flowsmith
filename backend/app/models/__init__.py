@@ -24,7 +24,6 @@ from app.models.password_reset import PasswordResetToken
 from app.models.provider_webhook import ProviderWebhookRegistration
 from app.models.rag_collection import RagCollection
 from app.models.share import WorkflowShare
-from app.models.subscription import Subscription
 from app.models.user import User
 from app.models.webhook import PollingTrigger, ScheduleTrigger, WebhookDelivery, WebhookTrigger
 from app.models.data_table import DataTable, DataTableColumn, DataTableRow
@@ -72,7 +71,6 @@ __all__ = [
     "ScheduleTrigger",
     "WebhookDelivery",
     "WorkflowShare",
-    "Subscription",
     "AuditEvent",
     "Job",
     "ExecutionEvent",

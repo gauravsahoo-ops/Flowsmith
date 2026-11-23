@@ -350,10 +350,13 @@ def _post_response(client, response_bytes: bytes, relay_state: str | None):
     )
 
 
-def _token_from_redirect(response) -> str:
+def _token_from_redirect(client, response) -> str:
     assert response.status_code == 302
-    fragment = parse_qs(urlparse(response.headers["location"]).fragment)
-    token = fragment["sso_token"][0]
+    query = parse_qs(urlparse(response.headers["location"]).query)
+    code = query["sso_code"][0]
+    exchange = client.post("/api/auth/sso/exchange", json={"code": code})
+    assert exchange.status_code == 200, exchange.text
+    token = exchange.json()["data"]["token"]
     assert token
     return token
 
@@ -377,7 +380,7 @@ def test_saml_jit_provisioning_and_login(client, monkeypatch, idp_material):
     request_id, relay_state = _start_login(client)
     response = _response_xml(key_pem, cert_pem, request_id=request_id)
     acs = _post_response(client, response, relay_state)
-    token = _token_from_redirect(acs)
+    token = _token_from_redirect(client, acs)
     me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me.status_code == 200
     assert me.json()["data"]["email"] == "ada@example.com"
@@ -392,7 +395,7 @@ def test_saml_response_signature_is_accepted(client, monkeypatch, idp_material):
         key_pem, cert_pem, request_id=request_id,
         email="grace@example.com", sign_response=True,
     )
-    _token_from_redirect(_post_response(client, response, relay_state))
+    _token_from_redirect(client, _post_response(client, response, relay_state))
 
 
 def test_saml_encrypted_assertion_is_accepted(client, monkeypatch, idp_material):
@@ -406,7 +409,7 @@ def test_saml_encrypted_assertion_is_accepted(client, monkeypatch, idp_material)
         idp_key, idp_cert, sp_cert,
         request_id=request_id, email="encrypted@example.com",
     )
-    token = _token_from_redirect(_post_response(client, response, relay_state))
+    token = _token_from_redirect(client, _post_response(client, response, relay_state))
     me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me.status_code == 200
     assert me.json()["data"]["email"] == "encrypted@example.com"
@@ -481,7 +484,7 @@ def test_saml_assertion_replay_is_rejected(client, monkeypatch, idp_material):
     state_cookie = client.cookies.get("flowsmith_saml_state")
     response = _response_xml(key_pem, cert_pem, request_id=request_id)
     first = _post_response(client, response, relay_state)
-    _token_from_redirect(first)
+    _token_from_redirect(client, first)
     assert state_cookie
     client.cookies.set(
         "flowsmith_saml_state",
@@ -504,7 +507,7 @@ def test_saml_idp_initiated_requires_opt_in(client, monkeypatch, idp_material):
     response = _response_xml(
         key_pem, cert_pem, request_id=None, email="idp@example.com",
     )
-    _token_from_redirect(_post_response(client, response, relay_state=None))
+    _token_from_redirect(client, _post_response(client, response, relay_state=None))
 
 
 def test_saml_jit_can_be_disabled(client, monkeypatch, idp_material):
@@ -552,7 +555,7 @@ def test_saml_role_and_default_scope(client, monkeypatch, idp_material):
         key_pem, cert_pem, request_id=request_id,
         email="scoped@example.com", role="admin", email_attribute=True,
     )
-    _token_from_redirect(_post_response(client, response, relay_state))
+    _token_from_redirect(client, _post_response(client, response, relay_state))
 
     db = get_session()
     try:
@@ -584,7 +587,7 @@ def test_saml_group_claim_maps_admin_role(client, monkeypatch, idp_material):
         email="group-admin@example.com",
         groups=["Platform-Admins", "people"],
     )
-    _token_from_redirect(_post_response(client, response, relay_state))
+    _token_from_redirect(client, _post_response(client, response, relay_state))
 
     db = get_session()
     try:
@@ -625,7 +628,7 @@ def test_saml_group_claim_promotes_existing_member(client, monkeypatch, idp_mate
         email="existing-group@example.com",
         groups=["platform-admins"],
     )
-    _token_from_redirect(_post_response(client, response, relay_state))
+    _token_from_redirect(client, _post_response(client, response, relay_state))
 
     db = get_session()
     try:

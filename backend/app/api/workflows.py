@@ -295,7 +295,6 @@ def import_workflow(
     target_workspace_id = body.get("workspace_id") if isinstance(body, dict) else None
     if target_workspace_id is not None:
         from app.api.workspaces import _require_ws_member
-        from app.billing.service import enforce_plan_limit
 
         _require_ws_member(db, str(target_workspace_id), user)
         if not workspace_can_edit(db, str(target_workspace_id), user.id):
@@ -303,7 +302,6 @@ def import_workflow(
                 status.HTTP_403_FORBIDDEN,
                 "Workspace edit access is required to import into it.",
             )
-        enforce_plan_limit(db, str(target_workspace_id), "workflows")
         target_workspace_id = str(target_workspace_id)
 
     try:
@@ -421,11 +419,6 @@ def duplicate_workflow(
         if rec.workspace_id and workspace_can_edit(db, rec.workspace_id, user.id)
         else None
     )
-    if target_workspace_id:
-        from app.billing.service import enforce_plan_limit
-
-        enforce_plan_limit(db, target_workspace_id, "workflows")
-
     new_rec = WorkflowRecord(
         id=new_id,
         user_id=user.id,
@@ -479,7 +472,6 @@ def create_workflow(body: dict, user: User = Depends(get_current_user), db: Sess
     workspace_id = body.get("workspace_id")
     if workspace_id is not None:
         from app.api.workspaces import _require_ws_member
-        from app.billing.service import enforce_plan_limit
 
         _require_ws_member(db, str(workspace_id), user)
         # Creating a workflow in a workspace is a write: a view-only member
@@ -489,7 +481,6 @@ def create_workflow(body: dict, user: User = Depends(get_current_user), db: Sess
                 status.HTTP_403_FORBIDDEN,
                 "Workspace edit access is required to create workflows in it.",
             )
-        enforce_plan_limit(db, str(workspace_id), "workflows")
     # Check if a workflow with this id already exists (by record id)
     if db.get(WorkflowRecord, workflow.id) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, f"Workflow '{workflow.id}' already exists.")

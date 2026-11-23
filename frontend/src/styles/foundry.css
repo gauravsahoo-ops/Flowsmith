@@ -471,6 +471,41 @@ body::before {
   font-size: 9.5px;
   color: var(--muted);
 }
+.sidebar-user-logout {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 5px 7px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.sidebar-user-logout:hover {
+  color: var(--red);
+  background: rgba(255, 107, 125, 0.08);
+  border-color: rgba(255, 107, 125, 0.16);
+}
+.app-sidebar-user-footer.is-collapsed .sidebar-user-card {
+  flex-direction: column;
+  gap: 6px;
+}
+.app-sidebar-user-footer.is-collapsed .sidebar-user-logout {
+  width: 100%;
+  margin-left: 0;
+  padding: 4px;
+}
+.app-sidebar-user-footer.is-collapsed .sidebar-user-logout span {
+  display: none;
+}
 .sidebar-avatar-beacon {
   display: none;
 }

@@ -13,26 +13,32 @@ the data-plane guarantees.
 
 from __future__ import annotations
 
-import socket
-
 import pytest
 
 from app.utils.backup import list_backups, prune_backups
 
 
 def _postgres_reachable() -> bool:
+    from sqlalchemy.engine import make_url
+
+    from app.config import get_settings
+
+    url = make_url(get_settings().database_url)
+    host = url.host if url.host not in ("localhost", "", None) else "127.0.0.1"
     try:
         try:
             import psycopg
             conn = psycopg.connect(
-                host="127.0.0.1", port=5432, user="automate",
-                password="automate", dbname="postgres", connect_timeout=3,
+                host=host, port=url.port or 5432, user=url.username or "automate",
+                password=url.password or "automate", dbname="postgres",
+                connect_timeout=3,
             )
         except ImportError:
             import psycopg2
             conn = psycopg2.connect(
-                host="127.0.0.1", port=5432, user="automate",
-                password="automate", dbname="postgres", connect_timeout=3,
+                host=host, port=url.port or 5432, user=url.username or "automate",
+                password=url.password or "automate", dbname="postgres",
+                connect_timeout=3,
             )
         conn.close()
         return True
@@ -41,7 +47,7 @@ def _postgres_reachable() -> bool:
 
 
 requires_pg = pytest.mark.skipif(
-    not _postgres_reachable(), reason="PostgreSQL not reachable on 127.0.0.1:5432",
+    not _postgres_reachable(), reason="PostgreSQL not reachable at the configured database host",
 )
 
 
@@ -151,12 +157,12 @@ def test_backup_listing_and_retention_pruning(tmp_path):
     assert new.exists() and not old.exists()
 
 
-def test_drill_skips_gracefully_without_postgres(monkeypatch, tmp_path):
-    """If no Postgres is reachable the drill reports failure instead of
-    hanging or crashing — CI without a database stays green."""
-    if _postgres_reachable():
-        pytest.skip("Postgres reachable; skip-safety path not exercised")
+def test_drill_reports_failure_when_postgres_unreachable(tmp_path):
+    """An unreachable database must produce a failed report, not hang."""
     from app.dr import run_drill
 
-    report = run_drill(work_dir=tmp_path)
+    report = run_drill(
+        base_dsn="postgresql://automate:automate@127.0.0.1:1/automate",
+        work_dir=tmp_path,
+    )
     assert report["ok"] is False

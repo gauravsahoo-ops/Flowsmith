@@ -52,9 +52,13 @@ pipeline {
         stage('Deploy & Launch Container') {
             steps {
                 sshagent([env.SSH_CRED_ID]) {
+                    // StrictHostKeyChecking=accept-new trusts a host on first
+                    // contact and rejects a changed key afterwards. For a
+                    // regulated deployment, pin the host key with a Jenkins
+                    // known_hosts credential and switch to =yes.
                     // 1. Prepare directory structure on remote
                     sh """
-                    ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -o StrictHostKeyChecking=accept-new ${REMOTE_USER}@${REMOTE_HOST} '
                     '
                     """
 
@@ -70,14 +74,14 @@ pipeline {
                         --exclude='docker-compose.yml' \
                         --exclude='deployment_requirements.md' \
                         --exclude='Jenkinsfile' \
-                        -e "ssh -o StrictHostKeyChecking=no" \
+                        -e "ssh -o StrictHostKeyChecking=accept-new" \
                         ./ \
                         ${REMOTE_USER}@${REMOTE_HOST}:${BASE_PATH}/
                     """
 
                     // 3. Cd into release dir, trigger Compose & cleanup
                     sh """
-                    ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                    ssh -o StrictHostKeyChecking=accept-new ${REMOTE_USER}@${REMOTE_HOST} '
                         cd ${BASE_PATH}
 
                         # Remove the currentl compose file if exists

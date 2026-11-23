@@ -411,7 +411,7 @@ export function NodeEditorModalDialog({ onClosed }) {
             </span>
             <div className="nem-title-text">
               <div className="nem-title-row">
-                <h2>{node.settings?.label || node.name || meta?.display_name || node.type}</h2>
+                <h2>{node.settings?.label || meta?.display_name || node.name || node.type}</h2>
                 <span className="nem-node-id-badge">{node.id}</span>
               </div>
               <span className="nem-connector-meta">

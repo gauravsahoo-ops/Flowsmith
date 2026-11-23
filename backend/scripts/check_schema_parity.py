@@ -95,6 +95,12 @@ def _introspect(url: str) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
 INDEX_PARITY_KNOWN: set[tuple[str, str, str]] = set()
 
 
+# Tables retained in the migration chain for existing deployments but no
+# longer modelled. Billing/usage was removed on 2026-11-20; the table and
+# its data are intentionally kept dormant so the feature can be restored.
+DORMANT_TABLES: set[str] = {"subscriptions"}
+
+
 def main() -> int:
     base = get_settings().database_url
     alembic_url, alembic_db = _scratch_url(base, "alembic")
@@ -133,6 +139,8 @@ def main() -> int:
         problems = []
         for table in sorted(set(mig) | set(cur)):
             if table in ("alembic_version", "vector_collections"):
+                continue
+            if table in DORMANT_TABLES:
                 continue
             if table not in mig:
                 problems.append(f"table '{table}': missing from migrations")

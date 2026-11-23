@@ -380,10 +380,6 @@ def run_workflow(
     db: Session = Depends(get_db),
 ) -> dict:
     rec = get_workflow(db, workflow_id, user, require_edit=True)
-    # Plan quota (Phase 34): monthly execution budget per workspace plan.
-    from app.billing.service import enforce_can_start_execution
-
-    enforce_can_start_execution(db, rec.workspace_id)
     raw = body.data if body is not None else None
     trigger_items: list[dict[str, Any]]
     if isinstance(raw, dict):
@@ -1495,9 +1491,6 @@ async def run_single_node(
     the target node runs with real inputs. Useful for step-by-step debugging.
     """
     rec = get_workflow(db, workflow_id, user, require_edit=True)
-    from app.billing.service import enforce_can_start_execution
-
-    enforce_can_start_execution(db, rec.workspace_id)
     workflow_nodes = {n.get("id") for n in (rec.data or {}).get("nodes", [])}
     if body.node_id not in workflow_nodes:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown node '{body.node_id}'.")
@@ -1560,9 +1553,6 @@ async def run_to_node(
     chain leading to (and including) the target.
     """
     rec = get_workflow(db, workflow_id, user, require_edit=True)
-    from app.billing.service import enforce_can_start_execution
-
-    enforce_can_start_execution(db, rec.workspace_id)
     workflow_nodes = {n.get("id") for n in (rec.data or {}).get("nodes", [])}
     if body.node_id not in workflow_nodes:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown node '{body.node_id}'.")

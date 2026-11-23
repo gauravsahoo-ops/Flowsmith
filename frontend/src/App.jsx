@@ -197,6 +197,8 @@ export default function App() {
     } else if (token) {
       api.getMe()
         .then((data) => {
+          // Ignore a stale response if the session was cleared or replaced.
+          if (getToken() !== token) return
           const u = data?.data || data
           if (u && (u.email || u.name)) {
             try {
@@ -206,7 +208,7 @@ export default function App() {
           }
         })
         .catch((err) => {
-          if (err.status === 401) {
+          if (getToken() === token && err.status === 401) {
             setToken(null)
             setAuthed(false)
           }

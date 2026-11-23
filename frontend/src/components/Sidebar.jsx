@@ -451,6 +451,18 @@ function Sidebar({ onOpenCredentials }) {
 
   return (
     <aside className="sidebar" ref={sidebarRef}>
+      <button
+        type="button"
+        className="sidebar-panel-close"
+        onClick={closeSidebar}
+        aria-label="Close nodes palette"
+        title="Close nodes palette"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
       {selectedCategory ? (
         <div className="sidebar-category-header">
           <button
@@ -486,7 +498,10 @@ function Sidebar({ onOpenCredentials }) {
         </div>
       ) : (
         <div className="sidebar-header">
-          <h2>Nodes</h2>
+          <div className="sidebar-header-title">
+            <h2>Nodes</h2>
+            <p>Drag a node onto the canvas</p>
+          </div>
         </div>
       )}
 

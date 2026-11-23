@@ -205,7 +205,7 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
 
         <div className="oai-modal-body">
           <div className="oai-hint" style={{ fontSize: 12, lineHeight: 1.5 }}>
-            Packs are installed locally and admin-only. A pack manifest contains an OpenAPI spec,
+            Packs are installed locally. A pack manifest contains an OpenAPI spec,
             metadata, and optional templates. The installer validates generated code, graph
             structure, and strips credentials/secrets from imported templates.
           </div>

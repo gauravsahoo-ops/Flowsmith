@@ -1,0 +1,148 @@
+/* ==========================================================================
+   WORKFLOW EDITOR — professional product pass
+   Keeps the editor chrome quiet and task-focused: fewer redundant actions,
+   a clean node library, and a compact account card in canvas mode.
+   ========================================================================== */
+
+/* Canvas mode uses the 64px app rail; keep the account card intact. */
+.app-shell.is-canvas .app-sidebar.is-expanded .sidebar-user-card {
+  grid-template-columns: auto;
+  grid-template-areas:
+    'avatar'
+    'action';
+  justify-items: center;
+  row-gap: 6px;
+  padding: 7px 5px 6px;
+}
+
+.app-shell.is-canvas .app-sidebar.is-expanded .sidebar-user-info {
+  display: none;
+}
+
+.app-shell.is-canvas .app-sidebar.is-expanded .sidebar-user-logout {
+  width: auto;
+  margin: 0;
+  padding: 4px;
+  border-top: 0;
+  justify-self: center;
+  justify-content: center;
+}
+
+.app-shell.is-canvas .app-sidebar.is-expanded .sidebar-user-logout span {
+  display: none;
+}
+
+/* Keep the workflow top bar focused on primary work. */
+.topbar--workflow .topbar-left .toggle--pin {
+  display: none !important;
+}
+
+.topbar--workflow .topbar-right > button[aria-label='Workflow Architecture'],
+.topbar--workflow .topbar-right > button[aria-label='Download workflow'] {
+  display: none !important;
+}
+
+.topbar--workflow .topbar-right {
+  gap: 6px;
+}
+
+.topbar--workflow .topbar-left {
+  gap: 8px;
+}
+
+.topbar--workflow .workflow-name {
+  min-width: 160px;
+  width: 220px;
+}
+
+/* Node library panel */
+.sidebar {
+  position: relative;
+}
+
+.sidebar-header,
+.sidebar-category-header {
+  padding-right: 40px;
+}
+
+.sidebar-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar-header-title h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.sidebar-header-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sidebar-panel-close {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  z-index: 5;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.sidebar-panel-close:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+/* Category marks are identifiers, not decoration: keep them neutral. */
+.category-card-icon {
+  color: var(--text-dim) !important;
+}
+
+.category-card:hover .category-card-icon {
+  color: var(--text) !important;
+}
+
+.category-card-icon img {
+  filter: none !important;
+  opacity: 0.8;
+}
+
+.node-trigger-beacon-img {
+  filter: none !important;
+}
+
+/* Node editor header reflects the same friendly name as the canvas node. */
+.nem-header {
+  background: #0d0f13;
+  border-bottom-color: var(--border-subtle);
+}
+
+.nem-title-row h2 {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.node-editor-modal {
+  border-radius: 10px;
+}

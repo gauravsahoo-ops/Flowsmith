@@ -21,7 +21,10 @@ class GitParams(BaseModel):
     operation: Literal["status", "log", "branches"] = Field(
         default="status", description="status: working tree state; log: recent commits; branches: local branches.",
     )
-    repo_path: str = Field(default=".", description="Path to the repository working tree.")
+    repo_path: str = Field(
+        default="",
+        description="Path to a repository inside the configured file root or system temp (empty = configured file root).",
+    )
     limit: int = Field(default=10, ge=1, le=100, description="Max commits/refs to return (log mode).")
 
 
@@ -53,9 +56,8 @@ async def _git(repo_path: str, *args: str, timeout: float = 30.0) -> str:
 
 
 def _validate_repo_path(path: str) -> None:
-    """Containment allowlist: working directory, configured file root, temp."""
+    """Containment allowlist: configured file root and system temp."""
     import os
-    import tempfile
     from pathlib import Path
 
     from app.engine.errors import NodeExecutionError
@@ -68,15 +70,14 @@ def _validate_repo_path(path: str) -> None:
                 f"Access to '{resolved}' is blocked for security reasons.",
                 code="PATH_BLOCKED", node_id="git", retryable=False,
             )
-    roots = {Path.cwd().resolve(), Path(tempfile.gettempdir()).resolve()}
-    roots.update(Path(r) for r in FileIONode._allowed_roots())
+    roots = set(FileIONode._allowed_roots())
     resolved_path = Path(resolved)
     for root in roots:
         if resolved_path.is_relative_to(root):
             return
     raise NodeExecutionError(
         f"Access to '{resolved}' is blocked for security reasons. "
-        f"Git operations are restricted to the working directory, the file root, and temp.",
+        f"Git operations are restricted to the configured file root and temp.",
         code="PATH_BLOCKED", node_id="git", retryable=False,
     )
 
@@ -100,7 +101,9 @@ class GitNode(BaseNode[GitParams]):
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
         op = (params.operation or "status").lower()
-        repo = params.repo_path or "."
+        from app.nodes.file_io import FileIONode
+
+        repo = params.repo_path or str(FileIONode._allowed_roots()[0])
         _validate_repo_path(repo)
         if op == "status":
             out = await _git(repo, "status", "--short", "--branch")

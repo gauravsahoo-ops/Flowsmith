@@ -103,15 +103,16 @@ def test_prune_cutoff_keeps_newer_executions(client):
         db.close()
 
 
-def test_admin_prune_endpoint(client):
+def test_prune_endpoint_allows_any_signed_in_user(client):
     user = register(client)
     auth = auth_headers(user["token"])
     other = register(client, email="other@corp.io")
     _seed(client, user_id=user["user"]["id"])
 
-    # Non-admins are forbidden even to preview.
+    # Any signed-in user may preview; dry run deletes nothing.
     resp = client.post("/api/admin/maintenance/prune", json={}, headers=auth_headers(other["token"]))
-    assert resp.status_code == 403
+    assert resp.status_code == 200
+    assert resp.json()["data"]["dry_run"] is True
 
     # Admin dry run: preview, nothing deleted.
     resp = client.post("/api/admin/maintenance/prune", json={"dry_run": True, "days": 30}, headers=auth)

@@ -203,6 +203,7 @@ export const api = {
       credential,
     }),
   getSsoProviders: () => request('GET', '/auth/sso/providers'),
+  exchangeSsoCode: (code) => request('POST', '/auth/sso/exchange', { code }),
   forgotPassword: (email) => request('POST', '/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) =>
     request('POST', '/auth/reset-password', { token, new_password: newPassword }),
@@ -417,17 +418,6 @@ export const api = {
       `/mcp/servers/${encodeURIComponent(serverId)}/tools/${encodeURIComponent(toolId)}`,
       payload,
     ),
-  // Billing & subscription (backend-enforced quotas; Stripe optional).
-  listBillingPlans: () => request('GET', '/billing/plans'),
-  getBillingUsage: (workspaceId) => request('GET', `/billing/usage/${encodeURIComponent(workspaceId)}`),
-  checkBillingLimit: (workspaceId, limitType = 'executions') =>
-    request(
-      'GET',
-      `/billing/check-limit/${encodeURIComponent(workspaceId)}?limit_type=${encodeURIComponent(limitType)}`,
-    ),
-  getBillingSubscription: (organizationId) =>
-    request('GET', `/billing/subscription/${encodeURIComponent(organizationId)}`),
-  startBillingCheckout: (payload) => request('POST', '/billing/checkout', payload),
   listEnvVars: (workspaceId) => request('GET', `/environments/${workspaceId}`),
   upsertEnvVar: (payload) => request('POST', '/environments', payload),
   deleteEnvVar: (id) => request('DELETE', `/environments/${id}`),

@@ -5,7 +5,7 @@ import GlobalSearch from '../components/shared/GlobalSearch'
 import { useWorkflowStore, isDirty } from '../stores/workflowStore'
 import { useCredentialStore } from '../stores/credentialStore'
 import { useBrandingStore } from '../stores/brandingStore'
-import { syncUserProfile, getDynamicUser } from '../utils/userProfile'
+import { syncUserProfile } from '../utils/userProfile'
 import NotificationBell from '../components/NotificationBell'
 import { api } from '../api'
 
@@ -18,7 +18,6 @@ export default function AppShell({ onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 900 : false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [user, setUser] = useState(() => getDynamicUser())
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
 
   const toggleCollapsed = useCallback(() => {
@@ -27,12 +26,6 @@ export default function AppShell({ onLogout }) {
       try { localStorage.setItem('flowsmith_sidebar_collapsed', next ? '1' : '0') } catch {}
       return next
     })
-  }, [])
-
-  useEffect(() => {
-    const onUserUpdate = () => setUser(getDynamicUser())
-    window.addEventListener('flowsmith_user_updated', onUserUpdate)
-    return () => window.removeEventListener('flowsmith_user_updated', onUserUpdate)
   }, [])
 
   // Global shortcut for search (Ctrl+K or Cmd+K) and sidebar toggle (Ctrl+B or Cmd+B)
@@ -108,6 +101,7 @@ export default function AppShell({ onLogout }) {
         isMobile={isMobile}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
+        onLogout={onLogout}
       />
       <div className="app-main">
         <header className="app-topbar">
@@ -132,12 +126,6 @@ export default function AppShell({ onLogout }) {
                 </svg>
               )}
             </button>
-            <div className="app-topbar-context" title="Active workspace: Personal">
-              <span className="app-topbar-context-dot" aria-hidden="true" />
-              <span className="app-topbar-context-label">Workspace</span>
-              <span className="app-topbar-context-sep">/</span>
-              <span className="app-topbar-context-value">Personal</span>
-            </div>
           </div>
           <div className="app-topbar-center">
             <button
@@ -157,16 +145,6 @@ export default function AppShell({ onLogout }) {
           </div>
           <div className="app-topbar-right">
             <NotificationBell />
-
-            <button
-              className="ghost ghost--sm topbar-status-pill"
-              onClick={() => navigate('/monitoring')}
-              title="System Health: 100% Operational (Click to view metrics)"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#34d399', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
-            >
-              <span className="app-topbar-context-dot" style={{ width: 6, height: 6, background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
-              <span>Operational</span>
-            </button>
 
             {!isCanvas && !['/overview', '/workflows'].includes(location.pathname) && (
               <button
@@ -196,45 +174,6 @@ export default function AppShell({ onLogout }) {
                 <span>New Workflow</span>
               </button>
             )}
-
-            <div
-              className="app-topbar-user-badge"
-              title={`Signed in as ${user.name} (${user.email})`}
-              onClick={() => navigate('/settings')}
-              style={{ cursor: 'pointer' }}
-            >
-              <span
-                className="user-avatar-initials"
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  background: 'var(--accent)',
-                  color: '#fff',
-                  fontSize: 10,
-                  fontWeight: 650,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: 'none',
-                }}
-              >
-                {user.initials}
-              </span>
-              <span className="user-avatar-text" style={{ fontSize: 12, fontWeight: 600, color: '#f1f5f9' }}>{user.name}</span>
-            </div>
-
-            <button className="ghost ghost--sm app-topbar-logout" onClick={() => {
-              try { localStorage.removeItem('flowsmith_user') } catch {}
-              onLogout?.()
-            }} title="Log out">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              <span>Log out</span>
-            </button>
           </div>
         </header>
         <main className="app-content" role="main">

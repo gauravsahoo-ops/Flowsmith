@@ -407,34 +407,6 @@ describe('rag endpoints (Phase 18)', () => {
   })
 })
 
-describe('billing endpoints', () => {
-  it('loads plans, usage, and the organization subscription', async () => {
-    mockFetchSuccess({ free: { name: 'Free' } })
-    await api.listBillingPlans()
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/billing/plans')
-
-    mockFetchSuccess({ executions_month: 3, workflows_total: 2 })
-    await api.getBillingUsage('ws_1')
-    expect(fetchMock.mock.calls.at(-1)[0]).toBe('/api/billing/usage/ws_1')
-
-    mockFetchSuccess({ plan: 'free', status: 'active', stripe_configured: false })
-    await api.getBillingSubscription('org_1')
-    expect(fetchMock.mock.calls.at(-1)[0]).toBe('/api/billing/subscription/org_1')
-  })
-
-  it('checks a limit and starts checkout with the expected body', async () => {
-    mockFetchSuccess({ within_limit: true })
-    await api.checkBillingLimit('ws_1', 'workflows')
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/billing/check-limit/ws_1?limit_type=workflows')
-
-    mockFetchSuccess({ checkout_url: 'https://checkout.stripe.com/c/1' })
-    await api.startBillingCheckout({ organization_id: 'org_1', plan: 'pro' })
-    const [url, init] = fetchMock.mock.calls.at(-1)
-    expect(url).toBe('/api/billing/checkout')
-    expect(JSON.parse(init.body)).toEqual({ organization_id: 'org_1', plan: 'pro' })
-  })
-})
-
 // ---- Auth header ----
 
 describe('authorization header', () => {

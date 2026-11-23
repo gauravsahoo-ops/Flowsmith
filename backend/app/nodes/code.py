@@ -42,17 +42,6 @@ MAX_CODE_CHARS = 200_000
 MAX_PER_ITEM_INPUTS = 1_000
 
 
-def _safe_print(*args: Any, **kwargs: Any) -> None:
-    # Route through logger at debug to avoid stdout PII/code flooding
-    # in worker logs; kwargs like flush=True are ignored.
-    try:
-        msg = " ".join(str(a) for a in args)
-        logger.debug(msg)
-    except Exception:
-        pass
-
-
-
 class CodeParams(BaseModel):
     code: str = Field(default="for (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\nreturn $input.all();", description="JavaScript code to execute.")
     jsCode: str | None = Field(default=None, description="Alias for code (import compatibility).")
@@ -527,9 +516,7 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
     from app.engine.redact import redact_sensitive
 
     items_redacted = redact_sensitive(items[:1] if items else [])
-    logger.info("JS exec: mode=%s code=%r items=%r", mode, code[:200], items_redacted)
-    # Also print to stdout for worker logs (redacted: items may hold secrets)
-    _safe_print(f"CODE JS exec: mode={mode} code={code[:200]!r} items={items_redacted!r}", flush=True)
+    logger.debug("JS exec: mode=%s code_len=%d items=%r", mode, len(code), items_redacted)
 
     # Try dukpy first
     js_wrapper = ""
@@ -565,23 +552,19 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         js_wrapper_redacted = js_wrapper.replace(
             items_json, _json.dumps(redact_sensitive(input_wrapper._items)), 1
         )
-        _safe_print(f"CODE DUKPY TRY code={code[:200]!r} items={items_redacted!r} wrapper={js_wrapper_redacted[:500]!r}", flush=True)
-        logger.info("dukpy try code=%r items=%r", code[:200], items_redacted)
+        logger.debug("dukpy try code_len=%d items=%r", len(code), items_redacted)
         # Run in a killable child process: dukpy.evaljs blocks at the C level,
         # so an in-process thread could never be interrupted on timeout.
         out = _run_dukpy(js_wrapper, timeout, mem_limit_mb=64)
-        logger.debug("dukpy output for code %r: %r", code[:200], out)
-        _safe_print(f"CODE DUKPY SUCCESS out={out!r}", flush=True)
+        logger.debug("dukpy output type=%s", type(out).__name__)
         return _normalize_output(out, logs)
     except ImportError as e:
-        logger.warning("dukpy not available: %s", e)
-        _safe_print(f"CODE DUKPY NOT AVAILABLE {e}", flush=True)
+        logger.debug("dukpy not available: %s", e)
         pass
     except NodeExecutionError:
         raise
     except Exception as e:
-        logger.warning("dukpy failed for code %r: %s", code[:200], e)
-        _safe_print(f"CODE DUKPY FAILED code={code[:200]!r} error={e}", flush=True)
+        logger.warning("dukpy failed: %s", e)
         msg = str(e)
         raise NodeExecutionError(
             f"Code execution failed: {msg}",
@@ -648,8 +631,6 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         raise NodeExecutionError(f"Code execution failed: {e}", code="CODE_ERROR", node_id="code", retryable=False) from e
 
     # Fallback to Python translation — only for Python language
-    logger.info("Code fallback check: language=%r code[:100]=%r", language, code[:100])
-    _safe_print(f"CODE FALLBACK CHECK language={language!r} code={code[:100]!r}", flush=True)
     # This fallback is reached only if both dukpy and js2py failed or were not available
     # For JavaScript, we should have already raised via dukpy/js2py error handling, so reaching here means both JS engines failed to even be tried (ImportError)
     # In that case, for JS, we should still try Python translation for simple cases, but JS object literal will fail
@@ -665,8 +646,6 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
         pass
 
     py_code = code.replace("$input", "input_wrapper")
-    logger.info("Python fallback py_code: %r", py_code[:500])
-    _safe_print(f"PY_FALLBACK py_code={py_code[:500]!r}", flush=True)
     import re
     py_code = re.sub(r"for\s*\(\s*const\s+(\w+)\s+of\s+input_wrapper\.all\(\)\s*\)", r"for \1 in input_wrapper.all():", py_code)
     py_code = re.sub(r"for\s*\(\s*let\s+(\w+)\s+of\s+input_wrapper\.all\(\)\s*\)", r"for \1 in input_wrapper.all():", py_code)
@@ -685,8 +664,7 @@ def _exec_javascript(code: str, items: List[dict[str, Any]], mode: str, timeout:
     py_code = "\n".join(transformed)
     if "__output" not in py_code:
         py_code += "\ntry:\n    __output\nexcept NameError:\n    __output = input_wrapper.all()"
-    logger.info("Python fallback: language=%r code=%r py_code=%r", language, code[:200], py_code[:500])
-    _safe_print(f"PY_FALLBACK language={language!r} code={code[:200]!r} py_code={py_code[:500]!r}", flush=True)
+    logger.debug("Python fallback: language=%r code_len=%d py_len=%d", language, len(code), len(py_code))
     # Run the translated code in the same killable, memory-capped child
     # sandbox as native Python. Never execute it in the worker process.
     return _exec_python_code(py_code, items, mode, timeout, max_memory_mb)
@@ -836,6 +814,13 @@ def current_memory_mb():
             ):
                 return max(counters.WorkingSetSize, counters.PagefileUsage) / (1024 * 1024)
         else:
+            # ru_maxrss is inherited from the parent at fork and reports the
+            # app's peak RSS, not this child's allocation. Read current VmRSS
+            # so the budget measures the code under test.
+            with open("/proc/self/status", encoding="ascii") as status:
+                for line in status:
+                    if line.startswith("VmRSS:"):
+                        return float(line.split()[1]) / 1024
             import resource
             usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             # Linux reports KiB, macOS reports bytes.
@@ -880,7 +865,16 @@ try:
         }, sys.stdout)
         sys.exit(0)
     json.dump({"ok": output, "logs": logs}, sys.stdout)
-except BaseException as exc:
+except MemoryError:
+    json.dump({
+        "err": {
+            "message": f"Python code exceeded its {max_memory_mb} MB memory budget.",
+            "code": "CODE_MEMORY_LIMIT",
+            "line": None,
+            "logs": logs,
+        }
+    }, sys.stdout)
+except Exception as exc:
     tb = traceback.extract_tb(exc.__traceback__)
     line = tb[-1].lineno if tb else None
     json.dump({

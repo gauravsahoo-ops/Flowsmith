@@ -156,7 +156,13 @@ def test_credentials_api_never_exposes_secret_material(client):
     listed = client.get("/api/credentials", headers=headers).json()["data"]
     assert len(listed) == 1
     assert {"id", "name", "type"}.issubset(set(listed[0]))
-    assert set(listed[0]).issubset({"id", "name", "type", "expired", "state", "mode"})
+    safe_metadata = {
+        "id", "name", "type", "expired", "state", "mode",
+        "last_authenticated_at", "expires_at", "consecutive_failures",
+        "last_error_code", "auth_method", "credential_mode", "can_reconnect",
+        "supports_refresh", "token_expired", "reauth_required",
+    }
+    assert set(listed[0]).issubset(safe_metadata), set(listed[0]) - safe_metadata
     assert "data" not in listed[0]
     assert listed[0]["id"] == meta["id"]
     _assert_no_secrets(listed, "GET /api/credentials")

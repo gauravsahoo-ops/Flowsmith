@@ -323,7 +323,6 @@ async def call_mcp_tool(
 
         elif payload.name == "trigger_workflow":
             from app.api.executions import start_execution, workflow_workspace
-            from app.billing.service import enforce_can_start_execution
             perm = get_permission(db, args["workflow_id"], user)
             if perm is None or perm == PERMISSION_VIEW:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "Workflow not found or insufficient permissions.")
@@ -331,7 +330,6 @@ async def call_mcp_tool(
             input_data = args.get("input_data") or {}
             trigger_items = input_data if isinstance(input_data, list) else [input_data]
             ws_id = workflow_workspace(db, wf.id)
-            enforce_can_start_execution(db, ws_id)
             exec_id = start_execution(
                 db,
                 workflow_id=wf.id,
@@ -389,8 +387,6 @@ async def call_mcp_tool(
                 } for e in execs]
 
         elif payload.name == "create_backup":
-            if user.role != "admin":
-                raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required.")
             backup_name = args.get("name")
             if backup_name is not None and not (
                 isinstance(backup_name, str)
@@ -407,8 +403,6 @@ async def call_mcp_tool(
             result = {"filename": filepath.name, "path": str(filepath)}
 
         elif payload.name == "list_backups":
-            if user.role != "admin":
-                raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required.")
             result = list_backups()
 
         elif payload.name == "set_workflow_active":

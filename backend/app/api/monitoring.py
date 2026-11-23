@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import and_, case, func, or_, select
@@ -272,13 +273,14 @@ def get_dead_letter_queue(
     executions = db.scalars(stmt.offset((p - 1) * sz).limit(sz)).all()
     workflow_ids = {exc.workflow_id for exc in executions if exc.workflow_id}
     workflow_names = (
-        dict(
-            db.execute(
+        {
+            str(row[0]): str(row[1])
+            for row in db.execute(
                 select(WorkflowRecord.id, WorkflowRecord.name).where(
                     WorkflowRecord.id.in_(workflow_ids)
                 )
             ).all()
-        )
+        }
         if workflow_ids
         else {}
     )
@@ -334,7 +336,7 @@ def get_monitoring_summary(
     if not allowed_wfs:
         return ok(_empty_summary())
 
-    filters = [Execution.workflow_id.in_(allowed_wfs)]
+    filters: list[Any] = [Execution.workflow_id.in_(allowed_wfs)]
     if workflow_id:
         filters.append(Execution.workflow_id == workflow_id)
     if connector:

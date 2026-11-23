@@ -82,14 +82,13 @@ def list_notifications(
     query = select(ErrorEvent)
 
     # Multi-tenant and user isolation
-    if user.role != "admin":
-        query = query.where(
-            (ErrorEvent.user_id == user.id)
-            | (
-                (ErrorEvent.workspace_id == user.workspace_id)
-                & (ErrorEvent.workspace_id.isnot(None))
-            )
+    query = query.where(
+        (ErrorEvent.user_id == user.id)
+        | (
+            (ErrorEvent.workspace_id == user.workspace_id)
+            & (ErrorEvent.workspace_id.isnot(None))
         )
+    )
 
     if severity:
         query = query.where(ErrorEvent.severity == severity.upper())
@@ -121,7 +120,7 @@ def get_notification_stats(
     user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Summary counts for badges and dashboard widgets."""
-    base_filter = [ErrorEvent.user_id == user.id] if user.role != "admin" else []
+    base_filter = [ErrorEvent.user_id == user.id]
 
     unresolved_count = db.scalar(
         select(func.count(ErrorEvent.id)).where(
@@ -212,8 +211,6 @@ def update_preferences(
 
 
 def _can_access_event(user: User, ev: ErrorEvent) -> bool:
-    if user.role == "admin":
-        return True
     if ev.user_id is not None and ev.user_id == user.id:
         return True
     if user.workspace_id and ev.workspace_id and ev.workspace_id == user.workspace_id:

@@ -359,6 +359,10 @@ def create_user(
         )
         _commit(db)
         db.refresh(user)
+        if not user.workspace_id:
+            from app.api.workspaces import ensure_personal_workspace
+
+            ensure_personal_workspace(db, user)
         log_event(db, REGISTER, target_type="user", target_id=str(user.id), user_id=user.id,
                   detail={"source": "scim"})
         resource = _user_resource(db, user, request)

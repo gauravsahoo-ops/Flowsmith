@@ -49,13 +49,14 @@ from app.api.sso import (
     _cookie_secure,
     _new_sso_state,
     _sso_base_url,
+    _sso_exchange_redirect,
     _verify_sso_state,
 )
 from app.audit import LOGIN, REGISTER, USER_ROLE_CHANGE, log_event
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.models import User
-from app.security.jwt import create_token, decode_token, hash_password
+from app.security.jwt import decode_token, hash_password
 from app.security.safe_http_client import SafeHTTPClient
 from app.services.user_provisioning import apply_default_scope
 
@@ -1113,6 +1114,10 @@ def _find_or_create_user(
             )
             db.commit()
             db.refresh(user)
+            if not user.workspace_id:
+                from app.api.workspaces import ensure_personal_workspace
+
+                ensure_personal_workspace(db, user)
             log_event(db, REGISTER, target_type="user", target_id=str(user.id), user_id=user.id,
                       detail={"source": "saml"})
             return user
@@ -1284,11 +1289,7 @@ async def saml_acs(
     user = _find_or_create_user(db, email=email, saml_role=role, settings=settings)
     log_event(db, LOGIN, target_type="user", target_id=str(user.id), user_id=user.id,
               detail={"source": "saml"})
-    jwt_token = create_token(user.id, email=user.email)
-    response = RedirectResponse(
-        url=f"/#sso_token={jwt_token}",
-        status_code=status.HTTP_302_FOUND,
-    )
+    response = _sso_exchange_redirect(user, request)
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     response.delete_cookie(

@@ -68,7 +68,6 @@ PUBLIC_ROUTES = {
     ("POST", "/api/auth/forgot-password"),
     ("POST", "/api/auth/reset-password"),
     ("GET", "/api/auth/{provider}/callback"),    # OAuth state-bound
-    ("POST", "/api/billing/stripe/webhook"),     # signature-verified
     ("POST", "/api/webhooks/{path}"),            # entropy-gated secret path
     ("POST", "/api/triggers/salesforce/{path:path}"),
     ("GET", "/api/auth/sso/providers"),          # list configured identity providers for login UI

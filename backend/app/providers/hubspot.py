@@ -386,7 +386,8 @@ class HubSpotProviderClient:
                     key = str(schema.get("name") or schema.get("objectTypeId") or "").strip().lower()
                     if not key or not _OBJECT_TYPE_RE.fullmatch(key):
                         continue
-                    labels = schema.get("labels") if isinstance(schema.get("labels"), dict) else {}
+                    labels_raw = schema.get("labels")
+                    labels: dict[str, Any] = labels_raw if isinstance(labels_raw, dict) else {}
                     custom.append({
                         "key": key,
                         "label": (

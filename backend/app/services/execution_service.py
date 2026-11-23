@@ -241,7 +241,7 @@ class ExecutionService:
 
         The HTTP layer keeps the authorization check and response envelope;
         everything else (idempotent replay lookup, node-retry validation,
-        quota gate, the new execution via :meth:`start_execution`, the durable
+        the new execution via :meth:`start_execution`, the durable
         retry-history row and the audit record) is ordered exactly as the
         historical endpoint did.
         """
@@ -295,12 +295,6 @@ class ExecutionService:
                 "_retry_from_node": node_id,
                 "_retry_source": execution_id,
             }
-
-        # Quota gate before any new execution row (billing stays a local
-        # dependency: the module itself remains importable without FastAPI).
-        from app.billing.service import enforce_can_start_execution
-
-        enforce_can_start_execution(db, workspace_id)
 
         next_attempt = (rec.retry_count or 0) + 1
         new_id = self.start_execution(

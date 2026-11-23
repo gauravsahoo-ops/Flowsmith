@@ -302,8 +302,6 @@ async def import_openapi(
     user: User = Depends(get_current_user),
 ) -> dict:
     """Generate and register a first-class Flowsmith connector from an OpenAPI/Swagger spec."""
-    if user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin privileges required.")
     from pathlib import Path
     from app.connectors.openapi_import import parse_spec
     from app.connectors.openapi_emit import (

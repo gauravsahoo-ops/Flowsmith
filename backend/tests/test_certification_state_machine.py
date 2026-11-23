@@ -61,13 +61,14 @@ def test_reconciled_counts_exact_mathematical_equality():
     )
     assert total == 529
     assert prod == 0, "No commercial vendor sandboxes have live credentials configured yet"
-    assert live == 1, "Universal HTTP is verified against public sandbox"
-    assert contract == 13, "13 connectors have comprehensive contract test suites"
-    assert mock == 515, "515 connectors are verified via mock/unit schemas"
+    # Counts come from docs/integration-platform/LIVE_CERTIFICATION_EVIDENCE.json.
+    assert live == 13, "13 connectors have current live evidence"
+    assert contract == 61, "61 connectors are contract validated after live promotion"
+    assert mock == 455, "455 connectors are verified via mock/unit schemas"
     assert static == 0
 
     # Availability state must be tracked orthogonally
-    assert summary["live_test_unavailable"] == 528, "528 connectors are awaiting live vault/sandbox credentials"
+    assert summary["live_test_unavailable"] == 516, "516 connectors are awaiting live vault/sandbox credentials"
     assert summary["blocked"] == 0
     assert summary["stale_certifications"] == 0
     assert summary["expired_certifications"] == 0

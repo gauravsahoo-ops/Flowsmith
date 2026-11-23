@@ -84,6 +84,8 @@ export async function syncUserProfile(api) {
 
   try {
     const data = await api.getMe()
+    // Do not let an in-flight profile request repopulate the cache after logout.
+    if (localStorage.getItem('mat_token') !== token) return null
     const user = data?.data || data
     if (user && user.email) {
       localStorage.setItem('flowsmith_user', JSON.stringify(user))

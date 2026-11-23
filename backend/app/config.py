@@ -32,6 +32,7 @@ class Settings(BaseSettings):
         "redis_url",
         "public_url",
         "jwt_secret",
+        "metrics_token",
         "credentials_encryption_key",
         "safe_http_allowed_hosts",
         "safe_http_allowed_ports",
@@ -111,6 +112,9 @@ class Settings(BaseSettings):
     allow_ssrf_bypass: str = ""
 
     jwt_secret: str = ""
+    # Optional static bearer token for the Prometheus scraper. It grants
+    # access to /api/metrics only. Leave empty to require a real user JWT.
+    metrics_token: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 60 * 24
     cors_origins: str = "http://localhost:5173"
@@ -194,8 +198,9 @@ class Settings(BaseSettings):
     public_url: str = ""
     serve_frontend: bool = True
     frontend_dist: str = str(Path(__file__).resolve().parents[2] / "frontend" / "dist")
-    # File I/O node containment root (empty = <cwd>/data/files). Paths outside
-    # this root (or the system temp dir) are refused with PATH_BLOCKED.
+    # File I/O node containment root (empty = backend/data/files). Roots that
+    # overlap the application source tree are rejected; use a dedicated data
+    # directory for user files.
     file_io_root: str = ""
     # Phase 23/38: interactive API docs expose the whole route surface;
     # keep them for development, off in production unless explicitly on.
@@ -362,13 +367,6 @@ class Settings(BaseSettings):
     error_notification_admin_email: str = ""
     app_base_url: str = "http://localhost:5173"  # Frontend URL for actionable email links
 
-    # Billing / SaaS (Phase 34). With STRIPE_SECRET_KEY unset the app runs
-    # in self-host mode: plan data exists, checkout/webhooks are disabled.
-    # BILLING_ENFORCEMENT=false disables quota checks entirely (self-host).
-    stripe_secret_key: str = ""
-    stripe_webhook_secret: str = ""
-    billing_enforcement: bool = False
-
     # Object storage (Phase 19): S3-compatible abstraction for files and
     # large artifacts. `local` (filesystem) is the default for development
     # and keeps the Docker image dependency-free; `s3` uses any S3-
@@ -517,6 +515,8 @@ def validate_production_settings(settings: Settings | None = None) -> None:
         missing.append("JWT_SECRET (must be set to a secure random value)")
     elif len(settings.jwt_secret) < 32:
         missing.append("JWT_SECRET (must be at least 32 characters in production)")
+    if settings.metrics_token and len(settings.metrics_token) < 32:
+        missing.append("METRICS_TOKEN (must be at least 32 characters when set)")
     db_url = (settings.database_url or "").lower()
     if "sqlite" in db_url:
         missing.append("DATABASE_URL (must be PostgreSQL in production)")
@@ -719,11 +719,6 @@ def validate_production_settings(settings: Settings | None = None) -> None:
                             )
         if settings.ldap_sync_interval_seconds < 60:
             missing.append("LDAP_SYNC_INTERVAL_SECONDS (must be at least 60)")
-    if settings.billing_enforcement:
-        if not settings.stripe_secret_key:
-            missing.append("STRIPE_SECRET_KEY (required when BILLING_ENFORCEMENT=true)")
-        if not settings.stripe_webhook_secret:
-            missing.append("STRIPE_WEBHOOK_SECRET (required when BILLING_ENFORCEMENT=true)")
     if missing:
         raise ConfigError(
             "Refusing to start in production mode: missing "

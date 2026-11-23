@@ -1,4 +1,4 @@
-"""Admin-only connector/template pack installation and lifecycle.
+"""Connector/template pack installation and lifecycle.
 
 A pack is a JSON manifest with an OpenAPI/Swagger spec and optional workflow
 templates. Remote manifest URLs must carry a valid Ed25519 signature; inline
@@ -94,11 +94,6 @@ class ParsedManifest:
     dependencies: tuple[str, ...]
     signature: SignatureInfo | None
     manifest_sha256: str
-
-
-def _require_admin(user: User) -> None:
-    if user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin privileges required.")
 
 
 async def _load_manifest(payload: InstallPackRequest) -> tuple[dict[str, Any], bool]:
@@ -607,6 +602,16 @@ def _pack_values(parsed: ParsedManifest, imported: dict[str, Any], key: str, use
     }
 
 
+_CREDENTIAL_URL_RE = re.compile(r"^(?P<scheme>[a-zA-Z][a-zA-Z0-9+.-]*://)[^/@]*@")
+
+
+def _redact_source_url(url: str | None) -> str | None:
+    """Strip embedded userinfo before exposing a pack source URL."""
+    if not url:
+        return url
+    return _CREDENTIAL_URL_RE.sub(r"\g<scheme>", url)
+
+
 @router.get("")
 def list_connector_packs(
     user: User = Depends(get_current_user),
@@ -625,7 +630,7 @@ def list_connector_packs(
             "version": pack.version,
             "description": pack.description,
             "category": pack.category,
-            "source_url": pack.source_url if user.role == "admin" else None,
+            "source_url": _redact_source_url(pack.source_url),
             "template_count": pack.template_count,
             "dependencies": list(pack.dependencies or []),
             "signed": pack.signed,
@@ -648,7 +653,6 @@ async def preview_connector_registry(
     user: User = Depends(get_current_user),
 ) -> dict:
     """Fetch and verify a signed registry index without installing anything."""
-    _require_admin(user)
     trusted = _trusted_keys()
     if not trusted:
         raise HTTPException(
@@ -707,8 +711,7 @@ async def install_connector_pack(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Install an admin-supplied connector pack."""
-    _require_admin(user)
+    """Install a connector pack."""
     manifest, remote = await _load_manifest(body)
     parsed = _parse_manifest(manifest, remote=remote)
     spec = await _resolve_spec(
@@ -808,7 +811,6 @@ async def upgrade_connector_pack(
     db: Session = Depends(get_db),
 ) -> dict:
     """Upgrade an installed pack from a signed/inline manifest."""
-    _require_admin(user)
     manifest, remote = await _load_manifest(body)
     parsed = _parse_manifest(manifest, remote=remote)
 
@@ -922,7 +924,6 @@ def uninstall_connector_pack(
     db: Session = Depends(get_db),
 ) -> dict:
     """Uninstall a generated pack and its pack-owned templates."""
-    _require_admin(user)
     _advisory_lock(db, connector_key)
     pack = db.scalar(
         select(ConnectorPack).where(ConnectorPack.connector_key == connector_key)

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { getDynamicUser } from './userProfile'
+import { getDynamicUser, syncUserProfile } from './userProfile'
 
 // --- localStorage mock for Node test environment ---
 let store = {}
@@ -49,5 +49,20 @@ describe('userProfile', () => {
     expect(user.name).toBe('Admin')
     expect(user.email).toBe('admin@flowsmith.local')
     expect(user.initials).toBe('AD')
+  })
+
+  it('does not repopulate the cached profile after logout', async () => {
+    localStorage.setItem('mat_token', 'session-token')
+    let resolveProfile
+    const api = {
+      getMe: () => new Promise((resolve) => { resolveProfile = resolve }),
+    }
+
+    const pending = syncUserProfile(api)
+    localStorage.removeItem('mat_token')
+    resolveProfile({ data: { id: 1, email: 'late@example.com', role: 'member' } })
+
+    await expect(pending).resolves.toBeNull()
+    expect(localStorage.getItem('flowsmith_user')).toBeNull()
   })
 })

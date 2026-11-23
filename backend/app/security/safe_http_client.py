@@ -32,6 +32,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
+import httpcore
 
 
 from app.connectors import ConnectorErrorCode, make_connector_error
@@ -223,6 +224,113 @@ def _is_blocked_host(host: str) -> bool:
 # ----------------------------------------------------------------------
 
 
+class _PinnedNetworkBackend(httpcore.AsyncNetworkBackend):
+    """Resolve once, validate every address, then connect to the pinned IP.
+
+    This closes the DNS-rebinding TOCTOU between the request validation hook
+    and the connection attempt: httpcore cannot re-resolve the hostname on its
+    own because the address handed to the delegate is already an IP literal.
+    """
+
+    def __init__(self, delegate: Any, allowed_hosts: frozenset[str]) -> None:
+        self._delegate = delegate
+        self._allowed_hosts = allowed_hosts
+
+    async def connect_tcp(
+        self,
+        host: str,
+        port: int,
+        timeout: float | None = None,
+        local_address: str | None = None,
+        socket_options: Any = None,
+    ) -> Any:
+        host_str = str(host)
+        if host_str.lower() in self._allowed_hosts:
+            return await self._delegate.connect_tcp(
+                host,
+                port,
+                timeout=timeout,
+                local_address=local_address,
+                socket_options=socket_options,
+            )
+
+        loop = asyncio.get_running_loop()
+        try:
+            infos = await loop.getaddrinfo(host_str, port, proto=socket.IPPROTO_TCP)
+        except (OSError, socket.gaierror) as exc:
+            raise make_connector_error(
+                ConnectorErrorCode.UNAVAILABLE,
+                f"Could not resolve host '{host_str}'.",
+                retryable=True,
+            ) from exc
+
+        chosen: str | None = None
+        for info in infos:
+            ip_str = str(info[4][0])
+            parsed = _parse_literal_ip(ip_str)
+            if parsed is None:
+                continue
+            blocked = (
+                isinstance(parsed, ipaddress.IPv4Address) and _ipv4_blocked(parsed)
+            ) or (
+                isinstance(parsed, ipaddress.IPv6Address) and _ipv6_blocked(parsed)
+            )
+            if blocked:
+                raise make_connector_error(
+                    ConnectorErrorCode.UNAVAILABLE,
+                    f"Request blocked by SSRF policy: host '{host_str}' resolves to restricted IP '{ip_str}'.",
+                    retryable=False,
+                )
+            if chosen is None:
+                chosen = ip_str
+
+        if chosen is None:
+            raise make_connector_error(
+                ConnectorErrorCode.UNAVAILABLE,
+                f"Could not resolve host '{host_str}' to a usable address.",
+                retryable=True,
+            )
+        return await self._delegate.connect_tcp(
+            chosen,
+            port,
+            timeout=timeout,
+            local_address=local_address,
+            socket_options=socket_options,
+        )
+
+    async def connect_unix_socket(
+        self,
+        path: str,
+        timeout: float | None = None,
+        socket_options: Any = None,
+    ) -> Any:
+        return await self._delegate.connect_unix_socket(
+            path, timeout=timeout, socket_options=socket_options
+        )
+
+    async def sleep(self, seconds: float) -> None:
+        await self._delegate.sleep(seconds)
+
+
+class _PinnedTransport(httpx.AsyncHTTPTransport):
+    """httpx transport whose TCP connections use the validated DNS result."""
+
+    def __init__(
+        self,
+        *,
+        allowed_hosts: frozenset[str],
+        verify: bool,
+        limits: httpx.Limits,
+    ) -> None:
+        super().__init__(verify=verify, trust_env=False, retries=0, limits=limits)
+        pool = getattr(self, "_pool", None)
+        if pool is None:
+            return
+        backend = getattr(pool, "_network_backend", None)
+        if backend is not None:
+            pool._network_backend = _PinnedNetworkBackend(backend, allowed_hosts)
+
+
 class SafeHTTPClient:
     """Shared HTTP client with SSRF protections and safe logging.
 
@@ -308,6 +416,13 @@ class SafeHTTPClient:
                 max_keepalive_connections=50,
                 keepalive_expiry=30.0,
             )
+            transport = self.transport
+            if transport is None:
+                transport = _PinnedTransport(
+                    allowed_hosts=self.allowed_hosts,
+                    verify=self.verify_tls,
+                    limits=limits,
+                )
             self._client = httpx.AsyncClient(
                 timeout=httpx.Timeout(
                     connect=self.connect_timeout_s,
@@ -320,7 +435,7 @@ class SafeHTTPClient:
                 max_redirects=self.max_redirects,
                 verify=self.verify_tls,
                 event_hooks={"request": [self._validate_request]},
-                transport=self.transport,
+                transport=transport,
             )
             self._initialized = True
             self._client_loop = current_loop

@@ -36,6 +36,7 @@ def get_docs_dir() -> Path:
     for candidate in [
         Path(r"c:\Flowsmith\docs\integration-platform"),
         Path("/app/docs/integration-platform"),
+        Path(__file__).resolve().parents[4] / "docs" / "integration-platform",
         Path(__file__).resolve().parent.parent.parent.parent / "docs" / "integration-platform",
         Path(__file__).resolve().parent.parent.parent / "docs" / "integration-platform",
     ]:

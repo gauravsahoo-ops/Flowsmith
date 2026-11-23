@@ -67,7 +67,9 @@ def test_first_user_is_admin_second_is_member(client):
     member = register(client, "member@x.com")
     assert admin["user"]["role"] == "admin"
     assert member["user"]["role"] == "member"
-    assert client.get("/api/users", headers=auth_headers(member["token"])).status_code == 403
+    member_resp = client.get("/api/users", headers=auth_headers(member["token"]))
+    assert member_resp.status_code == 200
+    assert len(member_resp.json()["data"]) == 2
     resp = client.get("/api/users", headers=auth_headers(admin["token"]))
     assert resp.status_code == 200
     assert len(resp.json()["data"]) == 2
@@ -209,10 +211,12 @@ def test_shared_executions_visible_to_viewer(client):
     assert client.post(f"/api/executions/{exec_id}/retry", headers=auth_headers(owner["token"])).status_code == 202
 
 
-def test_audit_log_records_and_requires_admin(client):
+def test_audit_log_records_and_allows_any_signed_in_user(client):
     admin = register(client, "admin@x.com")
     member = register(client, "member@x.com")
-    assert client.get("/api/audit", headers=auth_headers(member["token"])).status_code == 403
+    member_resp = client.get("/api/audit", headers=auth_headers(member["token"]))
+    assert member_resp.status_code == 200
+    assert any(e["action"] == "auth.register" for e in member_resp.json()["data"])
     resp = client.get("/api/audit", headers=auth_headers(admin["token"]))
     assert resp.status_code == 200
     actions = {e["action"] for e in resp.json()["data"]}

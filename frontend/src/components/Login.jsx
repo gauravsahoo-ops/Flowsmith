@@ -44,7 +44,7 @@ export default function Login({ onAuthed }) {
   const [mfaCode, setMfaCode] = useState('')
 
   // Detect reset links: /reset-password?token=...
-  // Detect SSO callback: /#sso_token=... (fragment: never in logs/Referer)
+  // Detect browser-bound SSO exchange codes: /?sso_code=...
   useEffect(() => {
     if (window.location.pathname === '/reset-password') {
       const params = new URLSearchParams(window.location.search)
@@ -55,11 +55,12 @@ export default function Login({ onAuthed }) {
         window.history.replaceState({}, '', window.location.pathname)
       }
     }
-    const ssoToken = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sso_token')
-    if (ssoToken) {
-      setToken(ssoToken)
-      window.history.replaceState({}, '', '/')
-      onAuthed({ token: ssoToken })
+    const ssoCode = new URLSearchParams(window.location.search).get('sso_code')
+    if (ssoCode) {
+      window.history.replaceState({}, '', window.location.pathname)
+      api.exchangeSsoCode(ssoCode)
+        .then((result) => finishAuth(result))
+        .catch((err) => setError(err?.message || 'SSO sign-in failed.'))
       return
     }
     api.getSsoProviders().then(providers => {

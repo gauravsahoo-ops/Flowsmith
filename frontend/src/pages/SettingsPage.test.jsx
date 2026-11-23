@@ -7,7 +7,7 @@ import SettingsPage from './SettingsPage'
 vi.mock('../api', () => ({
   api: {
     getHealth: vi.fn().mockResolvedValue({ version: '0.3.1', uptime_s: 3600 }),
-    getMe: vi.fn().mockResolvedValue({ id: 'u_123', email: 'user@example.com', role: 'admin' }),
+    getMe: vi.fn().mockResolvedValue({ id: 'u_123', email: 'user@example.com', role: 'member' }),
     listWorkspaces: vi.fn().mockResolvedValue([]),
     listOrganizations: vi.fn().mockResolvedValue([]),
     listApiKeys: vi.fn().mockResolvedValue([]),
@@ -36,6 +36,8 @@ describe('SettingsPage Component', () => {
     expect(html).toContain('Automatic Email Alerts')
     expect(html).toContain('Alert Recipient Email Override')
     expect(html).toContain('Alert Throttling &amp; Delivery Routing')
-    expect(html).toContain('Platform audit events are available to administrators only.')
+    expect(html).toContain('Platform Audit Trail')
+    expect(html).toContain('Action Filter:')
+    expect(html).toContain('No audit events recorded matching current filter.')
   })
 })

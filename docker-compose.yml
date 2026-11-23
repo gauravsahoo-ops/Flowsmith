@@ -97,6 +97,7 @@ services:
       OUTBOX_RELAY_ENABLED: ${OUTBOX_RELAY_ENABLED:-true}
       JWT_SECRET: ${JWT_SECRET:-}
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
       PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
       APP_ENV: ${APP_ENV:-production}
       CONNECTOR_PACK_REQUIRE_SIGNATURE: ${CONNECTOR_PACK_REQUIRE_SIGNATURE:-false}
@@ -183,9 +184,6 @@ services:
       WEBAUTHN_ATTESTATION_ROOTS_FILE: ${WEBAUTHN_ATTESTATION_ROOTS_FILE:-}
       WEBAUTHN_ALLOWED_AAGUIDS: ${WEBAUTHN_ALLOWED_AAGUIDS:-}
       WEBAUTHN_ALLOWED_FORMATS: ${WEBAUTHN_ALLOWED_FORMATS:-}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      BILLING_ENFORCEMENT: ${BILLING_ENFORCEMENT:-false}
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
@@ -233,6 +231,7 @@ services:
       OUTBOX_RELAY_ENABLED: ${OUTBOX_RELAY_ENABLED:-true}
       JWT_SECRET: ${JWT_SECRET:-}
       CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
       PUBLIC_URL: ${PUBLIC_URL:-https://flowsmith.dev.idslogic.net}
       APP_ENV: ${APP_ENV:-production}
       CONNECTOR_PACK_REQUIRE_SIGNATURE: ${CONNECTOR_PACK_REQUIRE_SIGNATURE:-false}
@@ -318,9 +317,6 @@ services:
       WEBAUTHN_ATTESTATION_ROOTS_FILE: ${WEBAUTHN_ATTESTATION_ROOTS_FILE:-}
       WEBAUTHN_ALLOWED_AAGUIDS: ${WEBAUTHN_ALLOWED_AAGUIDS:-}
       WEBAUTHN_ALLOWED_FORMATS: ${WEBAUTHN_ALLOWED_FORMATS:-}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      BILLING_ENFORCEMENT: ${BILLING_ENFORCEMENT:-false}
     command: [ "python", "-m", "app.queue.worker" ]
     volumes:
       - mat-app-data:/app/backend/data
@@ -388,7 +384,10 @@ services:
       - "--storage.tsdb.retention.size=2GB"
     volumes:
       - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/alerts.yml:/etc/prometheus/alerts.yml:ro
       - mat-prometheus-data:/prometheus
+    secrets:
+      - metrics_token
     ports:
       # Loopback-only: Prometheus has no auth.
       - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
@@ -427,3 +426,7 @@ volumes:
   mat-minio-data:
   mat-prometheus-data:
   mat-grafana-data:
+
+secrets:
+  metrics_token:
+    environment: METRICS_TOKEN

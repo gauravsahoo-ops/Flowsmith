@@ -48,3 +48,9 @@
 /* 15. Flowsmith Foundry design system (final cascade layer) */
 @import './styles/foundry.css';
 
+/* 16. Professional sidebar refinement */
+@import './styles/sidebar-professional.css';
+
+/* 17. Workflow editor and panel refinement */
+@import './styles/editor-professional.css';
+

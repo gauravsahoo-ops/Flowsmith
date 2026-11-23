@@ -38,6 +38,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://automate:automate@localhost:5432/automate
       REDIS_URL: redis://localhost:6379/0
+      PUBLIC_URL: http://localhost:8000
       JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
       CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.CI_CREDENTIALS_ENCRYPTION_KEY }}
     steps:
@@ -69,7 +70,7 @@ jobs:
       - name: Phase 3 contract tests
         run: pytest -q tests/test_phase3_foundation.py tests/test_approvals.py tests/test_approval_integration.py tests/test_mcp_registry.py tests/test_mcp_discovery.py tests/test_mcp_stdio.py tests/test_outbox.py tests/test_outbox_relay.py tests/test_architecture_boundaries.py
       - name: Tests (fast pass)
-        run: pytest -q -m "not timing" --cov=app --cov-report=term --cov-report=xml:coverage.xml --cov-fail-under=14
+        run: pytest -q -m "not timing and not live and not docker" --cov=app --cov-report=term --cov-report=xml:coverage.xml --cov-fail-under=14
       - name: Tests (timing pass)
         run: pytest -q -m timing
       - name: Upload coverage report
@@ -143,6 +144,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://automate:automate@localhost:5432/automate
       REDIS_URL: redis://localhost:6379/0
+      PUBLIC_URL: http://localhost:8000
       JWT_SECRET: ${{ secrets.CI_JWT_SECRET }}
       CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.CI_CREDENTIALS_ENCRYPTION_KEY }}
     steps:

@@ -26,6 +26,12 @@ from app.engine.node_base import BaseNode, NodeContext, NodeResult
 from app.nodes.registry import register
 
 
+_CODE_ROOT = Path(__file__).resolve().parents[2]  # backend/
+_PROJECT_ROOT = _CODE_ROOT.parent  # repository / image root
+_SAFE_DATA_ROOT = _CODE_ROOT / "data" / "files"
+_TEMP_ROOT = Path(tempfile.gettempdir()).resolve()
+
+
 class FileIOParams(BaseModel):
     path: str = Field(min_length=1, description="File system path.")
     mode: Literal["write", "append", "read"] = Field(
@@ -75,14 +81,38 @@ class FileIONode(BaseNode[FileIOParams]):
     def _allowed_roots(cls) -> list[Path]:
         """Directories file_io may touch: the configured data root + system temp.
 
-        Anything else (application code, backend/.env, user home dirs, ...)
-        is refused — a containment allowlist rather than a blocklist.
+        Anything else (application code, .env files, user home dirs, ...)
+        is refused - a containment allowlist rather than a blocklist.
         """
         from app.config import get_settings
 
         configured = (getattr(get_settings(), "file_io_root", "") or "").strip()
-        base = Path(configured) if configured else Path.cwd() / "data" / "files"
-        return [base.resolve(), Path(tempfile.gettempdir()).resolve()]
+        base = Path(configured).expanduser() if configured else _SAFE_DATA_ROOT
+        base = base.resolve()
+        cls._assert_safe_root(base)
+        roots = [base]
+        # The temp directory is safe unless the project itself lives under it.
+        if not (_PROJECT_ROOT == _TEMP_ROOT or _PROJECT_ROOT.is_relative_to(_TEMP_ROOT)):
+            roots.append(_TEMP_ROOT)
+        return roots
+
+    @classmethod
+    def _assert_safe_root(cls, root: Path) -> None:
+        """Reject roots that overlap the application source tree."""
+        if root == _SAFE_DATA_ROOT or root.is_relative_to(_SAFE_DATA_ROOT):
+            return
+        if (
+            root == _PROJECT_ROOT
+            or root.is_relative_to(_PROJECT_ROOT)
+            or _PROJECT_ROOT.is_relative_to(root)
+        ):
+            raise NodeExecutionError(
+                "File I/O root must not overlap the application source tree; "
+                "use a dedicated data directory.",
+                code="UNSAFE_FILE_ROOT",
+                node_id="file_io",
+                retryable=False,
+            )
 
     @classmethod
     def _validate_path(cls, path: str) -> None:

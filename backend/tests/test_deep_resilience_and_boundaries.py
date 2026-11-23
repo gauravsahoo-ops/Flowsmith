@@ -93,7 +93,7 @@ async def test_salesforce_oauth_full_exchange_wire_simulation(client):
             follow_redirects=False,
         )
         # Should redirect to frontend callback with ok=1
-        assert resp.status_code == 302
+        assert resp.status_code == 302, resp.text
         assert "ok=1" in resp.headers["location"]
 
 

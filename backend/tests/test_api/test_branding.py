@@ -63,3 +63,22 @@ def test_reset_branding_authenticated(client):
     assert data["logo_data"] is None
     assert data["custom_css"] is None
     assert data["documentation_url"] is None
+
+
+def test_member_can_update_and_reset_branding(client):
+    register(client, "brand-admin@example.com", "Password123!")
+    member = register(client, "brand-member@example.com", "Password123!")
+    headers = auth_headers(member["token"])
+
+    resp = client.put(
+        "/api/branding",
+        json={"app_name": "Member Brand", "primary_color": "#10b981"},
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data"]["app_name"] == "Member Brand"
+
+    reset = client.post("/api/branding/reset", headers=headers)
+    assert reset.status_code == 200
+    assert reset.json()["data"]["app_name"] == "Flowsmith"
+    assert reset.json()["data"]["primary_color"] == "#6366f1"

@@ -17,6 +17,9 @@ export default defineConfig({
     },
   },
   build: {
+    // Never ship source maps: the browser bundle is public; the repository
+    // source is not.
+    sourcemap: false,
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {

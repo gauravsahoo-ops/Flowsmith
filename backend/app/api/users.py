@@ -1,6 +1,8 @@
-"""Admin user management (security phase): list users, change
-role/active. Only admins. The last active admin cannot be demoted or
-deactivated, and admins cannot deactivate themselves.
+"""User management: list users and change role/active status.
+
+Any signed-in user can access these endpoints. The last active admin
+cannot be demoted or deactivated, and users cannot deactivate or demote
+their own account.
 """
 
 from __future__ import annotations
@@ -23,12 +25,6 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 VALID_ROLES = {"admin", "member"}
 
 
-def get_current_admin(user: User = Depends(get_current_user)) -> User:
-    if user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin privileges required.")
-    return user
-
-
 def _to_dict(user: User) -> dict[str, Any]:
     return {
         "id": user.id,
@@ -41,7 +37,7 @@ def _to_dict(user: User) -> dict[str, Any]:
 
 @router.get("")
 def list_users(
-    _: User = Depends(get_current_admin),
+    _: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     limit: int = Query(default=200, ge=1, le=500),
 ) -> dict:
@@ -58,7 +54,7 @@ class UserUpdateRequest(BaseModel):
 def update_user(
     user_id: int,
     body: UserUpdateRequest,
-    admin: User = Depends(get_current_admin),
+    actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     target = db.get(User, user_id)
@@ -69,7 +65,7 @@ def update_user(
     if body.role is None and body.active is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Nothing to update.")
 
-    if target.id == admin.id:
+    if target.id == actor.id:
         if body.active is False:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "You cannot deactivate your own account.")
         if body.role == "member":
@@ -91,11 +87,11 @@ def update_user(
 
     if body.role is not None and body.role != target.role:
         log_event(db, USER_ROLE_CHANGE, target_type="user", target_id=str(target.id),
-                  user_id=admin.id, detail={"role": body.role, "old_role": target.role})
+                  user_id=actor.id, detail={"role": body.role, "old_role": target.role})
         target.role = body.role
     if body.active is not None and body.active != target.active:
         log_event(db, USER_STATE_CHANGE, target_type="user", target_id=str(target.id),
-                  user_id=admin.id, detail={"active": body.active, "old_active": target.active})
+                  user_id=actor.id, detail={"active": body.active, "old_active": target.active})
         target.active = body.active
     db.commit()
     db.refresh(target)

@@ -65,12 +65,11 @@ def _load_known_hosts_text(client: Any, paramiko: Any, content: str) -> None:
 
 
 def _configure_host_key_policy(client: Any, paramiko: Any, params: dict[str, Any]) -> None:
-    """Use strict verification unless the credential explicitly opts out.
+    """Use strict verification unless a pinned fingerprint is supplied.
 
     Order of precedence:
     1. Pinned SHA-256 fingerprint (accept only that key).
     2. known_hosts / system known_hosts (RejectPolicy for everything else).
-    3. Explicit ``allow_unknown_host_keys`` opt-in (AutoAddPolicy, logged).
     """
     expected = _normalize_fingerprint(params["host_key_fingerprint"])
     if expected:
@@ -88,15 +87,6 @@ def _configure_host_key_policy(client: Any, paramiko: Any, params: dict[str, Any
                 )
 
         client.set_missing_host_key_policy(_FingerprintPolicy())
-        return
-
-    if params["allow_unknown_host_keys"]:
-        logger.warning(
-            "SSH host key verification is disabled by credential opt-in host=%s. "
-            "This connection is vulnerable to man-in-the-middle attacks.",
-            params["host"],
-        )
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         return
 
     client.set_missing_host_key_policy(paramiko.RejectPolicy())

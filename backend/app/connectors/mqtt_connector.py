@@ -150,11 +150,19 @@ class MQTTConnector(ConnectorSDK, ConnectorOperations):
             ) from exc
 
         host, port, tls = MQTTConnector._broker(creds)
-        client = mqtt.Client(
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-            client_id=client_id or str((creds or {}).get("client_id") or ""),
-            protocol=mqtt.MQTTv311,
-        )
+        callback_api = getattr(mqtt, "CallbackAPIVersion", None)
+        callback_version = getattr(callback_api, "VERSION2", None)
+        if callback_version is None:
+            client = mqtt.Client(
+                client_id=client_id or str((creds or {}).get("client_id") or ""),
+                protocol=mqtt.MQTTv311,
+            )
+        else:
+            client = mqtt.Client(
+                callback_api_version=callback_version,
+                client_id=client_id or str((creds or {}).get("client_id") or ""),
+                protocol=mqtt.MQTTv311,
+            )
         username = str((creds or {}).get("username") or "")
         password = str((creds or {}).get("password") or "")
         if username:

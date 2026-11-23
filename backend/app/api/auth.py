@@ -542,6 +542,12 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
             db.add(user)
             db.commit()
             db.refresh(user)
+            # Every user gets a personal workspace at registration. The runtime
+            # falls back to ws_personal_<id> for legacy jobs; creating it here
+            # prevents a first execution from losing workspace-scoped env.
+            from app.api.workspaces import ensure_personal_workspace
+
+            ensure_personal_workspace(db, user)
         except IntegrityError as exc:
             db.rollback()
             raise HTTPException(
@@ -1541,12 +1547,21 @@ def get_metrics_user(
     authorization: str | None = Header(default=None),
     x_authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
-) -> User:
-    """Authentication for /api/metrics: Bearer header only."""
+) -> User | None:
+    """Authentication for /api/metrics: Bearer header only.
+
+    Accepts the optional static ``METRICS_TOKEN`` used by the bundled
+    Prometheus scraper, or a normal user JWT. The static token is scoped
+    to this endpoint and cannot be used against the rest of the API.
+    """
     header_val = authorization if (authorization and authorization.startswith("Bearer ")) else x_authorization
     if not header_val or not header_val.startswith("Bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token.")
-    return authenticate_token(header_val.removeprefix("Bearer ").strip(), db)
+    token = header_val.removeprefix("Bearer ").strip()
+    expected = get_settings().metrics_token
+    if expected and secrets.compare_digest(token, expected):
+        return None
+    return authenticate_token(token, db)
 
 
 @router.get("/sessions")

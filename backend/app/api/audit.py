@@ -1,5 +1,5 @@
-"""Audit log API (security phase): admins can browse security-relevant
-events with filtering and pagination.
+"""Audit log API: signed-in users can browse security-relevant events
+with filtering and pagination.
 """
 
 from __future__ import annotations
@@ -8,17 +8,17 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.auth import get_current_user
 from app.api.common import ok, page_params
-from app.api.users import get_current_admin
 from app.db import get_db
-from app.models import AuditEvent
+from app.models import AuditEvent, User
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
 
 
 @router.get("")
 def list_events(
-    _: object = Depends(get_current_admin),
+    _: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     action: str | None = None,
     user_id: int | None = None,

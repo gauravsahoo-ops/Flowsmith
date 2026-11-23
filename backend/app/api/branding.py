@@ -66,11 +66,6 @@ class BrandingUpdateRequest(BaseModel):
     custom_css: str | None = Field(default=None, max_length=16384)
 
 
-def _require_admin(user: User) -> None:
-    if user.role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin privileges required.")
-
-
 @router.get("")
 def get_branding(db: Session = Depends(get_db)) -> dict:
     """Public endpoint to fetch active branding configuration for UI rendering."""
@@ -84,8 +79,7 @@ def update_branding(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Update company branding settings (white-labeling; admin only)."""
-    _require_admin(user)
+    """Update company branding settings (white-labeling)."""
     # Validation
     if body.primary_color:
         trimmed_color = body.primary_color.strip()
@@ -153,8 +147,7 @@ def reset_branding(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Reset branding back to Flowsmith defaults (admin only)."""
-    _require_admin(user)
+    """Reset branding back to Flowsmith defaults."""
     rec = db.scalar(select(BrandingSetting).where(BrandingSetting.id == "default"))
     if rec is not None:
         rec.app_name = DEFAULT_BRANDING["app_name"]

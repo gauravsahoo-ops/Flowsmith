@@ -171,12 +171,12 @@ def test_inline_known_hosts_is_loaded():
     assert FakeSSHClient.last.loaded_host_keys is True
 
 
-def test_unknown_host_keys_requires_explicit_opt_in():
+def test_unknown_host_keys_are_rejected_even_with_legacy_opt_in():
     from app.providers.ssh import SshSession
 
     with SshSession({**CREDS, "allow_unknown_host_keys": True}):
         pass
-    assert isinstance(FakeSSHClient.last.policy, paramiko.AutoAddPolicy)
+    assert isinstance(FakeSSHClient.last.policy, paramiko.RejectPolicy)
 
 
 def test_host_key_failure_is_not_retryable():

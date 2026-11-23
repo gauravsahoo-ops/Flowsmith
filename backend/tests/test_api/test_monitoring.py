@@ -53,8 +53,28 @@ def test_metrics_include_db_gauges_and_request_counter(client):
     resp = client.get("/api/metrics", headers=auth_headers(reg["token"]))
     text = resp.text
     assert "workflows_total 0" in text
+    assert "queue_jobs_queued 0" in text
+    assert "queue_jobs_claimed 0" in text
     value = _metric_value(text, "http_requests_total", ("method", "GET"), ("path", "/api/metrics"), ("status", "200"))
     assert value is not None and value >= 1
+
+
+def test_metrics_static_service_token_is_scoped_to_metrics(client, monkeypatch):
+    """METRICS_TOKEN authenticates the scraper but cannot call other APIs."""
+    token = "m" * 48
+    from app.config import get_settings
+
+    monkeypatch.setenv("METRICS_TOKEN", token)
+    get_settings.cache_clear()
+    try:
+        resp = client.get("/api/metrics", headers=auth_headers(token))
+        assert resp.status_code == 200
+        assert "# HELP http_requests_total" in resp.text
+
+        assert client.get("/api/workflows", headers=auth_headers(token)).status_code == 401
+    finally:
+        monkeypatch.delenv("METRICS_TOKEN", raising=False)
+        get_settings.cache_clear()
 
 
 def test_health_reports_liveness_only(client):

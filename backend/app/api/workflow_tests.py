@@ -195,10 +195,6 @@ def run_test(
 
     wf_rec = get_workflow(db, workflow_id, user, require_edit=True)
     rec = _get_test(db, workflow_id, test_id)
-    # Plan quota (Phase 34): test runs consume executions like any run.
-    from app.billing.service import enforce_plan_limit
-
-    enforce_plan_limit(db, wf_rec.workspace_id, "executions")
 
     from app.testing.service import normalize_test_data
 

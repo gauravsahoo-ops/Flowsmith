@@ -15,10 +15,6 @@ occurrence twice.
 
 Locking (audit H29): on PostgreSQL a tick only runs while it holds the
 advisory lock. Non-PostgreSQL engines (tests) run unlocked.
-
-Quota (audit H9): every start passes the workspace's execution quota; a
-plan limit behaves like "workflow already running" — the occurrence is
-consumed with a warning instead of failing the whole tick.
 """
 
 from __future__ import annotations
@@ -231,26 +227,13 @@ class Scheduler:
     ) -> bool:
         """Start one execution for a due occurrence; returns True if queued.
 
-        Order: skip-if-running (spec 8.4), then plan quota (audit H9), then
-        start. A quota 402 is consumed exactly like a running workflow: log
-        and skip this occurrence instead of failing the whole tick.
+        Order: skip-if-running (spec 8.4), then start.
         """
         from app.api.executions import has_running_execution, start_execution, workflow_workspace
 
         if has_running_execution(db, rule.workflow_id):
             return False
         workspace_id = workflow_workspace(db, rule.workflow_id)
-        from app.billing.service import enforce_can_start_execution
-        from fastapi import HTTPException
-
-        try:
-            enforce_can_start_execution(db, workspace_id)
-        except HTTPException as exc:
-            logger.warning(
-                "scheduler: workflow %s occurrence %s skipped: %s",
-                rule.workflow_id, occurrence.isoformat(), exc.detail,
-            )
-            return False
         try:
             start_execution(
                 db,

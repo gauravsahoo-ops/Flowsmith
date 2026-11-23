@@ -516,7 +516,7 @@ class SshCredential(BaseModel):
     )
     allow_unknown_host_keys: bool = Field(
         default=False,
-        description="Insecure: accept any host key. Use only for trusted networks.",
+        description="Deprecated and ignored. Provide known_hosts or host_key_fingerprint instead.",
     )
 
     @model_validator(mode="after")

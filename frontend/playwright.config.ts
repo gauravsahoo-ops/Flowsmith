@@ -29,6 +29,8 @@ export default defineConfig({
       env: {
         SAFE_HTTP_ALLOWED_HOSTS: '127.0.0.1',
         SAFE_HTTP_ALLOWED_PORTS: '8181,8182',
+        PUBLIC_URL: 'http://localhost:5173',
+        RATE_LIMIT_ENABLED: 'false',
       },
       timeout: 120000,
     },

@@ -7,7 +7,8 @@ WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
-RUN npm run build
+RUN npm run build \
+    && find dist -name '*.map' -delete
 
 # ---- runtime stage ----
 FROM python:3.12-slim@sha256:cb33f7f771ecec2ef1225cf39b159591a040391bd73e4c01f00fdfc4c47611d2
@@ -22,11 +23,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
 
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
+# Apply current Debian security updates (the base-image digest can lag the
+# published glibc/zlib/apt fixes) and install the PostgreSQL client.
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 COPY requirements-lock.txt ./
 RUN pip install --no-cache-dir -r requirements-lock.txt
 
 COPY backend/ ./backend
+COPY docs/integration-platform/LIVE_CERTIFICATION_EVIDENCE.json ./docs/integration-platform/
 COPY --from=frontend /build/dist ./frontend/dist
 
 RUN useradd --create-home --shell /bin/bash appuser \

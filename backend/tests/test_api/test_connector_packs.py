@@ -220,7 +220,7 @@ def test_install_pack_registers_connector_and_template(client):
         _cleanup(key)
 
 
-def test_install_pack_requires_admin(client):
+def test_install_pack_allows_any_signed_in_user(client):
     register(client, "pack-first@example.com", "Password123!")
     member = register(client, "pack-member@example.com", "Password123!")
     key = _key()
@@ -229,7 +229,8 @@ def test_install_pack_requires_admin(client):
         json={"manifest": _manifest(key)},
         headers=auth_headers(member["token"]),
     )
-    assert response.status_code == 403
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["connector_key"] == key
     _cleanup(key)
 
 
@@ -1045,7 +1046,7 @@ def test_pack_uninstall_does_not_disclose_other_tenant_workflow_names(client):
     assert "1 active workflow" in blocked.json()["detail"]
 
 
-def test_pack_list_hides_source_url_from_non_admins(client):
+def test_pack_list_includes_source_url_for_all_signed_in_users(client):
     admin = register(client, "pack-source-admin@example.com", "Password123!")
     member = register(client, "pack-source-member@example.com", "Password123!")
     key = _key()
@@ -1061,8 +1062,8 @@ def test_pack_list_hides_source_url_from_non_admins(client):
     listed = client.get("/api/connector-packs", headers=auth_headers(member["token"]))
     assert listed.status_code == 200
     pack = next(item for item in listed.json()["data"] if item["connector_key"] == key)
-    assert pack["source_url"] is None
+    assert pack["source_url"] == "https://packs.example/private.json"
 
     admin_listed = client.get("/api/connector-packs", headers=auth_headers(admin["token"]))
     admin_pack = next(item for item in admin_listed.json()["data"] if item["connector_key"] == key)
-    assert admin_pack["source_url"] == "https://user:pass@packs.example/private.json"
+    assert admin_pack["source_url"] == "https://packs.example/private.json"

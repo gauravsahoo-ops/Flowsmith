@@ -17,12 +17,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import socket
 
 import httpx
 import pytest
 
 from app.connectors import ConnectorError
-from app.security.safe_http_client import SafeHTTPClient, get_safe_http_client
+from app.security.safe_http_client import (
+    SafeHTTPClient,
+    _PinnedNetworkBackend,
+    get_safe_http_client,
+)
 
 HOST = "https://api.example.com"
 
@@ -379,6 +384,55 @@ async def test_ssrf_nat64_translation_addresses() -> None:
         assert resp.json() == {"ok": True}
     finally:
         await client.close()
+
+
+class _FakeNetworkDelegate:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, int]] = []
+
+    async def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+        self.calls.append((str(host), int(port)))
+        return object()
+
+    async def connect_unix_socket(self, path, timeout=None, socket_options=None):
+        return object()
+
+    async def sleep(self, seconds):
+        return None
+
+
+class _FakeLoop:
+    def __init__(self, address: str) -> None:
+        self.address = address
+
+    async def getaddrinfo(self, host, port, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (self.address, port))]
+
+
+@pytest.mark.asyncio
+async def test_pinned_backend_connects_to_the_validated_ip(monkeypatch) -> None:
+    delegate = _FakeNetworkDelegate()
+    backend = _PinnedNetworkBackend(delegate, frozenset())
+    monkeypatch.setattr(
+        "app.security.safe_http_client.asyncio.get_running_loop",
+        lambda: _FakeLoop("93.184.216.34"),
+    )
+    await backend.connect_tcp("api.example.com", 443)
+    assert delegate.calls == [("93.184.216.34", 443)]
+
+
+@pytest.mark.asyncio
+async def test_pinned_backend_rejects_private_resolution(monkeypatch) -> None:
+    delegate = _FakeNetworkDelegate()
+    backend = _PinnedNetworkBackend(delegate, frozenset())
+    monkeypatch.setattr(
+        "app.security.safe_http_client.asyncio.get_running_loop",
+        lambda: _FakeLoop("10.0.0.5"),
+    )
+    with pytest.raises(ConnectorError) as exc:
+        await backend.connect_tcp("evil.example.com", 443)
+    assert exc.value.code == "CONNECTOR_UNAVAILABLE"
+    assert delegate.calls == []
 
 
 

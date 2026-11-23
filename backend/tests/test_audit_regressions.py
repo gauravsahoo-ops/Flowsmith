@@ -18,7 +18,6 @@ from app.models import (
     Environment,
     Organization,
     OrganizationMember,
-    Subscription,
     User,
     Workspace,
     WorkspaceMember,
@@ -217,35 +216,8 @@ def test_shared_user_cannot_read_workspace_environment():
 
 
 # ---------------------------------------------------------------------------
-# M-7: checkout URL origin and organization cleanup
+# M-7: organization cleanup
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "value,base,expected",
-    [
-        ("", "https://app.example.com", "https://app.example.com/?billing=success"),
-        ("/done", "https://app.example.com", "https://app.example.com/done"),
-        ("https://app.example.com/done", "https://app.example.com", "https://app.example.com/done"),
-    ],
-)
-def test_billing_return_url_allowed(value, base, expected):
-    from app.api.billing import _safe_return_url
-
-    assert _safe_return_url(value, base=base, default_path="/?billing=success") == expected
-
-
-@pytest.mark.parametrize(
-    "value", ["https://evil.example/phish", "//evil.example/phish", "javascript:alert(1)"]
-)
-def test_billing_return_url_rejects_foreign_origin(value):
-    from fastapi import HTTPException
-
-    from app.api.billing import _safe_return_url
-
-    with pytest.raises(HTTPException) as exc:
-        _safe_return_url(value, base="https://app.example.com", default_path="/?billing=success")
-    assert exc.value.status_code in (400, 503)
 
 
 def test_organization_delete_cleans_empty_workspaces(client: TestClient):
@@ -260,13 +232,6 @@ def test_organization_delete_cleans_empty_workspaces(client: TestClient):
         headers=headers,
     ).json()["data"]["id"]
 
-    db = get_session()
-    try:
-        db.add(Subscription(organization_id=org_id, plan="free"))
-        db.commit()
-    finally:
-        db.close()
-
     resp = client.delete(f"/api/organizations/{org_id}", headers=headers)
     assert resp.status_code == 200, resp.text
 
@@ -274,7 +239,6 @@ def test_organization_delete_cleans_empty_workspaces(client: TestClient):
     try:
         assert db.get(Workspace, ws_id) is None
         assert db.get(Organization, org_id) is None
-        assert db.scalar(select(Subscription).where(Subscription.organization_id == org_id)) is None
         assert db.scalar(
             select(OrganizationMember).where(OrganizationMember.organization_id == org_id)
         ) is None

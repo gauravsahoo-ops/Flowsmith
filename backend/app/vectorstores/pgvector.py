@@ -473,7 +473,12 @@ def migrate_legacy_sqlite_vec(sqlite_path: str) -> dict[str, Any]:
             _read_sqlite_embedding(sqlite_path, str(suffix), int(r[0])) for r in rows
         ]
         metadatas = [json.loads(r[2]) if isinstance(r[2], str) else (r[2] or {}) for r in rows]
-        ids = [r[3] if r[3] else None for r in rows]
+        raw_ids = [r[3] for r in rows]
+        ids = (
+            [str(value) for value in raw_ids]
+            if all(value is not None and str(value).strip() for value in raw_ids)
+            else None
+        )
         stored = store.add(
             handle,
             documents=chunks,
