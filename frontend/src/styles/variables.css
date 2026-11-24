@@ -32,7 +32,7 @@
   --text: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-dim: #94a3b8;
-  --muted: #64748b;
+  --muted: #858c98;
 
   /* Typography Stacks */
   --font-heading: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -71,8 +71,8 @@
   --radius-full: 9999px;
 
   /* Restrained, Purposeful Semantic Accents */
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
+  --accent: #3b63d9;
+  --accent-hover: #2f57c9;
   --accent-subtle: rgba(79, 70, 229, 0.1);
   --blue: #2563eb;
   --green: #059669;
@@ -83,7 +83,7 @@
   --fg: #f8fafc;
 
   /* Functional Gradients (Restrained & Calm) */
-  --gradient-brand: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  --gradient-brand: var(--accent);
   --gradient-brand-subtle: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(37, 99, 235, 0.08) 100%);
   --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
 

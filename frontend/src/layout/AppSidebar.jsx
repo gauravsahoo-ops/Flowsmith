@@ -219,7 +219,7 @@ export default function AppSidebar({ collapsed, onToggle, isMobile, mobileOpen, 
             cursor: collapsed ? 'pointer' : undefined,
             padding: logoSrc ? 2 : 0,
           }}
-          role={collapsed ? 'button' : undefined}
+          role={collapsed ? 'button' : 'img'}
           aria-label={collapsed ? 'Open full tab' : appName}
         >
           {logoSrc ? (

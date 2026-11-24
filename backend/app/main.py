@@ -27,7 +27,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
 
-from app.api import admin, ai, approvals, audit, auth, branding, code, connector_packs, connectors, credentials, data_tables, environments, executions, files, integrations, llm, mcp, mcp_servers, monitoring, nodes, notifications, oauth, organizations, provider_webhooks, rag, salesforce_events, saml, scim, scim_groups, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
+from app.api import admin, ai, approvals, audit, auth, branding, code, connector_packs, connectors, credentials, data_tables, environments, executions, files, help, integrations, llm, mcp, mcp_servers, monitoring, nodes, notifications, oauth, organizations, provider_webhooks, rag, salesforce_events, saml, scim, scim_groups, sso, users, webhooks, workflow_api, workflow_tests, workflows, workspaces, ws
 from app.api.auth import get_metrics_user
 from app.api.common import ok
 from app.config import get_settings
@@ -555,6 +555,7 @@ from app.middleware.rate_limit import setup_rate_limiting
 setup_rate_limiting(app)
 
 app.include_router(auth.router)
+app.include_router(help.router)
 app.include_router(saml.router)
 app.include_router(sso.router)
 app.include_router(scim.router)

@@ -875,6 +875,22 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
+.help-manual {
+  margin: 16px 0 0;
+  max-height: 520px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  color: #cbd5e1;
+  background: #0a0c11;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
 kbd.kbd {
   display: inline-flex;
   align-items: center;

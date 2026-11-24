@@ -444,7 +444,7 @@ export default function IntegrationsPage() {
                     paddingTop: '0.75rem',
                     borderTop: '1px solid rgba(255, 255, 255, 0.05)',
                     fontSize: '12px',
-                    color: '#64748b',
+                    color: '#94a3b8',
                   }}
                 >
                   <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>

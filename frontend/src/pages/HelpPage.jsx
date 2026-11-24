@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageHeader from '../components/shared/PageHeader'
+import { getToken } from '../api'
 
 const DOCS = [
   { id: 'workflows', title: 'Workflow basics', desc: 'Visual canvas, nodes, connections, and DAG execution', to: '/workflows' },
@@ -45,6 +47,25 @@ function renderDocIcon(id) {
 export default function HelpPage() {
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
   const mod = isMac ? '⌘' : 'Ctrl'
+  const [manual, setManual] = useState('')
+  const [manualError, setManualError] = useState('')
+  const [manualLoading, setManualLoading] = useState(false)
+
+  const loadManual = async () => {
+    setManualLoading(true)
+    setManualError('')
+    try {
+      const response = await fetch('/api/help/user-manual', {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!response.ok) throw new Error(`Manual unavailable (${response.status})`)
+      setManual(await response.text())
+    } catch (err) {
+      setManualError(err?.message || 'The user manual is unavailable.')
+    } finally {
+      setManualLoading(false)
+    }
+  }
 
   return (
     <div className="page help-page">
@@ -147,6 +168,26 @@ export default function HelpPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="help-section-card">
+        <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>User Manual</h3>
+        <p className="hint" style={{ margin: '0 0 14px', fontSize: 13.5, lineHeight: 1.6 }}>
+          The full Flowsmith user manual is available inside the product for signed-in users.
+        </p>
+        <button className="primary" type="button" onClick={loadManual} disabled={manualLoading}>
+          {manualLoading ? 'Loading manual…' : manual ? 'Reload user manual' : 'Open user manual'}
+        </button>
+        {manualError && (
+          <p role="alert" className="hint" style={{ margin: '12px 0 0', color: '#fca5a5' }}>
+            {manualError}
+          </p>
+        )}
+        {manual && (
+          <pre className="help-manual" aria-label="Flowsmith user manual">
+            {manual}
+          </pre>
+        )}
       </section>
 
       <section className="help-section-card">

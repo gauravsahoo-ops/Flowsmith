@@ -105,5 +105,72 @@ test('system browser audit: login, overview, integrations marketplace, ai copilo
   await page.waitForTimeout(1000);
   await page.screenshot({ path: `${ARTIFACT_DIR}/datatables_page_audit.png`, fullPage: true });
 
+  // 7. Execution history, approvals, credentials, monitoring, help
+  for (const [name, path] of [
+    ['executions', '/executions'],
+    ['approvals', '/approvals'],
+    ['credentials', '/credentials'],
+    ['monitoring', '/monitoring'],
+    ['help', '/help'],
+  ]) {
+    await page.goto(`http://localhost:5173${path}`);
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${ARTIFACT_DIR}/${name}_page_audit.png`, fullPage: true });
+    if (name === 'help') {
+      await page.getByRole('button', { name: /Open user manual/i }).click();
+      await page.locator('.help-manual').waitFor({ state: 'visible', timeout: 15000 });
+      await page.screenshot({ path: `${ARTIFACT_DIR}/help_manual_audit.png`, fullPage: true });
+    }
+  }
+
+  // 8. Workflow canvas and node editor
+  const token = await page.evaluate(() => localStorage.getItem('mat_token'));
+  const auditWfId = `wf_a11y_audit_${Date.now()}`;
+  const created = await page.request.post('http://localhost:8000/api/workflows', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      id: auditWfId,
+      name: `Audit Canvas ${Date.now()}`,
+      nodes: [
+        { id: 'audit_trigger', type: 'manual_trigger', position: { x: 80, y: 120 } },
+        {
+          id: 'audit_set',
+          type: 'set_data',
+          position: { x: 360, y: 120 },
+          parameters: { fields: { audited: true } },
+        },
+      ],
+      connections: [{ source: 'audit_trigger', target: 'audit_set' }],
+      settings: {},
+    },
+  });
+  if (created.ok()) {
+    await page.goto(`http://localhost:5173/workflows/${auditWfId}`);
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForSelector('.canvas', { state: 'attached', timeout: 30000 });
+    await page.waitForFunction(() => {
+      const store = window.__wfStore?.getState();
+      return store && !store.loading && store.workflow;
+    }, { timeout: 15000 });
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${ARTIFACT_DIR}/canvas_audit.png`, fullPage: true });
+
+    await page.evaluate(() => {
+      window.__uiStore?.getState()?.openNodeEditor('audit_set');
+    });
+    const setNode = page.locator('.react-flow__node').filter({ hasText: 'Set Data' }).first();
+    if (await setNode.count()) {
+      await setNode.click();
+    }
+    const editor = page.locator('.nem-panel-nav');
+    if (await editor.isVisible({ timeout: 8000 }).catch(() => false)) {
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: `${ARTIFACT_DIR}/node_editor_audit.png`, fullPage: true });
+    } else {
+      await page.screenshot({ path: `${ARTIFACT_DIR}/node_editor_audit.png`, fullPage: true });
+    }
+  }
+
   console.log('Browser audit completed successfully with all screenshots saved to artifacts directory.');
 });

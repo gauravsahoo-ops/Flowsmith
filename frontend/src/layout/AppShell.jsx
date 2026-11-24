@@ -132,7 +132,7 @@ export default function AppShell({ onLogout }) {
               type="button"
               className="app-topbar-search-btn"
               onClick={() => setSearchOpen(true)}
-              aria-label="Search workflows, credentials, templates (Ctrl+K)"
+              aria-label={`Search workflows, connectors, credentials… ${isMac ? '⌘K' : 'Ctrl K'}`}
               title="Search workflows, credentials, templates (Ctrl+K)"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

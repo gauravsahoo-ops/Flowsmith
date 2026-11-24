@@ -35,10 +35,10 @@
   --text: #f3f4f6;
   --text-secondary: #b8bdc7;
   --text-dim: #858c98;
-  --muted: #626975;
+  --muted: #858c98;
 
-  --accent: #4d7cfe;
-  --accent-hover: #3d6bee;
+  --accent: #3b63d9;
+  --accent-hover: #2f57c9;
   --accent-subtle: rgba(77, 124, 254, 0.1);
   --accent-2: #5ec8e5;
   --blue: #4d7cfe;
@@ -469,7 +469,7 @@ body::before {
 }
 .sidebar-user-email {
   font-size: 9.5px;
-  color: var(--muted);
+  color: #cbd5e1;
 }
 .sidebar-user-logout {
   margin-left: auto;
@@ -880,7 +880,7 @@ input.search-input {
   padding: 0 14px;
   background: #0c0e12;
   border-bottom: 1px solid var(--border-subtle);
-  color: #707785;
+  color: #8b93a3;
   font-size: 9px;
   font-weight: 650;
   letter-spacing: 0.08em;

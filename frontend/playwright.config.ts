@@ -31,6 +31,8 @@ export default defineConfig({
         SAFE_HTTP_ALLOWED_PORTS: '8181,8182',
         PUBLIC_URL: 'http://localhost:5173',
         RATE_LIMIT_ENABLED: 'false',
+        QUEUE_BACKEND: 'db',
+        QUEUE_EMBEDDED_CONSUMER: 'true',
       },
       timeout: 120000,
     },

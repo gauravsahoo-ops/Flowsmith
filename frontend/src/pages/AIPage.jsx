@@ -108,6 +108,7 @@ export default function AIPage() {
                 </span>
                 {statusInfo.credentials?.length > 1 && (
                   <select
+                    aria-label="Active AI credential"
                     value={selectedCredentialId || statusInfo.active?.id || ''}
                     onChange={(e) => setSelectedCredentialId(e.target.value)}
                     style={{

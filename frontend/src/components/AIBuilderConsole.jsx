@@ -239,6 +239,7 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
         <div className="ai-builder-router" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted, #94a3b8)' }}>Model Router:</span>
           <select
+            aria-label="AI model provider mode"
             value={modelMode}
             onChange={(e) => setModelMode(e.target.value)}
             style={{

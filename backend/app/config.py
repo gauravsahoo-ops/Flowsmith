@@ -9,11 +9,63 @@ compose Postgres). SQLite is used nowhere in the product.
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+
+_SECRET_FILE_FIELDS = {
+    "database_url",
+    "redis_url",
+    "credentials_encryption_key",
+}
+
+
+def _is_secret_file_field(name: str) -> bool:
+    """Return True for fields that may be sourced from a mounted secret file."""
+    if name in _SECRET_FILE_FIELDS:
+        return True
+    if name.endswith("_file"):
+        return False
+    return name.endswith(("_secret", "_password", "_token", "_api_key", "_private_key"))
+
+
+class _SecretFileSource(PydanticBaseSettingsSource):
+    """Load ``<FIELD>_FILE`` values written by Docker/Kubernetes secrets.
+
+    Direct environment variables win over files. The source is deliberately
+    restricted to secret-shaped fields so an unrelated ``*_FILE`` variable
+    cannot redirect configuration reads.
+    """
+
+    def get_field_value(self, field, field_name: str):
+        # __call__ performs the actual discovery; this hook satisfies the ABC.
+        return None, field_name, False
+
+    def __call__(self) -> dict[str, object]:
+        values: dict[str, object] = {}
+        for name in self.settings_cls.model_fields:
+            if not _is_secret_file_field(name):
+                continue
+            env_key = name.upper()
+            if os.environ.get(env_key):
+                continue
+            path = os.environ.get(f"{env_key}_FILE")
+            if not path:
+                continue
+            secret_path = Path(path)
+            if not secret_path.is_file():
+                raise ValueError(f"{env_key}_FILE points to a missing file: {path}")
+            if secret_path.stat().st_size > 1_048_576:
+                raise ValueError(f"{env_key}_FILE is larger than 1 MiB")
+            value = secret_path.read_text(encoding="utf-8").strip()
+            if not value:
+                raise ValueError(f"{env_key}_FILE is empty")
+            values[name] = value
+        return values
 
 
 class Settings(BaseSettings):
@@ -26,6 +78,23 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            _SecretFileSource(settings_cls),
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+        )
 
     @field_validator(
         "database_url",

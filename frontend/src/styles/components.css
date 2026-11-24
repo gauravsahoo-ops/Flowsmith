@@ -526,7 +526,7 @@
 }
 .sidebar-user-email {
   font-size: 10.5px;
-  color: #64748b;
+  color: #94a3b8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1003,7 +1003,7 @@ button:disabled {
 /* Primary Radiant Button */
 button.primary,
 .primary {
-  background: var(--gradient-brand, linear-gradient(135deg, #6366f1 0%, #3b82f6 100%));
+  background: var(--accent);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.22);
   padding: 8px 16px;
@@ -1013,7 +1013,8 @@ button.primary,
 
 button.primary:hover:not(:disabled),
 .primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: var(--accent-hover);
+  filter: none;
   transform: translateY(-1.5px);
   box-shadow: 0 8px 24px -2px rgba(99, 102, 241, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
