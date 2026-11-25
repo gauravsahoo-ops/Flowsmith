@@ -102,6 +102,15 @@ COMPOSE_PROFILES=""
 if [[ "$*" == *"--monitoring"* ]]; then
   COMPOSE_PROFILES="monitoring"
   green "Monitoring profile enabled (Prometheus + Grafana)"
+  if [ -z "${GRAFANA_PASSWORD:-}" ]; then
+    bold "Generating GRAFANA_PASSWORD..."
+    GRAF_PASS=$(generate_secret)
+    export GRAFANA_USER="${GRAFANA_USER:-admin}"
+    export GRAFANA_PASSWORD="$GRAF_PASS"
+    echo "GRAFANA_USER=$GRAFANA_USER" >> .env.production
+    echo "GRAFANA_PASSWORD=$GRAF_PASS" >> .env.production
+    green "GRAFANA_PASSWORD generated and appended to .env.production"
+  fi
 fi
 
 if [ -n "$COMPOSE_PROFILES" ]; then

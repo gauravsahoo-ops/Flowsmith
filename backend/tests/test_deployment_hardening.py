@@ -166,6 +166,22 @@ class TestDockerComposeNetworkBindingDefaults:
                         f"Service {sname} port {p_str} is not bound to 127.0.0.1 loopback"
                     )
 
+    @pytest.mark.parametrize("compose_name", ["docker-compose.yml", "docker-compose.staging.yml"])
+    def test_optional_monitoring_vars_do_not_block_core_compose(self, root_dir: Path, compose_name: str):
+        """Inactive profile services (grafana) must not fail Compose interpolation when omitted from .env."""
+        import yaml
+
+        raw = (root_dir / compose_name).read_text(encoding="utf-8")
+        assert "GRAFANA_USER:?" not in raw, f"{compose_name} must not require GRAFANA_USER via :?"
+        assert "GRAFANA_PASSWORD:?" not in raw, f"{compose_name} must not require GRAFANA_PASSWORD via :?"
+
+        data = yaml.safe_load(raw)
+        grafana = data["services"]["grafana"]
+        entrypoint_str = " ".join(str(x) for x in grafana.get("entrypoint", []))
+        assert "GF_SECURITY_ADMIN_PASSWORD" in entrypoint_str, (
+            f"{compose_name} grafana entrypoint must fail closed if GF_SECURITY_ADMIN_PASSWORD is empty"
+        )
+
     def test_docker_compose_staging_network_isolation(self, root_dir: Path):
         import yaml
 
