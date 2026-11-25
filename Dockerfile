@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir -r requirements-lock.txt
 
 COPY backend/ ./backend
 COPY docs/integration-platform/LIVE_CERTIFICATION_EVIDENCE.json ./docs/integration-platform/
-COPY USER_MANUAL.md ./USER_MANUAL.md
+#COPY USER_MANUAL.md ./USER_MANUAL.md
 COPY --from=frontend /build/dist ./frontend/dist
 
 RUN useradd --create-home --shell /bin/bash appuser \
