@@ -103,7 +103,7 @@ class MailchimpProviderClient:
     def _subscriber_hash(email: str) -> str:
         import hashlib
 
-        return hashlib.md5(email.strip().lower().encode()).hexdigest()
+        return hashlib.md5(email.strip().lower().encode(), usedforsecurity=False).hexdigest()
 
     async def add_member(self, creds: dict, list_id: str, email: str, status: str = "subscribed", timeout: float = 30.0) -> dict:
         if not str(list_id or "").strip():

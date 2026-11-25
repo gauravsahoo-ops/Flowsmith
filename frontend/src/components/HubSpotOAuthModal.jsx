@@ -146,6 +146,33 @@ export default function HubSpotOAuthModal({
       if (clientSecret.trim()) extra.client_secret = clientSecret.trim()
       if (name.trim()) extra.name = name.trim()
 
+      // Persist the OAuth app credentials before starting the flow. The
+      // callback stores the refresh token, but the provider needs the
+      // client id/secret later to refresh it; without this save the workflow
+      // fails with "HubSpot OAuth is not configured on the server".
+      if (clientId.trim() && clientSecret.trim()) {
+        try {
+          if (onSave) {
+            await onSave({
+              name: name.trim() || 'HubSpot account',
+              type: 'hubspot',
+              data: {
+                client_id: clientId.trim(),
+                client_secret: clientSecret.trim(),
+              },
+            })
+          } else {
+            await api.saveOAuthConfig('hubspot', {
+              client_id: clientId.trim(),
+              client_secret: clientSecret.trim(),
+              redirect_uri: redirectUrl,
+            })
+          }
+        } catch (err) {
+          console.error('[flowsmith] components/HubSpotOAuthModal.jsx', err)
+        }
+      }
+
       const res = await api.connectOAuth('hubspot', undefined, 'consent', extra)
       const authorizeUrl = res?.data?.authorize_url || res?.authorize_url
 

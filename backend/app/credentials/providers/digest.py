@@ -46,16 +46,16 @@ class DigestAuthProvider(AuthProvider):
         nonce = cred.get("nonce") or "nonce"
         username = cred["username"]
         password = cred["password"]
-        ha1 = hashlib.md5(f"{username}:{realm}:{password}".encode()).hexdigest()
-        ha2 = hashlib.md5(f"{method}:{uri}".encode()).hexdigest()
+        ha1 = hashlib.md5(f"{username}:{realm}:{password}".encode(), usedforsecurity=False).hexdigest()
+        ha2 = hashlib.md5(f"{method}:{uri}".encode(), usedforsecurity=False).hexdigest()
         # qop=auth variant with nonce_count/cnonce
         cnonce = uuid.uuid4().hex[:8]
         nc = "00000001"
         qop = cred.get("qop", "auth")
         if qop:
-            response = hashlib.md5(f"{ha1}:{nonce}:{nc}:{cnonce}:{qop}:{ha2}".encode()).hexdigest()
+            response = hashlib.md5(f"{ha1}:{nonce}:{nc}:{cnonce}:{qop}:{ha2}".encode(), usedforsecurity=False).hexdigest()
         else:
-            response = hashlib.md5(f"{ha1}:{nonce}:{ha2}".encode()).hexdigest()
+            response = hashlib.md5(f"{ha1}:{nonce}:{ha2}".encode(), usedforsecurity=False).hexdigest()
         return response, cnonce, nc, realm, nonce
 
     def prepareRequest(self, request: Dict[str, Any], cred: Dict[str, Any]) -> Dict[str, Any]:

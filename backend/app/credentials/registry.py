@@ -107,6 +107,12 @@ class SalesforceCredential(BaseModel):
     refresh_token: str = Field(
         default="", description="OAuth2 refresh token from the authorization-code flow (alternative to username/password)."
     )
+    access_token: str = Field(
+        default="", description="Cached OAuth access token; reused until expires_at when present."
+    )
+    expires_at: float | None = Field(
+        default=None, description="Access-token expiry as a Unix timestamp."
+    )
     oauth: bool = Field(
         default=False,
         description="True when the connection was created by the 'Connect Salesforce' OAuth flow (client id/secret come from server config).",
@@ -124,8 +130,9 @@ class SalesforceCredential(BaseModel):
             raise ValueError("Salesforce credential needs client_id and client_secret (or use 'Connect Salesforce').")
         has_password = bool(self.username.strip() and self.password.strip())
         has_refresh = bool(self.refresh_token.strip())
-        if not has_password and not has_refresh:
-            raise ValueError("Salesforce credential needs either username+password or refresh_token.")
+        has_access = bool(self.access_token.strip())
+        if not has_password and not has_refresh and not has_access:
+            raise ValueError("Salesforce credential needs either username+password, refresh_token, or an unexpired access_token.")
         return self
 
 

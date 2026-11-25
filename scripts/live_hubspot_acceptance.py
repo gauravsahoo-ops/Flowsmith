@@ -79,6 +79,9 @@ def load_credentials() -> tuple[dict[str, str], dict[str, Any]]:
 async def run_checks() -> int:
     values, creds = load_credentials()
     custom_object = values.get("HUBSPOT_ACCEPTANCE_OBJECT", "").strip()
+    require_custom = values.get(
+        "HUBSPOT_ACCEPTANCE_REQUIRE_CUSTOM", ""
+    ).strip().lower() in {"1", "true", "yes", "on"}
 
     # Import after credential env is applied so the provider sees the app
     # client id/secret for refresh-token mode.
@@ -132,8 +135,13 @@ async def run_checks() -> int:
     else:
         checks.append((
             "custom object read",
-            "SKIPPED",
-            "set HUBSPOT_ACCEPTANCE_OBJECT to a real custom object API name",
+            "FAIL" if require_custom else "SKIPPED",
+            (
+                "HUBSPOT_ACCEPTANCE_REQUIRE_CUSTOM is set but "
+                "HUBSPOT_ACCEPTANCE_OBJECT is empty"
+                if require_custom
+                else "set HUBSPOT_ACCEPTANCE_OBJECT to a real custom object API name"
+            ),
         ))
 
     print_report(checks)

@@ -106,4 +106,88 @@ test.describe('Accessibility audit', () => {
     console.log('AUTH_A11Y', JSON.stringify(failures, null, 2));
     expect(failures, JSON.stringify(failures, null, 2)).toEqual({});
   });
+
+  test('authenticated surfaces have a keyboard tab order', async ({ page }) => {
+    test.setTimeout(120000);
+    await seedSession(page);
+
+    const surfaces = [
+      ['overview', '/overview'],
+      ['workflows', '/workflows'],
+      ['integrations', '/integrations'],
+      ['ai', '/ai'],
+      ['executions', '/executions'],
+      ['approvals', '/approvals'],
+      ['credentials', '/credentials'],
+      ['monitoring', '/monitoring'],
+      ['help', '/help'],
+    ] as const;
+
+    const failures: Record<string, unknown> = {};
+    for (const [label, path] of surfaces) {
+      await page.goto(path);
+      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForTimeout(300);
+      const order: Array<{ tag: string; name: string; visible: boolean }> = [];
+      for (let i = 0; i < 8; i += 1) {
+        await page.keyboard.press('Tab');
+        const info = await page.evaluate(() => {
+          const el = document.activeElement as HTMLElement | null;
+          if (!el) return null;
+          const style = getComputedStyle(el);
+          const rect = el.getBoundingClientRect();
+          return {
+            tag: el.tagName,
+            name: (
+              el.getAttribute('aria-label') ||
+              el.getAttribute('placeholder') ||
+              el.textContent ||
+              ''
+            )
+              .trim()
+              .slice(0, 50),
+            visible:
+              rect.width > 0 &&
+              rect.height > 0 &&
+              style.visibility !== 'hidden' &&
+              style.display !== 'none',
+          };
+        });
+        if (info) order.push(info);
+      }
+      const distinct = new Set(order.map((item) => `${item.tag}:${item.name}`));
+      const firstThree = order.slice(0, 3);
+      if (distinct.size < 3 || firstThree.some((item) => item.tag === 'BODY')) {
+        failures[label] = order;
+      }
+    }
+
+    console.log('TAB_ORDER', JSON.stringify(failures, null, 2));
+    expect(failures, JSON.stringify(failures, null, 2)).toEqual({});
+  });
+
+  test('OpenAPI import modal traps keyboard focus and closes with Escape', async ({ page }) => {
+    await seedSession(page);
+    await page.goto('/integrations');
+    await page.waitForLoadState('networkidle').catch(() => {});
+    const importBtn = page.getByRole('button', { name: /Import OpenAPI/i });
+    await expect(importBtn).toBeVisible();
+    await importBtn.click();
+    const modal = page.locator('.oai-modal-window');
+    await expect(modal).toBeVisible();
+
+    for (let i = 0; i < 8; i += 1) {
+      await page.keyboard.press('Tab');
+      const focusInside = await page.evaluate(() => {
+        const dialog = document.querySelector('.oai-modal-window');
+        return Boolean(
+          dialog && document.activeElement && dialog.contains(document.activeElement),
+        );
+      });
+      expect(focusInside, `focus escaped the modal after ${i + 1} Tab presses`).toBeTruthy();
+    }
+
+    await page.keyboard.press('Escape');
+    await expect(modal).not.toBeVisible();
+  });
 });

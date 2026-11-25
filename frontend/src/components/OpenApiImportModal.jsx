@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../api'
 import { useWorkflowStore } from '../stores/workflowStore'
@@ -20,11 +20,39 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState(null)
   const [importSuccess, setImportSuccess] = useState(null)
+  const modalRef = useRef(null)
 
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose?.()
+      if (e.key === 'Escape') {
+        onClose?.()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const root = modalRef.current
+      if (!root) return
+      const focusable = Array.from(
+        root.querySelectorAll(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null)
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (!root.contains(active)) {
+        e.preventDefault()
+        first.focus()
+        return
+      }
+      if (e.shiftKey && active === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -101,7 +129,7 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
 
   return createPortal(
     <div className="oai-modal-overlay" onClick={onClose}>
-      <div className="oai-modal-window" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className="oai-modal-window" role="dialog" aria-modal="true" aria-labelledby="oai-modal-title" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="oai-modal-header">
           <div className="oai-header-title">
@@ -109,13 +137,13 @@ export default function OpenApiImportModal({ isOpen = true, onClose, onImportSuc
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6"/><path d="M9 2v4"/><path d="M15 2v4"/><path d="M6 8v4a6 6 0 0 0 12 0V8z"/><path d="M12 18v4"/></svg>
             </span>
             <div>
-              <h3>Import OpenAPI / Swagger Connector</h3>
+              <h3 id="oai-modal-title">Import OpenAPI / Swagger Connector</h3>
               <span className="oai-subtitle">
                 Generate first-class, production-ready connectors from any OpenAPI 3.x or Swagger spec
               </span>
             </div>
           </div>
-          <button type="button" className="oai-close-btn" onClick={onClose} aria-label="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button type="button" className="oai-close-btn" onClick={onClose} aria-label="Close" autoFocus style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>

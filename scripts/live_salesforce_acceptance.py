@@ -13,8 +13,12 @@ Prerequisites:
 
 The script boots its own API process on an isolated port + temporary
 database (the real queue/worker/connector code, no stubs), exercises the
-org over the real OAuth2 username-password grant, verifies writes by
-re-reading the org directly, and reports PASS/FAIL per test.
+org over a real Salesforce OAuth2 grant, verifies writes by re-reading the
+org directly, and reports PASS/FAIL per test. Rotated refresh tokens are
+written back to backend/.env.live-acceptance so a rotating-token org stays
+connected between runs. If the running app shares the same refresh token,
+whichever process refreshes first invalidates the other's copy; re-copy the
+current credential from the app before a later acceptance run.
 """
 
 from __future__ import annotations
@@ -24,6 +28,8 @@ import json
 import os
 import re
 import secrets
+import socket
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -32,20 +38,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+from cryptography.fernet import Fernet, InvalidToken
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
-from app.providers.salesforce import SalesforceProviderClient  # noqa: E402
+from app.providers.salesforce import SalesforceProviderClient
 
 DOCS = ROOT / "docs"
 CREDS_FILE = BACKEND / ".env.live-acceptance"
 CREDS_TEMPLATE = BACKEND / ".env.live-acceptance.example"
 PORT = int(os.environ.get("SF_ACCEPTANCE_PORT", "8765"))
 
-EMAIL = os.environ.get("SF_ACCEPTANCE_APP_EMAIL", "accept@example.com")
+EMAIL = os.environ.get("SF_ACCEPTANCE_APP_EMAIL") or (
+    f"accept.{secrets.token_hex(4)}@example.com"
+)
 PASSWORD = os.environ.get("SF_ACCEPTANCE_APP_PASSWORD", "")
 CRED_GOOD = "Acceptance Org (valid)"
 CRED_BAD = "Acceptance Org (invalid secret)"
@@ -85,21 +94,115 @@ def load_sf_credentials() -> dict[str, str]:
         )
     has_password = bool(values.get("SF_ACCEPTANCE_USERNAME") and values.get("SF_ACCEPTANCE_PASSWORD"))
     has_refresh = bool(values.get("SF_ACCEPTANCE_REFRESH_TOKEN"))
-    if not has_password and not has_refresh:
+    has_access = bool(values.get("SF_ACCEPTANCE_ACCESS_TOKEN"))
+    if not has_password and not has_refresh and not has_access:
         sys.exit(
             "backend/.env.live-acceptance needs either SF_ACCEPTANCE_USERNAME + "
-            "SF_ACCEPTANCE_PASSWORD (password grant) or SF_ACCEPTANCE_REFRESH_TOKEN "
-            "(refresh-token grant)."
+            "SF_ACCEPTANCE_PASSWORD (password grant), SF_ACCEPTANCE_REFRESH_TOKEN "
+            "(refresh-token grant), or SF_ACCEPTANCE_ACCESS_TOKEN with "
+            "SF_ACCEPTANCE_ACCESS_TOKEN_EXPIRES_AT."
         )
     return {
         "instance_url": values.get("SF_ACCEPTANCE_INSTANCE_URL", "https://login.salesforce.com"),
+        "login_url": values.get("SF_ACCEPTANCE_LOGIN_URL", ""),
         "client_id": values["SF_ACCEPTANCE_CLIENT_ID"],
         "client_secret": values["SF_ACCEPTANCE_CLIENT_SECRET"],
         "username": values.get("SF_ACCEPTANCE_USERNAME", ""),
         "password": values.get("SF_ACCEPTANCE_PASSWORD", ""),
         "refresh_token": values.get("SF_ACCEPTANCE_REFRESH_TOKEN", ""),
+        "access_token": values.get("SF_ACCEPTANCE_ACCESS_TOKEN", ""),
+        "expires_at": values.get("SF_ACCEPTANCE_ACCESS_TOKEN_EXPIRES_AT", ""),
         "api_version": values.get("SF_ACCEPTANCE_API_VERSION", API_VERSION),
     }
+
+
+def _persist_rotated_tokens(
+    tmpdir: Path, fernet_key: str, previous: dict[str, str]
+) -> bool:
+    """Copy rotated Salesforce tokens out of the disposable harness database.
+
+    Orgs with rotating refresh tokens invalidate the token that was used on
+    every successful refresh. The harness server persists the replacement to
+    its temporary SQLite credential, which would otherwise be lost. Write it
+    back to the operator credential file so the next run stays authenticated.
+    """
+    db_path = tmpdir / "live_acceptance.db"
+    if not db_path.exists():
+        return False
+    try:
+        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        try:
+            row = con.execute(
+                "SELECT data FROM credentials WHERE name = ? "
+                "ORDER BY created_at DESC LIMIT 1",
+                (CRED_GOOD,),
+            ).fetchone()
+        finally:
+            con.close()
+    except sqlite3.Error as exc:
+        print(f"Token recovery skipped: {exc}")
+        return False
+    if not row or not row[0]:
+        return False
+
+    blob = row[0]
+    if isinstance(blob, str):
+        blob = blob.encode()
+    text = blob.decode("utf-8", errors="replace")
+    token = text[3:].encode() if text.startswith("k0:") else blob
+    try:
+        payload = json.loads(Fernet(fernet_key).decrypt(token).decode())
+    except (InvalidToken, ValueError, json.JSONDecodeError):
+        print("Token recovery skipped: credential could not be decrypted.")
+        return False
+
+    new_refresh = (payload.get("refresh_token") or "").strip()
+    new_access = (payload.get("access_token") or "").strip()
+    expires_at = payload.get("expires_at")
+    if not new_refresh and not new_access:
+        return False
+    unchanged = (
+        new_refresh == (previous.get("refresh_token") or "").strip()
+        and new_access == (previous.get("access_token") or "").strip()
+    )
+    if unchanged:
+        return False
+
+    replacements = {}
+    if new_refresh:
+        replacements["SF_ACCEPTANCE_REFRESH_TOKEN"] = new_refresh
+    if new_access:
+        replacements["SF_ACCEPTANCE_ACCESS_TOKEN"] = new_access
+    if expires_at:
+        replacements["SF_ACCEPTANCE_ACCESS_TOKEN_EXPIRES_AT"] = str(expires_at)
+    if payload.get("instance_url"):
+        replacements["SF_ACCEPTANCE_INSTANCE_URL"] = str(payload["instance_url"]).rstrip("/")
+    if payload.get("login_url"):
+        replacements["SF_ACCEPTANCE_LOGIN_URL"] = str(payload["login_url"]).rstrip("/")
+
+    try:
+        lines = CREDS_FILE.read_text(encoding="utf-8-sig").splitlines()
+        seen: set[str] = set()
+        updated: list[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and "=" in stripped:
+                key = stripped.partition("=")[0].strip()
+                if key in replacements:
+                    updated.append(f"{key}={replacements[key]}")
+                    seen.add(key)
+                    continue
+            updated.append(line)
+        for key, value in replacements.items():
+            if key not in seen:
+                updated.append(f"{key}={value}")
+        CREDS_FILE.write_text("\n".join(updated) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"Token recovery failed while writing {CREDS_FILE.name}: {exc}")
+        return False
+
+    print("Rotated Salesforce tokens persisted to backend/.env.live-acceptance.")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -107,41 +210,65 @@ def load_sf_credentials() -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
-def _server_env(tmpdir: Path) -> dict[str, str]:
+def _server_env(tmpdir: Path) -> tuple[dict[str, str], str]:
     env = dict(os.environ)
+    fernet_key = __import__(
+        "cryptography.fernet", fromlist=["Fernet"]
+    ).Fernet.generate_key().decode()
     env.update({
         "DATABASE_URL": f"sqlite:///{tmpdir / 'live_acceptance.db'}".replace("\\", "/"),
         "POSTGRES_URL": "",
         "JWT_SECRET": secrets.token_hex(32),
-        "CREDENTIALS_ENCRYPTION_KEY": __import__(
-            "cryptography.fernet", fromlist=["Fernet"]
-        ).Fernet.generate_key().decode(),
+        "CREDENTIALS_ENCRYPTION_KEY": fernet_key,
         "HOST": "127.0.0.1",
         "PORT": str(PORT),
         "SERVE_FRONTEND": "false",
         "QUEUE_EMBEDDED_CONSUMER": "true",
         "LOG_LEVEL": "warning",
     })
-    # SSRF escape hatch pass-through (used by the rehearsal mode against
-    # the local stub; not needed for the real org, which is a public host).
-    for var in ("SAFE_HTTP_ALLOWED_HOSTS", "SAFE_HTTP_ALLOWED_PORTS"):
-        if var in env and env[var]:
-            env[var] = env[var]
-    return env
+    # SSRF escape hatch settings from the parent process are already inherited
+    # through os.environ; no extra copy is needed.
+    return env, fernet_key
 
 
-def spawn_server(tmpdir: Path) -> subprocess.Popen:
+def port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.5)
+        return sock.connect_ex(("127.0.0.1", port)) == 0
+
+
+def terminate_process_tree(proc: subprocess.Popen) -> None:
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+            capture_output=True,
+            check=False,
+        )
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
+def spawn_server(tmpdir: Path, env: dict[str, str]) -> subprocess.Popen:
     python = (ROOT / ".venv" / "Scripts" / "python.exe")
     if not python.exists():
         python = Path(sys.executable)
-    log = open(tmpdir / "server.log", "a", encoding="utf-8")
+    log = open(tmpdir / "server.log", "a", encoding="utf-8")  # noqa: SIM115 - keep open for the child process
     proc = subprocess.Popen(
         [str(python), "-m", "app.serve"],
         cwd=str(BACKEND),
-        env=_server_env(tmpdir),
+        env=env,
         stdout=log,
         stderr=subprocess.STDOUT,
     )
+    log.close()
     return proc
 
 
@@ -164,7 +291,8 @@ async def wait_healthy(client: httpx.AsyncClient, timeout_s: float = 60.0) -> No
 # API helpers
 # ---------------------------------------------------------------------------
 
-TOKEN_RE = re.compile(r"^[A-Za-z0-9]{15}$")
+# Salesforce REST returns 18-character IDs; some SOAP/legacy paths return 15.
+TOKEN_RE = re.compile(r"^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$")
 
 
 def auth(token: str) -> dict[str, str]:
@@ -299,9 +427,28 @@ async def org_get_record(creds: dict, object_name: str, record_id: str) -> dict:
 
 
 async def org_find_email(creds: dict, email: str) -> int:
-    soql = "SELECT Id FROM Lead WHERE Email = '{0}'".format(email.replace("'", "\\'"))
+    soql = "SELECT Id FROM Lead WHERE Email = '{}'".format(email.replace("'", "\\'"))
     body = await org_client().query(creds, soql)
     return body.get("totalSize", 0)
+
+
+async def cleanup_acceptance_leads(creds: dict, emails: dict[int, str]) -> int:
+    """Delete the leads this run created, identified by its unique emails."""
+    client = org_client()
+    deleted = 0
+    failed = 0
+    for email in sorted(set(emails.values())):
+        soql = "SELECT Id FROM Lead WHERE Email = '{}'".format(email.replace("'", "\\'"))
+        body = await client.query(creds, soql)
+        for record in body.get("records", []):
+            try:
+                await client.delete_record(creds, "Lead", record["Id"])
+                deleted += 1
+            except Exception:  # noqa: BLE001 - cleanup must not fail the acceptance
+                failed += 1
+    if failed:
+        print(f"Cleanup warning: {failed} acceptance lead(s) could not be deleted.")
+    return deleted
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +567,7 @@ async def test_3_create(client, token, cred_id, creds, emails) -> dict:
     )
     return {
         "test": "3 - Create",
-        "expected": "Create returns a 15-char record id; the org stores the Lead with the given fields.",
+        "expected": "Create returns a 15- or 18-character record id; the org stores the Lead with the given fields.",
         "actual": (f"status={detail['status']}; success={out.get('success')}; id={created_id}; "
                    f"orgEmail={org_record.get('Email')}; orgCompany={org_record.get('Company')}"),
         "status": "PASS" if ok else "FAIL",
@@ -557,6 +704,10 @@ async def test_7_invalid_credentials(client, token, creds, emails) -> dict:
     """Invalid credentials: the real org rejects the token request; typed AUTH_FAILED surfaces."""
     bad_creds = dict(creds)
     bad_creds["refresh_token"] = "00D_REVOKED_OR_FAKE_REFRESH_TOKEN"
+    # Force the refresh-token path: a cached valid access token would otherwise
+    # let the execution succeed and the invalid-credential test would prove nothing.
+    bad_creds.pop("access_token", None)
+    bad_creds["expires_at"] = 0
     bad_id = await create_credential(client, token, CRED_BAD, bad_creds)
     wf_id = f"acc_t7_{secrets.token_hex(3)}"
     await save_workflow(client, token, workflow_json(
@@ -568,20 +719,24 @@ async def test_7_invalid_credentials(client, token, creds, emails) -> dict:
         ],
         [conn("trigger", "sf")],
     ))
-    execution_id, detail, steps = await run_and_wait(client, token, wf_id)
-    error = detail.get("error") or {}
+    execution_id, detail, _steps = await run_and_wait(client, token, wf_id)
+    pause = detail.get("pause_state") or {}
     ok = (
-        detail["status"] == "failed"
-        and error.get("code") == "AUTH_FAILED"
-        and not error.get("retryable", True)
+        detail["status"] == "waiting_auth"
+        and pause.get("type") == "auth_required"
+        and pause.get("credential_id") == bad_id
+        and pause.get("node_id") == "sf"
     )
     return {
         "test": "7 - Invalid credentials",
-        "expected": "Execution fails with a typed, non-retryable AUTH_FAILED error from the real org.",
-        "actual": (f"status={detail['status']}; error={json.dumps(error)}"),
+        "expected": "Execution pauses in waiting_auth with an auth-required state bound to the bad credential.",
+        "actual": (
+            f"status={detail['status']}; pauseType={pause.get('type')}; "
+            f"pauseCredential={pause.get('credential_id')}; pauseNode={pause.get('node_id')}"
+        ),
         "status": "PASS" if ok else "FAIL",
         "execution_id": execution_id,
-        "notes": "Fake refresh token against login.salesforce.com; no data touched.",
+        "notes": "Fake refresh token against login.salesforce.com; the run pauses for reconnect instead of failing terminally.",
         "wf_id": wf_id,
         "execution_status": detail["status"],
     }
@@ -599,20 +754,20 @@ async def test_8_invalid_input(client, token, cred_id, emails) -> dict:
         ],
         [conn("trigger", "sf")],
     ))
-    execution_id, detail, steps = await run_and_wait(client, token, wf_id)
+    execution_id, detail, _steps = await run_and_wait(client, token, wf_id)
     error = detail.get("error") or {}
     ok = (
         detail["status"] == "failed"
-        and error.get("code") == "BAD_REQUEST"
+        and error.get("code") in {"BAD_REQUEST", "CONNECTOR_BAD_REQUEST"}
         and ("NoSuchField9__c" in (error.get("message") or "") or "INVALID_FIELD" in (error.get("message") or ""))
     )
     return {
         "test": "8 - Invalid input",
-        "expected": "Execution fails with BAD_REQUEST carrying the org's field error.",
+        "expected": "Execution fails with CONNECTOR_BAD_REQUEST carrying the org's field error.",
         "actual": (f"status={detail['status']}; error={json.dumps(error)}"),
         "status": "PASS" if ok else "FAIL",
         "execution_id": execution_id,
-        "notes": "SOQL on a nonexistent field rejected by the real org (400 INVALID_FIELD).",
+        "notes": "SOQL on a nonexistent field rejected by the real org (400 INVALID_FIELD -> CONNECTOR_BAD_REQUEST).",
         "wf_id": wf_id,
         "execution_status": detail["status"],
     }
@@ -637,7 +792,7 @@ async def test_9_history(client, token, run_log) -> dict:
             ok = False
             notes.append(f"{wf_id}: expected {expected} got {rows}")
     total = (await client.get(
-        f"/api/executions?pageSize=1", headers=auth(token)
+        "/api/executions?pageSize=1", headers=auth(token)
     )).json()["meta"]["total"]
     total_ok = total == len(run_log)
     ok = ok and total_ok
@@ -654,8 +809,8 @@ async def test_9_history(client, token, run_log) -> dict:
 async def test_10_worker(client, token, execution_id, tmpdir, expected_steps) -> dict:
     """Worker execution: /run returned 202 and the job row proves the worker ran it."""
     import sqlalchemy as sa
-    from sqlalchemy.orm import Session
     from app.models import Execution, Job
+    from sqlalchemy.orm import Session
 
     engine = sa.create_engine(f"sqlite:///{(tmpdir / 'live_acceptance.db')}".replace("\\", "/"))
     session = Session(engine)
@@ -695,16 +850,33 @@ async def test_10_worker(client, token, execution_id, tmpdir, expected_steps) ->
 # ---------------------------------------------------------------------------
 
 
-def write_report(results: Results, sf_creds: dict, execution_refs: list[str]) -> Path:
+def write_report(
+    results: Results, sf_creds: dict, execution_refs: list[str], cleanup_count: int = 0
+) -> Path:
+    if (
+        sf_creds.get("access_token")
+        and float(sf_creds.get("expires_at") or 0) > time.time() + 60
+    ):
+        grant = "OAuth2 access-token reuse"
+    elif sf_creds.get("refresh_token"):
+        grant = "OAuth2 refresh-token grant"
+    elif sf_creds.get("access_token"):
+        grant = "OAuth2 access-token reuse"
+    else:
+        grant = "OAuth2 username-password grant"
+    user_label = sf_creds.get("username") or "OAuth-connected user"
     lines = [
         "# Live Salesforce Acceptance Report (Phase 20)",
         "",
         f"- **Date (UTC):** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
-        f"- **Environment:** real Salesforce org via {sf_creds['instance_url']} "
-        f"(OAuth2 username-password grant, API {sf_creds['api_version']})",
-        f"- **User:** {sf_creds['username']}",
-        f"- **Stack:** REST API -> job queue -> embedded worker -> Salesforce provider (no stubs)",
+        (
+            f"- **Environment:** real Salesforce org via {sf_creds['instance_url']} "
+            f"({grant}, API {sf_creds['api_version']})"
+        ),
+        f"- **User:** {user_label}",
+        "- **Stack:** REST API -> job queue -> embedded worker -> Salesforce provider (no stubs)",
         f"- **Executions:** {len(execution_refs)}",
+        f"- **Cleanup:** removed {cleanup_count} acceptance lead(s) from the org",
         "",
         "| TEST | EXPECTED | ACTUAL | STATUS | EXECUTION ID | NOTES |",
         "|---|---|---|---|---|---|",
@@ -743,9 +915,18 @@ def print_results(results: Results) -> None:
 async def main() -> int:
     sys.path.insert(0, str(BACKEND))  # runner-side `app.*` imports (org verification)
     creds = load_sf_credentials()
+    if port_in_use(PORT):
+        print(
+            f"Port {PORT} is already in use. Stop the stale harness server "
+            "(or set SF_ACCEPTANCE_PORT to another free port) and rerun."
+        )
+        return 1
     tmpdir = Path(tempfile.mkdtemp(prefix="live_acceptance_"))
-    proc = spawn_server(tmpdir)
+    env, fernet_key = _server_env(tmpdir)
+    proc = spawn_server(tmpdir, env)
     results: Results = []
+    cleanup_count = 0
+    emails: dict[int, str] = {}
     server_log_tail = ""
     try:
         async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{PORT}", timeout=60.0) as client:
@@ -810,7 +991,7 @@ async def main() -> int:
             results.append(await test_10_worker(
                 client, token, worker_exec, tmpdir, expected_steps=2
             ))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - report every harness failure
         results.append({
             "test": "HARNESS",
             "expected": "All 10 tests run",
@@ -828,13 +1009,20 @@ async def main() -> int:
         except OSError:
             pass
     finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+        terminate_process_tree(proc)
+        _persist_rotated_tokens(tmpdir, fernet_key, creds)
 
-    report_path = write_report(results, creds, [r["execution_id"] for r in results])
+    if emails:
+        try:
+            creds = load_sf_credentials()
+            cleanup_count = await cleanup_acceptance_leads(creds, emails)
+            print(f"Cleanup: removed {cleanup_count} acceptance lead(s).")
+        except Exception as exc:  # noqa: BLE001 - cleanup must not fail the gate
+            print(f"Cleanup warning: {exc}")
+
+    report_path = write_report(
+        results, creds, [r["execution_id"] for r in results], cleanup_count
+    )
     print_results(results)
     if server_log_tail:
         print("\n--- server log tail ---\n" + server_log_tail)

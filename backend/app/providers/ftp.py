@@ -7,7 +7,7 @@ size-capped so a runaway file cannot blow up an execution payload.
 
 from __future__ import annotations
 
-import ftplib
+import ftplib  # nosec B402 - explicit FTP(S) connector; FTPS is supported and documented
 import io
 from typing import Any
 
