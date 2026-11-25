@@ -62,6 +62,10 @@ jobs:
         run: |
           grep -v " @ file://" requirements-lock.txt > "$RUNNER_TEMP/requirements-audit.txt"
           pip-audit -r "$RUNNER_TEMP/requirements-audit.txt" --no-deps --disable-pip
+      - name: SAST (bandit)
+        run: |
+          bandit -r app -lll -q
+          bandit -r app -ll --exit-zero -q
       - name: Typecheck
         run: pyright
       - name: Architecture boundaries
@@ -169,6 +173,8 @@ jobs:
         working-directory: backend
         run: |
           pip install alembic
+          alembic upgrade head
+          alembic downgrade -1
           alembic upgrade head
       - name: Start backend server
         working-directory: backend

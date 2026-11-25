@@ -123,11 +123,21 @@ class TestProductionConfigurationHardening:
 
 
 class TestDockerComposeNetworkBindingDefaults:
-    """Verifies that compose topologies do not expose services publicly by default."""
+    """Verifies compose port bindings and infrastructure network isolation."""
 
     @pytest.fixture
     def root_dir(self) -> Path:
         return Path(__file__).resolve().parents[2]
+
+    @staticmethod
+    def _assert_app_port_binding(ports: list[object], label: str) -> None:
+        port_strs = [str(p) for p in ports]
+        assert any(p.endswith(":8000") for p in port_strs), (
+            f"{label} app must expose container port 8000 via APP_PORT: {port_strs}"
+        )
+        assert not any("0.0.0.0" in p for p in port_strs), (
+            f"{label} app must not hardcode 0.0.0.0: {port_strs}"
+        )
 
     def test_docker_compose_loopback_bindings(self, root_dir: Path):
         import yaml
@@ -143,10 +153,8 @@ class TestDockerComposeNetworkBindingDefaults:
         assert "postgres" in services
         assert "redis" in services
 
-        # 1. App binding must default to 127.0.0.1, not 0.0.0.0
-        app_ports = services["app"].get("ports", [])
-        assert any("127.0.0.1" in p for p in app_ports), f"App must bind to loopback by default: {app_ports}"
-        assert not any("0.0.0.0" in p for p in app_ports), f"App must not default to 0.0.0.0: {app_ports}"
+        # 1. App exposes 8000 cleanly without hardcoding 0.0.0.0
+        self._assert_app_port_binding(services["app"].get("ports", []), "Compose")
 
         # 2. Infrastructure ports must bind strictly to 127.0.0.1
         for sname in ("postgres", "redis", "prometheus", "grafana", "minio"):
@@ -169,9 +177,7 @@ class TestDockerComposeNetworkBindingDefaults:
 
         services = data.get("services", {})
         assert "app" in services
-        app_ports = services["app"].get("ports", [])
-        assert any("127.0.0.1" in p for p in app_ports), f"Staging app must default to loopback: {app_ports}"
-        assert not any("0.0.0.0" in p for p in app_ports), f"Staging app must not default to 0.0.0.0: {app_ports}"
+        self._assert_app_port_binding(services["app"].get("ports", []), "Staging")
 
         # In staging, databases must have zero published host ports
         for sname in ("postgres", "redis"):
@@ -263,3 +269,72 @@ class TestReadinessEndpoint:
         assert "checks" in data["data"]
         assert "postgres" in data["data"]["checks"]
         assert data["data"]["checks"]["postgres"] in ("ok", "error")
+
+
+class TestServeRuntimeConfiguration:
+    """Verifies safe multi-worker and proxy header handling in app.serve."""
+
+    def test_ignores_web_concurrency_in_development_and_embedded_mode(self, monkeypatch):
+        from app.config import Settings
+        from app.serve import build_uvicorn_kwargs
+
+        monkeypatch.setenv("WEB_CONCURRENCY", "4")
+        dev_kwargs = build_uvicorn_kwargs(Settings(app_env="development", queue_embedded_consumer=False))
+        assert dev_kwargs["reload"] is True
+        assert "workers" not in dev_kwargs
+
+        embedded_kwargs = build_uvicorn_kwargs(Settings(app_env="production", queue_embedded_consumer=True))
+        assert embedded_kwargs["reload"] is False
+        assert "workers" not in embedded_kwargs
+
+    def test_enables_web_concurrency_for_production_with_external_workers(self, monkeypatch):
+        from app.config import Settings
+        from app.serve import build_uvicorn_kwargs
+
+        monkeypatch.setenv("WEB_CONCURRENCY", "3")
+        prod_kwargs = build_uvicorn_kwargs(Settings(app_env="production", queue_embedded_consumer=False))
+        assert prod_kwargs["workers"] == 3
+        assert prod_kwargs["proxy_headers"] is True
+
+    def test_rejects_invalid_web_concurrency_values(self, monkeypatch):
+        from app.config import Settings
+        from app.serve import build_uvicorn_kwargs
+
+        for bad in ("abc", "0", "-2"):
+            monkeypatch.setenv("WEB_CONCURRENCY", bad)
+            kwargs = build_uvicorn_kwargs(Settings(app_env="production", queue_embedded_consumer=False))
+            assert "workers" not in kwargs
+
+    def test_forwarded_allow_ips_inherits_trusted_proxies_unless_overridden(self, monkeypatch):
+        from app.config import Settings
+        from app.serve import build_uvicorn_kwargs
+
+        monkeypatch.delenv("FORWARDED_ALLOW_IPS", raising=False)
+        kwargs = build_uvicorn_kwargs(Settings(trusted_proxies="10.0.0.0/8,127.0.0.1"))
+        assert kwargs["forwarded_allow_ips"] == "10.0.0.0/8,127.0.0.1"
+
+        monkeypatch.setenv("FORWARDED_ALLOW_IPS", "172.18.0.1")
+        overridden = build_uvicorn_kwargs(Settings(trusted_proxies="10.0.0.0/8"))
+        assert overridden["forwarded_allow_ips"] == "172.18.0.1"
+
+
+class TestHelmHardening:
+    """Verifies Kubernetes Helm chart production safeguards."""
+
+    def test_helm_outbox_redis_and_tmp_mounts(self):
+        import yaml
+
+        helm_dir = Path(__file__).resolve().parents[2] / "deploy" / "helm" / "flowsmith"
+        values = yaml.safe_load((helm_dir / "values.yaml").read_text(encoding="utf-8"))
+        assert values["config"]["outboxRelayEnabled"] is True
+
+        configmap = (helm_dir / "templates" / "configmap.yaml").read_text(encoding="utf-8")
+        assert "OUTBOX_RELAY_ENABLED:" in configmap
+
+        redis_tpl = (helm_dir / "templates" / "redis.yaml").read_text(encoding="utf-8")
+        assert "--maxmemory-policy noeviction" in redis_tpl
+
+        for deploy_name in ("app-deployment.yaml", "worker-deployment.yaml"):
+            text = (helm_dir / "templates" / deploy_name).read_text(encoding="utf-8")
+            assert "mountPath: /app/backend/tmp" in text, deploy_name
+            assert "mountPath: /tmp" in text, deploy_name

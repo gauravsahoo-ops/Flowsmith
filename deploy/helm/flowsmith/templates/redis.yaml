@@ -46,7 +46,7 @@ spec:
           command:
             - sh
             - -c
-            - exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+            - exec redis-server --appendonly yes --maxmemory-policy noeviction --requirepass "$REDIS_PASSWORD"
           ports:
             - name: redis
               containerPort: 6379

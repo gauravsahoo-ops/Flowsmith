@@ -12,6 +12,7 @@ data:
   APP_ENV: {{ .Values.config.appEnv | quote }}
   QUEUE_BACKEND: {{ .Values.config.queueBackend | quote }}
   QUEUE_EMBEDDED_CONSUMER: "false"
+  OUTBOX_RELAY_ENABLED: {{ .Values.config.outboxRelayEnabled | quote }}
   RUN_MIGRATIONS_ON_STARTUP: "false"
   SERVE_FRONTEND: {{ .Values.config.serveFrontend | quote }}
   HOST: "0.0.0.0"

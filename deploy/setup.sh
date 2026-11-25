@@ -86,6 +86,13 @@ if [ -z "${REDIS_PASSWORD:-}" ]; then
   green "REDIS_PASSWORD generated and appended to .env.production"
 fi
 
+if [ -z "${METRICS_TOKEN:-}" ]; then
+  bold "Generating METRICS_TOKEN..."
+  METRICS_TOK=$(generate_secret)
+  echo "METRICS_TOKEN=$METRICS_TOK" >> .env.production
+  green "METRICS_TOKEN generated and appended to .env.production"
+fi
+
 # ── Deploy ────────────────────────────────────────────────────
 bold "Building and starting services..."
 
@@ -123,7 +130,7 @@ bold "Deploy complete!"
 echo ""
 echo "  App:        http://localhost:${APP_PORT:-8000}"
 echo "  Health:     http://localhost:${APP_PORT:-8000}/api/health"
-echo "  Readiness:  http://localhost:${APP_PORT:-8000}/readyz"
+echo "  Readiness:  http://localhost:${APP_PORT:-8000}/api/readyz"
 
 if [[ "$*" == *"--monitoring"* ]]; then
   echo "  Prometheus: http://localhost:9090"

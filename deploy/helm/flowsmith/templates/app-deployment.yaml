@@ -91,6 +91,10 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /app/backend/data
+            - name: backend-tmp
+              mountPath: /app/backend/tmp
+            - name: system-tmp
+              mountPath: /tmp
       volumes:
         - name: data
           {{- if .Values.persistence.enabled }}
@@ -99,6 +103,10 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: backend-tmp
+          emptyDir: {}
+        - name: system-tmp
+          emptyDir: {}
       {{- with .Values.app.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

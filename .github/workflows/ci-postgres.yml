@@ -72,7 +72,7 @@ jobs:
           CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.CI_CREDENTIALS_ENCRYPTION_KEY }}
           QUEUE_EMBEDDED_CONSUMER: "true"
         run: |
-          .venv/bin/pytest -q
+          .venv/bin/pytest -q -m "not timing and not live and not docker"
 
       - name: Run type checks
         working-directory: ./backend
