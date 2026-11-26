@@ -26,6 +26,15 @@ def connector_key_for(name: str) -> str:
     return key[:48]
 
 
+def scoped_connector_key(base_key: str, user_id: int) -> str:
+    """Namespace a generated connector key to its owning user.
+
+    The key is used as the node type and registry id, so the user prefix keeps
+    two accounts installing the same manifest from colliding.
+    """
+    return f"u{int(user_id)}_{base_key}"[:120]
+
+
 def _py_str(value: str) -> str:
     return json.dumps(value)
 

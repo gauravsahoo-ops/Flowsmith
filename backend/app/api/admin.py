@@ -1,8 +1,9 @@
 """Maintenance endpoints (M9 hardening): manual retention prune.
 
 The maintenance daemon prunes automatically on its interval; this
-endpoint lets signed-in users run a prune now (optionally with a custom
-window) or preview what a prune would remove without deleting anything.
+endpoint lets signed-in users run a prune now for the workflows they own
+(optionally with a custom window) or preview what a prune would remove
+without deleting anything. It never touches another account's executions.
 """
 
 from __future__ import annotations
@@ -13,12 +14,13 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.access import owned_ids
+from app.api.auth import get_current_user
+from app.api.common import ok
 from app.audit import ADMIN_PRUNE, log_event
 from app.config import get_settings
 from app.db import get_db
 from app.maintenance import prune
-from app.api.auth import get_current_user
-from app.api.common import ok
 from app.models import User
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -37,7 +39,12 @@ def prune_endpoint(
 ) -> dict:
     days = body.days or get_settings().execution_retention_days
     before = datetime.now(UTC) - timedelta(days=days)
-    counts = prune(db, before, dry_run=body.dry_run)
+    counts = prune(
+        db,
+        before,
+        dry_run=body.dry_run,
+        workflow_ids=owned_ids(db, actor),
+    )
     if not body.dry_run:
         log_event(db, ADMIN_PRUNE, target_type="system", target_id="executions",
                   user_id=actor.id, detail={"days": days, **counts})

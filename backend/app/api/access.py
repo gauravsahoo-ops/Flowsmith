@@ -9,6 +9,8 @@ Rules:
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -25,6 +27,123 @@ from app.models import (
 PERMISSION_EDIT = "edit"
 PERMISSION_VIEW = "view"
 SHARE_PERMISSIONS = (PERMISSION_VIEW, PERMISSION_EDIT)
+ORG_ADMIN_ROLES = frozenset({"owner", "admin", "founder"})
+
+
+def user_organization_id(db: Session, user: User) -> str | None:
+    """Primary organization for account-scoped settings.
+
+    ``users.organization_id`` is authoritative. Legacy rows fall back to the
+    organization of their default workspace, then to their first membership
+    (locally registered accounts get a personal organization at signup).
+    """
+    if user.organization_id:
+        return user.organization_id
+    if user.workspace_id:
+        workspace = db.get(Workspace, user.workspace_id)
+        if workspace is not None:
+            return workspace.organization_id
+    membership_org = db.scalar(
+        select(OrganizationMember.organization_id)
+        .where(OrganizationMember.user_id == user.id)
+        .order_by(OrganizationMember.id)
+    )
+    return membership_org
+
+
+def organization_roles(db: Session, user: User) -> set[str]:
+    """Role and permission strings the user holds in their primary org."""
+    org_id = user_organization_id(db, user)
+    if not org_id:
+        return set()
+    member = db.scalar(
+        select(OrganizationMember).where(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.user_id == user.id,
+        )
+    )
+    if member is None:
+        return set()
+    return {(member.role or "").lower(), (member.permission or "").lower()}
+
+
+def is_organization_admin(db: Session, user: User) -> bool:
+    return bool(organization_roles(db, user) & ORG_ADMIN_ROLES)
+
+
+def require_organization_admin(db: Session, user: User) -> str:
+    """Return the caller's organization id or raise 400/403."""
+    org_id = user_organization_id(db, user)
+    if not org_id:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "An organization is required to change account settings.",
+        )
+    if not is_organization_admin(db, user):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Organization owner or admin access is required.",
+        )
+    return org_id
+
+
+def organization_user_ids(db: Session, user: User) -> set[int]:
+    """Ids visible in the caller's organization scope.
+
+    A user with no organization sees only their own account. The query also
+    includes users whose primary ``organization_id`` points at the org but
+    whose membership row is missing (legacy imports).
+    """
+    org_id = user_organization_id(db, user)
+    if not org_id:
+        return {user.id}
+    member_ids = set(
+        db.scalars(
+            select(OrganizationMember.user_id).where(
+                OrganizationMember.organization_id == org_id
+            )
+        ).all()
+    )
+    primary_ids = set(
+        db.scalars(select(User.id).where(User.organization_id == org_id)).all()
+    )
+    return (member_ids | primary_ids) or {user.id}
+
+
+def validate_connector_ownership(
+    db: Session, user_id: int, nodes: Any
+) -> None:
+    """Reject nodes that use a generated connector owned by another account."""
+    from app.models import GeneratedConnector
+
+    hidden = set(
+        db.scalars(
+            select(GeneratedConnector.connector_key).where(
+                GeneratedConnector.user_id != user_id
+            )
+        ).all()
+    )
+    if not hidden:
+        return
+    for node in nodes or []:
+        node_type = (
+            node.get("type") if isinstance(node, dict) else getattr(node, "type", None)
+        )
+        if node_type in hidden:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "Workflow references a connector owned by another account.",
+            )
+
+
+def require_instance_admin(user: User) -> User:
+    """Guard global infrastructure actions (packs, maintenance, registry)."""
+    if (user.role or "").lower() != "admin":
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Instance administrator access is required.",
+        )
+    return user
 
 
 def workspace_can_view(db: Session, ws_id: str, user_id: int) -> bool:
@@ -150,6 +269,18 @@ def get_workflow(
 
 def is_owner(db: Session, workflow_id: str, user: User) -> bool:
     return get_permission(db, workflow_id, user) == "owner"
+
+
+def owned_ids(db: Session, user: User) -> set[str]:
+    """Ids of workflows the user owns (deleted excluded)."""
+    return set(
+        db.scalars(
+            select(WorkflowRecord.id).where(
+                WorkflowRecord.user_id == user.id,
+                WorkflowRecord.deleted_at.is_(None),
+            )
+        ).all()
+    )
 
 
 def accessible_ids(db: Session, user: User) -> set[str]:

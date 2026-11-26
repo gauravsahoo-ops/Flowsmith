@@ -19,6 +19,7 @@ from app.api.common import ok, page_params
 from app.audit import log_event
 from app.db import get_db
 from app.models import (
+    BrandingSetting,
     Environment,
     FileRecord,
     Organization,
@@ -118,6 +119,10 @@ def create_organization(payload: OrganizationCreate, user: User = Depends(get_cu
         permission="admin",
     )
     db.add(member)
+    # A user who creates a team organization joins its settings scope. The
+    # personal organization remains available as a fallback after removal.
+    if user.organization_id in (None, f"org_personal_{user.id}"):
+        user.organization_id = org_id
     db.commit()
     log_event(db, ORG_CREATED, target_type="organization", target_id=org_id, user_id=user.id)
     return ok({"id": org_id, "name": org.name})
@@ -237,6 +242,7 @@ def delete_organization(org_id: str, user: User = Depends(get_current_user), db:
         )
         db.execute(delete(Environment).where(Environment.workspace_id.in_(ws_ids)))
     db.execute(update(User).where(User.organization_id == org_id).values(organization_id=None))
+    db.execute(delete(BrandingSetting).where(BrandingSetting.organization_id == org_id))
     db.execute(delete(WorkspaceMember).where(WorkspaceMember.workspace_id.in_(ws_ids)))
     db.execute(delete(Workspace).where(Workspace.organization_id == org_id))
     db.query(OrganizationMember).where(OrganizationMember.organization_id == org_id).delete()
@@ -296,6 +302,10 @@ def add_member(org_id: str, payload: MemberAdd, user: User = Depends(get_current
         permission=payload.permission,
     )
     db.add(member)
+    # Invited members follow the organization's branding/audit scope unless
+    # they already belong to another team organization.
+    if target_user.organization_id in (None, f"org_personal_{target_user.id}"):
+        target_user.organization_id = org_id
     db.commit()
     log_event(db, ORG_MEMBER_ADDED, target_type="organization", target_id=org_id, user_id=user.id,
               detail={"member_user_id": payload.user_id})
@@ -315,6 +325,14 @@ def remove_member(org_id: str, member_user_id: int, user: User = Depends(get_cur
     if member is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found.")
     db.delete(member)
+    # Restore the removed member's personal organization as the primary
+    # settings scope.
+    target_user = db.get(User, member_user_id)
+    if target_user is not None and target_user.organization_id == org_id:
+        personal_org = f"org_personal_{member_user_id}"
+        target_user.organization_id = (
+            personal_org if db.get(Organization, personal_org) is not None else None
+        )
     db.commit()
     log_event(db, ORG_MEMBER_REMOVED, target_type="organization", target_id=org_id, user_id=user.id,
               detail={"member_user_id": member_user_id})

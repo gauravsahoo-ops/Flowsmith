@@ -13,7 +13,8 @@ const SAMPLE_MANIFEST = `{
   "templates": []
 }`
 
-export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalled }) {
+// Every account can manage its own packs; the API scopes them per user.
+export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalled, canManage = true }) {
   const [tab, setTab] = useState('url')
   const [manifestUrl, setManifestUrl] = useState('')
   const [manifestRaw, setManifestRaw] = useState('')
@@ -210,6 +211,21 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
             structure, and strips credentials/secrets from imported templates.
           </div>
 
+          {!canManage && (
+            <div
+              style={{
+                padding: '9px 12px',
+                background: 'rgba(99, 102, 241, 0.1)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+            >
+              Only an instance administrator can install, upgrade, or uninstall packs.
+              Installed packs are listed below.
+            </div>
+          )}
+
           {upgradeKey && (
             <div
               style={{
@@ -231,6 +247,7 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
             </div>
           )}
 
+          {canManage && (<>
           <div className="oai-tabs">
             <button
               type="button"
@@ -349,6 +366,7 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
               )}
             </div>
           )}
+          </>)}
 
           {error && <div className="oai-error-banner">{error}</div>}
           {success && (
@@ -370,7 +388,7 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
             <button type="button" className="oai-btn ghost" onClick={onClose}>
               Close
             </button>
-            {tab !== 'registry' && (
+            {canManage && tab !== 'registry' && (
               <button
                 type="button"
                 className="oai-btn primary"
@@ -422,6 +440,7 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span className="oai-hint">{pack.category}</span>
+                      {canManage && (<>
                       <button
                         type="button"
                         className="oai-btn ghost"
@@ -437,6 +456,7 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
                       >
                         {removingKey === pack.connector_key ? 'Removing...' : 'Uninstall'}
                       </button>
+                      </>)}
                     </div>
                   </div>
                 ))}

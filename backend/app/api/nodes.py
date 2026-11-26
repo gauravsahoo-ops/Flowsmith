@@ -10,16 +10,27 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
 from app.api.common import ok
 from app.connectors import get_registry as _get_connector_registry
 from app.connectors.naming import is_hidden_in_catalog
-from app.models import User
+from app.db import get_db
+from app.models import GeneratedConnector, User
 from app.nodes.registry import NODE_REGISTRY, list_nodes
 from app.parameters import ParameterSchemaBuilder
 
 router = APIRouter(prefix="/api/nodes", tags=["nodes"])
+
+
+def _hidden_node_types(db: Session, user: User) -> set[str]:
+    return set(db.scalars(
+        select(GeneratedConnector.connector_key).where(
+            GeneratedConnector.user_id != user.id
+        )
+    ).all())
 
 
 def _connector_operation_enum(connector_key: str) -> list[str]:
@@ -389,14 +400,29 @@ def _build_and_cache_full_catalog() -> list[dict]:
 
 
 @router.get("")
-def get_nodes(user: User = Depends(get_current_user)) -> dict:
-    if _is_cache_valid() and _CACHED_ALL_NODES is not None:
-        return ok(_CACHED_ALL_NODES)
-    return ok(_build_and_cache_full_catalog())
+def get_nodes(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    nodes = (
+        _CACHED_ALL_NODES
+        if _is_cache_valid() and _CACHED_ALL_NODES is not None
+        else _build_and_cache_full_catalog()
+    )
+    hidden = _hidden_node_types(db, user)
+    if hidden:
+        nodes = [n for n in nodes if n.get("type") not in hidden]
+    return ok(nodes)
 
 
 @router.get("/{node_type}/schema")
-def get_node_schema(node_type: str, user: User = Depends(get_current_user)) -> dict:
+def get_node_schema(
+    node_type: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    if node_type in _hidden_node_types(db, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown node type '{node_type}'.")
     if not _is_cache_valid():
         _build_and_cache_full_catalog()
     if node_type in _CACHED_NODE_SCHEMAS:
@@ -413,8 +439,14 @@ def get_node_schema(node_type: str, user: User = Depends(get_current_user)) -> d
 
 
 @router.get("/{node_type}/parameters")
-def get_node_parameters(node_type: str, user: User = Depends(get_current_user)) -> dict:
+def get_node_parameters(
+    node_type: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
     """Return enriched parameter fields, operation metadata, and credentials requirements."""
+    if node_type in _hidden_node_types(db, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown node type '{node_type}'.")
     if not _is_cache_valid():
         _build_and_cache_full_catalog()
     if node_type in _CACHED_NODE_PARAMS:

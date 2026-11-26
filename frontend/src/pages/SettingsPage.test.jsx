@@ -36,7 +36,7 @@ describe('SettingsPage Component', () => {
     expect(html).toContain('Automatic Email Alerts')
     expect(html).toContain('Alert Recipient Email Override')
     expect(html).toContain('Alert Throttling &amp; Delivery Routing')
-    expect(html).toContain('Platform Audit Trail')
+    expect(html).toContain('Organization Audit Trail')
     expect(html).toContain('Action Filter:')
     expect(html).toContain('No audit events recorded matching current filter.')
   })

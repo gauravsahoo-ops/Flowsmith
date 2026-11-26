@@ -1,5 +1,7 @@
-"""Audit log API: signed-in users can browse security-relevant events
-with filtering and pagination.
+"""Audit log API, scoped to the signed-in user.
+
+Every account sees only the security-relevant events it generated. Platform
+system events (no user attribution) are not exposed through this per-user API.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ router = APIRouter(prefix="/api/audit", tags=["audit"])
 
 @router.get("")
 def list_events(
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     action: str | None = None,
     user_id: int | None = None,
@@ -26,14 +28,17 @@ def list_events(
     pageSize: int = 50,
 ) -> dict:
     page, size = page_params(page=page, pageSize=pageSize)
-    stmt = select(AuditEvent)
-    count_stmt = select(func.count()).select_from(AuditEvent)
+    visibility = AuditEvent.user_id == user.id
+
+    stmt = select(AuditEvent).where(visibility)
+    count_stmt = select(func.count()).select_from(AuditEvent).where(visibility)
     if action:
         stmt = stmt.where(AuditEvent.action == action)
         count_stmt = count_stmt.where(AuditEvent.action == action)
-    if user_id is not None:
-        stmt = stmt.where(AuditEvent.user_id == user_id)
-        count_stmt = count_stmt.where(AuditEvent.user_id == user_id)
+    if user_id is not None and user_id != user.id:
+        # A different account's history is indistinguishable from no history.
+        stmt = stmt.where(AuditEvent.id.is_(None))
+        count_stmt = count_stmt.where(AuditEvent.id.is_(None))
     total = db.scalar(count_stmt) or 0
     events = db.scalars(
         stmt.order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc())

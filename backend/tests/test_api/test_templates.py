@@ -43,6 +43,17 @@ def test_update_template_metadata(client):
     assert row["is_mine"] is True
 
 
+def test_public_template_is_still_private_to_its_owner(client):
+    owner_headers = _headers(client)
+    other = auth_headers(register(client, email="tmpl-isolated@x.com")["token"])
+    t = _make_template(client, owner_headers, name="Owner Public", is_public=True)
+
+    other_ids = {row["id"] for row in client.get("/api/templates", headers=other).json()["data"]}
+    assert t["id"] not in other_ids
+    assert client.get(f"/api/templates/{t['id']}", headers=other).status_code == 404
+    assert client.post(f"/api/templates/{t['id']}/use", headers=other).status_code == 404
+
+
 def test_update_requires_creator(client):
     owner = _headers(client)
     t = _make_template(client, owner)

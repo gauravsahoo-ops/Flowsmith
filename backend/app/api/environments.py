@@ -404,11 +404,12 @@ def list_templates(
     page: int = Query(default=1, ge=1),
     pageSize: int = Query(default=100, ge=1),
 ) -> dict:
-    """List public templates and user's own templates."""
+    """List the user's own templates plus the built-in template library."""
     ensure_default_templates(db, user.id)
     page, size = page_params(page, pageSize)
     stmt = select(WorkflowTemplate).where(
-        (WorkflowTemplate.is_public == True) | (WorkflowTemplate.created_by == user.id)
+        (WorkflowTemplate.created_by == user.id)
+        | (WorkflowTemplate.name.in_(_DEFAULT_TEMPLATE_NAMES))
     ).order_by(WorkflowTemplate.use_count.desc()).offset((page - 1) * size).limit(size)
     templates = db.execute(stmt).scalars().all()
     return ok([{
@@ -459,6 +460,7 @@ def update_template(
     if payload.category is not None:
         tmpl.category = payload.category
     if payload.is_public is not None:
+        # Public is account-local: another user's list never includes this row.
         tmpl.is_public = payload.is_public
     db.commit()
     log_event(db, TEMPLATE_UPDATED, target_type="template", target_id=str(template_id), user_id=user.id)
@@ -469,9 +471,9 @@ def update_template(
 def get_template(template_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     """Preview a template (read-only)."""
     tmpl = db.get(WorkflowTemplate, template_id)
-    if tmpl is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Template not found.")
-    if not tmpl.is_public and tmpl.created_by != user.id:
+    if tmpl is None or (
+        tmpl.created_by != user.id and tmpl.name not in _DEFAULT_TEMPLATE_NAMES
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Template not found.")
     raw = tmpl.workflow_data
     data = json.loads(raw if isinstance(raw, str) else json.dumps(raw))
@@ -514,7 +516,7 @@ def use_template(template_id: int, user: User = Depends(get_current_user), db: S
     tmpl = db.get(WorkflowTemplate, template_id)
     if tmpl is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Template not found.")
-    if not tmpl.is_public and tmpl.created_by != user.id:
+    if tmpl.created_by != user.id and tmpl.name not in _DEFAULT_TEMPLATE_NAMES:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Template not found.")
     tmpl.use_count += 1
     db.commit()

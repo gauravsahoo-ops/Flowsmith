@@ -18,8 +18,12 @@ from app.api.auth import get_current_user
 from app.api.common import ok
 from app.db import get_db
 from app.models import Execution, User, WorkflowRecord
-from app.api.access import accessible_ids, get_permission, PERMISSION_VIEW
-from app.utils.backup import create_backup, list_backups
+from app.api.access import (
+    PERMISSION_VIEW,
+    accessible_ids,
+    get_permission,
+)
+from app.services.user_export import create_user_export, list_user_exports
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +102,7 @@ MCP_TOOLS: list[MCPTool] = [
     ),
     MCPTool(
         name="create_backup",
-        description="Create a database backup",
+        description="Create a private export of your account data",
         input_schema={
             "type": "object",
             "properties": {
@@ -108,7 +112,7 @@ MCP_TOOLS: list[MCPTool] = [
     ),
     MCPTool(
         name="list_backups",
-        description="List available database backups",
+        description="List your private account exports",
         input_schema={"type": "object", "properties": {}},
     ),
     MCPTool(
@@ -268,7 +272,7 @@ def list_mcp_prompts(user: User = Depends(get_current_user)) -> dict:
 
 @router.get("/api/mcp/tools")
 def list_mcp_tools(user: User = Depends(get_current_user)) -> dict:
-    """List available MCP tools."""
+    """List available MCP tools (account export tools included)."""
     return ok([t.model_dump() for t in MCP_TOOLS])
 
 
@@ -399,11 +403,11 @@ async def call_mcp_tool(
                     "Invalid backup name: use 1-64 characters starting with a "
                     "letter or digit (letters, digits, '.', '_', '-').",
                 )
-            filepath = create_backup(name=backup_name)
-            result = {"filename": filepath.name, "path": str(filepath)}
+            filepath = create_user_export(db, user.id, backup_name)
+            result = {"filename": filepath.name, "name": filepath.name}
 
         elif payload.name == "list_backups":
-            result = list_backups()
+            result = list_user_exports(user.id)
 
         elif payload.name == "set_workflow_active":
             from app.api.workflows import _set_active_impl
@@ -454,10 +458,20 @@ async def call_mcp_tool(
             from app.connectors.naming import is_hidden_in_catalog
             ensure_builtin_connectors()
             registry = get_conn_registry()
+            from sqlalchemy import select as _select
+
+            from app.models import GeneratedConnector
+
+            hidden = set(db.scalars(
+                _select(GeneratedConnector.connector_key).where(
+                    GeneratedConnector.user_id != user.id
+                )
+            ).all())
             category_filter = args.get("category")
             definitions = [
                 d for d in registry.list_definitions()
                 if not is_hidden_in_catalog(d.connector_key)
+                and d.connector_key not in hidden
             ]
             if category_filter:
                 definitions = [d for d in definitions if d.category == category_filter]

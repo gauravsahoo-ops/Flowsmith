@@ -23,10 +23,13 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
 from app.api.common import ok
-from app.models import User
+from app.db import get_db
+from app.models import GeneratedConnector, User
 from app.connectors.registry import ConnectorRegistry
 from app.connectors import get_registry as _get_registry, ensure_builtin_connectors
 from app.connectors.naming import is_hidden_in_catalog
@@ -40,15 +43,26 @@ def get_registry() -> ConnectorRegistry:
     return _get_registry()
 
 
+def _hidden_connector_keys(db: Session, user: User) -> set[str]:
+    """Generated connectors owned by another account."""
+    return set(db.scalars(
+        select(GeneratedConnector.connector_key).where(
+            GeneratedConnector.user_id != user.id
+        )
+    ).all())
+
+
 @router.get("")
 def list_connectors(
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> dict:
-    """List all registered connectors (public discovery)."""
+    """List the account's connectors (built-ins plus its generated ones)."""
     registry = get_registry()
+    hidden = _hidden_connector_keys(db, user)
     definitions = [
         d for d in registry.list_definitions()
-        if not is_hidden_in_catalog(d.connector_key)
+        if not is_hidden_in_catalog(d.connector_key) and d.connector_key not in hidden
     ]
     return ok(
         [
@@ -74,8 +88,14 @@ def list_connectors(
 def get_connector(
     connector_key: str,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> dict:
     """Get connector definition by key."""
+    if connector_key in _hidden_connector_keys(db, user):
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            f"Connector '{connector_key}' not found.",
+        )
     registry = get_registry()
     definition = registry.get_definition(connector_key)
     if definition is None:
@@ -134,8 +154,11 @@ def get_connector(
 def get_connector_operations(
     connector_key: str,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> dict:
     """Get operation definitions for a connector."""
+    if connector_key in _hidden_connector_keys(db, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Connector '{connector_key}' not found.")
     registry = get_registry()
     definition = registry.get_definition(connector_key)
     if definition is None:
@@ -168,8 +191,11 @@ def get_connector_operations(
 def get_connector_triggers(
     connector_key: str,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> dict:
     """Get trigger definitions for a connector."""
+    if connector_key in _hidden_connector_keys(db, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Connector '{connector_key}' not found.")
     registry = get_registry()
     definition = registry.get_definition(connector_key)
     if definition is None:
@@ -198,8 +224,11 @@ def get_connector_triggers(
 def get_connector_credential_types(
     connector_key: str,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> dict:
     """Get credential type definitions for a connector."""
+    if connector_key in _hidden_connector_keys(db, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Connector '{connector_key}' not found.")
     registry = get_registry()
     definition = registry.get_definition(connector_key)
     if definition is None:
@@ -296,12 +325,14 @@ async def preview_openapi(
     })
 
 
-@router.post("/import-openapi")
-async def import_openapi(
+async def _import_openapi_impl(
     body: ImportOpenApiRequest,
-    user: User = Depends(get_current_user),
+    user: User,
+    db: Session,
+    *,
+    force_key: str | None = None,
 ) -> dict:
-    """Generate and register a first-class Flowsmith connector from an OpenAPI/Swagger spec."""
+    """Generate and register a private connector for the caller's account."""
     from pathlib import Path
     from app.connectors.openapi_import import parse_spec
     from app.connectors.openapi_emit import (
@@ -309,6 +340,7 @@ async def import_openapi(
         emit_connector_files,
         register_generated,
     )
+    from app.connectors.ownership import resolve_user_connector_key
 
     name = body.name.strip()
     if not body.spec or not name:
@@ -336,7 +368,15 @@ async def import_openapi(
     if not api_spec.operations:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No operations found in OpenAPI spec.")
 
-    key = connector_key_for(name)
+    manifest_key = connector_key_for(name)
+    key = force_key or resolve_user_connector_key(db, user.id, manifest_key)
+    if force_key:
+        owner = db.get(GeneratedConnector, key)
+        if owner is not None and owner.user_id != user.id:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Connector key belongs to another account.",
+            )
     display = body.title.strip() or api_spec.title or name
     files = emit_connector_files(key, display, api_spec, body.category or "api")
 
@@ -372,14 +412,37 @@ async def import_openapi(
     registry = get_registry()
     count = register_generated(registry, str(gen_dir))
 
+    owner = db.get(GeneratedConnector, key)
+    if owner is None:
+        db.add(GeneratedConnector(
+            connector_key=key,
+            user_id=user.id,
+            source="import",
+        ))
+    else:
+        owner.user_id = user.id
+        owner.source = "import"
+    db.commit()
+
     return ok({
         "success": True,
         "connector_key": key,
+        "manifest_key": manifest_key,
         "display_name": display,
         "operations_count": len(api_spec.operations),
         "auth_kind": api_spec.auth.kind,
         "registered_count": count,
     })
+
+
+@router.post("/import-openapi")
+async def import_openapi(
+    body: ImportOpenApiRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Generate and register a private connector for the caller's account."""
+    return await _import_openapi_impl(body, user, db)
 
 
 class ConnectorDiagnoseBody(BaseModel):
@@ -389,10 +452,11 @@ class ConnectorDiagnoseBody(BaseModel):
 @router.get("/diagnostics/summary")
 def get_connector_certification_summary(
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> dict:
-    """Return an overall diagnostic audit of all registered connectors and their certification status."""
+    """Return a diagnostic audit of the caller's connector catalog."""
     from app.connectors.diagnostic_engine import list_all_certification_tiers
-    return ok(list_all_certification_tiers())
+    return ok(list_all_certification_tiers(_hidden_connector_keys(db, user)))
 
 
 @router.get("/{connector_key}/diagnose")
@@ -401,11 +465,14 @@ async def diagnose_connector_endpoint(
     connector_key: str,
     body: ConnectorDiagnoseBody | None = None,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> dict:
     """Perform a comprehensive diagnostic inspection and live probe on a connector."""
+    if connector_key in _hidden_connector_keys(db, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Connector '{connector_key}' not found.")
     from app.connectors.diagnostic_engine import diagnose_connector
     creds = body.credentials if body else None
     result = await diagnose_connector(connector_key, credentials=creds)
     if not result.get("ok"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, result.get("error", "Connector not found"))
-    return ok(result)
+    return ok(result)

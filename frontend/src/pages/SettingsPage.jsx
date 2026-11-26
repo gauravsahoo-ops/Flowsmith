@@ -47,6 +47,9 @@ export default function SettingsPage() {
   const [keyBusy, setKeyBusy] = useState(false)
 
   const branding = useBrandingStore()
+  // Branding is private to the signed-in account; every authenticated user
+  // can customize their own brand.
+  const canEditBranding = Boolean(getToken())
   const soundEffects = useUiStore((s) => s.soundEffects)
   const toggleSoundEffects = useUiStore((s) => s.toggleSoundEffects)
   const showMiniMap = useUiStore((s) => s.showMiniMap)
@@ -166,12 +169,13 @@ export default function SettingsPage() {
 
   async function handleSaveBranding(e) {
     e.preventDefault()
+    if (!canEditBranding) return
     setBrandBusy(true)
     setError(null)
     setBrandNotice(null)
     try {
       await branding.updateBranding(brandForm)
-      setBrandNotice('Branding configuration saved and applied across the entire platform!')
+      setBrandNotice('Branding configuration saved and applied to your account!')
       setTimeout(() => setBrandNotice(null), 4000)
     } catch (err) {
       setError(err.message || 'Failed to update branding.')
@@ -181,6 +185,7 @@ export default function SettingsPage() {
   }
 
   async function handleResetBranding() {
+    if (!canEditBranding) return
     if (!window.confirm('Reset software name, logo, and colors back to Flowsmith defaults?')) return
     setBrandBusy(true)
     setError(null)
@@ -589,10 +594,9 @@ export default function SettingsPage() {
 
       <Section
         title="Branding & White-Labeling"
-        description="Customize the software name, company logo, tagline, and brand colors for your organization or clients."
+        description="Customize the software name, company logo, tagline, and brand colors for your own account."
       >
         {brandNotice && <div className="banner-inline ok" style={{ marginBottom: 14 }}>{brandNotice}</div>}
-
         <div className="branding-grid">
           {/* Left column: Branding Form */}
           <form onSubmit={handleSaveBranding} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1773,7 +1777,7 @@ export default function SettingsPage() {
         </ul>
       </Section>
 
-      <Section title="Platform Audit Trail" description="Immutable security audit events, credential operations, and user access history.">
+      <Section title="Organization Audit Trail" description="Immutable security audit events for your organization, including credential operations and user access history.">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <label style={{ fontSize: 12.5, color: '#94a3b8' }}>

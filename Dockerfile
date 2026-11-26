@@ -30,7 +30,12 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 COPY requirements-lock.txt ./
-RUN pip install --no-cache-dir -r requirements-lock.txt
+RUN pip install --no-cache-dir -r requirements-lock.txt \
+    # Test-only tooling is not part of the runtime surface. Playwright ships a
+    # bundled Node binary that carries high-severity CVEs and is never used by
+    # the API/worker process.
+    && pip uninstall -y playwright pytest pytest-asyncio pytest-cov pytest-xdist \
+    && rm -rf /usr/local/lib/python3.12/site-packages/playwright
 
 COPY backend/ ./backend
 COPY docs/integration-platform/LIVE_CERTIFICATION_EVIDENCE.json ./docs/integration-platform/

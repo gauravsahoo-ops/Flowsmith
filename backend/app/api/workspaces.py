@@ -107,6 +107,12 @@ def ensure_personal_workspace(db: Session, user: User) -> Workspace:
         role="admin",
         permission="edit",
     ))
+    # Pin the personal organization/workspace as the account default when
+    # none is set. Provisioned users keep their assigned organization.
+    if not user.organization_id:
+        user.organization_id = org.id
+    if not user.workspace_id:
+        user.workspace_id = ws.id
     db.commit()
     return ws
 

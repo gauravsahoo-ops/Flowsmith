@@ -103,16 +103,21 @@ def test_prune_cutoff_keeps_newer_executions(client):
         db.close()
 
 
-def test_prune_endpoint_allows_any_signed_in_user(client):
+def test_prune_endpoint_is_scoped_to_the_callers_workflows(client):
     user = register(client)
     auth = auth_headers(user["token"])
     other = register(client, email="other@corp.io")
     _seed(client, user_id=user["user"]["id"])
 
-    # Any signed-in user may preview; dry run deletes nothing.
-    resp = client.post("/api/admin/maintenance/prune", json={}, headers=auth_headers(other["token"]))
+    # Another account's preview sees none of this user's executions and
+    # deletes nothing.
+    resp = client.post("/api/admin/maintenance/prune", json={"days": 30}, headers=auth_headers(other["token"]))
     assert resp.status_code == 200
     assert resp.json()["data"]["dry_run"] is True
+    assert resp.json()["data"]["executions"] == 0
+    db = get_session()
+    assert db.get(Execution, "exec_old") is not None
+    db.close()
 
     # Admin dry run: preview, nothing deleted.
     resp = client.post("/api/admin/maintenance/prune", json={"dry_run": True, "days": 30}, headers=auth)

@@ -148,8 +148,10 @@ async def diagnose_connector(
     }
 
 
-def list_all_certification_tiers() -> dict[str, Any]:
-    """Return an exhaustive diagnostic summary of all registered connectors and their certification status."""
+def list_all_certification_tiers(
+    hidden_keys: set[str] | None = None,
+) -> dict[str, Any]:
+    """Return a diagnostic summary of connectors visible to the caller."""
     ensure_builtin_connectors()
     registry = get_registry()
 
@@ -162,6 +164,8 @@ def list_all_certification_tiers() -> dict[str, Any]:
     }
 
     for info in registry.list_all():
+        if hidden_keys and info.connector_id in hidden_keys:
+            continue
         cid = info.connector_id.lower()
         if cid in LIVE_VALIDATED_CONNECTORS:
             t = "Tier 1: LIVE_API_VALIDATED"

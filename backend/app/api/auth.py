@@ -24,6 +24,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.api.access import ORG_ADMIN_ROLES, organization_roles
 from app.api.common import ok
 from app.audit import (
     LOGIN,
@@ -244,9 +245,19 @@ def _auth_payload(
             session_id = session.id
         except Exception:
             logger.exception("Failed to create AuthSession for user %s", user.email)
+    roles = organization_roles(db, user) if db is not None else set()
+    organization_role = (
+        "admin" if roles & ORG_ADMIN_ROLES else ("member" if roles else None)
+    )
     payload = {
         "token": token,
-        "user": {"id": user.id, "email": user.email, "role": user.role},
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role,
+            "organization_id": user.organization_id,
+            "organization_role": organization_role,
+        },
     }
     if session_id:
         payload["session_id"] = session_id
@@ -1706,12 +1717,21 @@ def update_user_session_settings(
 
 
 @router.get("/me")
-def get_me(user: User = Depends(get_current_user)) -> dict:
+def get_me(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
     """Return the authenticated user profile."""
+    roles = organization_roles(db, user)
+    organization_role = (
+        "admin" if roles & ORG_ADMIN_ROLES else ("member" if roles else None)
+    )
     return ok({
         "id": user.id,
         "email": user.email,
         "role": user.role,
+        "organization_id": user.organization_id,
+        "organization_role": organization_role,
         "active": user.active,
         "mfa_enabled": bool(user.mfa_enabled),
         "created_at": str(user.created_at) if hasattr(user, "created_at") else None,

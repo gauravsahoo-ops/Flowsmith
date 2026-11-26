@@ -19,6 +19,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 import httpx
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.client import LLMError, chat_completion
@@ -33,7 +34,7 @@ from app.credentials import service as credential_service
 from app.db import get_db
 from app.engine.errors import NodeExecutionError
 from app.engine.node_base import NodeContext
-from app.models import Execution, User
+from app.models import Execution, GeneratedConnector, User
 from app.nodes.ai_agent import AIAgentNode, AgentParams
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
@@ -301,6 +302,11 @@ async def generate_workflow(
     available_credentials = {
         meta["type"] for meta in credential_service.list_for_user(db, user.id)
     }
+    hidden_connectors = set(db.scalars(
+        select(GeneratedConnector.connector_key).where(
+            GeneratedConnector.user_id != user.id
+        )
+    ).all())
     # All DB reads done; the session must not span the provider round-trip.
     _release_db(db)
     try:
@@ -311,6 +317,7 @@ async def generate_workflow(
             llm=llm,
             existing_workflow=body.existing_workflow,
             history=body.history,
+            hidden_connector_keys=hidden_connectors,
         )
     except (GenerationError, LLMError) as exc:
         if llm.get("provider") != "builtin":
@@ -323,6 +330,7 @@ async def generate_workflow(
                     llm=builtin_llm,
                     existing_workflow=body.existing_workflow,
                     history=body.history,
+                    hidden_connector_keys=hidden_connectors,
                 )
                 log_event(db, AI_GENERATE, target_type="ai", user_id=user.id,
                           detail={"prompt": body.prompt[:200], "attempts": result["attempts"], "fallback": "builtin",

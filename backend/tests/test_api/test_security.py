@@ -6,7 +6,12 @@ from __future__ import annotations
 
 import pytest
 
-from tests.test_api.conftest import auth_headers, make_workflow, register
+from tests.test_api.conftest import (
+    auth_headers,
+    make_workflow,
+    move_user_to_org,
+    register,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -67,12 +72,19 @@ def test_first_user_is_admin_second_is_member(client):
     member = register(client, "member@x.com")
     assert admin["user"]["role"] == "admin"
     assert member["user"]["role"] == "member"
+
+    # Each locally registered account gets its own personal organization;
+    # a tenant user's listing never crosses that boundary. The instance
+    # operator (first account) may see the platform account list.
     member_resp = client.get("/api/users", headers=auth_headers(member["token"]))
     assert member_resp.status_code == 200
-    assert len(member_resp.json()["data"]) == 2
+    assert [u["id"] for u in member_resp.json()["data"]] == [member["user"]["id"]]
     resp = client.get("/api/users", headers=auth_headers(admin["token"]))
     assert resp.status_code == 200
-    assert len(resp.json()["data"]) == 2
+    assert {u["id"] for u in resp.json()["data"]} == {
+        admin["user"]["id"],
+        member["user"]["id"],
+    }
 
 
 def test_last_admin_cannot_be_demoted_or_deactivated(client):
@@ -82,18 +94,69 @@ def test_last_admin_cannot_be_demoted_or_deactivated(client):
     assert client.patch(f"/api/users/{uid}", json={"active": False}, headers=auth_headers(admin["token"])).status_code == 422
 
 
-def test_admin_promotes_and_deactivates_member(client):
-    admin = register(client, "admin@x.com")
+def test_operator_promotes_and_deactivates_member(client):
+    operator = register(client, "admin@x.com")
     member = register(client, "member@x.com")
     bid = member["user"]["id"]
-    resp = client.patch(f"/api/users/{bid}", json={"role": "admin"}, headers=auth_headers(admin["token"]))
+
+    listed = client.get("/api/users", headers=auth_headers(operator["token"]))
+    assert {u["id"] for u in listed.json()["data"]} == {
+        operator["user"]["id"],
+        bid,
+    }
+
+    resp = client.patch(f"/api/users/{bid}", json={"role": "admin"}, headers=auth_headers(operator["token"]))
     assert resp.status_code == 200
     assert resp.json()["data"]["role"] == "admin"
-    resp = client.patch(f"/api/users/{bid}", json={"active": False}, headers=auth_headers(admin["token"]))
+    resp = client.patch(f"/api/users/{bid}", json={"active": False}, headers=auth_headers(operator["token"]))
     assert resp.status_code == 200
     assert resp.json()["data"]["active"] is False
     assert client.post("/api/auth/login", json={"email": "member@x.com", "password": "Password123!"}).status_code == 401
     assert client.get("/api/workflows", headers=auth_headers(member["token"])).status_code == 401
+
+
+def test_non_operator_cannot_manage_another_account(client):
+    operator = register(client, "instance@x.com")
+    owner = register(client, "org-owner@x.com")
+    member = register(client, "org-user@x.com")
+    org = client.post(
+        "/api/organizations",
+        json={"name": "Operations"},
+        headers=auth_headers(owner["token"]),
+    ).json()["data"]
+    client.post(
+        f"/api/organizations/{org['id']}/members",
+        json={"user_id": member["user"]["id"], "role": "member"},
+        headers=auth_headers(owner["token"]),
+    )
+
+    # Even an organization founder cannot see or manage another account.
+    for payload in ({"role": "admin"}, {"active": False}):
+        denied = client.patch(
+            f"/api/users/{member['user']['id']}",
+            json=payload,
+            headers=auth_headers(owner["token"]),
+        )
+        assert denied.status_code == 404
+
+    # The platform operator can deactivate a global account.
+    allowed = client.patch(
+        f"/api/users/{member['user']['id']}",
+        json={"active": False},
+        headers=auth_headers(operator["token"]),
+    )
+    assert allowed.status_code == 200
+
+
+def test_member_cannot_manage_users_outside_their_account(client):
+    admin = register(client, "admin@x.com")
+    member = register(client, "member@x.com")
+    resp = client.patch(
+        f"/api/users/{admin['user']['id']}",
+        json={"role": "member"},
+        headers=auth_headers(member["token"]),
+    )
+    assert resp.status_code == 404
 
 
 def test_shared_workflow_view_edit_lifecycle(client):
@@ -211,14 +274,19 @@ def test_shared_executions_visible_to_viewer(client):
     assert client.post(f"/api/executions/{exec_id}/retry", headers=auth_headers(owner["token"])).status_code == 202
 
 
-def test_audit_log_records_and_allows_any_signed_in_user(client):
+def test_audit_log_is_scoped_to_the_user(client):
     admin = register(client, "admin@x.com")
     member = register(client, "member@x.com")
+
     member_resp = client.get("/api/audit", headers=auth_headers(member["token"]))
     assert member_resp.status_code == 200
-    assert any(e["action"] == "auth.register" for e in member_resp.json()["data"])
+    member_events = member_resp.json()["data"]
+    assert any(e["action"] == "auth.register" for e in member_events)
+    assert all(e["user_id"] == member["user"]["id"] for e in member_events)
+
     resp = client.get("/api/audit", headers=auth_headers(admin["token"]))
     assert resp.status_code == 200
+    assert all(e["user_id"] == admin["user"]["id"] for e in resp.json()["data"])
     actions = {e["action"] for e in resp.json()["data"]}
     assert "auth.register" in actions
     assert "auth.login" in actions
@@ -226,6 +294,19 @@ def test_audit_log_records_and_allows_any_signed_in_user(client):
     assert resp.status_code == 200
     assert resp.json()["data"]
     assert all(e["action"] == "auth.login" for e in resp.json()["data"])
+
+
+def test_audit_log_is_private_inside_the_same_organization(client):
+    admin = register(client, "admin@x.com")
+    member = register(client, "member@x.com")
+    move_user_to_org(
+        member["user"]["id"], f"org_personal_{admin['user']['id']}", role="member"
+    )
+
+    admin_events = client.get("/api/audit", headers=auth_headers(admin["token"])).json()["data"]
+    member_events = client.get("/api/audit", headers=auth_headers(member["token"])).json()["data"]
+    assert all(e["user_id"] == admin["user"]["id"] for e in admin_events)
+    assert all(e["user_id"] == member["user"]["id"] for e in member_events)
 
 
 def test_workflow_actions_are_audited(client):

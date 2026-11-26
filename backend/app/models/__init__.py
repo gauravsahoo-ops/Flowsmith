@@ -15,7 +15,7 @@ from app.models.organization import (
     WorkflowVersionRecord,
 )
 from app.models.oauth_state import OAuthState
-from app.models.connector_pack import ConnectorPack, ConnectorPackTombstone
+from app.models.connector_pack import ConnectorPack, ConnectorPackTombstone, GeneratedConnector
 from app.models.identity_access import IdentityGroupAccess
 from app.models.identity_org_access import IdentityOrganizationAccess
 from app.models.webauthn import WebAuthnCredential
@@ -58,6 +58,7 @@ __all__ = [
     "WorkflowVersionRecord",
     "ConnectorPack",
     "ConnectorPackTombstone",
+    "GeneratedConnector",
     "IdentityGroupAccess",
     "IdentityOrganizationAccess",
     "WebAuthnCredential",

@@ -22,6 +22,26 @@ class ConnectorPackTombstone(Base):
     )
 
 
+class GeneratedConnector(Base):
+    """Ownership record for a user-generated connector.
+
+    Built-in generated connectors (shipped with the product) have no row and
+    remain visible to everyone. Imported/pack-generated connectors carry the
+    owning user so the catalog can be filtered per account.
+    """
+
+    __tablename__ = "generated_connectors"
+
+    connector_key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    source: Mapped[str] = mapped_column(String(16), default="import", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class ConnectorPack(Base):
     __tablename__ = "connector_packs"
 

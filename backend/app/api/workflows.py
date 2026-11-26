@@ -41,6 +41,7 @@ from app.api.access import (
     get_permission,
     get_workflow,
     is_owner,
+    validate_connector_ownership,
     workspace_can_edit,
 )
 from app.api.auth import get_current_user
@@ -316,6 +317,7 @@ def import_workflow(
     native["active"] = False
 
     workflow = validate_workflow_payload(native)
+    validate_connector_ownership(db, user.id, workflow.nodes)
     _validate_credential_refs(workflow, user, db, allow_unbound=True)
 
     # Ensure imported trigger paths meet entropy/uniqueness requirements.
@@ -401,6 +403,7 @@ def duplicate_workflow(
     data["active"] = False
 
     workflow = validate_workflow_payload(data)
+    validate_connector_ownership(db, user.id, workflow.nodes)
 
     # Regenerate every public trigger path, including provider callbacks.
     _regenerate_trigger_paths(workflow, db, only_when_needed=False)
@@ -463,6 +466,7 @@ def get_workflow_endpoint(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_workflow(body: dict, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     workflow = validate_workflow_payload(body)
+    validate_connector_ownership(db, user.id, workflow.nodes)
     _validate_credential_refs(workflow, user, db, allow_unbound=True)
     # Phase 23/38: trigger-path entropy + uniqueness on CREATE too (it
     # previously ran only on update, so weak/duplicate paths slipped in).
@@ -538,6 +542,7 @@ def update_workflow(
             )
 
     workflow = validate_workflow_payload(body)
+    validate_connector_ownership(db, user.id, workflow.nodes)
     _validate_credential_refs(workflow, user, db)
     _validate_webhook_paths(workflow, db, exclude_id=workflow_id)
     if workflow.id != workflow_id:

@@ -554,6 +554,7 @@ export const api = {
   },
   // Custom company branding & white-labeling
   getBranding: () => request('GET', '/branding'),
+  getMyBranding: () => request('GET', '/branding/me'),
   updateBranding: (data) => request('PUT', '/branding', data),
   resetBranding: () => request('POST', '/branding/reset'),
   // Connectors & OpenAPI Importer

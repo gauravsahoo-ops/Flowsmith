@@ -151,19 +151,35 @@ def build_planner_catalog(query: str | None = None) -> dict[str, Any]:
     return {"nodes": filtered_nodes, "connectors": matched_conns}
 
 
-def render_system_prompt(catalog: dict[str, Any] | None = None, query: str | None = None) -> str:
+def render_system_prompt(
+    catalog: dict[str, Any] | None = None,
+    query: str | None = None,
+    hidden_connector_keys: set[str] | None = None,
+) -> str:
     """The generation system prompt, rendered from live registries.
 
     Rules section pins the anti-invention contract and the response shape.
+    ``hidden_connector_keys`` removes another account's generated connectors.
     """
     global _prompt_cache, _prompt_cache_ts
     import time
-    if catalog is None and not query:
+    if catalog is None and not query and not hidden_connector_keys:
         now = time.monotonic()
         if _prompt_cache is not None and now - _prompt_cache_ts < 60:
             return _prompt_cache
 
     actual_catalog = catalog or build_planner_catalog(query=query)
+    if hidden_connector_keys:
+        actual_catalog = {
+            "nodes": [
+                node for node in actual_catalog.get("nodes", [])
+                if node.get("type") not in hidden_connector_keys
+            ],
+            "connectors": [
+                connector for connector in actual_catalog.get("connectors", [])
+                if connector.get("connector") not in hidden_connector_keys
+            ],
+        }
     payload = json.dumps(actual_catalog, ensure_ascii=False, sort_keys=True)
     rendered = (
         "You generate workflows for a workflow automation platform.\n"
@@ -188,7 +204,7 @@ def render_system_prompt(catalog: dict[str, Any] | None = None, query: str | Non
         "- Never invent credentials, connection strings or secrets.\n\n"
         f"AVAILABLE NODES AND CONNECTORS:\n{payload}"
     )
-    if catalog is None and not query:
+    if catalog is None and not query and not hidden_connector_keys:
         _prompt_cache = rendered
         _prompt_cache_ts = time.monotonic()
     return rendered

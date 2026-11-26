@@ -161,3 +161,63 @@ def test_import_openapi_ast_gate_rejects_breakout_statements(client, monkeypatch
     assert res.status_code == 400, res.text
 
 
+def test_generated_connector_is_private_to_its_owner(client):
+    from pathlib import Path
+
+    from app.connectors import get_registry
+
+    owner = register(client, "openapi-owner@example.com")
+    other = register(client, "openapi-other@example.com")
+    owner_headers = auth_headers(owner["token"])
+    other_headers = auth_headers(other["token"])
+
+    imported = client.post(
+        "/api/connectors/import-openapi",
+        json={
+            "spec": SAMPLE,
+            "name": "private_widget_api",
+            "title": "Private Widget API",
+            "category": "api",
+            "base_url": "https://api.example.com/v1",
+        },
+        headers=owner_headers,
+    )
+    assert imported.status_code == 200, imported.text
+    key = imported.json()["data"]["connector_key"]
+
+    try:
+        owner_keys = {
+            row["connector_key"]
+            for row in client.get("/api/connectors", headers=owner_headers).json()["data"]
+        }
+        other_keys = {
+            row["connector_key"]
+            for row in client.get("/api/connectors", headers=other_headers).json()["data"]
+        }
+        assert key in owner_keys
+        assert key not in other_keys
+        assert client.get(f"/api/connectors/{key}", headers=other_headers).status_code == 404
+
+        workflow = {
+            "id": "wf_private_connector",
+            "name": "Private Connector",
+            "nodes": [
+                {"id": "trigger", "type": "manual_trigger", "parameters": {}},
+                {"id": "call", "type": key, "parameters": {}},
+            ],
+            "connections": [{"source": "trigger", "target": "call"}],
+            "settings": {},
+        }
+        assert client.post("/api/workflows", json=workflow, headers=owner_headers).status_code == 201
+        denied = client.post("/api/workflows", json=workflow, headers=other_headers)
+        assert denied.status_code == 422
+    finally:
+        gen_dir = Path(__file__).resolve().parents[2] / "app" / "connectors" / "generated"
+        for path in gen_dir.glob(f"gen_{key}_*.py"):
+            path.unlink(missing_ok=True)
+        try:
+            get_registry().unregister(key)
+        except Exception:
+            pass
+
+

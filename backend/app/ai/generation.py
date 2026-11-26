@@ -47,6 +47,7 @@ async def generate_workflow_spec(
     max_attempts: int = MAX_ATTEMPTS,
     existing_workflow: dict[str, Any] | None = None,
     history: list[dict[str, str]] | None = None,
+    hidden_connector_keys: set[str] | None = None,
 ) -> dict[str, Any]:
     """Generate + validate one workflow candidate with optional memory and iteration context.
 
@@ -54,7 +55,9 @@ async def generate_workflow_spec(
     Raises GenerationError (carrying the last validation report) when no
     valid candidate emerges within `max_attempts`.
     """
-    system = render_system_prompt(query=prompt)
+    system = render_system_prompt(
+        query=prompt, hidden_connector_keys=hidden_connector_keys
+    )
     messages: list[dict[str, str]] = [
         {"role": "system", "content": system},
     ]

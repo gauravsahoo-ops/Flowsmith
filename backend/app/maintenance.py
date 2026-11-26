@@ -114,18 +114,34 @@ def recover_orphaned_executions(grace_seconds: float) -> int:
         db.close()
 
 
-def prune(db: Session, before: datetime, *, dry_run: bool = False) -> dict[str, int]:
+def prune(
+    db: Session,
+    before: datetime,
+    *,
+    dry_run: bool = False,
+    workflow_ids: set[str] | None = None,
+) -> dict[str, int]:
     """Delete finished executions (and their deliveries) older than `before`.
 
+    ``workflow_ids`` restricts the sweep to workflows the caller can access;
+    ``None`` keeps the daemon's installation-wide retention behavior.
     Running/cancelling executions are never pruned. Returns
     {"executions": n, "deliveries": n, "running_kept": n}.
     """
-    running_ids = set(
-        db.scalars(
-            select(Execution.id).where(Execution.status.in_(("running", "cancelling")))
-        ).all()
+    scope = None if workflow_ids is None else set(workflow_ids)
+    if scope is not None and not scope:
+        return {"executions": 0, "deliveries": 0, "running_kept": 0}
+
+    running_stmt = select(Execution.id).where(
+        Execution.status.in_(("running", "cancelling"))
     )
+    if scope is not None:
+        running_stmt = running_stmt.where(Execution.workflow_id.in_(scope))
+    running_ids = set(db.scalars(running_stmt).all())
+
     base = select(Execution.id, Execution.trigger).where(Execution.started_at < before)
+    if scope is not None:
+        base = base.where(Execution.workflow_id.in_(scope))
     if running_ids:
         base = base.where(~Execution.id.in_(running_ids))
     rows = db.execute(base).all()
@@ -142,11 +158,14 @@ def prune(db: Session, before: datetime, *, dry_run: bool = False) -> dict[str, 
         )
 
     if dry_run:
-        pending_deliveries = db.scalar(
-            select(func.count())
-            .select_from(WebhookDelivery)
-            .where(WebhookDelivery.received_at < before)
-        ) or 0
+        pending_stmt = select(func.count()).select_from(WebhookDelivery).where(
+            WebhookDelivery.received_at < before
+        )
+        if scope is not None:
+            pending_stmt = pending_stmt.where(
+                WebhookDelivery.workflow_id.in_(scope)
+            )
+        pending_deliveries = db.scalar(pending_stmt) or 0
         return {
             "executions": len(exec_ids),
             "deliveries": pending_deliveries,

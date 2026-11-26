@@ -1,9 +1,7 @@
 // brandingStore: custom company branding and white-labeling state.
 
 import { create } from 'zustand'
-import { api } from '../api'
-
-const STORAGE_KEY = 'flowsmith_branding'
+import { api, getToken } from '../api'
 
 export const DEFAULT_BRANDING = {
   appName: 'Flowsmith',
@@ -89,16 +87,11 @@ function applyToDom(branding) {
 }
 
 function getStoredBranding() {
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-    return DEFAULT_BRANDING
+  // Branding is user/account scoped. Never read a previous user's cached brand
+  // from localStorage; the authenticated store fetches /branding/me instead.
+  if (typeof localStorage !== 'undefined') {
+    try { localStorage.removeItem('flowsmith_branding') } catch {}
   }
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      return { ...DEFAULT_BRANDING, ...parsed }
-    }
-  } catch (err) { console.error('[flowsmith] stores/brandingStore.js', err) }
   return DEFAULT_BRANDING
 }
 
@@ -124,7 +117,7 @@ export const useBrandingStore = create((set) => ({
   init: async () => {
     try {
       set({ loading: true, error: null })
-      const res = await api.getBranding()
+      const res = getToken() ? await api.getMyBranding() : await api.getBranding()
       if (res) {
         const next = {
           appName: res.app_name || DEFAULT_BRANDING.appName,
@@ -140,9 +133,6 @@ export const useBrandingStore = create((set) => ({
         }
         set(next)
         applyToDom(next)
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-        } catch (err) { console.error('[flowsmith] stores/brandingStore.js', err) }
       }
     } catch (err) {
       set({ error: err.message })
@@ -181,9 +171,6 @@ export const useBrandingStore = create((set) => ({
       }
       set(next)
       applyToDom(next)
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch (err) { console.error('[flowsmith] stores/brandingStore.js', err) }
       return next
     } catch (err) {
       set({ error: err.message })
@@ -211,9 +198,6 @@ export const useBrandingStore = create((set) => ({
       }
       set(next)
       applyToDom(next)
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch (err) { console.error('[flowsmith] stores/brandingStore.js', err) }
       return next
     } catch (err) {
       set({ error: err.message })

@@ -20,7 +20,13 @@ from pydantic import BaseModel
 from sqlalchemy import cast, or_, select, String
 from sqlalchemy.orm import Session
 
-from app.api.access import accessible_ids, batch_permissions, get_permission, get_workflow
+from app.api.access import (
+    accessible_ids,
+    batch_permissions,
+    get_permission,
+    get_workflow,
+    validate_connector_ownership,
+)
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params
 from app.audit import (
@@ -325,6 +331,8 @@ def start_execution(
     service owns validation, row creation, enqueue/compensation, metrics and
     embedded-consumer startup.
     """
+    nodes = workflow_data.get("nodes") if isinstance(workflow_data, dict) else None
+    validate_connector_ownership(db, user_id, nodes)
     return ExecutionService(
         db,
         # Resolved at call time so tests can keep patching this module-level

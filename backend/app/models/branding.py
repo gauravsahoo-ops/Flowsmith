@@ -4,18 +4,33 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
 
 
 class BrandingSetting(Base):
-    """System-wide or organization/workspace custom branding configuration."""
+    """Per-user custom branding configuration.
+
+    The row with id ``default`` (``user_id is NULL``) is the platform fallback
+    used before login. Every authenticated user has at most one private brand.
+    """
 
     __tablename__ = "branding_settings"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default="default")
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        index=True,
+        nullable=True,
+    )
+    # Legacy organization scope retained for migration/downgrade; new rows use
+    # user_id and leave this NULL.
+    organization_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, index=True, nullable=True
+    )
     app_name: Mapped[str] = mapped_column(String(128), default="Flowsmith", nullable=False)
     tagline: Mapped[str] = mapped_column(
         String(255), default="Next-Gen Workflow Automation", nullable=False

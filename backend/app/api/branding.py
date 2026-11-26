@@ -53,6 +53,22 @@ def _branding_to_dict(rec: BrandingSetting | None) -> dict[str, Any]:
     }
 
 
+def _default_branding(db: Session) -> BrandingSetting | None:
+    return db.scalar(select(BrandingSetting).where(BrandingSetting.id == "default"))
+
+
+def _user_branding(db: Session, user_id: int | None) -> BrandingSetting | None:
+    if not user_id:
+        return None
+    return db.scalar(
+        select(BrandingSetting).where(BrandingSetting.user_id == user_id)
+    )
+
+
+def _branding_for(db: Session, user_id: int | None) -> BrandingSetting | None:
+    return _user_branding(db, user_id) or _default_branding(db)
+
+
 class BrandingUpdateRequest(BaseModel):
     app_name: str | None = Field(default=None, max_length=128)
     tagline: str | None = Field(default=None, max_length=255)
@@ -68,9 +84,17 @@ class BrandingUpdateRequest(BaseModel):
 
 @router.get("")
 def get_branding(db: Session = Depends(get_db)) -> dict:
-    """Public endpoint to fetch active branding configuration for UI rendering."""
-    rec = db.scalar(select(BrandingSetting).where(BrandingSetting.id == "default"))
-    return ok(_branding_to_dict(rec))
+    """Public fallback branding used before login."""
+    return ok(_branding_to_dict(_default_branding(db)))
+
+
+@router.get("/me")
+def get_my_branding(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Branding for the signed-in user, falling back to the platform default."""
+    return ok(_branding_to_dict(_branding_for(db, user.id)))
 
 
 @router.put("")
@@ -79,7 +103,9 @@ def update_branding(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Update company branding settings (white-labeling)."""
+    """Update the caller's private branding (white-labeling)."""
+    user_id = user.id
+
     # Validation
     if body.primary_color:
         trimmed_color = body.primary_color.strip()
@@ -95,9 +121,9 @@ def update_branding(
             "Logo image is too large (maximum 5MB allowed).",
         )
 
-    rec = db.scalar(select(BrandingSetting).where(BrandingSetting.id == "default"))
+    rec = _user_branding(db, user_id)
     if rec is None:
-        rec = BrandingSetting(id="default")
+        rec = BrandingSetting(id=f"user_{user_id}", user_id=user_id)
         db.add(rec)
 
     if body.app_name is not None:
@@ -133,8 +159,8 @@ def update_branding(
     log_event(
         db,
         "branding.update",
-        target_type="system",
-        target_id="branding",
+        target_type="user",
+        target_id=str(user_id),
         user_id=user.id,
         detail={"app_name": rec.app_name, "has_logo": bool(rec.logo_data or rec.logo_url)},
     )
@@ -147,29 +173,20 @@ def reset_branding(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Reset branding back to Flowsmith defaults."""
-    rec = db.scalar(select(BrandingSetting).where(BrandingSetting.id == "default"))
+    """Reset the caller's private branding to the platform default."""
+    user_id = user.id
+    rec = _user_branding(db, user_id)
     if rec is not None:
-        rec.app_name = DEFAULT_BRANDING["app_name"]
-        rec.tagline = DEFAULT_BRANDING["tagline"]
-        rec.logo_url = None
-        rec.logo_data = None
-        rec.favicon_url = None
-        rec.primary_color = DEFAULT_BRANDING["primary_color"]
-        rec.documentation_url = None
-        rec.support_email = None
-        rec.copyright_text = None
-        rec.custom_css = None
+        db.delete(rec)
         db.commit()
-        db.refresh(rec)
 
     log_event(
         db,
         "branding.reset",
-        target_type="system",
-        target_id="branding",
+        target_type="user",
+        target_id=str(user_id),
         user_id=user.id,
         detail={"app_name": DEFAULT_BRANDING["app_name"]},
     )
 
-    return ok(_branding_to_dict(rec))
+    return ok(_branding_to_dict(_default_branding(db)))

@@ -2678,6 +2678,21 @@
         "title": "SimulateRequest",
         "type": "object"
       },
+      "SsoExchangeRequest": {
+        "properties": {
+          "code": {
+            "maxLength": 256,
+            "minLength": 16,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "SsoExchangeRequest",
+        "type": "object"
+      },
       "SuggestConfigRequest": {
         "properties": {
           "credential_id": {
@@ -7515,6 +7530,50 @@
         ]
       }
     },
+    "/api/auth/sso/exchange": {
+      "post": {
+        "description": "Redeem a one-time SSO code bound to this browser's HttpOnly cookie.",
+        "operationId": "exchange_sso_code_api_auth_sso_exchange_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SsoExchangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Exchange Sso Code Api Auth Sso Exchange Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Exchange Sso Code",
+        "tags": [
+          "sso"
+        ]
+      }
+    },
     "/api/auth/sso/providers": {
       "get": {
         "description": "List configured SSO providers available for login.",
@@ -8450,7 +8509,7 @@
     },
     "/api/branding": {
       "get": {
-        "description": "Public endpoint to fetch active branding configuration for UI rendering.",
+        "description": "Public fallback branding used before login.",
         "operationId": "get_branding_api_branding_get",
         "responses": {
           "200": {
@@ -8472,7 +8531,7 @@
         ]
       },
       "put": {
-        "description": "Update company branding settings (white-labeling).",
+        "description": "Update the caller's private branding (white-labeling).",
         "operationId": "update_branding_api_branding_put",
         "parameters": [
           {
@@ -8548,9 +8607,77 @@
         ]
       }
     },
+    "/api/branding/me": {
+      "get": {
+        "description": "Branding for the signed-in user, falling back to the platform default.",
+        "operationId": "get_my_branding_api_branding_me_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get My Branding Api Branding Me Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get My Branding",
+        "tags": [
+          "branding"
+        ]
+      }
+    },
     "/api/branding/reset": {
       "post": {
-        "description": "Reset branding back to Flowsmith defaults.",
+        "description": "Reset the caller's private branding to the platform default.",
         "operationId": "reset_branding_api_branding_reset_post",
         "parameters": [
           {
@@ -8686,7 +8813,7 @@
     },
     "/api/connector-packs/install": {
       "post": {
-        "description": "Install a connector pack.",
+        "description": "Install a connector pack for the caller's account.",
         "operationId": "install_connector_pack_api_connector_packs_install_post",
         "parameters": [
           {
@@ -8842,7 +8969,7 @@
     },
     "/api/connector-packs/{connector_key}": {
       "delete": {
-        "description": "Uninstall a generated pack and its pack-owned templates.",
+        "description": "Uninstall the caller's generated pack and its pack-owned templates.",
         "operationId": "uninstall_connector_pack_api_connector_packs__connector_key__delete",
         "parameters": [
           {
@@ -9006,7 +9133,7 @@
     },
     "/api/connectors": {
       "get": {
-        "description": "List all registered connectors (public discovery).",
+        "description": "List the account's connectors (built-ins plus its generated ones).",
         "operationId": "list_connectors_api_connectors_get",
         "parameters": [
           {
@@ -9074,7 +9201,7 @@
     },
     "/api/connectors/diagnostics/summary": {
       "get": {
-        "description": "Return an overall diagnostic audit of all registered connectors and their certification status.",
+        "description": "Return a diagnostic audit of the caller's connector catalog.",
         "operationId": "get_connector_certification_summary_api_connectors_diagnostics_summary_get",
         "parameters": [
           {
@@ -9237,7 +9364,7 @@
     },
     "/api/connectors/import-openapi": {
       "post": {
-        "description": "Generate and register a first-class Flowsmith connector from an OpenAPI/Swagger spec.",
+        "description": "Generate and register a private connector for the caller's account.",
         "operationId": "import_openapi_api_connectors_import_openapi_post",
         "parameters": [
           {
@@ -10296,7 +10423,7 @@
     },
     "/api/credentials/auth-metadata": {
       "get": {
-        "description": "Return machine-readable authentication metadata and classification summary across all connectors.",
+        "description": "Return authentication metadata for the caller's connector catalog.",
         "operationId": "credential_auth_metadata_api_credentials_auth_metadata_get",
         "parameters": [
           {
@@ -15932,6 +16059,72 @@
         ]
       }
     },
+    "/api/help/user-manual": {
+      "get": {
+        "description": "Return the current user manual as Markdown for authenticated users.",
+        "operationId": "user_manual_api_help_user_manual_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "User Manual",
+        "tags": [
+          "help"
+        ]
+      }
+    },
     "/api/integrations/canonical-nodes": {
       "get": {
         "description": "Returns canonical node contracts for all built-in nodes.",
@@ -17852,7 +18045,7 @@
     },
     "/api/mcp/tools": {
       "get": {
-        "description": "List available MCP tools.",
+        "description": "List available MCP tools (account export tools included).",
         "operationId": "list_mcp_tools_api_mcp_tools_get",
         "parameters": [
           {
@@ -20986,7 +21179,7 @@
     },
     "/api/templates": {
       "get": {
-        "description": "List public templates and user's own templates.",
+        "description": "List the user's own templates plus the built-in template library.",
         "operationId": "list_templates_api_templates_get",
         "parameters": [
           {

@@ -220,18 +220,45 @@ def test_install_pack_registers_connector_and_template(client):
         _cleanup(key)
 
 
-def test_install_pack_allows_any_signed_in_user(client):
-    register(client, "pack-first@example.com", "Password123!")
+def test_two_accounts_can_install_the_same_pack_independently(client):
+    first = register(client, "pack-first@example.com", "Password123!")
     member = register(client, "pack-member@example.com", "Password123!")
     key = _key()
-    response = client.post(
+    manifest = _manifest(key)
+    first_resp = client.post(
         "/api/connector-packs/install",
-        json={"manifest": _manifest(key)},
+        json={"manifest": manifest},
+        headers=auth_headers(first["token"]),
+    )
+    member_resp = client.post(
+        "/api/connector-packs/install",
+        json={"manifest": manifest},
         headers=auth_headers(member["token"]),
     )
-    assert response.status_code == 200, response.text
-    assert response.json()["data"]["connector_key"] == key
-    _cleanup(key)
+    assert first_resp.status_code == 200, first_resp.text
+    assert member_resp.status_code == 200, member_resp.text
+    first_key = first_resp.json()["data"]["connector_key"]
+    member_key = member_resp.json()["data"]["connector_key"]
+    assert first_key != member_key
+    assert member_key.startswith(f"u{member['user']['id']}_")
+
+    member_list = client.get(
+        "/api/connector-packs", headers=auth_headers(member["token"])
+    ).json()["data"]
+    assert [pack["connector_key"] for pack in member_list] == [member_key]
+    first_list = client.get(
+        "/api/connector-packs", headers=auth_headers(first["token"])
+    ).json()["data"]
+    assert [pack["connector_key"] for pack in first_list] == [first_key]
+
+    client.delete(
+        f"/api/connector-packs/{member_key}", headers=auth_headers(member["token"])
+    )
+    client.delete(
+        f"/api/connector-packs/{first_key}", headers=auth_headers(first["token"])
+    )
+    _cleanup(first_key)
+    _cleanup(member_key)
 
 
 def test_duplicate_pack_is_rejected(client):
@@ -1016,7 +1043,7 @@ def _direct_pack(db, key: str, installed_by: int, *, source_url: str | None = No
     ))
 
 
-def test_pack_uninstall_does_not_disclose_other_tenant_workflow_names(client):
+def test_uninstall_does_not_touch_other_account_workflows(client):
     admin = register(client, "pack-tenant-admin@example.com", "Password123!")
     other = register(client, "pack-tenant-other@example.com", "Password123!")
     key = _key()
@@ -1038,15 +1065,18 @@ def test_pack_uninstall_does_not_disclose_other_tenant_workflow_names(client):
     finally:
         db.close()
 
-    blocked = client.delete(
+    removed = client.delete(
         f"/api/connector-packs/{key}", headers=auth_headers(admin["token"])
     )
-    assert blocked.status_code == 409
-    assert "Confidential M&A Migration" not in blocked.text
-    assert "1 active workflow" in blocked.json()["detail"]
+    assert removed.status_code == 200, removed.text
+    db = get_session()
+    try:
+        assert db.get(WorkflowRecord, "wf_other_tenant_secret") is not None
+    finally:
+        db.close()
 
 
-def test_pack_list_includes_source_url_for_all_signed_in_users(client):
+def test_pack_list_and_source_url_are_private_to_the_owner(client):
     admin = register(client, "pack-source-admin@example.com", "Password123!")
     member = register(client, "pack-source-member@example.com", "Password123!")
     key = _key()
@@ -1061,8 +1091,7 @@ def test_pack_list_includes_source_url_for_all_signed_in_users(client):
 
     listed = client.get("/api/connector-packs", headers=auth_headers(member["token"]))
     assert listed.status_code == 200
-    pack = next(item for item in listed.json()["data"] if item["connector_key"] == key)
-    assert pack["source_url"] == "https://packs.example/private.json"
+    assert key not in {item["connector_key"] for item in listed.json()["data"]}
 
     admin_listed = client.get("/api/connector-packs", headers=auth_headers(admin["token"]))
     admin_pack = next(item for item in admin_listed.json()["data"] if item["connector_key"] == key)

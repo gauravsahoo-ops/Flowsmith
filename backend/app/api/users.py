@@ -1,8 +1,13 @@
-"""User management: list users and change role/active status.
+"""User account endpoints under a per-user tenant model.
 
-Any signed-in user can access these endpoints. The last active admin
-cannot be demoted or deactivated, and users cannot deactivate or demote
-their own account.
+A normal account can see only itself. Platform operator accounts (the
+instance ``admin`` role used for deployment/identity safety) may list and
+manage all accounts. Organization roles never grant visibility into another
+user's account.
+
+Role and activation changes are platform-level because ``users.role`` and
+``users.active`` apply to the account everywhere. Users cannot promote or
+demote themselves, and the last active operator account cannot be removed.
 """
 
 from __future__ import annotations
@@ -35,13 +40,22 @@ def _to_dict(user: User) -> dict[str, Any]:
     }
 
 
+def _is_operator(user: User) -> bool:
+    return (user.role or "").lower() == "admin"
+
+
 @router.get("")
 def list_users(
-    _: User = Depends(get_current_user),
+    actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     limit: int = Query(default=200, ge=1, le=500),
 ) -> dict:
-    users = db.scalars(select(User).order_by(User.created_at).limit(limit)).all()
+    if _is_operator(actor):
+        users = db.scalars(
+            select(User).order_by(User.created_at).limit(limit)
+        ).all()
+    else:
+        users = [actor]
     return ok([_to_dict(u) for u in users])
 
 
@@ -57,6 +71,14 @@ def update_user(
     actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
+    if not _is_operator(actor):
+        if user_id != actor.id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Account role and activation are managed at the platform level.",
+        )
+
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
@@ -82,7 +104,7 @@ def update_user(
         if remaining_admins == 0:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
-                "Cannot change the last active admin.",
+                "Cannot change the last active operator account.",
             )
 
     if body.role is not None and body.role != target.role:

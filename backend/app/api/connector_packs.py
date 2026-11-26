@@ -34,9 +34,12 @@ from app.audit import log_event
 from app.config import get_settings
 from app.db import get_db
 from app.importexport import sanitize_workflow_data
+from app.connectors.openapi_emit import scoped_connector_key
+from app.connectors.ownership import resolve_user_connector_key
 from app.models import (
     ConnectorPack,
     ConnectorPackTombstone,
+    GeneratedConnector,
     User,
     WorkflowRecord,
     WorkflowTemplate,
@@ -382,7 +385,8 @@ def _template_rows(
     if allow_existing_pack_key:
         allowed_existing = set(db.scalars(
             select(WorkflowTemplate.name).where(
-                WorkflowTemplate.pack_key == allow_existing_pack_key
+                WorkflowTemplate.pack_key == allow_existing_pack_key,
+                WorkflowTemplate.created_by == user.id,
             )
         ).all())
 
@@ -408,7 +412,10 @@ def _template_rows(
                 status.HTTP_409_CONFLICT,
                 f"Template name '{name}' is already reserved or duplicated.",
             )
-        existing = db.scalar(select(WorkflowTemplate.id).where(WorkflowTemplate.name == name))
+        existing = db.scalar(select(WorkflowTemplate.id).where(
+            WorkflowTemplate.name == name,
+            WorkflowTemplate.created_by == user.id,
+        ))
         if existing is not None and name not in allowed_existing:
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
@@ -530,11 +537,14 @@ def _advisory_lock(db: Session, connector_key: str) -> None:
     db.execute(text("SELECT pg_advisory_xact_lock(:lock_id)"), {"lock_id": lock_id})
 
 
-def _active_workflow_count(db: Session, connector_key: str) -> int:
+def _active_workflow_count(
+    db: Session, connector_key: str, owner_user_id: int
+) -> int:
     rows = db.execute(
         select(WorkflowRecord).where(
             WorkflowRecord.active.is_(True),
             WorkflowRecord.deleted_at.is_(None),
+            WorkflowRecord.user_id == owner_user_id,
         )
     ).scalars().all()
     count = 0
@@ -555,10 +565,13 @@ async def _generate_connector(
     parsed: ParsedManifest,
     spec: Any,
     user: User,
+    db: Session,
+    *,
+    force_key: str | None = None,
 ) -> tuple[dict[str, Any], str, dict[str, str]]:
-    from app.api.connectors import ImportOpenApiRequest, import_openapi
+    from app.api.connectors import ImportOpenApiRequest, _import_openapi_impl
 
-    response = await import_openapi(
+    response = await _import_openapi_impl(
         ImportOpenApiRequest(
             spec=spec,
             name=parsed.name,
@@ -567,6 +580,8 @@ async def _generate_connector(
             base_url=parsed.base_url,
         ),
         user,
+        db,
+        force_key=force_key,
     )
     imported = response.get("data") or response
     connector_key = str(imported.get("connector_key") or "")
@@ -575,10 +590,16 @@ async def _generate_connector(
     return imported, connector_key, _read_generated_sources(connector_key)
 
 
-def _require_dependencies(db: Session, dependencies: tuple[str, ...]) -> None:
+def _require_dependencies(
+    db: Session, dependencies: tuple[str, ...], owner_user_id: int
+) -> None:
     if not dependencies:
         return
-    installed = set(db.scalars(select(ConnectorPack.connector_key)).all())
+    installed = set(db.scalars(
+        select(ConnectorPack.connector_key).where(
+            ConnectorPack.installed_by == owner_user_id
+        )
+    ).all())
     missing = [dependency for dependency in dependencies if dependency not in installed]
     if missing:
         raise HTTPException(
@@ -587,7 +608,13 @@ def _require_dependencies(db: Session, dependencies: tuple[str, ...]) -> None:
         )
 
 
-def _pack_values(parsed: ParsedManifest, imported: dict[str, Any], key: str, user: User) -> dict[str, Any]:
+def _pack_values(
+    parsed: ParsedManifest,
+    imported: dict[str, Any],
+    key: str,
+    user: User,
+    dependencies: tuple[str, ...],
+) -> dict[str, Any]:
     return {
         "connector_key": key,
         "name": parsed.name,
@@ -595,7 +622,7 @@ def _pack_values(parsed: ParsedManifest, imported: dict[str, Any], key: str, use
         "version": parsed.version,
         "description": parsed.description,
         "category": parsed.category,
-        "dependencies": list(parsed.dependencies),
+        "dependencies": list(dependencies),
         "signed": parsed.signature is not None,
         "signing_key_id": parsed.signature.key_id if parsed.signature else None,
         "manifest_sha256": parsed.manifest_sha256,
@@ -603,6 +630,27 @@ def _pack_values(parsed: ParsedManifest, imported: dict[str, Any], key: str, use
 
 
 _CREDENTIAL_URL_RE = re.compile(r"^(?P<scheme>[a-zA-Z][a-zA-Z0-9+.-]*://)[^/@]*@")
+
+
+def _owned_pack(db: Session, user: User, connector_key: str) -> ConnectorPack | None:
+    """Resolve a pack by scoped key, base key, or a caller-supplied alias."""
+    pack = db.scalar(
+        select(ConnectorPack).where(
+            ConnectorPack.connector_key == connector_key,
+            ConnectorPack.installed_by == user.id,
+        )
+    )
+    if pack is not None:
+        return pack
+    scoped = scoped_connector_key(connector_key, user.id)
+    if scoped == connector_key:
+        return None
+    return db.scalar(
+        select(ConnectorPack).where(
+            ConnectorPack.connector_key == scoped,
+            ConnectorPack.installed_by == user.id,
+        )
+    )
 
 
 def _redact_source_url(url: str | None) -> str | None:
@@ -619,7 +667,9 @@ def list_connector_packs(
 ) -> dict:
     """List installed connector packs (authenticated read access)."""
     packs = db.execute(
-        select(ConnectorPack).order_by(ConnectorPack.created_at.desc())
+        select(ConnectorPack)
+        .where(ConnectorPack.installed_by == user.id)
+        .order_by(ConnectorPack.created_at.desc())
     ).scalars().all()
     revoked_keys = _revoked_key_ids()
     return ok([
@@ -711,7 +761,7 @@ async def install_connector_pack(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Install a connector pack."""
+    """Install a connector pack for the caller's account."""
     manifest, remote = await _load_manifest(body)
     parsed = _parse_manifest(manifest, remote=remote)
     spec = await _resolve_spec(
@@ -722,7 +772,12 @@ async def install_connector_pack(
     from app.connectors.openapi_emit import connector_key_for
     from app.services.connector_pack_runtime import clear_pack_cache
 
-    connector_key = connector_key_for(parsed.name)
+    manifest_key = connector_key_for(parsed.name)
+    connector_key = resolve_user_connector_key(db, user.id, manifest_key)
+    dependencies = tuple(
+        resolve_user_connector_key(db, user.id, dependency)
+        for dependency in parsed.dependencies
+    )
     _advisory_lock(db, connector_key)
     existing_pack = db.scalar(
         select(ConnectorPack).where(ConnectorPack.connector_key == connector_key)
@@ -738,7 +793,7 @@ async def install_connector_pack(
             status.HTTP_409_CONFLICT,
             f"Connector key '{connector_key}' is already registered. Choose another name.",
         )
-    _require_dependencies(db, parsed.dependencies)
+    _require_dependencies(db, dependencies, user.id)
     db.execute(
         delete(ConnectorPackTombstone).where(
             ConnectorPackTombstone.connector_key == connector_key
@@ -747,14 +802,24 @@ async def install_connector_pack(
 
     imported: dict[str, Any] | None = None
     try:
-        imported, generated_key, generated_sources = await _generate_connector(parsed, spec, user)
+        imported, generated_key, generated_sources = await _generate_connector(parsed, spec, user, db, force_key=connector_key)
         if generated_key != connector_key:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 "Manifest name produced an unexpected connector key.",
             )
         templates = _template_rows(db, manifest, user, pack_key=connector_key)
-        values = _pack_values(parsed, imported, connector_key, user)
+        values = _pack_values(parsed, imported, connector_key, user, dependencies)
+        owner = db.get(GeneratedConnector, connector_key)
+        if owner is None:
+            db.add(GeneratedConnector(
+                connector_key=connector_key,
+                user_id=user.id,
+                source="pack",
+            ))
+        else:
+            owner.user_id = user.id
+            owner.source = "pack"
         pack = ConnectorPack(
             **values,
             source_url=body.manifest_url,
@@ -772,6 +837,8 @@ async def install_connector_pack(
     except Exception:
         db.rollback()
         _cleanup_generated(connector_key)
+        db.query(GeneratedConnector).filter_by(connector_key=connector_key).delete()
+        db.commit()
         raise
 
     clear_pack_cache(connector_key)
@@ -791,12 +858,13 @@ async def install_connector_pack(
     )
     return ok({
         "connector_key": connector_key,
+        "manifest_key": manifest_key,
         "display_name": pack_display_name,
         "version": parsed.version,
         "operations_count": imported.get("operations_count"),
         "templates": template_refs,
         "template_count": len(template_refs),
-        "dependencies": list(parsed.dependencies),
+        "dependencies": list(dependencies),
         "signed": parsed.signature is not None,
         "signing_key_id": parsed.signature.key_id if parsed.signature else None,
         "manifest_sha256": parsed.manifest_sha256,
@@ -817,18 +885,25 @@ async def upgrade_connector_pack(
     from app.connectors.openapi_emit import connector_key_for
     from app.services.connector_pack_runtime import clear_pack_cache
 
-    if connector_key_for(parsed.name) != connector_key:
+    manifest_key = connector_key_for(parsed.name)
+    pack = _owned_pack(db, user, connector_key)
+    if pack is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Connector pack not found.")
+    connector_key = pack.connector_key
+    if connector_key not in (
+        manifest_key,
+        scoped_connector_key(manifest_key, user.id),
+    ):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             "Manifest name does not match the pack being upgraded.",
         )
-    _advisory_lock(db, connector_key)
-    pack = db.scalar(
-        select(ConnectorPack).where(ConnectorPack.connector_key == connector_key)
+    dependencies = tuple(
+        resolve_user_connector_key(db, user.id, dependency)
+        for dependency in parsed.dependencies
     )
-    if pack is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Connector pack not found.")
-    _require_dependencies(db, parsed.dependencies)
+    _advisory_lock(db, connector_key)
+    _require_dependencies(db, dependencies, user.id)
     db.execute(
         delete(ConnectorPackTombstone).where(
             ConnectorPackTombstone.connector_key == connector_key
@@ -861,13 +936,13 @@ async def upgrade_connector_pack(
 
     try:
         _cleanup_generated(connector_key)
-        imported, generated_key, generated_sources = await _generate_connector(parsed, spec, user)
+        imported, generated_key, generated_sources = await _generate_connector(parsed, spec, user, db, force_key=connector_key)
         if generated_key != connector_key:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 "Manifest name produced an unexpected connector key.",
             )
-        values = _pack_values(parsed, imported, connector_key, user)
+        values = _pack_values(parsed, imported, connector_key, user, dependencies)
         for field, value in values.items():
             setattr(pack, field, value)
         pack.source_url = body.manifest_url
@@ -875,7 +950,10 @@ async def upgrade_connector_pack(
         pack.generated_sources = generated_sources
         pack.updated_at = datetime.now(UTC)
         db.execute(
-            delete(WorkflowTemplate).where(WorkflowTemplate.pack_key == connector_key)
+            delete(WorkflowTemplate).where(
+                WorkflowTemplate.pack_key == connector_key,
+                WorkflowTemplate.created_by == user.id,
+            )
         )
         for template in templates:
             db.add(template)
@@ -905,12 +983,13 @@ async def upgrade_connector_pack(
     )
     return ok({
         "connector_key": connector_key,
+        "manifest_key": manifest_key,
         "display_name": pack_display_name,
         "version": parsed.version,
         "operations_count": imported.get("operations_count"),
         "templates": template_refs,
         "template_count": len(template_refs),
-        "dependencies": list(parsed.dependencies),
+        "dependencies": list(dependencies),
         "signed": parsed.signature is not None,
         "signing_key_id": parsed.signature.key_id if parsed.signature else None,
         "manifest_sha256": parsed.manifest_sha256,
@@ -923,15 +1002,14 @@ def uninstall_connector_pack(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Uninstall a generated pack and its pack-owned templates."""
-    _advisory_lock(db, connector_key)
-    pack = db.scalar(
-        select(ConnectorPack).where(ConnectorPack.connector_key == connector_key)
-    )
+    """Uninstall the caller's generated pack and its pack-owned templates."""
+    pack = _owned_pack(db, user, connector_key)
     if pack is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Connector pack not found.")
+    connector_key = pack.connector_key
+    _advisory_lock(db, connector_key)
 
-    active_count = _active_workflow_count(db, connector_key)
+    active_count = _active_workflow_count(db, connector_key, user.id)
     if active_count:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
@@ -941,7 +1019,10 @@ def uninstall_connector_pack(
     dependent_packs = [
         other.connector_key
         for other in db.execute(
-            select(ConnectorPack).where(ConnectorPack.connector_key != connector_key)
+            select(ConnectorPack).where(
+                ConnectorPack.connector_key != connector_key,
+                ConnectorPack.installed_by == user.id,
+            )
         ).scalars().all()
         if connector_key in (other.dependencies or [])
     ]
@@ -955,9 +1036,15 @@ def uninstall_connector_pack(
     _cleanup_generated(connector_key)
     try:
         db.execute(
-            delete(WorkflowTemplate).where(WorkflowTemplate.pack_key == connector_key)
+            delete(WorkflowTemplate).where(
+                WorkflowTemplate.pack_key == connector_key,
+                WorkflowTemplate.created_by == user.id,
+            )
         )
         db.add(ConnectorPackTombstone(connector_key=connector_key))
+        db.query(GeneratedConnector).filter_by(
+            connector_key=connector_key, user_id=user.id
+        ).delete()
         db.delete(pack)
         db.commit()
     except Exception:

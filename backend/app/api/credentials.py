@@ -21,7 +21,7 @@ from app.credentials import service
 from app.credentials.provider_registry import get_provider_registry
 from app.credentials.registry import PREDEFINED_CREDENTIALS, list_types
 from app.db import get_db
-from app.models import User
+from app.models import GeneratedConnector, User
 
 router = APIRouter(prefix="/api/credentials", tags=["credentials"])
 
@@ -46,7 +46,13 @@ def _validation_detail(exc: Exception) -> str:
     return str(exc)
 
 
-async def _connector_live_test(cred_type: str, data: dict[str, Any]) -> dict[str, Any] | None:
+async def _connector_live_test(
+    cred_type: str,
+    data: dict[str, Any],
+    *,
+    db: Session | None = None,
+    user_id: int | None = None,
+) -> dict[str, Any] | None:
     """Live-test via the connector declaring this credential type.
 
     Returns the probe result, or None when no connector implements
@@ -58,8 +64,21 @@ async def _connector_live_test(cred_type: str, data: dict[str, Any]) -> dict[str
     """
     from app.connectors import get_registry
 
+    hidden: set[str] = set()
+    if db is not None and user_id is not None:
+        from app.models import GeneratedConnector
+
+        hidden = {
+            row.connector_key
+            for row in db.query(GeneratedConnector)
+            .filter(GeneratedConnector.user_id != user_id)
+            .all()
+        }
+
     registry = get_registry()
     for info in registry.list_all():
+        if info.connector_id in hidden:
+            continue
         # Trigger connectors often expose a schema-only probe that would
         # falsely accept a fake token. Prefer the real action connector.
         if str(info.connector_id).endswith("_trigger"):
@@ -113,11 +132,23 @@ def predefined_credentials(user: User = Depends(get_current_user)) -> dict:
 
 
 @router.get("/auth-metadata")
-def credential_auth_metadata(user: User = Depends(get_current_user)) -> dict:
-    """Return machine-readable authentication metadata and classification summary across all connectors."""
+def credential_auth_metadata(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Return authentication metadata for the caller's connector catalog."""
     from app.credentials.auth_metadata import list_connector_auth_metadata, get_auth_classification_summary
 
-    items = list_connector_auth_metadata()
+    hidden = {
+        row.connector_key
+        for row in db.query(GeneratedConnector)
+        .filter(GeneratedConnector.user_id != user.id)
+        .all()
+    }
+    items = [
+        item for item in list_connector_auth_metadata()
+        if getattr(item, "connector_id", None) not in hidden
+    ]
     summary = get_auth_classification_summary()
     return ok({
         "connectors": [i.model_dump() for i in items],
@@ -539,7 +570,9 @@ async def test_credential(
         # Prefer a connector-owned live probe: it exercises the real API
         # instead of only checking that token fields exist. This matters for
         # HubSpot private-app tokens and for connector-specific auth shapes.
-        live = await _connector_live_test(rec.type, target_data)
+        live = await _connector_live_test(
+            rec.type, target_data, db=db, user_id=user.id
+        )
         if live is not None:
             return {**live, "provider": rec.type}
 
