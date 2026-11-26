@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.api.auth import get_current_user
 from app.api.common import ok
 from app.audit import USER_ROLE_CHANGE, USER_STATE_CHANGE, log_event
+from app.config import get_settings
 from app.db import get_db
 from app.models import User
 
@@ -82,6 +83,19 @@ def update_user(
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+
+    settings = get_settings()
+    if (
+        target.id != actor.id
+        and settings.app_env == "production"
+        and settings.operator_mfa_required
+        and not actor.mfa_enabled
+    ):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Operator MFA enrollment is required before changing another account.",
+        )
+
     if body.role is not None and body.role not in VALID_ROLES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "role must be 'admin' or 'member'.")
     if body.role is None and body.active is None:
@@ -107,14 +121,38 @@ def update_user(
                 "Cannot change the last active operator account.",
             )
 
+    role_changed = False
     if body.role is not None and body.role != target.role:
+        role_changed = True
         log_event(db, USER_ROLE_CHANGE, target_type="user", target_id=str(target.id),
                   user_id=actor.id, detail={"role": body.role, "old_role": target.role})
         target.role = body.role
+
+    active_changed = False
     if body.active is not None and body.active != target.active:
+        active_changed = True
         log_event(db, USER_STATE_CHANGE, target_type="user", target_id=str(target.id),
                   user_id=actor.id, detail={"active": body.active, "old_active": target.active})
         target.active = body.active
     db.commit()
+
+    # The affected account must be able to see platform-operator changes in
+    # its own audit trail.
+    if target.id != actor.id:
+        if role_changed:
+            log_event(
+                db, USER_ROLE_CHANGE, target_type="user", target_id=str(target.id),
+                user_id=target.id,
+                detail={"actor_user_id": actor.id, "by_operator": True,
+                        "role": body.role},
+            )
+        if active_changed:
+            log_event(
+                db, USER_STATE_CHANGE, target_type="user", target_id=str(target.id),
+                user_id=target.id,
+                detail={"actor_user_id": actor.id, "by_operator": True,
+                        "active": body.active},
+            )
+
     db.refresh(target)
     return ok(_to_dict(target))

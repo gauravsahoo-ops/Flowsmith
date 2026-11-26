@@ -44,6 +44,11 @@ def _settings(enabled=True, per_minute=3, api_key_per_minute=5):
 @pytest.fixture
 def limited_client(mini_app, monkeypatch):
     monkeypatch.setattr(rl, "get_settings", lambda: _settings(per_minute=3))
+    # Keep the fixture on the in-memory limiter: a shared Redis instance would
+    # leak token budgets across tests/workers and make the window flaky.
+    monkeypatch.setattr(
+        "app.security.redis_client.get_shared_redis", lambda: None
+    )
     mini_app.add_middleware(rl.RateLimitMiddleware, redis_client=None)
     return TestClient(mini_app)
 

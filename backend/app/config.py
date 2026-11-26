@@ -285,6 +285,18 @@ class Settings(BaseSettings):
     pg_docker_port: int = 5432
     backup_retention_days: int = 14
 
+    # Per-account resource quotas and private-export retention. These are
+    # account-boundary controls, not billing limits: they keep one account
+    # from exhausting shared connector/disk capacity.
+    max_connector_packs_per_user: int = 20
+    max_generated_connectors_per_user: int = 50
+    max_account_exports_per_user: int = 10
+    account_export_retention_days: int = 30
+    max_user_templates: int = 500
+    # Production operators must have MFA enrolled before changing another
+    # account's role or activation state.
+    operator_mfa_required: bool = True
+
     # Security & access (next phase): throttling, limits.
     login_max_attempts: int = 5
     login_window_seconds: int = 300

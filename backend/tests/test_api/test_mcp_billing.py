@@ -1,6 +1,5 @@
 """Tests for MCP and Rate Limiting."""
 
-import gzip
 import json
 
 from fastapi.testclient import TestClient
@@ -55,7 +54,7 @@ class TestMCP:
         )
         assert created_export.status_code == 200, created_export.text
         filename = created_export.json()["data"]["filename"]
-        assert filename == "my_export.json.gz"
+        assert filename == "my_export.json.enc"
 
         first_list = client.post(
             "/api/mcp/call", json={"name": "list_backups"}, headers=first_headers
@@ -66,12 +65,41 @@ class TestMCP:
         ).json()["data"]
         assert second_list == []
 
+        from app.security.crypto import decrypt_text
+
         path = user_export.user_export_dir(first["user"]["id"]) / filename
-        with gzip.open(path, "rt", encoding="utf-8") as fh:
-            payload = json.load(fh)
+        payload = json.loads(decrypt_text(path.read_bytes()))
         assert payload["user"]["id"] == first["user"]["id"]
         assert [row["id"] for row in payload["workflows"]] == ["wf_export_private"]
         assert all("password" not in json.dumps(row) for row in payload["credentials"])
+        audit = client.get("/api/audit", headers=first_headers).json()["data"]
+        assert any(
+            event["action"] == "account.export_created"
+            and event["target_id"] == str(first["user"]["id"])
+            for event in audit
+        )
+
+    def test_export_retention_keeps_newest(
+        self, client: TestClient, tmp_path, monkeypatch
+    ):
+        from app.config import get_settings
+        from app.services import user_export
+
+        monkeypatch.setattr(user_export, "_ROOT", tmp_path / "users")
+        monkeypatch.setattr(get_settings(), "max_account_exports_per_user", 1)
+        user = register(client, email="mcp-export-retention@test.com")
+        headers = auth_headers(user["token"])
+        for name in ("first", "second"):
+            resp = client.post(
+                "/api/mcp/call",
+                json={"name": "create_backup", "arguments": {"name": name}},
+                headers=headers,
+            )
+            assert resp.status_code == 200, resp.text
+        listed = client.post(
+            "/api/mcp/call", json={"name": "list_backups"}, headers=headers
+        ).json()["data"]
+        assert [item["filename"] for item in listed] == ["second.json.enc"]
 
 
 class TestRateLimit:

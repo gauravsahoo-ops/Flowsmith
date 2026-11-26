@@ -108,6 +108,12 @@ def test_operator_promotes_and_deactivates_member(client):
     resp = client.patch(f"/api/users/{bid}", json={"role": "admin"}, headers=auth_headers(operator["token"]))
     assert resp.status_code == 200
     assert resp.json()["data"]["role"] == "admin"
+    member_audit = client.get("/api/audit", headers=auth_headers(member["token"])).json()["data"]
+    assert any(
+        e["action"] == "user.role_change"
+        and (e.get("detail") or {}).get("actor_user_id") == operator["user"]["id"]
+        for e in member_audit
+    )
     resp = client.patch(f"/api/users/{bid}", json={"active": False}, headers=auth_headers(operator["token"]))
     assert resp.status_code == 200
     assert resp.json()["data"]["active"] is False
@@ -143,6 +149,40 @@ def test_non_operator_cannot_manage_another_account(client):
     allowed = client.patch(
         f"/api/users/{member['user']['id']}",
         json={"active": False},
+        headers=auth_headers(operator["token"]),
+    )
+    assert allowed.status_code == 200
+
+
+def test_operator_account_changes_require_mfa_in_production(client, monkeypatch):
+    from app.config import get_settings
+
+    operator = register(client, "mfa-operator@x.com")
+    member = register(client, "mfa-member@x.com")
+    settings = get_settings()
+    monkeypatch.setattr(settings, "app_env", "production")
+    monkeypatch.setattr(settings, "operator_mfa_required", True)
+
+    denied = client.patch(
+        f"/api/users/{member['user']['id']}",
+        json={"role": "admin"},
+        headers=auth_headers(operator["token"]),
+    )
+    assert denied.status_code == 403
+
+    from app.db import get_session
+    from app.models import User
+
+    db = get_session()
+    try:
+        operator_row = db.get(User, operator["user"]["id"])
+        operator_row.mfa_enabled = True
+        db.commit()
+    finally:
+        db.close()
+    allowed = client.patch(
+        f"/api/users/{member['user']['id']}",
+        json={"role": "admin"},
         headers=auth_headers(operator["token"]),
     )
     assert allowed.status_code == 200

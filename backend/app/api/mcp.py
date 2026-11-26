@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from app.api.auth import get_current_user
 from app.api.common import ok
+from app.audit import log_event
 from app.db import get_db
 from app.models import Execution, User, WorkflowRecord
 from app.api.access import (
@@ -404,6 +405,14 @@ async def call_mcp_tool(
                     "letter or digit (letters, digits, '.', '_', '-').",
                 )
             filepath = create_user_export(db, user.id, backup_name)
+            log_event(
+                db,
+                "account.export_created",
+                target_type="user",
+                target_id=str(user.id),
+                user_id=user.id,
+                detail={"filename": filepath.name},
+            )
             result = {"filename": filepath.name, "name": filepath.name}
 
         elif payload.name == "list_backups":

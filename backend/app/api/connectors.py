@@ -23,11 +23,13 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
 from app.api.common import ok
+from app.audit import log_event
+from app.config import get_settings
 from app.db import get_db
 from app.models import GeneratedConnector, User
 from app.connectors.registry import ConnectorRegistry
@@ -370,12 +372,24 @@ async def _import_openapi_impl(
 
     manifest_key = connector_key_for(name)
     key = force_key or resolve_user_connector_key(db, user.id, manifest_key)
-    if force_key:
-        owner = db.get(GeneratedConnector, key)
-        if owner is not None and owner.user_id != user.id:
+    owner = db.get(GeneratedConnector, key)
+    if owner is not None and owner.user_id != user.id:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Connector key belongs to another account.",
+        )
+    if owner is None:
+        settings = get_settings()
+        generated_count = db.scalar(
+            select(func.count())
+            .select_from(GeneratedConnector)
+            .where(GeneratedConnector.user_id == user.id)
+        ) or 0
+        if generated_count >= settings.max_generated_connectors_per_user:
             raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Connector key belongs to another account.",
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                f"Account generated-connector quota reached "
+                f"({settings.max_generated_connectors_per_user}).",
             )
     display = body.title.strip() or api_spec.title or name
     files = emit_connector_files(key, display, api_spec, body.category or "api")
@@ -423,6 +437,14 @@ async def _import_openapi_impl(
         owner.user_id = user.id
         owner.source = "import"
     db.commit()
+    log_event(
+        db,
+        "connector.imported",
+        target_type="connector",
+        target_id=key,
+        user_id=user.id,
+        detail={"manifest_key": manifest_key, "operations_count": len(api_spec.operations)},
+    )
 
     return ok({
         "success": True,

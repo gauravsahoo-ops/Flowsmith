@@ -9,16 +9,16 @@ and audit events. Secrets are never exported.
 
 from __future__ import annotations
 
-import gzip
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.importexport import sanitize_workflow_data
 from app.models import (
     AuditEvent,
@@ -32,6 +32,7 @@ from app.models import (
     WorkflowRecord,
     WorkflowTemplate,
 )
+from app.security.crypto import encrypt_text
 
 _ROOT = Path(os.getenv("MAT_BACKUP_DIR", "backups")) / "users"
 _NAME_CHARS = set("._-")
@@ -56,6 +57,29 @@ def user_export_dir(user_id: int, out_dir: str | Path | None = None) -> Path:
     return (Path(out_dir) if out_dir else _ROOT) / str(int(user_id))
 
 
+def _prune_user_exports(directory: Path) -> None:
+    settings = get_settings()
+    cutoff = datetime.now(UTC) - timedelta(
+        days=settings.account_export_retention_days
+    )
+    # Remove legacy plaintext exports from earlier builds.
+    for legacy in directory.glob("*.json.gz"):
+        legacy.unlink(missing_ok=True)
+    for path in directory.glob("*.json.enc"):
+        try:
+            if datetime.fromtimestamp(path.stat().st_mtime, UTC) < cutoff:
+                path.unlink(missing_ok=True)
+        except OSError:
+            continue
+    remaining = sorted(
+        directory.glob("*.json.enc"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    for path in remaining[settings.max_account_exports_per_user:]:
+        path.unlink(missing_ok=True)
+
+
 def create_user_export(
     db: Session,
     user_id: int,
@@ -69,7 +93,8 @@ def create_user_export(
 
     directory = user_export_dir(user_id, out_dir)
     directory.mkdir(parents=True, exist_ok=True)
-    filepath = directory / f"{_safe_name(name)}.json.gz"
+    _prune_user_exports(directory)
+    filepath = directory / f"{_safe_name(name)}.json.enc"
 
     workflows = []
     for rec in db.scalars(
@@ -228,10 +253,12 @@ def create_user_export(
         "audit_events": audit,
     }
 
+    token = encrypt_text(
+        json.dumps(payload, default=str, ensure_ascii=False)
+    )
     fd = os.open(filepath, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
-    os.close(fd)
-    with gzip.open(filepath, "wt", encoding="utf-8") as fh:
-        json.dump(payload, fh, default=str, ensure_ascii=False)
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(token)
     return filepath
 
 
@@ -241,11 +268,12 @@ def list_user_exports(
     directory = user_export_dir(user_id, out_dir)
     if not directory.exists():
         return []
+    _prune_user_exports(directory)
     exports = []
-    for path in sorted(directory.glob("*.json.gz"), reverse=True):
+    for path in sorted(directory.glob("*.json.enc"), reverse=True):
         stat = path.stat()
         exports.append({
-            "name": path.name.removesuffix(".json.gz"),
+            "name": path.name.removesuffix(".json.enc"),
             "filename": path.name,
             "size_mb": round(stat.st_size / (1024 * 1024), 2),
             "created_at": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),

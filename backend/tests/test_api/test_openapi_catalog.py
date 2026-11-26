@@ -20,7 +20,7 @@ pytestmark = [pytest.mark.timing]
 
 @pytest.fixture
 def _generated_tree(tmp_path):
-    from app.connectors import register_builtin_connectors
+    from app.connectors import get_registry, register_builtin_connectors
 
     api = parse_spec(SAMPLE)
     for name, source in emit_connector_files("Widget API", "Widgets", api).items():
@@ -29,6 +29,7 @@ def _generated_tree(tmp_path):
     try:
         yield
     finally:
+        get_registry().unregister("widget_api")
         register_builtin_connectors()
 
 
@@ -95,6 +96,14 @@ def test_import_openapi_endpoint(client, tmp_path, monkeypatch):
                 f.unlink(missing_ok=True)
             except Exception:
                 pass
+        try:
+            from app.connectors import get_registry
+            from app.connectors.openapi_emit import invalidate_generated_modules
+
+            get_registry().unregister("test_sample_api")
+            invalidate_generated_modules("test_sample_api")
+        except Exception:
+            pass
 
 
 def test_hostile_docstring_fields_cannot_inject_statements():
@@ -161,6 +170,41 @@ def test_import_openapi_ast_gate_rejects_breakout_statements(client, monkeypatch
     assert res.status_code == 400, res.text
 
 
+def test_generated_connector_quota_is_per_account(client, monkeypatch):
+    from pathlib import Path
+
+    from app.config import get_settings
+    from app.connectors import get_registry
+
+    user = register(client, "openapi-quota@example.com")
+    headers = auth_headers(user["token"])
+    monkeypatch.setattr(get_settings(), "max_generated_connectors_per_user", 1)
+    keys = []
+    try:
+        for name in ("quota_one", "quota_two"):
+            resp = client.post(
+                "/api/connectors/import-openapi",
+                json={
+                    "spec": SAMPLE,
+                    "name": name,
+                    "title": name,
+                    "base_url": "https://api.example.com/v1",
+                },
+                headers=headers,
+            )
+            keys.append(name)
+            assert resp.status_code == (200 if name == "quota_one" else 429), resp.text
+    finally:
+        gen_dir = Path(__file__).resolve().parents[2] / "app" / "connectors" / "generated"
+        for key in keys:
+            for path in gen_dir.glob(f"gen_{key}_*.py"):
+                path.unlink(missing_ok=True)
+            try:
+                get_registry().unregister(key)
+            except Exception:
+                pass
+
+
 def test_generated_connector_is_private_to_its_owner(client):
     from pathlib import Path
 
@@ -211,6 +255,12 @@ def test_generated_connector_is_private_to_its_owner(client):
         assert client.post("/api/workflows", json=workflow, headers=owner_headers).status_code == 201
         denied = client.post("/api/workflows", json=workflow, headers=other_headers)
         assert denied.status_code == 422
+        owner_audit = client.get("/api/audit", headers=owner_headers).json()["data"]
+        assert any(
+            event["action"] == "connector.imported"
+            and event["target_id"] == key
+            for event in owner_audit
+        )
     finally:
         gen_dir = Path(__file__).resolve().parents[2] / "app" / "connectors" / "generated"
         for path in gen_dir.glob(f"gen_{key}_*.py"):

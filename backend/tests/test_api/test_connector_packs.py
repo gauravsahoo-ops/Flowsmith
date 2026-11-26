@@ -261,6 +261,32 @@ def test_two_accounts_can_install_the_same_pack_independently(client):
     _cleanup(member_key)
 
 
+def test_pack_quota_is_per_account(client, monkeypatch):
+    user = register(client, "pack-quota@example.com", "Password123!")
+    headers = auth_headers(user["token"])
+    monkeypatch.setattr(get_settings(), "max_connector_packs_per_user", 1)
+    first = _key()
+    second = _key()
+    try:
+        resp = client.post(
+            "/api/connector-packs/install",
+            json={"manifest": _manifest(first)},
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        first_key = resp.json()["data"]["connector_key"]
+        resp = client.post(
+            "/api/connector-packs/install",
+            json={"manifest": _manifest(second)},
+            headers=headers,
+        )
+        assert resp.status_code == 429
+        client.delete(f"/api/connector-packs/{first_key}", headers=headers)
+    finally:
+        _cleanup(first)
+        _cleanup(second)
+
+
 def test_duplicate_pack_is_rejected(client):
     admin = register(client, "pack-dup@example.com", "Password123!")
     headers = auth_headers(admin["token"])

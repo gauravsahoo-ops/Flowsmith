@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
 from app.api.common import ok, page_params
+from app.config import get_settings
 from app.audit import log_event
 from app.db import get_db
 from app.environments import decrypt_env_value
@@ -495,6 +496,16 @@ def create_template(payload: TemplateCreate, user: User = Depends(get_current_us
     """Create a workflow template."""
     if payload.name in _DEFAULT_TEMPLATE_NAMES:
         raise HTTPException(status.HTTP_409_CONFLICT, "That template name is reserved.")
+    limit = get_settings().max_user_templates
+    owned = db.query(WorkflowTemplate).filter(
+        WorkflowTemplate.created_by == user.id,
+        WorkflowTemplate.name.notin_(_DEFAULT_TEMPLATE_NAMES),
+    ).count()
+    if owned >= limit:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Account template quota reached ({limit}).",
+        )
     sanitized = sanitize_workflow_data(payload.workflow_data, strip_credentials=True, strip_secrets=True)
     tmpl = WorkflowTemplate(
         name=payload.name,

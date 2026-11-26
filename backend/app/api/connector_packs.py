@@ -25,7 +25,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, status
 from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, select, text
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
@@ -389,6 +389,19 @@ def _template_rows(
                 WorkflowTemplate.created_by == user.id,
             )
         ).all())
+
+    settings = get_settings()
+    owned_templates = db.query(WorkflowTemplate).filter(
+        WorkflowTemplate.created_by == user.id,
+        WorkflowTemplate.name.notin_(_DEFAULT_TEMPLATE_NAMES),
+    ).count()
+    projected = owned_templates - len(allowed_existing) + len(raw_templates)
+    if projected > settings.max_user_templates:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Account template quota would be exceeded "
+            f"({settings.max_user_templates}).",
+        )
 
     rows: list[WorkflowTemplate] = []
     seen: set[str] = set()
@@ -771,6 +784,20 @@ async def install_connector_pack(
     from app.connectors import ensure_builtin_connectors, get_registry
     from app.connectors.openapi_emit import connector_key_for
     from app.services.connector_pack_runtime import clear_pack_cache
+
+    settings = get_settings()
+    installed_count = db.scalar(
+        select(func.count())
+        .select_from(ConnectorPack)
+        .where(ConnectorPack.installed_by == user.id)
+    ) or 0
+    if installed_count >= settings.max_connector_packs_per_user:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Account connector-pack quota reached "
+            f"({settings.max_connector_packs_per_user}). "
+            "Uninstall a pack before installing another.",
+        )
 
     manifest_key = connector_key_for(parsed.name)
     connector_key = resolve_user_connector_key(db, user.id, manifest_key)
