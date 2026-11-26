@@ -23,10 +23,7 @@ from app.ai.providers import (
     DeepSeekProvider,
     GroqProvider,
     OllamaProvider,
-    LLMResponse,
-    ToolCall,
 )
-from app.ai.client import chat_completion
 from app.ai.memory import WorkingMemory, SummaryBufferMemory, EpisodicVectorMemory
 from app.ai.rag import (
     RecursiveTextSplitter,
@@ -35,7 +32,7 @@ from app.ai.rag import (
     reciprocal_rank_fusion,
     simple_bm25_search,
 )
-from app.ai.tools import TOOLS, run_tool, ToolSpec, openai_tools
+from app.ai.tools import TOOLS, run_tool, ToolSpec
 from app.ai.mcp_client import MCPClient
 from app.nodes.ai_agent import AIAgentNode, AgentParams
 from app.engine.node_base import NodeContext, MemoryKVStore
@@ -71,6 +68,14 @@ def test_provider_resolution():
     assert isinstance(get_provider("deepseek"), DeepSeekProvider)
     assert isinstance(get_provider("groq"), GroqProvider)
     assert isinstance(get_provider("ollama"), OllamaProvider)
+
+
+def test_builtin_provider_removed():
+    """The zero-LLM/builtin provider is no longer selectable."""
+    with pytest.raises(ValueError):
+        get_provider("builtin")
+    with pytest.raises(ValueError):
+        get_provider(model="builtin")
 
 
 @pytest.mark.asyncio

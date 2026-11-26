@@ -131,7 +131,7 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
           <div>
             <h3 style={{ margin: 0, fontSize: 18, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 10 }}>
               <span>Authentication &amp; Recovery Settings</span>
-              <span className="badge" style={{ fontSize: 11, background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
+              <span className="badge" style={{ fontSize: 11, background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
                 {credential.type}
               </span>
             </h3>
@@ -157,8 +157,8 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
               padding: '8px 16px',
               border: 'none',
               background: 'transparent',
-              color: activeTab === 'policy' ? '#818cf8' : '#94a3b8',
-              borderBottom: activeTab === 'policy' ? '2px solid #818cf8' : '2px solid transparent',
+              color: activeTab === 'policy' ? '#34d399' : '#94a3b8',
+              borderBottom: activeTab === 'policy' ? '2px solid #34d399' : '2px solid transparent',
               cursor: 'pointer',
               fontWeight: 600,
               fontSize: 13,
@@ -174,8 +174,8 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
               padding: '8px 16px',
               border: 'none',
               background: 'transparent',
-              color: activeTab === 'history' ? '#818cf8' : '#94a3b8',
-              borderBottom: activeTab === 'history' ? '2px solid #818cf8' : '2px solid transparent',
+              color: activeTab === 'history' ? '#34d399' : '#94a3b8',
+              borderBottom: activeTab === 'history' ? '2px solid #34d399' : '2px solid transparent',
               cursor: 'pointer',
               fontWeight: 600,
               fontSize: 13,
@@ -235,8 +235,8 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
                     gap: 12,
                     padding: '12px 14px',
                     borderRadius: 8,
-                    background: mode === 'automatic' ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
-                    border: mode === 'automatic' ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                    background: mode === 'automatic' ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.02)',
+                    border: mode === 'automatic' ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.06)',
                     cursor: 'pointer',
                   }}
                 >
@@ -246,7 +246,7 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
                     value="automatic"
                     checked={mode === 'automatic'}
                     onChange={() => setMode('automatic')}
-                    style={{ marginTop: 2, accentColor: '#6366f1' }}
+                    style={{ marginTop: 2, accentColor: '#10b981' }}
                   />
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 13, color: '#f8fafc' }}>
@@ -266,8 +266,8 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
                     gap: 12,
                     padding: '12px 14px',
                     borderRadius: 8,
-                    background: mode === 'automatic_with_notifications' ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
-                    border: mode === 'automatic_with_notifications' ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                    background: mode === 'automatic_with_notifications' ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.02)',
+                    border: mode === 'automatic_with_notifications' ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.06)',
                     cursor: 'pointer',
                   }}
                 >
@@ -277,7 +277,7 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
                     value="automatic_with_notifications"
                     checked={mode === 'automatic_with_notifications'}
                     onChange={() => setMode('automatic_with_notifications')}
-                    style={{ marginTop: 2, accentColor: '#6366f1' }}
+                    style={{ marginTop: 2, accentColor: '#10b981' }}
                   />
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 13, color: '#f8fafc' }}>
@@ -333,7 +333,7 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
                     type="checkbox"
                     checked={notifyInApp}
                     onChange={e => setNotifyInApp(e.target.checked)}
-                    style={{ accentColor: '#6366f1' }}
+                    style={{ accentColor: '#10b981' }}
                   />
                   <span>In-app notifications</span>
                 </label>
@@ -342,7 +342,7 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
                     type="checkbox"
                     checked={notifyEmail}
                     onChange={e => setNotifyEmail(e.target.checked)}
-                    style={{ accentColor: '#6366f1' }}
+                    style={{ accentColor: '#10b981' }}
                   />
                   <span>Email notifications</span>
                 </label>
@@ -351,7 +351,7 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
                     type="checkbox"
                     checked={notifyOnFailure}
                     onChange={e => setNotifyOnFailure(e.target.checked)}
-                    style={{ accentColor: '#6366f1' }}
+                    style={{ accentColor: '#10b981' }}
                   />
                   <span>Alert on recovery failure</span>
                 </label>
@@ -360,7 +360,7 @@ export default function ConnectionAuthSettingsModal({ isOpen, onClose, credentia
                     type="checkbox"
                     checked={notifyOnExpiry}
                     onChange={e => setNotifyOnExpiry(e.target.checked)}
-                    style={{ accentColor: '#6366f1' }}
+                    style={{ accentColor: '#10b981' }}
                   />
                   <span>Alert on upcoming expiry</span>
                 </label>

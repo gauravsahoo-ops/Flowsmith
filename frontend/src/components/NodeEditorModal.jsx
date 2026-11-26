@@ -416,7 +416,7 @@ export function NodeEditorModalDialog({ onClosed }) {
               </div>
               <span className="nem-connector-meta">
                 {node.settings?.label && meta?.display_name && (
-                  <span className="nem-connector-type" style={{ color: '#a5b4fc', marginRight: 4 }}>
+                  <span className="nem-connector-type" style={{ color: '#6ee7b7', marginRight: 4 }}>
                     {meta.display_name}
                   </span>
                 )}
@@ -787,7 +787,7 @@ export function NodeEditorModalDialog({ onClosed }) {
                                         href="/credentials"
                                         target="_blank"
                                         rel="noreferrer"
-                                        style={{ fontSize: 11, color: '#818cf8', textDecoration: 'underline' }}
+                                        style={{ fontSize: 11, color: '#34d399', textDecoration: 'underline' }}
                                       >
                                         + Open Credentials
                                       </a>

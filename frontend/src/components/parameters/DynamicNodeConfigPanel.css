@@ -88,7 +88,7 @@
 }
 
 .dncp-credential-select:focus {
-  border-color: #6366f1;
+  border-color: #10b981;
 }
 
 /* Operation and Resource Bar */
@@ -189,9 +189,9 @@
 }
 
 .dncp-badge-retry {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 /* Parameters Form */
@@ -272,8 +272,8 @@
 }
 
 .dncp-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .dncp-textarea {
@@ -294,7 +294,7 @@
 
 .dncp-toggle-input {
   cursor: pointer;
-  accent-color: #6366f1;
+  accent-color: #10b981;
   width: 16px;
   height: 16px;
 }
@@ -348,7 +348,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #6366f1;
+  background: #10b981;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -360,7 +360,7 @@
 }
 
 .dncp-test-btn:hover {
-  background: #4f46e5;
+  background: #059669;
 }
 
 .dncp-test-btn:disabled {

@@ -291,11 +291,6 @@
       },
       "ChatRequest": {
         "properties": {
-          "allow_builtin": {
-            "default": false,
-            "title": "Allow Builtin",
-            "type": "boolean"
-          },
           "credential_id": {
             "anyOf": [
               {
@@ -21150,6 +21145,74 @@
           }
         },
         "summary": "Get Stats",
+        "tags": [
+          "rag"
+        ]
+      }
+    },
+    "/api/rag/status": {
+      "get": {
+        "description": "Report whether the optional semantic embedding stack is installed.",
+        "operationId": "rag_status_api_rag_status_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rag Status Api Rag Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rag Status",
         "tags": [
           "rag"
         ]

@@ -725,7 +725,7 @@ function NodeIconArt({ type, name, icon, size = 34, color }) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <rect width="20" height="20" x="2" y="2" rx="4" fill="#18181B" />
-        <circle cx="6" cy="12" r="2.5" fill="#6366F1" />
+        <circle cx="6" cy="12" r="2.5" fill="#10b981" />
         <circle cx="18" cy="7" r="2.5" fill="#EC4899" />
         <circle cx="18" cy="17" r="2.5" fill="#10B981" />
         <path d="M8.5 12h3m0 0l4-5m-4 5l4 5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
@@ -1489,7 +1489,7 @@ function NodeIconArt({ type, name, icon, size = 34, color }) {
   // Crypto Tools (Padlock & Hash)
   if (matches('crypto_tools', 'crypto')) {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#6366f1'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || '#10b981'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="11" width="18" height="11" rx="2" />
         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         <circle cx="12" cy="16" r="1.5" fill="currentColor" />
@@ -1759,9 +1759,9 @@ function NodeIconArt({ type, name, icon, size = 34, color }) {
   if (matches('bearer_auth', 'bearer', 'jwt')) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M12 3l8 3.5v5.5c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V6.5L12 3z" stroke="#6366F1" strokeWidth="1.8" fill="#6366F1" fillOpacity="0.15" />
-        <circle cx="12" cy="11.5" r="2.5" fill="#6366F1" />
-        <path d="M12 14v3" stroke="#6366F1" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M12 3l8 3.5v5.5c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V6.5L12 3z" stroke="#10b981" strokeWidth="1.8" fill="#10b981" fillOpacity="0.15" />
+        <circle cx="12" cy="11.5" r="2.5" fill="#10b981" />
+        <path d="M12 14v3" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     )
   }
@@ -2286,7 +2286,7 @@ function NodeIconArt({ type, name, icon, size = 34, color }) {
     const words = cleanLabel.split(/\s+/).filter(Boolean)
     const fullMonogram = (words.length > 1 ? words[0][0] + words[1][0] : cleanLabel.slice(0, 2)).toUpperCase() || 'FS'
     const monogram = fullMonogram.length > 1 && size < 22 ? fullMonogram[0] : fullMonogram
-    const accents = ['#6b8afd', '#4aa8d8', '#48b7a2', '#d0a44c', '#d2768b', '#9b7ad6', '#7da36b']
+    const accents = ['#10b981', '#4aa8d8', '#48b7a2', '#d0a44c', '#d2768b', '#9b7ad6', '#7da36b']
     let hash = 0
     for (let i = 0; i < cleanLabel.length; i++) {
       hash = (hash * 31 + cleanLabel.charCodeAt(i)) | 0

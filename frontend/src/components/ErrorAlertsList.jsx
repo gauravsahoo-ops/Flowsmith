@@ -293,7 +293,7 @@ export default function ErrorAlertsList({ highlightedEventId }) {
               type="checkbox"
               checked={onlyUnresolved}
               onChange={e => setOnlyUnresolved(e.target.checked)}
-              style={{ accentColor: '#6366f1' }}
+              style={{ accentColor: '#10b981' }}
             />
             <span>Unresolved only</span>
           </label>
@@ -382,8 +382,8 @@ export default function ErrorAlertsList({ highlightedEventId }) {
                 borderLeft: `4px solid ${
                   ev.severity === 'CRITICAL' ? '#e11d48' : ev.severity === 'WARNING' ? '#d97706' : '#ef4444'
                 }`,
-                background: isHighlighted ? 'rgba(99, 102, 241, 0.06)' : undefined,
-                boxShadow: isHighlighted ? '0 0 0 1px #6366f1' : undefined,
+                background: isHighlighted ? 'rgba(16, 185, 129, 0.06)' : undefined,
+                boxShadow: isHighlighted ? '0 0 0 1px #10b981' : undefined,
                 transition: 'all 0.2s ease',
               }}
             >

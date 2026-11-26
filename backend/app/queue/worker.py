@@ -366,6 +366,15 @@ def main() -> None:
 
     register_builtin_connectors()
 
+    # Preload the optional semantic embedding model so RAG nodes do not pay a
+    # ~50s first-run cost. Non-fatal when the AI extra is absent.
+    try:
+        from app.rag import preload_embedding_model
+
+        preload_embedding_model()
+    except Exception:
+        logging.getLogger("worker").exception("RAG embedding preload failed")
+
     # In production and staging, ensure schema migrations have reached expected head
     # before claiming jobs from the queue to avoid races against in-flight DDL.
     from app.config import get_settings

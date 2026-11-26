@@ -38,7 +38,7 @@ class BrandingSetting(Base):
     logo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     logo_data: Mapped[str | None] = mapped_column(Text, nullable=True)  # base64 data URI or SVG
     favicon_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    primary_color: Mapped[str] = mapped_column(String(32), default="#6366f1", nullable=False)
+    primary_color: Mapped[str] = mapped_column(String(32), default="#10b981", nullable=False)
     documentation_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     support_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     copyright_text: Mapped[str | None] = mapped_column(String(255), nullable=True)

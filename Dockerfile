@@ -20,7 +20,8 @@ LABEL maintainer="flowsmith" \
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOST=0.0.0.0 \
-    PORT=8000
+    PORT=8000 \
+    HF_HOME=/app/.cache/huggingface
 
 WORKDIR /app
 # Apply current Debian security updates (the base-image digest can lag the
@@ -37,6 +38,19 @@ RUN pip install --no-cache-dir -r requirements-lock.txt \
     && pip uninstall -y playwright pytest pytest-asyncio pytest-cov pytest-xdist \
     && rm -rf /usr/local/lib/python3.12/site-packages/playwright
 
+# Optional AI extra: real semantic embeddings for Knowledge/RAG. CPU torch
+# keeps the image smaller; the model is baked into the image so production
+# does not need a first-request download.
+COPY backend/requirements-ai.txt ./
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch \
+    && pip install --no-cache-dir -r requirements-ai.txt \
+    && python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# The model is baked into the image. Never contact Hugging Face at runtime:
+# startup must work air-gapped and must not depend on Hub rate limits.
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
+
 COPY backend/ ./backend
 COPY docs/integration-platform/LIVE_CERTIFICATION_EVIDENCE.json ./docs/integration-platform/
 #COPY USER_MANUAL.md ./USER_MANUAL.md
@@ -51,7 +65,7 @@ WORKDIR /app/backend
 EXPOSE 8000
 STOPSIGNAL SIGTERM
 
-HEALTHCHECK --interval=10s --timeout=5s --start-period=45s --retries=5 \
+HEALTHCHECK --interval=10s --timeout=5s --start-period=150s --retries=5 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2)" || exit 1
 
 CMD ["python", "-m", "app.serve"]

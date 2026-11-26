@@ -262,11 +262,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   }
   50% {
     box-shadow: 
-      0 0 0 2.5px rgba(99, 102, 241, 0.7), 
+      0 0 0 2.5px rgba(16, 185, 129, 0.7), 
       0 18px 42px -4px rgba(0, 0, 0, 0.8), 
       inset 0 1px 2px 0 rgba(255, 255, 255, 0.6),
       0 0 32px 4px rgba(56, 189, 248, 0.75);
-    border-color: rgba(165, 180, 252, 0.9);
+    border-color: rgba(110, 231, 183, 0.9);
   }
 }
 .rf-node-card.running {
@@ -383,11 +383,11 @@ button:not(:disabled):active {
   background: rgba(255, 255, 255, 0.05);
 }
 .nem-input-tab.active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0.18) 100%);
-  color: #e0e7ff;
-  border: 1px solid rgba(99, 102, 241, 0.5);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(16, 185, 129, 0.18) 100%);
+  color: #d1fae5;
+  border: 1px solid rgba(16, 185, 129, 0.5);
   font-weight: 600;
-  box-shadow: 0 1px 6px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 1px 6px rgba(16, 185, 129, 0.25);
 }
 
 /* Output item count pill badge */
@@ -432,8 +432,8 @@ button:not(:disabled):active {
   transition: all 0.15s ease;
 }
 .nem-input-search-input:focus {
-  border-color: rgba(99, 102, 241, 0.55);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
 }
 
 .nem-input-search-clear {
@@ -472,12 +472,12 @@ button:not(:disabled):active {
   min-height: fit-content;
 }
 .nem-upstream-node-card:hover {
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 .nem-upstream-node-card.is-open {
-  border-color: rgba(99, 102, 241, 0.35);
+  border-color: rgba(16, 185, 129, 0.35);
   background: rgba(18, 24, 38, 0.85);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 12px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 12px rgba(16, 185, 129, 0.08);
 }
 
 .nem-upstream-node-card.variables-card {
@@ -509,7 +509,7 @@ button:not(:disabled):active {
 }
 .nem-upstream-arrow.open {
   transform: rotate(90deg);
-  color: var(--primary, #6366f1);
+  color: var(--primary, #10b981);
 }
 
 .nem-upstream-icon {
@@ -577,9 +577,9 @@ button:not(:disabled):active {
   color: #f1f5f9;
 }
 .nem-branch-pill.active {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: #6366f1;
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #6ee7b7;
   font-weight: 600;
 }
 
@@ -665,9 +665,9 @@ button:not(:disabled):active {
 }
 
 .nem-schema-row:hover {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0.04) 100%), rgba(30, 41, 59, 0.75);
-  border-color: rgba(99, 102, 241, 0.45);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 14px rgba(99, 102, 241, 0.2);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%), rgba(30, 41, 59, 0.75);
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 14px rgba(16, 185, 129, 0.2);
   transform: translateY(-1px);
 }
 
@@ -682,9 +682,9 @@ button:not(:disabled):active {
 
 .nem-schema-row.is-dragging {
   opacity: 0.45;
-  border: 1.5px dashed #818cf8 !important;
-  background: rgba(99, 102, 241, 0.18) !important;
-  box-shadow: 0 0 18px rgba(99, 102, 241, 0.4) !important;
+  border: 1.5px dashed #34d399 !important;
+  background: rgba(16, 185, 129, 0.18) !important;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.4) !important;
   transform: scale(0.985);
 }
 
@@ -705,12 +705,12 @@ button:not(:disabled):active {
 
 .nem-schema-row:hover .nem-schema-drag-handle {
   opacity: 0.95;
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .nem-schema-drag-handle:hover {
-  background: rgba(99, 102, 241, 0.15);
-  color: #c7d2fe !important;
+  background: rgba(16, 185, 129, 0.15);
+  color: #a7f3d0 !important;
   transform: scale(1.1);
 }
 
@@ -733,15 +733,15 @@ button:not(:disabled):active {
 
 .nem-schema-expand-btn:hover {
   color: #f1f5f9;
-  background: rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 .nem-schema-expand-btn.is-open {
   transform: rotate(90deg);
-  color: #818cf8;
-  background: rgba(99, 102, 241, 0.16);
-  border-color: rgba(99, 102, 241, 0.35);
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 .nem-schema-expand-spacer {
@@ -814,9 +814,9 @@ button:not(:disabled):active {
 }
 
 .nem-schema-type.type-object {
-  color: #a5b4fc;
-  background: rgba(129, 140, 248, 0.12);
-  border: 1px solid rgba(129, 140, 248, 0.3);
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .nem-schema-type.type-array {
@@ -883,9 +883,9 @@ button:not(:disabled):active {
 
 .nem-schema-copy-hint:hover {
   opacity: 1;
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(16, 185, 129, 0.25);
   color: #fff;
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
 .nem-schema-copy-hint.is-copied {
@@ -948,7 +948,7 @@ button:not(:disabled):active {
   position: relative;
   margin-left: 12px;
   padding-left: 10px;
-  border-left: 1.5px solid rgba(99, 102, 241, 0.24);
+  border-left: 1.5px solid rgba(16, 185, 129, 0.24);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -958,19 +958,19 @@ button:not(:disabled):active {
 }
 
 .nem-schema-children:hover {
-  border-left-color: rgba(99, 102, 241, 0.45);
+  border-left-color: rgba(16, 185, 129, 0.45);
 }
 
 .nem-schema-more-hint {
   font-size: 11px;
-  color: #818cf8;
+  color: #34d399;
   padding: 4px 8px;
   font-style: normal;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(99, 102, 241, 0.06);
-  border: 1px dashed rgba(99, 102, 241, 0.25);
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px dashed rgba(16, 185, 129, 0.25);
   border-radius: 6px;
   margin-top: 2px;
   user-select: none;
@@ -981,30 +981,30 @@ button:not(:disabled):active {
 }
 
 .nem-schema-more-hint.clickable:hover {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: rgba(99, 102, 241, 0.45);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #6ee7b7;
 }
 
 .nem-schema-more-link {
   font-size: 10px;
   text-decoration: underline;
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .is-drag-target {
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5), 0 0 16px rgba(99, 102, 241, 0.3) !important;
-  background: rgba(99, 102, 241, 0.12) !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5), 0 0 16px rgba(16, 185, 129, 0.3) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
   animation: pulse-drag-target 1.2s infinite alternate ease-in-out;
 }
 
 @keyframes pulse-drag-target {
   from {
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4), 0 0 8px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4), 0 0 8px rgba(16, 185, 129, 0.2);
   }
   to {
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.7), 0 0 16px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.7), 0 0 16px rgba(16, 185, 129, 0.4);
   }
 }
 
@@ -1032,9 +1032,9 @@ button:not(:disabled):active {
 }
 
 .nem-var-row:hover {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0.04) 100%), rgba(30, 41, 59, 0.75);
-  border-color: rgba(99, 102, 241, 0.45);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 12px rgba(99, 102, 241, 0.15);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%), rgba(30, 41, 59, 0.75);
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 12px rgba(16, 185, 129, 0.15);
   transform: translateY(-1px);
 }
 
@@ -1049,15 +1049,15 @@ button:not(:disabled):active {
 
 .nem-var-row.is-dragging {
   opacity: 0.45;
-  border: 1.5px dashed #818cf8 !important;
-  background: rgba(99, 102, 241, 0.16) !important;
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.35) !important;
+  border: 1.5px dashed #34d399 !important;
+  background: rgba(16, 185, 129, 0.16) !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35) !important;
   transform: scale(0.985);
 }
 
 .nem-var-row:hover .nem-schema-drag-handle {
   opacity: 0.95;
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .nem-var-row:hover .nem-schema-copy-hint {
@@ -1076,7 +1076,7 @@ button:not(:disabled):active {
 .nem-var-key {
   font-family: var(--font-mono, monospace);
   font-size: 12px;
-  color: #818cf8;
+  color: #34d399;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -1213,8 +1213,8 @@ button:not(:disabled):active {
 }
 
 .fs-select:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .fs-select option {
@@ -1352,14 +1352,14 @@ button:not(:disabled):active {
 }
 
 .fs-param-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 /* HTTP Direct Auth & Presets */
 .fs-auth-direct-card {
   background: #141820;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   border-radius: 8px;
   padding: 12px 14px;
   margin-top: 6px;
@@ -1372,12 +1372,12 @@ button:not(:disabled):active {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: 5px;
   padding: 6px 10px;
   font-size: 11.5px;
-  color: #c7d2fe;
+  color: #a7f3d0;
 }
 
 .fs-auth-header-badge code {
@@ -1418,8 +1418,8 @@ button:not(:disabled):active {
 }
 
 .fs-preset-chip:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
   color: #ffffff;
 }
 

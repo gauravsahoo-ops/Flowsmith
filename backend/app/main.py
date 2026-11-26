@@ -155,6 +155,16 @@ async def lifespan(_app: FastAPI):
             await outbox_relay.start()
             _app.state.outbox_relay = outbox_relay
 
+        # Preload the optional semantic embedding model so the first
+        # Knowledge ingest does not hit the request timeout. Non-fatal when
+        # the AI extra is not installed.
+        try:
+            from app.rag import preload_embedding_model
+
+            preload_embedding_model()
+        except Exception:
+            logger.exception("RAG embedding preload failed")
+
         # Stage 7: STARTUP_COMPLETE
         lifecycle.transition_to(StartupStage.STARTUP_COMPLETE, "Application startup complete.")
         logger.info("Application startup complete.")

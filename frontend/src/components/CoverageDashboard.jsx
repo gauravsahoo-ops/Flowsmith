@@ -101,10 +101,10 @@ export default function CoverageDashboard({ initialLoading = true, connectorStat
         <div>
           {/* Summary Metric Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #6366f1' }}>
+            <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registered Names</div>
               <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.35rem 0' }}>{registryStats.total}</div>
-              <div style={{ fontSize: '12px', color: '#6366f1' }}>Native + generated + catalog-only</div>
+              <div style={{ fontSize: '12px', color: '#10b981' }}>Native + generated + catalog-only</div>
             </div>
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #10b981' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Native Connectors</div>
@@ -360,7 +360,7 @@ export default function CoverageDashboard({ initialLoading = true, connectorStat
                         {c.search?.implemented ? <span style={{ color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Query</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
-                        {c.triggers?.registered ? <span style={{ color: "#6366f1", display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Active</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                        {c.triggers?.registered ? <span style={{ color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Active</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                       </td>
                       <td style={{ padding: '0.65rem 0.5rem' }}>
                         {c.webhooks?.implemented ? <span style={{ color: "#f59e0b", display: "inline-flex", alignItems: "center", gap: 3 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>HMAC</span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}

@@ -204,7 +204,7 @@ export default function OAuthCallbackPage() {
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0e0f14', color: '#e6e9ef', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ textAlign: 'center', padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #6366f1)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #10b981)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>
               <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
               <path d="M12 2a10 10 0 0 1 10 10" />
             </svg>

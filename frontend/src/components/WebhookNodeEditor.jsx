@@ -624,7 +624,7 @@ print(response.status_code, response.json())`
                   onClick={handleSendTest}
                   disabled={testing || !path}
                   style={{
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+                    background: 'linear-gradient(135deg, #10b981 0%, #8b5cf6 50%, #d946ef 100%)',
                     border: 'none',
                     fontWeight: 600,
                   }}
@@ -643,8 +643,8 @@ print(response.status_code, response.json())`
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
-                    borderColor: listening ? 'var(--accent, #6366f1)' : 'var(--border)',
-                    color: listening ? 'var(--accent, #818cf8)' : 'var(--text)',
+                    borderColor: listening ? 'var(--accent, #10b981)' : 'var(--border)',
+                    color: listening ? 'var(--accent, #34d399)' : 'var(--text)',
                     fontSize: 12,
                     fontWeight: 600,
                     padding: '8px 12px',

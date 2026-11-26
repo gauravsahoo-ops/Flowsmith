@@ -26,6 +26,16 @@ def _setup(client: TestClient, email="ragapi@example.com"):
     return token
 
 
+def test_rag_status_reports_semantic_availability(client):
+    token = _setup(client, email="ragstatus@example.com")
+    resp = client.get("/api/rag/status", headers=token)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert isinstance(data["semantic_available"], bool)
+    assert data["model"] == "all-MiniLM-L6-v2"
+    assert data["message"]
+
+
 def _mk_collection(client, token, name="kb", workspace_id=None) -> dict:
     resp = client.post("/api/rag/collections",
                        json={"name": name, "workspace_id": workspace_id},

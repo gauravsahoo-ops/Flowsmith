@@ -185,9 +185,9 @@ export function InCanvasCopilotModal({ open, onClose, onAutoLayout, fitView }) {
                 width: 22,
                 height: 22,
                 borderRadius: 'var(--radius-xs, 4px)',
-                background: 'var(--accent-subtle, rgba(79, 70, 229, 0.1))',
-                color: 'var(--accent, #6366f1)',
-                border: '1px solid rgba(99, 102, 241, 0.25)',
+                background: 'var(--accent-subtle, rgba(5, 150, 105, 0.1))',
+                color: 'var(--accent, #10b981)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
               }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -331,20 +331,20 @@ export function InCanvasCopilotModal({ open, onClose, onAutoLayout, fitView }) {
                   ? 'rgba(16, 185, 129, 0.12)'
                   : feedback.type === 'error'
                   ? 'rgba(244, 63, 94, 0.12)'
-                  : 'rgba(99, 102, 241, 0.12)',
+                  : 'rgba(16, 185, 129, 0.12)',
               border: `1px solid ${
                 feedback.type === 'success'
                   ? 'rgba(16, 185, 129, 0.3)'
                   : feedback.type === 'error'
                   ? 'rgba(244, 63, 94, 0.3)'
-                  : 'rgba(99, 102, 241, 0.3)'
+                  : 'rgba(16, 185, 129, 0.3)'
               }`,
               color:
                 feedback.type === 'success'
                   ? '#34d399'
                   : feedback.type === 'error'
                   ? '#fb7185'
-                  : '#a5b4fc',
+                  : '#6ee7b7',
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>

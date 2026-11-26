@@ -13,8 +13,8 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.22);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.22);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 12px;
@@ -23,7 +23,7 @@
 }
 
 .compare-info-icon {
-  color: #a5b4fc;
+  color: #6ee7b7;
   font-weight: 700;
   font-size: 14px;
   line-height: 1;
@@ -88,8 +88,8 @@
 }
 
 .compare-icon-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: var(--primary, #6366f1);
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--primary, #10b981);
   color: #ffffff;
 }
 
@@ -112,7 +112,7 @@
 }
 
 .compare-match-card:hover {
-  border-color: rgba(99, 102, 241, 0.35);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 .compare-match-card-header {
@@ -215,7 +215,7 @@
 
 .compare-select-btn:hover,
 .compare-select-btn.open {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .compare-select-value {
@@ -272,7 +272,7 @@
 }
 
 .compare-select-item.active {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .compare-select-item-content {
@@ -288,7 +288,7 @@
 }
 
 .compare-select-item.active .compare-select-item-title {
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .compare-select-item-desc {
@@ -297,7 +297,7 @@
 }
 
 .compare-select-check {
-  color: #a5b4fc;
+  color: #6ee7b7;
   font-size: 13px;
   font-weight: bold;
 }
@@ -316,7 +316,7 @@
 }
 
 .compare-native-select:focus {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 /* Toggle Row & Switch */
@@ -409,7 +409,7 @@
 }
 
 .compare-switch input:checked + .compare-switch-slider {
-  background-color: var(--primary, #6366f1);
+  background-color: var(--primary, #10b981);
 }
 
 .compare-switch input:checked + .compare-switch-slider:before {
@@ -459,9 +459,9 @@
 }
 
 .compare-add-btn:hover {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: var(--primary, #6366f1);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--primary, #10b981);
+  color: #6ee7b7;
 }
 
 .compare-popover-menu {

@@ -158,7 +158,7 @@ export default function AppShell({ onLogout }) {
                   padding: '5px 12px',
                   fontSize: 12,
                   fontWeight: 600,
-                  background: 'var(--accent, #6366f1)',
+                  background: 'var(--accent, #10b981)',
                   borderRadius: 6,
                   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',

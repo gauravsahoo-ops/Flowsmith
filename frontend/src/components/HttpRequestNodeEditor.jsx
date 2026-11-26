@@ -576,7 +576,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
 
   const METHOD_BADGES = {
     GET: { color: 'var(--green)', bg: 'rgba(5, 150, 105, 0.12)', border: 'rgba(5, 150, 105, 0.3)' },
-    POST: { color: 'var(--accent)', bg: 'rgba(79, 70, 229, 0.12)', border: 'rgba(79, 70, 229, 0.3)' },
+    POST: { color: 'var(--accent)', bg: 'rgba(5, 150, 105, 0.12)', border: 'rgba(5, 150, 105, 0.3)' },
     PUT: { color: 'var(--amber)', bg: 'rgba(217, 119, 6, 0.12)', border: 'rgba(217, 119, 6, 0.3)' },
     PATCH: { color: 'var(--cyan)', bg: 'rgba(8, 145, 178, 0.12)', border: 'rgba(8, 145, 178, 0.3)' },
     DELETE: { color: 'var(--red)', bg: 'rgba(225, 29, 72, 0.12)', border: 'rgba(225, 29, 72, 0.3)' },
@@ -588,7 +588,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
     <div className="http-editor" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Node Identity Banner */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(37, 99, 235, 0.06) 100%)',
+        background: 'linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(37, 99, 235, 0.06) 100%)',
         padding: '0.85rem 1.1rem',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border)',
@@ -672,8 +672,8 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
             margin: '8px 0 12px',
             padding: '10px 14px',
             borderRadius: 6,
-            background: 'rgba(99, 102, 241, 0.08)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -681,9 +681,9 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#e0e7ff' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#d1fae5' }}>
                 Upstream Token Detected
               </div>
               <div style={{ fontSize: 11, color: '#94a3b8' }}>
@@ -1376,7 +1376,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {/* on_init pre-request hook */}
           <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               <span style={{ fontSize: 12, fontWeight: 600 }}>on_init (Pre-Request Transform)</span>
             </div>
             <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Inject dynamic headers or compute timestamps before sending.</p>
@@ -1402,7 +1402,7 @@ export default function HttpRequestNodeEditor({ node, onParamsChange, mapping, o
           {/* on_success post-response hook */}
           <div style={{ padding: 10, background: 'var(--panel-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent, #6366f1)' }}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent, #10b981)' }}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
               <span style={{ fontSize: 12, fontWeight: 600 }}>on_success (Post-Response Transform)</span>
             </div>
             <p className="hint" style={{ margin: '0 0 8px 0', fontSize: 11 }}>Unwrap, filter, or project response data (e.g. <code>{'{{ $response.body.data }}'}</code>).</p>

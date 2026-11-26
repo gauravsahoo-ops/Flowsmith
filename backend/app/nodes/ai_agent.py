@@ -82,7 +82,7 @@ class AgentParams(BaseModel):
     )
     allow_builtin_fallback: bool = Field(
         default=False,
-        description="Allow falling back to built-in local engine if no external LLM credentials are provided.",
+        description="Deprecated/no effect: built-in LLM fallback has been removed; an LLM credential is required.",
     )
     memory_type: str = Field(
         default="window",
@@ -497,23 +497,14 @@ class AIAgentNode(BaseNode[AgentParams]):
         input_items: list[dict[str, Any]],
     ) -> NodeResult:
         llm_cred = ctx.credentials.get("llm")
-        is_builtin_target = bool(
-            params.model and str(params.model).lower() in ("builtin", "local", "local_ai", "offline", "none")
-        )
         if not llm_cred:
-            if params.allow_builtin_fallback or is_builtin_target:
-                llm_cred = {
-                    "provider": "builtin",
-                    "model": params.model or "builtin",
-                    "api_key": "builtin_local",
-                }
-            else:
-                raise NodeExecutionError(
-                    "The AI Agent node requires an 'llm' credential.",
-                    code="CREDENTIALS_REQUIRED",
-                    node_id=self.node_type,
-                    retryable=False,
-                )
+            raise NodeExecutionError(
+                "The AI Agent node requires a configured 'llm' credential. "
+                "Built-in/offline LLM fallback has been removed.",
+                code="CREDENTIALS_REQUIRED",
+                node_id=self.node_type,
+                retryable=False,
+            )
 
         # Clone cred and apply model override if set
         effective_cred = dict(llm_cred)

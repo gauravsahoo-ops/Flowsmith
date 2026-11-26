@@ -13,7 +13,7 @@ function Section({ title, description, children, defaultOpen = true }) {
   return (
     <section className="settings-section">
       <button className="settings-section-head" onClick={() => setOpen(v => !v)} aria-expanded={open}>
-        <span style={{ fontSize: 13, color: '#818cf8', transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(90deg)' : 'none' }}>
+        <span style={{ fontSize: 13, color: '#34d399', transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(90deg)' : 'none' }}>
           ▶
         </span>
         <span className="settings-section-title">{title}</span>
@@ -25,9 +25,8 @@ function Section({ title, description, children, defaultOpen = true }) {
 }
 
 const BRAND_COLOR_PRESETS = [
-  { name: 'Flowsmith Indigo', hex: '#6366f1' },
+  { name: 'Flowsmith Emerald', hex: '#10b981' },
   { name: 'Electric Blue', hex: '#3b82f6' },
-  { name: 'Emerald Green', hex: '#10b981' },
   { name: 'Royal Violet', hex: '#8b5cf6' },
   { name: 'Amber Glow', hex: '#f59e0b' },
   { name: 'Crimson Rose', hex: '#f43f5e' },
@@ -59,7 +58,7 @@ export default function SettingsPage() {
     tagline: branding.tagline || 'Next-Gen Workflow Automation',
     logoUrl: branding.logoUrl || '',
     logoData: branding.logoData || '',
-    primaryColor: branding.primaryColor || '#6366f1',
+    primaryColor: branding.primaryColor || '#10b981',
     documentationUrl: branding.documentationUrl || '',
     supportEmail: branding.supportEmail || '',
     copyrightText: branding.copyrightText || '',
@@ -145,7 +144,7 @@ export default function SettingsPage() {
       tagline: branding.tagline || 'Next-Gen Workflow Automation',
       logoUrl: branding.logoUrl || '',
       logoData: branding.logoData || '',
-      primaryColor: branding.primaryColor || '#6366f1',
+      primaryColor: branding.primaryColor || '#10b981',
       documentationUrl: branding.documentationUrl || '',
       supportEmail: branding.supportEmail || '',
       copyrightText: branding.copyrightText || '',
@@ -643,7 +642,7 @@ export default function SettingsPage() {
                   borderRadius: 10,
                   background: (brandForm.logoData || brandForm.logoUrl)
                     ? 'rgba(0,0,0,0.3)'
-                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, rgba(99,102,241,0.6) 100%)`,
+                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, ${brandForm.primaryColor}99 100%)`,
                   display: 'grid',
                   placeItems: 'center',
                   overflow: 'hidden',
@@ -829,7 +828,7 @@ export default function SettingsPage() {
                   borderRadius: 8,
                   background: (brandForm.logoData || brandForm.logoUrl)
                     ? 'transparent'
-                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, rgba(99,102,241,0.6) 100%)`,
+                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, ${brandForm.primaryColor}99 100%)`,
                   boxShadow: (brandForm.logoData || brandForm.logoUrl)
                     ? 'none'
                     : `0 4px 12px ${brandForm.primaryColor}66`,
@@ -869,7 +868,7 @@ export default function SettingsPage() {
                   borderRadius: 10,
                   background: (brandForm.logoData || brandForm.logoUrl)
                     ? 'transparent'
-                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, rgba(99,102,241,0.6) 100%)`,
+                    : `linear-gradient(135deg, ${brandForm.primaryColor} 0%, ${brandForm.primaryColor}99 100%)`,
                   display: 'grid',
                   placeItems: 'center',
                   overflow: 'hidden',
@@ -920,7 +919,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={soundEffects}
                 onChange={toggleSoundEffects}
-                style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                style={{ width: 18, height: 18, accentColor: '#10b981', cursor: 'pointer' }}
                 aria-label="Toggle execution sound effects"
               />
             </div>
@@ -937,7 +936,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={showMiniMap}
                 onChange={toggleMiniMap}
-                style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                style={{ width: 18, height: 18, accentColor: '#10b981', cursor: 'pointer' }}
                 aria-label="Toggle canvas minimap"
               />
             </div>
@@ -977,10 +976,10 @@ export default function SettingsPage() {
               padding: '16px 20px',
               borderRadius: 10,
               background: notifPrefs.email_enabled
-                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%)'
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%)'
                 : 'rgba(255, 255, 255, 0.02)',
               border: notifPrefs.email_enabled
-                ? '1px solid rgba(99, 102, 241, 0.3)'
+                ? '1px solid rgba(16, 185, 129, 0.3)'
                 : '1px solid rgba(255, 255, 255, 0.08)',
               gap: 16,
             }}
@@ -1012,7 +1011,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={notifPrefs.email_enabled}
                 onChange={e => setNotifPrefs(f => ({ ...f, email_enabled: e.target.checked }))}
-                style={{ width: 20, height: 20, accentColor: '#6366f1', cursor: 'pointer' }}
+                style={{ width: 20, height: 20, accentColor: '#10b981', cursor: 'pointer' }}
                 aria-label="Toggle email notifications"
               />
             </div>
@@ -1059,7 +1058,7 @@ export default function SettingsPage() {
                     checked={notifPrefs.notify_on_failure}
                     disabled={!notifPrefs.email_enabled}
                     onChange={e => setNotifPrefs(f => ({ ...f, notify_on_failure: e.target.checked }))}
-                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                    style={{ width: 18, height: 18, accentColor: '#10b981', cursor: 'pointer' }}
                     aria-label="Toggle failure alerts"
                   />
                 </div>
@@ -1088,7 +1087,7 @@ export default function SettingsPage() {
                     checked={notifPrefs.notify_on_auth_expired}
                     disabled={!notifPrefs.email_enabled}
                     onChange={e => setNotifPrefs(f => ({ ...f, notify_on_auth_expired: e.target.checked }))}
-                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                    style={{ width: 18, height: 18, accentColor: '#10b981', cursor: 'pointer' }}
                     aria-label="Toggle session expiry alerts"
                   />
                 </div>
@@ -1117,7 +1116,7 @@ export default function SettingsPage() {
                     checked={notifPrefs.notify_on_rate_limit}
                     disabled={!notifPrefs.email_enabled}
                     onChange={e => setNotifPrefs(f => ({ ...f, notify_on_rate_limit: e.target.checked }))}
-                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                    style={{ width: 18, height: 18, accentColor: '#10b981', cursor: 'pointer' }}
                     aria-label="Toggle rate limit alerts"
                   />
                 </div>
@@ -1145,7 +1144,7 @@ export default function SettingsPage() {
                     checked={notifPrefs.notify_on_warning}
                     disabled={!notifPrefs.email_enabled}
                     onChange={e => setNotifPrefs(f => ({ ...f, notify_on_warning: e.target.checked }))}
-                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                    style={{ width: 18, height: 18, accentColor: '#10b981', cursor: 'pointer' }}
                     aria-label="Toggle warning alerts"
                   />
                 </div>
@@ -1286,7 +1285,7 @@ export default function SettingsPage() {
           <div className="settings-attr">
             <div className="settings-attr-label">Account Role</div>
             <div className="settings-attr-value">
-              <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)', textTransform: 'capitalize' }}>
+              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)', textTransform: 'capitalize' }}>
                 {profile?.role || 'user'}
               </span>
             </div>
@@ -1331,7 +1330,7 @@ export default function SettingsPage() {
                             type="checkbox"
                             checked={Boolean(o.require_mfa)}
                             onChange={e => handleToggleOrgMfa(o, e.target.checked)}
-                            style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                            style={{ width: 18, height: 18, accentColor: '#10b981', cursor: 'pointer' }}
                             aria-label={`Require MFA for ${o.name}`}
                           />
                           <span className="hint" style={{ fontSize: 12 }}>
@@ -1447,7 +1446,7 @@ export default function SettingsPage() {
               In your authenticator app, add a new account and enter this secret:
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <code style={{ padding: '9px 11px', borderRadius: 8, background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#c7d2fe', letterSpacing: 1.2, wordBreak: 'break-all' }}>
+              <code style={{ padding: '9px 11px', borderRadius: 8, background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#a7f3d0', letterSpacing: 1.2, wordBreak: 'break-all' }}>
                 {mfaSetupData.secret}
               </code>
               <button type="button" className="ghost small" onClick={copyMfaSecret}>Copy</button>
@@ -1625,7 +1624,7 @@ export default function SettingsPage() {
                 checked={sessionSettings.auto_renew}
                 disabled={sessionBusy}
                 onChange={e => handleToggleAutoRenew(e.target.checked)}
-                style={{ width: 20, height: 20, accentColor: '#6366f1', cursor: 'pointer' }}
+                style={{ width: 20, height: 20, accentColor: '#10b981', cursor: 'pointer' }}
                 aria-label="Toggle automatic session renewal"
               />
             </div>
@@ -1636,7 +1635,7 @@ export default function SettingsPage() {
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>Remember This Device</span>
-                <span className="badge" style={{ background: sessionSettings.remember_device ? 'rgba(99, 102, 241, 0.15)' : 'rgba(148, 163, 184, 0.15)', color: sessionSettings.remember_device ? '#818cf8' : '#94a3b8' }}>
+                <span className="badge" style={{ background: sessionSettings.remember_device ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)', color: sessionSettings.remember_device ? '#34d399' : '#94a3b8' }}>
                   {sessionSettings.remember_device ? 'Trusted' : 'Standard'}
                 </span>
               </div>
@@ -1650,7 +1649,7 @@ export default function SettingsPage() {
                 checked={sessionSettings.remember_device}
                 disabled={sessionBusy}
                 onChange={e => handleToggleRememberDevice(e.target.checked)}
-                style={{ width: 20, height: 20, accentColor: '#6366f1', cursor: 'pointer' }}
+                style={{ width: 20, height: 20, accentColor: '#10b981', cursor: 'pointer' }}
                 aria-label="Toggle remember this device"
               />
             </div>
@@ -1713,7 +1712,7 @@ export default function SettingsPage() {
                   <tr key={s.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: s.is_current ? '#6366f1' : '#94a3b8' }}>
+                        <span style={{ color: s.is_current ? '#10b981' : '#94a3b8' }}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                             <line x1="8" y1="21" x2="16" y2="21" />
@@ -1723,7 +1722,7 @@ export default function SettingsPage() {
                         <div>
                           <strong style={{ color: '#f8fafc', fontSize: 13 }}>{s.device_name || 'Web Browser'}</strong>
                           {s.remember_device && (
-                            <span className="badge" style={{ marginLeft: 6, fontSize: 10, background: 'rgba(99,102,241,0.12)', color: '#818cf8' }}>
+                            <span className="badge" style={{ marginLeft: 6, fontSize: 10, background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
                               Trusted Device
                             </span>
                           )}
@@ -1872,11 +1871,11 @@ export default function SettingsPage() {
                     </td>
                     <td>
                       <span className="badge" style={{
-                        background: ev.action?.startsWith('auth.') ? 'rgba(99,102,241,0.15)' :
+                        background: ev.action?.startsWith('auth.') ? 'rgba(16,185,129,0.15)' :
                                     ev.action?.startsWith('workflow.') ? 'rgba(56,189,248,0.15)' :
                                     ev.action?.startsWith('execution.') ? 'rgba(34,197,94,0.15)' :
                                     'rgba(148,163,184,0.15)',
-                        color: ev.action?.startsWith('auth.') ? '#818cf8' :
+                        color: ev.action?.startsWith('auth.') ? '#34d399' :
                                ev.action?.startsWith('workflow.') ? '#38bdf8' :
                                ev.action?.startsWith('execution.') ? '#4ade80' :
                                '#cbd5e1',

@@ -512,7 +512,7 @@ export default function AIArchitectureSection() {
           style={{
             padding: '1.6rem',
             background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(24, 24, 27, 0.8) 100%)',
-            border: '1px solid rgba(129, 140, 248, 0.25)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
             borderRadius: '14px',
             boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)',
             display: 'flex',
@@ -522,13 +522,13 @@ export default function AIArchitectureSection() {
             overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'rgba(99, 102, 241, 0.18)', border: '1px solid rgba(99, 102, 241, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <ArchIcon name="database" size={22} color="#818cf8" />
+              <div style={{ width: 44, height: 44, borderRadius: '10px', background: 'rgba(16, 185, 129, 0.18)', border: '1px solid rgba(16, 185, 129, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ArchIcon name="database" size={22} color="#34d399" />
               </div>
-              <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                 pgvector · HNSW
               </span>
             </div>
@@ -664,11 +664,11 @@ export default function AIArchitectureSection() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <ArchIcon name="platform" size={22} color="#818cf8" />
+              <ArchIcon name="platform" size={22} color="#34d399" />
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#f8fafc' }}>
                 One Flowsmith Platform: Strategic Convergence
               </h3>
-              <span style={{ fontSize: '11px', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', padding: '3px 8px', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.3)', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '3px 8px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600 }}>
                 7-Layer Enterprise Stack
               </span>
             </div>
@@ -743,9 +743,9 @@ export default function AIArchitectureSection() {
                   style={{
                     padding: '0.9rem 0.75rem',
                     borderRadius: '10px',
-                    background: isSelected ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255, 255, 255, 0.02)',
-                    border: isSelected ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.07)',
-                    boxShadow: isSelected ? '0 0 16px rgba(99, 102, 241, 0.25)' : 'none',
+                    background: isSelected ? 'rgba(16, 185, 129, 0.16)' : 'rgba(255, 255, 255, 0.02)',
+                    border: isSelected ? '1px solid #34d399' : '1px solid rgba(255, 255, 255, 0.07)',
+                    boxShadow: isSelected ? '0 0 16px rgba(16, 185, 129, 0.25)' : 'none',
                     cursor: 'pointer',
                     transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                     display: 'flex',
@@ -756,16 +756,16 @@ export default function AIArchitectureSection() {
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                      <ArchIcon name={stage.id} size={18} color={isSelected ? '#c7d2fe' : '#94a3b8'} />
-                      <span style={{ fontSize: '9.5px', fontWeight: 700, color: isSelected ? '#a5b4fc' : '#64748b' }}>
+                      <ArchIcon name={stage.id} size={18} color={isSelected ? '#a7f3d0' : '#94a3b8'} />
+                      <span style={{ fontSize: '9.5px', fontWeight: 700, color: isSelected ? '#6ee7b7' : '#64748b' }}>
                         L{idx + 1}
                       </span>
                     </div>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: isSelected ? '#c7d2fe' : '#f1f5f9', marginBottom: '2px', lineHeight: 1.25 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: isSelected ? '#a7f3d0' : '#f1f5f9', marginBottom: '2px', lineHeight: 1.25 }}>
                       {stage.title}
                     </div>
                   </div>
-                  <div style={{ fontSize: '9.5px', fontWeight: 600, padding: '2px 5px', borderRadius: '4px', background: isSelected ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255,255,255,0.04)', color: isSelected ? '#e0e7ff' : '#94a3b8', width: 'fit-content' }}>
+                  <div style={{ fontSize: '9.5px', fontWeight: 600, padding: '2px 5px', borderRadius: '4px', background: isSelected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.04)', color: isSelected ? '#d1fae5' : '#94a3b8', width: 'fit-content' }}>
                     {stage.badge}
                   </div>
                 </div>
@@ -779,7 +779,7 @@ export default function AIArchitectureSection() {
           style={{
             padding: '1.25rem 1.4rem',
             background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(9, 14, 26, 0.95) 100%)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
             borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
@@ -787,12 +787,12 @@ export default function AIArchitectureSection() {
             boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
           }}
         >
-          <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <ArchIcon name={activePipelineStep.id} size={24} color="#818cf8" />
+          <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ArchIcon name={activePipelineStep.id} size={24} color="#34d399" />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {activePipelineStep.layer || 'Layer'}
               </span>
               <span style={{ fontSize: '14px', fontWeight: 600, color: '#f8fafc' }}>
@@ -1051,7 +1051,7 @@ export default function AIArchitectureSection() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ArchIcon name="rag" size={20} color="#818cf8" />
+              <ArchIcon name="rag" size={20} color="#34d399" />
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>
                 pgvector RAG Semantic Search Playground
               </h3>
@@ -1173,7 +1173,7 @@ export default function AIArchitectureSection() {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '11px', color: '#a5b4fc', fontWeight: 600 }}>Chunk #{idx + 1}</span>
+                        <span style={{ fontSize: '11px', color: '#6ee7b7', fontWeight: 600 }}>Chunk #{idx + 1}</span>
                         <span style={{ fontSize: '11px', color: '#4ade80', background: 'rgba(34, 197, 94, 0.12)', padding: '2px 6px', borderRadius: '4px' }}>
                           Score: {typeof hit.score === 'number' ? `${(hit.score * 100).toFixed(1)}%` : 'High'}
                         </span>

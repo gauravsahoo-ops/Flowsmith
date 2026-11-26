@@ -345,8 +345,8 @@ export default function ExecutionDetailPage() {
       {searchHighlight && (
         <div
           style={{
-            background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.16) 0%, rgba(79, 70, 229, 0.08) 100%)',
-            border: '1px solid rgba(99, 102, 241, 0.35)',
+            background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.08) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
             borderRadius: 8,
             padding: '8px 14px',
             margin: '12px 0 4px',
@@ -354,17 +354,17 @@ export default function ExecutionDetailPage() {
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: 12.5,
-            color: '#e0e7ff',
+            color: '#d1fae5',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 700, color: '#818cf8' }}>Matched Query:</span>
+            <span style={{ fontWeight: 700, color: '#34d399' }}>Matched Query:</span>
             <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: 4, color: '#f8fafc' }}>
               {searchHighlight}
             </code>
             {highlightField && (
               <span style={{ color: '#94a3b8' }}>
-                Field: <strong style={{ color: '#c7d2fe' }}>{highlightField}</strong>
+                Field: <strong style={{ color: '#a7f3d0' }}>{highlightField}</strong>
               </span>
             )}
           </div>
@@ -432,16 +432,16 @@ export default function ExecutionDetailPage() {
               style={
                 highlightField === 'started_at'
                   ? {
-                      background: 'rgba(99, 102, 241, 0.22)',
+                      background: 'rgba(16, 185, 129, 0.22)',
                       padding: '3px 8px',
                       borderRadius: 6,
-                      border: '1px solid rgba(99, 102, 241, 0.5)',
-                      boxShadow: '0 0 10px rgba(99, 102, 241, 0.3)',
+                      border: '1px solid rgba(16, 185, 129, 0.5)',
+                      boxShadow: '0 0 10px rgba(16, 185, 129, 0.3)',
                     }
                   : {}
               }
             >
-              Started: <strong style={{ color: highlightField === 'started_at' ? '#c7d2fe' : '#e2e8f0' }}>{fmtTime(data.started_at)}</strong>
+              Started: <strong style={{ color: highlightField === 'started_at' ? '#a7f3d0' : '#e2e8f0' }}>{fmtTime(data.started_at)}</strong>
             </div>
             <div>Duration: <strong style={{ color: '#e2e8f0' }}>{fmtDur(data.started_at, data.finished_at)}</strong></div>
             <div>Trigger: <strong style={{ color: '#e2e8f0' }}>{data.trigger || 'manual'}</strong></div>
@@ -553,18 +553,18 @@ export default function ExecutionDetailPage() {
             justifyContent: 'space-between',
             padding: '10px 16px',
             marginBottom: 16,
-            background: 'rgba(99, 102, 241, 0.08)',
-            border: '1px solid rgba(99, 102, 241, 0.3)',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
             borderRadius: 8,
             backdropFilter: 'blur(12px)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <span style={{ color: '#e0e7ff' }}>
+            <span style={{ color: '#d1fae5' }}>
               Search Context: <strong>&ldquo;{searchHighlight}&rdquo;</strong>
               {highlightField && <span style={{ opacity: 0.85, marginLeft: 8 }}>(Field: <code>{highlightField}</code>)</span>}
               {targetNodeId && <span style={{ opacity: 0.85, marginLeft: 8 }}>(Node: <code>{targetNodeId}</code>)</span>}
@@ -593,7 +593,7 @@ export default function ExecutionDetailPage() {
               type="button"
               className="ghost"
               onClick={() => navigate(`/executions?search=${encodeURIComponent(searchHighlight)}`)}
-              style={{ fontSize: 11.5, padding: '4px 10px', background: 'rgba(255,255,255,0.04)', color: '#818cf8' }}
+              style={{ fontSize: 11.5, padding: '4px 10px', background: 'rgba(255,255,255,0.04)', color: '#34d399' }}
             >
               All Occurrences
             </button>
@@ -726,7 +726,7 @@ export default function ExecutionDetailPage() {
                     padding: '8px 12px',
                     borderRadius: 7,
                     border: '1px solid var(--border)',
-                    background: selected === s.node_id ? 'rgba(99, 102, 241, 0.15)' : 'var(--panel-2)',
+                    background: selected === s.node_id ? 'rgba(16, 185, 129, 0.15)' : 'var(--panel-2)',
                     textAlign: 'left',
                     cursor: 'pointer',
                   }}
@@ -816,8 +816,8 @@ export default function ExecutionDetailPage() {
                           justifyContent: 'space-between',
                           padding: '10px 12px',
                           borderRadius: 8,
-                          background: isSel ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                          border: `1px solid ${isSel ? 'rgba(99, 102, 241, 0.4)' : 'rgba(255, 255, 255, 0.06)'}`,
+                          background: isSel ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                          border: `1px solid ${isSel ? 'rgba(16, 185, 129, 0.4)' : 'rgba(255, 255, 255, 0.06)'}`,
                           cursor: 'pointer',
                           textAlign: 'left',
                         }}
@@ -909,8 +909,8 @@ export default function ExecutionDetailPage() {
                               fontSize: 12,
                               padding: '3px 7px',
                               borderRadius: 4,
-                              background: 'rgba(99, 102, 241, 0.2)',
-                              color: '#818cf8',
+                              background: 'rgba(16, 185, 129, 0.2)',
+                              color: '#34d399',
                             }}
                           >
                             {selectedRequestDetail.http_method}

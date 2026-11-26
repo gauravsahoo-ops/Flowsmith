@@ -1,81 +1,35 @@
-"""Test suite for Flowsmith AI Complete Multi-Tier Memory and Autonomous Zero-LLM Engine.
+"""Test suite for Flowsmith AI Complete Multi-Tier Memory.
 
 Validates that:
 1. Complete Multi-Tier Memory works across all cognitive tiers (working, summary, episodic, entity, scratchpad, full buffer).
 2. Episodic similarity search and extractive summarization work deterministically without external embedding or LLM APIs.
 3. Disk persistence survives memory reloads.
-4. AIAgentNode runs autonomously without external LLM credentials when allow_builtin_fallback=True or model='builtin'.
+4. AIAgentNode requires an LLM credential; built-in fallback is removed.
 5. MemoryNode runs with complete memory locally without Redis.
-6. AI API endpoints (chat, search, entities, notes) function seamlessly in zero-LLM mode.
+6. AI API memory endpoints (search, entities, notes) function without Redis.
 """
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 import os
-import shutil
-import tempfile
 import httpx
 import pytest
 
 from app.ai.client import chat_completion
 from app.ai.memory import (
-    CompleteMemory,
     EntityMemory,
     EpisodicVectorMemory,
-    FullBufferMemory,
     ScratchpadMemory,
     SessionMemoryManager,
     SummaryBufferMemory,
-    WorkingMemory,
-    get_memory_manager,
 )
-from app.ai.providers.builtin_provider import BuiltinProvider
 from app.engine.node_base import NodeContext
-from app.nodes.ai_agent import AIAgentNode, AgentParams
 from app.nodes.memory import MemoryNode, MemoryParams
 
 
 # ---------------------------------------------------------------------------
-# 1. Built-in Local Engine (Zero-LLM Provider)
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-async def test_builtin_provider_direct():
-    provider = BuiltinProvider({"provider": "builtin", "model": "builtin"})
-
-    # Simple math / calculator tool check
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "What is 42 * 17?"},
-    ]
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "calculator",
-                "description": "Calculate math expressions",
-                "parameters": {"type": "object", "properties": {"expression": {"type": "string"}}},
-            },
-        }
-    ]
-    resp = await provider.chat_completion(messages, tools=tools)
-    assert resp["role"] == "assistant"
-    assert "tool_calls" in resp
-    tc = resp["tool_calls"][0]
-    assert tc["function"]["name"] == "calculator"
-    args = json.loads(tc["function"]["arguments"])
-    assert "42 * 17" in args["expression"] or "42" in args["expression"]
-
-    # Direct answer without tools
-    resp2 = await provider.chat_completion([{"role": "user", "content": "What time is it?"}])
-    assert "UTC" in resp2.get("content", "") or "time" in resp2.get("content", "").lower()
-
-
-# ---------------------------------------------------------------------------
-# 2. Complete Multi-Tier Memory Tiers
+# 1. Complete Multi-Tier Memory Tiers
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
@@ -148,7 +102,7 @@ async def test_complete_memory_hub_and_persistence(tmp_path):
         user_content="My favorite language is Python and I am building an API workflow.",
         assistant_content="I have recorded that Python is your favorite language and noted your API workflow.",
         llm_func=chat_completion,
-        llm_cred={"provider": "builtin", "model": "builtin"},
+        llm_cred={},
     )
 
     # Verify memory populated
@@ -172,50 +126,7 @@ async def test_complete_memory_hub_and_persistence(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# 3. AIAgentNode in Autonomous Zero-LLM Mode with Complete Memory
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-async def test_ai_agent_zero_llm_complete_memory():
-    agent = AIAgentNode()
-    async with httpx.AsyncClient() as client:
-        ctx = NodeContext(
-            execution_id="exec_test_01",
-            workflow_id="wf_test",
-            node_id="agent_1",
-            logger=logging.getLogger("test"),
-            http_client=client,
-            credentials={},  # No credentials at all!
-        )
-
-        session = f"zero_llm_{os.urandom(4).hex()}"
-
-        # Turn 1: user introduces state and preference
-        params_1 = AgentParams(
-            input="My name is Sarah and my project is Apollo GraphQL.",
-            session_id=session,
-            memory_type="complete",
-            allow_builtin_fallback=True,
-        )
-        res_1 = await agent.run(ctx, params_1, [])
-        assert res_1.output_items
-        ans_1 = res_1.output_items[0]["final_answer"]
-        assert ans_1 is not None and len(ans_1) > 0
-
-        # Turn 2: ask agent to retrieve known entities or state
-        params_2 = AgentParams(
-            input="What entities or project do you remember from my memory?",
-            session_id=session,
-            memory_type="complete",
-            allow_builtin_fallback=True,
-        )
-        res_2 = await agent.run(ctx, params_2, [])
-        ans_2 = res_2.output_items[0]["final_answer"]
-        assert "Sarah" in ans_2 or "Apollo" in ans_2 or "Entity" in ans_2 or "Memory" in ans_2 or "project" in ans_2.lower()
-
-
-# ---------------------------------------------------------------------------
-# 4. MemoryNode Autonomous Operations (No Redis, Local Complete Backend)
+# 3. MemoryNode Autonomous Operations (No Redis, Local Complete Backend)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio

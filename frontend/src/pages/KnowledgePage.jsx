@@ -22,6 +22,15 @@ export default function KnowledgePage() {
   const [workspaces, setWorkspaces] = useState([])
   const [scope, setScope] = useState('all')
   const [newWorkspaceId, setNewWorkspaceId] = useState('')
+  const [capability, setCapability] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    api.ragStatus()
+      .then((res) => { if (alive) setCapability(res) })
+      .catch(() => { if (alive) setCapability({ semantic_available: false, message: 'Knowledge capability check failed.' }) })
+    return () => { alive = false }
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -89,9 +98,28 @@ export default function KnowledgePage() {
 
   const selected = scopedCollections.find(c => c.id === selectedId) || null
 
+  if (capability && !capability.semantic_available) {
+    return (
+      <div className="page knowledge-page">
+        <PageHeader
+          title="Knowledge"
+          description="RAG collections require the optional sentence-transformers embedding stack."
+        />
+        <WorkspaceTabs />
+        <div className="banner-inline err" style={{ marginTop: 18 }}>
+          {capability.message}
+          <div className="hint" style={{ marginTop: 8 }}>
+            Install <code>backend/requirements-ai.txt</code> and pre-download
+            <code> all-MiniLM-L6-v2</code>, or keep Knowledge disabled for this deployment.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page knowledge-page">
-      <PageHeader title="Knowledge" description="RAG collections — ingest documents, embed with sentence-transformers, and retrieve with similarity search." />
+      <PageHeader title="Knowledge" description="RAG collections - ingest documents, embed with sentence-transformers, and retrieve with similarity search." />
       <WorkspaceTabs />
 
       <div className="knowledge-layout">

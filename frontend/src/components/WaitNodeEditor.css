@@ -63,7 +63,7 @@
 
 .wait-select-btn:hover,
 .wait-select-btn.open {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .wait-select-value {
@@ -120,7 +120,7 @@
 }
 
 .wait-select-item.active {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .wait-select-item-content {
@@ -136,7 +136,7 @@
 }
 
 .wait-select-item.active .wait-select-item-title {
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .wait-select-item-desc {
@@ -145,7 +145,7 @@
 }
 
 .wait-select-check {
-  color: #a5b4fc;
+  color: #6ee7b7;
   font-size: 13px;
   font-weight: bold;
 }
@@ -169,11 +169,11 @@
 }
 
 .wait-text-input:focus {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .wait-copy-btn {
-  background: var(--primary, #6366f1);
+  background: var(--primary, #10b981);
   color: #ffffff;
   border: none;
   border-radius: 6px;

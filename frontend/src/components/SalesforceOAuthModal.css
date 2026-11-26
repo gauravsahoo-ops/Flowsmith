@@ -93,9 +93,9 @@
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 99px;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -153,8 +153,8 @@
 }
 
 .sf-tab-btn.active {
-  color: var(--accent, #6366f1);
-  border-bottom-color: var(--accent, #6366f1);
+  color: var(--accent, #10b981);
+  border-bottom-color: var(--accent, #10b981);
   font-weight: 600;
 }
 
@@ -285,8 +285,8 @@
 
 .sf-input:focus {
   outline: none;
-  border-color: var(--accent, #6366f1);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: var(--accent, #10b981);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
 .sf-input.mono {
@@ -345,9 +345,9 @@
 }
 
 .sf-env-card.active {
-  border-color: var(--accent, #6366f1);
-  background: rgba(99, 102, 241, 0.08);
-  box-shadow: 0 0 0 1px var(--accent, #6366f1), 0 4px 16px rgba(99, 102, 241, 0.15);
+  border-color: var(--accent, #10b981);
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: 0 0 0 1px var(--accent, #10b981), 0 4px 16px rgba(16, 185, 129, 0.15);
 }
 
 .sf-env-card-title {

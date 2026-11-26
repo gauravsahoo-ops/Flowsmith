@@ -68,7 +68,7 @@ describe('AI Components Suite', () => {
       )
       expect(html).toContain('Smith')
       expect(html).toContain('AI COPILOT')
-      expect(html).toContain('Ready')
+      expect(html).toContain('No LLM credential')
       expect(html).toContain('New Chat')
       expect(html).toContain('Chat &amp; Tools')
       expect(html).not.toContain('Workflow Builder')

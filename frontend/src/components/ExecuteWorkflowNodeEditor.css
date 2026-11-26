@@ -63,7 +63,7 @@
 
 .subwf-select-btn:hover,
 .subwf-select-btn.open {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .subwf-select-value {
@@ -120,7 +120,7 @@
 }
 
 .subwf-select-item.active {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .subwf-select-item-content {
@@ -136,7 +136,7 @@
 }
 
 .subwf-select-item.active .subwf-select-item-title {
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .subwf-select-item-desc {
@@ -145,7 +145,7 @@
 }
 
 .subwf-select-check {
-  color: #a5b4fc;
+  color: #6ee7b7;
   font-size: 13px;
   font-weight: bold;
 }
@@ -178,7 +178,7 @@
 }
 
 .subwf-selector-mode-btn:hover {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .subwf-mini-arrow {
@@ -213,8 +213,8 @@
 
 .subwf-mini-item:hover,
 .subwf-mini-item.active {
-  background: rgba(99, 102, 241, 0.14);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
 }
 
 /* Workflow Picker */
@@ -238,7 +238,7 @@
 
 .subwf-picker-btn:hover,
 .subwf-picker-btn.open {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .subwf-picker-text {
@@ -305,7 +305,7 @@
 
 .subwf-picker-item:hover,
 .subwf-picker-item.active {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .subwf-picker-item-name {
@@ -314,7 +314,7 @@
 }
 
 .subwf-picker-item.active .subwf-picker-item-name {
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .subwf-picker-item-id {
@@ -345,7 +345,7 @@
 }
 
 .subwf-json-textarea:focus {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .subwf-field-hint {
@@ -393,8 +393,8 @@
 }
 
 .subwf-icon-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: var(--primary, #6366f1);
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--primary, #10b981);
   color: #ffffff;
 }
 
@@ -462,7 +462,7 @@
 }
 
 .subwf-switch input:checked + .subwf-switch-slider {
-  background-color: var(--primary, #6366f1);
+  background-color: var(--primary, #10b981);
 }
 
 .subwf-switch input:checked + .subwf-switch-slider:before {
@@ -506,9 +506,9 @@
 }
 
 .subwf-add-btn:hover {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: var(--primary, #6366f1);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--primary, #10b981);
+  color: #6ee7b7;
 }
 
 .subwf-popover-menu {

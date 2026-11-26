@@ -90,7 +90,7 @@
   transform: translateX(2px);
 }
 .topbar-menu button:hover:not(:disabled) svg {
-  color: #818cf8;
+  color: #34d399;
 }
 .topbar-menu button:active:not(:disabled) {
   transform: translateX(2px) scale(0.99);
@@ -121,7 +121,7 @@
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #818cf8;
+  color: #34d399;
   opacity: 0.9;
   display: flex;
   align-items: center;
@@ -156,13 +156,13 @@
   transition: all 0.15s ease;
 }
 .topbar-menu-input:hover {
-  border-color: rgba(99, 102, 241, 0.35);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 .topbar-menu-input:focus {
   outline: none;
   background: rgba(24, 31, 48, 0.9);
-  border-color: #818cf8;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.22);
+  border-color: #34d399;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.22);
 }
 
 .topbar-menu-check {
@@ -187,7 +187,7 @@
 .topbar-menu-check input[type="checkbox"] {
   width: 15px;
   height: 15px;
-  accent-color: #6366f1;
+  accent-color: #10b981;
   cursor: pointer;
   margin: 0;
   flex-shrink: 0;
@@ -224,7 +224,7 @@
 .workflow-name:focus {
   background: #141824;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
   outline: none;
 }
 .topbar-sep {
@@ -536,10 +536,10 @@
 }
 .sidebar-unhide-btn:hover {
   background: rgba(35, 41, 56, 0.98);
-  border-color: #6366f1;
+  border-color: #10b981;
   color: #fff;
   transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
 }
 .sidebar-unhide-btn:active {
   transform: translateY(0) scale(0.95);
@@ -562,7 +562,7 @@
 .palette-search input:focus {
   border-color: var(--accent);
   background: #1c2230;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
   outline: none;
 }
 
@@ -643,9 +643,9 @@
 .palette-count {
   font-size: 10px;
   font-weight: 600;
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.35);
   border-radius: 99px;
   padding: 1px 6px;
   cursor: pointer;

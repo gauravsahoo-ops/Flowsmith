@@ -187,8 +187,8 @@ export default function SearchableSelect({
       <>
         {text.slice(0, idx)}
         <mark style={{
-          background: 'rgba(99, 102, 241, 0.25)',
-          color: 'var(--accent, #818cf8)',
+          background: 'rgba(16, 185, 129, 0.25)',
+          color: 'var(--accent, #34d399)',
           borderRadius: 2,
           padding: '0 2px',
           fontWeight: 600,
@@ -219,8 +219,8 @@ export default function SearchableSelect({
           gap: 8,
           padding: '8px 12px',
           background: 'var(--bg, #0f172a)',
-          border: open ? '1px solid var(--accent, #6366f1)' : '1px solid var(--border, rgba(255,255,255,0.12))',
-          boxShadow: open ? '0 0 0 2px rgba(99, 102, 241, 0.2)' : 'none',
+          border: open ? '1px solid var(--accent, #10b981)' : '1px solid var(--border, rgba(255,255,255,0.12))',
+          boxShadow: open ? '0 0 0 2px rgba(16, 185, 129, 0.2)' : 'none',
           borderRadius: 8,
           color: 'var(--text, #f8fafc)',
           fontSize: 13,
@@ -251,7 +251,7 @@ export default function SearchableSelect({
             <span
               className="spinner-sm"
               aria-hidden="true"
-              style={{ width: 14, height: 14, borderWidth: 2, borderColor: 'var(--accent, #818cf8)', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }}
+              style={{ width: 14, height: 14, borderWidth: 2, borderColor: 'var(--accent, #34d399)', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }}
             />
           )}
 
@@ -374,8 +374,8 @@ export default function SearchableSelect({
                       padding: '3px 8px',
                       fontSize: 11,
                       borderRadius: 12,
-                      border: isSelected ? '1px solid var(--accent, #6366f1)' : '1px solid var(--border, rgba(255,255,255,0.1))',
-                      background: isSelected ? 'var(--accent, #6366f1)' : 'transparent',
+                      border: isSelected ? '1px solid var(--accent, #10b981)' : '1px solid var(--border, rgba(255,255,255,0.1))',
+                      background: isSelected ? 'var(--accent, #10b981)' : 'transparent',
                       color: isSelected ? '#ffffff' : 'var(--muted, #94a3b8)',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
@@ -414,7 +414,7 @@ export default function SearchableSelect({
                       marginTop: 8,
                       padding: '5px 12px',
                       fontSize: 11.5,
-                      background: 'var(--accent, #6366f1)',
+                      background: 'var(--accent, #10b981)',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: 6,
@@ -449,7 +449,7 @@ export default function SearchableSelect({
                       background: isFocused ? 'var(--panel-2, rgba(255,255,255,0.06))' : 'transparent',
                       color: opt.disabled ? 'var(--muted, #64748b)' : 'var(--text, #f8fafc)',
                       opacity: opt.disabled ? 0.5 : 1,
-                      borderLeft: isSelected ? '3px solid var(--accent, #6366f1)' : '3px solid transparent',
+                      borderLeft: isSelected ? '3px solid var(--accent, #10b981)' : '3px solid transparent',
                       fontSize: 12.5,
                       display: 'flex',
                       flexDirection: 'column',
@@ -487,8 +487,8 @@ export default function SearchableSelect({
                                 fontSize: 10,
                                 padding: '1px 6px',
                                 borderRadius: 4,
-                                background: 'rgba(99, 102, 241, 0.15)',
-                                color: 'var(--accent, #818cf8)',
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                color: 'var(--accent, #34d399)',
                                 fontWeight: 500,
                               }}>
                                 {opt.meta}
@@ -569,11 +569,11 @@ export default function SearchableSelect({
               style={{
                 padding: '9px 12px',
                 borderTop: '1px solid var(--border, rgba(255,255,255,0.1))',
-                background: 'rgba(99, 102, 241, 0.1)',
+                background: 'rgba(16, 185, 129, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                color: 'var(--accent, #818cf8)',
+                color: 'var(--accent, #34d399)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -592,11 +592,11 @@ export default function SearchableSelect({
               style={{
                 padding: '9px 12px',
                 borderTop: '1px solid var(--border, rgba(255,255,255,0.1))',
-                background: 'rgba(99, 102, 241, 0.08)',
+                background: 'rgba(16, 185, 129, 0.08)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                color: 'var(--accent, #818cf8)',
+                color: 'var(--accent, #34d399)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -608,12 +608,12 @@ export default function SearchableSelect({
                 onAction()
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.18)'
-                e.currentTarget.style.color = '#a5b4fc'
+                e.currentTarget.style.background = 'rgba(16, 185, 129, 0.18)'
+                e.currentTarget.style.color = '#6ee7b7'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.08)'
-                e.currentTarget.style.color = 'var(--accent, #818cf8)'
+                e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)'
+                e.currentTarget.style.color = 'var(--accent, #34d399)'
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>

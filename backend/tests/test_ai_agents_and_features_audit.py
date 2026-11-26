@@ -545,7 +545,7 @@ async def test_human_approval_cancellation_and_bounded_agent_execution():
     # 3. AIAgentNode Max Iterations Bounded Execution
     agent_node = AIAgentNode()
     ctx.storage = MemoryKVStore()
-    ctx.credentials = {"llm": {"provider": "builtin", "model": "builtin"}}
+    ctx.credentials = {"llm": {"provider": "fake", "model": "fake", "api_key": "k"}}
     ctx.workflow_id = "wf_test_bounds"
 
     # Mock chat_completion to always request another tool call (infinite loop attempt)
@@ -570,7 +570,6 @@ async def test_human_approval_cancellation_and_bounded_agent_execution():
             input="What is the time?",
             tools=["current_time"],
             max_iterations=3,  # Hard bound
-            allow_builtin_fallback=True,
         )
 
         # Agent terminates with NodeExecutionError(AI_MAX_ITERATIONS)

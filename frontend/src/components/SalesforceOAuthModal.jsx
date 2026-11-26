@@ -182,7 +182,7 @@ export default function SalesforceOAuthModal({
                   width: 36px;
                   height: 36px;
                   border: 3px solid rgba(255, 255, 255, 0.12);
-                  border-top-color: #6366f1;
+                  border-top-color: #10b981;
                   border-radius: 50%;
                   animation: spin 0.8s linear infinite;
                   margin-bottom: 16px;

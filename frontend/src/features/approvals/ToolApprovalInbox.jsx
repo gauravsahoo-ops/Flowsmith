@@ -125,7 +125,7 @@ export function ApprovalInboxView({
                         onSelect(row)
                       }
                     }}
-                    style={selected ? { background: 'rgba(99, 102, 241, 0.09)' } : undefined}
+                    style={selected ? { background: 'rgba(16, 185, 129, 0.09)' } : undefined}
                   >
                     <td>
                       <span

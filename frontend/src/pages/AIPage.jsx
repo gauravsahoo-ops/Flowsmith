@@ -73,7 +73,7 @@ export default function AIPage() {
                 alignItems: 'center',
                 gap: '6px',
                 padding: '6px 14px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
                 fontWeight: 600,
@@ -153,6 +153,14 @@ export default function AIPage() {
           </div>
         }
       />
+
+      {!statusInfo.loading && !statusInfo.configured && (
+        <div className="banner-inline" style={{ marginBottom: 16 }}>
+          <strong>An LLM credential is required.</strong> AI Studio and Smith do
+          not use a built-in fallback. Add an OpenAI, Anthropic, or compatible
+          LLM credential in Credentials to enable generation and chat.
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs

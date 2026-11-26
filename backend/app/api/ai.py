@@ -84,7 +84,6 @@ class ChatRequest(BaseModel):
     # Bounded like `message`: instructions are echoed verbatim to the provider.
     instructions: str | None = Field(default=None, max_length=10000)
     memory_type: str = "window"
-    allow_builtin: bool = False
 
 
 class EntityUpsertRequest(BaseModel):
@@ -145,6 +144,14 @@ def _llm_credentials(db: Session, user: User, credential_id: str | None) -> list
                 cred_dict["model"] = sel_model
             if not cred_dict.get("provider"):
                 cred_dict["provider"] = cred_dict.get("provider_id") or mtype
+            # Defense in depth: never surface legacy built-in/offline records
+            # as a usable credential.
+            provider = str(cred_dict.get("provider") or "").lower()
+            model = str(cred_dict.get("model") or "").lower()
+            if provider in {"builtin", "offline", "mock", "local-ai", "local_ai", "zero-llm", "zero_llm"}:
+                continue
+            if model.startswith("builtin") or model in {"local-ai", "local_ai", "zero-llm", "zero_llm"}:
+                continue
             resolved.append(cred_dict)
         except credential_service.CredentialError:
             continue
@@ -152,17 +159,12 @@ def _llm_credentials(db: Session, user: User, credential_id: str | None) -> list
 
 
 def _pick_llm(db: Session, user: User, credential_id: str | None) -> dict:
-    if credential_id in ("builtin", "zero-llm"):
-        return {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
-    if credential_id in ("ollama", "local-ollama"):
-        return {
-            "id": "ollama",
-            "name": "Ollama (Local AI)",
-            "provider": "ollama",
-            "model": "llama3.2:1b",
-            "base_url": "http://localhost:11434/v1",
-            "api_key": "ollama",
-        }
+    """Return a configured LLM credential; AI features never use a builtin model."""
+    if credential_id in ("builtin", "zero-llm", "ollama", "local-ollama"):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "A configured LLM credential is required. Add one in Credentials.",
+        )
     creds = _llm_credentials(db, user, credential_id)
     if not creds:
         raise HTTPException(
@@ -177,23 +179,7 @@ def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_
     creds = _llm_credentials(db, user, None)
     configured = len(creds) > 0
 
-    all_models: list[dict[str, Any]] = [
-        {
-            "id": "builtin",
-            "name": "Zero-LLM (Deterministic Engine)",
-            "provider": "builtin",
-            "model": "rule-based",
-            "type": "builtin",
-        },
-        {
-            "id": "ollama",
-            "name": "Local Ollama (Offline AI)",
-            "provider": "ollama",
-            "model": "llama3.2:1b",
-            "type": "local",
-        },
-    ]
-
+    all_models: list[dict[str, Any]] = []
     for c in creds:
         all_models.append({
             "id": c.get("id"),
@@ -203,16 +189,10 @@ def ai_status(user: User = Depends(get_current_user), db: Session = Depends(get_
             "type": "cloud",
         })
 
-    if configured:
-        first = creds[0]
-        active_info = {
-            "id": first.get("id"),
-            "name": first.get("name") or "LLM Provider",
-            "provider": first.get("provider") or first.get("provider_id") or "openai",
-            "model": first.get("selected_model") or first.get("model") or "default",
-        }
-    else:
+    if all_models:
         active_info = all_models[0]
+    else:
+        active_info = None
 
     return ok({
         "configured": configured,
@@ -295,10 +275,7 @@ async def generate_workflow(
     client must explicitly create the workflow (user approval), and it
     is born a draft that never auto-activates.
     """
-    try:
-        llm = _pick_llm(db, user, body.credential_id)
-    except HTTPException:
-        llm = {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
+    llm = _pick_llm(db, user, body.credential_id)
     available_credentials = {
         meta["type"] for meta in credential_service.list_for_user(db, user.id)
     }
@@ -320,29 +297,6 @@ async def generate_workflow(
             hidden_connector_keys=hidden_connectors,
         )
     except (GenerationError, LLMError) as exc:
-        if llm.get("provider") != "builtin":
-            try:
-                builtin_llm = {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
-                result = await generate_workflow_spec(
-                    body.prompt,
-                    available_credentials=available_credentials,
-                    chat=chat_completion,
-                    llm=builtin_llm,
-                    existing_workflow=body.existing_workflow,
-                    history=body.history,
-                    hidden_connector_keys=hidden_connectors,
-                )
-                log_event(db, AI_GENERATE, target_type="ai", user_id=user.id,
-                          detail={"prompt": body.prompt[:200], "attempts": result["attempts"], "fallback": "builtin",
-                                  "warnings": len(result["validation"]["warnings"])})
-                return ok({
-                    "workflow": result["workflow"],
-                    "validation": result["validation"],
-                    "attempts": result["attempts"],
-                    "fallback_used": "builtin",
-                })
-            except Exception:
-                pass
         if isinstance(exc, GenerationError):
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -488,16 +442,7 @@ async def chat_with_agent(
     db: Session = Depends(get_db),
 ) -> dict:
     """Live interactive chat with Flowsmith's autonomous AI Agent and LLM."""
-    is_builtin_requested = body.allow_builtin or (
-        body.model is not None and body.model.lower() in ("builtin", "local", "local_ai", "offline")
-    )
-    if is_builtin_requested:
-        try:
-            llm = _pick_llm(db, user, body.credential_id)
-        except HTTPException:
-            llm = {"provider": "builtin", "model": body.model or "builtin", "api_key": "builtin_local"}
-    else:
-        llm = _pick_llm(db, user, body.credential_id)
+    llm = _pick_llm(db, user, body.credential_id)
 
     # The agent's tools run with the caller's identity: only workflows the
     # caller may already view are usable as context (404 hides existence).
@@ -522,7 +467,7 @@ async def chat_with_agent(
         # (same formula as _mem_key, matching AIAgentNode's key composition).
         "session_id": f"u{user.id}:{body.session_id}",
         "memory_type": body.memory_type,
-        "allow_builtin_fallback": body.allow_builtin or is_builtin_requested,
+        "allow_builtin_fallback": False,
     }
     model_choice = body.model or llm.get("selected_model") or llm.get("model") or llm.get("default_model")
     if model_choice:
@@ -993,10 +938,7 @@ async def modify_workflow_endpoint(
     """Apply surgical natural language modification to an existing workflow and return diff."""
     from app.ai.modification import WorkflowModifier
 
-    try:
-        llm = _pick_llm(db, user, body.credential_id)
-    except HTTPException:
-        llm = {"provider": "builtin", "model": "builtin", "api_key": "builtin_local"}
+    llm = _pick_llm(db, user, body.credential_id)
     user_creds = {meta["type"] for meta in credential_service.list_for_user(db, user.id)}
 
     _release_db(db)

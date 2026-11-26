@@ -60,8 +60,8 @@ export default function SetVariableNodeEditor({
             style={{
               padding: '12px 14px',
               borderRadius: 8,
-              border: `1px solid ${scope === 'workspace' ? 'var(--accent, #6366f1)' : 'rgba(255,255,255,0.08)'}`,
-              background: scope === 'workspace' ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${scope === 'workspace' ? 'var(--accent, #10b981)' : 'rgba(255,255,255,0.08)'}`,
+              background: scope === 'workspace' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.02)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
@@ -80,8 +80,8 @@ export default function SetVariableNodeEditor({
             style={{
               padding: '12px 14px',
               borderRadius: 8,
-              border: `1px solid ${scope === 'workflow' ? 'var(--accent, #6366f1)' : 'rgba(255,255,255,0.08)'}`,
-              background: scope === 'workflow' ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${scope === 'workflow' ? 'var(--accent, #10b981)' : 'rgba(255,255,255,0.08)'}`,
+              background: scope === 'workflow' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.02)',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
@@ -208,7 +208,7 @@ export default function SetVariableNodeEditor({
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            color: '#818cf8',
+            color: '#34d399',
             fontWeight: 600,
           }}
         >

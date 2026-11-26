@@ -683,10 +683,10 @@ function CanvasInner() {
                 const s = nodeStatuses[n.id]
                 if (s === 'success') return '#10b981'
                 if (s === 'error' || s === 'failed') return '#f43f5e'
-                if (s === 'running') return '#818cf8'
+                if (s === 'running') return '#34d399'
                 if (s === 'waiting_approval') return '#f59e0b'
                 if (n.data?.disabled) return '#475569'
-                return '#6366f1'
+                return '#10b981'
               }}
               nodeStrokeColor="rgba(255, 255, 255, 0.25)"
               nodeBorderRadius={4}

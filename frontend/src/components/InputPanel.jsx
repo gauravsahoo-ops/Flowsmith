@@ -484,7 +484,7 @@ export default function InputPanel({
                 height="26"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#818cf8"
+                stroke="#34d399"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -1099,8 +1099,8 @@ function SchemaFieldRow({
                 }}
                 style={{
                   background: 'transparent',
-                  border: '1px solid rgba(99, 102, 241, 0.4)',
-                  color: '#818cf8',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  color: '#34d399',
                   fontSize: 10.5,
                   padding: '2px 7px',
                   borderRadius: 4,

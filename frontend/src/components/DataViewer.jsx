@@ -167,7 +167,7 @@ function formatCell(val) {
   if (typeof val === 'object') {
     const keys = Object.keys(val)
     return (
-      <span className="dv-json" style={{ color: '#818cf8', fontWeight: 500 }}>
+      <span className="dv-json" style={{ color: '#34d399', fontWeight: 500 }}>
         {`{Object(${keys.length})}`}
       </span>
     )

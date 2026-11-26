@@ -203,7 +203,7 @@ export default function CredentialsPage() {
       if (wrap) {
         wrap.style.transition = 'box-shadow 0.3s ease, border-color 0.3s ease'
         wrap.style.borderRadius = '10px'
-        wrap.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.45)'
+        wrap.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.45)'
         setTimeout(() => {
           if (wrap) wrap.style.boxShadow = 'none'
         }, 2200)
@@ -842,7 +842,7 @@ export default function CredentialsPage() {
                           openai: '#10a37f',
                           slack: '#a855f7',
                           telegram: '#38bdf8',
-                        }[c.type] || '#818cf8'}18`,
+                        }[c.type] || '#34d399'}18`,
                         color: {
                           salesforce: '#38bdf8',
                           hubspot: '#fb923c',
@@ -858,7 +858,7 @@ export default function CredentialsPage() {
                           openai: '#34d399',
                           slack: '#c084fc',
                           telegram: '#38bdf8',
-                        }[c.type] || '#a5b4fc',
+                        }[c.type] || '#6ee7b7',
                         borderColor: 'rgba(255, 255, 255, 0.12)',
                         fontWeight: 600,
                         textTransform: 'capitalize'
@@ -1000,7 +1000,7 @@ export default function CredentialsPage() {
                               }}
                               title="Configure automatic vs. manual recovery, notifications, and view audit events"
                             >
-                              <span className="cred-menu-item-icon" style={{ color: '#818cf8' }}>
+                              <span className="cred-menu-item-icon" style={{ color: '#34d399' }}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                 </svg>
@@ -1044,7 +1044,7 @@ export default function CredentialsPage() {
                                 }}
                                 title="Configure LLM provider & discover available models"
                               >
-                                <span className="cred-menu-item-icon" style={{ color: '#818cf8' }}>
+                                <span className="cred-menu-item-icon" style={{ color: '#34d399' }}>
                                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <polygon points="12 2 2 7 12 12 22 7 12 2" />
                                     <polyline points="2 17 12 22 22 17" />
@@ -1325,7 +1325,7 @@ export default function CredentialsPage() {
                   </div>
                 </div>
               </div>
-              <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', borderColor: 'rgba(99, 102, 241, 0.3)', fontSize: 11 }}>
+              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7', borderColor: 'rgba(16, 185, 129, 0.3)', fontSize: 11 }}>
                 Connected App
               </span>
             </div>

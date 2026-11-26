@@ -15,7 +15,7 @@ function fallbackInitials(label) {
 }
 
 function hashAccent(label) {
-  const palette = ['#6b8afd', '#4aa8d8', '#48b7a2', '#d0a44c', '#d2768b', '#9b7ad6', '#7da36b']
+  const palette = ['#10b981', '#4aa8d8', '#48b7a2', '#d0a44c', '#d2768b', '#9b7ad6', '#7da36b']
   let hash = 0
   const value = String(label || '')
   for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) | 0
@@ -52,7 +52,7 @@ export function BrandLogo({ type, name, icon, size = 32, className = '', style }
       className={`fs-brand-mark fs-brand-mark--${tone} ${className}`.trim()}
       data-brand-key={key}
       data-brand-kind={entry.kind || 'iconify'}
-      style={{ width: size, height: size, '--fs-brand-accent': entry.color || '#6b8afd', ...style }}
+      style={{ width: size, height: size, '--fs-brand-accent': entry.color || '#10b981', ...style }}
       title={entry.label || name || type}
       aria-hidden="true"
     >

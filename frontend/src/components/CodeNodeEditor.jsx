@@ -343,7 +343,7 @@ export default function CodeNodeEditor({ node, onParamsChange }) {
                   onParamsChange({ ...params, code: s.code })
                 }
               }}
-              style={{ fontSize: 11, padding: '2px 6px', background: '#18181b', color: '#a5b4fc', border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: 4 }}
+              style={{ fontSize: 11, padding: '2px 6px', background: '#18181b', color: '#6ee7b7', border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: 4 }}
               title="Insert pre-built battle-tested code snippets"
             >
               <option value="" disabled>Snippet Templates…</option>

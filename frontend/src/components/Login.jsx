@@ -597,7 +597,7 @@ export default function Login({ onAuthed }) {
                       <div className="hint" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
                         Enter this secret in your authenticator app:
                       </div>
-                      <code style={{ padding: '9px 11px', borderRadius: 8, background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#c7d2fe', letterSpacing: 1.1, wordBreak: 'break-all' }}>
+                      <code style={{ padding: '9px 11px', borderRadius: 8, background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#a7f3d0', letterSpacing: 1.1, wordBreak: 'break-all' }}>
                         {mfaEnrollment.secret}
                       </code>
                       <div className="hint" style={{ fontSize: 11, wordBreak: 'break-all' }}>

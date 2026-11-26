@@ -215,8 +215,8 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
             <div
               style={{
                 padding: '9px 12px',
-                background: 'rgba(99, 102, 241, 0.1)',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
                 borderRadius: 8,
                 fontSize: 12,
               }}
@@ -234,8 +234,8 @@ export default function ConnectorPacksModal({ isOpen = true, onClose, onInstalle
                 justifyContent: 'space-between',
                 gap: 10,
                 padding: '8px 11px',
-                background: 'rgba(99, 102, 241, 0.12)',
-                border: '1px solid rgba(99, 102, 241, 0.35)',
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
                 borderRadius: 8,
                 fontSize: 12,
               }}

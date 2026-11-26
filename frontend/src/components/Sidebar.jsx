@@ -328,7 +328,7 @@ function Sidebar({ onOpenCredentials }) {
             <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
           </svg>
         ),
-        accent: '#6366f1',
+        accent: '#10b981',
       },
       {
         id: 'Communication',
@@ -676,7 +676,7 @@ function Sidebar({ onOpenCredentials }) {
                     type="button"
                     className="ghost small"
                     onClick={() => setOpenApiImportOpen(true)}
-                    style={{ fontSize: 11, padding: '2px 8px', color: 'var(--primary, #6366f1)' }}
+                    style={{ fontSize: 11, padding: '2px 8px', color: 'var(--primary, #10b981)' }}
                     title="Import custom OpenAPI / Swagger connector"
                   >
                     + Import API
@@ -717,7 +717,7 @@ function Sidebar({ onOpenCredentials }) {
               type="button"
               className="ghost small"
               onClick={() => setOpenApiImportOpen(true)}
-              style={{ fontSize: 11, padding: '2px 8px', color: 'var(--primary, #6366f1)' }}
+              style={{ fontSize: 11, padding: '2px 8px', color: 'var(--primary, #10b981)' }}
               title="Import custom OpenAPI / Swagger connector"
             >
               + Import API

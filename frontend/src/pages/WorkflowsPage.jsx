@@ -76,9 +76,9 @@ function WorkflowRow({ wf, isPinned, onTogglePin, onOpen, onDuplicate, onDelete,
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 34, height: 34, borderRadius: 8,
-            background: isPinned ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.12)',
-            border: isPinned ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(99, 102, 241, 0.25)',
-            display: 'grid', placeItems: 'center', color: isPinned ? '#fbbf24' : '#818cf8', flexShrink: 0
+            background: isPinned ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.12)',
+            border: isPinned ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(16, 185, 129, 0.25)',
+            display: 'grid', placeItems: 'center', color: isPinned ? '#fbbf24' : '#34d399', flexShrink: 0
           }}>
             {isPinned ? (
               <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -433,21 +433,21 @@ export default function WorkflowsPage() {
                       alignItems: 'flex-start',
                       gap: '8px',
                       padding: '10px 14px',
-                      background: 'rgba(99, 102, 241, 0.08)',
+                      background: 'rgba(16, 185, 129, 0.08)',
                       borderBottom: '1px solid var(--border, #334155)',
                       textAlign: 'left',
                       width: '100%',
                       cursor: 'pointer',
                     }}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: '2px', color: 'var(--accent, #6366f1)', flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: '2px', color: 'var(--accent, #10b981)', flexShrink: 0 }}>
                       <rect x="3" y="3" width="7" height="7" rx="1.5" />
                       <rect x="14" y="3" width="7" height="7" rx="1.5" />
                       <rect x="14" y="14" width="7" height="7" rx="1.5" />
                       <rect x="3" y="14" width="7" height="7" rx="1.5" />
                     </svg>
                     <div>
-                      <div style={{ fontWeight: 600, color: 'var(--accent, #6366f1)', fontSize: '13px' }}>AI Builder</div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent, #10b981)', fontSize: '13px' }}>AI Builder</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', marginTop: '2px' }}>Describe what you want</div>
                     </div>
                   </button>

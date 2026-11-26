@@ -541,7 +541,7 @@ export default function MonitoringPage() {
                 <MonitoringStatCard
                   title="Outbound API Calls"
                   value={(summary?.total_api_calls || 0).toLocaleString()}
-                  color="#818cf8"
+                  color="#34d399"
                   icon={
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10" />

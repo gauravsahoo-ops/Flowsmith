@@ -32,8 +32,8 @@ function FlowsmithBrandMark({
           d="M14 11h18c1.66 0 2.58 1.93 1.52 3.21L28.8 20H20v3h6.5c1.66 0 2.58 1.93 1.52 3.21L24.8 30H18v7c0 1.1-.9 2-2 2s-2-.9-2-2V13c0-1.1.9-2 2-2z"
           fill="currentColor"
         />
-        <circle cx="28.5" cy="20" r="2.2" fill="#38bdf8" />
-        <circle cx="24.5" cy="30" r="2.2" fill="#38bdf8" />
+        <circle cx="28.5" cy="20" r="2.2" fill="#d1fae5" />
+        <circle cx="24.5" cy="30" r="2.2" fill="#d1fae5" />
       </svg>
     )
   }
@@ -51,13 +51,13 @@ function FlowsmithBrandMark({
     >
       <defs>
         <linearGradient id="fs-brand-bg" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="45%" stopColor="#6366f1" />
-          <stop offset="100%" stopColor="#8b5cf6" />
+          <stop offset="0%" stopColor="#4ade80" />
+          <stop offset="45%" stopColor="#10b981" />
+          <stop offset="100%" stopColor="#059669" />
         </linearGradient>
         {glow && (
           <filter id="fs-brand-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#6366f1" floodOpacity="0.45" />
+            <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#10b981" floodOpacity="0.45" />
           </filter>
         )}
       </defs>
@@ -72,8 +72,8 @@ function FlowsmithBrandMark({
         d="M14 11h18c1.66 0 2.58 1.93 1.52 3.21L28.8 20H20v3h6.5c1.66 0 2.58 1.93 1.52 3.21L24.8 30H18v7c0 1.1-.9 2-2 2s-2-.9-2-2V13c0-1.1.9-2 2-2z"
         fill="#ffffff"
       />
-      <circle cx="28.5" cy="20" r="2.2" fill="#38bdf8" />
-      <circle cx="24.5" cy="30" r="2.2" fill="#38bdf8" />
+      <circle cx="28.5" cy="20" r="2.2" fill="#d1fae5" />
+      <circle cx="24.5" cy="30" r="2.2" fill="#d1fae5" />
     </svg>
   )
 }

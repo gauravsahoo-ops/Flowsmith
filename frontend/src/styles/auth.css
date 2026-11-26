@@ -8,7 +8,7 @@
   justify-content: center;
   background-color: #07090e;
   background-image: 
-    radial-gradient(ellipse 70% 35% at 50% -5%, rgba(99, 102, 241, 0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 35% at 50% -5%, rgba(16, 185, 129, 0.12) 0%, transparent 70%),
     radial-gradient(ellipse 50% 30% at 85% 95%, rgba(56, 189, 248, 0.07) 0%, transparent 60%),
     radial-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 24px 24px;
@@ -33,7 +33,7 @@
 .orb-1 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(79, 70, 229, 0.05) 60%, transparent 75%);
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(5, 150, 105, 0.05) 60%, transparent 75%);
   top: -160px;
   left: -100px;
   animation: orbFloat1 20s ease-in-out infinite alternate;
@@ -145,9 +145,9 @@
 }
 
 .badge-pill-accent {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
 }
 
 .hero-heading {
@@ -369,7 +369,7 @@
   height: 5px;
   border-radius: 50%;
   background: #080a11;
-  border: 1.5px solid #6366f1;
+  border: 1.5px solid #10b981;
 }
 .handle-left { left: -3.5px; }
 .handle-right { right: -3.5px; }
@@ -389,7 +389,7 @@
   position: absolute;
   width: 14px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+  background: linear-gradient(90deg, transparent, #34d399, transparent);
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
   animation: pulseMove 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
@@ -521,8 +521,8 @@
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #3b82f6 100%);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+  background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
   display: grid;
   place-items: center;
   margin-bottom: 6px;
@@ -642,14 +642,14 @@
   background: none;
   border: none;
   padding: 0;
-  color: #818cf8;
+  color: #34d399;
   font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.15s ease;
 }
 .forgot-link:hover {
-  color: #a5b4fc;
+  color: #6ee7b7;
   text-decoration: underline;
 }
 
@@ -684,13 +684,13 @@
 
 .styled-input:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: #10b981;
   background: rgba(10, 13, 22, 0.9);
-  box-shadow: 0 0 0 1px #6366f1, 0 2px 10px rgba(99, 102, 241, 0.18);
+  box-shadow: 0 0 0 1px #10b981, 0 2px 10px rgba(16, 185, 129, 0.18);
 }
 
 .input-with-icon:focus-within .input-prefix-icon {
-  color: #818cf8;
+  color: #34d399;
 }
 
 .input-with-icon input[type="password"],
@@ -732,7 +732,7 @@
   width: 100%;
   padding: 11px 16px;
   margin-top: 4px;
-  background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+  background: linear-gradient(180deg, #059669 0%, #047857 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 9px;
@@ -743,7 +743,7 @@
   box-shadow: 
     inset 0 1px 0 rgba(255, 255, 255, 0.28), 
     0 2px 8px rgba(0, 0, 0, 0.4), 
-    0 4px 16px rgba(79, 70, 229, 0.35);
+    0 4px 16px rgba(5, 150, 105, 0.35);
   transition: all 0.15s ease;
   position: relative;
   overflow: hidden;
@@ -755,7 +755,7 @@
   box-shadow: 
     inset 0 1px 0 rgba(255, 255, 255, 0.35), 
     0 4px 12px rgba(0, 0, 0, 0.45), 
-    0 6px 20px rgba(79, 70, 229, 0.45);
+    0 6px 20px rgba(5, 150, 105, 0.45);
 }
 
 .login-submit-btn:hover:not(:disabled) svg {
@@ -806,7 +806,7 @@
 .login-back-btn {
   background: none;
   border: none;
-  color: #818cf8;
+  color: #34d399;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -815,7 +815,7 @@
   transition: color 0.15s ease;
 }
 .login-back-btn:hover {
-  color: #a5b4fc;
+  color: #6ee7b7;
   text-decoration: underline;
 }
 

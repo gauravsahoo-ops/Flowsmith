@@ -21,15 +21,15 @@
 .field-row select:focus,
 .field-row textarea:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: #10b981;
   background: rgba(18, 23, 36, 0.95);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25), inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 .field-row input[type="checkbox"] {
   width: 16px;
   height: 16px;
   margin-right: 8px;
-  accent-color: #6366f1;
+  accent-color: #10b981;
   cursor: pointer;
 }
 .check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #e2e8f0; }
@@ -152,8 +152,8 @@
   transition: all 0.15s ease;
 }
 .btn-add-field:hover {
-  border-color: var(--accent, #6366f1);
-  color: var(--accent, #6366f1);
+  border-color: var(--accent, #10b981);
+  color: var(--accent, #10b981);
 }
 .map-rows {
   display: flex;
@@ -208,7 +208,7 @@
   box-sizing: border-box;
 }
 .map-json-textarea:focus {
-  border-color: var(--accent, #6366f1);
+  border-color: var(--accent, #10b981);
   outline: none;
 }
 .map-json-error {
@@ -457,13 +457,13 @@
   padding: 8px 12px;
 }
 .expr-helper .linklike {
-  color: #818cf8;
+  color: #34d399;
   font-weight: 600;
   font-size: 12px;
   padding: 2px 0;
 }
 .expr-helper .linklike:hover {
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 .expr-filter {
   width: 100%;
@@ -478,8 +478,8 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .expr-filter:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
 }
 .expr-chips {
   display: flex;
@@ -504,8 +504,8 @@
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .expr-chip:hover {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
   transform: translateX(2px);
 }
 .expr-chip code {

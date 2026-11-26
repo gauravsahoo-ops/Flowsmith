@@ -110,23 +110,14 @@ function SmithDrawerContent({
     if (typeof api.aiStatus === 'function') {
       api.aiStatus()
         .then((res) => {
-          const fallbackModels = [
-            { id: 'builtin', name: 'Zero-LLM (Deterministic)', provider: 'builtin', model: 'rule-based', type: 'builtin' },
-            { id: 'ollama', name: 'Local Ollama (Offline AI)', provider: 'ollama', model: 'llama3.2:1b', type: 'local' },
-            ...(res?.credentials || []),
-          ]
           setLlmStatus({
             configured: Boolean(res?.configured),
             loading: false,
             active: res?.active || null,
             credentials: res?.credentials || [],
-            models: res?.models || fallbackModels,
+            models: res?.models || [],
           })
-          if (res?.active?.id) {
-            setSelectedCredentialId((prev) => prev || res.active.id)
-          } else {
-            setSelectedCredentialId((prev) => prev || 'builtin')
-          }
+          setSelectedCredentialId((prev) => prev || res?.active?.id || null)
         })
         .catch(() => {
           setLlmStatus({
@@ -134,12 +125,9 @@ function SmithDrawerContent({
             loading: false,
             active: null,
             credentials: [],
-            models: [
-              { id: 'builtin', name: 'Zero-LLM (Deterministic)', provider: 'builtin', model: 'rule-based', type: 'builtin' },
-              { id: 'ollama', name: 'Local Ollama (Offline AI)', provider: 'ollama', model: 'llama3.2:1b', type: 'local' },
-            ],
+            models: [],
           })
-          setSelectedCredentialId((prev) => prev || 'builtin')
+          setSelectedCredentialId(null)
         })
     }
   }, [])
@@ -148,11 +136,7 @@ function SmithDrawerContent({
     if (llmStatus.models && llmStatus.models.length > 0) {
       return llmStatus.models
     }
-    const defaults = [
-      { id: 'builtin', name: 'Zero-LLM (Deterministic)', provider: 'builtin', model: 'rule-based', type: 'builtin' },
-      { id: 'ollama', name: 'Local Ollama (Offline AI)', provider: 'ollama', model: 'llama3.2:1b', type: 'local' },
-    ]
-    return [...defaults, ...(llmStatus.credentials || [])]
+    return llmStatus.credentials || []
   }, [llmStatus])
 
   const currentCred = useMemo(() => {
@@ -265,6 +249,14 @@ function SmithDrawerContent({
   const handleSendMessage = async (textToSend) => {
     const rawText = (textToSend || input).trim()
     if (!rawText || loading) return
+    if (!llmStatus.configured) {
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: 'Smith requires a configured LLM credential. Add an OpenAI, Anthropic, or compatible LLM credential in Credentials, then reopen Smith.',
+        timestamp: currentTimeString,
+      }])
+      return
+    }
 
     setInput('')
     setShowMoreMenu(false)
@@ -634,10 +626,10 @@ function SmithDrawerContent({
               <div className="smith-ready-row">
                 <span
                   className="smith-ready-dot"
-                  style={{ background: currentCred?.provider === 'builtin' ? '#38bdf8' : '#22c55e' }}
+                  style={{ background: currentCred ? '#22c55e' : '#ef4444' }}
                 />
                 <span className="smith-ready-text">
-                  Ready
+                  {currentCred ? 'Ready' : 'No LLM credential'}
                   {currentCred ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '6px' }}>
                       <span style={{ opacity: 0.6 }}>·</span>
@@ -751,7 +743,7 @@ function SmithDrawerContent({
           </button>
         </div>
 
-        {/* Visual Model Engine Switcher (Zero-LLM vs Local Ollama vs Configured LLMs) */}
+        {/* Active LLM credential (AI requires a configured provider) */}
         <div
           className="smith-model-bar"
           style={{
@@ -773,29 +765,35 @@ function SmithDrawerContent({
             <span style={{ fontWeight: 600, color: '#cbd5e1' }}>Model:</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
-            <select
-              aria-label="Model Engine"
-              value={selectedCredentialId || currentCred?.id || 'builtin'}
-              onChange={(e) => setSelectedCredentialId(e.target.value)}
-              style={{
-                maxWidth: '260px',
-                width: '100%',
-                padding: '4px 8px',
-                fontSize: '11px',
-                borderRadius: '6px',
-                background: '#18181b',
-                color: '#f8fafc',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {availableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name || m.provider} {m.model ? `(${m.model})` : ''}
-                </option>
-              ))}
-            </select>
+            {availableModels.length > 0 ? (
+              <select
+                aria-label="Active LLM credential"
+                value={selectedCredentialId || currentCred?.id || ''}
+                onChange={(e) => setSelectedCredentialId(e.target.value)}
+                style={{
+                  maxWidth: '260px',
+                  width: '100%',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  borderRadius: '6px',
+                  background: '#18181b',
+                  color: '#f8fafc',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {availableModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name || m.provider} {m.model ? `(${m.model})` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <a href="/credentials" style={{ color: '#f59e0b', fontSize: '11px' }}>
+                Add an LLM credential to enable Smith
+              </a>
+            )}
           </div>
         </div>
 
@@ -914,7 +912,7 @@ function SmithDrawerContent({
                     >
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#818cf8' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#34d399' }}>
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                             <line x1="8" y1="21" x2="16" y2="21" />
                             <line x1="12" y1="17" x2="12" y2="21" />
@@ -1248,7 +1246,7 @@ function SmithDrawerContent({
                   className="smith-action-card"
                   style={{ textDecoration: 'none' }}
                 >
-                  <div className="smith-card-icon" style={{ color: '#818cf8' }}>
+                  <div className="smith-card-icon" style={{ color: '#34d399' }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                       <line x1="8" y1="21" x2="16" y2="21" />

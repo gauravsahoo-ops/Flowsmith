@@ -1457,8 +1457,8 @@ function OutputSchemaRow({
                 }}
                 style={{
                   background: 'transparent',
-                  border: '1px solid rgba(99, 102, 241, 0.4)',
-                  color: '#818cf8',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  color: '#34d399',
                   fontSize: 10.5,
                   padding: '2px 7px',
                   borderRadius: 4,

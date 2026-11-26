@@ -417,7 +417,7 @@ export default function WorkflowTestsModal({ isOpen, onClose, workflowId, workfl
               <div className="tests-field-group">
                 <div className="tests-label">
                   <span>TEST CASE NAME</span>
-                  {selectedId ? <span style={{ opacity: 0.6, fontSize: '10px' }}>ID: {selectedId.slice(0, 8)}</span> : <span style={{ color: '#818cf8', fontSize: '10px' }}>UNSAVED DRAFT</span>}
+                  {selectedId ? <span style={{ opacity: 0.6, fontSize: '10px' }}>ID: {selectedId.slice(0, 8)}</span> : <span style={{ color: '#34d399', fontSize: '10px' }}>UNSAVED DRAFT</span>}
                 </div>
                 <input
                   type="text"

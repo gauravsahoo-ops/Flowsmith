@@ -9,7 +9,6 @@ from app.ai.providers.gemini_provider import GeminiProvider
 from app.ai.providers.deepseek_provider import DeepSeekProvider
 from app.ai.providers.groq_provider import GroqProvider
 from app.ai.providers.ollama_provider import OllamaProvider
-from app.ai.providers.builtin_provider import BuiltinProvider
 
 PROVIDERS: dict[str, type[BaseLLMProvider]] = {
     "openai": OpenAIProvider,
@@ -21,7 +20,6 @@ PROVIDERS: dict[str, type[BaseLLMProvider]] = {
     "groq": GroqProvider,
     "ollama": OllamaProvider,
     "local": OllamaProvider,
-    "builtin": BuiltinProvider,
 }
 
 
@@ -30,8 +28,11 @@ def get_provider(provider_name: str | None = None, model: str | None = None) -> 
     name = (provider_name or "").lower().strip()
     m = (model or "").lower().strip()
 
-    if name in ("builtin", "offline", "mock") or m.startswith(("builtin", "local-ai")):
-        return BuiltinProvider()
+    if name in ("builtin", "offline", "mock", "local-ai") or m.startswith("builtin"):
+        raise ValueError(
+            "Built-in/offline LLM providers are not supported. "
+            "Configure an LLM credential."
+        )
 
     if not name:
         if m.startswith(("claude", "anthropic")):

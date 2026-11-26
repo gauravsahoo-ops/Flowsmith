@@ -60,7 +60,7 @@ def test_reset_branding_authenticated(client):
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["app_name"] == "Flowsmith"
-    assert data["primary_color"] == "#6366f1"
+    assert data["primary_color"] == "#10b981"
     assert data["logo_data"] is None
     assert data["custom_css"] is None
     assert data["documentation_url"] is None
@@ -80,7 +80,7 @@ def test_new_user_does_not_see_another_users_branding(client):
     other = client.get("/api/branding/me", headers=auth_headers(second["token"]))
     assert other.status_code == 200
     assert other.json()["data"]["app_name"] == "Flowsmith"
-    assert other.json()["data"]["primary_color"] == "#6366f1"
+    assert other.json()["data"]["primary_color"] == "#10b981"
 
 
 def test_branding_is_private_even_inside_the_same_organization(client):
@@ -101,4 +101,4 @@ def test_branding_is_private_even_inside_the_same_organization(client):
     second_brand = client.get("/api/branding/me", headers=auth_headers(second["token"]))
     assert first_brand.json()["data"]["app_name"] == "First Account Brand"
     assert second_brand.json()["data"]["app_name"] == "Flowsmith"
-    assert second_brand.json()["data"]["primary_color"] == "#6366f1"
+    assert second_brand.json()["data"]["primary_color"] == "#10b981"

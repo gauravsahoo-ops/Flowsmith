@@ -9,7 +9,7 @@ export const DEFAULT_BRANDING = {
   logoUrl: null,
   logoData: null,
   faviconUrl: null,
-  primaryColor: '#6366f1',
+  primaryColor: '#10b981',
   documentationUrl: null,
   supportEmail: null,
   copyrightText: null,
@@ -30,7 +30,7 @@ function hexToRgb(hex) {
     const b = parseInt(clean.substring(4, 6), 16)
     return `${r}, ${g}, ${b}`
   }
-  return '99, 102, 241'
+  return '16, 185, 129'
 }
 
 function applyToDom(branding) {

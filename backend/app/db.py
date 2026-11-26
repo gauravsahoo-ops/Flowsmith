@@ -180,7 +180,7 @@ def _migrate_missing_indexes() -> None:
             logger.debug("Index creation %s skipped or error: %s", idx_name, e)
 
 
-EXPECTED_ALEMBIC_HEAD: str = "b2c3d4e5f6a7"
+EXPECTED_ALEMBIC_HEAD: str = "d5e6f7a8b9c0"
 FLOWSMITH_MIGRATION_LOCK_ID: int = 84729104
 _migration_thread_lock = threading.Lock()
 

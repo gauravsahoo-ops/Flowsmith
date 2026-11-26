@@ -63,7 +63,7 @@
 
 .subwf-trig-select-btn:hover,
 .subwf-trig-select-btn.open {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .subwf-trig-select-title {
@@ -109,7 +109,7 @@
 }
 
 .subwf-trig-select-item.active {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .subwf-trig-select-item-content {
@@ -125,7 +125,7 @@
 }
 
 .subwf-trig-select-item.active .subwf-trig-select-item-title {
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .subwf-trig-select-item-desc {
@@ -134,7 +134,7 @@
 }
 
 .subwf-trig-select-check {
-  color: #a5b4fc;
+  color: #6ee7b7;
   font-size: 13px;
   font-weight: bold;
 }
@@ -178,8 +178,8 @@
 }
 
 .subwf-trig-icon-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: var(--primary, #6366f1);
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--primary, #10b981);
   color: #ffffff;
 }
 
@@ -286,7 +286,7 @@
 }
 
 .subwf-trig-text-input:focus {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .subwf-trig-warning-icon {
@@ -353,12 +353,12 @@
 
 .subwf-trig-type-item:hover,
 .subwf-trig-type-item.active {
-  background: rgba(99, 102, 241, 0.12);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
 }
 
 .subwf-trig-check {
-  color: #a5b4fc;
+  color: #6ee7b7;
   font-size: 12px;
   font-weight: bold;
 }
@@ -386,9 +386,9 @@
 }
 
 .subwf-trig-add-btn:hover {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: var(--primary, #6366f1);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--primary, #10b981);
+  color: #6ee7b7;
 }
 
 .subwf-trig-tip-banner {
@@ -417,7 +417,7 @@
 }
 
 .subwf-trig-json-textarea:focus {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, #10b981);
 }
 
 .subwf-trig-json-error {

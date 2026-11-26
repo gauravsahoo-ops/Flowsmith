@@ -13,9 +13,9 @@
   font-size: 12px;
   padding: 8px 12px;
   border-radius: 6px;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  color: #c7d2fe;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #a7f3d0;
   line-height: 1.4;
 }
 
@@ -81,9 +81,9 @@
 .filter-combinator-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(99, 102, 241, 0.16);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: rgba(16, 185, 129, 0.16);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.35);
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
@@ -94,8 +94,8 @@
 }
 
 .filter-combinator-badge:hover {
-  background: rgba(99, 102, 241, 0.28);
-  color: #e0e7ff;
+  background: rgba(16, 185, 129, 0.28);
+  color: #d1fae5;
 }
 
 .filter-condition-index {
@@ -164,7 +164,7 @@
 }
 
 .filter-op-btn:hover {
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
 .filter-op-btn-left {
@@ -176,8 +176,8 @@
 .filter-op-type-icon {
   font-size: 11px;
   font-weight: 700;
-  color: #a5b4fc;
-  background: rgba(99, 102, 241, 0.15);
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.15);
   padding: 1px 5px;
   border-radius: 3px;
   display: inline-block;
@@ -237,7 +237,7 @@
 
 .filter-op-cat-item:hover,
 .filter-op-cat-item.active {
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(16, 185, 129, 0.15);
   color: #f8fafc;
 }
 
@@ -283,13 +283,13 @@
 }
 
 .filter-op-item.active {
-  background: rgba(99, 102, 241, 0.18);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
   font-weight: 500;
 }
 
 .filter-op-item-check {
-  color: #6366f1;
+  color: #10b981;
   font-weight: bold;
 }
 
@@ -312,9 +312,9 @@
 }
 
 .filter-add-btn:hover {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.4);
-  color: #e0e7ff;
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #d1fae5;
 }
 
 /* Options Card */
@@ -350,9 +350,9 @@
 }
 
 .filter-options-add-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(16, 185, 129, 0.2);
   color: #ffffff;
-  border-color: #6366f1;
+  border-color: #10b981;
 }
 
 .filter-option-item-row {
@@ -418,7 +418,7 @@
 }
 
 .filter-switch input:checked + .filter-switch-slider {
-  background-color: #6366f1;
+  background-color: #10b981;
 }
 
 .filter-switch input:checked + .filter-switch-slider:before {
@@ -447,7 +447,7 @@
 }
 
 .filter-on-error-option:hover {
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(16, 185, 129, 0.15);
 }
 
 .filter-on-error-title {

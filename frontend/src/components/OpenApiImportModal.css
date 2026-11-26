@@ -17,7 +17,7 @@
   background: #131722;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(16, 185, 129, 0.15);
   width: 680px;
   max-width: 95vw;
   max-height: 90vh;
@@ -101,8 +101,8 @@
 }
 
 .oai-tab.active {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
 }
 
 .oai-form-group {
@@ -145,8 +145,8 @@
 .oai-form-group input:focus,
 .oai-form-group select:focus,
 .oai-form-group textarea:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
 }
 
 .oai-hint {
@@ -187,8 +187,8 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(99, 102, 241, 0.15);
-  color: #a5b4fc;
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
 }
 
 .oai-base-url {
@@ -314,13 +314,13 @@
 }
 
 .oai-btn.primary {
-  background: #6366f1;
-  border: 1px solid #4f46e5;
+  background: #10b981;
+  border: 1px solid #059669;
   color: #fff;
 }
 
 .oai-btn.primary:hover:not(:disabled) {
-  background: #4f46e5;
+  background: #059669;
 }
 
 .oai-btn:disabled {

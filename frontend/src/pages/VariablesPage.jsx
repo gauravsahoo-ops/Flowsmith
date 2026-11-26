@@ -95,10 +95,10 @@ export default function VariablesPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{
                         width: 28, height: 28, borderRadius: 6,
-                        background: v.is_secret ? 'rgba(245, 158, 11, 0.12)' : 'rgba(99, 102, 241, 0.12)',
-                        border: v.is_secret ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(99, 102, 241, 0.25)',
+                        background: v.is_secret ? 'rgba(245, 158, 11, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                        border: v.is_secret ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(16, 185, 129, 0.25)',
                         display: 'grid', placeItems: 'center',
-                        color: v.is_secret ? '#fbbf24' : '#818cf8',
+                        color: v.is_secret ? '#fbbf24' : '#34d399',
                         flexShrink: 0
                       }}>
                         {v.is_secret ? (

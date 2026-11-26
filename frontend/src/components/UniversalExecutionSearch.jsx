@@ -120,7 +120,7 @@ const CATEGORY_TABS = [
 ]
 
 const CATEGORY_COLORS = {
-  steps: { bg: 'rgba(99, 102, 241, 0.12)', text: '#a5b4fc', border: 'rgba(99, 102, 241, 0.3)' },
+  steps: { bg: 'rgba(16, 185, 129, 0.12)', text: '#6ee7b7', border: 'rgba(16, 185, 129, 0.3)' },
   errors: { bg: 'rgba(239, 68, 68, 0.12)', text: '#fca5a5', border: 'rgba(239, 68, 68, 0.3)' },
   records: { bg: 'rgba(16, 185, 129, 0.12)', text: '#6ee7b7', border: 'rgba(16, 185, 129, 0.3)' },
   api_requests: { bg: 'rgba(56, 189, 248, 0.12)', text: '#7dd3fc', border: 'rgba(56, 189, 248, 0.3)' },
@@ -169,12 +169,12 @@ export function HighlightMatch({ text, query }) {
         {str.slice(0, idx)}
         <mark
           style={{
-            background: 'rgba(99, 102, 241, 0.28)',
-            color: '#e0e7ff',
+            background: 'rgba(16, 185, 129, 0.28)',
+            color: '#d1fae5',
             padding: '1px 4px',
             borderRadius: 3,
             fontWeight: 600,
-            border: '1px solid rgba(99, 102, 241, 0.45)',
+            border: '1px solid rgba(16, 185, 129, 0.45)',
           }}
         >
           {str.slice(idx, idx + q.length)}
@@ -207,12 +207,12 @@ export function HighlightMatch({ text, query }) {
             <mark
               key={i}
               style={{
-                background: 'rgba(99, 102, 241, 0.28)',
-                color: '#e0e7ff',
+                background: 'rgba(16, 185, 129, 0.28)',
+                color: '#d1fae5',
                 padding: '1px 4px',
                 borderRadius: 3,
                 fontWeight: 600,
-                border: '1px solid rgba(99, 102, 241, 0.45)',
+                border: '1px solid rgba(16, 185, 129, 0.45)',
               }}
             >
               {part}
@@ -462,9 +462,9 @@ export default function UniversalExecutionSearch({
           display: 'flex',
           alignItems: 'center',
           background: 'rgba(15, 20, 31, 0.92)',
-          border: dropdownOpen ? '1px solid rgba(129, 140, 248, 0.65)' : '1px solid rgba(255, 255, 255, 0.12)',
+          border: dropdownOpen ? '1px solid rgba(16, 185, 129, 0.65)' : '1px solid rgba(255, 255, 255, 0.12)',
           boxShadow: dropdownOpen
-            ? '0 0 0 3px rgba(99, 102, 241, 0.2), 0 8px 24px rgba(0, 0, 0, 0.45)'
+            ? '0 0 0 3px rgba(16, 185, 129, 0.2), 0 8px 24px rgba(0, 0, 0, 0.45)'
             : '0 4px 14px rgba(0, 0, 0, 0.25)',
           borderRadius: 9999,
           padding: '3px 6px 3px 16px',
@@ -474,11 +474,11 @@ export default function UniversalExecutionSearch({
         }}
       >
         {/* Left Search Icon */}
-        <div style={{ display: 'flex', alignItems: 'center', color: dropdownOpen ? '#818cf8' : '#94a3b8', marginRight: 10, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', color: dropdownOpen ? '#34d399' : '#94a3b8', marginRight: 10, flexShrink: 0 }}>
           {loading ? (
-            <span className="spinner-sm" style={{ width: 15, height: 15, borderTopColor: '#818cf8' }} />
+            <span className="spinner-sm" style={{ width: 15, height: 15, borderTopColor: '#34d399' }} />
           ) : (
-            <SearchIcon size={16} color={dropdownOpen ? '#818cf8' : '#94a3b8'} />
+            <SearchIcon size={16} color={dropdownOpen ? '#34d399' : '#94a3b8'} />
           )}
         </div>
 
@@ -532,9 +532,9 @@ export default function UniversalExecutionSearch({
           onClick={() => handleSubmitSearch()}
           title="Search execution logs"
           style={{
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.28) 0%, rgba(79, 70, 229, 0.38) 100%)',
-            border: '1px solid rgba(99, 102, 241, 0.45)',
-            color: '#e0e7ff',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.38) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.45)',
+            color: '#d1fae5',
             padding: '6px 14px',
             borderRadius: 9999,
             cursor: 'pointer',
@@ -550,15 +550,15 @@ export default function UniversalExecutionSearch({
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.45) 0%, rgba(79, 70, 229, 0.55) 100%)'
-            e.currentTarget.style.borderColor = 'rgba(129, 140, 248, 0.75)'
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.45) 0%, rgba(5, 150, 105, 0.55) 100%)'
+            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.75)'
             e.currentTarget.style.color = '#ffffff'
-            e.currentTarget.style.boxShadow = '0 0 12px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+            e.currentTarget.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.28) 0%, rgba(79, 70, 229, 0.38) 100%)'
-            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.45)'
-            e.currentTarget.style.color = '#e0e7ff'
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.38) 100%)'
+            e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.45)'
+            e.currentTarget.style.color = '#d1fae5'
             e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
           }}
         >
@@ -597,14 +597,14 @@ export default function UniversalExecutionSearch({
                 fontSize: 11.5,
                 fontWeight: isActive ? 600 : 500,
                 color: isActive ? '#ffffff' : '#94a3b8',
-                background: isActive ? 'rgba(99, 102, 241, 0.22)' : 'rgba(255, 255, 255, 0.03)',
-                border: isActive ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid rgba(255, 255, 255, 0.06)',
+                background: isActive ? 'rgba(16, 185, 129, 0.22)' : 'rgba(255, 255, 255, 0.03)',
+                border: isActive ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.06)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
               }}
             >
-              <TabIcon size={12} color={isActive ? '#818cf8' : '#94a3b8'} />
+              <TabIcon size={12} color={isActive ? '#34d399' : '#94a3b8'} />
               <span>{tab.label}</span>
               {typeof count === 'number' && count > 0 && (
                 <span
@@ -613,7 +613,7 @@ export default function UniversalExecutionSearch({
                     fontWeight: 700,
                     padding: '1px 5px',
                     borderRadius: 8,
-                    background: isActive ? 'rgba(99, 102, 241, 0.45)' : 'rgba(255, 255, 255, 0.08)',
+                    background: isActive ? 'rgba(16, 185, 129, 0.45)' : 'rgba(255, 255, 255, 0.08)',
                     color: isActive ? '#ffffff' : '#cbd5e1',
                   }}
                 >
@@ -674,7 +674,7 @@ export default function UniversalExecutionSearch({
                       cursor: 'pointer',
                     }}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
                       <circle cx="12" cy="12" r="10" />
                       <polyline points="12 6 12 12 16 14" />
                     </svg>
@@ -730,7 +730,7 @@ export default function UniversalExecutionSearch({
                           gap: 12,
                           padding: '10px 14px',
                           borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                          background: isSelected ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                          background: isSelected ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
                           cursor: 'pointer',
                           transition: 'background 0.1s ease',
                         }}
@@ -797,7 +797,7 @@ export default function UniversalExecutionSearch({
                                 }}
                                 title={`Executed: ${item.started_at}`}
                               >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" style={{ flexShrink: 0 }}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" style={{ flexShrink: 0 }}>
                                   <circle cx="12" cy="12" r="10" />
                                   <polyline points="12 6 12 12 16 14" />
                                 </svg>
@@ -841,7 +841,7 @@ export default function UniversalExecutionSearch({
                             style={{
                               fontSize: 11,
                               fontWeight: 600,
-                              color: isSelected ? '#818cf8' : '#64748b',
+                              color: isSelected ? '#34d399' : '#64748b',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 4,
@@ -867,18 +867,18 @@ export default function UniversalExecutionSearch({
               onClick={() => handleSubmitSearch()}
               style={{
                 padding: '9px 14px',
-                background: 'rgba(99, 102, 241, 0.1)',
+                background: 'rgba(16, 185, 129, 0.1)',
                 borderTop: '1px solid rgba(255, 255, 255, 0.08)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 fontSize: 12,
-                color: '#818cf8',
+                color: '#34d399',
                 fontWeight: 600,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)')}
             >
               <span>View all {totalCount} occurrences in execution details</span>
               <kbd style={{ fontSize: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', padding: '2px 5px', borderRadius: 4, color: '#e2e8f0', fontFamily: 'inherit' }}>

@@ -3,10 +3,10 @@
   /* Ultra-modern dark obsidian glass palette */
   --bg: #07090e;
   --bg-surface: #0b0e15;
-  --bg-gradient: radial-gradient(circle at 50% 0%, #151b2b 0%, #07090e 75%);
-  --bg-mesh: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
-              radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.06) 0px, transparent 50%),
-              radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+  --bg-gradient: radial-gradient(circle at 50% 0%, #101b18 0%, #07090e 75%);
+  --bg-mesh: radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+              radial-gradient(at 100% 0%, rgba(52, 211, 153, 0.06) 0px, transparent 50%),
+              radial-gradient(at 50% 100%, rgba(5, 150, 105, 0.05) 0px, transparent 50%);
 
   --panel: #111522;
   --panel-glass: rgba(17, 21, 34, 0.78);
@@ -26,8 +26,8 @@
   --border: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-strong: rgba(255, 255, 255, 0.16);
-  --border-focus: rgba(99, 102, 241, 0.6);
-  --border-glow: rgba(99, 102, 241, 0.35);
+  --border-focus: rgba(16, 185, 129, 0.6);
+  --border-glow: rgba(16, 185, 129, 0.35);
 
   --text: #f8fafc;
   --text-secondary: #cbd5e1;
@@ -71,11 +71,11 @@
   --radius-full: 9999px;
 
   /* Restrained, Purposeful Semantic Accents */
-  --accent: #3b63d9;
-  --accent-hover: #2f57c9;
-  --accent-subtle: rgba(79, 70, 229, 0.1);
+  --accent: #10b981;
+  --accent-hover: #059669;
+  --accent-subtle: rgba(16, 185, 129, 0.1);
   --blue: #2563eb;
-  --green: #059669;
+  --green: #10b981;
   --red: #e11d48;
   --amber: #d97706;
   --purple: #7c3aed;
@@ -84,7 +84,7 @@
 
   /* Functional Gradients (Restrained & Calm) */
   --gradient-brand: var(--accent);
-  --gradient-brand-subtle: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(37, 99, 235, 0.08) 100%);
+  --gradient-brand-subtle: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.08) 100%);
   --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
 
   /* Enterprise Precision Elevation Shadows (Zero Neon Glow) */
@@ -180,7 +180,7 @@ body {
 }
 
 ::selection {
-  background: rgba(99, 102, 241, 0.35);
+  background: rgba(16, 185, 129, 0.35);
   color: #fff;
 }
 

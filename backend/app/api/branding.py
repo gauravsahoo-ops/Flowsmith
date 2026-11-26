@@ -27,7 +27,7 @@ DEFAULT_BRANDING: dict[str, Any] = {
     "logo_url": None,
     "logo_data": None,
     "favicon_url": None,
-    "primary_color": "#6366f1",
+    "primary_color": "#10b981",
     "documentation_url": None,
     "support_email": None,
     "copyright_text": None,
@@ -112,7 +112,7 @@ def update_branding(
         if not HEX_COLOR_PATTERN.match(trimmed_color):
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                "Invalid primary_color format; expected hex color like #6366f1",
+                "Invalid primary_color format; expected hex color like #10b981",
             )
 
     if body.logo_data and len(body.logo_data) > 5 * 1024 * 1024:

@@ -102,6 +102,14 @@ def _to_dict(rec) -> dict:
     }
 
 
+@router.get("/status")
+def rag_status(user: User = Depends(get_current_user)) -> dict:
+    """Report whether the optional semantic embedding stack is installed."""
+    from app.rag import embedding_capability
+
+    return ok(embedding_capability())
+
+
 @router.get("/collections")
 def get_collections(
     user: User = Depends(get_current_user),

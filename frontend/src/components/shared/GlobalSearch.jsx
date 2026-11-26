@@ -25,7 +25,7 @@ const QUICK_ACTIONS = [
     path: '/integrations',
     category: 'Navigation',
     icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#818cf8' }}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#34d399' }}>
         <path d="M12 2v6m0 8v6M2 12h6m8 0h6" />
         <rect x="8" y="8" width="8" height="8" rx="2" />
       </svg>
@@ -171,7 +171,7 @@ export default function GlobalSearch({ open, onClose }) {
         kind: w.active ? 'Active' : 'Draft',
         path: `/workflows/${w.id}`,
         icon: (
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#818cf8' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#34d399' }}>
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2" />
           </svg>
         ),
@@ -355,7 +355,7 @@ export default function GlobalSearch({ open, onClose }) {
     <div className="palette-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Global Command Palette">
       <div className="palette global-search" onClick={e => e.stopPropagation()}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <span style={{ position: 'absolute', left: 20, color: '#818cf8', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+          <span style={{ position: 'absolute', left: 20, color: '#34d399', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -411,8 +411,8 @@ export default function GlobalSearch({ open, onClose }) {
                       padding: '9px 12px',
                       borderRadius: 9,
                       textAlign: 'left',
-                      background: isSelected ? 'rgba(99, 102, 241, 0.16)' : 'transparent',
-                      border: isSelected ? '1px solid rgba(99, 102, 241, 0.35)' : '1px solid transparent',
+                      background: isSelected ? 'rgba(16, 185, 129, 0.16)' : 'transparent',
+                      border: isSelected ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid transparent',
                       color: isSelected ? '#ffffff' : '#cbd5e1',
                       cursor: 'pointer',
                       transition: 'all 0.12s ease',
@@ -427,13 +427,13 @@ export default function GlobalSearch({ open, onClose }) {
                         {item.title}
                       </div>
                       {item.subtitle && (
-                        <div style={{ fontSize: 11, color: isSelected ? '#a5b4fc' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
+                        <div style={{ fontSize: 11, color: isSelected ? '#6ee7b7' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
                           {item.subtitle}
                         </div>
                       )}
                     </div>
                     {item.kind && (
-                      <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 999, background: isSelected ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)', color: isSelected ? '#e0e7ff' : '#94a3b8', border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, textTransform: 'capitalize' }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 999, background: isSelected ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.05)', color: isSelected ? '#d1fae5' : '#94a3b8', border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, textTransform: 'capitalize' }}>
                         {item.kind}
                       </span>
                     )}

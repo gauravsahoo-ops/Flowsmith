@@ -376,12 +376,12 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
             <div
               style={{
                 padding: '0.85rem',
-                background: 'rgba(99, 102, 241, 0.08)',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
                 borderRadius: '8px',
               }}
             >
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#818cf8', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#34d399', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="16" x2="12" y2="12" />
@@ -535,8 +535,8 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
                           width: '26px',
                           height: '26px',
                           borderRadius: '50%',
-                          background: 'rgba(99, 102, 241, 0.15)',
-                          color: '#818cf8',
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          color: '#34d399',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -599,7 +599,7 @@ export default function AIBuilderConsole({ statusInfo: _statusInfo, selectedCred
                 </div>
               )}
               {modificationDiff && (
-                <div style={{ padding: '0.75rem', background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '8px', fontSize: '12.5px', color: '#cbd5e1' }}>
+                <div style={{ padding: '0.75rem', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', fontSize: '12.5px', color: '#cbd5e1' }}>
                   {modificationDiff.summary}
                 </div>
               )}

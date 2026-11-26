@@ -553,7 +553,7 @@ export default function ExecutionsPage() {
         {debouncedSearch && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>
-              Results for &ldquo;<strong style={{ color: '#c7d2fe' }}>{debouncedSearch}</strong>&rdquo;:
+              Results for &ldquo;<strong style={{ color: '#a7f3d0' }}>{debouncedSearch}</strong>&rdquo;:
             </span>
             <button
               type="button"
@@ -740,7 +740,7 @@ export default function ExecutionsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 14 }}>
                 {occurrences.map((occ) => {
                   const colors = {
-                    steps: { bg: 'rgba(99, 102, 241, 0.15)', text: '#818cf8', border: 'rgba(99, 102, 241, 0.35)' },
+                    steps: { bg: 'rgba(16, 185, 129, 0.15)', text: '#34d399', border: 'rgba(16, 185, 129, 0.35)' },
                     errors: { bg: 'rgba(239, 68, 68, 0.15)', text: '#f87171', border: 'rgba(239, 68, 68, 0.35)' },
                     records: { bg: 'rgba(16, 185, 129, 0.15)', text: '#34d399', border: 'rgba(16, 185, 129, 0.35)' },
                     api_requests: { bg: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: 'rgba(56, 189, 248, 0.35)' },
@@ -765,7 +765,7 @@ export default function ExecutionsPage() {
                         transition: 'transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.45)'
+                        e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.45)'
                         e.currentTarget.style.transform = 'translateY(-2px)'
                         e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)'
                       }}
@@ -794,7 +794,7 @@ export default function ExecutionsPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {occ.started_at && (
                             <span style={{ fontSize: 11, color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
                               </svg>
@@ -812,7 +812,7 @@ export default function ExecutionsPage() {
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                           </svg>
                           <strong style={{ color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -844,7 +844,7 @@ export default function ExecutionsPage() {
                         <span style={{ color: 'var(--text-muted)' }}>
                           Field: <code style={{ color: '#94a3b8' }}>{occ.matched_field}</code>
                         </span>
-                        <span style={{ color: '#818cf8', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ color: '#34d399', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <span>Inspect Detail</span>
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <polyline points="9 18 15 12 9 6" />
@@ -1016,7 +1016,7 @@ export default function ExecutionsPage() {
                       {/* Workflow Name & Match Badges */}
                       <td className="wf-name-cell" style={{ maxWidth: 240 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                          <span style={{ color: '#818cf8', display: 'inline-flex', flexShrink: 0 }}>
+                          <span style={{ color: '#34d399', display: 'inline-flex', flexShrink: 0 }}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2">
                               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                             </svg>
@@ -1053,9 +1053,9 @@ export default function ExecutionsPage() {
                                   fontWeight: 600,
                                   padding: '1px 6px',
                                   borderRadius: 4,
-                                  background: 'rgba(99, 102, 241, 0.16)',
-                                  color: '#c7d2fe',
-                                  border: '1px solid rgba(99, 102, 241, 0.35)',
+                                  background: 'rgba(16, 185, 129, 0.16)',
+                                  color: '#a7f3d0',
+                                  border: '1px solid rgba(16, 185, 129, 0.35)',
                                   cursor: 'pointer',
                                   maxWidth: 210,
                                   overflow: 'hidden',
@@ -1065,7 +1065,7 @@ export default function ExecutionsPage() {
                                 }}
                                 title={`Jump to match: ${m.label} — ${m.snippet || ''}`}
                               >
-                                <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#818cf8', flexShrink: 0 }} />
+                                <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#34d399', flexShrink: 0 }} />
                                 <span>{m.label}</span>
                               </button>
                             ))}

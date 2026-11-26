@@ -87,7 +87,7 @@ export default function NodeAutoRepair({
     <div className="node-auto-repair-container" role="region" aria-label="Flowsmith AI Self-Healing Diagnostic">
       <div className="nar-header">
         <div className="nar-title">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#818cf8', flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#34d399', flexShrink: 0 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span>Flowsmith AI Self-Healing Diagnostic</span>
         </div>
         <button
@@ -169,7 +169,7 @@ export default function NodeAutoRepair({
                   target="_blank"
                   rel="noreferrer"
                   className="btn secondary"
-                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 12px', background: 'rgba(99,102,241,0.2)', border: '1px solid #6366f1', color: '#c7d2fe', borderRadius: 6 }}
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 12px', background: 'rgba(16,185,129,0.2)', border: '1px solid #10b981', color: '#a7f3d0', borderRadius: 6 }}
                 >
                   Open Credentials Page
                 </a>

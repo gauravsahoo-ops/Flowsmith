@@ -539,11 +539,12 @@ export const api = {
   deleteDataTableRow: (tableId, rowId) => request('DELETE', `/data-tables/${tableId}/rows/${rowId}`),
   bulkDeleteDataTableRows: (tableId, ids) => request('POST', `/data-tables/${tableId}/rows/bulk-delete`, { ids }),
   // Phase 18: production RAG (collections, ingestion, retrieval debugging).
+  ragStatus: () => request('GET', '/rag/status'),
   listRagCollections: () => request('GET', '/rag/collections'),
   createRagCollection: (payload) => request('POST', '/rag/collections', payload),
   deleteRagCollection: (id) => request('DELETE', `/rag/collections/${id}`),
-  ragIngest: (id, payload) => request('POST', `/rag/collections/${id}/documents`, payload),
-  ragQuery: (id, payload) => request('POST', `/rag/collections/${id}/query`, payload),
+  ragIngest: (id, payload) => request('POST', `/rag/collections/${id}/documents`, payload, { timeout: 120000 }),
+  ragQuery: (id, payload) => request('POST', `/rag/collections/${id}/query`, payload, { timeout: 120000 }),
   getWorkflowAuthState: (workflowId, provider = '') => {
     const q = provider ? `?provider=${encodeURIComponent(provider)}` : ''
     return requestEnvelope('GET', `/workflows/${workflowId}/auth-state${q}`)

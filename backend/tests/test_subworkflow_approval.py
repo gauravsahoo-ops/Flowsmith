@@ -210,7 +210,7 @@ def _parent_workflow(
     }
 
 
-def _agent_child(child_id: str) -> dict[str, Any]:
+def _agent_child(child_id: str, llm_id: str) -> dict[str, Any]:
     return {
         "id": child_id,
         "name": "Agent approval child",
@@ -224,9 +224,8 @@ def _agent_child(child_id: str) -> dict[str, Any]:
                     "input": "Insert the row",
                     "tools": ["datatable_insert_row"],
                     "memory_type": "none",
-                    "model": "builtin",
-                    "allow_builtin_fallback": True,
                 },
+                "credentials": {"llm": llm_id},
             },
             {
                 "id": "child_after",
@@ -1041,6 +1040,17 @@ def test_nested_agent_tool_approval_pauses_and_resumes(client, monkeypatch):
 
     registered = register_user(client, email="subwf_tool@example.com")
     headers = auth_headers(registered["token"])
+    llm = client.post(
+        "/api/credentials",
+        json={
+            "name": "subwf-agent-llm",
+            "type": "llm",
+            "data": {"base_url": "http://localhost:9/v1", "model": "fake", "api_key": "k"},
+        },
+        headers=headers,
+    )
+    assert llm.status_code == 201, llm.text
+    llm_id = llm.json()["data"]["id"]
 
     calls: dict[str, Any] = {"chat": 0, "tools": []}
 
@@ -1063,7 +1073,7 @@ def test_nested_agent_tool_approval_pauses_and_resumes(client, monkeypatch):
 
     child_id = "wf_sub_child_tool"
     parent_id = "wf_sub_parent_tool"
-    _create_workflow(client, headers, _agent_child(child_id))
+    _create_workflow(client, headers, _agent_child(child_id, llm_id))
     _create_workflow(client, headers, _parent_workflow(parent_id, child_id))
 
     execution_id, paused = _pause_parent(client, headers, parent_id)

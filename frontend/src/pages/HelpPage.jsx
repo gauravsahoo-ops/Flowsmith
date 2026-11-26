@@ -193,11 +193,11 @@ export default function HelpPage() {
       <section className="help-section-card">
         <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>Getting Started</h3>
         <ol className="hint" style={{ lineHeight: 1.8, paddingLeft: 20, margin: 0, fontSize: 13.5 }}>
-          <li>Navigate to <Link to="/workflows" style={{ color: '#818cf8', fontWeight: 600 }}>Workflows</Link> → click <strong>＋ Create workflow</strong>.</li>
+          <li>Navigate to <Link to="/workflows" style={{ color: '#34d399', fontWeight: 600 }}>Workflows</Link> → click <strong>＋ Create workflow</strong>.</li>
           <li>Drag nodes from the left palette onto the visual canvas and connect them with edges.</li>
           <li>Click any node to open the configuration dialog (Inputs → Parameters → Live outputs).</li>
-          <li>Configure credentials in <Link to="/credentials" style={{ color: '#818cf8', fontWeight: 600 }}>Credentials</Link> for external services like Salesforce, Slack, or databases.</li>
-          <li>Click <strong>▶ Run</strong> to execute your flow, monitor real-time node outputs, and trace full executions in <Link to="/executions" style={{ color: '#818cf8', fontWeight: 600 }}>Executions</Link>.</li>
+          <li>Configure credentials in <Link to="/credentials" style={{ color: '#34d399', fontWeight: 600 }}>Credentials</Link> for external services like Salesforce, Slack, or databases.</li>
+          <li>Click <strong>▶ Run</strong> to execute your flow, monitor real-time node outputs, and trace full executions in <Link to="/executions" style={{ color: '#34d399', fontWeight: 600 }}>Executions</Link>.</li>
         </ol>
       </section>
 

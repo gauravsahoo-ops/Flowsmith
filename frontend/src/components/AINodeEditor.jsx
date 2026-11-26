@@ -237,7 +237,7 @@ export default function AINodeEditor({
             style={{
               background: 'transparent',
               border: 'none',
-              color: 'var(--accent, #818cf8)',
+              color: 'var(--accent, #34d399)',
               fontSize: 11.5,
               fontWeight: 500,
               cursor: 'pointer',
@@ -293,7 +293,7 @@ export default function AINodeEditor({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: 'var(--accent, #818cf8)',
+                color: 'var(--accent, #34d399)',
                 fontSize: 11.5,
                 cursor: 'pointer',
                 textDecoration: 'underline',
@@ -410,7 +410,7 @@ export default function AINodeEditor({
             step="0.1"
             value={params.temperature ?? 0.7}
             onChange={e => onParamsChange({ ...params, temperature: parseFloat(e.target.value) })}
-            style={{ width: '100%', accentColor: 'var(--accent, #6366f1)' }}
+            style={{ width: '100%', accentColor: 'var(--accent, #10b981)' }}
           />
         </div>
 

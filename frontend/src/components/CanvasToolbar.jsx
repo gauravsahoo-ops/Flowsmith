@@ -219,7 +219,7 @@ function CanvasToolbarComponent() {
         </span>
       </ToolButton>
       <ToolButton title={showMiniMap ? 'Hide canvas minimap' : 'Show canvas minimap'} onClick={toggleMiniMap}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: showMiniMap ? '#818cf8' : 'inherit' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: showMiniMap ? '#34d399' : 'inherit' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
             <line x1="9" y1="3" x2="9" y2="18" />

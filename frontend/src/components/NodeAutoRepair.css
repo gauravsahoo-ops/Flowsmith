@@ -33,7 +33,7 @@
   gap: 12px;
   padding: 12px 0;
   font-size: 12px;
-  color: #a5b4fc;
+  color: #6ee7b7;
 }
 
 .nar-spinner {
@@ -141,7 +141,7 @@
 }
 
 .nar-btn-primary {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%) !important;
+  background: linear-gradient(135deg, #10b981 0%, #8b5cf6 50%, #d946ef 100%) !important;
   color: #fff !important;
   border: none !important;
   font-weight: 600;

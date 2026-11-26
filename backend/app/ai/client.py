@@ -34,6 +34,21 @@ class LLMError(Exception):
         self.message = message
 
 
+def _reject_builtin_provider(provider: str | None, model: str | None) -> None:
+    """Fail closed when an old/edited credential points at a builtin model."""
+    p = (provider or "").strip().lower()
+    m = (model or "").strip().lower()
+    if (
+        p in {"builtin", "offline", "mock", "local-ai", "local_ai", "zero-llm", "zero_llm"}
+        or m.startswith("builtin")
+        or m in {"local-ai", "local_ai", "zero-llm", "zero_llm"}
+    ):
+        raise LLMError(
+            "No built-in/offline LLM is available. Configure an LLM credential.",
+            code="LLM_CREDENTIAL_REQUIRED",
+        )
+
+
 def is_json_response_format(value: str) -> bool:
     return value in ("json", "json_object")
 
@@ -87,12 +102,13 @@ async def chat_completion(
     api_key = credential.get("api_key") or ""
     base_url = str(credential.get("base_url") or "").rstrip("/")
     timeout_s = float(credential.get("timeout_s") or (120.0 if prov_name == "ollama" else 60.0))
+    _reject_builtin_provider(prov_name, model)
 
     # SSRF: a credential-supplied base_url is fetched server-side and must
     # never reach internal/metadata hosts. Only providers with no network
     # egress are exempt; localhost Ollama must be explicitly allowlisted
     # (SAFE_HTTP_ALLOWED_HOSTS) in production.
-    if base_url and prov_name not in ("builtin", "local_ai", "offline", "mock"):
+    if base_url:
         from app.engine.errors import NodeExecutionError
         from app.security.ssrf import assert_public_url
 
@@ -102,12 +118,7 @@ async def chat_completion(
             raise LLMError(f"LLM base_url rejected: {exc.message}", code="LLM_SSRF_BLOCKED") from exc
 
     # Route specialized non-OpenAI or local builtin providers via provider classes
-    if (
-        prov_name in ("anthropic", "gemini", "ollama", "builtin", "local_ai", "offline", "mock")
-        or model.startswith(("claude", "gemini", "builtin"))
-        or model in ("builtin", "local-ai")
-        or (prov_name == "builtin")
-    ):
+    if prov_name in ("anthropic", "gemini", "ollama") or model.startswith(("claude", "gemini")):
         fmt = response_format
         if response_json and not fmt:
             fmt = {"type": "json_object"}
@@ -296,6 +307,7 @@ async def stream_chat_completion(
     api_key = credential.get("api_key") or ""
     base_url = str(credential.get("base_url") or "").rstrip("/")
     timeout_s = float(credential.get("timeout_s") or 60.0)
+    _reject_builtin_provider(prov_name, model)
 
     if not base_url:
         if prov_name:

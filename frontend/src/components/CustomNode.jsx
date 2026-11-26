@@ -16,8 +16,8 @@ const CATEGORY_COLORS = {
   actions: '#a855f7',
   Action: '#a855f7',
   action: '#a855f7',
-  Communication: '#6366f1',
-  communication: '#6366f1',
+  Communication: '#10b981',
+  communication: '#10b981',
   Database: '#8b5cf6',
   database: '#8b5cf6',
   Transform: '#f59e0b',
@@ -46,8 +46,8 @@ const CATEGORY_COLORS = {
   marketing: '#f43f5e',
   Finance: '#10b981',
   finance: '#10b981',
-  Connectors: '#6366f1',
-  connectors: '#6366f1',
+  Connectors: '#10b981',
+  connectors: '#10b981',
 }
 
 function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
@@ -153,7 +153,7 @@ function ContextMenu({ x, y, nodeId, isPinned, onPin, onUnpin, onClose }) {
       <div className="ctx-sep" role="separator" />
 
       <button type="button" role="menuitem" onClick={handleTestStep} disabled={runningStep}>
-        <span className="ctx-icon" style={{ color: 'var(--primary, #6366f1)' }}>
+        <span className="ctx-icon" style={{ color: 'var(--primary, #10b981)' }}>
           ▶
         </span>
         <span className="ctx-label">{runningStep ? 'Testing…' : 'Test Step (Run Node)'}</span>

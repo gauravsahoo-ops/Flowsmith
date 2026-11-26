@@ -341,7 +341,7 @@ export default function LLMCredentialModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, transparent 100%)',
+            background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -405,9 +405,9 @@ export default function LLMCredentialModal({
                       padding: '2px 8px',
                       fontSize: 11,
                       borderRadius: 10,
-                      background: providerCategory === cat ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-                      border: providerCategory === cat ? '1px solid var(--accent, #6366f1)' : '1px solid transparent',
-                      color: providerCategory === cat ? 'var(--accent, #818cf8)' : 'var(--muted, #94a3b8)',
+                      background: providerCategory === cat ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                      border: providerCategory === cat ? '1px solid var(--accent, #10b981)' : '1px solid transparent',
+                      color: providerCategory === cat ? 'var(--accent, #34d399)' : 'var(--muted, #94a3b8)',
                       cursor: 'pointer',
                     }}
                   >
@@ -616,9 +616,9 @@ export default function LLMCredentialModal({
                 style={{
                   padding: '7px 14px',
                   borderRadius: 6,
-                  background: 'rgba(99, 102, 241, 0.15)',
-                  border: '1px solid var(--accent, #6366f1)',
-                  color: 'var(--accent, #818cf8)',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid var(--accent, #10b981)',
+                  color: 'var(--accent, #34d399)',
                   fontSize: 12.5,
                   fontWeight: 600,
                   cursor: modelsLoading ? 'not-allowed' : 'pointer',
@@ -708,7 +708,7 @@ export default function LLMCredentialModal({
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: 'var(--accent, #818cf8)',
+                    color: 'var(--accent, #34d399)',
                     fontSize: 11.5,
                     cursor: 'pointer',
                     textDecoration: 'underline',
@@ -825,13 +825,13 @@ export default function LLMCredentialModal({
               style={{
                 padding: '8px 20px',
                 borderRadius: 6,
-                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 border: 'none',
                 color: '#ffffff',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: saving ? 'not-allowed' : 'pointer',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.4)',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,

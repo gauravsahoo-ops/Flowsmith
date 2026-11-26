@@ -48,6 +48,53 @@ def _model_key(model_name: str) -> str:
     return (str(model_name or "").strip() or DEFAULT_EMBEDDING_MODEL)
 
 
+def preload_embedding_model() -> bool:
+    """Load the semantic embedding model once during application startup.
+
+    The first SentenceTransformer load is CPU-heavy (~50s in the current
+    image). Preloading keeps the first Knowledge ingest/query inside normal
+    request timeouts. Failures are non-fatal for non-RAG product surfaces.
+    """
+    try:
+        _get_embedding_model(DEFAULT_EMBEDDING_MODEL)
+        logger.info("RAG embedding model preloaded: %s", DEFAULT_EMBEDDING_MODEL)
+        return True
+    except Exception as exc:
+        logger.warning("RAG embedding model preload skipped: %s", exc)
+        return False
+
+
+def embedding_capability() -> dict[str, Any]:
+    """Report whether real semantic embeddings are available.
+
+    The hash fallback is for tests/offline demos only; it is not semantic and
+    must not be presented as a working production Knowledge feature.
+    """
+    import importlib.util
+    import os
+
+    semantic = importlib.util.find_spec("sentence_transformers") is not None
+    fallback_allowed = os.environ.get("APP_ENV") != "production"
+    if semantic:
+        message = "Semantic embeddings are available."
+    elif fallback_allowed:
+        message = (
+            "The semantic embedding model is not installed. This development "
+            "build uses a non-semantic hash fallback; Knowledge search may "
+            "return no useful results. Install backend/requirements-ai.txt to enable it."
+        )
+    else:
+        message = (
+            "Knowledge is unavailable: the semantic embedding model is not installed."
+        )
+    return {
+        "semantic_available": semantic,
+        "fallback_allowed": fallback_allowed,
+        "model": DEFAULT_EMBEDDING_MODEL,
+        "message": message,
+    }
+
+
 def _get_embedding_model(model_name: str) -> Any:
     key = _model_key(model_name)
     with _embedding_models_lock:

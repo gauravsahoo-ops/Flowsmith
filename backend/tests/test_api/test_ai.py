@@ -291,8 +291,8 @@ def test_ai_chat_with_llm_credential_and_memory(client, fake_llm):
     assert mem_data["messages"][1]["content"] == "Hello! I am Flowsmith AI Agent."
 
 
-def test_ai_chat_zero_llm_mode(client):
-    """Calling /api/ai/chat with allow_builtin=True runs without an external LLM credential."""
+def test_ai_chat_zero_llm_mode_is_rejected(client):
+    """AI chat never falls back to a builtin model; an LLM credential is required."""
     reg = register(client, "offline_ai_user@example.com")
     headers = auth_headers(reg["token"])
 
@@ -301,15 +301,39 @@ def test_ai_chat_zero_llm_mode(client):
         json={
             "message": "What time is it?",
             "session_id": "offline_sess_1",
-            "allow_builtin": True,
             "memory_type": "complete",
         },
         headers=headers,
     )
-    assert resp.status_code == 200
-    data = resp.json()["data"]
-    assert data["provider"] == "builtin"
-    assert "UTC" in data["response"] or "time" in data["response"].lower()
+    assert resp.status_code == 422
+    assert "credential" in resp.text.lower()
+    assert "builtin" not in resp.text.lower()
+
+
+def test_legacy_builtin_credential_is_not_usable(client):
+    """A stored legacy builtin provider must never enable AI."""
+    reg = register(client, "legacy_builtin_user@example.com")
+    headers = auth_headers(reg["token"])
+
+    created = client.post(
+        "/api/credentials",
+        json={
+            "name": "Legacy Builtin",
+            "type": "llm",
+            "data": {"provider": "builtin", "model": "builtin", "api_key": ""},
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+
+    status = client.get("/api/ai/status", headers=headers).json()["data"]
+    assert status["configured"] is False
+    assert all(c["provider"] != "builtin" for c in status["credentials"])
+    assert client.post(
+        "/api/ai/generate-workflow",
+        json={"prompt": "build a workflow"},
+        headers=headers,
+    ).status_code == 422
 
 
 def test_ai_memory_search_and_entities_endpoints(client):
@@ -395,7 +419,7 @@ def test_ai_memory_isolated_between_users(client):
 def test_ai_chat_generic_failure_is_static_500(client, monkeypatch):
     """Unexpected agent exceptions return a static 500 detail; raw
     exception text (connection strings, internals) never reaches clients."""
-    reg = register(client, "agent_boom@example.com")
+    reg = _register_with_llm(client, "agent_boom@example.com")
     headers = auth_headers(reg["token"])
 
     async def boom(self, ctx, params, inputs):
@@ -407,7 +431,6 @@ def test_ai_chat_generic_failure_is_static_500(client, monkeypatch):
         json={
             "message": "hi",
             "session_id": "boom_sess",
-            "allow_builtin": True,
             "memory_type": "complete",
         },
         headers=headers,

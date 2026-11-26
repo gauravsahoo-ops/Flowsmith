@@ -368,6 +368,17 @@ def test_tool_approval_pause_and_resume_end_to_end(client, monkeypatch):
     from tests.test_api.conftest import auth_headers, register
 
     headers = auth_headers(register(client, email="tool_approval_e2e@example.com")["token"])
+    llm = client.post(
+        "/api/credentials",
+        json={
+            "name": "e2e-agent-llm",
+            "type": "llm",
+            "data": {"base_url": "http://localhost:9/v1", "model": "fake", "api_key": "k"},
+        },
+        headers=headers,
+    )
+    assert llm.status_code == 201, llm.text
+    llm_id = llm.json()["data"]["id"]
     calls = {"chat": 0, "tools": []}
 
     async def fake_chat(_cred, messages, **_kwargs):
@@ -401,9 +412,8 @@ def test_tool_approval_pause_and_resume_end_to_end(client, monkeypatch):
                     "input": "Insert the row",
                     "tools": ["datatable_insert_row"],
                     "memory_type": "none",
-                    "model": "builtin",
-                    "allow_builtin_fallback": True,
                 },
+                "credentials": {"llm": llm_id},
             },
             {
                 "id": "after",

@@ -11,25 +11,7 @@ describe('AI Copilot, Agents Tab, and Smith Multi-Provider Synchronization', () 
     vi.restoreAllMocks()
   })
 
-  it('SmithDrawer syncs with multi-provider LLM status and displays active provider and model', async () => {
-    vi.spyOn(api, 'aiStatus').mockResolvedValue({
-      configured: true,
-      active: {
-        id: 'cred_534988e132d5',
-        name: 'OpenRouter Credential',
-        provider: 'openrouter',
-        model: 'z-ai/glm-5.3',
-      },
-      credentials: [
-        {
-          id: 'cred_534988e132d5',
-          name: 'OpenRouter Credential',
-          provider: 'openrouter',
-          model: 'z-ai/glm-5.3',
-        },
-      ],
-    })
-
+  it('SmithDrawer requires an LLM credential when none is configured', () => {
     const html = renderToStaticMarkup(
       React.createElement(SmithDrawer, {
         isOpen: true,
@@ -39,7 +21,8 @@ describe('AI Copilot, Agents Tab, and Smith Multi-Provider Synchronization', () 
 
     expect(html).toContain('Smith')
     expect(html).toContain('AI COPILOT')
-    expect(html).toContain('Ready')
+    expect(html).toContain('No LLM credential')
+    expect(html).toContain('Add an LLM credential to enable Smith')
     expect(html).toContain('Chat &amp; Tools')
     expect(html).toContain('Debug &amp; Analyze')
     expect(html).not.toContain('Workflow Builder')
