@@ -35,7 +35,32 @@
   z-index: 200;
   animation: smoothDropdownOpen 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top right;
-  overflow: hidden;
+  /* Never exceed the space between the menu trigger and the viewport bottom */
+  max-height: calc(100vh - 64px);
+  max-height: calc(100dvh - 64px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+.topbar-menu::-webkit-scrollbar {
+  width: 8px;
+}
+.topbar-menu::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px 0;
+}
+.topbar-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+.topbar-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 .topbar-menu button {
   width: 100%;
