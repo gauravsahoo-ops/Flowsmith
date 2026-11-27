@@ -1,0 +1,202 @@
+{
+  "format": "opencode-workflow",
+  "version": 1,
+  "exported_at": "2026-11-27T10:23:22.250353+00:00",
+  "workflow": {
+    "id": "wf_salesforce_to_hubspot_simple",
+    "name": "Salesforce Contacts to HubSpot (Simple)",
+    "status": "draft",
+    "active": false,
+    "version": 1,
+    "nodes": [
+      {
+        "id": "start",
+        "name": "Manual Trigger",
+        "type": "manual_trigger",
+        "version": 1,
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "settings": {},
+        "parameters": {},
+        "credentials": {},
+        "pinned_data": null
+      },
+      {
+        "id": "fetch_contacts",
+        "name": "Fetch Salesforce Contacts",
+        "type": "salesforce",
+        "version": 1,
+        "position": {
+          "x": 240,
+          "y": 0
+        },
+        "settings": {
+          "retry_max_attempts": 2,
+          "retry_backoff_seconds": 2
+        },
+        "parameters": {
+          "operation": "query",
+          "soql": "SELECT Id, FirstName, LastName, Name, Email, Title, Phone,\n       AccountId, Account.Name, Account.Website, Account.BillingCountry,\n       Account.BillingCity, Account.AnnualRevenue, Account.NumberOfEmployees\nFROM Contact\nWHERE Email != null AND AccountId != null\nORDER BY LastModifiedDate DESC\nLIMIT 200",
+          "max_pages": 5
+        },
+        "credentials": {},
+        "pinned_data": null
+      },
+      {
+        "id": "normalize",
+        "name": "Normalize Contacts",
+        "type": "code",
+        "version": 1,
+        "position": {
+          "x": 480,
+          "y": 0
+        },
+        "settings": {},
+        "parameters": {
+          "language": "python",
+          "mode": "runOnceForAllItems",
+          "code": "query_items = items or []\nraw_records = []\n\nfor entry in query_items:\n    item = entry.get(\"json\") if isinstance(entry, dict) and isinstance(entry.get(\"json\"), dict) else entry\n    if not isinstance(item, dict):\n        continue\n    records = item.get(\"records\")\n    if records is None and item.get(\"Id\"):\n        records = [item]\n    for record in records or []:\n        if isinstance(record, dict):\n            raw_records.append(record)\n\ncontacts = []\nfor record in raw_records:\n    account = record.get(\"Account\") or {}\n    email = str(record.get(\"Email\") or \"\").strip().lower()\n\n    website = str(account.get(\"Website\") or \"\").strip().lower()\n    if \"://\" in website:\n        website = website.split(\"://\", 1)[1]\n    if website.startswith(\"www.\"):\n        website = website[4:]\n    for sep in (\"/\", \"?\", \"#\", \":\"):\n        if sep in website:\n            website = website.split(sep, 1)[0]\n    domain = website.strip().strip(\".\")\n    if \" \" in domain or \".\" not in domain:\n        domain = \"\"\n\n    if not email or not domain:\n        continue\n\n    first_name = str(record.get(\"FirstName\") or \"\").strip()\n    last_name = str(record.get(\"LastName\") or \"\").strip()\n    account_name = str(account.get(\"Name\") or \"\").strip() or domain\n\n    company_properties = {\n        \"name\": account_name,\n        \"domain\": domain,\n    }\n    city = str(account.get(\"BillingCity\") or \"\").strip()\n    country = str(account.get(\"BillingCountry\") or \"\").strip()\n    if city:\n        company_properties[\"city\"] = city\n    if country:\n        company_properties[\"country\"] = country\n\n    revenue = 0.0\n    revenue_raw = account.get(\"AnnualRevenue\")\n    if revenue_raw:\n        try:\n            revenue = float(str(revenue_raw).replace(\",\", \"\").replace(\"$\", \"\"))\n        except Exception:\n            revenue = 0.0\n    if revenue > 0:\n        company_properties[\"annualrevenue\"] = str(int(revenue))\n\n    employees = 0\n    employees_raw = account.get(\"NumberOfEmployees\")\n    if employees_raw:\n        try:\n            employees = int(float(str(employees_raw).replace(\",\", \"\")))\n        except Exception:\n            employees = 0\n    if employees > 0:\n        company_properties[\"numberofemployees\"] = str(int(employees))\n\n    contact_properties = {\n        \"email\": email,\n        \"company\": account_name,\n    }\n    if first_name:\n        contact_properties[\"firstname\"] = first_name\n    if last_name:\n        contact_properties[\"lastname\"] = last_name\n    title = str(record.get(\"Title\") or \"\").strip()\n    phone = str(record.get(\"Phone\") or \"\").strip()\n    if title:\n        contact_properties[\"jobtitle\"] = title\n    if phone:\n        contact_properties[\"phone\"] = phone\n\n    contacts.append({\n        \"sf_contact_id\": str(record.get(\"Id\") or \"\"),\n        \"sf_account_id\": str(record.get(\"AccountId\") or account.get(\"Id\") or \"\"),\n        \"contact_email\": email,\n        \"company_domain\": domain,\n        \"account_name\": account_name,\n        \"company_properties\": company_properties,\n        \"contact_properties\": contact_properties,\n    })\n\nfor contact in contacts:\n    contact[\"batch_fetched\"] = len(raw_records)\n    contact[\"batch_eligible\"] = len(contacts)\n\nreturn [{\n    \"contacts\": contacts,\n    \"fetched\": len(raw_records),\n    \"eligible\": len(contacts),\n}]"
+        },
+        "credentials": {},
+        "pinned_data": null
+      },
+      {
+        "id": "has_contacts",
+        "name": "Has Eligible Contacts?",
+        "type": "if_condition",
+        "version": 1,
+        "position": {
+          "x": 720,
+          "y": 0
+        },
+        "settings": {},
+        "parameters": {
+          "combinator": "AND",
+          "conditions": [
+            {
+              "id": "has_contacts",
+              "left": "{{ $json.eligible }}",
+              "right": 0,
+              "operator": "is greater than",
+              "combinator": "AND"
+            }
+          ]
+        },
+        "credentials": {},
+        "pinned_data": null
+      },
+      {
+        "id": "fan_out",
+        "name": "One Item Per Contact",
+        "type": "split_out",
+        "version": 1,
+        "position": {
+          "x": 960,
+          "y": 0
+        },
+        "settings": {},
+        "parameters": {
+          "field": "contacts",
+          "include": "allOtherFields",
+          "batch_size": 0
+        },
+        "credentials": {},
+        "pinned_data": null
+      },
+      {
+        "id": "sync_one",
+        "name": "Upsert Contact in HubSpot",
+        "type": "sub_workflow",
+        "version": 1,
+        "position": {
+          "x": 1200,
+          "y": 0
+        },
+        "settings": {
+          "timeout_seconds": 180
+        },
+        "parameters": {
+          "source": "database",
+          "workflow_selector": "id",
+          "workflow_id": "wf_salesforce_hubspot_simple_child",
+          "mode": "onceForEach",
+          "options": {
+            "waitForSubWorkflowCompletion": true
+          }
+        },
+        "credentials": {},
+        "pinned_data": null
+      },
+      {
+        "id": "summarize",
+        "name": "Sync Summary",
+        "type": "code",
+        "version": 1,
+        "position": {
+          "x": 1440,
+          "y": 0
+        },
+        "settings": {},
+        "parameters": {
+          "language": "python",
+          "mode": "runOnceForAllItems",
+          "code": "rows = []\nbatch_fetched = 0\nbatch_eligible = 0\n\nfor entry in items or []:\n    row = entry.get(\"json\") if isinstance(entry, dict) and isinstance(entry.get(\"json\"), dict) else entry\n    if not isinstance(row, dict):\n        continue\n    if \"contacts\" in row and not row.get(\"status\"):\n        batch_fetched = max(batch_fetched, int(row.get(\"fetched\") or 0))\n        batch_eligible = max(batch_eligible, int(row.get(\"eligible\") or 0))\n        continue\n    if \"$error\" in row:\n        error = row.get(\"$error\") or {}\n        source = row.get(\"item\") if isinstance(row.get(\"item\"), dict) else {}\n        rows.append({\n            \"status\": \"failed\",\n            \"contact_email\": source.get(\"contact_email\", \"\"),\n            \"account_name\": source.get(\"account_name\", \"\"),\n            \"error\": str(error.get(\"message\") or error or \"Sub-workflow failed\"),\n        })\n    elif row.get(\"status\"):\n        rows.append(row)\n\nsynced = [row for row in rows if row.get(\"status\") == \"synced\"]\nfailed = [row for row in rows if row.get(\"status\") == \"failed\"]\nfetched = max([batch_fetched] + [int(row.get(\"batch_fetched\") or 0) for row in rows])\neligible = max([batch_eligible] + [int(row.get(\"batch_eligible\") or 0) for row in rows])\n\nreturn [{\n    \"status\": \"success\" if not failed else \"partial\",\n    \"summary\": {\n        \"fetched\": fetched,\n        \"eligible\": eligible,\n        \"synced\": len(synced),\n        \"failed\": len(failed),\n        \"companies_created\": sum(1 for row in synced if row.get(\"company_action\") == \"created\"),\n        \"companies_updated\": sum(1 for row in synced if row.get(\"company_action\") == \"updated\"),\n        \"contacts_created\": sum(1 for row in synced if row.get(\"contact_action\") == \"created\"),\n        \"contacts_updated\": sum(1 for row in synced if row.get(\"contact_action\") == \"updated\"),\n    },\n    \"results\": rows,\n}]"
+        },
+        "credentials": {},
+        "pinned_data": null
+      }
+    ],
+    "connections": [
+      {
+        "source": "start",
+        "target": "fetch_contacts",
+        "sourceHandle": "main",
+        "targetHandle": "main"
+      },
+      {
+        "source": "fetch_contacts",
+        "target": "normalize",
+        "sourceHandle": "main",
+        "targetHandle": "main"
+      },
+      {
+        "source": "normalize",
+        "target": "has_contacts",
+        "sourceHandle": "main",
+        "targetHandle": "main"
+      },
+      {
+        "source": "has_contacts",
+        "target": "fan_out",
+        "sourceHandle": "true",
+        "targetHandle": "main"
+      },
+      {
+        "source": "has_contacts",
+        "target": "summarize",
+        "sourceHandle": "false",
+        "targetHandle": "main"
+      },
+      {
+        "source": "fan_out",
+        "target": "sync_one",
+        "sourceHandle": "main",
+        "targetHandle": "main"
+      },
+      {
+        "source": "sync_one",
+        "target": "summarize",
+        "sourceHandle": "main",
+        "targetHandle": "main"
+      }
+    ],
+    "settings": {
+      "max_parallelism": 1,
+      "timeout_seconds": 600
+    },
+    "created_at": "2026-11-27T10:20:22.730332+00:00",
+    "updated_at": "2026-11-27T10:20:22.730332+00:00"
+  }
+}

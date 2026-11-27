@@ -268,6 +268,53 @@ class TestKeyRotationMechanism:
         # Verify first key is a valid Fernet key
         Fernet(keys[0].encode())
 
+    def test_apply_refuses_single_key(self):
+        from app.config import get_settings
+        from scripts.rotate_encryption_key import rotate_keys
+
+        settings = get_settings()
+        previous = settings.credentials_encryption_key
+        settings.credentials_encryption_key = Fernet.generate_key().decode()
+        try:
+            with pytest.raises(RuntimeError, match="single key"):
+                rotate_keys(apply=True)
+        finally:
+            settings.credentials_encryption_key = previous
+
+    def test_rotate_exports_reencrypts_files(self, tmp_path):
+        from app.config import get_settings
+        from app.security.crypto import (
+            CredentialDecryptionError,
+            decrypt_text,
+            encrypt_text,
+        )
+        from scripts.rotate_encryption_key import rotate_exports
+
+        settings = get_settings()
+        previous = settings.credentials_encryption_key
+        old_key = Fernet.generate_key().decode()
+        new_key = Fernet.generate_key().decode()
+        user_dir = tmp_path / "users" / "1"
+        user_dir.mkdir(parents=True)
+        export_file = user_dir / "account.json.enc"
+
+        settings.credentials_encryption_key = old_key
+        try:
+            export_file.write_bytes(encrypt_text('{"account":"data"}'))
+            settings.credentials_encryption_key = f"{new_key},{old_key}"
+            assert rotate_exports(tmp_path, apply=True) == 1
+
+            # New key alone must decrypt the rotated file.
+            settings.credentials_encryption_key = new_key
+            assert decrypt_text(export_file.read_bytes()) == '{"account":"data"}'
+
+            # The old key alone must no longer work.
+            settings.credentials_encryption_key = old_key
+            with pytest.raises(CredentialDecryptionError):
+                decrypt_text(export_file.read_bytes())
+        finally:
+            settings.credentials_encryption_key = previous
+
 
 class TestReadinessEndpoint:
     """Verifies that the readiness probe accurately reflects infrastructure state."""

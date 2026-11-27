@@ -380,6 +380,19 @@ def test_served_spa_index_gets_csp_nonce(client: TestClient):
     assert "style-src-attr 'unsafe-inline'" in csp
 
 
+def test_spa_fallback_serves_application_routes_that_start_with_app(client: TestClient):
+    """Regression: /approvals must not be mistaken for the /app source probe."""
+    from app.main import FRONTEND_DIST
+
+    if FRONTEND_DIST is None or not (FRONTEND_DIST / "index.html").is_file():
+        pytest.skip("frontend dist not built")
+    resp = client.get("/approvals")
+    assert resp.status_code == 200
+    assert 'name="csp-nonce"' in resp.text
+    assert "text/html" in resp.headers.get("content-type", "")
+    assert client.get("/app/main.py").status_code == 404
+
+
 # ---------------------------------------------------------------------------
 # M-3: per-item retries
 # ---------------------------------------------------------------------------

@@ -236,17 +236,20 @@ FRONTEND_DIST: Path | None = Path(settings.frontend_dist) if settings.serve_fron
 # These are repository/source-code probes, not SPA routes. Returning 404
 # keeps the built UI usable without ever echoing index.html for a path that
 # looks like application source or a hosted API reference.
-_SOURCE_PROBE_PREFIXES = (
-    "/.",
+_SOURCE_PROBE_ROOTS = (
     "/app",
     "/backend",
-    "/coverage.xml",
     "/deploy",
-    "/docker-compose",
-    "/dockerfile",
     "/docs",
     "/frontend",
     "/node_modules",
+    "/scripts",
+)
+_SOURCE_PROBE_PREFIXES = (
+    "/.",
+    "/coverage.xml",
+    "/docker-compose",
+    "/dockerfile",
     "/openapi.json",
     "/package-lock.json",
     "/package.json",
@@ -255,7 +258,6 @@ _SOURCE_PROBE_PREFIXES = (
     "/redoc",
     "/requirements",
     "/ruff.toml",
-    "/scripts",
 )
 _SOURCE_PROBE_SUFFIXES = (".py", ".pyc", ".map", ".env")
 
@@ -268,6 +270,7 @@ def _is_source_probe(path: str) -> bool:
         or "%2f" in lower
         or "%5c" in lower
         or lower.startswith(_SOURCE_PROBE_PREFIXES)
+        or any(lower == root or lower.startswith(root + "/") for root in _SOURCE_PROBE_ROOTS)
         or lower.endswith(_SOURCE_PROBE_SUFFIXES)
     )
 

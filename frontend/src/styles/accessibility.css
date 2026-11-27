@@ -1,0 +1,56 @@
+/* WCAG 2.2 AA contrast guardrails.
+ *
+ * The decorative emerald (--accent #10b981) is intentionally bright, but
+ * white labels on it measure ~2.5:1. Solid primary actions therefore use a
+ * darker emerald; the accent remains for borders, icons and highlights.
+ *
+ * The selectors are intentionally more specific than component-level
+ * !important rules so every primary action resolves to the same safe pair.
+ */
+html body button.primary,
+html body a.primary,
+html body .primary,
+html body .primary[style],
+html body .login-submit-btn,
+html body .nem-actions button.primary,
+html body .nem-actions .btn-primary,
+html body .ai-arch-card .primary {
+  background: #047857 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+}
+
+html body button.primary:hover:not(:disabled),
+html body a.primary:hover:not(:disabled),
+html body .primary:hover:not(:disabled),
+html body .login-submit-btn:hover:not(:disabled),
+html body .nem-actions button.primary:hover:not(:disabled),
+html body .nem-actions .btn-primary:hover:not(:disabled),
+html body .ai-arch-card .primary:hover {
+  background: #065f46 !important;
+  border-color: #065f46 !important;
+}
+
+html body button.primary:active:not(:disabled),
+html body a.primary:active:not(:disabled),
+html body .primary:active:not(:disabled),
+html body .login-submit-btn:active:not(:disabled),
+html body .nem-actions button.primary:active:not(:disabled),
+html body .nem-actions .btn-primary:active:not(:disabled),
+html body .ai-arch-card .primary:active {
+  background: #064e3b !important;
+  border-color: #064e3b !important;
+}
+
+/* Labels and icons must inherit the accessible foreground, even when a
+ * component stylesheet sets an explicit white or accent colour. */
+html body button.primary span,
+html body a.primary span,
+html body .primary span,
+html body .login-submit-btn span,
+html body button.primary svg,
+html body a.primary svg,
+html body .primary svg,
+html body .login-submit-btn svg {
+  color: inherit !important;
+}

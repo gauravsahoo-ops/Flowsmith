@@ -54,3 +54,6 @@
 /* 17. Workflow editor and panel refinement */
 @import './styles/editor-professional.css';
 
+/* 18. WCAG AA contrast guardrails (must load last) */
+@import './styles/accessibility.css';
+
