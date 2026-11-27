@@ -346,6 +346,15 @@ class TestServeRuntimeConfiguration:
         assert dev_kwargs["reload"] is True
         assert "workers" not in dev_kwargs
 
+        public_dev_kwargs = build_uvicorn_kwargs(Settings(
+            app_env="development",
+            public_url="https://flowsmith.example.com",
+            queue_embedded_consumer=False,
+        ))
+        assert public_dev_kwargs["reload"] is False
+        assert "reload_dirs" not in public_dev_kwargs
+        assert "workers" not in public_dev_kwargs
+
         embedded_kwargs = build_uvicorn_kwargs(Settings(app_env="production", queue_embedded_consumer=True))
         assert embedded_kwargs["reload"] is False
         assert "workers" not in embedded_kwargs

@@ -21,7 +21,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: ${POSTGRES_MEMORY_LIMIT:-2G}
     logging:
       driver: json-file
       options:
@@ -48,7 +48,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: ${REDIS_MEMORY_LIMIT:-1G}
     logging:
       driver: json-file
       options:
@@ -200,13 +200,13 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: ${APP_MEMORY_LIMIT:-2G}
     logging:
       driver: json-file
       options:
         max-size: "100m"
         max-file: "10"
-    stop_grace_period: 30s
+    stop_grace_period: 60s
 
   worker:
     build: .
@@ -332,13 +332,13 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: ${WORKER_MEMORY_LIMIT:-2G}
     logging:
       driver: json-file
       options:
         max-size: "50m"
         max-file: "5"
-    stop_grace_period: 30s
+    stop_grace_period: 60s
 
   # Optional S3-compatible object storage for local development.
   # Enable with:  docker compose --profile s3 up -d

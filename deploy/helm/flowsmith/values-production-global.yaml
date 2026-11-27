@@ -1,0 +1,232 @@
+# Production-global reference values for Flowsmith.
+#
+# Target: 10,000 registered accounts / up to a few hundred concurrent users,
+# single primary region, multi-AZ, global CDN/WAF in front.
+#
+# Prerequisites:
+# - Managed PostgreSQL 16 + pgvector (Multi-AZ, PITR, TLS)
+# - Managed Redis 7 (TLS/auth, AOF, noeviction)
+# - RWX storage class for /app/backend/data (EFS / Filestore / Azure Files)
+# - External Secret containing DATABASE_URL, REDIS_URL, JWT_SECRET,
+#   CREDENTIALS_ENCRYPTION_KEY, REGISTRATION_BOOTSTRAP_TOKEN
+# - TLS certificate / cert-manager or cloud load-balancer certificate
+#
+# This file intentionally keeps OBJECT_STORE_BACKEND=local. The application's
+# S3 object-store backend is not implemented in this release; the RWX volume
+# provides shared object/export storage across replicas. S3 is the backup
+# target, not the live object store.
+#
+# 10,000 simultaneous users requires a different multi-region/active-active
+# architecture and a dedicated load test.
+
+nameOverride: flowsmith
+fullnameOverride: flowsmith
+
+image:
+  repository: ghcr.io/flowsmith/flowsmith
+  tag: "1.6.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+config:
+  appEnv: production
+  publicUrl: "https://flowsmith.example.com"
+  registrationMode: closed
+  corsOrigins: "https://flowsmith.example.com"
+  trustedProxies: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+  serveFrontend: true
+  apiDocsEnabled: false
+  queueBackend: redis
+  outboxRelayEnabled: true
+  objectStoreBackend: local
+  objectStoreLocalPath: /app/backend/data/objects
+  objectStoreBucket: ""
+  objectStoreEndpoint: ""
+  objectStoreRegion: us-east-1
+  extraEnv:
+    - name: MAT_BACKUP_DIR
+      value: /app/backend/data/backups
+    - name: EXECUTION_RETENTION_DAYS
+      value: "30"
+    - name: RATE_LIMIT_PER_MINUTE
+      value: "300"
+  extraEnvFrom: []
+
+connectorPacks:
+  requireSignature: true
+  trustedKeys: ""
+  revokedKeys: ""
+
+scim:
+  enabled: false
+  bearerToken: ""
+  defaultOrganizationId: ""
+  defaultWorkspaceId: ""
+
+saml:
+  enabled: false
+
+ldap:
+  enabled: false
+
+webauthn:
+  enabled: false
+
+secrets:
+  create: false
+  existingSecret: flowsmith-production-secrets
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  accessMode: ReadWriteMany
+  size: 200Gi
+  storageClass: efs-sc
+
+app:
+  replicaCount: 3
+  revisionHistoryLimit: 5
+  podAnnotations: {}
+  podLabels: {}
+  resources:
+    requests:
+      cpu: "500m"
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: flowsmith
+                app.kubernetes.io/component: app
+            topologyKey: kubernetes.io/hostname
+  terminationGracePeriodSeconds: 45
+
+worker:
+  replicaCount: 8
+  revisionHistoryLimit: 5
+  podAnnotations: {}
+  podLabels: {}
+  resources:
+    requests:
+      cpu: "500m"
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: flowsmith
+                app.kubernetes.io/component: worker
+            topologyKey: kubernetes.io/hostname
+  terminationGracePeriodSeconds: 60
+
+migrate:
+  enabled: true
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 600
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Use managed PostgreSQL. The Secret supplies DATABASE_URL.
+postgresql:
+  enabled: false
+
+# Use managed Redis. The Secret supplies REDIS_URL.
+redis:
+  enabled: false
+
+externalDatabase:
+  url: ""
+
+externalRedis:
+  url: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 100m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: flowsmith.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: flowsmith-tls
+      hosts:
+        - flowsmith.example.com
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 12
+  targetCPUUtilizationPercentage: 65
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+commonLabels: {}
+commonAnnotations: {}
